@@ -1,0 +1,10 @@
+root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/TTbb_4f_TTToHadronic_TuneCP5-Powheg-Openloops-Pythia8/TTbb_4f_TTToHadronic_nanoAODPostProcessor_2017_v03/201001_143451/0000/nano_postprocessed_6.root
+root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/TTbb_4f_TTToHadronic_TuneCP5-Powheg-Openloops-Pythia8/TTbb_4f_TTToHadronic_nanoAODPostProcessor_2017_v03/201001_143451/0000/nano_postprocessed_4.root
+root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/TTbb_4f_TTToHadronic_TuneCP5-Powheg-Openloops-Pythia8/TTbb_4f_TTToHadronic_nanoAODPostProcessor_2017_v03/201001_143451/0000/nano_postprocessed_3.root
+root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/TTbb_4f_TTToHadronic_TuneCP5-Powheg-Openloops-Pythia8/TTbb_4f_TTToHadronic_nanoAODPostProcessor_2017_v03/201001_143451/0000/nano_postprocessed_1.root
+root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/TTbb_4f_TTToHadronic_TuneCP5-Powheg-Openloops-Pythia8/TTbb_4f_TTToHadronic_nanoAODPostProcessor_2017_v03/201001_143451/0000/nano_postprocessed_2.root
+root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/TTbb_4f_TTToHadronic_TuneCP5-Powheg-Openloops-Pythia8/TTbb_4f_TTToHadronic_nanoAODPostProcessor_2017_v03/201001_143451/0000/nano_postprocessed_5.root
+root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/TTbb_4f_TTToHadronic_TuneCP5-Powheg-Openloops-Pythia8/TTbb_4f_TTToHadronic_nanoAODPostProcessor_2017_v03/201001_143451/0000/nano_postprocessed_7.root
+root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/TTbb_4f_TTToHadronic_TuneCP5-Powheg-Openloops-Pythia8/TTbb_4f_TTToHadronic_nanoAODPostProcessor_2017_v03/201001_143451/0000/nano_postprocessed_8.root
+root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/TTbb_4f_TTToHadronic_TuneCP5-Powheg-Openloops-Pythia8/TTbb_4f_TTToHadronic_nanoAODPostProcessor_2017_v03/201001_143451/0000/nano_postprocessed_9.root
+root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/TTbb_4f_TTToHadronic_TuneCP5-Powheg-Openloops-Pythia8/TTbb_4f_TTToHadronic_nanoAODPostProcessor_2017_v03/201001_143451/0000/nano_postprocessed_10.root

@@ -1,0 +1,7 @@
+root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/TTWJetsToLNu_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8/TTWJetsToLNu_nanoAODPostProcessor_2017_v03/200903_112441/0000/nano_postprocessed_7.root
+root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/TTWJetsToLNu_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8/TTWJetsToLNu_nanoAODPostProcessor_2017_v03/200903_112441/0000/nano_postprocessed_4.root
+root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/TTWJetsToLNu_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8/TTWJetsToLNu_nanoAODPostProcessor_2017_v03/200903_112441/0000/nano_postprocessed_5.root
+root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/TTWJetsToLNu_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8/TTWJetsToLNu_nanoAODPostProcessor_2017_v03/200903_112441/0000/nano_postprocessed_3.root
+root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/TTWJetsToLNu_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8/TTWJetsToLNu_nanoAODPostProcessor_2017_v03/200903_112441/0000/nano_postprocessed_6.root
+root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/TTWJetsToLNu_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8/TTWJetsToLNu_nanoAODPostProcessor_2017_v03/200903_112441/0000/nano_postprocessed_1.root
+root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/TTWJetsToLNu_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8/TTWJetsToLNu_nanoAODPostProcessor_2017_v03/200903_112441/0000/nano_postprocessed_2.root
