@@ -1,0 +1,3 @@
+root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAODv7/TTWJetsToQQ_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8/NANOAODSIM/PU2017_12Apr2018_Nano02Apr2020_102X_mc2017_realistic_v8-v1/130000/6B5C818F-B517-764A-9ACF-880AA769BFEF.root
+root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAODv7/TTWJetsToQQ_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8/NANOAODSIM/PU2017_12Apr2018_Nano02Apr2020_102X_mc2017_realistic_v8-v1/110000/59B0D870-9EDA-B24C-9240-0A30CDDF18B7.root
+root://xrootd-cms.infn.it//store/mc/RunIIFall17NanoAODv7/TTWJetsToQQ_TuneCP5_13TeV-amcatnloFXFX-madspin-pythia8/NANOAODSIM/PU2017_12Apr2018_Nano02Apr2020_102X_mc2017_realistic_v8-v1/110000/08187EEE-C916-784E-8BB1-07B3ABE4D0D5.root

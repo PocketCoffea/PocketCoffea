@@ -1,0 +1,11 @@
+{
+	"variables" : [
+		"muon_pt",
+		"muon_eta",
+		"jet_pt",
+		"jet_eta"
+	],
+	"variables2d" : [
+		
+	]
+}
