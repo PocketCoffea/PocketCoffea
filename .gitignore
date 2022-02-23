@@ -1,4 +1,6 @@
-__pycache__
+lib/__pycache__
+utils/__pycache__
+workflows/__pycache__
 .ipynb_checkpoints/
 plots/
 histograms/
