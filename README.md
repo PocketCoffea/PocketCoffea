@@ -24,3 +24,8 @@ The histograms to store in the output file can be specified in a config file in 
 }
 ~~~
 where the variables' names can be chosen among those reported in `utils.parameters.histogram_settings`.
+### Plots
+To create plots, run the plot script:
+~~~
+python scripts/plot/make_plots.py -i histograms/resolved_test.coffea --year 2017 --cfg config/test.json -o resolved_test
+~~~
