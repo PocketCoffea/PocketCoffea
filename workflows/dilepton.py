@@ -42,6 +42,7 @@ class ttHbbDilepton	(processor.ProcessorABC):
 
 		# Define axes
 		dataset_axis = hist.Cat("dataset", "Dataset")
+		cut_axis     = hist.Cat("cut", "Cut")
 
 		self._sumw_dict = {
 			"sumw": processor.defaultdict_accumulator(float),
@@ -51,24 +52,24 @@ class ttHbbDilepton	(processor.ProcessorABC):
 		#for var in self._vars_to_plot.keys():
 		#	self._accumulator.add(processor.dict_accumulator({var : processor.column_accumulator(np.array([]))}))
 
-		for mask_name in self._selections.keys():
-			#self._accumulator.add(processor.dict_accumulator({f'sumw_SR_{mask_name}_weights_{wn}' : processor.defaultdict_accumulator(float),})
-			for var_name in self._varnames:
-				obj, field = var_name.split('_')
-				variable_axis = hist.Bin( field, self._variables[var_name]['xlabel'], **self._variables[var_name]['binning'] )
-				self._hist_dict[f'hist_{var_name}_{mask_name}'] = hist.Hist("$N_{events}$", dataset_axis, variable_axis )
-			for hist2d_name in self._hist2dnames:
-				varname_x = list(self._variables2d[hist2d_name].keys())[0]
-				varname_y = list(self._variables2d[hist2d_name].keys())[1]
-				variable_x_axis = hist.Bin("x", self._variables2d[hist2d_name][varname_x]['xlabel'], **self._variables2d[hist2d_name][varname_x]['binning'] )
-				variable_y_axis = hist.Bin("y", self._variables2d[hist2d_name][varname_y]['ylabel'], **self._variables2d[hist2d_name][varname_y]['binning'] )
-				self._hist2d_dict[f'hist2d_{hist2d_name}_{mask_name}'] = hist.Hist("$N_{events}$", dataset_axis, variable_x_axis, variable_y_axis)
+		#for mask_name in self._selections.keys():
+		for var_name in self._varnames:
+			obj, field = var_name.split('_')
+			variable_axis = hist.Bin( field, self._variables[var_name]['xlabel'], **self._variables[var_name]['binning'] )
+			self._hist_dict[f'hist_{var_name}'] = hist.Hist("$N_{events}$", dataset_axis, cut_axis, variable_axis)
+		for hist2d_name in self._hist2dnames:
+			varname_x = list(self._variables2d[hist2d_name].keys())[0]
+			varname_y = list(self._variables2d[hist2d_name].keys())[1]
+			variable_x_axis = hist.Bin("x", self._variables2d[hist2d_name][varname_x]['xlabel'], **self._variables2d[hist2d_name][varname_x]['binning'] )
+			variable_y_axis = hist.Bin("y", self._variables2d[hist2d_name][varname_y]['ylabel'], **self._variables2d[hist2d_name][varname_y]['binning'] )
+			self._hist2d_dict[f'hist2d_{hist2d_name}'] = hist.Hist("$N_{events}$", dataset_axis, cut_axis, variable_x_axis, variable_y_axis)
 
 		if self.hist2d:
 			self._hist_dict.update(**self._hist2d_dict)
 		self._hist_dict.update(**self._sumw_dict)
 		self._accumulator = processor.dict_accumulator(self._hist_dict)
 		self.muon_hists = [histname for histname in self._hist_dict.keys() if 'muon' in histname]
+		self.electron_hists = [histname for histname in self._hist_dict.keys() if 'electron' in histname]
 		self.jet_hists = [histname for histname in self._hist_dict.keys() if 'jet' in histname and not 'fatjet' in histname]
 
 	@property
@@ -183,17 +184,22 @@ class ttHbbDilepton	(processor.ProcessorABC):
 		selection['basic'] = {'clean', 'trigger', 'dilepton'}
 
 		for histname, h in output.items():
-			sel = [mask for mask in self._selections.keys() if mask in histname]
-			if histname in self.muon_hists:
-				muon = muons[good_muons | veto_muons]
-				weight = ak.flatten(weights.weight() * ak.Array(ak.ones_like(muon.pt) * cuts.all(*selection[sel[0]])))
-				fields = {k: ak.flatten(ak.fill_none(muon[k], -9999)) for k in h.fields if k in dir(muon)}
-				h.fill(dataset=dataset, **fields, weight=weight)				
-			if histname in self.jet_hists:
-				jet = jets[good_jets]
-				weight = ak.flatten(weights.weight() * ak.Array(ak.ones_like(jet.pt) * cuts.all(*selection[sel[0]])))
-				fields = {k: ak.flatten(ak.fill_none(jet[k], -9999)) for k in h.fields if k in dir(jet)}
-				h.fill(dataset=dataset, **fields, weight=weight)
+			for cut in self._selections.keys():
+				if histname in self.muon_hists:
+					muon = muons[good_muons | veto_muons]
+					weight = ak.flatten(weights.weight() * ak.Array(ak.ones_like(muon.pt) * cuts.all(*selection[cut])))
+					fields = {k: ak.flatten(ak.fill_none(muon[k], -9999)) for k in h.fields if k in dir(muon)}
+					h.fill(dataset=dataset, cut=cut, **fields, weight=weight)
+				if histname in self.electron_hists:
+					electron = electrons[good_electrons | veto_electrons]
+					weight = ak.flatten(weights.weight() * ak.Array(ak.ones_like(electron.pt) * cuts.all(*selection[cut])))
+					fields = {k: ak.flatten(ak.fill_none(electron[k], -9999)) for k in h.fields if k in dir(electron)}
+					h.fill(dataset=dataset, cut=cut, **fields, weight=weight)
+				if histname in self.jet_hists:
+					jet = jets[good_jets]
+					weight = ak.flatten(weights.weight() * ak.Array(ak.ones_like(jet.pt) * cuts.all(*selection[cut])))
+					fields = {k: ak.flatten(ak.fill_none(jet[k], -9999)) for k in h.fields if k in dir(jet)}
+					h.fill(dataset=dataset, cut=cut, **fields, weight=weight)
 
 		return output
 
