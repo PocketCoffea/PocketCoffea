@@ -39,7 +39,7 @@ def lepton_selection(leps, cuts, year):
 
 	return good_leps, veto_leps
 
-def get_dilepton_v7(electrons, muons, transverse=False):
+def get_dilepton(electrons, muons, transverse=False):
 
 	fields = {
 			"pt": None,
@@ -70,7 +70,7 @@ def get_dilepton_v7(electrons, muons, transverse=False):
 
 	return dileptons
 
-def get_diboson_v7(dileptons, MET, transverse=False):
+def get_diboson(dileptons, MET, transverse=False):
 
 	fields = {
 			"pt": MET.pt,
@@ -90,7 +90,7 @@ def get_diboson_v7(dileptons, MET, transverse=False):
 
 	return dibosons
 
-def get_charged_leptons_v7(electrons, muons, charge, mask):
+def get_charged_leptons(electrons, muons, charge, mask):
 
 	fields = {
 			"pt": None,
@@ -133,7 +133,7 @@ def get_charged_leptons_v7(electrons, muons, charge, mask):
 	return charged_leptons
 
 # N.B.: This function works only with awkward v1.5.1 & coffea v0.7.9, it doesn't work with awkward 1.7.0 & coffea v0.7.11
-def jet_selection_v7(jets, leps, mask_leps, cuts):
+def jet_selection(jets, leps, mask_leps, cuts):
 
 	# Only jets that are more distant than dr to ALL leptons are tagged as good jets
 	sleps = leps[mask_leps]
