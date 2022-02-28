@@ -14,7 +14,8 @@ from coffea.hist import plot
 import coffea.hist as hist
 
 from multiprocessing import Pool
-from utils.parameters import histogram_settings, eraDependentParameters
+from parameters.allhistograms import histogram_settings
+from parameters.lumi import lumi
 
 parser = argparse.ArgumentParser(description='Plot histograms from coffea file')
 parser.add_argument('-i', '--input', type=str, help='Input histogram filename', required=True)
@@ -105,7 +106,7 @@ selection = {
 			   r'$N_{leps}$ = 2')
 }
 
-totalLumi = 'TEST' if args.test else round(eraDependentParameters[args.year]["lumi"]/1000, 1)
+totalLumi = 'TEST' if args.test else round(lumi[args.year]/1000, 1)
 
 plt.style.use([hep.style.ROOT, {'font.size': 16}])
 plot_dir = args.outputDir if args.outputDir else os.getcwd()+"/plots/" + args.output + "/"
