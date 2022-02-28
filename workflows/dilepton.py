@@ -8,27 +8,34 @@ import numpy as np
 import awkward as ak
 #import uproot
 
-from lib.objects import lepton_selection, jet_nohiggs_selection, jet_selection_v7, get_dilepton_v7, get_diboson_v7, get_charged_leptons_v7
+from lib.objects import lepton_selection, jet_nohiggs_selection, jet_selection, get_dilepton, get_diboson, get_charged_leptons
 from lib.weights import load_puhist_target, compute_lepton_weights
-#from lib.reconstruction import pnuCalculator_v7
-from utils.parameters import histogram_settings, samples_info
+#from lib.reconstruction import pnuCalculator
+from parameters.cuts import cuts
+from parameters.triggers import triggers
+from parameters.btag import btag
+from parameters.lumi import lumi
+from parameters.samples import samples_info
+from parameters.allhistograms import histogram_settings
 
 class ttHbbDilepton	(processor.ProcessorABC):
-	def __init__(self, year='2017', parameters=None, cfg='test.json', samples_info=samples_info, hist_dir='histograms/', hist2d =False, DNN=False):
+	def __init__(self, year='2017', cfg='test.json', hist_dir='histograms/', hist2d =False, DNN=False):
 		#self.sample = sample
 		with open(cfg) as f:
 			self.cfg = json.load(f)
 		self.year = year
-		self.parameters = parameters
-		self.samples_info = samples_info
+		self._cuts = cuts['dilepton']
+		self._triggers = triggers['dilepton'][self.year]
+		self._btag = btag[self.year]
+		self._samples_info = samples_info
 		self.hist2d = hist2d
 		self.DNN = DNN
 		self._nsolved = 0
 		self._n2l2b = 0
-		self._variables = histogram_settings['variables']
-		self._variables2d = histogram_settings['variables2d']
 		self._varnames = self.cfg['variables']
 		self._hist2dnames = self.cfg['variables2d']
+		self._variables = {var_name : histogram_settings['variables'][var_name] for var_name in self._varnames}
+		self._variables2d = {hist2d_name : histogram_settings['variables2d'][hist2d_name] for hist2d_name in self._hist2dnames}
 		self._hist_dict = {}
 		self._hist2d_dict = {}
 		self._selections = {
@@ -49,12 +56,17 @@ class ttHbbDilepton	(processor.ProcessorABC):
 			"nevts": processor.defaultdict_accumulator(int),
 		}
 
+		#self._nobj_dict = {f'hist_{key}' : None for key in ['nmuon', 'nelectron', 'nlep', 'nmuongood', 'nelectrongood', 'nlepgood', 'njet', 'nbjet', 'nfatjet']}
+
 		#for var in self._vars_to_plot.keys():
 		#	self._accumulator.add(processor.dict_accumulator({var : processor.column_accumulator(np.array([]))}))
 
 		#for mask_name in self._selections.keys():
 		for var_name in self._varnames:
-			obj, field = var_name.split('_')
+			if var_name.startswith('n'):
+				field = var_name
+			else:
+				obj, field = var_name.split('_')
 			variable_axis = hist.Bin( field, self._variables[var_name]['xlabel'], **self._variables[var_name]['binning'] )
 			self._hist_dict[f'hist_{var_name}'] = hist.Hist("$N_{events}$", dataset_axis, cut_axis, variable_axis)
 		for hist2d_name in self._hist2dnames:
@@ -68,9 +80,10 @@ class ttHbbDilepton	(processor.ProcessorABC):
 			self._hist_dict.update(**self._hist2d_dict)
 		self._hist_dict.update(**self._sumw_dict)
 		self._accumulator = processor.dict_accumulator(self._hist_dict)
-		self.muon_hists = [histname for histname in self._hist_dict.keys() if 'muon' in histname]
-		self.electron_hists = [histname for histname in self._hist_dict.keys() if 'electron' in histname]
-		self.jet_hists = [histname for histname in self._hist_dict.keys() if 'jet' in histname and not 'fatjet' in histname]
+		self.nobj_hists = [histname for histname in self._hist_dict.keys() if histname.lstrip('hist_').startswith('n') and not 'nevts' in histname]
+		self.muon_hists = [histname for histname in self._hist_dict.keys() if 'muon' in histname and not histname in self.nobj_hists]
+		self.electron_hists = [histname for histname in self._hist_dict.keys() if 'electron' in histname and not histname in self.nobj_hists]
+		self.jet_hists = [histname for histname in self._hist_dict.keys() if 'jet' in histname and not 'fatjet' in histname and not histname in self.nobj_hists]
 
 	@property
 	def accumulator(self):
@@ -135,34 +148,45 @@ class ttHbbDilepton	(processor.ProcessorABC):
 		cuts.add('clean', ak.to_numpy(mask_clean))
 
 		# Build masks for selection of muons, electrons, jets, fatjets
-		good_muons, veto_muons = lepton_selection(muons, self.parameters["muons"], self.year)
-		good_electrons, veto_electrons = lepton_selection(electrons, self.parameters["electrons"], self.year)
-		good_jets = jet_selection_v7(jets, muons, (good_muons|veto_muons), self.parameters["jets"]) & jet_selection_v7(jets, electrons, (good_electrons|veto_electrons), self.parameters["jets"])
-		good_bjets = good_jets & (getattr(jets, self.parameters["btagging_algorithm"]) > self.parameters["btagging_WP"])
-		good_fatjets = jet_selection_v7(fatjets, muons, good_muons, self.parameters["fatjets"]) & jet_selection_v7(fatjets, electrons, good_electrons, self.parameters["fatjets"])
+		good_muons, veto_muons = lepton_selection(muons, self._cuts["muons"], self.year)
+		good_electrons, veto_electrons = lepton_selection(electrons, self._cuts["electrons"], self.year)
+		good_jets = jet_selection(jets, muons, (good_muons|veto_muons), self._cuts["jets"]) & jet_selection(jets, electrons, (good_electrons|veto_electrons), self._cuts["jets"])
+		good_bjets = good_jets & (getattr(jets, self._btag["btagging_algorithm"]) > self._btag["btagging_WP"])
+		good_fatjets = jet_selection(fatjets, muons, good_muons, self._cuts["fatjets"]) & jet_selection(fatjets, electrons, good_electrons, self._cuts["fatjets"])
 
 		# As a reference, additional masks used in the boosted analysis
 		#good_jets_nohiggs = ( good_jets & (jets.delta_r(leading_fatjets) > 1.2) )
 		#good_bjets_boosted = good_jets_nohiggs & (getattr(jets, self.parameters["btagging_algorithm"]) > self.parameters["btagging_WP"])
 		#good_nonbjets_boosted = good_jets_nohiggs & (getattr(jets, self.parameters["btagging_algorithm"]) < self.parameters["btagging_WP"])
 
+		events["MuonAll"]      = muons[good_muons | veto_muons]
+		events["ElectronAll"]  = electrons[good_electrons | veto_electrons]
+		events["MuonGood"]     = muons[good_muons]
+		events["ElectronGood"] = electrons[good_electrons]
+		events["JetGood"]      = jets[good_jets]
+		events["JetGoodB"]     = jets[good_bjets]
+		events["FatJetGood"]   = fatjets[good_fatjets]
+
 		leadFatJet = ak.firsts(events.FatJet)
 
 		# apply basic event selection -> individual categories cut later
-		ngoodmuons     = ak.num(muons[good_muons])
-		ngoodelectrons = ak.num(electrons[good_electrons])
-		nmuons         = ak.num(muons[good_muons | veto_muons])
-		nelectrons     = ak.num(electrons[good_electrons | veto_electrons])
-		ngoodleps      = ngoodmuons + ngoodelectrons
-		nleps          = nmuons + nelectrons
-		njets          = ak.num(jets[good_jets])
-		nbjets         = ak.num(jets[good_bjets])
-		nfatjets       = ak.num(fatjets[good_fatjets])
+		nmuongood     = ak.num(events.MuonGood)
+		nelectrongood = ak.num(events.ElectronGood)
+		nmuon         = ak.num(events.MuonAll)
+		nelectron     = ak.num(events.ElectronAll)
+		nlepgood      = nmuongood + nelectrongood
+		nlep          = nmuon + nelectron
+		njet          = ak.num(events.JetGood)
+		nbjet         = ak.num(events.JetGoodB)
+		nfatjet       = ak.num(events.FatJetGood)
 
 		# As a reference, here is how jets are counted in the boosted analysis
-		#njets_boosted  = ak.num(jets[nonbjets])
-		#nbjets_resolved = ak.num(jets[good_bjets_boosted])
-
+		#njet_boosted  = ak.num(jets[nonbjets])
+		#nbjet_resolved = ak.num(jets[good_bjets_boosted])
+		nobject = {}
+		for name, obj in zip(['nmuongood', 'nelectrongood', 'nmuon', 'nelectron', 'nlepgood', 'nlep', 'njet', 'nbjet', 'nfatjet'],
+							  [nmuongood, nelectrongood, nmuon, nelectron, nlepgood, nlep, njet, nbjet, nfatjet]):
+			nobject[name] = obj
 
 		# trigger logic
 		#trigger_mu = (nleps == 1) & (nmuons == 1)
@@ -172,12 +196,12 @@ class ttHbbDilepton	(processor.ProcessorABC):
 		trigger_ee = np.zeros(len(events), dtype='bool')
 		triggers = []
 
-		for trigger in self.parameters["triggers"]["mumu"]: trigger_mumu = trigger_mumu | HLT[trigger.lstrip("HLT_")]
-		for trigger in self.parameters["triggers"]["emu"]:  trigger_emu  = trigger_emu  | HLT[trigger.lstrip("HLT_")]
-		for trigger in self.parameters["triggers"]["ee"]:   trigger_ee   = trigger_ee   | HLT[trigger.lstrip("HLT_")]
+		for trigger in self._triggers["mumu"]: trigger_mumu = trigger_mumu | HLT[trigger.lstrip("HLT_")]
+		for trigger in self._triggers["emu"]:  trigger_emu  = trigger_emu  | HLT[trigger.lstrip("HLT_")]
+		for trigger in self._triggers["ee"]:   trigger_ee   = trigger_ee   | HLT[trigger.lstrip("HLT_")]
 
 		cuts.add('trigger', ak.to_numpy(trigger_mumu | trigger_emu | trigger_ee))
-		cuts.add('dilepton', ak.to_numpy(nleps == 2))
+		cuts.add('dilepton', ak.to_numpy(nlep == 2))
 
 		selection = {}
 		selection['trigger'] = {'clean', 'trigger'}
@@ -185,6 +209,10 @@ class ttHbbDilepton	(processor.ProcessorABC):
 
 		for histname, h in output.items():
 			for cut in self._selections.keys():
+				if histname in self.nobj_hists:
+					weight = weights.weight() * cuts.all(*selection[cut])
+					fields = {k: ak.fill_none(nobject[k], -9999) for k in h.fields if k in nobject.keys()}
+					h.fill(dataset=dataset, cut=cut, **fields, weight=weight)					
 				if histname in self.muon_hists:
 					muon = muons[good_muons | veto_muons]
 					weight = ak.flatten(weights.weight() * ak.Array(ak.ones_like(muon.pt) * cuts.all(*selection[cut])))
