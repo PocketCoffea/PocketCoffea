@@ -127,40 +127,10 @@ if __name__ == '__main__':
                 os.system(f'rm {fi}')
         sys.exit(0)
 
-    from utils.parameters import parameters, eraDependentParameters, samples_info
-    parameters.update(eraDependentParameters[args.year])
-    if args.parameters is not None:
-        if len(args.parameters)%2 != 0:
-            raise Exception('incomplete parameters specified, quitting.')
-        for p,v in zip(args.parameters[::2], args.parameters[1::2]):
-            try: parameters[p] = type(parameters[p])(v) #convert the string v to the type of the parameter already in the dictionary
-            except: print(f'invalid parameter specified: {p} {v}')
-
-    if "Single" in args.samplejson:
-        is_mc = False
-        lumimask = LumiMask(parameters["lumimask"])
-    else:
-        is_mc = True
-        lumimask = None
-
-    """
-    if is_mc:
-        # add information needed for MC corrections
-        parameters["pu_corrections_target"] = load_puhist_target(parameters["pu_corrections_file"])
-        parameters["btag_SF_target"] = BTagScaleFactor(parameters["btag_SF_{}".format(parameters["btagging_algorithm"])], BTagScaleFactor.MEDIUM)
-        ### this computes the lepton weights
-        ext = extractor()
-        print(parameters["corrections"])
-        for corr in parameters["corrections"]:
-            ext.add_weight_sets([corr])
-        ext.finalize()
-        evaluator = ext.make_evaluator()
-    """
-
     # load workflow
     if args.workflow == "dilepton":
         from workflows.dilepton import ttHbbDilepton
-        processor_instance = ttHbbDilepton(year=args.year, parameters=parameters, cfg=args.cfg, samples_info=samples_info, hist_dir=hist_dir, hist2d=args.hist2d, DNN=args.DNN)
+        processor_instance = ttHbbDilepton(year=args.year, cfg=args.cfg, hist_dir=hist_dir, hist2d=args.hist2d, DNN=args.DNN)
     else:
         raise NotImplemented
 
