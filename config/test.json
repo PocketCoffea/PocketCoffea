@@ -8,7 +8,16 @@
 		"electron_phi",
 		"jet_pt",
 		"jet_eta",
-		"jet_phi"
+		"jet_phi",
+		"nmuon",
+		"nelectron",
+		"nlep",
+		"nmuongood",
+		"nelectrongood",
+		"nlepgood",
+		"njet",
+		"nbjet",
+		"nfatjet"
 	],
 	"variables2d" : [
 		
