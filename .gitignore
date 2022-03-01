@@ -5,3 +5,5 @@ workflows/__pycache__
 plots/
 histograms/
 logs/
+*~
+*.pyc

@@ -67,4 +67,3 @@ dependencies:
     - uproot3==3.14.4
     - uproot3-methods==0.10.1
     - vector==0.8.5
-prefix: /work/mmarcheg/miniconda3/envs/coffea
