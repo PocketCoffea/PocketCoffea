@@ -20,7 +20,7 @@ from parameters.allhistograms import histogram_settings
 
 from utils.config_loader import load_config
 
-class ttHbbDilepton     (processor.ProcessorABC):
+class ttHbbBase(processor.ProcessorABC):
     def __init__(self, year='2017', cfg='test.json', hist_dir='histograms/', hist2d =False, DNN=False):
         #self.sample = sample
         self.cfg = load_config(cfg).cfg
