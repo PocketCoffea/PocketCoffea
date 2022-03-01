@@ -1,6 +1,6 @@
 # Common cuts applied to objects
 
-cuts = {
+object_preselection = {
     "dilepton" : {
         "muons": {
             "type": "mu",

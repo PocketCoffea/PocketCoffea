@@ -11,7 +11,7 @@ import awkward as ak
 from lib.objects import lepton_selection, jet_nohiggs_selection, jet_selection, get_dilepton, get_diboson, get_charged_leptons
 from lib.weights import load_puhist_target, compute_lepton_weights
 #from lib.reconstruction import pnuCalculator
-from parameters.cuts import cuts
+from parameters.preselection import object_preselection
 from parameters.triggers import triggers
 from parameters.btag import btag
 from parameters.lumi import lumi
@@ -90,7 +90,7 @@ class ttHbbDilepton     (processor.ProcessorABC):
     def accumulator(self):
         return self._accumulator
 
-    def object_preselection(self, events):
+    def apply_object_preselection(self, events):
         # Build masks for selection of muons, electrons, jets, fatjets
         self.good_muons, self.veto_muons = lepton_selection(events.Muon, self._cuts["muons"], self._year)
         self.good_electrons, self.veto_electrons = lepton_selection(events.Electron, self._cuts["electrons"], self._year)
@@ -186,7 +186,7 @@ class ttHbbDilepton     (processor.ProcessorABC):
 
         leadFatJet = ak.firsts(events.FatJet)
 
-        self.object_preselection(events)
+        self.apply_object_preselection(events)
         self.count_objects(events)
         self.apply_triggers(events)
 
