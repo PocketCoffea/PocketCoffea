@@ -23,10 +23,10 @@ class ttHbbDilepton	(processor.ProcessorABC):
 		#self.sample = sample
 		with open(cfg) as f:
 			self.cfg = json.load(f)
-		self.year = year
+		self._year = year
 		self._cuts = cuts['dilepton']
-		self._triggers = triggers['dilepton'][self.year]
-		self._btag = btag[self.year]
+		self._triggers = triggers['dilepton'][self._year]
+		self._btag = btag[self._year]
 		self._samples_info = samples_info
 		self.hist2d = hist2d
 		self.DNN = DNN
@@ -89,35 +89,71 @@ class ttHbbDilepton	(processor.ProcessorABC):
 	def accumulator(self):
 		return self._accumulator
 
+	def object_preselection(self, events):
+		# Build masks for selection of muons, electrons, jets, fatjets
+		self.good_muons, self.veto_muons = lepton_selection(events.Muon, self._cuts["muons"], self._year)
+		self.good_electrons, self.veto_electrons = lepton_selection(events.Electron, self._cuts["electrons"], self._year)
+		self.good_jets = jet_selection(events.Jet, events.Muon, (self.good_muons|self.veto_muons), self._cuts["jets"]) & jet_selection(events.Jet, events.Electron, (self.good_electrons|self.veto_electrons), self._cuts["jets"])
+		self.good_bjets = self.good_jets & (getattr(events.Jet, self._btag["btagging_algorithm"]) > self._btag["btagging_WP"])
+		self.good_fatjets = jet_selection(events.FatJet, events.Muon, self.good_muons, self._cuts["fatjets"]) & jet_selection(events.FatJet, events.Electron, self.good_electrons, self._cuts["fatjets"])
+
+		# As a reference, additional masks used in the boosted analysis
+		#self.good_jets_nohiggs = ( self.good_jets & (jets.delta_r(leading_fatjets) > 1.2) )
+		#self.good_bjets_boosted = self.good_jets_nohiggs & (getattr(events.jets, self.parameters["btagging_algorithm"]) > self.parameters["btagging_WP"])
+		#self.good_nonbjets_boosted = self.good_jets_nohiggs & (getattr(events.jets, self.parameters["btagging_algorithm"]) < self.parameters["btagging_WP"])
+
+		events["MuonAll"]      = events.Muon[self.good_muons | self.veto_muons]
+		events["ElectronAll"]  = events.Electron[self.good_electrons | self.veto_electrons]
+		events["MuonGood"]     = events.Muon[self.good_muons]
+		events["ElectronGood"] = events.Electron[self.good_electrons]
+		events["JetGood"]      = events.Jet[self.good_jets]
+		events["JetGoodB"]     = events.Jet[self.good_bjets]
+		events["FatJetGood"]   = events.FatJet[self.good_fatjets]
+
+		return
+
+	def count_objects(self, events):
+		self.nmuongood     = ak.num(events.MuonGood)
+		self.nelectrongood = ak.num(events.ElectronGood)
+		self.nmuon         = ak.num(events.MuonAll)
+		self.nelectron     = ak.num(events.ElectronAll)
+		self.nlepgood      = self.nmuongood + self.nelectrongood
+		self.nlep          = self.nmuon + self.nelectron
+		self.njet          = ak.num(events.JetGood)
+		self.nbjet         = ak.num(events.JetGoodB)
+		self.nfatjet       = ak.num(events.FatJetGood)
+
+		# As a reference, here is how jets are counted in the boosted analysis
+		#njet_boosted  = ak.num(jets[nonbjets])
+		#nbjet_resolved = ak.num(jets[good_bjets_boosted])
+
+		return
+
+	def apply_triggers(self, events):
+		# Trigger logic
+		self.trigger_mumu = np.zeros(len(events), dtype='bool')
+		self.trigger_emu = np.zeros(len(events), dtype='bool')
+		self.trigger_ee = np.zeros(len(events), dtype='bool')
+
+		for trigger in self._triggers["mumu"]: self.trigger_mumu = self.trigger_mumu | events.HLT[trigger.lstrip("HLT_")]
+		for trigger in self._triggers["emu"]:  self.trigger_emu  = self.trigger_emu  | events.HLT[trigger.lstrip("HLT_")]
+		for trigger in self._triggers["ee"]:   self.trigger_ee   = self.trigger_ee   | events.HLT[trigger.lstrip("HLT_")]
+
+		return
+
 	def process(self, events):
 		output = self.accumulator.identity()
 		#if len(events)==0: return output
 		dataset = events.metadata["dataset"]
 		nEvents = ak.count(events.event)
 		output['nevts'][dataset] += nEvents
-		isMC = 'genWeight' in events.fields
-		if isMC:
+		self.isMC = 'genWeight' in events.fields
+		if self.isMC:
 			output['sumw'][dataset] += sum(events.genWeight)
 
 		cuts = processor.PackedSelection()
 
-		muons = events.Muon
-		electrons = events.Electron
-		#scalars = events.eventvars
-		jets = events.Jet
-		fatjets = events.FatJet
-		PuppiMET = events.PuppiMET
-		PV = events.PV
-		Flag = events.Flag
-		run = events.run
-		luminosityBlock = events.luminosityBlock
-		HLT = events.HLT
-		genWeight = events.genWeight
-		#puWeight = events.puWeight
-		if isMC:
-			genparts = events.GenPart
-
-		if self.year =='2017':
+		if self._year =='2017':
 			metstruct = 'METFixEE2017'
 			MET = events.METFixEE2017
 		else:
@@ -129,79 +165,32 @@ class ttHbbDilepton	(processor.ProcessorABC):
 		# Event cleaning and  PV selection
 		flags = [
 			"goodVertices", "globalSuperTightHalo2016Filter", "HBHENoiseFilter", "HBHENoiseIsoFilter", "EcalDeadCellTriggerPrimitiveFilter", "BadPFMuonFilter"]#, "BadChargedCandidateFilter", "ecalBadCalibFilter"]
-		if not isMC:
+		if not self.isMC:
 			flags.append("eeBadScFilter")
 		for flag in flags:
-			mask_clean = mask_clean & getattr(Flag, flag)
-		mask_clean = mask_clean & (PV.npvsGood > 0)
+			mask_clean = mask_clean & getattr(events.Flag, flag)
+		mask_clean = mask_clean & (events.PV.npvsGood > 0)
 
 		# Weights
 		weights = processor.Weights(nEvents)
-		if isMC:
-			weights.add('genWeight', genWeight)
+		if self.isMC:
+			weights.add('genWeight', events.genWeight)
 
 		# In case of data: check if event is in golden lumi file
-		if not isMC and not (lumimask is None):
-			mask_lumi = lumimask(run, luminosityBlock)
+		if not self.isMC and not (lumimask is None):
+			mask_lumi = lumimask(events.run, events.luminosityBlock)
 			mask_clean = mask_clean & mask_lumi
 
 		cuts.add('clean', ak.to_numpy(mask_clean))
 
-		# Build masks for selection of muons, electrons, jets, fatjets
-		good_muons, veto_muons = lepton_selection(muons, self._cuts["muons"], self.year)
-		good_electrons, veto_electrons = lepton_selection(electrons, self._cuts["electrons"], self.year)
-		good_jets = jet_selection(jets, muons, (good_muons|veto_muons), self._cuts["jets"]) & jet_selection(jets, electrons, (good_electrons|veto_electrons), self._cuts["jets"])
-		good_bjets = good_jets & (getattr(jets, self._btag["btagging_algorithm"]) > self._btag["btagging_WP"])
-		good_fatjets = jet_selection(fatjets, muons, good_muons, self._cuts["fatjets"]) & jet_selection(fatjets, electrons, good_electrons, self._cuts["fatjets"])
-
-		# As a reference, additional masks used in the boosted analysis
-		#good_jets_nohiggs = ( good_jets & (jets.delta_r(leading_fatjets) > 1.2) )
-		#good_bjets_boosted = good_jets_nohiggs & (getattr(jets, self.parameters["btagging_algorithm"]) > self.parameters["btagging_WP"])
-		#good_nonbjets_boosted = good_jets_nohiggs & (getattr(jets, self.parameters["btagging_algorithm"]) < self.parameters["btagging_WP"])
-
-		events["MuonAll"]      = muons[good_muons | veto_muons]
-		events["ElectronAll"]  = electrons[good_electrons | veto_electrons]
-		events["MuonGood"]     = muons[good_muons]
-		events["ElectronGood"] = electrons[good_electrons]
-		events["JetGood"]      = jets[good_jets]
-		events["JetGoodB"]     = jets[good_bjets]
-		events["FatJetGood"]   = fatjets[good_fatjets]
-
 		leadFatJet = ak.firsts(events.FatJet)
 
-		# apply basic event selection -> individual categories cut later
-		nmuongood     = ak.num(events.MuonGood)
-		nelectrongood = ak.num(events.ElectronGood)
-		nmuon         = ak.num(events.MuonAll)
-		nelectron     = ak.num(events.ElectronAll)
-		nlepgood      = nmuongood + nelectrongood
-		nlep          = nmuon + nelectron
-		njet          = ak.num(events.JetGood)
-		nbjet         = ak.num(events.JetGoodB)
-		nfatjet       = ak.num(events.FatJetGood)
+		self.object_preselection(events)
+		self.count_objects(events)
+		self.apply_triggers(events)
 
-		# As a reference, here is how jets are counted in the boosted analysis
-		#njet_boosted  = ak.num(jets[nonbjets])
-		#nbjet_resolved = ak.num(jets[good_bjets_boosted])
-		nobject = {}
-		for name, obj in zip(['nmuongood', 'nelectrongood', 'nmuon', 'nelectron', 'nlepgood', 'nlep', 'njet', 'nbjet', 'nfatjet'],
-							  [nmuongood, nelectrongood, nmuon, nelectron, nlepgood, nlep, njet, nbjet, nfatjet]):
-			nobject[name] = obj
-
-		# trigger logic
-		#trigger_mu = (nleps == 1) & (nmuons == 1)
-		#trigger_e = (nleps == 1) & (nelectrons == 1)
-		trigger_mumu = np.zeros(len(events), dtype='bool')
-		trigger_emu = np.zeros(len(events), dtype='bool')
-		trigger_ee = np.zeros(len(events), dtype='bool')
-		triggers = []
-
-		for trigger in self._triggers["mumu"]: trigger_mumu = trigger_mumu | HLT[trigger.lstrip("HLT_")]
-		for trigger in self._triggers["emu"]:  trigger_emu  = trigger_emu  | HLT[trigger.lstrip("HLT_")]
-		for trigger in self._triggers["ee"]:   trigger_ee   = trigger_ee   | HLT[trigger.lstrip("HLT_")]
-
-		cuts.add('trigger', ak.to_numpy(trigger_mumu | trigger_emu | trigger_ee))
-		cuts.add('dilepton', ak.to_numpy(nlep == 2))
+		cuts.add('trigger', ak.to_numpy(self.trigger_mumu | self.trigger_emu | self.trigger_ee))
+		cuts.add('dilepton', ak.to_numpy(self.nlep == 2))
 
 		selection = {}
 		selection['trigger'] = {'clean', 'trigger'}
@@ -211,20 +200,20 @@ class ttHbbDilepton	(processor.ProcessorABC):
 			for cut in self._selections.keys():
 				if histname in self.nobj_hists:
 					weight = weights.weight() * cuts.all(*selection[cut])
-					fields = {k: ak.fill_none(nobject[k], -9999) for k in h.fields if k in nobject.keys()}
+					fields = {k: ak.fill_none(getattr(self, k), -9999) for k in h.fields if k in histname}
 					h.fill(dataset=dataset, cut=cut, **fields, weight=weight)					
 				if histname in self.muon_hists:
-					muon = muons[good_muons | veto_muons]
+					muon = events.MuonAll
 					weight = ak.flatten(weights.weight() * ak.Array(ak.ones_like(muon.pt) * cuts.all(*selection[cut])))
 					fields = {k: ak.flatten(ak.fill_none(muon[k], -9999)) for k in h.fields if k in dir(muon)}
 					h.fill(dataset=dataset, cut=cut, **fields, weight=weight)
 				if histname in self.electron_hists:
-					electron = electrons[good_electrons | veto_electrons]
+					electron = events.ElectronAll
 					weight = ak.flatten(weights.weight() * ak.Array(ak.ones_like(electron.pt) * cuts.all(*selection[cut])))
 					fields = {k: ak.flatten(ak.fill_none(electron[k], -9999)) for k in h.fields if k in dir(electron)}
 					h.fill(dataset=dataset, cut=cut, **fields, weight=weight)
 				if histname in self.jet_hists:
-					jet = jets[good_jets]
+					jet = events.JetGood
 					weight = ak.flatten(weights.weight() * ak.Array(ak.ones_like(jet.pt) * cuts.all(*selection[cut])))
 					fields = {k: ak.flatten(ak.fill_none(jet[k], -9999)) for k in h.fields if k in dir(jet)}
 					h.fill(dataset=dataset, cut=cut, **fields, weight=weight)
