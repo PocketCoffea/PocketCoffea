@@ -23,7 +23,7 @@ The histograms to store in the output file can be specified in a config file in 
   ]
 }
 ~~~
-where the variables' names can be chosen among those reported in `utils.parameters.histogram_settings`.
+where the variables' names can be chosen among those reported in `parameters.allhistograms.histogram_settings`.
 ### Plots
 To create plots, run the plot script:
 ~~~
