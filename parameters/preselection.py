@@ -50,11 +50,5 @@ object_preselection = {
                 '2018' : 0.43,
             },
         },
-        "W": {
-            'min_mass': 65,
-            'max_mass': 105
-        },
-        "met"   : 40,
-        'btags' : 0
     }
 }
