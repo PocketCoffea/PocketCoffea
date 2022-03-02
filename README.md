@@ -27,5 +27,5 @@ where the variables' names can be chosen among those reported in `parameters.all
 ### Plots
 To create plots, run the plot script:
 ~~~
-python scripts/plot/make_plots.py -i histograms/resolved_test.coffea --year 2017 --cfg config/test.json -o resolved_test
+python scripts/plot/make_plots.py -i histograms/resolved_test.coffea --cfg config/test.json -o resolved_test
 ~~~
