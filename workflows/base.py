@@ -6,16 +6,15 @@ import os
 import h5py
 import numpy as np
 import awkward as ak
-#import uproot
 
-from lib.objects import lepton_selection, jet_nohiggs_selection, jet_selection, get_dilepton, get_diboson, get_charged_leptons
-from lib.weights import load_puhist_target, compute_lepton_weights
+from lib.objects import lepton_selection, jet_selection, get_dilepton
+from lib.cuts import dilepton
+#from lib.weights import load_puhist_target, compute_lepton_weights
 #from lib.reconstruction import pnuCalculator
 from parameters.preselection import object_preselection
 from parameters.triggers import triggers
 from parameters.btag import btag
 from parameters.lumi import lumi
-from parameters.samples import samples_info
 from parameters.allhistograms import histogram_settings
 
 from utils.config_loader import load_config
@@ -23,64 +22,60 @@ from utils.config_loader import load_config
 class ttHbbBase(processor.ProcessorABC):
     def __init__(self, year='2017', cfg='test.json', hist_dir='histograms/', hist2d =False, DNN=False):
         #self.sample = sample
+        # Read required cuts and histograms from config file
         self.cfg = load_config(cfg).cfg
-        self._year = year
-        self._cuts = cuts['dilepton']
-        self._triggers = triggers['dilepton'][self._year]
-        self._btag = btag[self._year]
-        self._samples_info = samples_info
-        self.hist2d = hist2d
-        self.DNN = DNN
-        self._nsolved = 0
-        self._n2l2b = 0
+        self._cuts_functions = self.cfg['cuts']
+        if type(self._cuts_functions) is not list: raise NotImplementedError
         self._varnames = self.cfg['variables']
         self._hist2dnames = self.cfg['variables2d']
+        # Save trigger and preselection requirements
+        self._year = year
+        self._preselections = object_preselection['dilepton']
+        self._triggers = triggers['dilepton'][self._year]
+        self._btag = btag[self._year]
+        self.hist2d = hist2d
+        self.DNN = DNN
+        # Save histogram settings of the required histograms
         self._variables = {var_name : histogram_settings['variables'][var_name] for var_name in self._varnames}
         self._variables2d = {hist2d_name : histogram_settings['variables2d'][hist2d_name] for hist2d_name in self._hist2dnames}
         self._hist_dict = {}
         self._hist2d_dict = {}
-        self._selections = {
-          'trigger' : {
-            #'nbtags' : 2,
-          },
-          'basic' : {
-            'nbtags' : 2,
-          },
-        }
+
+        # Define PackedSelector to save per-event cuts and dictionary of selections
+        self._cuts = processor.PackedSelection()
+        self._selections = {}
 
         # Define axes
         dataset_axis = hist.Cat("dataset", "Dataset")
         cut_axis     = hist.Cat("cut", "Cut")
+        year_axis     = hist.Cat("year", "Year")
 
         self._sumw_dict = {
             "sumw": processor.defaultdict_accumulator(float),
             "nevts": processor.defaultdict_accumulator(int),
         }
 
-        #self._nobj_dict = {f'hist_{key}' : None for key in ['nmuon', 'nelectron', 'nlep', 'nmuongood', 'nelectrongood', 'nlepgood', 'njet', 'nbjet', 'nfatjet']}
-
         #for var in self._vars_to_plot.keys():
         #       self._accumulator.add(processor.dict_accumulator({var : processor.column_accumulator(np.array([]))}))
 
-        #for mask_name in self._selections.keys():
         for var_name in self._varnames:
             if var_name.startswith('n'):
                 field = var_name
             else:
                 obj, field = var_name.split('_')
             variable_axis = hist.Bin( field, self._variables[var_name]['xlabel'], **self._variables[var_name]['binning'] )
-            self._hist_dict[f'hist_{var_name}'] = hist.Hist("$N_{events}$", dataset_axis, cut_axis, variable_axis)
+            self._hist_dict[f'hist_{var_name}'] = hist.Hist("$N_{events}$", dataset_axis, cut_axis, year_axis, variable_axis)
         for hist2d_name in self._hist2dnames:
             varname_x = list(self._variables2d[hist2d_name].keys())[0]
             varname_y = list(self._variables2d[hist2d_name].keys())[1]
             variable_x_axis = hist.Bin("x", self._variables2d[hist2d_name][varname_x]['xlabel'], **self._variables2d[hist2d_name][varname_x]['binning'] )
             variable_y_axis = hist.Bin("y", self._variables2d[hist2d_name][varname_y]['ylabel'], **self._variables2d[hist2d_name][varname_y]['binning'] )
-            self._hist2d_dict[f'hist2d_{hist2d_name}'] = hist.Hist("$N_{events}$", dataset_axis, cut_axis, variable_x_axis, variable_y_axis)
+            self._hist2d_dict[f'hist2d_{hist2d_name}'] = hist.Hist("$N_{events}$", dataset_axis, cut_axis, year_axis, variable_x_axis, variable_y_axis)
 
         if self.hist2d:
             self._hist_dict.update(**self._hist2d_dict)
         self._hist_dict.update(**self._sumw_dict)
-        self._accumulator = processor.dict_accumulator(self._hist_dict)
+        self._accumulator = processor.dict_accumulator(self._hist_dict)        
         self.nobj_hists = [histname for histname in self._hist_dict.keys() if histname.lstrip('hist_').startswith('n') and not 'nevts' in histname]
         self.muon_hists = [histname for histname in self._hist_dict.keys() if 'muon' in histname and not histname in self.nobj_hists]
         self.electron_hists = [histname for histname in self._hist_dict.keys() if 'electron' in histname and not histname in self.nobj_hists]
@@ -90,13 +85,14 @@ class ttHbbBase(processor.ProcessorABC):
     def accumulator(self):
         return self._accumulator
 
+    # Function to compute masks to preselect objects and save them as attributes of `events`
     def apply_object_preselection(self, events):
         # Build masks for selection of muons, electrons, jets, fatjets
-        self.good_muons, self.veto_muons = lepton_selection(events.Muon, self._cuts["muons"], self._year)
-        self.good_electrons, self.veto_electrons = lepton_selection(events.Electron, self._cuts["electrons"], self._year)
-        self.good_jets = jet_selection(events.Jet, events.Muon, (self.good_muons|self.veto_muons), self._cuts["jets"]) & jet_selection(events.Jet, events.Electron, (self.good_electrons|self.veto_electrons), self._cuts["jets"])
+        self.good_muons, self.veto_muons = lepton_selection(events.Muon, self._preselections["muons"], self._year)
+        self.good_electrons, self.veto_electrons = lepton_selection(events.Electron, self._preselections["electrons"], self._year)
+        self.good_jets = jet_selection(events.Jet, events.Muon, (self.good_muons|self.veto_muons), self._preselections["jets"]) & jet_selection(events.Jet, events.Electron, (self.good_electrons|self.veto_electrons), self._preselections["jets"])
         self.good_bjets = self.good_jets & (getattr(events.Jet, self._btag["btagging_algorithm"]) > self._btag["btagging_WP"])
-        self.good_fatjets = jet_selection(events.FatJet, events.Muon, self.good_muons, self._cuts["fatjets"]) & jet_selection(events.FatJet, events.Electron, self.good_electrons, self._cuts["fatjets"])
+        self.good_fatjets = jet_selection(events.FatJet, events.Muon, self.good_muons, self._preselections["fatjets"]) & jet_selection(events.FatJet, events.Electron, self.good_electrons, self._preselections["fatjets"])
 
         # As a reference, additional masks used in the boosted analysis
         #self.good_jets_nohiggs = ( self.good_jets & (jets.delta_r(leading_fatjets) > 1.2) )
@@ -108,28 +104,23 @@ class ttHbbBase(processor.ProcessorABC):
         events["MuonGood"]     = events.Muon[self.good_muons]
         events["ElectronGood"] = events.Electron[self.good_electrons]
         events["JetGood"]      = events.Jet[self.good_jets]
-        events["JetGoodB"]     = events.Jet[self.good_bjets]
+        events["BJetGood"]     = events.Jet[self.good_bjets]
         events["FatJetGood"]   = events.FatJet[self.good_fatjets]
+        events["ll"]           = get_dilepton(events.ElectronAll, events.MuonAll)
 
-        return
-
+    # Function that counts the preselected objects and save the counts as attributes of `events`
     def count_objects(self, events):
-        self.nmuongood     = ak.num(events.MuonGood)
-        self.nelectrongood = ak.num(events.ElectronGood)
-        self.nmuon         = ak.num(events.MuonAll)
-        self.nelectron     = ak.num(events.ElectronAll)
-        self.nlepgood      = self.nmuongood + self.nelectrongood
-        self.nlep          = self.nmuon + self.nelectron
-        self.njet          = ak.num(events.JetGood)
-        self.nbjet         = ak.num(events.JetGoodB)
-        self.nfatjet       = ak.num(events.FatJetGood)
+        events["nmuongood"]     = ak.num(events.MuonGood)
+        events["nelectrongood"] = ak.num(events.ElectronGood)
+        events["nmuon"]         = ak.num(events.MuonAll)
+        events["nelectron"]     = ak.num(events.ElectronAll)
+        events["nlepgood"]      = events["nmuongood"] + events["nelectrongood"]
+        events["nlep"]          = events["nmuon"] + events["nelectron"]
+        events["njet"]          = ak.num(events.JetGood)
+        events["nbjet"]         = ak.num(events.BJetGood)
+        events["nfatjet"]       = ak.num(events.FatJetGood)
 
-        # As a reference, here is how jets are counted in the boosted analysis
-        #njet_boosted  = ak.num(jets[nonbjets])
-        #nbjet_resolved = ak.num(jets[good_bjets_boosted])
-
-        return
-
+    # Function that computes the trigger masks and save the logical OR of the mumu, emu and ee triggers in the PackedSelector
     def apply_triggers(self, events):
         # Trigger logic
         self.trigger_mumu = np.zeros(len(events), dtype='bool')
@@ -140,6 +131,16 @@ class ttHbbBase(processor.ProcessorABC):
         for trigger in self._triggers["emu"]:  self.trigger_emu  = self.trigger_emu  | events.HLT[trigger.lstrip("HLT_")]
         for trigger in self._triggers["ee"]:   self.trigger_ee   = self.trigger_ee   | events.HLT[trigger.lstrip("HLT_")]
 
+        self._cuts.add('trigger', ak.to_numpy(self.trigger_mumu | self.trigger_emu | self.trigger_ee))
+        self._selections['trigger'] = {'clean', 'trigger'}
+
+    def apply_cuts(self, events):
+        for cut_function in self._cuts_functions:
+            mask = cut_function(self, events)
+            self._cuts.add(cut_function.__name__, ak.to_numpy(mask))
+            self._selections[cut_function.__name__] = set.union(self._selections['trigger'], {cut_function.__name__})
+
+    def process_extra(self, events: awkward.Array) -> awkward.Array:
         return
 
     def process(self, events):
@@ -151,8 +152,6 @@ class ttHbbBase(processor.ProcessorABC):
         self.isMC = 'genWeight' in events.fields
         if self.isMC:
             output['sumw'][dataset] += sum(events.genWeight)
-
-        cuts = processor.PackedSelection()
 
         if self._year =='2017':
             metstruct = 'METFixEE2017'
@@ -182,42 +181,36 @@ class ttHbbBase(processor.ProcessorABC):
             mask_lumi = lumimask(events.run, events.luminosityBlock)
             mask_clean = mask_clean & mask_lumi
 
-        cuts.add('clean', ak.to_numpy(mask_clean))
+        self._cuts.add('clean', ak.to_numpy(mask_clean))
 
         leadFatJet = ak.firsts(events.FatJet)
 
         self.apply_object_preselection(events)
         self.count_objects(events)
         self.apply_triggers(events)
-
-        cuts.add('trigger', ak.to_numpy(self.trigger_mumu | self.trigger_emu | self.trigger_ee))
-        cuts.add('dilepton', ak.to_numpy(self.nlep == 2))
-
-        selection = {}
-        selection['trigger'] = {'clean', 'trigger'}
-        selection['basic'] = {'clean', 'trigger', 'dilepton'}
+        self.apply_cuts(events)
+        # This function is empty in the base processor, but can be overriden in processors derived from the class ttHbbBase
+        self.process_extra(events)
 
         for histname, h in output.items():
+            if type(h) is not hist.Hist: continue
             for cut in self._selections.keys():
                 if histname in self.nobj_hists:
-                    weight = weights.weight() * cuts.all(*selection[cut])
-                    fields = {k: ak.fill_none(getattr(self, k), -9999) for k in h.fields if k in histname}
-                    h.fill(dataset=dataset, cut=cut, **fields, weight=weight)                                       
+                    weight = weights.weight() * self._cuts.all(*self._selections[cut])
+                    fields = {k: ak.fill_none(getattr(events, k), -9999) for k in h.fields if k in histname}
                 if histname in self.muon_hists:
                     muon = events.MuonAll
-                    weight = ak.flatten(weights.weight() * ak.Array(ak.ones_like(muon.pt) * cuts.all(*selection[cut])))
+                    weight = ak.flatten(weights.weight() * ak.Array(ak.ones_like(muon.pt) * self._cuts.all(*self._selections[cut])))
                     fields = {k: ak.flatten(ak.fill_none(muon[k], -9999)) for k in h.fields if k in dir(muon)}
-                    h.fill(dataset=dataset, cut=cut, **fields, weight=weight)
                 if histname in self.electron_hists:
                     electron = events.ElectronAll
-                    weight = ak.flatten(weights.weight() * ak.Array(ak.ones_like(electron.pt) * cuts.all(*selection[cut])))
+                    weight = ak.flatten(weights.weight() * ak.Array(ak.ones_like(electron.pt) * self._cuts.all(*self._selections[cut])))
                     fields = {k: ak.flatten(ak.fill_none(electron[k], -9999)) for k in h.fields if k in dir(electron)}
-                    h.fill(dataset=dataset, cut=cut, **fields, weight=weight)
                 if histname in self.jet_hists:
                     jet = events.JetGood
-                    weight = ak.flatten(weights.weight() * ak.Array(ak.ones_like(jet.pt) * cuts.all(*selection[cut])))
+                    weight = ak.flatten(weights.weight() * ak.Array(ak.ones_like(jet.pt) * self._cuts.all(*self._selections[cut])))
                     fields = {k: ak.flatten(ak.fill_none(jet[k], -9999)) for k in h.fields if k in dir(jet)}
-                    h.fill(dataset=dataset, cut=cut, **fields, weight=weight)
+                h.fill(dataset=dataset, cut=cut, year=self._year, **fields, weight=weight)
 
         return output
 
