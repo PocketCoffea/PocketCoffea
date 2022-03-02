@@ -36,7 +36,7 @@ def validate(file):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run analysis on baconbits files using processor coffea files')
     # Inputs
-    parser.add_argument( '--wf', '--workflow', dest='workflow', choices=['dilepton'], help='Which processor to run', required=True)
+    parser.add_argument( '--wf', '--workflow', dest='workflow', choices=['base', 'mem'], help='Which processor to run', required=True)
     parser.add_argument('-o', '--output', default=r'hists.coffea', help='Output histogram filename (default: %(default)s)')
     parser.add_argument('--samples', '--json', dest='samplejson', default='dummy_samples.json', help='JSON file containing dataset and file locations (default: %(default)s)')
     parser.add_argument('--year', type=str, choices=['2016', '2017', '2018'], help='Year of data/MC samples', required=True)
@@ -128,9 +128,9 @@ if __name__ == '__main__':
         sys.exit(0)
 
     # load workflow
-    if args.workflow == "dilepton":
-        from workflows.dilepton import ttHbbDilepton
-        processor_instance = ttHbbDilepton(year=args.year, cfg=args.cfg, hist_dir=hist_dir, hist2d=args.hist2d, DNN=args.DNN)
+    if args.workflow == "base":
+        from workflows.base import ttHbbBase
+        processor_instance = ttHbbBase(year=args.year, cfg=args.cfg, hist_dir=hist_dir, hist2d=args.hist2d, DNN=args.DNN)
     else:
         raise NotImplemented
 
