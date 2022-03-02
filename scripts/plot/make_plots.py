@@ -24,7 +24,6 @@ parser.add_argument('--outputDir', type=str, default=None, help='Output director
 parser.add_argument('--cfg', default=os.getcwd() + "/config/test.json", help='Config file with parameters specific to the current run', required=False)
 parser.add_argument('-s', '--scale', type=str, default='linear', help='Plot y-axis scale', required=False)
 parser.add_argument('-d', '--dense', action='store_true', default=False, help='Normalized plots')
-parser.add_argument('--year', type=str, choices=['2016', '2017', '2018'], help='Year of data/MC samples', required=True)
 parser.add_argument('--hist2d', action='store_true', default=False, help='Plot only 2D histograms')
 parser.add_argument('--proxy', action='store_true', help='Plot proxy and signal comparison')
 parser.add_argument('--only', action='store', default='', help='Plot only one histogram')
@@ -102,11 +101,11 @@ ggH_opts = {
 
 selection = {
     'trigger' : (r'Trigger'),
-    'basic' : (r'Trigger'+'\n'+
-               r'$N_{leps}$ = 2')
+    'dilepton' : (r'Trigger'+'\n'+
+                  r'Dilepton cuts')
 }
 
-totalLumi = 'TEST' if args.test else round(lumi[args.year]/1000, 1)
+categories_to_sum_over = ['cut', 'year']
 
 plt.style.use([hep.style.ROOT, {'font.size': 16}])
 plot_dir = args.outputDir if args.outputDir else os.getcwd()+"/plots/" + args.output + "/"
@@ -118,44 +117,47 @@ def make_plots(entrystart, entrystop):
     for histname in _accumulator:
         if args.only and not (args.only in histname): continue
         if not histname.lstrip('hist_').startswith(tuple(cfg['variables'])): continue
+        h = _accumulator[histname]
 
-        for cut in selection.keys():
-            selection_text = selection[cut]
-            h = _accumulator[histname]
-            datasets = [str(s) for s in h.identifiers('dataset')]
-            varname = h.fields[-1]
-            varlabel = h.axis(varname).label
-            if histname.startswith( tuple(histogram_settings['variables'].keys()) ):
-                h = h.rebin(varname, hist.Bin(varname, varlabel, **histogram_settings['variables']['_'.join(histname.split('_')[:2])]['binning']))
-            #h.scale( scaleXS, axis='dataset' )
-
-            if (not 'hist2d' in histname) & (not args.hist2d):
-
-                fig, ax = plt.subplots(1, 1, figsize=(12,9))
-                fig.subplots_adjust(hspace=.07)
-                plot.plot1d(h[(datasets, cut)].sum('cut'), ax=ax, legend_opts={'loc':1})
-
-                hep.cms.text("Preliminary", ax=ax)
-                hep.cms.lumitext(text=f'{totalLumi}' + r' fb$^{-1}$, 13 TeV,' + f' {args.year}', fontsize=18, ax=ax)
-                ax.legend()
-                at = AnchoredText(selection_text, loc=2, frameon=False)
-                ax.add_artist(at)
-                maxY = 1.2 *max( [ max(h[(dataset, cut)].sum('cut').values()[(dataset,)]) for dataset in datasets] )
-                ax.set_ylim(0,maxY)
-
+        for year in [str(s) for s in h.identifiers('year')]:
+            # Convert lumi in fb^-1 and round to the first decimal digit
+            totalLumi = 'TEST' if args.test else round(lumi[year]/1000, 1)            
+            for cut in [str(s) for s in h.identifiers('cut')]:
+                selection_text = selection[cut]
+                datasets = [str(s) for s in h.identifiers('dataset')]
+                varname = h.fields[-1]
+                varlabel = h.axis(varname).label
                 if histname.startswith( tuple(histogram_settings['variables'].keys()) ):
-                    ax.set_xlim(**histogram_settings['variables']['_'.join(histname.split('_')[:2])]['xlim'])
-                filepath = f"{plot_dir}{histname}_{cut}.png"
-                if args.scale != parser.get_default('scale'):
-                    if (not args.dense) & (args.scale == "log"):
-                        ax.semilogy()
-                        exp = 2 + math.floor(math.log(maxY, 10))
-                        ax.set_ylim(0.1, 10**exp)
-                    #rax.set_ylim(0.1,10)
-                    filepath = filepath.replace(".png", "_" + args.scale + ".png")
-                print("Saving", filepath)
-                plt.savefig(filepath, dpi=300, format="png")
-                plt.close(fig)
+                    h = h.rebin(varname, hist.Bin(varname, varlabel, **histogram_settings['variables']['_'.join(histname.split('_')[:2])]['binning']))
+                #h.scale( scaleXS, axis='dataset' )
+
+                if (not 'hist2d' in histname) & (not args.hist2d):
+
+                    fig, ax = plt.subplots(1, 1, figsize=(12,9))
+                    fig.subplots_adjust(hspace=.07)
+                    plot.plot1d(h[(datasets, cut, year)].sum(*categories_to_sum_over), ax=ax, legend_opts={'loc':1})
+
+                    hep.cms.text("Preliminary", ax=ax)
+                    hep.cms.lumitext(text=f'{totalLumi}' + r' fb$^{-1}$, 13 TeV,' + f' {year}', fontsize=18, ax=ax)
+                    ax.legend()
+                    at = AnchoredText(selection_text, loc=2, frameon=False)
+                    ax.add_artist(at)
+                    maxY = 1.2 *max( [ max(h[(dataset, cut)].sum(*categories_to_sum_over).values()[(dataset,)]) for dataset in datasets] )
+                    ax.set_ylim(0,maxY)
+
+                    if histname.startswith( tuple(histogram_settings['variables'].keys()) ):
+                        ax.set_xlim(**histogram_settings['variables']['_'.join(histname.split('_')[:2])]['xlim'])
+                    filepath = f"{plot_dir}{histname}_{cut}_{year}.png"
+                    if args.scale != parser.get_default('scale'):
+                        if (not args.dense) & (args.scale == "log"):
+                            ax.semilogy()
+                            exp = 2 + math.floor(math.log(maxY, 10))
+                            ax.set_ylim(0.1, 10**exp)
+                        #rax.set_ylim(0.1,10)
+                        filepath = filepath.replace(".png", "_" + args.scale + ".png")
+                    print("Saving", filepath)
+                    plt.savefig(filepath, dpi=300, format="png")
+                    plt.close(fig)
 
     return
 
