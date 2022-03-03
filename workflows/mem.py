@@ -7,8 +7,15 @@ class MEMStudiesProcessor(ttHbbBaseProcessor):
         super().__init__(year=year, cfg=cfg, hist_dir=hist_dir, hist2d=hist2d, DNN=DNN)
 
     def parton_matching(self, events):
-        JetIDs = [5]
-        bquarks = ak.zeros_like(selev.LHEPart.pdgId == 5, dtype=bool)
+        isHiggs = events.GenPart.pdgId == 25
+        isPrompt = events.GenPart.hasFlags(['isPrompt'])
+        hasTwoChildren = ak.num(events.GenPart.childrenIdxG, axis=2) == 2
+
+        higgs = events.GenPart[isHiggs & isPrompt & hasTwoChildren]
+        bquarksIdxG = ak.flatten(higgs.childrenIdxG, axis=2)
+        bquarks = events.GenPart[bquarksIdxG]
+        print(bquarks.pdgId)
 
     def process_extra(self, events: ak.Array) -> ak.Array:
-        print("We are executing the processor MEMStudies!!!")
+        print(events.metadata["dataset"])
+        self.parton_matching(events)
