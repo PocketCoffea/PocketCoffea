@@ -140,7 +140,7 @@ class ttHbbBase(processor.ProcessorABC):
             self._cuts.add(cut_function.__name__, ak.to_numpy(mask))
             self._selections[cut_function.__name__] = set.union(self._selections['trigger'], {cut_function.__name__})
 
-    def process_extra(self, events: awkward.Array) -> awkward.Array:
+    def process_extra(self, events: ak.Array) -> ak.Array:
         return
 
     def process(self, events):
@@ -190,7 +190,7 @@ class ttHbbBase(processor.ProcessorABC):
         self.apply_triggers(events)
         self.apply_cuts(events)
         # This function is empty in the base processor, but can be overriden in processors derived from the class ttHbbBase
-        self.process_extra(events)
+        #self.process_extra(events)
 
         for histname, h in output.items():
             if type(h) is not hist.Hist: continue
