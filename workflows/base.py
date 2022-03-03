@@ -19,8 +19,8 @@ from parameters.allhistograms import histogram_settings
 
 from utils.config_loader import load_config
 
-class ttHbbBase(processor.ProcessorABC):
-    def __init__(self, year='2017', cfg='test.json', hist_dir='histograms/', hist2d =False, DNN=False):
+class ttHbbBaseProcessor(processor.ProcessorABC):
+    def __init__(self, year='2017', cfg='test.py', hist_dir='histograms/', hist2d =False, DNN=False):
         #self.sample = sample
         # Read required cuts and histograms from config file
         self.cfg = load_config(cfg).cfg
@@ -141,7 +141,7 @@ class ttHbbBase(processor.ProcessorABC):
             self._selections[cut_function.__name__] = set.union(self._selections['trigger'], {cut_function.__name__})
 
     def process_extra(self, events: ak.Array) -> ak.Array:
-        return
+        pass
 
     def process(self, events):
         output = self.accumulator.identity()
@@ -189,8 +189,8 @@ class ttHbbBase(processor.ProcessorABC):
         self.count_objects(events)
         self.apply_triggers(events)
         self.apply_cuts(events)
-        # This function is empty in the base processor, but can be overriden in processors derived from the class ttHbbBase
-        #self.process_extra(events)
+        # This function is empty in the base processor, but can be overriden in processors derived from the class ttHbbBaseProcessor
+        self.process_extra(events)
 
         for histname, h in output.items():
             if type(h) is not hist.Hist: continue

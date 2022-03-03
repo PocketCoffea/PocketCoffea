@@ -129,8 +129,11 @@ if __name__ == '__main__':
 
     # load workflow
     if args.workflow == "base":
-        from workflows.base import ttHbbBase
-        processor_instance = ttHbbBase(year=args.year, cfg=args.cfg, hist_dir=hist_dir, hist2d=args.hist2d, DNN=args.DNN)
+        from workflows.base import ttHbbBaseProcessor
+        processor_instance = ttHbbBaseProcessor(year=args.year, cfg=args.cfg, hist_dir=hist_dir, hist2d=args.hist2d, DNN=args.DNN)
+    elif args.workflow == "mem":
+        from workflows.mem import MEMStudiesProcessor
+        processor_instance = MEMStudiesProcessor(year=args.year, cfg=args.cfg, hist_dir=hist_dir, hist2d=args.hist2d, DNN=args.DNN)
     else:
         raise NotImplemented
 
