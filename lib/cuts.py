@@ -12,7 +12,7 @@ def dilepton(processor, events):
     not_SF = ( (events.nmuon == 1) & (events.nelectron == 1) )
 
     mask = ( (events.nlep == 2) & (events.nlepgood >= 1) & OS &
-             (events.njet >= 2) & (events.nbjet > 1) & (MET.pt > 40) &
+             (events.njet >= 2) & (events.nbjet >= 1) & (MET.pt > 40) &
              (events.ll.mass > 20) & ((SF & ((events.ll.mass < 76) | (events.ll.mass > 106))) | not_SF) )
 
     return mask
