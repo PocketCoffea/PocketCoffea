@@ -9,9 +9,12 @@ python runner.py --workflow dilepton --executor futures --samples datasets/basel
 ### Output files
 The output will be stored in two files: in `histograms/test.coffea` the histograms are saved in the `.coffea` format, while in `inputs/test.h5` the arrays are saved to be used as input for the DNN.
 ### Config file
-The histograms to store in the output file can be specified in a config file in `.json` format as the argument `--cfg` of the `runner.py` script. The file has the following structure:
+The histograms to store in the output file can be specified in a config file in `.py` format as the argument `--cfg` of the `runner.py` script. The file has the following structure:
 ~~~
+from lib.cuts import dilepton
+
 {
+  "cuts" : [dilepton]
   "variables" : [
     "muon_pt",
     "muon_eta",
@@ -23,7 +26,7 @@ The histograms to store in the output file can be specified in a config file in 
   ]
 }
 ~~~
-where the variables' names can be chosen among those reported in `parameters.allhistograms.histogram_settings`.
+where the variables' names can be chosen among those reported in `parameters.allhistograms.histogram_settings` and `cuts` is a list of functions chosen from `lib.cuts` to apply the desired cuts.
 ### Plots
 To create plots, run the plot script:
 ~~~
