@@ -8,12 +8,10 @@ class MEMStudiesProcessor(ttHbbBaseProcessor):
 
     def parton_matching(self, events):
         isHiggs = events.GenPart.pdgId == 25
-        isPrompt = events.GenPart.hasFlags(['isPrompt'])
-        hasTwoChildren = ak.num(events.GenPart.childrenIdxG, axis=2) == 2
-
-        higgs = events.GenPart[isHiggs & isPrompt & hasTwoChildren]
-        bquarksIdxG = ak.flatten(higgs.childrenIdxG, axis=2)
-        bquarks = events.GenPart[bquarksIdxG]
+        isHard = events.GenPart.hasFlags(['isHardProcess'])
+        hasTwoChildren = ak.num(events.GenPart.children, axis=2) == 2
+        higgs = events.GenPart[isHiggs & isHard & hasTwoChildren]
+        bquarks = higgs.children 
         print(bquarks.pdgId)
 
     def process_extra(self, events: ak.Array) -> ak.Array:
