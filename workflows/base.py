@@ -147,19 +147,20 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                 if histname in self.nobj_hists:
                     weight = self.weights.weight() * self._cuts.all(*self._selections[cut])
                     fields = {k: ak.fill_none(getattr(events, k), -9999) for k in h.fields if k in histname}
-                if histname in self.muon_hists:
+                elif histname in self.muon_hists:
                     muon = events.MuonAll
                     weight = ak.flatten(self.weights.weight() * ak.Array(ak.ones_like(muon.pt) * self._cuts.all(*self._selections[cut])))
                     fields = {k: ak.flatten(ak.fill_none(muon[k], -9999)) for k in h.fields if k in dir(muon)}
-                if histname in self.electron_hists:
+                elif histname in self.electron_hists:
                     electron = events.ElectronAll
                     weight = ak.flatten(self.weights.weight() * ak.Array(ak.ones_like(electron.pt) * self._cuts.all(*self._selections[cut])))
                     fields = {k: ak.flatten(ak.fill_none(electron[k], -9999)) for k in h.fields if k in dir(electron)}
-                if histname in self.jet_hists:
+                elif histname in self.jet_hists:
                     jet = events.JetGood
                     weight = ak.flatten(self.weights.weight() * ak.Array(ak.ones_like(jet.pt) * self._cuts.all(*self._selections[cut])))
                     fields = {k: ak.flatten(ak.fill_none(jet[k], -9999)) for k in h.fields if k in dir(jet)}
-                self.fill_histograms_extra(output, events)
+                else:
+                    fields, weight = self.fill_histograms_extra(histname, h, cut, events)
                 h.fill(dataset=events.metadata["dataset"], cut=cut, year=self._year, **fields, weight=weight)
 
     def fill_histograms_extra(self, histname, cut, events: ak.Array):
