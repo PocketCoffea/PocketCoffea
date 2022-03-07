@@ -17,6 +17,8 @@ from multiprocessing import Pool
 from parameters.allhistograms import histogram_settings
 from parameters.lumi import lumi
 
+from utils.config_loader import load_config
+
 parser = argparse.ArgumentParser(description='Plot histograms from coffea file')
 parser.add_argument('-i', '--input', type=str, help='Input histogram filename', required=True)
 parser.add_argument('-o', '--output', type=str, default='', help='Output directory', required=True)
@@ -50,8 +52,7 @@ else:
         for histname in histograms:
             accumulator[histname].add(output[histname])
 
-with open(args.cfg) as f:
-    cfg = json.load(f)
+cfg = load_config(args.cfg).cfg
 
 #scaleXS = {}
 #for isam in accumulator[next(iter(accumulator))].identifiers('dataset'):
