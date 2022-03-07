@@ -140,6 +140,31 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             self._cuts.add(cut_function.__name__, ak.to_numpy(mask))
             self._selections[cut_function.__name__] = set.union(self._selections['trigger'], {cut_function.__name__})
 
+    def fill_histograms(self, output, events):
+        for histname, h in output.items():
+            if type(h) is not hist.Hist: continue
+            for cut in self._selections.keys():
+                if histname in self.nobj_hists:
+                    weight = self.weights.weight() * self._cuts.all(*self._selections[cut])
+                    fields = {k: ak.fill_none(getattr(events, k), -9999) for k in h.fields if k in histname}
+                if histname in self.muon_hists:
+                    muon = events.MuonAll
+                    weight = ak.flatten(self.weights.weight() * ak.Array(ak.ones_like(muon.pt) * self._cuts.all(*self._selections[cut])))
+                    fields = {k: ak.flatten(ak.fill_none(muon[k], -9999)) for k in h.fields if k in dir(muon)}
+                if histname in self.electron_hists:
+                    electron = events.ElectronAll
+                    weight = ak.flatten(self.weights.weight() * ak.Array(ak.ones_like(electron.pt) * self._cuts.all(*self._selections[cut])))
+                    fields = {k: ak.flatten(ak.fill_none(electron[k], -9999)) for k in h.fields if k in dir(electron)}
+                if histname in self.jet_hists:
+                    jet = events.JetGood
+                    weight = ak.flatten(self.weights.weight() * ak.Array(ak.ones_like(jet.pt) * self._cuts.all(*self._selections[cut])))
+                    fields = {k: ak.flatten(ak.fill_none(jet[k], -9999)) for k in h.fields if k in dir(jet)}
+                self.fill_histograms_extra(output, events)
+                h.fill(dataset=events.metadata["dataset"], cut=cut, year=self._year, **fields, weight=weight)
+
+    def fill_histograms_extra(self, histname, cut, events: ak.Array):
+        pass
+
     def process_extra(self, events: ak.Array) -> ak.Array:
         pass
 
@@ -172,9 +197,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         mask_clean = mask_clean & (events.PV.npvsGood > 0)
 
         # Weights
-        weights = processor.Weights(nEvents)
+        self.weights = processor.Weights(nEvents)
         if self.isMC:
-            weights.add('genWeight', events.genWeight)
+            self.weights.add('genWeight', events.genWeight)
 
         # In case of data: check if event is in golden lumi file
         if not self.isMC and not (lumimask is None):
@@ -189,28 +214,11 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.count_objects(events)
         self.apply_triggers(events)
         self.apply_cuts(events)
+        
         # This function is empty in the base processor, but can be overriden in processors derived from the class ttHbbBaseProcessor
         self.process_extra(events)
 
-        for histname, h in output.items():
-            if type(h) is not hist.Hist: continue
-            for cut in self._selections.keys():
-                if histname in self.nobj_hists:
-                    weight = weights.weight() * self._cuts.all(*self._selections[cut])
-                    fields = {k: ak.fill_none(getattr(events, k), -9999) for k in h.fields if k in histname}
-                if histname in self.muon_hists:
-                    muon = events.MuonAll
-                    weight = ak.flatten(weights.weight() * ak.Array(ak.ones_like(muon.pt) * self._cuts.all(*self._selections[cut])))
-                    fields = {k: ak.flatten(ak.fill_none(muon[k], -9999)) for k in h.fields if k in dir(muon)}
-                if histname in self.electron_hists:
-                    electron = events.ElectronAll
-                    weight = ak.flatten(weights.weight() * ak.Array(ak.ones_like(electron.pt) * self._cuts.all(*self._selections[cut])))
-                    fields = {k: ak.flatten(ak.fill_none(electron[k], -9999)) for k in h.fields if k in dir(electron)}
-                if histname in self.jet_hists:
-                    jet = events.JetGood
-                    weight = ak.flatten(weights.weight() * ak.Array(ak.ones_like(jet.pt) * self._cuts.all(*self._selections[cut])))
-                    fields = {k: ak.flatten(ak.fill_none(jet[k], -9999)) for k in h.fields if k in dir(jet)}
-                h.fill(dataset=dataset, cut=cut, year=self._year, **fields, weight=weight)
+        self.fill_histograms(output, events)
 
         return output
 
