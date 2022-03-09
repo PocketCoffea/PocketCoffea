@@ -15,6 +15,7 @@ from parameters.preselection import object_preselection
 from parameters.triggers import triggers
 from parameters.btag import btag
 from parameters.lumi import lumi
+from parameters.samples import samples_info
 from parameters.allhistograms import histogram_settings
 
 from utils.config_loader import load_config
@@ -48,7 +49,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # Define axes
         dataset_axis = hist.Cat("dataset", "Dataset")
         cut_axis     = hist.Cat("cut", "Cut")
-        year_axis     = hist.Cat("year", "Year")
+        year_axis    = hist.Cat("year", "Year")
 
         self._sumw_dict = {
             "sumw": processor.defaultdict_accumulator(float),
@@ -160,10 +161,15 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                     weight = ak.flatten(self.weights.weight() * ak.Array(ak.ones_like(jet.pt) * self._cuts.all(*self._selections[cut])))
                     fields = {k: ak.flatten(ak.fill_none(jet[k], -9999)) for k in h.fields if k in dir(jet)}
                 else:
-                    fields, weight = self.fill_histograms_extra(histname, h, cut, events)
+                    #fields, weight = self.fill_histograms_extra(histname, h, cut, events)
+                    continue
                 h.fill(dataset=events.metadata["dataset"], cut=cut, year=self._year, **fields, weight=weight)
+        output = self.fill_histograms_extra(output, events)
 
-    def fill_histograms_extra(self, histname, cut, events: ak.Array):
+    #def fill_histograms_extra(self, histname, cut, events: ak.Array):
+    #    pass
+
+    def fill_histograms_extra(self, output, events):
         pass
 
     def process_extra(self, events: ak.Array) -> ak.Array:
@@ -201,6 +207,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.weights = processor.Weights(nEvents)
         if self.isMC:
             self.weights.add('genWeight', events.genWeight)
+            self.weights.add('lumi', ak.full_like(events.genWeight, lumi[self._year]))
+            self.weights.add('XS', ak.full_like(events.genWeight, samples_info[dataset]["XS"]))
+            self.weights.add('sumw', ak.full_like(events.genWeight, 1./output["sumw"][dataset]))
 
         # In case of data: check if event is in golden lumi file
         if not self.isMC and not (lumimask is None):
