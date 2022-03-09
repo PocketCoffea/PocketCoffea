@@ -34,21 +34,40 @@ class MEMStudiesProcessor(ttHbbBaseProcessor):
             sortedR = ak.argsort(ak.mask(deltaR, deltaR<1))
             if i == 0:
                 jets_matched = ak.unflatten( ak.mask( ak.firsts(events.JetGood[sortedR]), hasJet ), 1 )
+                idx_sorted   = ak.unflatten( ak.mask(sortedR, hasJet), 1 )
+                dr_sorted    = ak.unflatten( ak.mask(deltaR[sortedR], hasJet), 1 )
                 idx_matched  = ak.unflatten( ak.mask( ak.firsts(sortedR), hasJet ), 1 )
                 dr_matched   = ak.unflatten( ak.mask( ak.firsts(deltaR[sortedR]), hasJet ), 1 )
                 hasUniqueMatch  = ak.ones_like(events.event, dtype=bool)
             else:
                 jets_matched = ak.concatenate( ( jets_matched, ak.unflatten( ak.mask( ak.firsts(events.JetGood[sortedR]), hasJet ), 1 ) ), axis=1 )
+                idx_sorted   = ak.concatenate( ( idx_sorted, ak.unflatten( ak.mask( sortedR, hasJet ), 1 ) ), axis=1 )
+                dr_sorted    = ak.concatenate( ( dr_sorted, ak.unflatten( ak.mask( deltaR[sortedR], hasJet ), 1 ) ), axis=1 )
                 idx_matched  = ak.concatenate( ( idx_matched, ak.unflatten( ak.firsts(sortedR), 1 ) ), axis=1 )
                 dr_matched   = ak.concatenate( ( dr_matched, ak.unflatten( ak.firsts(deltaR[sortedR]), 1 ) ), axis=1 )
                 # Check that the jets are not double matched to different b-quarks
                 pairs_to_check = [(j, i) for j in range(i)]
                 for pair in pairs_to_check:
                     mask = ak.fill_none((idx_matched[:,pair[0]] != idx_matched[:,pair[1]]), True)
+                    dr1 = dr_sorted[:,pair[0]]
+                    dr2 = dr_sorted[:,pair[1]]
+                    idx1 = idx_sorted[:,pair[0]]
+                    idx2 = idx_sorted[:,pair[1]]
+                    mask1 = ((idx1 == idx2) & (dr1[idx1] < dr2[idx2])) | (idx1 != idx2)
+                    mask2 = ((idx1 == idx2) & (dr1[idx1] > dr2[idx2])) | (idx1 != idx2)
+                    print(pair)
+                    print("mask1", mask1)
+                    print("mask2", mask2)
+                    #idx_sorted_fix = idx_sorted
                     #print(i, "idx_matched[:,pair[0]]", idx_matched[:,pair[0]])
                     #print(i, "idx_matched[:,pair[1]]", idx_matched[:,pair[1]])
                     #print(i, "mask", mask)
                     hasUniqueMatch = hasUniqueMatch & mask
+
+        print("idx_sorted", idx_sorted)
+        print("idx_matched", idx_matched)
+        print("dr_sorted", dr_sorted)
+        print("dr_matched", dr_matched)
 
         hasMatch = ak.count(bquarks.pt, axis=1) == ak.count(idx_matched, axis=1)
         events["BQuark"] = ak.with_field(bquarks, dr_matched, "drMatchedJet")
@@ -59,9 +78,9 @@ class MEMStudiesProcessor(ttHbbBaseProcessor):
         #print("idx_matched", idx_matched)
         #print("drMatchedJet", events.BQuark.drMatchedJet)
         #print("hasMatch", hasMatch)
-        print("hasUniqueMatch", hasUniqueMatch)
+        #print("hasUniqueMatch", hasUniqueMatch)
         #print("jets_matched[~hasUniqueMatch]", jets_matched[~hasUniqueMatch])
-        print("idx_matched[~hasUniqueMatch]", idx_matched[~hasUniqueMatch])
+        #print("idx_matched[~hasUniqueMatch]", idx_matched[~hasUniqueMatch])
         #print(bquarks.delta_r(events.BJetGood))
 
     #def fill_histograms_extra(self, histname, h, cut, events):
