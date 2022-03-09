@@ -17,4 +17,5 @@ def dilepton(processor, events):
              (events.njet >= 2) & (events.nbjet >= 1) & (MET.pt > 40) &
              (events.ll.mass > 20) & ((SF & ((events.ll.mass < 76) | (events.ll.mass > 106))) | not_SF) )
 
+    # Pad None values with False
     return ak.where(ak.is_none(mask), ~ak.is_none(mask), mask)
