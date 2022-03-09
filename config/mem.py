@@ -23,9 +23,11 @@ cfg =  {
         "nfatjet",
         "bquark_pt",
         "bquark_eta",
-        "bquark_phi"
+        "bquark_phi",
+        "bquark_drMatchedJet",
     ],
     "variables2d" : [
         
-    ]
+    ],
+    "scale_ttHbb" : 1000
 }
