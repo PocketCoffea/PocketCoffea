@@ -106,8 +106,6 @@ selection = {
                   r'Dilepton cuts')
 }
 
-categories_to_sum_over = ['cut', 'year']
-
 plt.style.use([hep.style.ROOT, {'font.size': 16}])
 plot_dir = args.outputDir if args.outputDir else os.getcwd()+"/plots/" + args.output + "/"
 if not os.path.exists(plot_dir):
@@ -128,26 +126,38 @@ def make_plots(entrystart, entrystop):
                 datasets = [str(s) for s in h.identifiers('dataset')]
                 varname = h.fields[-1]
                 varlabel = h.axis(varname).label
-                if histname.startswith( tuple(histogram_settings['variables'].keys()) ):
-                    h = h.rebin(varname, hist.Bin(varname, varlabel, **histogram_settings['variables']['_'.join(histname.split('_')[:2])]['binning']))
+                # This if has to be rewritten!
+                #if histname.lstrip('hist_').startswith( tuple(histogram_settings['variables'].keys()) ):
+                #    h = h.rebin(varname, hist.Bin(varname, varlabel, **histogram_settings['variables']['_'.join(histname.split('_')[:2])]['binning']))
                 #h.scale( scaleXS, axis='dataset' )
 
                 if (not 'hist2d' in histname) & (not args.hist2d):
 
                     fig, ax = plt.subplots(1, 1, figsize=(12,9))
                     fig.subplots_adjust(hspace=.07)
-                    plot.plot1d(h[(datasets, cut, year)].sum(*categories_to_sum_over), ax=ax, legend_opts={'loc':1})
+                    if len(h.axes()) > 4:
+                        categories_to_sum_over = ['cut', 'year']
+                        collections = [str(s) for s in h.identifiers('collection')]
+                        plot.plot1d(h.sum('dataset')[(cut, year)].sum(*categories_to_sum_over), ax=ax, legend_opts={'loc':1})
+                        maxY = 1.2 *max( [ max(h.sum('dataset')[(cut, year)].sum(*categories_to_sum_over).values()[(collection,)]) for collection in collections] )
+                    else:
+                        categories_to_sum_over = ['cut', 'year']
+                        plot.plot1d(h[(datasets, cut, year)].sum(*categories_to_sum_over), ax=ax, legend_opts={'loc':1})
+                        maxY = 1.2 *max( [ max(h[(dataset, cut, year)].sum(*categories_to_sum_over).values()[(dataset,)]) for dataset in datasets] )
 
                     hep.cms.text("Preliminary", ax=ax)
                     hep.cms.lumitext(text=f'{totalLumi}' + r' fb$^{-1}$, 13 TeV,' + f' {year}', fontsize=18, ax=ax)
                     ax.legend()
                     at = AnchoredText(selection_text, loc=2, frameon=False)
                     ax.add_artist(at)
-                    maxY = 1.2 *max( [ max(h[(dataset, cut)].sum(*categories_to_sum_over).values()[(dataset,)]) for dataset in datasets] )
                     ax.set_ylim(0,maxY)
 
-                    if histname.startswith( tuple(histogram_settings['variables'].keys()) ):
-                        ax.set_xlim(**histogram_settings['variables']['_'.join(histname.split('_')[:2])]['xlim'])
+                    if histname.lstrip('hist_').startswith( tuple(histogram_settings['variables'].keys()) ):
+                        if histname == 'hist_bquark_drMatchedJet':
+                            ax.set_xlim(0,1)
+                        elif histname == 'hist_bquark_pt':
+                            ax.set_xlim(0,200)
+                        #ax.set_xlim(**histogram_settings['variables']['_'.join(histname.lstrip('hist_').split('_')[:2])]['xlim'])
                     filepath = f"{plot_dir}{histname}_{cut}_{year}.png"
                     if args.scale != parser.get_default('scale'):
                         if (not args.dense) & (args.scale == "log"):
