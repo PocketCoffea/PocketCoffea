@@ -25,49 +25,16 @@ class MEMStudiesProcessor(ttHbbBaseProcessor):
             bquarks = ak.with_name(bquarks[ak.argsort(bquarks.pt)], name='PtEtaPhiMCandidate')
 
         # Compute deltaR(b, jet) and save the nearest jet (deltaR matching)
-        max_len = ak.max(ak.num(bquarks))
         bquarks = ak.pad_none(bquarks, max_len)
-        for i in range(max_len):
-            parton = bquarks[:,i]
-            deltaR = parton.delta_r(events.JetGood)
-            hasJet = ak.sum(ak.mask(deltaR, deltaR<1),axis=-1) > 0
-            sortedR = ak.argsort(ak.mask(deltaR, deltaR<1))
-            if i == 0:
-                jets_matched = ak.unflatten( ak.mask( ak.firsts(events.JetGood[sortedR]), hasJet ), 1 )
-                idx_sorted   = ak.unflatten( ak.mask(sortedR, hasJet), 1 )
-                dr_sorted    = ak.unflatten( ak.mask(deltaR[sortedR], hasJet), 1 )
-                idx_matched  = ak.unflatten( ak.mask( ak.firsts(sortedR), hasJet ), 1 )
-                dr_matched   = ak.unflatten( ak.mask( ak.firsts(deltaR[sortedR]), hasJet ), 1 )
-                hasUniqueMatch  = ak.ones_like(events.event, dtype=bool)
-            else:
-                jets_matched = ak.concatenate( ( jets_matched, ak.unflatten( ak.mask( ak.firsts(events.JetGood[sortedR]), hasJet ), 1 ) ), axis=1 )
-                idx_sorted   = ak.concatenate( ( idx_sorted, ak.unflatten( ak.mask( sortedR, hasJet ), 1 ) ), axis=1 )
-                dr_sorted    = ak.concatenate( ( dr_sorted, ak.unflatten( ak.mask( deltaR[sortedR], hasJet ), 1 ) ), axis=1 )
-                idx_matched  = ak.concatenate( ( idx_matched, ak.unflatten( ak.firsts(sortedR), 1 ) ), axis=1 )
-                dr_matched   = ak.concatenate( ( dr_matched, ak.unflatten( ak.firsts(deltaR[sortedR]), 1 ) ), axis=1 )
-                # Check that the jets are not double matched to different b-quarks
-                pairs_to_check = [(j, i) for j in range(i)]
-                for pair in pairs_to_check:
-                    mask = ak.fill_none((idx_matched[:,pair[0]] != idx_matched[:,pair[1]]), True)
-                    dr1 = dr_sorted[:,pair[0]]
-                    dr2 = dr_sorted[:,pair[1]]
-                    idx1 = idx_sorted[:,pair[0]]
-                    idx2 = idx_sorted[:,pair[1]]
-                    mask1 = ((idx1 == idx2) & (dr1[idx1] < dr2[idx2])) | (idx1 != idx2)
-                    mask2 = ((idx1 == idx2) & (dr1[idx1] > dr2[idx2])) | (idx1 != idx2)
-                    print(pair)
-                    print("mask1", mask1)
-                    print("mask2", mask2)
-                    #idx_sorted_fix = idx_sorted
-                    #print(i, "idx_matched[:,pair[0]]", idx_matched[:,pair[0]])
-                    #print(i, "idx_matched[:,pair[1]]", idx_matched[:,pair[1]])
-                    #print(i, "mask", mask)
-                    hasUniqueMatch = hasUniqueMatch & mask
+        deltaR = ak.flatten(bquarks.metric_table(events.JetGood), axis=2)
+        pairs = ak.argcartesian([bquarks, events.JetGood])
+        pairs_sorted = ak.argsort(deltaR, axis=1)
+        idx_bquarks, idx_JetGood = ak.unzip(pairs_sorted)
 
-        print("idx_sorted", idx_sorted)
-        print("idx_matched", idx_matched)
-        print("dr_sorted", dr_sorted)
-        print("dr_matched", dr_matched)
+        #print("idx_sorted", idx_sorted)
+        #print("idx_matched", idx_matched)
+        #print("dr_sorted", dr_sorted)
+        #print("dr_matched", dr_matched)
 
         hasMatch = ak.count(bquarks.pt, axis=1) == ak.count(idx_matched, axis=1)
         events["BQuark"] = ak.with_field(bquarks, dr_matched, "drMatchedJet")
