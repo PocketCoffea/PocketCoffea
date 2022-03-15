@@ -21,6 +21,7 @@ cfg =  {
         "njet",
         "nbjet",
         "nfatjet",
+        "nbquark",
         "bquark_pt",
         "bquark_eta",
         "bquark_phi",

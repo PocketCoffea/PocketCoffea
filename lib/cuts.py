@@ -1,7 +1,8 @@
 import awkward as ak
 
-def dilepton(processor, events):
+def dilepton(processor):
 
+    events = processor.events
     if processor._year == '2017':
         MET = events.METFixEE2017
     else:
