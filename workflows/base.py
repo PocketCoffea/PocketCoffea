@@ -3,14 +3,11 @@ import coffea
 from coffea import hist, processor, lookup_tools
 from coffea.lumi_tools import LumiMask #, LumiData
 import os
-import h5py
 import numpy as np
 import awkward as ak
 
 from lib.objects import lepton_selection, jet_selection, get_dilepton
 from lib.cuts import dilepton
-#from lib.weights import load_puhist_target, compute_lepton_weights
-#from lib.reconstruction import pnuCalculator
 from parameters.preselection import object_preselection
 from parameters.triggers import triggers
 from parameters.btag import btag
@@ -234,39 +231,5 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         return output
 
     def postprocess(self, accumulator):
-
-        #print(accumulator['leading_lepton_pt'])
-        if self.DNN:
-            filepath = self.DNN
-            hdf_dir = '/'.join(filepath.split('/')[:-1])
-            if not os.path.exists(hdf_dir):
-                os.makedirs(hdf_dir)
-            # Minimal input set, only leading jet, lepton and fatjet observables
-            # No top-related variables used
-            input_vars = ['ngoodjets', 'njets', 'btags', 'nfatjets', 'met_pt', 'met_phi',
-                          'leading_jet_pt', 'leading_jet_eta', 'leading_jet_phi', 'leading_jet_mass',
-                          'leadAK8JetPt', 'leadAK8JetEta', 'leadAK8JetPhi', 'leadAK8JetMass', 'leadAK8JetHbb', 'leadAK8JetTau21',
-                          'lepton_plus_pt', 'lepton_plus_eta', 'lepton_plus_phi', 'lepton_plus_mass',
-                          'lepton_minus_pt', 'lepton_minus_eta', 'lepton_minus_phi', 'lepton_minus_mass',
-                          'deltaRHiggsTop', 'deltaRHiggsTopbar', 'deltaRHiggsTT', 'deltaRLeptonPlusHiggs', 'deltaRLeptonMinusHiggs',
-                          'ttHbb_label',
-                          'weights_nominal']
-            for key, value in accumulator.items():
-                if key in input_vars:
-                    print(key, value.value)
-            vars_to_DNN = {key : ak.Array(value.value) for key, value in accumulator.items() if key in input_vars}
-            print("vars_to_DNN = ", vars_to_DNN)
-            inputs = ak.zip(vars_to_DNN)
-            print("inputs = ", inputs)
-            print(f"Saving DNN inputs to {filepath}")
-            df = ak.to_pandas(inputs)
-            df.to_hdf(filepath, key='df', mode='w')
-            """
-            h5f = h5py.File(filepath, 'w')
-            for k in inputs.fields:
-                print("Create", k)
-                h5f.create_dataset(k, data=inputs[k])
-            h5f.close()
-            """
 
         return accumulator
