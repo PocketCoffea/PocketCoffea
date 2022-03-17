@@ -2,6 +2,7 @@ import json
 import coffea
 from coffea import hist, processor, lookup_tools
 from coffea.lumi_tools import LumiMask #, LumiData
+from coffea.analysis_tools import PackedSelection, Weights
 import os
 import numpy as np
 import awkward as ak
@@ -18,7 +19,7 @@ from parameters.allhistograms import histogram_settings
 from utils.config_loader import load_config
 
 class ttHbbBaseProcessor(processor.ProcessorABC):
-    def __init__(self, year='2017', cfg='test.py', hist_dir='histograms/', hist2d =False, DNN=False):
+    def __init__(self, cfg='test.py'):
         #self.sample = sample
         # Read required cuts and histograms from config file
         self.cfg = load_config(cfg).cfg
@@ -27,12 +28,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self._varnames = self.cfg['variables']
         self._hist2dnames = self.cfg['variables2d']
         # Save trigger and preselection requirements
-        self._year = year
         self._preselections = object_preselection['dilepton']
-        self._triggers = triggers['dilepton'][self._year]
-        self._btag = btag[self._year]
-        self.hist2d = hist2d
-        self.DNN = DNN
         # Save histogram settings of the required histograms
         self._variables = {var_name : histogram_settings['variables'][var_name] for var_name in self._varnames}
         self._variables2d = {hist2d_name : histogram_settings['variables2d'][hist2d_name] for hist2d_name in self._hist2dnames}
@@ -40,7 +36,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self._hist2d_dict = {}
 
         # Define PackedSelector to save per-event cuts and dictionary of selections
-        self._cuts = processor.PackedSelection()
+        self._cuts = PackedSelection()
         self._selections = {}
 
         # Define axes
@@ -70,8 +66,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             variable_y_axis = hist.Bin("y", self._variables2d[hist2d_name][varname_y]['ylabel'], **self._variables2d[hist2d_name][varname_y]['binning'] )
             self._hist2d_dict[f'hist2d_{hist2d_name}'] = hist.Hist("$N_{events}$", dataset_axis, cut_axis, year_axis, variable_x_axis, variable_y_axis)
 
-        if self.hist2d:
-            self._hist_dict.update(**self._hist2d_dict)
+        self._hist_dict.update(**self._hist2d_dict)
         self._hist_dict.update(**self._sumw_dict)
         self._accumulator = processor.dict_accumulator(self._hist_dict)        
         self.nobj_hists = [histname for histname in self._hist_dict.keys() if histname.lstrip('hist_').startswith('n') and not 'nevts' in histname]
@@ -82,6 +77,14 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     @property
     def accumulator(self):
         return self._accumulator
+
+    # Function to load year-dependent parameters
+    def load_parameters(self):
+        self._dataset = self.events.metadata["dataset"]
+        self._sample = self.events.metadata["sample"]
+        self._year = self.events.metadata["year"]
+        self._triggers = triggers['dilepton'][self._year]
+        self._btag = btag[self._year]
 
     # Function to compute masks to preselect objects and save them as attributes of `events`
     def apply_object_preselection(self):
@@ -176,12 +179,12 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         output = self.accumulator.identity()
         #if len(events)==0: return output
         self.events = events
-        dataset = self.events.metadata["dataset"]
+        self.load_parameters()
         nEvents = ak.count(self.events.event)
-        output['nevts'][dataset] += nEvents
+        output['nevts'][self._sample] += nEvents
         self.isMC = 'genWeight' in self.events.fields
         if self.isMC:
-            output['sumw'][dataset] += sum(self.events.genWeight)
+            output['sumw'][self._sample] += sum(self.events.genWeight)
 
         if self._year =='2017':
             metstruct = 'METFixEE2017'
@@ -202,12 +205,12 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         mask_clean = mask_clean & (self.events.PV.npvsGood > 0)
 
         # Weights
-        self.weights = processor.Weights(nEvents)
+        self.weights = Weights(nEvents)
         if self.isMC:
             self.weights.add('genWeight', self.events.genWeight)
             self.weights.add('lumi', ak.full_like(self.events.genWeight, lumi[self._year]))
-            self.weights.add('XS', ak.full_like(self.events.genWeight, samples_info[dataset]["XS"]))
-            self.weights.add('sumw', ak.full_like(self.events.genWeight, 1./output["sumw"][dataset]))
+            self.weights.add('XS', ak.full_like(self.events.genWeight, samples_info[self._sample]["XS"]))
+            self.weights.add('sumw', ak.full_like(self.events.genWeight, 1./output["sumw"][self._sample]))
 
         # In case of data: check if event is in golden lumi file
         if not self.isMC and not (lumimask is None):
