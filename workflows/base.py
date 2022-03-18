@@ -16,22 +16,18 @@ from parameters.lumi import lumi
 from parameters.samples import samples_info
 from parameters.allhistograms import histogram_settings
 
-from utils.config_loader import load_config
-
 class ttHbbBaseProcessor(processor.ProcessorABC):
-    def __init__(self, cfg='test.py'):
+    def __init__(self, cfg):
         #self.sample = sample
         # Read required cuts and histograms from config file
-        self.cfg = load_config(cfg).cfg
+        self.cfg = cfg
         self._cuts_functions = self.cfg['cuts']
         if type(self._cuts_functions) is not list: raise NotImplementedError
-        self._varnames = self.cfg['variables']
-        self._hist2dnames = self.cfg['variables2d']
-        # Save trigger and preselection requirements
+        # Save preselection requirements
         self._preselections = object_preselection['dilepton']
         # Save histogram settings of the required histograms
-        self._variables = {var_name : histogram_settings['variables'][var_name] for var_name in self._varnames}
-        self._variables2d = {hist2d_name : histogram_settings['variables2d'][hist2d_name] for hist2d_name in self._hist2dnames}
+        self._variables = self.cfg['variables']
+        self._variables2d = self.cfg['variables2d']
         self._hist_dict = {}
         self._hist2d_dict = {}
 
@@ -52,14 +48,14 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         #for var in self._vars_to_plot.keys():
         #       self._accumulator.add(processor.dict_accumulator({var : processor.column_accumulator(np.array([]))}))
 
-        for var_name in self._varnames:
+        for var_name in self._variables.keys():
             if var_name.startswith('n'):
                 field = var_name
             else:
                 obj, field = var_name.split('_')
             variable_axis = hist.Bin( field, self._variables[var_name]['xlabel'], **self._variables[var_name]['binning'] )
             self._hist_dict[f'hist_{var_name}'] = hist.Hist("$N_{events}$", dataset_axis, cut_axis, year_axis, variable_axis)
-        for hist2d_name in self._hist2dnames:
+        for hist2d_name in self._variables2d.keys():
             varname_x = list(self._variables2d[hist2d_name].keys())[0]
             varname_y = list(self._variables2d[hist2d_name].keys())[1]
             variable_x_axis = hist.Bin("x", self._variables2d[hist2d_name][varname_x]['xlabel'], **self._variables2d[hist2d_name][varname_x]['binning'] )
@@ -79,12 +75,38 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         return self._accumulator
 
     # Function to load year-dependent parameters
-    def load_parameters(self):
+    def load_metadata(self):
         self._dataset = self.events.metadata["dataset"]
         self._sample = self.events.metadata["sample"]
         self._year = self.events.metadata["year"]
         self._triggers = triggers['dilepton'][self._year]
         self._btag = btag[self._year]
+
+    # Function to apply flags and lumi mask
+    def clean_events(self):
+        mask_clean = np.ones(self.nEvents, dtype=np.bool)
+        flags = [
+            "goodVertices", "globalSuperTightHalo2016Filter", "HBHENoiseFilter", "HBHENoiseIsoFilter", "EcalDeadCellTriggerPrimitiveFilter", "BadPFMuonFilter"]#, "BadChargedCandidateFilter", "ecalBadCalibFilter"]
+        if not self.isMC:
+            flags.append("eeBadScFilter")
+        for flag in flags:
+            mask_clean = mask_clean & getattr(self.events.Flag, flag)
+        mask_clean = mask_clean & (self.events.PV.npvsGood > 0)
+
+        # In case of data: check if event is in golden lumi file
+        if not self.isMC and not (lumimask is None):
+            mask_lumi = lumimask(self.events.run, self.events.luminosityBlock)
+            mask_clean = mask_clean & mask_lumi
+
+        self._cuts.add('clean', ak.to_numpy(mask_clean))
+
+    def compute_weights(self):
+        self.weights = Weights(self.nEvents)
+        if self.isMC:
+            self.weights.add('genWeight', self.events.genWeight)
+            self.weights.add('lumi', ak.full_like(self.events.genWeight, lumi[self._year]))
+            self.weights.add('XS', ak.full_like(self.events.genWeight, samples_info[self._sample]["XS"]))
+            self.weights.add('sumw', ak.full_like(self.events.genWeight, 1./output["sumw"][self._sample]))
 
     # Function to compute masks to preselect objects and save them as attributes of `events`
     def apply_object_preselection(self):
@@ -179,48 +201,20 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         output = self.accumulator.identity()
         #if len(events)==0: return output
         self.events = events
-        self.load_parameters()
-        nEvents = ak.count(self.events.event)
-        output['nevts'][self._sample] += nEvents
+        self.load_metadata()
+        self.nEvents = ak.count(self.events.event)
+        output['nevts'][self._sample] += self.nEvents
         self.isMC = 'genWeight' in self.events.fields
         if self.isMC:
             output['sumw'][self._sample] += sum(self.events.genWeight)
 
-        if self._year =='2017':
-            metstruct = 'METFixEE2017'
-            MET = self.events.METFixEE2017
-        else:
-            metstruct = 'MET'
-            MET = self.events.MET
-
-        mask_clean = np.ones(nEvents, dtype=np.bool)
-
         # Event cleaning and  PV selection
-        flags = [
-            "goodVertices", "globalSuperTightHalo2016Filter", "HBHENoiseFilter", "HBHENoiseIsoFilter", "EcalDeadCellTriggerPrimitiveFilter", "BadPFMuonFilter"]#, "BadChargedCandidateFilter", "ecalBadCalibFilter"]
-        if not self.isMC:
-            flags.append("eeBadScFilter")
-        for flag in flags:
-            mask_clean = mask_clean & getattr(self.events.Flag, flag)
-        mask_clean = mask_clean & (self.events.PV.npvsGood > 0)
+        self.clean_events()
 
         # Weights
-        self.weights = Weights(nEvents)
-        if self.isMC:
-            self.weights.add('genWeight', self.events.genWeight)
-            self.weights.add('lumi', ak.full_like(self.events.genWeight, lumi[self._year]))
-            self.weights.add('XS', ak.full_like(self.events.genWeight, samples_info[self._sample]["XS"]))
-            self.weights.add('sumw', ak.full_like(self.events.genWeight, 1./output["sumw"][self._sample]))
+        self.compute_weights()
 
-        # In case of data: check if event is in golden lumi file
-        if not self.isMC and not (lumimask is None):
-            mask_lumi = lumimask(self.events.run, self.events.luminosityBlock)
-            mask_clean = mask_clean & mask_lumi
-
-        self._cuts.add('clean', ak.to_numpy(mask_clean))
-
-        leadFatJet = ak.firsts(self.events.FatJet)
-
+        # Apply preselections, triggers and cuts
         self.apply_object_preselection()
         self.count_objects()
         self.apply_triggers()
@@ -229,6 +223,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # This function is empty in the base processor, but can be overriden in processors derived from the class ttHbbBaseProcessor
         self.process_extra()
 
+        # Fill histograms
         self.fill_histograms(output)
 
         return output
