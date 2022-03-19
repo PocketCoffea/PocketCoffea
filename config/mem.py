@@ -2,10 +2,10 @@ from lib.cuts import dilepton
 
 cfg =  {
     # Input and output files
-    "workflow" : "mem"
+    "workflow" : "mem",
     "input"    : "datasets/baseline_samples_local.json",
     "output"   : "histograms/mem_test.coffea",
-    "plots"    : "mem_test",
+    "plots"    : "plots/mem_test",
 
     # Executor parameters
     "executor"     : "futures",
@@ -18,7 +18,7 @@ cfg =  {
 
     # Cuts and variables to plot
     "cuts" : [dilepton],
-    "variables" : [
+    "variables" : {
         "muon_pt" : None,
         "muon_eta" : None,
         "muon_phi" : None,
@@ -42,7 +42,9 @@ cfg =  {
         "bquark_eta" : None,
         "bquark_phi" : None,
         "bquark_drMatchedJet" : None,
-    ],
+    },
     "variables2d" : {},
+    "scale" : "log",
+    "normed" : False,
     "scale_ttHbb" : 1000
 }

@@ -5,7 +5,7 @@ cfg =  {
     "workflow" : "base",
     "input"    : "datasets/baseline_samples_local.json",
     "output"   : "histograms/test.coffea",
-    "plots"    : "test",
+    "plots"    : "plots/test",
 
     # Executor parameters
     "executor"     : "futures",
@@ -16,7 +16,7 @@ cfg =  {
     "limit"        : 1,
     "skipbadfiles" : None,
 
-    # Cuts and variables to plot
+    # Cuts and plots settings
     "cuts" : [dilepton],
     "variables" : {
         "muon_pt" : None,
@@ -38,5 +38,6 @@ cfg =  {
         "nbjet" : None,
         "nfatjet" : None
     },
-    "variables2d" : {}
+    "variables2d" : {},
+    "scale" : "log"
 }
