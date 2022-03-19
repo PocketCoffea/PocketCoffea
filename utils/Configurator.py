@@ -39,6 +39,10 @@ class Configurator():
     def load_attributes(self):
         for key, item in self.cfg.items():
             setattr(self, key, item)
+        for key in ['only']:
+            try: getattr(self, key)
+            except: setattr(self, key, '')
+        self.plots = os.path.abspath(self.plots)
 
     def load_dataset(self):
         with open(self.input) as f:
@@ -46,6 +50,7 @@ class Configurator():
 
     def overwrite_check(self):
         if self.plot:
+            print(f"The output will be saved to {self.plots}")
             return
         else:
             path = self.output
