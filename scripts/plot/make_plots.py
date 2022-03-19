@@ -82,9 +82,8 @@ selection = {
 }
 
 plt.style.use([hep.style.ROOT, {'font.size': 16}])
-plot_dir = config.plots if config.plots else sys.exit("Plot directory is not defined")
-if not os.path.exists(plot_dir):
-    os.makedirs(plot_dir)
+if not os.path.exists(config.plots):
+    os.makedirs(config.plots)
 
 def make_plots(entrystart, entrystop):
     _accumulator = dict(list(accumulator.items())[entrystart:entrystop])
@@ -133,7 +132,7 @@ def make_plots(entrystart, entrystop):
                         elif histname == 'hist_bquark_pt':
                             ax.set_xlim(0,200)
                         #ax.set_xlim(**histogram_settings['variables']['_'.join(histname.lstrip('hist_').split('_')[:2])]['xlim'])
-                    filepath = f"{plot_dir}{histname}_{cut}_{year}.png"
+                    filepath = os.path.join(config.plots, f"{histname}_{cut}_{year}.png")
                     if config.scale == 'log':
                         ax.semilogy()
                         exp = 2 + math.floor(math.log(maxY, 10))

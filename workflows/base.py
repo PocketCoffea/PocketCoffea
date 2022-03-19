@@ -17,7 +17,7 @@ from parameters.samples import samples_info
 from parameters.allhistograms import histogram_settings
 
 class ttHbbBaseProcessor(processor.ProcessorABC):
-    def __init__(self, cfg):
+    def __init__(self, cfg) -> None:
         #self.sample = sample
         # Read required cuts and histograms from config file
         self.cfg = cfg
@@ -106,7 +106,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             self.weights.add('genWeight', self.events.genWeight)
             self.weights.add('lumi', ak.full_like(self.events.genWeight, lumi[self._year]))
             self.weights.add('XS', ak.full_like(self.events.genWeight, samples_info[self._sample]["XS"]))
-            self.weights.add('sumw', ak.full_like(self.events.genWeight, 1./output["sumw"][self._sample]))
+            self.weights.add('sumw', ak.full_like(self.events.genWeight, 1./self.output["sumw"][self._sample]))
 
     # Function to compute masks to preselect objects and save them as attributes of `events`
     def apply_object_preselection(self):
@@ -163,8 +163,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             self._cuts.add(cut_function.__name__, ak.to_numpy(mask))
             self._selections[cut_function.__name__] = set.union(self._selections['trigger'], {cut_function.__name__})
 
-    def fill_histograms(self, output):
-        for histname, h in output.items():
+    def fill_histograms(self):
+        for histname, h in self.output.items():
             if type(h) is not hist.Hist: continue
             for cut in self._selections.keys():
                 if histname in self.nobj_hists:
@@ -186,27 +186,27 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                     #fields, weight = self.fill_histograms_extra(histname, h, cut, self.events)
                     continue
                 h.fill(dataset=self.events.metadata["dataset"], cut=cut, year=self._year, **fields, weight=weight)
-        output = self.fill_histograms_extra(output)
+        self.fill_histograms_extra()
 
     def count_objects_extra(self):
         pass
 
-    def fill_histograms_extra(self, output):
+    def fill_histograms_extra(self):
         pass
 
     def process_extra(self) -> ak.Array:
         pass
 
     def process(self, events):
-        output = self.accumulator.identity()
+        self.output = self.accumulator.identity()
         #if len(events)==0: return output
         self.events = events
         self.load_metadata()
         self.nEvents = ak.count(self.events.event)
-        output['nevts'][self._sample] += self.nEvents
+        self.output['nevts'][self._sample] += self.nEvents
         self.isMC = 'genWeight' in self.events.fields
         if self.isMC:
-            output['sumw'][self._sample] += sum(self.events.genWeight)
+            self.output['sumw'][self._sample] += sum(self.events.genWeight)
 
         # Event cleaning and  PV selection
         self.clean_events()
@@ -224,9 +224,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.process_extra()
 
         # Fill histograms
-        self.fill_histograms(output)
+        self.fill_histograms()
 
-        return output
+        return self.output
 
     def postprocess(self, accumulator):
 

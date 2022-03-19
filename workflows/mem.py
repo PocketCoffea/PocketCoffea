@@ -5,8 +5,8 @@ from coffea import hist
 from workflows.base import ttHbbBaseProcessor
 
 class MEMStudiesProcessor(ttHbbBaseProcessor):
-    def __init__(self, year='2017', cfg='test.py', hist_dir='histograms/', hist2d =False, DNN=False) -> None:
-        super().__init__(year=year, cfg=cfg, hist_dir=hist_dir, hist2d=hist2d, DNN=DNN)
+    def __init__(self, cfg='test.py') -> None:
+        super().__init__(cfg=cfg)
         self.bquark_hists = [histname for histname in self._hist_dict.keys() if 'bquark' in histname and not histname in self.nobj_hists]
 
     def parton_matching(self) -> ak.Array:
@@ -74,8 +74,8 @@ class MEMStudiesProcessor(ttHbbBaseProcessor):
     def count_objects_extra(self):
         self.events["nbquark"] = ak.count(self.events.BQuark.pt, axis=1)
 
-    def fill_histograms_extra(self, output):
-        for histname, h in output.items():
+    def fill_histograms_extra(self):
+        for histname, h in self.output.items():
             if type(h) is not hist.Hist: continue
             if histname not in self.bquark_hists: continue
             for cut in self._selections.keys():
@@ -84,8 +84,7 @@ class MEMStudiesProcessor(ttHbbBaseProcessor):
                     weight = ak.flatten(self.weights.weight() * ak.Array(ak.fill_none(ak.ones_like(parton.pt), 0) * self._cuts.all(*self._selections[cut])))
                     fields = {k: ak.flatten(ak.fill_none(parton[k], -9999)) for k in h.fields if k in dir(parton)}
                     h.fill(dataset=self.events.metadata["dataset"], cut=cut, year=self._year, **fields, weight=weight)
-            output[histname] = h
-        return output
+            self.output[histname] = h
 
     def process_extra(self) -> ak.Array:
         self.parton_matching()
