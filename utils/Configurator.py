@@ -6,9 +6,10 @@ import importlib.util
 from parameters.allhistograms import histogram_settings
 
 class Configurator():
-    def __init__(self, cfg, plot=False):
+    def __init__(self, cfg, plot=False, dataset=False):
         # Load config file and attributes
-        self.plot = plot
+        self.plot    = plot
+        self.dataset = dataset
         self.load_config(cfg)
         self.load_attributes()
 
@@ -51,6 +52,9 @@ class Configurator():
     def overwrite_check(self):
         if self.plot:
             print(f"The output will be saved to {self.plots}")
+            return
+        elif self.dataset:
+            print(f"The output will be saved to {self.json}")
             return
         else:
             path = self.output
