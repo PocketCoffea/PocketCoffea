@@ -7,6 +7,12 @@ This file is then processed through the script `scripts/plot/make_plots.py` to p
 The workflows can be run locally or by submitting jobs on a cluster. All the commands for the execution are wrapped up in a runner script `runner.py`.
 All the relevant parameters for the execution of the processor such as the input and output files' names, the execution parameters, the cuts to apply and the histogram settings are contained in a Python dictionary, defined in a configuration file in `config/`, which is passed to the runner script as an argument.
 ## How to run
+### Build JSON dataset
+To build the JSON dataset, run the following script:
+~~~
+python scripts/dataset/build_dataset.py --cfg config/testUL.py
+~~~
+Two version of the JSON dataset will be saved: one with the `root://xrootd-cms.infn.it//` prefix and one with a local prefix passed through the config file (with label `_local.json`).
 ### Execution on local machine with Futures Executor
 To run the analysis workflow:
 ~~~
@@ -18,6 +24,11 @@ The config file in `.py` format is passed as the argument `--cfg` of the `runner
 from lib.cuts import dilepton
 
 cfg =  {
+    # Dataset parameters
+    "dataset"  : "datasets/DAS/RunIISummer20UL18.txt",
+    "json"     : "datasets/RunIISummer20UL18.json",
+    "prefix"   : "/pnfs/psi.ch/cms/trivcat/store/user/mmarcheg/ttHbb",
+
     # Input and output files
     "workflow" : "base",
     "input"    : "datasets/baseline_samples_local.json",
