@@ -1,12 +1,11 @@
 import awkward as ak
 
-def dilepton(processor):
+from parameters.selection import event_selection
 
-    events = processor.events
-    if processor._year == '2017':
-        MET = events.METFixEE2017
-    else:
-        MET = events.MET
+def dilepton(events, year, finalstate):
+
+    cuts = event_selection[finalstate]
+    MET  = events[cuts["METbranch"][year]]
 
     # Masks for same-flavor (SF) and opposite-sign (OS)
     SF = ( ((events.nmuon == 2) & (events.nelectron == 0)) | ((events.nmuon == 0) & (events.nelectron == 2)) )
@@ -14,8 +13,8 @@ def dilepton(processor):
     #SFOS = SF & OS
     not_SF = ( (events.nmuon == 1) & (events.nelectron == 1) )
 
-    mask = ( (events.nlep == 2) & (events.nlepgood >= 1) & OS &
-             (events.njet >= 2) & (events.nbjet >= 1) & (MET.pt > 40) &
+    mask = ( (events.nlep == 2) & (ak.firsts(events.LeptonGood.pt) > cuts["pt_leading_lepton"]) & OS &
+             (events.njet >= 2) & (events.nbjet >= 1) & (MET.pt > cuts["met"]) &
              (events.ll.mass > 20) & ((SF & ((events.ll.mass < 76) | (events.ll.mass > 106))) | not_SF) )
 
     # Pad None values with False

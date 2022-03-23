@@ -9,35 +9,64 @@ from vector import MomentumObject4D
 from coffea import hist
 from coffea.nanoevents.methods import nanoaod
 
+from parameters.preselection import object_preselection
+
 ak.behavior.update(nanoaod.behavior)
 
-def lepton_selection(leps, cuts, year):
+def lepton_selection(events, Lepton, finalstate):
 
-    passes_eta = (np.abs(leps.eta) < cuts["eta"])
-    passes_subleading_pt = (leps.pt > cuts["subleading_pt"])
-    passes_leading_pt = (leps.pt > cuts["leading_pt"][year])
+    leptons = events[Lepton]
+    cuts = object_preselection[finalstate][Lepton]
+    # Requirements on pT and eta
+    passes_eta = (np.abs(leptons.eta) < cuts["eta"])
+    passes_pt = (leptons.pt > cuts["pt"])
 
-    if cuts["type"] == "el":
-        sca = np.abs(leps.deltaEtaSC + leps.eta)
-        passes_id = (leps.cutBased >= 4)
-        passes_SC = np.invert((sca >= 1.4442) & (sca <= 1.5660))
-        # cuts taken from: https://twiki.cern.ch/twiki/bin/view/CMS/CutBasedElectronIdentificationRun2#Working_points_for_92X_and_later
-        passes_impact = ((leps.dz < 0.10) & (sca <= 1.479)) | ((leps.dz < 0.20) & (sca > 1.479)) | ((leps.dxy < 0.05) & (sca <= 1.479)) | ((leps.dxy < 0.1) & (sca > 1.479))
+    if Lepton == "Electron":
+        # Requirements on SuperCluster eta, isolation and id
+        etaSC = np.abs(leptons.deltaEtaSC + leptons.eta)
+        passes_SC = np.invert((etaSC >= 1.4442) & (etaSC <= 1.5660))
+        passes_iso = leptons.pfRelIso03_all < cuts["iso"]
+        passes_id = (leptons[cuts['id']] == True)
 
-        #select electrons
-        good_leps = passes_eta & passes_leading_pt & passes_id & passes_SC & passes_impact
-        veto_leps = passes_eta & passes_subleading_pt & np.invert(good_leps) & passes_id & passes_SC & passes_impact
+        good_leptons = passes_eta & passes_pt & passes_SC & passes_iso & passes_id
 
-    elif cuts["type"] == "mu":
-        passes_leading_iso = (leps.pfRelIso04_all < cuts["leading_iso"])
-        passes_subleading_iso = (leps.pfRelIso04_all < cuts["subleading_iso"])
-        passes_id = (leps.tightId == 1)
+    elif Lepton == "Muon":
+        # Requirements on isolation and id
+        passes_iso = leptons.pfRelIso04_all < cuts["iso"]
+        passes_id = (leptons[cuts['id']] == True)
 
-        #select muons
-        good_leps = passes_eta & passes_leading_pt & passes_leading_iso & passes_id
-        veto_leps = passes_eta & passes_subleading_pt & passes_subleading_iso & passes_id & np.invert(good_leps)
+        good_leptons = passes_eta & passes_pt & passes_iso & passes_id
 
-    return good_leps, veto_leps
+    return leptons[good_leptons]
+
+# N.B.: This function works only with awkward v1.5.1 & coffea v0.7.9, it doesn't work with awkward 1.7.0 & coffea v0.7.11
+def jet_selection(events, Jet, finalstate):
+
+    jets = events[Jet]
+    cuts = object_preselection[finalstate][Jet]
+
+    good_jets = ak.ones_like(jets.pt, dtype=bool)
+
+    for Lepton in ['ElectronGood', 'MuonGood']:
+        # Only jets that are more distant than dr to ALL leptons are tagged as good jets
+        leptons = events[Lepton]
+        nlep_max = ak.max(ak.num(leptons, axis=1))
+
+        # A fake lepton object filled with nan values is used for padding in the delta_r calculation
+        pfake = {'pt' : [-9999.9], 'eta' : [-9999.9], 'phi' : [-9999.9], 'mass' : [-9999.9]}
+        fakeLepton = ak.zip(pfake, with_name="PtEtaPhiMCandidate")
+        leptonsPadded = ak.fill_none(ak.pad_none(leptons, nlep_max), fakeLepton)
+        good_jets = good_jets & (jets.pt > cuts["pt"]) & (np.abs(jets.eta) < cuts["eta"]) & (jets.jetId >= cuts["jetId"])
+
+        for i in range(nlep_max):
+            jets_pass_dr = (jets.delta_r(leptonsPadded[:,i]) > cuts["dr"])
+            jets_pass_dr = ak.fill_none(jets_pass_dr, True)
+            good_jets = good_jets & jets_pass_dr
+
+        if Jet == "Jet":
+            good_jets = good_jets & ( ( (jets.pt < 50) & (jets.puId >= cuts["puId"]) ) | (jets.pt >= 50) )
+
+    return good_jets
 
 def get_dilepton(electrons, muons, transverse=False):
 
@@ -131,30 +160,6 @@ def get_charged_leptons(electrons, muons, charge, mask):
     charged_leptons = ak.zip(fields, with_name="PtEtaPhiMCandidate")
 
     return charged_leptons
-
-# N.B.: This function works only with awkward v1.5.1 & coffea v0.7.9, it doesn't work with awkward 1.7.0 & coffea v0.7.11
-def jet_selection(jets, leps, mask_leps, cuts):
-
-    # Only jets that are more distant than dr to ALL leptons are tagged as good jets
-    sleps = leps[mask_leps]
-    nlep_max = ak.max(ak.num(sleps, axis=1))
-
-    # A fake lepton object filled with nan values is used for padding in the delta_r calculation
-    pfake = {'pt' : [-9999.9], 'eta' : [-9999.9], 'phi' : [-9999.9], 'mass' : [-9999.9]}
-    fakeLepton = ak.zip(pfake, with_name="PtEtaPhiMCandidate")
-    slepsPadded = ak.fill_none(ak.pad_none(sleps, nlep_max), fakeLepton)
-    good_jets = (jets.pt > cuts["pt"]) & (np.abs(jets.eta) < cuts["eta"]) & (jets.jetId >= cuts["jetId"])
-
-    for i in range(nlep_max):
-        jets_pass_dr = (jets.delta_r(slepsPadded[:,i]) > cuts["dr"])
-        jets_pass_dr = ak.fill_none(jets_pass_dr, True)
-        good_jets = good_jets & jets_pass_dr
-
-
-    if cuts["type"] == "jet":
-        good_jets = good_jets & ( ( (jets.pt < 50) & (jets.puId >= cuts["puId"]) ) | (jets.pt >= 50) )
-
-    return good_jets
 
 def jet_nohiggs_selection(jets, mask_jets, fatjets, dr=1.2):
 
