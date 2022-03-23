@@ -17,7 +17,7 @@ from utils.Configurator import Configurator
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run analysis on baconbits files using processor coffea files')
     # Inputs
-    parser.add_argument('--cfg', default=os.getcwd() + "/config/test.py", help='Config file with parameters specific to the current run', required=False)
+    parser.add_argument('--cfg', default=os.getcwd() + "/config/test.py", help='Config file with parameters specific to the current run', required=True)
 
     args = parser.parse_args()
     config = Configurator(args.cfg)
