@@ -9,7 +9,6 @@ import awkward as ak
 
 from lib.objects import lepton_selection, jet_selection, get_dilepton
 from lib.cuts import dilepton
-from parameters.preselection import object_preselection
 from parameters.triggers import triggers
 from parameters.btag import btag
 from parameters.lumi import lumi
@@ -23,8 +22,6 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.cfg = cfg
         self._cuts_functions = self.cfg['cuts']
         if type(self._cuts_functions) is not list: raise NotImplementedError
-        # Save preselection requirements
-        self._preselections = object_preselection['dilepton']
         # Save histogram settings of the required histograms
         self._variables = self.cfg['variables']
         self._variables2d = self.cfg['variables2d']
@@ -79,7 +76,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self._dataset = self.events.metadata["dataset"]
         self._sample = self.events.metadata["sample"]
         self._year = self.events.metadata["year"]
-        self._triggers = triggers['dilepton'][self._year]
+        self._triggers = triggers[self.cfg['finalstate']][self._year]
         self._btag = btag[self._year]
 
     # Function to apply flags and lumi mask
@@ -111,37 +108,34 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     # Function to compute masks to preselect objects and save them as attributes of `events`
     def apply_object_preselection(self):
         # Build masks for selection of muons, electrons, jets, fatjets
-        self.good_muons, self.veto_muons = lepton_selection(self.events.Muon, self._preselections["muons"], self._year)
-        self.good_electrons, self.veto_electrons = lepton_selection(self.events.Electron, self._preselections["electrons"], self._year)
-        self.good_jets = jet_selection(self.events.Jet, self.events.Muon, (self.good_muons|self.veto_muons), self._preselections["jets"]) & jet_selection(self.events.Jet, self.events.Electron, (self.good_electrons|self.veto_electrons), self._preselections["jets"])
+        self.events["MuonGood"]     = lepton_selection(self.events, "Muon", self.cfg['finalstate'])
+        self.events["ElectronGood"] = lepton_selection(self.events, "Electron", self.cfg['finalstate'])
+        leptons = ak.with_name( ak.concatenate( (self.events.MuonGood, self.events.ElectronGood), axis=1 ), name='PtEtaPhiMCandidate' )
+        self.events["LeptonGood"]   = leptons[ak.argsort(leptons.pt, ascending=False)]
+        self.good_jets = jet_selection(self.events, "Jet", self.cfg['finalstate'])
         self.good_bjets = self.good_jets & (getattr(self.events.Jet, self._btag["btagging_algorithm"]) > self._btag["btagging_WP"])
-        self.good_fatjets = jet_selection(self.events.FatJet, self.events.Muon, self.good_muons, self._preselections["fatjets"]) & jet_selection(self.events.FatJet, self.events.Electron, self.good_electrons, self._preselections["fatjets"])
 
         # As a reference, additional masks used in the boosted analysis
+        # In case the boosted analysis is implemented, the correct lepton cleaning should be checked (remove only "leading" leptons)
+        #self.good_fatjets = jet_selection(self.events, "FatJet", self.cfg['finalstate'])
         #self.good_jets_nohiggs = ( self.good_jets & (jets.delta_r(leading_fatjets) > 1.2) )
         #self.good_bjets_boosted = self.good_jets_nohiggs & (getattr(self.events.jets, self.parameters["btagging_algorithm"]) > self.parameters["btagging_WP"])
         #self.good_nonbjets_boosted = self.good_jets_nohiggs & (getattr(self.events.jets, self.parameters["btagging_algorithm"]) < self.parameters["btagging_WP"])
+        #self.events["FatJetGood"]   = self.events.FatJet[self.good_fatjets]
 
-        self.events["MuonAll"]      = self.events.Muon[self.good_muons | self.veto_muons]
-        self.events["ElectronAll"]  = self.events.Electron[self.good_electrons | self.veto_electrons]
-        self.events["MuonGood"]     = self.events.Muon[self.good_muons]
-        self.events["ElectronGood"] = self.events.Electron[self.good_electrons]
         self.events["JetGood"]      = self.events.Jet[self.good_jets]
         self.events["BJetGood"]     = self.events.Jet[self.good_bjets]
-        self.events["FatJetGood"]   = self.events.FatJet[self.good_fatjets]
-        self.events["ll"]           = get_dilepton(self.events.ElectronAll, self.events.MuonAll)
+        if self.cfg['finalstate'] == 'dilepton':
+            self.events["ll"]           = get_dilepton(self.events.ElectronGood, self.events.MuonGood)
 
     # Function that counts the preselected objects and save the counts as attributes of `events`
     def count_objects(self):
-        self.events["nmuongood"]     = ak.num(self.events.MuonGood)
-        self.events["nelectrongood"] = ak.num(self.events.ElectronGood)
-        self.events["nmuon"]         = ak.num(self.events.MuonAll)
-        self.events["nelectron"]     = ak.num(self.events.ElectronAll)
-        self.events["nlepgood"]      = self.events["nmuongood"] + self.events["nelectrongood"]
-        self.events["nlep"]          = self.events["nmuon"] + self.events["nelectron"]
-        self.events["njet"]          = ak.num(self.events.JetGood)
-        self.events["nbjet"]         = ak.num(self.events.BJetGood)
-        self.events["nfatjet"]       = ak.num(self.events.FatJetGood)
+        self.events["nmuon"]     = ak.num(self.events.MuonGood)
+        self.events["nelectron"] = ak.num(self.events.ElectronGood)
+        self.events["nlep"]      = self.events["nmuon"] + self.events["nelectron"]
+        self.events["njet"]      = ak.num(self.events.JetGood)
+        self.events["nbjet"]     = ak.num(self.events.BJetGood)
+        #self.events["nfatjet"]   = ak.num(self.events.FatJetGood)
 
     # Function that computes the trigger masks and save the logical OR of the mumu, emu and ee triggers in the PackedSelector
     def apply_triggers(self):
@@ -159,7 +153,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
 
     def apply_cuts(self):
         for cut_function in self._cuts_functions:
-            mask = cut_function(self)
+            mask = cut_function(self.events, self._year, self.cfg['finalstate'])
             self._cuts.add(cut_function.__name__, ak.to_numpy(mask))
             self._selections[cut_function.__name__] = set.union(self._selections['trigger'], {cut_function.__name__})
 
@@ -171,11 +165,11 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                     weight = self.weights.weight() * self._cuts.all(*self._selections[cut])
                     fields = {k: ak.fill_none(getattr(self.events, k), -9999) for k in h.fields if k in histname}
                 elif histname in self.muon_hists:
-                    muon = self.events.MuonAll
+                    muon = self.events.MuonGood
                     weight = ak.flatten(self.weights.weight() * ak.Array(ak.ones_like(muon.pt) * self._cuts.all(*self._selections[cut])))
                     fields = {k: ak.flatten(ak.fill_none(muon[k], -9999)) for k in h.fields if k in dir(muon)}
                 elif histname in self.electron_hists:
-                    electron = self.events.ElectronAll
+                    electron = self.events.ElectronGood
                     weight = ak.flatten(self.weights.weight() * ak.Array(ak.ones_like(electron.pt) * self._cuts.all(*self._selections[cut])))
                     fields = {k: ak.flatten(ak.fill_none(electron[k], -9999)) for k in h.fields if k in dir(electron)}
                 elif histname in self.jet_hists:
