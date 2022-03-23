@@ -6,11 +6,13 @@ from utils.Dataset import Dataset
 
 parser = argparse.ArgumentParser(description='Build dataset file in json format')
 parser.add_argument('--cfg', default=os.getcwd() + "/config/test.py", help='Config file with parameters specific to the current run', required=False)
+parser.add_argument('-d', '--download', action='store_true', default=False, help='Download dataset files on local machine', required=False)
 
 args = parser.parse_args()
-config = Configurator(args.cfg, dataset=True)
+config = Configurator(args.cfg, create_dataset=True)
 
-dataset       = Dataset(config.dataset, "root://xrootd-cms.infn.it//")
-dataset_local = Dataset(config.dataset, config.prefix)
-dataset.save(config.json)
-dataset_local.save(config.json.replace('.json', '_local.json'))
+dataset = Dataset(config.dataset, config.prefix, config.json)
+dataset.save()
+
+if args.download:
+    dataset.download()
