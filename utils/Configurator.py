@@ -6,30 +6,31 @@ import importlib.util
 from parameters.allhistograms import histogram_settings
 
 class Configurator():
-    def __init__(self, cfg, plot=False, dataset=False):
+    def __init__(self, cfg, plot=False, create_dataset=False):
         # Load config file and attributes
         self.plot    = plot
-        self.dataset = dataset
+        self.create_dataset = create_dataset
         self.load_config(cfg)
         self.load_attributes()
 
-        # Load dataset
-        self.load_dataset()
+        if not self.create_dataset:
+            # Load dataset
+            self.load_dataset()
 
-        # Check if output file exists, and in case add a `_v01` label
-        self.overwrite_check()
+            # Check if output file exists, and in case add a `_v01` label
+            self.overwrite_check()
 
-        # Truncate file list if self.limit is not None
-        self.truncate_filelist()
+            # Truncate file list if self.limit is not None
+            self.truncate_filelist()
 
-        # Define output file path
-        self.define_output()
+            # Define output file path
+            self.define_output()
 
-        # Load histogram settings
-        self.load_histogram_settings()
+            # Load histogram settings
+            self.load_histogram_settings()
 
-        # Load workflow
-        self.load_workflow()        
+            # Load workflow
+            self.load_workflow()
 
     def load_config(self, path):
         spec = importlib.util.spec_from_file_location("cfg", path)
@@ -53,7 +54,7 @@ class Configurator():
         if self.plot:
             print(f"The output will be saved to {self.plots}")
             return
-        elif self.dataset:
+        elif self.create_dataset:
             print(f"The output will be saved to {self.json}")
             return
         else:
