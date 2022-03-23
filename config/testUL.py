@@ -8,23 +8,25 @@ cfg =  {
 
     # Input and output files
     "workflow" : "base",
-    "input"    : "datasets/baseline_samples_local.json",
-    "output"   : "histograms/test.coffea",
-    "plots"    : "plots/test",
+    "input"    : "datasets/RunIISummer20UL18.json",
+    "output"   : "histograms/RunIISummer20UL18_limit2.coffea",
+    "plots"    : "plots/RunIISummer20UL18_limit2",
 
     # Executor parameters
     "executor"     : "futures",
     "workers"      : 12,
-    "scaleout"     : 6,
+    "scaleout"     : 10,
     "chunk"        : 50000,
     "max"          : None,
-    "limit"        : 1,
+    "limit"        : 2,
     "skipbadfiles" : None,
+    "voms"         : None,
 
     # Cuts and plots settings
+    "finalstate" : "dilepton",
     "cuts" : [dilepton],
     "variables" : {
-        "muon_pt" : None,
+        "muon_pt" : {'binning' : {'n_or_arr' : 200, 'lo' : 0, 'hi' : 2000}, 'xlim' : (0,500),  'xlabel' : "$p_{T}^{\mu}$ [GeV]"},
         "muon_eta" : None,
         "muon_phi" : None,
         "electron_pt" : None,
@@ -36,12 +38,11 @@ cfg =  {
         "nmuon" : None,
         "nelectron" : None,
         "nlep" : None,
-        "nmuongood" : None,
-        "nelectrongood" : None,
-        "nlepgood" : None,
+        "nmuon" : None,
+        "nelectron" : None,
+        "nlep" : None,
         "njet" : None,
         "nbjet" : None,
-        "nfatjet" : None
     },
     "variables2d" : {},
     "scale" : "log"
