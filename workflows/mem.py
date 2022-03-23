@@ -23,7 +23,9 @@ class MEMStudiesProcessor(ttHbbBaseProcessor):
             higgs = self.events.GenPart[isHiggs & isHard & hasTwoChildren]
             bquarks = ak.concatenate( (bquarks, ak.flatten(higgs.children, axis=2)), axis=1 )
             # Sort b-quarks by pt
-            bquarks = ak.with_name(bquarks[ak.argsort(bquarks.pt)], name='PtEtaPhiMCandidate')
+            bquarks = ak.with_name(bquarks[ak.argsort(bquarks.pt, ascending=False)], name='PtEtaPhiMCandidate')
+
+        bquarks = ak.with_field(bquarks, fromHiggs, 'fromHiggs')
 
         # Compute deltaR(b, jet) and save the nearest jet (deltaR matching)
         deltaR = ak.flatten(bquarks.metric_table(self.events.JetGood), axis=2)
