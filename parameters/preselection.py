@@ -2,38 +2,26 @@
 
 object_preselection = {
     "dilepton" : {
-        "muons": {
-            "type": "mu",
-            "leading_pt": {
-                '2016' : 25,
-                '2017' : 25,
-                '2018' : 25,
-            },
-            "subleading_pt": 15,
-            "eta": 2.4,
-            "leading_iso": 0.15,
-            "subleading_iso": 0.25,
+        "Muon": {
+            "pt"  : 15,
+            "eta" : 2.4,
+            "iso" : 0.25,
+            "id"  : "tightId",
         },
-        "electrons" : {
-            "type": "el",
-            "leading_pt": {
-                '2016' : 25,
-                '2017' : 25,
-                '2018' : 25,
-            },
-            "subleading_pt": 15,
-            "eta": 2.4
+        "Electron" : {
+            "pt"  : 15,
+            "eta" : 2.4,
+            "iso" : 0.06,
+            "id"  : "mvaFall17V2Iso_WP80",
         },
-        "jets": {
-            "type": "jet",
+        "Jet": {
             "dr": 0.4,
             "pt": 30,
             "eta": 2.4,
             "jetId": 2,
             "puId": 2
         },
-        "fatjets": {
-            "type": "fatjet",
+        "FatJet": {
             "dr": 0.8,
             "pt": 300,
             "eta": 2.4,
