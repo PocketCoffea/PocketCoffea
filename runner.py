@@ -22,10 +22,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
     config = Configurator(args.cfg)
 
-    if config.executor not in ['futures', 'iterative']:
+    if config.run_options['executor'] not in ['futures', 'iterative']:
         # dask/parsl needs to export x509 to read over xrootd
-        if config.voms is not None:
-            _x509_path = config.voms
+        if config.run_options['voms'] is not None:
+            _x509_path = config.run_options['voms']
         else:
             _x509_localpath = [l for l in os.popen('voms-proxy-info').read().split("\n") if l.startswith('path')][0].split(":")[-1].strip()
             _x509_path = os.environ['HOME'] + f'/.{_x509_localpath.split("/")[-1]}'
@@ -55,8 +55,8 @@ if __name__ == '__main__':
 
     #########
     # Execute
-    if config.executor in ['futures', 'iterative']:
-        if config.executor == 'iterative':
+    if config.run_options['executor'] in ['futures', 'iterative']:
+        if config.run_options['executor'] == 'iterative':
             _exec = processor.iterative_executor
         else:
             _exec = processor.futures_executor
@@ -65,13 +65,13 @@ if __name__ == '__main__':
                                     processor_instance=config.processor_instance,
                                     executor=_exec,
                                     executor_args={
-                                        'skipbadfiles':config.skipbadfiles,
+                                        'skipbadfiles':config.run_options['skipbadfiles'],
                                         'schema': processor.NanoAODSchema,
-                                        'workers': config.workers},
-                                    chunksize=config.chunk, maxchunks=config.max
+                                        'workers': config.run_options['workers']},
+                                    chunksize=config.run_options['chunk'], maxchunks=config.run_options['max']
                                     )
-    #elif config.executor == 'parsl/slurm':
-    elif 'parsl' in config.executor:
+    #elif config.run_options['executor'] == 'parsl/slurm':
+    elif 'parsl' in config.run_options['executor']:
         import parsl
         from parsl.providers import LocalProvider, CondorProvider, SlurmProvider
         from parsl.channels import LocalChannel
@@ -80,7 +80,7 @@ if __name__ == '__main__':
         from parsl.launchers import SrunLauncher, SingleNodeLauncher
         from parsl.addresses import address_by_hostname
 
-        if 'slurm' in config.executor:
+        if 'slurm' in config.run_options['executor']:
             slurm_htex = Config(
                 executors=[
                     HighThroughputExecutor(
@@ -91,8 +91,8 @@ if __name__ == '__main__':
                             channel=LocalChannel(script_dir='logs_parsl'),
                             launcher=SrunLauncher(),
                             #launcher=SingleNodeLauncher(),
-                            max_blocks=(config.scaleout)+10,
-                            init_blocks=config.scaleout,
+                            max_blocks=(config.run_options['scaleout'])+10,
+                            init_blocks=config.run_options['scaleout'],
                             #partition='long',
                             partition='standard',
                             worker_init="\n".join(env_extra) + "\nexport PYTHONPATH=$PYTHONPATH:$PWD",
@@ -113,9 +113,9 @@ if __name__ == '__main__':
                                             'schema': processor.NanoAODSchema,
                                             'config': None,
                                         },
-                                        chunksize=config.chunk, maxchunks=config.max
+                                        chunksize=config.run_options['chunk'], maxchunks=config.run_options['max']
                                         )
-        elif 'condor' in config.executor:
+        elif 'condor' in config.run_options['executor']:
             #xfer_files = [process_worker_pool, _x509_path]
             #print(xfer_files)
 
@@ -129,8 +129,8 @@ if __name__ == '__main__':
                         provider=CondorProvider(
                             channel=LocalChannel(script_dir='logs_parsl'),
                             launcher=SingleNodeLauncher(),
-                            max_blocks=(config.scaleout)+10,
-                            init_blocks=config.scaleout,
+                            max_blocks=(config.run_options['scaleout'])+10,
+                            init_blocks=config.run_options['scaleout'],
                             worker_init="\n".join(wrk_init),
                             #transfer_input_files=xfer_files,
                             scheduler_options=condor_cfg,
@@ -151,31 +151,31 @@ if __name__ == '__main__':
                                             'schema': processor.NanoAODSchema,
                                             'config': None,
                                         },
-                                        chunksize=config.chunk, maxchunks=config.max
+                                        chunksize=config.run_options['chunk'], maxchunks=config.run_options['max']
                                         )
-    elif 'dask' in config.executor:
+    elif 'dask' in config.run_options['executor']:
         from dask_jobqueue import SLURMCluster, HTCondorCluster
         from distributed import Client
         from dask.distributed import performance_report
 
-        if 'slurm' in config.executor:
+        if 'slurm' in config.run_options['executor']:
             cluster = SLURMCluster(
                 queue='all',
-                cores=config.workers,
-                processes=config.workers,
+                cores=config.run_options['workers'],
+                processes=config.run_options['workers'],
                 memory="200 GB",
                 retries=10,
                 walltime='00:30:00',
                 env_extra=env_extra,
             )
-        elif 'condor' in config.executor:
+        elif 'condor' in config.run_options['executor']:
             cluster = HTCondorCluster(
-                 cores=config.workers,
+                 cores=config.run_options['workers'],
                  memory='2GB',
                  disk='2GB',
                  env_extra=env_extra,
             )
-        cluster.scale(jobs=config.scaleout)
+        cluster.scale(jobs=config.run_options['scaleout'])
 
         client = Client(cluster)
         with performance_report(filename="dask-report.html"):
@@ -185,10 +185,10 @@ if __name__ == '__main__':
                                         executor=processor.dask_executor,
                                         executor_args={
                                             'client': client,
-                                            'skipbadfiles':config.skipbadfiles,
+                                            'skipbadfiles':config.run_options['skipbadfiles'],
                                             'schema': processor.NanoAODSchema,
                                         },
-                                        chunksize=config.chunk, maxchunks=config.max
+                                        chunksize=config.run_options['chunk'], maxchunks=config.run_options['max']
                             )
 
     save(output, config.output)

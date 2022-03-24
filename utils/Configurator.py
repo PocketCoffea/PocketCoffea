@@ -69,14 +69,14 @@ class Configurator():
             self.output = path
 
     def truncate_filelist(self):
-        try: self.limit
-        except: self.limit = None
-        if self.limit:
+        try: self.run_options['limit']
+        except: self.run_options['limit'] = None
+        if self.run_options['limit']:
             for dataset, filelist in self.fileset.items():
                 if isinstance(filelist, dict):
-                    self.fileset[dataset]["files"] = self.fileset[dataset]["files"][:self.limit]
+                    self.fileset[dataset]["files"] = self.fileset[dataset]["files"][:self.run_options['limit']]
                 elif isinstance(filelist, list):
-                    self.fileset[dataset] = self.fileset[dataset][:self.limit]
+                    self.fileset[dataset] = self.fileset[dataset][:self.run_options['limit']]
                 else:
                     raise NotImplemented
 

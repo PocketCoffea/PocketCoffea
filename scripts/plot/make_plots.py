@@ -76,8 +76,8 @@ ggH_opts = {
 }
 
 selection = {
-    'trigger' : (r'Trigger'),
-    'dilepton' : (r'Trigger'+'\n'+
+    'trigger'  : (r'Trigger'),
+    'baseline' : (r'Trigger'+'\n'+
                   r'Dilepton cuts')
 }
 
@@ -89,7 +89,9 @@ def make_plots(entrystart, entrystop):
     _accumulator = dict(list(accumulator.items())[entrystart:entrystop])
     for histname in _accumulator:
         if config.only and not (config.only in histname): continue
-        if not histname.lstrip('hist_').startswith(tuple(config.variables)): continue
+        if not histname.startswith('hist_'): continue
+        variable = histname.lstrip('hist_')
+        if not variable.startswith(tuple(config.variables)): continue
         h = _accumulator[histname]
 
         for year in [str(s) for s in h.identifiers('year')]:
@@ -124,6 +126,7 @@ def make_plots(entrystart, entrystop):
                     ax.legend()
                     at = AnchoredText(selection_text, loc=2, frameon=False)
                     ax.add_artist(at)
+                    ax.set_xlim(*config.variables[variable]['xlim'])
                     ax.set_ylim(0,maxY)
 
                     if histname.lstrip('hist_').startswith( tuple(histogram_settings['variables'].keys()) ):
@@ -150,7 +153,7 @@ NtotHists = len(HistsToPlot)
 NHistsToPlot = len([key for key in HistsToPlot if config.only in key])
 print("# tot histograms = ", NtotHists)
 print("# histograms to plot = ", NHistsToPlot)
-delimiters = np.linspace(0, NtotHists, config.workers + 1).astype(int)
+delimiters = np.linspace(0, NtotHists, config.run_options['workers'] + 1).astype(int)
 chunks = [(delimiters[i], delimiters[i+1]) for i in range(len(delimiters[:-1]))]
 pool = Pool()
 pool.starmap(make_plots, chunks)

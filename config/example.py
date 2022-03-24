@@ -13,16 +13,16 @@ cfg =  {
     "plots"    : "plots/RunIISummer20UL18_limit2",
 
     # Executor parameters
-    "running_options" : {
+    "run_options" : {
         "executor"     : "futures",
         "workers"      : 12,
         "scaleout"     : 10,
         "chunk"        : 50000,
         "max"          : None,
-        "limit"        : 2,
         "skipbadfiles" : None,
         "voms"         : None
-        },
+        "limit"        : 2,
+     },
 
     # Cuts and plots settings
     "finalstate" : "dilepton",
@@ -35,43 +35,26 @@ cfg =  {
        },
        "SR" : {
             "f" : SR,
-            "tag": "SR_ddddddd"
+            "tag": "SR_5"
        },
        "CR" : {
-            "f" : CR_top_stocazzo,
-            "tag": "CR_ddddddd"
+            "f" : CR_top,
+            "tag": "CR_base"
        },
 
        "CRbb" : {
-            "f" : CR_top_stocazzo,
-            "tag": "CR_ddddddd"
+            "f" : CR_top,
+            "tag": "CR_bb"
        },
 
-       "ptdistocazzo" : {
-            "f" : SPLITTAILPTDELw,
-            "TAG": "final_v3_approval"
-       },
-
-       "ptdistocazzo2" : {
-            "f" : SPLITTAILPTDELw,
-            "TAG": "final_v3_approval_opposite"
-       }
-    }
+    },
 
     "categories": {
-        "SR" :  ("trigger","baseline",  "SR"),
-        "CR1" : ("trigger", "CR"), 
-        "CR2" : ("trigger", "CRbb"),
-        "SR-A" : ("trigger","baseline",  "SR", "ptdistocazzo"),
-        "SR-B" : ("trigger","baseline",  "SR", "ptdistocazzo2"),
-    }, 
+        "SR" :  {"trigger","baseline",  "SR"},
+        "CR1" : {"trigger", "CR"}, 
+        "CR2" : {"trigger", "CRbb"},
+    },
 
-
-
-
-
-
-    "cuts" : [dilepton],
     "variables" : {
         "muon_pt" : {'binning' : {'n_or_arr' : 200, 'lo' : 0, 'hi' : 2000}, 'xlim' : (0,500),  'xlabel' : "$p_{T}^{\mu}$ [GeV]"},
         "muon_eta" : None,

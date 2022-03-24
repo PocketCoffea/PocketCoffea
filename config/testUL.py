@@ -4,7 +4,7 @@ cfg =  {
     # Dataset parameters
     "dataset"  : "datasets/DAS/RunIISummer20UL18.txt",
     "json"     : "datasets/RunIISummer20UL18.json",
-    "prefix"   : "/pnfs/psi.ch/cms/trivcat/store/user/mmarcheg/ttHbb",
+    "storage_prefix" : "/pnfs/psi.ch/cms/trivcat/store/user/mmarcheg/ttHbb",
 
     # Input and output files
     "workflow" : "base",
@@ -13,18 +13,28 @@ cfg =  {
     "plots"    : "plots/RunIISummer20UL18_limit2",
 
     # Executor parameters
-    "executor"     : "futures",
-    "workers"      : 12,
-    "scaleout"     : 10,
-    "chunk"        : 50000,
-    "max"          : None,
-    "limit"        : 2,
-    "skipbadfiles" : None,
-    "voms"         : None,
+    "run_options" : {
+        "executor"     : "futures",
+        "workers"      : 12,
+        "scaleout"     : 10,
+        "chunk"        : 50000,
+        "max"          : None,
+        "skipbadfiles" : None,
+        "voms"         : None,
+        "limit"        : 2,        
+    },
 
     # Cuts and plots settings
     "finalstate" : "dilepton",
-    "cuts" : [dilepton],
+    "cuts_definition" : {
+        "baseline" : {
+            "f"   : dilepton,
+            "tag" : "dilepton"
+        },
+    },
+    "categories": {
+        "baseline" : {"baseline"},
+    },
     "variables" : {
         "muon_pt" : {'binning' : {'n_or_arr' : 200, 'lo' : 0, 'hi' : 2000}, 'xlim' : (0,500),  'xlabel' : "$p_{T}^{\mu}$ [GeV]"},
         "muon_eta" : None,

@@ -2,9 +2,9 @@ import awkward as ak
 
 from parameters.selection import event_selection
 
-def dilepton(events, year, finalstate):
+def dilepton(events, year, tag):
 
-    cuts = event_selection[finalstate]
+    cuts = event_selection[tag]
     MET  = events[cuts["METbranch"][year]]
 
     # Masks for same-flavor (SF) and opposite-sign (OS)
@@ -14,8 +14,8 @@ def dilepton(events, year, finalstate):
     not_SF = ( (events.nmuon == 1) & (events.nelectron == 1) )
 
     mask = ( (events.nlep == 2) & (ak.firsts(events.LeptonGood.pt) > cuts["pt_leading_lepton"]) & OS &
-             (events.njet >= 2) & (events.nbjet >= 1) & (MET.pt > cuts["met"]) &
-             (events.ll.mass > 20) & ((SF & ((events.ll.mass < 76) | (events.ll.mass > 106))) | not_SF) )
+             (events.njet >= cuts["njet"]) & (events.nbjet >= cuts["nbjet"]) & (MET.pt > cuts["met"]) &
+             (events.ll.mass > cuts["mll"]) & ( ( SF & ( (events.ll.mass < cuts["mll_SFOS"]["low"]) | (events.ll.mass > cuts["mll_SFOS"]["high"]) ) ) | not_SF) )
 
     # Pad None values with False
     return ak.where(ak.is_none(mask), ~ak.is_none(mask), mask)
