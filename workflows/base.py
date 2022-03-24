@@ -20,8 +20,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         #self.sample = sample
         # Read required cuts and histograms from config file
         self.cfg = cfg
-        self._cuts_functions = self.cfg['cuts']
-        if type(self._cuts_functions) is not list: raise NotImplementedError
+        self._cuts_definition = self.cfg['cuts_definition']
+        self._categories      = self.cfg['categories']
         # Save histogram settings of the required histograms
         self._variables = self.cfg['variables']
         self._variables2d = self.cfg['variables2d']
@@ -152,10 +152,15 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self._selections['trigger'] = {'clean', 'trigger'}
 
     def apply_cuts(self):
-        for cut_function in self._cuts_functions:
-            mask = cut_function(self.events, self._year, self.cfg['finalstate'])
-            self._cuts.add(cut_function.__name__, ak.to_numpy(mask))
-            self._selections[cut_function.__name__] = set.union(self._selections['trigger'], {cut_function.__name__})
+        for name in self._cuts_definition.keys():
+            f_cut = self._cuts_definition[name]['f']
+            tag   = self._cuts_definition[name]['tag']
+            mask  = f_cut(self.events, self._year, tag)
+            self._cuts.add(name, ak.to_numpy(mask))
+
+    def define_categories(self):
+        for cat, cuts in self._categories.items():
+            self._selections[cat] = set.union(self._selections['trigger'], cuts)
 
     def fill_histograms(self):
         for histname, h in self.output.items():
@@ -213,6 +218,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.count_objects()
         self.apply_triggers()
         self.apply_cuts()
+        self.define_categories()
         
         # This function is empty in the base processor, but can be overriden in processors derived from the class ttHbbBaseProcessor
         self.process_extra()

@@ -11,7 +11,7 @@ parser.add_argument('-d', '--download', action='store_true', default=False, help
 args = parser.parse_args()
 config = Configurator(args.cfg, create_dataset=True)
 
-dataset = Dataset(config.dataset, config.prefix, config.json)
+dataset = Dataset(config.dataset, config.storage_prefix, config.json)
 dataset.save()
 
 if args.download:
