@@ -85,7 +85,7 @@ class MEMStudiesProcessor(ttHbbBaseProcessor):
                     parton = self.events.BQuarkMatched
                     weight = ak.flatten(self.weights.weight() * ak.Array(ak.fill_none(ak.ones_like(parton.pt), 0) * self._cuts.all(*self._selections[cut])))
                     fields = {k: ak.flatten(ak.fill_none(parton[k], -9999)) for k in h.fields if k in dir(parton)}
-                    h.fill(dataset=self.events.metadata["dataset"], cut=cut, year=self._year, **fields, weight=weight)
+                    h.fill(dataset=self._sample, cut=cut, year=self._year, **fields, weight=weight)
             self.output[histname] = h
 
     def process_extra(self) -> ak.Array:

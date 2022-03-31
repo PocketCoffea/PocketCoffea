@@ -184,7 +184,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                 else:
                     #fields, weight = self.fill_histograms_extra(histname, h, cut, self.events)
                     continue
-                h.fill(dataset=self.events.metadata["dataset"], cut=cut, year=self._year, **fields, weight=weight)
+                h.fill(dataset=self._sample, cut=cut, year=self._year, **fields, weight=weight)
         self.fill_histograms_extra()
 
     def count_objects_extra(self):
