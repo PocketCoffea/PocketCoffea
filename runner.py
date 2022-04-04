@@ -191,6 +191,6 @@ if __name__ == '__main__':
                                         chunksize=config.run_options['chunk'], maxchunks=config.run_options['max']
                             )
 
-    save(output, config.output)
+    save(output, config.outfile)
     print(output)
-    print(f"Saving output to {config.output}")
+    print(f"Saving output to {config.outfile}")

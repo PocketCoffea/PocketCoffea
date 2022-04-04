@@ -17,8 +17,9 @@ class Configurator():
             # Load dataset
             self.load_dataset()
 
-            # Check if output file exists, and in case add a `_v01` label
+            # Check if output file exists, and in case add a `_v01` label, make directory
             self.overwrite_check()
+            self.mkdir_output()
 
             # Truncate file list if self.limit is not None
             self.truncate_filelist()
@@ -41,10 +42,11 @@ class Configurator():
     def load_attributes(self):
         for key, item in self.cfg.items():
             setattr(self, key, item)
+        # Define default values for optional parameters
         for key in ['only']:
             try: getattr(self, key)
             except: setattr(self, key, '')
-        self.plots = os.path.abspath(self.plots)
+        self.plots = os.path.join( os.path.abspath(self.output), "plots" )
 
     def load_dataset(self):
         with open(self.input) as f:
@@ -62,11 +64,15 @@ class Configurator():
             version = 1
             while os.path.exists(path):
                 tag = str(version).rjust(2, '0')
-                path = self.output.replace('.coffea', f'_v{tag}.coffea')
+                path = f"{self.output}_v{tag}"
                 version += 1
             if path != self.output:
                 print(f"The output will be saved to {path}")
             self.output = path
+
+    def mkdir_output(self):
+        if not os.path.exists(self.output):
+            os.makedirs(self.output)
 
     def truncate_filelist(self):
         try: self.run_options['limit']
@@ -81,8 +87,7 @@ class Configurator():
                     raise NotImplemented
 
     def define_output(self):
-        try: self.output
-        except: self.output = f'hists_{self.workflow}_{(self.input).rstrip(".json")}.coffea'
+        self.outfile = os.path.join(self.output, "output.coffea")
 
     def load_histogram_settings(self):
         if isinstance(self.cfg['variables'], list):
@@ -106,3 +111,6 @@ class Configurator():
             self.processor_instance = MEMStudiesProcessor(cfg=self.cfg)
         else:
             raise NotImplemented
+
+#    def save_config(self):
+

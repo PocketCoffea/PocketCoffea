@@ -30,8 +30,8 @@ print("Starting ", end='')
 print(time.ctime())
 start = time.time()
 
-print( config.output )
-if os.path.isfile( config.output ): accumulator = load(config.output)
+print( config.outfile )
+if os.path.isfile( config.outfile ): accumulator = load(config.outfile)
 else: sys.exit("Input file does not exist")
 
 data_err_opts = {
