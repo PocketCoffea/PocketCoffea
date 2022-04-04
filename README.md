@@ -19,8 +19,6 @@ To download the files locally, run the script with the additional argument `--do
 python scripts/dataset/build_dataset.py --cfg config/testUL.py --download
 ~~~
 
-=======
->>>>>>> d1882f44d7419c965990ed3f9c80a7ac5a96e734
 ### Execution on local machine with Futures Executor
 To run the analysis workflow:
 ~~~
@@ -35,7 +33,6 @@ cfg =  {
     # Dataset parameters
     "dataset"  : "datasets/DAS/RunIISummer20UL18.txt",
     "json"     : "datasets/RunIISummer20UL18.json",
-<<<<<<< HEAD
     "storage_prefix" : "/pnfs/psi.ch/cms/trivcat/store/user/mmarcheg/ttHbb",
 
     # Input and output files
@@ -67,7 +64,6 @@ cfg =  {
     "categories": {
         "baseline" : {"baseline"},
     },
-=======
     "prefix"   : "/pnfs/psi.ch/cms/trivcat/store/user/mmarcheg/ttHbb",
 
     # Input and output files
@@ -87,12 +83,10 @@ cfg =  {
 
     # Cuts and variables to plot
     "cuts" : [dilepton],
->>>>>>> d1882f44d7419c965990ed3f9c80a7ac5a96e734
     "variables" : {
         "muon_pt" : {'binning' : {'n_or_arr' : 200, 'lo' : 0, 'hi' : 2000}, 'xlim' : (0,500),  'xlabel' : "$p_{T}^{\mu}$ [GeV]"},
         "muon_eta" : None,
         "muon_phi" : None,
-<<<<<<< HEAD
         "electron_pt" : None,
         "electron_eta" : None,
         "electron_phi" : None,
@@ -110,10 +104,8 @@ cfg =  {
     },
     "variables2d" : {},
     "scale" : "log"
-=======
     },
     "variables2d" : {}
->>>>>>> d1882f44d7419c965990ed3f9c80a7ac5a96e734
 }
 
 ~~~
