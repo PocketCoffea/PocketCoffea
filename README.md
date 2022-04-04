@@ -13,7 +13,6 @@ To build the JSON dataset, run the following script:
 python scripts/dataset/build_dataset.py --cfg config/testUL.py
 ~~~
 Two version of the JSON dataset will be saved: one with the `root://xrootd-cms.infn.it//` prefix and one with a local prefix passed through the config file (with label `_local.json`).
-<<<<<<< HEAD
 To download the files locally, run the script with the additional argument `--download`:
 ~~~
 python scripts/dataset/build_dataset.py --cfg config/testUL.py --download
