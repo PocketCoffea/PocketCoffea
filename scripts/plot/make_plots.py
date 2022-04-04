@@ -138,8 +138,9 @@ def make_plots(entrystart, entrystop):
                     filepath = os.path.join(config.plots, f"{histname}_{cut}_{year}.png")
                     if config.scale == 'log':
                         ax.semilogy()
-                        exp = 2 + math.floor(math.log(maxY, 10))
-                        ax.set_ylim(0.1, 10**exp)
+                        exp_high = 2 + math.floor(math.log(maxY, 10))
+                        exp_low = -4
+                        ax.set_ylim(10**exp_low, 10**exp_high)
                         #rax.set_ylim(0.1,10)
                         filepath = filepath.replace(".png", "_" + config.scale + ".png")
                     print("Saving", filepath)

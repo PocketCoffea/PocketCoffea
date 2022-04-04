@@ -8,7 +8,6 @@ def hist_is_in(histname, hist_list, accumulator):
 def fill_histograms_object(processor, obj, obj_hists, event_var=False):
     accumulator = processor.output
     for histname in filter( lambda x : hist_is_in(x, obj_hists, accumulator), accumulator.keys() ):
-        #print(histname)
         h = accumulator[histname]
         for cut in processor._selections.keys():
             if event_var:
@@ -18,5 +17,3 @@ def fill_histograms_object(processor, obj, obj_hists, event_var=False):
                 weight = ak.flatten( processor.weights.weight() * ak.Array(ak.ones_like(obj.pt) * processor._cuts.all(*processor._selections[cut])) )
                 fields = {k: ak.flatten(ak.fill_none(obj[k], -9999)) for k in h.fields if k in dir(obj)}
             h.fill(dataset=processor._sample, cut=cut, year=processor._year, **fields, weight=weight)
-    #print("----------------------")
-
