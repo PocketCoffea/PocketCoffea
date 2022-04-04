@@ -166,13 +166,6 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             fill_histograms_object(self, obj, obj_hists, event_var=True)
         for (obj, obj_hists) in zip([self.events.MuonGood, self.events.ElectronGood, self.events.JetGood], [self.muon_hists, self.electron_hists, self.jet_hists]):
             fill_histograms_object(self, obj, obj_hists)
-        #self.fill_histograms_extra()
-
-    def count_objects_extra(self):
-        pass
-
-    def fill_histograms_extra(self):
-        pass
 
     def process_extra(self) -> ak.Array:
         pass
