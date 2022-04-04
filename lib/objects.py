@@ -67,6 +67,8 @@ def jet_selection(events, Jet, finalstate, btag=None):
             good_jets = good_jets & ( ( (jets.pt < 50) & (jets.puId >= cuts["puId"]) ) | (jets.pt >= 50) )
             if btag != None:
                 good_jets = good_jets & ( getattr(jets, btag["btagging_algorithm"]) > btag["btagging_WP"] )
+        elif Jet == "FatJet":
+            raise NotImplementedError
 
     return jets[good_jets]
 
