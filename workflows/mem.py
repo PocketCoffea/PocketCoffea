@@ -3,6 +3,7 @@ import awkward as ak
 from coffea import hist
 
 from workflows.base import ttHbbBaseProcessor
+from lib.fill import fill_histograms_object
 
 class MEMStudiesProcessor(ttHbbBaseProcessor):
     def __init__(self, cfg='test.py') -> None:
@@ -24,8 +25,6 @@ class MEMStudiesProcessor(ttHbbBaseProcessor):
             bquarks = ak.concatenate( (bquarks, ak.flatten(higgs.children, axis=2)), axis=1 )
             # Sort b-quarks by pt
             bquarks = ak.with_name(bquarks[ak.argsort(bquarks.pt, ascending=False)], name='PtEtaPhiMCandidate')
-
-        bquarks = ak.with_field(bquarks, fromHiggs, 'fromHiggs')
 
         # Compute deltaR(b, jet) and save the nearest jet (deltaR matching)
         deltaR = ak.flatten(bquarks.metric_table(self.events.JetGood), axis=2)
@@ -75,6 +74,11 @@ class MEMStudiesProcessor(ttHbbBaseProcessor):
 
     def count_objects_extra(self):
         self.events["nbquark"] = ak.count(self.events.BQuark.pt, axis=1)
+
+    def fill_histograms(self):
+        super().fill_histograms()
+        print(self.bquark_hists)
+        fill_histograms_object(self, self.events.BQuarkMatched, self.bquark_hists)
 
     def fill_histograms_extra(self):
         for histname, h in self.output.items():

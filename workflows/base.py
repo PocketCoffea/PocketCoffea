@@ -9,6 +9,7 @@ import awkward as ak
 
 from lib.objects import lepton_selection, jet_selection, get_dilepton
 from lib.cuts import dilepton
+from lib.fill import fill_histograms_object
 from parameters.triggers import triggers
 from parameters.btag import btag
 from parameters.lumi import lumi
@@ -161,29 +162,11 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             self._selections[cat] = set.union(self._selections['trigger'], cuts)
 
     def fill_histograms(self):
-        for histname, h in self.output.items():
-            if type(h) is not hist.Hist: continue
-            for cut in self._selections.keys():
-                if histname in self.nobj_hists:
-                    weight = self.weights.weight() * self._cuts.all(*self._selections[cut])
-                    fields = {k: ak.fill_none(getattr(self.events, k), -9999) for k in h.fields if k in histname}
-                elif histname in self.muon_hists:
-                    muon = self.events.MuonGood
-                    weight = ak.flatten(self.weights.weight() * ak.Array(ak.ones_like(muon.pt) * self._cuts.all(*self._selections[cut])))
-                    fields = {k: ak.flatten(ak.fill_none(muon[k], -9999)) for k in h.fields if k in dir(muon)}
-                elif histname in self.electron_hists:
-                    electron = self.events.ElectronGood
-                    weight = ak.flatten(self.weights.weight() * ak.Array(ak.ones_like(electron.pt) * self._cuts.all(*self._selections[cut])))
-                    fields = {k: ak.flatten(ak.fill_none(electron[k], -9999)) for k in h.fields if k in dir(electron)}
-                elif histname in self.jet_hists:
-                    jet = self.events.JetGood
-                    weight = ak.flatten(self.weights.weight() * ak.Array(ak.ones_like(jet.pt) * self._cuts.all(*self._selections[cut])))
-                    fields = {k: ak.flatten(ak.fill_none(jet[k], -9999)) for k in h.fields if k in dir(jet)}
-                else:
-                    #fields, weight = self.fill_histograms_extra(histname, h, cut, self.events)
-                    continue
-                h.fill(dataset=self._sample, cut=cut, year=self._year, **fields, weight=weight)
-        self.fill_histograms_extra()
+        for (obj, obj_hists) in zip([None], [self.nobj_hists]):
+            fill_histograms_object(self, obj, obj_hists, event_var=True)
+        for (obj, obj_hists) in zip([self.events.MuonGood, self.events.ElectronGood, self.events.JetGood], [self.muon_hists, self.electron_hists, self.jet_hists]):
+            fill_histograms_object(self, obj, obj_hists)
+        #self.fill_histograms_extra()
 
     def count_objects_extra(self):
         pass
@@ -213,8 +196,6 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
 
         # Apply preselections, triggers and cuts
         self.apply_object_preselection()
-        print("JetGood", self.events.JetGood.pt)
-        print("BJetGood", self.events.BJetGood.pt)
         self.count_objects()
         self.apply_triggers()
         self.apply_cuts()
