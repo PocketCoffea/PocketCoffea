@@ -112,8 +112,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.events["ElectronGood"] = lepton_selection(self.events, "Electron", self.cfg['finalstate'])
         leptons = ak.with_name( ak.concatenate( (self.events.MuonGood, self.events.ElectronGood), axis=1 ), name='PtEtaPhiMCandidate' )
         self.events["LeptonGood"]   = leptons[ak.argsort(leptons.pt, ascending=False)]
-        self.good_jets = jet_selection(self.events, "Jet", self.cfg['finalstate'])
-        self.good_bjets = self.good_jets & (getattr(self.events.Jet, self._btag["btagging_algorithm"]) > self._btag["btagging_WP"])
+        self.events["JetGood"]  = jet_selection(self.events, "Jet", self.cfg['finalstate'])
+        self.events["BJetGood"] = jet_selection(self.events, "Jet", self.cfg['finalstate'], btag=self._btag)
 
         # As a reference, additional masks used in the boosted analysis
         # In case the boosted analysis is implemented, the correct lepton cleaning should be checked (remove only "leading" leptons)
@@ -123,8 +123,6 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         #self.good_nonbjets_boosted = self.good_jets_nohiggs & (getattr(self.events.jets, self.parameters["btagging_algorithm"]) < self.parameters["btagging_WP"])
         #self.events["FatJetGood"]   = self.events.FatJet[self.good_fatjets]
 
-        self.events["JetGood"]      = self.events.Jet[self.good_jets]
-        self.events["BJetGood"]     = self.events.Jet[self.good_bjets]
         if self.cfg['finalstate'] == 'dilepton':
             self.events["ll"]           = get_dilepton(self.events.ElectronGood, self.events.MuonGood)
 
@@ -200,8 +198,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.output = self.accumulator.identity()
         #if len(events)==0: return output
         self.events = events
-        self.load_metadata()
         self.nEvents = ak.count(self.events.event)
+        self.load_metadata()
         self.output['nevts'][self._sample] += self.nEvents
         self.isMC = 'genWeight' in self.events.fields
         if self.isMC:
@@ -215,6 +213,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
 
         # Apply preselections, triggers and cuts
         self.apply_object_preselection()
+        print("JetGood", self.events.JetGood.pt)
+        print("BJetGood", self.events.BJetGood.pt)
         self.count_objects()
         self.apply_triggers()
         self.apply_cuts()

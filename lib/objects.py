@@ -40,7 +40,7 @@ def lepton_selection(events, Lepton, finalstate):
     return leptons[good_leptons]
 
 # N.B.: This function works only with awkward v1.5.1 & coffea v0.7.9, it doesn't work with awkward 1.7.0 & coffea v0.7.11
-def jet_selection(events, Jet, finalstate):
+def jet_selection(events, Jet, finalstate, btag=None):
 
     jets = events[Jet]
     cuts = object_preselection[finalstate][Jet]
@@ -65,8 +65,10 @@ def jet_selection(events, Jet, finalstate):
 
         if Jet == "Jet":
             good_jets = good_jets & ( ( (jets.pt < 50) & (jets.puId >= cuts["puId"]) ) | (jets.pt >= 50) )
+            if btag != None:
+                good_jets = good_jets & ( getattr(jets, btag["btagging_algorithm"]) > btag["btagging_WP"] )
 
-    return good_jets
+    return jets[good_jets]
 
 def get_dilepton(electrons, muons, transverse=False):
 
