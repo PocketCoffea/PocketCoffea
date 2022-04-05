@@ -1,4 +1,4 @@
-from lib.cuts import dilepton
+from lib.cuts import dilepton, SR, CR_top
 
 cfg =  {
     # Dataset parameters
@@ -9,8 +9,7 @@ cfg =  {
     # Input and output files
     "workflow" : "base",
     "input"    : "datasets/RunIISummer20UL18.json",
-    "output"   : "histograms/RunIISummer20UL18_limit2.coffea",
-    "plots"    : "plots/RunIISummer20UL18_limit2",
+    "output"   : "output/example",
 
     # Executor parameters
     "run_options" : {
@@ -73,7 +72,6 @@ cfg =  {
         "nlepgood" : None,
         "njet" : None,
         "nbjet" : None,
-        "nfatjet" : None
     },
     "variables2d" : {},
     "scale" : "log"
