@@ -1,6 +1,0 @@
-root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/WW_TuneCP5_13TeV-pythia8/WW_nanoAODPostProcessor_2017_v03p30/201106_154131/0000/nano_postprocessed_1.root
-root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/WW_TuneCP5_13TeV-pythia8/WW_nanoAODPostProcessor_2017_v03p30/201106_154131/0000/nano_postprocessed_6.root
-root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/WW_TuneCP5_13TeV-pythia8/WW_nanoAODPostProcessor_2017_v03p30/201106_154131/0000/nano_postprocessed_2.root
-root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/WW_TuneCP5_13TeV-pythia8/WW_nanoAODPostProcessor_2017_v03p30/201106_154131/0000/nano_postprocessed_3.root
-root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/WW_TuneCP5_13TeV-pythia8/WW_nanoAODPostProcessor_2017_v03p30/201106_154131/0000/nano_postprocessed_5.root
-root://xrootd-cms.infn.it//store/user/algomez/tmpFiles/ttH/WW_TuneCP5_13TeV-pythia8/WW_nanoAODPostProcessor_2017_v03p30/201106_154131/0000/nano_postprocessed_4.root
