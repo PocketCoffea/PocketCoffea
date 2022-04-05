@@ -17,7 +17,7 @@ class MEMStudiesProcessor(ttHbbBaseProcessor):
         bquarks = self.events.LHEPart[isB & isOutgoing]
 
         # Select b-quarks at Gen level, coming from H->bb decay
-        if self.events.metadata["dataset"] == 'ttHTobb':
+        if self.events.metadata["sample"] == 'ttHTobb':
             isHiggs = self.events.GenPart.pdgId == 25
             isHard = self.events.GenPart.hasFlags(['fromHardProcess'])
             hasTwoChildren = ak.num(self.events.GenPart.childrenIdxG, axis=2) == 2
@@ -74,22 +74,11 @@ class MEMStudiesProcessor(ttHbbBaseProcessor):
 
     def count_bquarks(self):
         self.events["nbquark"] = ak.count(self.events.BQuark.pt, axis=1)
+        self.events["nbquark_matched"] = ak.count(self.events.BQuarkMatched.pt, axis=1)
 
     def fill_histograms(self):
         super().fill_histograms()
         fill_histograms_object(self, self.events.BQuarkMatched, self.bquark_hists)
-
-    def fill_histograms_extra(self):
-        for histname, h in self.output.items():
-            if type(h) is not hist.Hist: continue
-            if histname not in self.bquark_hists: continue
-            for cut in self._selections.keys():
-                if histname in self.bquark_hists:
-                    parton = self.events.BQuarkMatched
-                    weight = ak.flatten(self.weights.weight() * ak.Array(ak.fill_none(ak.ones_like(parton.pt), 0) * self._cuts.all(*self._selections[cut])))
-                    fields = {k: ak.flatten(ak.fill_none(parton[k], -9999)) for k in h.fields if k in dir(parton)}
-                    h.fill(dataset=self._sample, cut=cut, year=self._year, **fields, weight=weight)
-            self.output[histname] = h
 
     def process_extra(self) -> ak.Array:
         self.parton_matching()

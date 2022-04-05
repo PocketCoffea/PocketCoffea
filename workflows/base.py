@@ -34,9 +34,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self._selections = {}
 
         # Define axes
-        dataset_axis = hist.Cat("dataset", "Dataset")
-        cut_axis     = hist.Cat("cut", "Cut")
-        year_axis    = hist.Cat("year", "Year")
+        sample_axis = hist.Cat("sample", "Sample")
+        cut_axis    = hist.Cat("cut", "Cut")
+        year_axis   = hist.Cat("year", "Year")
 
         self._sumw_dict = {
             "sumw": processor.defaultdict_accumulator(float),
@@ -52,13 +52,13 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             else:
                 obj, field = var_name.split('_')
             variable_axis = hist.Bin( field, self._variables[var_name]['xlabel'], **self._variables[var_name]['binning'] )
-            self._hist_dict[f'hist_{var_name}'] = hist.Hist("$N_{events}$", dataset_axis, cut_axis, year_axis, variable_axis)
+            self._hist_dict[f'hist_{var_name}'] = hist.Hist("$N_{events}$", sample_axis, cut_axis, year_axis, variable_axis)
         for hist2d_name in self._variables2d.keys():
             varname_x = list(self._variables2d[hist2d_name].keys())[0]
             varname_y = list(self._variables2d[hist2d_name].keys())[1]
             variable_x_axis = hist.Bin("x", self._variables2d[hist2d_name][varname_x]['xlabel'], **self._variables2d[hist2d_name][varname_x]['binning'] )
             variable_y_axis = hist.Bin("y", self._variables2d[hist2d_name][varname_y]['ylabel'], **self._variables2d[hist2d_name][varname_y]['binning'] )
-            self._hist2d_dict[f'hist2d_{hist2d_name}'] = hist.Hist("$N_{events}$", dataset_axis, cut_axis, year_axis, variable_x_axis, variable_y_axis)
+            self._hist2d_dict[f'hist2d_{hist2d_name}'] = hist.Hist("$N_{events}$", sample_axis, cut_axis, year_axis, variable_x_axis, variable_y_axis)
 
         self._hist_dict.update(**self._hist2d_dict)
         self._hist_dict.update(**self._sumw_dict)

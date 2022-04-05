@@ -16,4 +16,4 @@ def fill_histograms_object(processor, obj, obj_hists, event_var=False):
             else:
                 weight = ak.flatten( processor.weights.weight() * ak.Array(ak.ones_like(obj.pt) * processor._cuts.all(*processor._selections[cut])) )
                 fields = {k: ak.flatten(ak.fill_none(obj[k], -9999)) for k in h.fields if k in dir(obj)}
-            h.fill(dataset=processor._sample, cut=cut, year=processor._year, **fields, weight=weight)
+            h.fill(sample=processor._sample, cut=cut, year=processor._year, **fields, weight=weight)
