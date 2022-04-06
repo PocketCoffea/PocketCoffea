@@ -10,54 +10,56 @@ All the relevant parameters for the execution of the processor such as the input
 ### Build JSON dataset
 To build the JSON dataset, run the following script:
 ~~~
-python scripts/dataset/build_dataset.py --cfg config/testUL.py
+python scripts/dataset/build_dataset.py --cfg config/base.py
 ~~~
 Two version of the JSON dataset will be saved: one with the `root://xrootd-cms.infn.it//` prefix and one with a local prefix passed through the config file (with label `_local.json`).
+To download the files locally, run the script with the additional argument `--download`:
+~~~
+python scripts/dataset/build_dataset.py --cfg config/base.py --download
+~~~
+
 ### Execution on local machine with Futures Executor
 To run the analysis workflow:
 ~~~
-python runner.py --cfg config/test.json
+python runner.py --cfg config/base.py
 ~~~
-### Config file
-The config file in `.py` format is passed as the argument `--cfg` of the `runner.py` script. The file has the following structure:
-~~~
-from lib.cuts import dilepton
-
-cfg =  {
-    # Dataset parameters
-    "dataset"  : "datasets/DAS/RunIISummer20UL18.txt",
-    "json"     : "datasets/RunIISummer20UL18.json",
-    "prefix"   : "/pnfs/psi.ch/cms/trivcat/store/user/mmarcheg/ttHbb",
-
-    # Input and output files
-    "workflow" : "base",
-    "input"    : "datasets/baseline_samples_local.json",
-    "output"   : "histograms/test.coffea",
-    "plots"    : "test",
-
-    # Executor parameters
-    "executor"     : "futures",
-    "workers"      : 12,
-    "scaleout"     : 6,
-    "chunk"        : 50000,
-    "max"          : None,
-    "limit"        : 1,
-    "skipbadfiles" : None,
-
-    # Cuts and variables to plot
-    "cuts" : [dilepton],
-    "variables" : {
-        "muon_pt" : {'binning' : {'n_or_arr' : 200, 'lo' : 0, 'hi' : 2000}, 'xlim' : (0,500),  'xlabel' : "$p_{T}^{\mu}$ [GeV]"},
-        "muon_eta" : None,
-        "muon_phi" : None,
-    },
-    "variables2d" : {}
-}
-
-~~~
-where the variables' names can be chosen among those reported in `parameters.allhistograms.histogram_settings` and `cuts` is a list of functions chosen from `lib.cuts` to apply the desired cuts.
+The output folder `output/base` will be created, containing the output histograms `output/base/output.coffea` and the config file `output/base/config.py` that was given as an argument to `runner.py`.
 ### Plots
 To produce plots, run the plot script:
 ~~~
-python scripts/plot/make_plots.py --cfg config/test.json
+python scripts/plot/make_plots.py --cfg config/base.py
 ~~~
+or use the newly created copy of the config file (__useful for traceability__):
+~~~
+python scripts/plot/make_plots.py --cfg output/base/config.py
+~~~
+The output plots will be saved in `output/base/plots` together with the config file `output/base/plots/config.py` that was given as an argument to `scripts/plot/make_plots.py`.
+### Config file
+The config file in `.py` format is passed as the argument `--cfg` of the `runner.py` script. The file has the following structure:
+
+| Parameter name    | Allowed values               | Description
+| :-----:           | :---:                        | :------------------------------------------
+| `dataset`         | string                       | Path of .txt file with list of DAS datasets
+| `json`            | string                       | Path of .json file to create with NanoAOD files
+| `storage_prefix`  | string                       | Path of storage folder to save datasets
+| `workflow`        | 'base', 'mem'                | Workflow to run
+| `input`           | string                       | Path of .json file, input to the workflow
+| `output`          | string                       | Path of output folder
+| `executor`        | 'futures', 'parsl/slurm'     | Executor
+| `workers`         | int                          | Number of parallel threads (with futures)
+| `scaleout`        | int                          | Number of jobs to submit (with parsl/slurm)
+| `chunk`           | int                          | Chunk size
+| `max`             | int                          | Maximum number of chunks to process
+| `skipbadfiles`    | bool                         | Skip bad files
+| `voms`            | string                       | Voms parameters (with condor)
+| `limit`           | int                          | Maximum number of files per sample to process
+| `finalstate`      | 'dilepton'                   | Final state of ttHbb process
+| `cuts_definition` | $NAME : {"f":f, "tag":{TAG}} | Dictionary of cuts with cut function and parameters
+| `categories`      | dict                         | Dictionary of categories with cuts to apply
+| `variables`       | $VARNAME : {$PARAMETERS}     | Dictionary of variables in 1-D histograms and plotting parameters
+| `variables2d`     | n.o.                         | __To be implemented__
+| `scale`           | 'linear', 'log'              | y-axis scale to apply to plots
+
+The variables' names can be chosen among those reported in `parameters.allhistograms.histogram_settings`, which contains also the default values of the plotting parameters. If no plotting parameters are specified, the default ones will be used.
+The plotting parameters can be customized for plotting, for example to rebin the histograms. In case of rebinning, the binning used in the plots has to be compatible with the one of the input histograms.
+The functions in `cuts_definition` for event selection have to be chosen among those reported in `lib.cuts`.

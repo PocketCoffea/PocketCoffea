@@ -30,8 +30,8 @@ print("Starting ", end='')
 print(time.ctime())
 start = time.time()
 
-print( config.output )
-if os.path.isfile( config.output ): accumulator = load(config.output)
+print( config.outfile )
+if os.path.isfile( config.outfile ): accumulator = load(config.outfile)
 else: sys.exit("Input file does not exist")
 
 data_err_opts = {
@@ -99,13 +99,13 @@ def make_plots(entrystart, entrystop):
             totalLumi = round(lumi[year]/1000, 1)            
             for cut in [str(s) for s in h.identifiers('cut')]:
                 selection_text = selection[cut]
-                datasets = [str(s) for s in h.identifiers('dataset')]
+                samples = [str(s) for s in h.identifiers('sample')]
                 varname = h.fields[-1]
                 varlabel = h.axis(varname).label
                 # This if has to be rewritten!
                 #if histname.lstrip('hist_').startswith( tuple(histogram_settings['variables'].keys()) ):
                 #    h = h.rebin(varname, hist.Bin(varname, varlabel, **histogram_settings['variables']['_'.join(histname.split('_')[:2])]['binning']))
-                #h.scale( scaleXS, axis='dataset' )
+                #h.scale( scaleXS, axis='sample' )
 
                 if not 'hist2d' in histname:
 
@@ -114,12 +114,12 @@ def make_plots(entrystart, entrystop):
                     if len(h.axes()) > 4:
                         categories_to_sum_over = ['cut', 'year']
                         collections = [str(s) for s in h.identifiers('collection')]
-                        plot.plot1d(h.sum('dataset')[(cut, year)].sum(*categories_to_sum_over), ax=ax, legend_opts={'loc':1})
-                        maxY = 1.2 *max( [ max(h.sum('dataset')[(cut, year)].sum(*categories_to_sum_over).values()[(collection,)]) for collection in collections] )
+                        plot.plot1d(h.sum('sample')[(cut, year)].sum(*categories_to_sum_over), ax=ax, legend_opts={'loc':1})
+                        maxY = 1.2 *max( [ max(h.sum('sample')[(cut, year)].sum(*categories_to_sum_over).values()[(collection,)]) for collection in collections] )
                     else:
                         categories_to_sum_over = ['cut', 'year']
-                        plot.plot1d(h[(datasets, cut, year)].sum(*categories_to_sum_over), ax=ax, legend_opts={'loc':1})
-                        maxY = 1.2 *max( [ max(h[(dataset, cut, year)].sum(*categories_to_sum_over).values()[(dataset,)]) for dataset in datasets] )
+                        plot.plot1d(h[(samples, cut, year)].sum(*categories_to_sum_over), ax=ax, legend_opts={'loc':1})
+                        maxY = 1.2 *max( [ max(h[(sample, cut, year)].sum(*categories_to_sum_over).values()[(sample,)]) for sample in samples] )
 
                     hep.cms.text("Preliminary", ax=ax)
                     hep.cms.lumitext(text=f'{totalLumi}' + r' fb$^{-1}$, 13 TeV,' + f' {year}', fontsize=18, ax=ax)
@@ -138,8 +138,9 @@ def make_plots(entrystart, entrystop):
                     filepath = os.path.join(config.plots, f"{histname}_{cut}_{year}.png")
                     if config.scale == 'log':
                         ax.semilogy()
-                        exp = 2 + math.floor(math.log(maxY, 10))
-                        ax.set_ylim(0.1, 10**exp)
+                        exp_high = 2 + math.floor(math.log(maxY, 10))
+                        exp_low = -4
+                        ax.set_ylim(10**exp_low, 10**exp_high)
                         #rax.set_ylim(0.1,10)
                         filepath = filepath.replace(".png", "_" + config.scale + ".png")
                     print("Saving", filepath)

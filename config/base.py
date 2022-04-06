@@ -3,14 +3,13 @@ from lib.cuts import dilepton
 cfg =  {
     # Dataset parameters
     "dataset"  : "datasets/DAS/RunIISummer20UL18.txt",
-    "json"     : "datasets/RunIISummer20UL18_testDownload.json",
+    "json"     : "datasets/RunIISummer20UL18.json",
     "storage_prefix" : "/pnfs/psi.ch/cms/trivcat/store/user/mmarcheg/ttHbb",
 
     # Input and output files
     "workflow" : "base",
-    "input"    : "datasets/RunIISummer20UL18.json",
-    "output"   : "histograms/RunIISummer20UL18_limit2.coffea",
-    "plots"    : "plots/RunIISummer20UL18_limit2",
+    "input"    : "datasets/RunIISummer20UL18_local.json",
+    "output"   : "output/base",
 
     # Executor parameters
     "run_options" : {
@@ -21,7 +20,7 @@ cfg =  {
         "max"          : None,
         "skipbadfiles" : None,
         "voms"         : None,
-        "limit"        : 2,        
+        "limit"        : 2,
     },
 
     # Cuts and plots settings

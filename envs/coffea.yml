@@ -1,9 +1,40 @@
 name: coffea
 channels:
+<<<<<<< HEAD
+  - conda-forge
+=======
+>>>>>>> d1882f44d7419c965990ed3f9c80a7ac5a96e734
   - defaults
 dependencies:
   - _libgcc_mutex=0.1=main
   - _openmp_mutex=4.5=1_gnu
+<<<<<<< HEAD
+  - c-ares=1.17.1=h7f98852_1
+  - ca-certificates=2021.10.8=ha878542_0
+  - certifi=2021.10.8=py39hf3d152e_2
+  - icu=68.1=h58526e2_0
+  - krb5=1.19.2=hcc1bbae_0
+  - ld_impl_linux-64=2.35.1=h7274673_9
+  - libcurl=7.78.0=h2574ce0_0
+  - libedit=3.1.20191231=he28a2e2_2
+  - libev=4.33=h516909a_1
+  - libffi=3.3=he6710b0_2
+  - libgcc-ng=9.3.0=h5101ec6_17
+  - libgomp=9.3.0=h5101ec6_17
+  - libiconv=1.16=h516909a_0
+  - libnghttp2=1.43.0=h812cca2_0
+  - libssh2=1.9.0=ha56f1ee_6
+  - libstdcxx-ng=9.3.0=hd4cf53a_17
+  - libuuid=2.32.1=h7f98852_1000
+  - libxml2=2.9.12=h72842e0_0
+  - ncurses=6.3=h7f8727e_2
+  - openssl=1.1.1n=h7f8727e_0
+  - pip=21.2.4=py39h06a4308_0
+  - python=3.9.7=h12debd9_1
+  - python_abi=3.9=2_cp39
+  - readline=8.1.2=h7f8727e_1
+  - scitokens-cpp=0.6.2=h8cfc780_1
+=======
   - ca-certificates=2021.10.26=h06a4308_2
   - certifi=2021.10.8=py39h06a4308_2
   - ld_impl_linux-64=2.35.1=h7274673_9
@@ -16,11 +47,16 @@ dependencies:
   - pip=21.2.4=py39h06a4308_0
   - python=3.9.7=h12debd9_1
   - readline=8.1.2=h7f8727e_1
+>>>>>>> d1882f44d7419c965990ed3f9c80a7ac5a96e734
   - setuptools=58.0.4=py39h06a4308_0
   - sqlite=3.37.2=hc218d9a_0
   - tk=8.6.11=h1ccaba5_0
   - tzdata=2021e=hda174b7_0
   - wheel=0.37.1=pyhd3eb1b0_0
+<<<<<<< HEAD
+  - xrootd=5.3.0=py39h8ef998a_0
+=======
+>>>>>>> d1882f44d7419c965990ed3f9c80a7ac5a96e734
   - xz=5.2.5=h7b6447c_0
   - zlib=1.2.11=h7f8727e_4
   - pip:
@@ -31,27 +67,54 @@ dependencies:
     - awkward==1.8.0
     - awkward0==0.15.5
     - backcall==0.2.0
+<<<<<<< HEAD
+    - bcrypt==3.2.0
+=======
+>>>>>>> d1882f44d7419c965990ed3f9c80a7ac5a96e734
     - bleach==4.1.0
     - boost-histogram==1.3.1
     - cachetools==5.0.0
     - cffi==1.15.0
+<<<<<<< HEAD
+    - charset-normalizer==2.0.12
+    - click==8.0.4
+    - cloudpickle==2.0.0
+    - coffea==0.7.14
+    - colorama==0.4.4
+    - commonmark==0.9.1
+    - correctionlib==2.1.0
+    - cryptography==36.0.2
+=======
     - click==8.0.4
     - cloudpickle==2.0.0
     - coffea==0.7.13
     - colorama==0.4.4
     - commonmark==0.9.1
     - correctionlib==2.1.0
+>>>>>>> d1882f44d7419c965990ed3f9c80a7ac5a96e734
     - cycler==0.11.0
     - debugpy==1.5.1
     - decorator==5.1.1
     - defusedxml==0.7.1
+<<<<<<< HEAD
+    - dill==0.3.4
+=======
+>>>>>>> d1882f44d7419c965990ed3f9c80a7ac5a96e734
     - entrypoints==0.4
     - executing==0.8.3
     - fonttools==4.29.1
     - fsspec==2022.2.0
+<<<<<<< HEAD
+    - globus-sdk==3.6.0
     - h5py==3.6.0
     - hist==2.6.0
     - histoprint==2.2.1
+    - idna==3.3
+=======
+    - h5py==3.6.0
+    - hist==2.6.0
+    - histoprint==2.2.1
+>>>>>>> d1882f44d7419c965990ed3f9c80a7ac5a96e734
     - ipykernel==6.9.1
     - ipython==8.1.1
     - ipython-genutils==0.2.0
@@ -84,18 +147,32 @@ dependencies:
     - packaging==21.3
     - pandas==1.4.1
     - pandocfilters==1.5.0
+<<<<<<< HEAD
+    - paramiko==2.10.3
+    - parsl==1.2.0
+=======
+>>>>>>> d1882f44d7419c965990ed3f9c80a7ac5a96e734
     - parso==0.8.3
     - pexpect==4.8.0
     - pickleshare==0.7.5
     - pillow==9.0.1
     - prometheus-client==0.13.1
     - prompt-toolkit==3.0.28
+<<<<<<< HEAD
+    - psutil==5.9.0
+=======
+>>>>>>> d1882f44d7419c965990ed3f9c80a7ac5a96e734
     - ptyprocess==0.7.0
     - pure-eval==0.2.2
     - pyarrow==7.0.0
     - pycparser==2.21
     - pydantic==1.9.0
     - pygments==2.11.2
+<<<<<<< HEAD
+    - pyjwt==2.3.0
+    - pynacl==1.5.0
+=======
+>>>>>>> d1882f44d7419c965990ed3f9c80a7ac5a96e734
     - pyparsing==3.0.7
     - pyrsistent==0.18.1
     - python-dateutil==2.8.2
@@ -103,21 +180,40 @@ dependencies:
     - pyzmq==22.3.0
     - qtconsole==5.2.2
     - qtpy==2.0.1
+<<<<<<< HEAD
+    - requests==2.27.1
+=======
+>>>>>>> d1882f44d7419c965990ed3f9c80a7ac5a96e734
     - rich==11.2.0
     - scipy==1.8.0
     - send2trash==1.8.0
     - six==1.16.0
     - stack-data==0.2.0
+<<<<<<< HEAD
+    - tblib==1.7.0
+    - terminado==0.13.2
+    - testpath==0.6.0
+    - toml==0.10.2
+    - tornado==6.1
+    - tqdm==4.62.3
+    - traitlets==5.1.1
+    - typeguard==2.13.3
+=======
     - terminado==0.13.2
     - testpath==0.6.0
     - tornado==6.1
     - tqdm==4.62.3
     - traitlets==5.1.1
+>>>>>>> d1882f44d7419c965990ed3f9c80a7ac5a96e734
     - typing-extensions==4.1.1
     - uhi==0.3.1
     - uproot==4.2.0
     - uproot3==3.14.4
     - uproot3-methods==0.10.1
+<<<<<<< HEAD
+    - urllib3==1.26.9
+=======
+>>>>>>> d1882f44d7419c965990ed3f9c80a7ac5a96e734
     - vector==0.8.5
     - wcwidth==0.2.5
     - webencodings==0.5.1

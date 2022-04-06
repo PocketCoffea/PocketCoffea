@@ -5,6 +5,7 @@ notebooks/.ipynb_checkpoints
 .ipynb_checkpoints/
 plots/
 histograms/
+output/
 logs/
 *~
 *.pyc

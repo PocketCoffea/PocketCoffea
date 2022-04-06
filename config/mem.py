@@ -1,25 +1,41 @@
 from lib.cuts import dilepton
 
 cfg =  {
+    # Dataset parameters
+    "dataset"  : "datasets/DAS/RunIISummer20UL18.txt",
+    "json"     : "datasets/RunIISummer20UL18.json",
+    "storage_prefix" : "/pnfs/psi.ch/cms/trivcat/store/user/mmarcheg/ttHbb",
+
     # Input and output files
     "workflow" : "mem",
-    "input"    : "datasets/baseline_samples_local.json",
-    "output"   : "histograms/mem_test.coffea",
-    "plots"    : "plots/mem_test",
+    "input"    : "datasets/RunIISummer20UL18_local.json",
+    "output"   : "output/mem",
 
     # Executor parameters
-    "executor"     : "futures",
-    "workers"      : 12,
-    "scaleout"     : 6,
-    "chunk"        : 50000,
-    "max"          : None,
-    "limit"        : 1,
-    "skipbadfiles" : None,
+    "run_options" : {
+        "executor"     : "futures",
+        "workers"      : 12,
+        "scaleout"     : 10,
+        "chunk"        : 50000,
+        "max"          : None,
+        "skipbadfiles" : None,
+        "voms"         : None,
+        "limit"        : 2,
+    },
 
-    # Cuts and variables to plot
-    "cuts" : [dilepton],
+    # Cuts and plots settings
+    "finalstate" : "dilepton",
+    "cuts_definition" : {
+        "baseline" : {
+            "f"   : dilepton,
+            "tag" : "dilepton"
+        },
+    },
+    "categories": {
+        "baseline" : {"baseline"},
+    },
     "variables" : {
-        "muon_pt" : None,
+        "muon_pt" : {'binning' : {'n_or_arr' : 200, 'lo' : 0, 'hi' : 2000}, 'xlim' : (0,500),  'xlabel' : "$p_{T}^{\mu}$ [GeV]"},
         "muon_eta" : None,
         "muon_phi" : None,
         "electron_pt" : None,
@@ -31,12 +47,11 @@ cfg =  {
         "nmuon" : None,
         "nelectron" : None,
         "nlep" : None,
-        "nmuongood" : None,
-        "nelectrongood" : None,
-        "nlepgood" : None,
+        "nmuon" : None,
+        "nelectron" : None,
+        "nlep" : None,
         "njet" : None,
         "nbjet" : None,
-        "nfatjet" : None,
         "nbquark" : None,
         "bquark_pt" : None,
         "bquark_eta" : None,
@@ -44,7 +59,5 @@ cfg =  {
         "bquark_drMatchedJet" : None,
     },
     "variables2d" : {},
-    "scale" : "log",
-    "normed" : False,
-    "scale_ttHbb" : 1000
+    "scale" : "log"
 }

@@ -3,6 +3,7 @@ import awkward as ak
 from coffea import hist
 
 from workflows.base import ttHbbBaseProcessor
+from lib.fill import fill_histograms_object
 
 class MEMStudiesProcessor(ttHbbBaseProcessor):
     def __init__(self, cfg='test.py') -> None:
@@ -16,7 +17,7 @@ class MEMStudiesProcessor(ttHbbBaseProcessor):
         bquarks = self.events.LHEPart[isB & isOutgoing]
 
         # Select b-quarks at Gen level, coming from H->bb decay
-        if self.events.metadata["dataset"] == 'ttHTobb':
+        if self.events.metadata["sample"] == 'ttHTobb':
             isHiggs = self.events.GenPart.pdgId == 25
             isHard = self.events.GenPart.hasFlags(['fromHardProcess'])
             hasTwoChildren = ak.num(self.events.GenPart.childrenIdxG, axis=2) == 2
@@ -24,8 +25,6 @@ class MEMStudiesProcessor(ttHbbBaseProcessor):
             bquarks = ak.concatenate( (bquarks, ak.flatten(higgs.children, axis=2)), axis=1 )
             # Sort b-quarks by pt
             bquarks = ak.with_name(bquarks[ak.argsort(bquarks.pt, ascending=False)], name='PtEtaPhiMCandidate')
-
-        bquarks = ak.with_field(bquarks, fromHiggs, 'fromHiggs')
 
         # Compute deltaR(b, jet) and save the nearest jet (deltaR matching)
         deltaR = ak.flatten(bquarks.metric_table(self.events.JetGood), axis=2)
@@ -73,22 +72,15 @@ class MEMStudiesProcessor(ttHbbBaseProcessor):
         self.events["BQuarkMatched"] = ak.with_field(self.events.BQuarkMatched, dr_matchedJet, "drMatchedJet")
         print("deltaR", dr_matchedJet)
 
-    def count_objects_extra(self):
+    def count_bquarks(self):
         self.events["nbquark"] = ak.count(self.events.BQuark.pt, axis=1)
+        self.events["nbquark_matched"] = ak.count(self.events.BQuarkMatched.pt, axis=1)
 
-    def fill_histograms_extra(self):
-        for histname, h in self.output.items():
-            if type(h) is not hist.Hist: continue
-            if histname not in self.bquark_hists: continue
-            for cut in self._selections.keys():
-                if histname in self.bquark_hists:
-                    parton = self.events.BQuarkMatched
-                    weight = ak.flatten(self.weights.weight() * ak.Array(ak.fill_none(ak.ones_like(parton.pt), 0) * self._cuts.all(*self._selections[cut])))
-                    fields = {k: ak.flatten(ak.fill_none(parton[k], -9999)) for k in h.fields if k in dir(parton)}
-                    h.fill(dataset=self._sample, cut=cut, year=self._year, **fields, weight=weight)
-            self.output[histname] = h
+    def fill_histograms(self):
+        super().fill_histograms()
+        fill_histograms_object(self, self.events.BQuarkMatched, self.bquark_hists)
 
     def process_extra(self) -> ak.Array:
         self.parton_matching()
-        self.count_objects_extra()
+        self.count_bquarks()
         print(self.events.nbquark)

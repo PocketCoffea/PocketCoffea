@@ -9,6 +9,7 @@ import awkward as ak
 
 from lib.objects import lepton_selection, jet_selection, get_dilepton
 from lib.cuts import dilepton
+from lib.fill import fill_histograms_object
 from parameters.triggers import triggers
 from parameters.btag import btag
 from parameters.lumi import lumi
@@ -33,9 +34,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self._selections = {}
 
         # Define axes
-        dataset_axis = hist.Cat("dataset", "Dataset")
-        cut_axis     = hist.Cat("cut", "Cut")
-        year_axis    = hist.Cat("year", "Year")
+        sample_axis = hist.Cat("sample", "Sample")
+        cut_axis    = hist.Cat("cut", "Cut")
+        year_axis   = hist.Cat("year", "Year")
 
         self._sumw_dict = {
             "sumw": processor.defaultdict_accumulator(float),
@@ -51,13 +52,13 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             else:
                 obj, field = var_name.split('_')
             variable_axis = hist.Bin( field, self._variables[var_name]['xlabel'], **self._variables[var_name]['binning'] )
-            self._hist_dict[f'hist_{var_name}'] = hist.Hist("$N_{events}$", dataset_axis, cut_axis, year_axis, variable_axis)
+            self._hist_dict[f'hist_{var_name}'] = hist.Hist("$N_{events}$", sample_axis, cut_axis, year_axis, variable_axis)
         for hist2d_name in self._variables2d.keys():
             varname_x = list(self._variables2d[hist2d_name].keys())[0]
             varname_y = list(self._variables2d[hist2d_name].keys())[1]
             variable_x_axis = hist.Bin("x", self._variables2d[hist2d_name][varname_x]['xlabel'], **self._variables2d[hist2d_name][varname_x]['binning'] )
             variable_y_axis = hist.Bin("y", self._variables2d[hist2d_name][varname_y]['ylabel'], **self._variables2d[hist2d_name][varname_y]['binning'] )
-            self._hist2d_dict[f'hist2d_{hist2d_name}'] = hist.Hist("$N_{events}$", dataset_axis, cut_axis, year_axis, variable_x_axis, variable_y_axis)
+            self._hist2d_dict[f'hist2d_{hist2d_name}'] = hist.Hist("$N_{events}$", sample_axis, cut_axis, year_axis, variable_x_axis, variable_y_axis)
 
         self._hist_dict.update(**self._hist2d_dict)
         self._hist_dict.update(**self._sumw_dict)
@@ -112,8 +113,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.events["ElectronGood"] = lepton_selection(self.events, "Electron", self.cfg['finalstate'])
         leptons = ak.with_name( ak.concatenate( (self.events.MuonGood, self.events.ElectronGood), axis=1 ), name='PtEtaPhiMCandidate' )
         self.events["LeptonGood"]   = leptons[ak.argsort(leptons.pt, ascending=False)]
-        self.good_jets = jet_selection(self.events, "Jet", self.cfg['finalstate'])
-        self.good_bjets = self.good_jets & (getattr(self.events.Jet, self._btag["btagging_algorithm"]) > self._btag["btagging_WP"])
+        self.events["JetGood"]  = jet_selection(self.events, "Jet", self.cfg['finalstate'])
+        self.events["BJetGood"] = jet_selection(self.events, "Jet", self.cfg['finalstate'], btag=self._btag)
 
         # As a reference, additional masks used in the boosted analysis
         # In case the boosted analysis is implemented, the correct lepton cleaning should be checked (remove only "leading" leptons)
@@ -123,8 +124,6 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         #self.good_nonbjets_boosted = self.good_jets_nohiggs & (getattr(self.events.jets, self.parameters["btagging_algorithm"]) < self.parameters["btagging_WP"])
         #self.events["FatJetGood"]   = self.events.FatJet[self.good_fatjets]
 
-        self.events["JetGood"]      = self.events.Jet[self.good_jets]
-        self.events["BJetGood"]     = self.events.Jet[self.good_bjets]
         if self.cfg['finalstate'] == 'dilepton':
             self.events["ll"]           = get_dilepton(self.events.ElectronGood, self.events.MuonGood)
 
@@ -163,35 +162,10 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             self._selections[cat] = set.union(self._selections['trigger'], cuts)
 
     def fill_histograms(self):
-        for histname, h in self.output.items():
-            if type(h) is not hist.Hist: continue
-            for cut in self._selections.keys():
-                if histname in self.nobj_hists:
-                    weight = self.weights.weight() * self._cuts.all(*self._selections[cut])
-                    fields = {k: ak.fill_none(getattr(self.events, k), -9999) for k in h.fields if k in histname}
-                elif histname in self.muon_hists:
-                    muon = self.events.MuonGood
-                    weight = ak.flatten(self.weights.weight() * ak.Array(ak.ones_like(muon.pt) * self._cuts.all(*self._selections[cut])))
-                    fields = {k: ak.flatten(ak.fill_none(muon[k], -9999)) for k in h.fields if k in dir(muon)}
-                elif histname in self.electron_hists:
-                    electron = self.events.ElectronGood
-                    weight = ak.flatten(self.weights.weight() * ak.Array(ak.ones_like(electron.pt) * self._cuts.all(*self._selections[cut])))
-                    fields = {k: ak.flatten(ak.fill_none(electron[k], -9999)) for k in h.fields if k in dir(electron)}
-                elif histname in self.jet_hists:
-                    jet = self.events.JetGood
-                    weight = ak.flatten(self.weights.weight() * ak.Array(ak.ones_like(jet.pt) * self._cuts.all(*self._selections[cut])))
-                    fields = {k: ak.flatten(ak.fill_none(jet[k], -9999)) for k in h.fields if k in dir(jet)}
-                else:
-                    #fields, weight = self.fill_histograms_extra(histname, h, cut, self.events)
-                    continue
-                h.fill(dataset=self._sample, cut=cut, year=self._year, **fields, weight=weight)
-        self.fill_histograms_extra()
-
-    def count_objects_extra(self):
-        pass
-
-    def fill_histograms_extra(self):
-        pass
+        for (obj, obj_hists) in zip([None], [self.nobj_hists]):
+            fill_histograms_object(self, obj, obj_hists, event_var=True)
+        for (obj, obj_hists) in zip([self.events.MuonGood, self.events.ElectronGood, self.events.JetGood], [self.muon_hists, self.electron_hists, self.jet_hists]):
+            fill_histograms_object(self, obj, obj_hists)
 
     def process_extra(self) -> ak.Array:
         pass
@@ -200,8 +174,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.output = self.accumulator.identity()
         #if len(events)==0: return output
         self.events = events
-        self.load_metadata()
         self.nEvents = ak.count(self.events.event)
+        self.load_metadata()
         self.output['nevts'][self._sample] += self.nEvents
         self.isMC = 'genWeight' in self.events.fields
         if self.isMC:
