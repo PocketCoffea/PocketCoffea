@@ -155,7 +155,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             mask = cut.get_mask(self.events, year=self._year, sample=self._sample)
             self._preselection_masks.add(cut.name, mask)
         # Now that the preselection mask is complete we can apply it to events
-        self.events = self.events[self._preselection_masks.all(self._preselection_masks.names)]
+        self.events = self.events[self._preselection_masks.all(*self._preselection_masks.names)]
             
     def define_categories(self):
         for cut in self._cuts:
