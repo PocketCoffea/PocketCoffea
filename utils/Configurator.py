@@ -13,9 +13,6 @@ class Configurator():
         self.create_dataset = create_dataset
         self.load_config(cfg)
         self.load_attributes()
-        self.categories = {}
-        self.cuts = {}
-        self.load_cuts_and_categories()
         
         if not self.create_dataset:
             # Load dataset
@@ -33,6 +30,11 @@ class Configurator():
 
             # Load histogram settings
             self.load_histogram_settings()
+            
+            # Load cuts and categories
+            self.categories = {}
+            self.cuts = {}
+            self.load_cuts_and_categories()
 
             # Load workflow
             self.load_workflow()
@@ -60,7 +62,6 @@ class Configurator():
     def load_dataset(self):
         with open(self.input) as f:
             self.fileset = json.load(f)
-
 
     def load_cuts_and_categories(self):
         for cat, cuts in self.cfg["categories"].items():
