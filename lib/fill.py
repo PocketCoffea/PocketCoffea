@@ -11,10 +11,10 @@ def fill_histograms_object(processor, obj, obj_hists, event_var=False):
         h = accumulator[histname]
         for category, cuts in processor._categories.items():
             if event_var:
-                weight = processor.weights.weight() * processor._cuts_masks.all(cuts)
+                weight = processor.weights.weight() * processor._cuts_masks.all(*cuts)
                 fields = {k: ak.fill_none(getattr(processor.events, k), -9999) for k in h.fields if k in histname}
             else:
                 weight = ak.flatten( processor.weights.weight() * ak.Array(ak.ones_like(obj.pt) *
-                                                        processor._cuts_masks.all(cuts)) )
+                                                        processor._cuts_masks.all(*cuts)) )
                 fields = {k: ak.flatten(ak.fill_none(obj[k], -9999)) for k in h.fields if k in dir(obj)}
             h.fill(sample=processor._sample, cat=category, year=processor._year, **fields, weight=weight)
