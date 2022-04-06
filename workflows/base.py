@@ -106,7 +106,6 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # add the basic clearning to the preselection mask
         self._preselection_masks.add('clean', ak.to_numpy(mask_clean))
 
-
     # Function to compute masks to preselect objects and save them as attributes of `events`
     def apply_object_preselection(self):
         # Build masks for selection of muons, electrons, jets, fatjets
@@ -151,7 +150,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self._preselection_masks.add('trigger', ak.to_numpy(self.trigger_mumu | self.trigger_emu | self.trigger_ee))
 
     def apply_preselection_cuts(self):
-        for cut in self._preselections():
+        for cut in self._preselections:
             # Apply the cut function and add it to the mask
             mask = cut.get_mask(self.events, year=self._year, sample=self._sample)
             self._preselection_masks.add(cut.name, mask)
@@ -164,7 +163,6 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             self._cuts_masks.add(cut.name, mask)
         # We make sure that for each category the list of cuts is unique in the Configurator validation
 
-            
     def compute_weights(self):
         self.weights = Weights(self.nEvents)
         if self.isMC:
@@ -172,8 +170,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             self.weights.add('lumi', ak.full_like(self.events.genWeight, lumi[self._year]))
             self.weights.add('XS', ak.full_like(self.events.genWeight, samples_info[self._sample]["XS"]))
             self.weights.add('sumw', ak.full_like(self.events.genWeight, 1./self.output["sumw"][self._sample]))
-        
-            
+
     def fill_histograms(self):
         for (obj, obj_hists) in zip([None], [self.nobj_hists]):
             fill_histograms_object(self, obj, obj_hists, event_var=True)
