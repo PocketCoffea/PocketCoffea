@@ -1,4 +1,4 @@
-from lib.cuts import dilepton
+ from parameters.cuts.baseline_cuts import dilepton_presel, passthrough
 
 cfg =  {
     # Dataset parameters
@@ -25,15 +25,12 @@ cfg =  {
 
     # Cuts and plots settings
     "finalstate" : "dilepton",
-    "cuts_definition" : {
-        "baseline" : {
-            "f"   : dilepton,
-            "tag" : "dilepton"
-        },
-    },
+    "preselections" : [dilepton_presel],
     "categories": {
-        "baseline" : {"baseline"},
+        "SR" : [passthrough],
+        "CR" : [passthrough]
     },
+    
     "variables" : {
         "muon_pt" : {'binning' : {'n_or_arr' : 200, 'lo' : 0, 'hi' : 2000}, 'xlim' : (0,500),  'xlabel' : "$p_{T}^{\mu}$ [GeV]"},
         "muon_eta" : None,
