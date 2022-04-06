@@ -1,8 +1,16 @@
 # Per-event cuts applied to each event
+import awkward as ak
 import lib.cut_functions as cuts_f
 from parameters.cuts.cut_definition import Cut
 
-dilepton = Cut(
+
+passthrough = Cut(
+    name="passthrough",
+    params = {},
+    function : lambda (events, params, year, sample): return ak.ones_like(events)
+)
+
+dilepton_presel = Cut(
     name ="dilepton",
     params = {
 		"METbranch" : {

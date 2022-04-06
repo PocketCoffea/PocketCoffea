@@ -13,7 +13,10 @@ class Configurator():
         self.create_dataset = create_dataset
         self.load_config(cfg)
         self.load_attributes()
-
+        self.categories = {}
+        self.cuts = {}
+        self.load_cuts_and_categories()
+        
         if not self.create_dataset:
             # Load dataset
             self.load_dataset()
@@ -44,7 +47,9 @@ class Configurator():
         self.cfg = cfg.cfg
 
     def load_attributes(self):
+        exclude_auto_loading = ["categories"]
         for key, item in self.cfg.items():
+            if key in exclude_auto_loading: continue
             setattr(self, key, item)
         # Define default values for optional parameters
         for key in ['only']:
@@ -56,6 +61,19 @@ class Configurator():
         with open(self.input) as f:
             self.fileset = json.load(f)
 
+
+    def load_cuts_and_categories(self):
+        for cat, cuts in self.cfg["categories"].items():
+            self.categories[cat] = []                
+            for cut in cuts:
+                self.categories[cat].append(cut.name)
+                if cut.name in self.cuts:
+                    continue
+                else:
+                    self.cuts[cut.name] = cut                
+        print("Cuts:", self.cuts)
+        print("Categories:", self.categories)
+    
     def overwrite_check(self):
         if self.plot:
             print(f"The output will be saved to {self.plots}")
