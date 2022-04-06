@@ -1,7 +1,10 @@
 # Per-event cuts applied to each event
+import lib.cut_functions as cuts_f
+from parameters.cuts.cut_definition import Cut
 
-event_selection = {
-	"dilepton" : {
+dilepton = Cut(
+    name ="dilepton",
+    params = {
 		"METbranch" : {
 			'2016' : "MET",
 			'2017' : "METFixEE2017",
@@ -14,4 +17,7 @@ event_selection = {
 		"mll" : 20,
 		"mll_SFOS" : {'low' : 76, 'high' : 106}
 	},
-}
+    function: cuts_f.dilepton
+ )
+
+
