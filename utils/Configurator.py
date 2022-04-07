@@ -33,10 +33,10 @@ class Configurator():
             
             # Load cuts and categories
             self.categories = {}
-            self.cuts = {}
+            self.cuts = []
             self.load_cuts_and_categories()
 
-            # Load workflow
+            # Load workflowf
             self.load_workflow()
 
             # Save config file in output folder
@@ -67,11 +67,11 @@ class Configurator():
         for cat, cuts in self.cfg["categories"].items():
             self.categories[cat] = []                
             for cut in cuts:
+                self.cuts.append(cut)
                 self.categories[cat].append(cut.name)
-                if cut.name in self.cuts:
-                    continue
-                else:
-                    self.cuts[cut.name] = cut                
+
+        # Unique set of cuts
+        self.cuts = set(self.cuts)
         print("Cuts:", self.cuts)
         print("Categories:", self.categories)
     
