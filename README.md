@@ -54,12 +54,14 @@ The config file in `.py` format is passed as the argument `--cfg` of the `runner
 | `voms`            | string                       | Voms parameters (with condor)
 | `limit`           | int                          | Maximum number of files per sample to process
 | `finalstate`      | 'dilepton'                   | Final state of ttHbb process
-| `cuts_definition` | $NAME : {"f":f, "tag":{TAG}} | Dictionary of cuts with cut function and parameters
+| `preselections`   | list                         | List of preselection cuts
 | `categories`      | dict                         | Dictionary of categories with cuts to apply
 | `variables`       | $VARNAME : {$PARAMETERS}     | Dictionary of variables in 1-D histograms and plotting parameters
 | `variables2d`     | n.o.                         | __To be implemented__
 | `scale`           | 'linear', 'log'              | y-axis scale to apply to plots
 
 The variables' names can be chosen among those reported in `parameters.allhistograms.histogram_settings`, which contains also the default values of the plotting parameters. If no plotting parameters are specified, the default ones will be used.
+
 The plotting parameters can be customized for plotting, for example to rebin the histograms. In case of rebinning, the binning used in the plots has to be compatible with the one of the input histograms.
-The functions in `cuts_definition` for event selection have to be chosen among those reported in `lib.cuts`.
+
+The `Cut` objects listed in `preselections` and `categories` have to be defined in `parameters.cuts.baseline_cuts`. A library of pre-defined functions for event is available in `lib.cuts`, but custom functions can be defined in a separate file.
