@@ -1,4 +1,4 @@
- from parameters.cuts.baseline_cuts import dilepton_presel, passthrough
+from parameters.cuts.baseline_cuts import dilepton_presel, passthrough
 
 cfg =  {
     # Dataset parameters

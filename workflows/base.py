@@ -8,7 +8,6 @@ import numpy as np
 import awkward as ak
 
 from lib.objects import lepton_selection, jet_selection, get_dilepton
-from lib.cuts import dilepton
 from lib.fill import fill_histograms_object
 from parameters.triggers import triggers
 from parameters.btag import btag
@@ -48,7 +47,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
 
         self._sumw_dict = {
             "sumw": processor.defaultdict_accumulator(float),
-            "nevts": processor.defaultdict_accumulator(int),
+            "nevts_initial": processor.defaultdict_accumulator(int),
+            "nevts_presel" : processor.defaultdict_accumulator(int),
         }
 
         #for var in self._vars_to_plot.keys():
@@ -80,6 +80,10 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     def accumulator(self):
         return self._accumulator
 
+    @property
+    def nevents(self):
+        return ak.count(self.events.event)
+
     # Function to load year-dependent parameters
     def load_metadata(self):
         self._dataset = self.events.metadata["dataset"]
@@ -90,7 +94,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
 
     # Function to apply flags and lumi mask
     def clean_events(self):
-        mask_clean = np.ones(self.nEvents, dtype=np.bool)
+        mask_clean = np.ones(self.nEvents_initial, dtype=np.bool)
         flags = [
             "goodVertices", "globalSuperTightHalo2016Filter", "HBHENoiseFilter", "HBHENoiseIsoFilter", "EcalDeadCellTriggerPrimitiveFilter", "BadPFMuonFilter"]#, "BadChargedCandidateFilter", "ecalBadCalibFilter"]
         if not self.isMC:
@@ -158,13 +162,13 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.events = self.events[self._preselection_masks.all(*self._preselection_masks.names)]
             
     def define_categories(self):
-        for cut in self._cuts:
+        for cut_name, cut in self._cuts.items():
             mask = cut.get_mask(self.events, year=self._year, sample=self._sample)
             self._cuts_masks.add(cut.name, mask)
         # We make sure that for each category the list of cuts is unique in the Configurator validation
 
     def compute_weights(self):
-        self.weights = Weights(self.nEvents)
+        self.weights = Weights(self.nevents)
         if self.isMC:
             self.weights.add('genWeight', self.events.genWeight)
             self.weights.add('lumi', ak.full_like(self.events.genWeight, lumi[self._year]))
@@ -181,14 +185,15 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         pass
 
     def process(self, events):
+        self.events = events
+        self.load_metadata()
         self.output = self.accumulator.identity()
         #if len(events)==0: return output
-        self.events = events
-        self.nEvents = ak.count(self.events.event)
-        self.load_metadata()
-        self.output['nevts'][self._sample] += self.nEvents
+        self.nEvents_initial = self.nevents
+        self.output['nevts_initial'][self._sample] += self.nEvents_initial
         self.isMC = 'genWeight' in self.events.fields
         if self.isMC:
+            # This is computed before any preselection
             self.output['sumw'][self._sample] += sum(self.events.genWeight)
 
         # Event cleaning and  PV selection
@@ -200,6 +205,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.apply_triggers()
         # This will remove all the events not passing preselection from further 
         self.apply_preselection_cuts()
+        self.nEvents_after_presel = self.nevents
+        self.output['nevts_presel'][self._sample] += self.nEvents_after_presel
 
         # This function looks at the categories in the cfg file,
         # apply the single cut functions and then prepares the categories

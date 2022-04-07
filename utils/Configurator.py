@@ -133,29 +133,30 @@ class Configurator():
     def load_workflow(self):
         if self.workflow == "base":
             from workflows.base import ttHbbBaseProcessor
-            self.processor_instance = ttHbbBaseProcessor(cfg=self.cfg)
+            self.processor_instance = ttHbbBaseProcessor(cfg=self)
         elif self.workflow == "mem":
             from workflows.mem import MEMStudiesProcessor
-            self.processor_instance = MEMStudiesProcessor(cfg=self.cfg)
+            self.processor_instance = MEMStudiesProcessor(cfg=self)
         else:
             raise NotImplemented
 
     def save_config(self):
-        functions_to_import = []
-        import_line = "from lib.cuts import "
-        for key in self.cfg['cuts_definition'].keys():
-            functions_to_import.append(self.cfg['cuts_definition'][key]['f'])
-        buffer = ''.join( ("cfg = ", pprint.pformat(self.cfg, sort_dicts=False)) )
-        for f in functions_to_import:
-            buffer = buffer.replace(str(f), f.__name__)
-        import_line = ''.join( (import_line, ', '.join([f.__name__ for f in functions_to_import])) )
-        buffer = import_line + '\n\n' + buffer + '\n'
+        # functions_to_import = []
+        # import_line = "from lib.cuts import "
+        # for key in self.cfg['cuts_definition'].keys():
+        #     functions_to_import.append(self.cfg['cuts_definition'][key]['f'])
+        # buffer = ''.join( ("cfg = ", pprint.pformat(self.cfg, sort_dicts=False)) )
+        # for f in functions_to_import:
+        #     buffer = buffer.replace(str(f), f.__name__)
+        # import_line = ''.join( (import_line, ', '.join([f.__name__ for f in functions_to_import])) )
+        # buffer = import_line + '\n\n' + buffer + '\n'
 
-        if self.plot:
-            config_file = os.path.join(self.plots, "config.py")
-        else:
-            config_file = os.path.join(self.output, "config.py")
-        print("Saving config file to " + config_file)
-        with open(config_file, 'w') as f:
-            f.write(buffer)
-        f.close()
+        # if self.plot:
+        #     config_file = os.path.join(self.plots, "config.py")
+        # else:
+        #     config_file = os.path.join(self.output, "config.py")
+        # print("Saving config file to " + config_file)
+        # with open(config_file, 'w') as f:
+        #     f.write(buf    
+        # f.close()
+        pass

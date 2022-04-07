@@ -3,11 +3,10 @@ import awkward as ak
 import lib.cut_functions as cuts_f
 from parameters.cuts.cut_definition import Cut
 
-
 passthrough = Cut(
     name="passthrough",
     params = {},
-    function : lambda (events, params, year, sample): return ak.ones_like(events)
+    function= cuts_f.passthrough
 )
 
 dilepton_presel = Cut(
@@ -25,7 +24,7 @@ dilepton_presel = Cut(
 		"mll" : 20,
 		"mll_SFOS" : {'low' : 76, 'high' : 106}
 	},
-    function: cuts_f.dilepton
+    function = cuts_f.dilepton
  )
 
 
