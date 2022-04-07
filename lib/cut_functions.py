@@ -1,6 +1,7 @@
 import awkward as ak
 
-from parameters.selection import event_selection
+def passthrough(events, **kargs):
+    return ak.full_like(events.event, True, dtype=bool)
 
 def dilepton(events, params, year, sample):
 

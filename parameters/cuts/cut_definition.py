@@ -1,4 +1,6 @@
+from dataclasses import dataclass
 from collections.abc import Callable
+import awkward as ak
 
 @dataclass
 class Cut:
