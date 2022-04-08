@@ -5,7 +5,7 @@ cfg =  {
     "dataset" : {
         "jsons": ["datasets/RunIISummer20UL18_local.json"],
         "filter" : {
-            "sample": ["ttHTobb"],
+            "samples": ["ttHTobb"],
             "samples_exclude" : [],
             "year": ["2018"]
         }
