@@ -36,7 +36,7 @@ class Configurator():
             self.cuts = []
             self.load_cuts_and_categories()
 
-            # Load workflowf
+            # Load workflow
             self.load_workflow()
 
             # Save config file in output folder
