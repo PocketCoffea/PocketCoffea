@@ -66,10 +66,10 @@ class Configurator():
                 for key, ds in ds_dict.items():
                     pass_filter = True
                     if "sample" in ds_filter:
-                        if ds["metadata"]["sample"] not in ds_filter["sample"]:
+                        if ds["metadata"]["sample"] not in ds_filter["samples"]:
                             pass_filter = False
                     if "sample_exclude" in ds_filter:
-                        if ds["metadata"]["sample"] in ds_filter["sample_exclude"]:
+                        if ds["metadata"]["sample"] in ds_filter["samples_exclude"]:
                             pass_filter = False
                     if "year" in ds_filter:
                         if ds["metadata"]["year"] not in ds_filter["year"]:
