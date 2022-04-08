@@ -1,19 +1,22 @@
 from parameters.cuts.baseline_cuts import dilepton_presel, passthrough
 
 cfg =  {
-    # Dataset parameters
-    "dataset"  : "datasets/DAS/RunIISummer20UL18.txt",
-    "json"     : "datasets/RunIISummer20UL18.json",
-    "storage_prefix" : "/pnfs/psi.ch/cms/trivcat/store/user/mmarcheg/ttHbb",
+
+    "dataset" : {
+        "jsons": ["datasets/RunIISummer20UL18_local.json"],
+        "filter" : {
+            "sample": ["ttHTobb"],
+            "year": ["2018"]
+        }
+    },
 
     # Input and output files
     "workflow" : "base",
-    "input"    : "datasets/RunIISummer20UL18_local.json",
     "output"   : "output/base",
 
     # Executor parameters
     "run_options" : {
-        "executor"     : "futures",
+        "executor"     : "iterative",
         "workers"      : 12,
         "scaleout"     : 10,
         "chunk"        : 50000,
