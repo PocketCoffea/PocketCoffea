@@ -62,11 +62,14 @@ class Configurator():
         for json_dataset in self.dataset["jsons"]:
             ds_dict = json.load(open(json_dataset))
             ds_filter = self.dataset.get("filter",None)
-            if ds_filter !=None:
+            if ds_filter != None:
                 for key, ds in ds_dict.items():
                     pass_filter = True
                     if "sample" in ds_filter:
                         if ds["metadata"]["sample"] not in ds_filter["sample"]:
+                            pass_filter = False
+                    if "sample_exclude" in ds_filter:
+                        if ds["metadata"]["sample"] in ds_filter["sample_exclude"]:
                             pass_filter = False
                     if "year" in ds_filter:
                         if ds["metadata"]["year"] not in ds_filter["year"]:
