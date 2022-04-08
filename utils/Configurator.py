@@ -7,40 +7,38 @@ import importlib.util
 from parameters.allhistograms import histogram_settings
 
 class Configurator():
-    def __init__(self, cfg, plot=False, create_dataset=False):
+    def __init__(self, cfg, plot=False):
         # Load config file and attributes
         self.plot    = plot
-        self.create_dataset = create_dataset
         self.load_config(cfg)
         self.load_attributes()
-        
-        if not self.create_dataset:
-            # Load dataset
-            self.load_dataset()
 
-            # Check if output file exists, and in case add a `_v01` label, make directory
-            self.overwrite_check()
-            self.mkdir_output()
+        # Load dataset
+        self.load_dataset()
 
-            # Truncate file list if self.limit is not None
-            self.truncate_filelist()
+        # Check if output file exists, and in case add a `_v01` label, make directory
+        self.overwrite_check()
+        self.mkdir_output()
 
-            # Define output file path
-            self.define_output()
+        # Truncate file list if self.limit is not None
+        self.truncate_filelist()
 
-            # Load histogram settings
-            self.load_histogram_settings()
-            
-            # Load cuts and categories
-            self.categories = {}
-            self.cuts = []
-            self.load_cuts_and_categories()
+        # Define output file path
+        self.define_output()
 
-            # Load workflow
-            self.load_workflow()
+        # Load histogram settings
+        self.load_histogram_settings()
 
-            # Save config file in output folder
-            self.save_config()
+        # Load cuts and categories
+        self.categories = {}
+        self.cuts = []
+        self.load_cuts_and_categories()
+
+        # Load workflow
+        self.load_workflow()
+
+        # Save config file in output folder
+        self.save_config()
 
     def load_config(self, path):
         spec = importlib.util.spec_from_file_location("cfg", path)
@@ -60,8 +58,30 @@ class Configurator():
         self.plots = os.path.join( os.path.abspath(self.output), "plots" )
 
     def load_dataset(self):
-        with open(self.input) as f:
-            self.fileset = json.load(f)
+        self.fileset = {}
+        for json_dataset in self.dataset["jsons"]:
+            ds_dict = json.load(open(json_dataset))
+            ds_filter = self.dataset.get("filter",None)
+            if ds_filter != None:
+                for key, ds in ds_dict.items():
+                    pass_filter = True
+                    if "sample" in ds_filter:
+                        if ds["metadata"]["sample"] not in ds_filter["sample"]:
+                            pass_filter = False
+                    if "sample_exclude" in ds_filter:
+                        if ds["metadata"]["sample"] in ds_filter["sample_exclude"]:
+                            pass_filter = False
+                    if "year" in ds_filter:
+                        if ds["metadata"]["year"] not in ds_filter["year"]:
+                            pass_filter = False
+                    if pass_filter:
+                        self.fileset[key] = ds
+            else:
+                self.fileset.update(ds_dict)
+        if len(self.fileset) == 0:
+            print("File set is empty: please check you dataset definition...")
+            exit(1)
+        print("Fileset:\n",self.fileset)
 
     def load_cuts_and_categories(self):
         for cat, cuts in self.cfg["categories"].items():
@@ -80,9 +100,6 @@ class Configurator():
     def overwrite_check(self):
         if self.plot:
             print(f"The output will be saved to {self.plots}")
-            return
-        elif self.create_dataset:
-            print(f"The output will be saved to {self.json}")
             return
         else:
             path = self.output
