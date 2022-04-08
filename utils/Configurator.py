@@ -72,6 +72,8 @@ class Configurator():
 
         # Unique set of cuts
         self.cuts = set(self.cuts)
+        for cat, cuts in self.cfg["categories"].items():
+            self.categories[cat] = set(cuts)
         print("Cuts:", self.cuts)
         print("Categories:", self.categories)
     
