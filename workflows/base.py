@@ -162,7 +162,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.events = self.events[self._preselection_masks.all(*self._preselection_masks.names)]
             
     def define_categories(self):
-        for cut_name, cut in self._cuts.items():
+        for cut in self._cuts:
             mask = cut.get_mask(self.events, year=self._year, sample=self._sample)
             self._cuts_masks.add(cut.name, mask)
         # We make sure that for each category the list of cuts is unique in the Configurator validation

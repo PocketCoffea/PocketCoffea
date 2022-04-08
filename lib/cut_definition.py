@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from collections.abc import Callable
 import awkward as ak
+import json
 
 @dataclass
 class Cut:
@@ -14,3 +15,10 @@ class Cut:
         Additional parameters as the year, sample name or others can be included by the processor and are passed to the function. 
         '''
         return self.function(events, params=self.params, **kwargs )
+
+    def __hash__(self):
+        '''The Cut is unique by its name, the  __name__ of the function and the set of parameters.'''
+        return hash((self.name, json.dumps(self.params), self.function.__name__))
+
+    def __str__(self):
+        return f"Cut: {self.name}, f:{self.function.__name__}"

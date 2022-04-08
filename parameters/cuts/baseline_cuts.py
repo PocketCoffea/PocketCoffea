@@ -1,7 +1,7 @@
 # Per-event cuts applied to each event
 import awkward as ak
 import lib.cut_functions as cuts_f
-from parameters.cuts.cut_definition import Cut
+from lib.cut_definition import Cut
 
 passthrough = Cut(
     name="passthrough",
