@@ -12,29 +12,29 @@ class Configurator():
         self.plot    = plot
         self.load_config(cfg)
         self.load_attributes()
-        
+
         # Load dataset
         self.load_dataset()
-        
+
         # Check if output file exists, and in case add a `_v01` label, make directory
         self.overwrite_check()
         self.mkdir_output()
-        
+
         # Truncate file list if self.limit is not None
         self.truncate_filelist()
 
         # Define output file path
         self.define_output()
-        
+
         # Load histogram settings
         self.load_histogram_settings()
-        
+
         # Load cuts and categories
         self.categories = {}
         self.cuts = []
         self.load_cuts_and_categories()
-        
-        # Load workflowf
+
+        # Load workflow
         self.load_workflow()
 
         # Save config file in output folder
@@ -92,6 +92,8 @@ class Configurator():
 
         # Unique set of cuts
         self.cuts = set(self.cuts)
+        for cat, cuts in self.categories.items():
+            self.categories[cat] = set(cuts)
         print("Cuts:", self.cuts)
         print("Categories:", self.categories)
     
