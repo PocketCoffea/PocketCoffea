@@ -28,11 +28,14 @@ class MEMStudiesProcessor(ttHbbBaseProcessor):
 
         # Compute deltaR(b, jet) and save the nearest jet (deltaR matching)
         deltaR = ak.flatten(bquarks.metric_table(self.events.JetGood), axis=2)
-        idx_pairs_sorted = ak.argsort(deltaR, axis=1)
-        pairs = ak.argcartesian([bquarks, self.events.JetGood])
+        # keeping only the pairs with a deltaR min
+        maskDR = deltaR<dr_min
+        deltaRcut = deltaR[maskDR]
+        idx_pairs_sorted = ak.argsort(deltaRcut, axis=1)
+        pairs = ak.argcartesian([bquarks, events.Jet])[maskDR]
         pairs_sorted = pairs[idx_pairs_sorted]
-        idx_bquarks, idx_JetGood = ak.unzip(pairs_sorted)
-
+        idx_bquarks, idx_Jet = ak.unzip(pairs_sorted)
+        
         hasMatch = ak.zeros_like(idx_JetGood, dtype=bool)
         Npairmax = ak.max(ak.num(idx_bquarks))
         # Loop over the (parton, jet) pairs
