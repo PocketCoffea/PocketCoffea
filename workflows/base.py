@@ -181,9 +181,15 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         for (obj, obj_hists) in zip([self.events.MuonGood, self.events.ElectronGood, self.events.JetGood], [self.muon_hists, self.electron_hists, self.jet_hists]):
             fill_histograms_object(self, obj, obj_hists)
 
-    def process_extra(self) -> ak.Array:
+    def process_extra_before_presel(self) -> ak.Array:
         pass
 
+    def process_extra_after_presel(self) -> ak.Array:
+        pass
+
+    def fill_histograms_extra(self):
+        pass
+    
     def process(self, events):
         self.events = events
         self.load_metadata()
@@ -203,6 +209,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.apply_object_preselection()
         self.count_objects()
         self.apply_triggers()
+        # Possible extra work before applying preselections
+        self.process_extra_before_presel()
         # This will remove all the events not passing preselection from further 
         self.apply_preselection_cuts()
         self.nEvents_after_presel = self.nevents
@@ -216,11 +224,12 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.compute_weights()
         
         # This function is empty in the base processor, but can be overriden in processors derived from the class ttHbbBaseProcessor
-        self.process_extra()
+        self.process_extra_after_presel()
 
         # Fill histograms
         self.fill_histograms()
-
+        self.fill_histograms_extra()
+        
         return self.output
 
     def postprocess(self, accumulator):

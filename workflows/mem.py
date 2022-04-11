@@ -76,11 +76,10 @@ class MEMStudiesProcessor(ttHbbBaseProcessor):
         self.events["nbquark"] = ak.count(self.events.BQuark.pt, axis=1)
         self.events["nbquark_matched"] = ak.count(self.events.BQuarkMatched.pt, axis=1)
 
-    def fill_histograms(self):
-        super().fill_histograms()
+    def fill_histograms_extra(self):
         fill_histograms_object(self, self.events.BQuarkMatched, self.bquark_hists)
 
-    def process_extra(self) -> ak.Array:
+    def process_extra_after_presel(self) -> ak.Array:
         self.parton_matching()
         self.count_bquarks()
         print(self.events.nbquark)
