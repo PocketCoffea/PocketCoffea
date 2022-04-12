@@ -6,10 +6,11 @@ from workflows.base import ttHbbBaseProcessor
 from lib.fill import fill_histograms_object
 
 class MEMStudiesProcessor(ttHbbBaseProcessor):
-    def __init__(self, cfg='test.py') -> None:
+    def __init__(self,cfg) -> None:
         super().__init__(cfg=cfg)
         self.bquark_hists = [histname for histname in self._hist_dict.keys() if 'bquark' in histname and not histname in self.nobj_hists]
-
+        self.dr_min = 0.4    
+        
     def parton_matching(self) -> ak.Array:
         # Select b-quarks at LHE level
         isOutgoing = self.events.LHEPart.status == 1
@@ -29,12 +30,12 @@ class MEMStudiesProcessor(ttHbbBaseProcessor):
         # Compute deltaR(b, jet) and save the nearest jet (deltaR matching)
         deltaR = ak.flatten(bquarks.metric_table(self.events.JetGood), axis=2)
         # keeping only the pairs with a deltaR min
-        maskDR = deltaR<dr_min
+        maskDR = deltaR<  self.dr_min
         deltaRcut = deltaR[maskDR]
         idx_pairs_sorted = ak.argsort(deltaRcut, axis=1)
-        pairs = ak.argcartesian([bquarks, events.Jet])[maskDR]
+        pairs = ak.argcartesian([bquarks, self.events.JetGood])[maskDR]
         pairs_sorted = pairs[idx_pairs_sorted]
-        idx_bquarks, idx_Jet = ak.unzip(pairs_sorted)
+        idx_bquarks, idx_JetGood = ak.unzip(pairs_sorted)
         
         hasMatch = ak.zeros_like(idx_JetGood, dtype=bool)
         Npairmax = ak.max(ak.num(idx_bquarks))
@@ -63,17 +64,15 @@ class MEMStudiesProcessor(ttHbbBaseProcessor):
         idx_matchedPair = idx_matchedPair[~ak.is_none(idx_matchedPair, axis=1)]
         matchedJet    = self.events.JetGood[idx_matchedJet]
         matchedParton = bquarks[idx_matchedParton]
-        print("matchedJet", matchedJet)
         hasMatchedPartons = ak.count(idx_matchedParton, axis=1) == ak.count(bquarks.pt, axis=1)
-        print(hasMatchedPartons)
         # Compute efficiency of parton matching for different cuts
-        for cut in self._selections.keys():
-            print(self.events.metadata["dataset"], cut, "matched partons =", round(100*ak.sum(hasMatchedPartons[self._cuts.all(*self._selections[cut])])/ak.size(hasMatchedPartons[self._cuts.all(*self._selections[cut])]), 2), "%")
+        # for cut in self._selections.keys():
+        #     print(self.events.metadata["dataset"], cut, "matched partons =", round(100*ak.sum(hasMatchedPartons[self._cuts.all(*self._selections[cut])
+                                                                                                                # ])/ak.size(hasMatchedPartons[self._cuts.all(*self._selections[cut])]), 2), "%")
         self.events["BQuark"] = bquarks
         self.events["JetGoodMatched"] = matchedJet
         self.events["BQuarkMatched"] = matchedParton
         self.events["BQuarkMatched"] = ak.with_field(self.events.BQuarkMatched, dr_matchedJet, "drMatchedJet")
-        print("deltaR", dr_matchedJet)
 
     def count_bquarks(self):
         self.events["nbquark"] = ak.count(self.events.BQuark.pt, axis=1)
@@ -85,4 +84,3 @@ class MEMStudiesProcessor(ttHbbBaseProcessor):
     def process_extra_after_presel(self) -> ak.Array:
         self.parton_matching()
         self.count_bquarks()
-        print(self.events.nbquark)
