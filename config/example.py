@@ -1,14 +1,18 @@
 from lib.cuts import dilepton, SR, CR_top
 
 cfg =  {
-    # Dataset parameters
-    "dataset"  : "datasets/DAS/RunIISummer20UL18.txt",
-    "json"     : "datasets/RunIISummer20UL18.json",
-    "prefix"   : "/pnfs/psi.ch/cms/trivcat/store/user/mmarcheg/ttHbb",
+
+    "dataset" : {
+        "jsons": ["datasets/RunIISummer20UL18_local.json"],
+        "filter" : {
+            "samples": ["ttHTobb"],
+            "samples_exclude" : [],
+            "year": ["2018"]
+        }
+    },
 
     # Input and output files
     "workflow" : "base",
-    "input"    : "datasets/RunIISummer20UL18.json",
     "output"   : "output/example",
 
     # Executor parameters
