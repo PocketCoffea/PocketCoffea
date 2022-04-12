@@ -24,9 +24,9 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    if args.cfg[:-3] == ".py":
+    if args.cfg[-3:] == ".py":
         config = Configurator(args.cfg, overwrite_output_dir=args.output_dir)
-    elif args.cfg[:-4] == ".pkl":
+    elif args.cfg[-4:] == ".pkl":
         config = pickle.load(open(args.cfg,"rb"))
     else:
         raise NotImplemented("Please provide a .py/.pkl configuration file")

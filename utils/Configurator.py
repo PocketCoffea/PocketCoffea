@@ -107,7 +107,7 @@ class Configurator():
         self.cuts = set(self.cuts)
         for cat, cuts in self.categories.items():
             self.categories[cat] = set(cuts)
-        print("Cuts:", self.cuts)
+        print("Cuts:", list(self.cuts_dict.keys()))
         print("Categories:", self.categories)
     
     def overwrite_check(self):
@@ -183,7 +183,6 @@ class Configurator():
             for c in cuts:
                 newcuts.append(c.serialize())
             cats_dump[cat] = newcuts
-        print(presel_dump)
         ocfg["preselections"] = presel_dump
         ocfg["categories"] = cats_dump           
         # Save the serialized configuration in json

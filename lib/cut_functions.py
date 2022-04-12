@@ -3,6 +3,24 @@ import awkward as ak
 def passthrough(events, **kargs):
     return ak.full_like(events.event, True, dtype=bool)
 
+###########################
+## Functions to count objects
+def count_objects_gt(events,params,year,sample):
+    mask = ak.num(events[params["object"]], axis=1) > params["value"]
+    return ak.where(ak.is_none(mask), ~ak.is_none(mask), mask)
+
+def count_objects_lt(events,params,year,sample):
+    mask = ak.num(events[params["object"]], axis=1) < params["value"]
+    return ak.where(ak.is_none(mask), ~ak.is_none(mask), mask)
+
+
+def count_objects_eq(events,params,year,sample):
+    mask = ak.num(events[params["object"]], axis=1) == params["value"]
+    return ak.where(ak.is_none(mask), ~ak.is_none(mask), mask)
+
+
+##################
+# Commong preselection functions
 def dilepton(events, params, year, sample):
 
     MET  = events[params["METbranch"][year]]
@@ -26,14 +44,4 @@ def dilepton(events, params, year, sample):
 
     # Pad None values with False
     return ak.where(ak.is_none(mask), ~ak.is_none(mask), mask)
-
-
-def count_objects_gt(events,params,year,sample):
-    mask = ak.count(events[params["object"]], axis=1) > params["value"]
-    return ak.where(ak.is_none(mask), ~ak.is_none(mask), mask)
-
-def count_objects_lt(events,params,year,sample):
-    mask = ak.count(events[params["object"]], axis=1) < params["value"]
-    return ak.where(ak.is_none(mask), ~ak.is_none(mask), mask)
-
 

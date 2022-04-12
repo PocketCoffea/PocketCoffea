@@ -17,16 +17,13 @@ from parameters.allhistograms import histogram_settings
 
 class ttHbbBaseProcessor(processor.ProcessorABC):
     def __init__(self, cfg) -> None:
-        #self.sample = sample
         # Read required cuts and histograms from config file
         self.cfg = cfg
     
         # Save histogram settings of the required histograms
         self._variables = self.cfg.variables
         self._variables2d = self.cfg.variables2d
-        self._hist_dict = {}
-        self._hist2d_dict = {}
-
+        
         # Get the preselection list from the cfg.
         # The set of unique cuts functions and cut groups (categories)
         # are also explicited in the cfg.
@@ -40,20 +37,29 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # These cuts are applied only before the output 
         self._cuts_masks = PackedSelection()
         
-        # Define axes
-        sample_axis = hist.Cat("sample", "Sample")
-        cat_axis    = hist.Cat("cat", "Cat")
-        year_axis   = hist.Cat("year", "Year")
-
+        # Accumulators for the output
+        self._accum_dict = {}
+        self._hist_dict = {}
+        self._hist2d_dict = {}
         self._sumw_dict = {
             "sumw": processor.defaultdict_accumulator(float),
             "nevts_initial": processor.defaultdict_accumulator(int),
             "nevts_presel" : processor.defaultdict_accumulator(int),
         }
+        self._accum_dict.update(self._sumw_dict)
+        # Accumulator with number of events passing each category for each sample
+        self._cutflow_dict = { "nevts_cat_"+ key: processor.defaultdict_accumulator(int) for key in self._categories}
+        self._accum_dict.update(self._cutflow_dict)
 
         #for var in self._vars_to_plot.keys():
         #       self._accumulator.add(processor.dict_accumulator({var : processor.column_accumulator(np.array([]))}))
 
+        # Define axes
+        sample_axis = hist.Cat("sample", "Sample")
+        cat_axis    = hist.Cat("cat", "Cat")
+        year_axis   = hist.Cat("year", "Year")
+
+        # Create histogram accumulators
         for var_name in self._variables.keys():
             if var_name.startswith('n'):
                 field = var_name
@@ -67,15 +73,16 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             variable_x_axis = hist.Bin("x", self._variables2d[hist2d_name][varname_x]['xlabel'], **self._variables2d[hist2d_name][varname_x]['binning'] )
             variable_y_axis = hist.Bin("y", self._variables2d[hist2d_name][varname_y]['ylabel'], **self._variables2d[hist2d_name][varname_y]['binning'] )
             self._hist2d_dict[f'hist2d_{hist2d_name}'] = hist.Hist("$N_{events}$", sample_axis, cat_axis, year_axis, variable_x_axis, variable_y_axis)
+            
+        self._accum_dict.update(self._hist_dict)
+        self._accum_dict.update(self._hist2d_dict)
 
-        self._hist_dict.update(**self._hist2d_dict)
-        self._hist_dict.update(**self._sumw_dict)
-        self._accumulator = processor.dict_accumulator(self._hist_dict)        
         self.nobj_hists = [histname for histname in self._hist_dict.keys() if histname.lstrip('hist_').startswith('n') and not 'nevts' in histname]
         self.muon_hists = [histname for histname in self._hist_dict.keys() if 'muon' in histname and not histname in self.nobj_hists]
         self.electron_hists = [histname for histname in self._hist_dict.keys() if 'electron' in histname and not histname in self.nobj_hists]
         self.jet_hists = [histname for histname in self._hist_dict.keys() if 'jet' in histname and not 'fatjet' in histname and not histname in self.nobj_hists]
-
+        self._accumulator = processor.dict_accumulator(self._accum_dict)        
+        
     @property
     def accumulator(self):
         return self._accumulator
@@ -181,6 +188,12 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         for (obj, obj_hists) in zip([self.events.MuonGood, self.events.ElectronGood, self.events.JetGood], [self.muon_hists, self.electron_hists, self.jet_hists]):
             fill_histograms_object(self, obj, obj_hists)
 
+    def count_events(self):
+        # Fill the output with the number of events in each category for each sample
+        # w = self.weights.weight()
+        for category, cuts in self._categories.items():
+            self.output[f"nevts_cat_{category}"][self._sample] +=  ak.sum(self._cuts_masks.all(*cuts))
+            
     def process_extra_before_presel(self) -> ak.Array:
         pass
 
@@ -216,6 +229,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.nEvents_after_presel = self.nevents
         self.output['nevts_presel'][self._sample] += self.nEvents_after_presel
 
+        # This function is empty in the base processor, but can be overriden in processors derived from the class ttHbbBaseProcessor
+        self.process_extra_after_presel()
+        
         # This function looks at the categories in the cfg file,
         # apply the single cut functions and then prepares the categories
         self.define_categories()
@@ -223,12 +239,11 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # Weights
         self.compute_weights()
         
-        # This function is empty in the base processor, but can be overriden in processors derived from the class ttHbbBaseProcessor
-        self.process_extra_after_presel()
-
+        
         # Fill histograms
         self.fill_histograms()
         self.fill_histograms_extra()
+        self.count_events()
         
         return self.output
 
