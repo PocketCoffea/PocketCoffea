@@ -34,9 +34,15 @@ class Configurator():
         # Load histogram settings
         self.load_histogram_settings()
 
-        # Load cuts and categories
-        self.categories = {}
+        ## Load cuts and categories
+        # Cuts: set of Cut objects
+        # Categories: dict with a set of Cut names for each category
         self.cuts = []
+        self.categories = {}
+        # Saving also a dict of Cut objects to map their names
+        self.cuts_dict = {}
+        ## Call the function which transforms the dictionary in the cfg
+        # in the objects needed in the processors
         self.load_cuts_and_categories()
 
         # Load workflow
@@ -88,10 +94,13 @@ class Configurator():
             exit(1)
 
     def load_cuts_and_categories(self):
+        for presel in self.cfg["preselections"]:
+            self.cuts_dict[presel.name] = presel
         for cat, cuts in self.cfg["categories"].items():
             self.categories[cat] = []                
             for cut in cuts:
                 self.cuts.append(cut)
+                self.cuts_dict[cut.name] = cut
                 self.categories[cat].append(cut.name)
 
         # Unique set of cuts
