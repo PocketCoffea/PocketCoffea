@@ -1,4 +1,6 @@
 from parameters.cuts.baseline_cuts import dilepton_presel, passthrough
+from lib.cut_functions import count_objects_gt
+from lib.cut_definition import Cut
 
 cfg =  {
 
@@ -17,21 +19,24 @@ cfg =  {
 
     # Executor parameters
     "run_options" : {
-        "executor"     : "futures",
-        "workers"      : 12,
-        "scaleout"     : 10,
+        "executor"     : "iterative",
+        "workers"      : 20,
+        "scaleout"     : 20,
         "chunk"        : 50000,
         "max"          : None,
         "skipbadfiles" : None,
         "voms"         : None,
-        "limit"        : 10,
+        "limit"        : 4,
     },
 
     # Cuts and plots settings
     "finalstate" : "dilepton",
     "preselections" : [dilepton_presel],
     "categories": {
-        "SR" : [passthrough],
+        "SR" : [   Cut(name="fully_matched",
+                       params={"object": "BQuarkMatched",
+                               "value": 4},
+                       function=count_objects_gt)],
     },
     
     "variables" : {

@@ -71,8 +71,8 @@ class MEMStudiesProcessor(ttHbbBaseProcessor):
                                                                                                                 # ])/ak.size(hasMatchedPartons[self._cuts.all(*self._selections[cut])]), 2), "%")
         self.events["BQuark"] = bquarks
         self.events["JetGoodMatched"] = matchedJet
-        self.events["BQuarkMatched"] = matchedParton
-        self.events["BQuarkMatched"] = ak.with_field(self.events.BQuarkMatched, dr_matchedJet, "drMatchedJet")
+        self.events["BQuarkMatched"] = ak.with_field(matchedParton, dr_matchedJet, "drMatchedJet")
+        # breakpoint()
 
     def count_bquarks(self):
         self.events["nbquark"] = ak.count(self.events.BQuark.pt, axis=1)
@@ -84,3 +84,4 @@ class MEMStudiesProcessor(ttHbbBaseProcessor):
     def process_extra_after_presel(self) -> ak.Array:
         self.parton_matching()
         self.count_bquarks()
+
