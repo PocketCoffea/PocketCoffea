@@ -65,10 +65,10 @@ class Configurator():
             if ds_filter != None:
                 for key, ds in ds_dict.items():
                     pass_filter = True
-                    if "sample" in ds_filter:
+                    if "samples" in ds_filter:
                         if ds["metadata"]["sample"] not in ds_filter["samples"]:
                             pass_filter = False
-                    if "sample_exclude" in ds_filter:
+                    if "samples_exclude" in ds_filter:
                         if ds["metadata"]["sample"] in ds_filter["samples_exclude"]:
                             pass_filter = False
                     if "year" in ds_filter:
@@ -81,7 +81,6 @@ class Configurator():
         if len(self.fileset) == 0:
             print("File set is empty: please check you dataset definition...")
             exit(1)
-        print("Fileset:\n",self.fileset)
 
     def load_cuts_and_categories(self):
         for cat, cuts in self.cfg["categories"].items():
