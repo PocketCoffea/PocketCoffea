@@ -3,7 +3,7 @@ import sys
 import json
 import argparse
 import time
-
+import pickle
 import numpy as np
 
 import uproot
@@ -23,7 +23,13 @@ if __name__ == '__main__':
                         help="Overwrite the output folder in the configuration")
 
     args = parser.parse_args()
-    config = Configurator(args.cfg, overwrite_output_dir=args.output_dir)
+
+    if args.cfg[:-3] == ".py":
+        config = Configurator(args.cfg, overwrite_output_dir=args.output_dir)
+    elif args.cfg[:-4] == ".pkl":
+        config = pickle.load(open(args.cfg,"rb"))
+    else:
+        raise NotImplemented("Please provide a .py/.pkl configuration file")
 
     if config.run_options['executor'] not in ['futures', 'iterative']:
         # dask/parsl needs to export x509 to read over xrootd
