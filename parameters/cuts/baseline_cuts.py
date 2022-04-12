@@ -26,5 +26,3 @@ dilepton_presel = Cut(
 	},
     function = cuts_f.dilepton
  )
-
-

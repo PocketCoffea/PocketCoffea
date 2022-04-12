@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from collections.abc import Callable
 import awkward as ak
 import json
+import inspect
 
 @dataclass
 class Cut:
@@ -22,3 +23,17 @@ class Cut:
 
     def __str__(self):
         return f"Cut: {self.name}, f:{self.function.__name__}"
+
+    def serialize(self, src_code=False):
+        out = {
+            "name" : self.name,
+            "params": self.params,
+            "function": {
+                "name": self.function.__name__,
+                "module": self.function.__module__,
+                "src_file": inspect.getsourcefile(self.function),
+            }
+        }
+        if src_code:
+            out["function"]["src_code"] = inspect.getsource(self.function)
+        return out
