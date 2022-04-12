@@ -65,3 +65,19 @@ The variables' names can be chosen among those reported in `parameters.allhistog
 The plotting parameters can be customized for plotting, for example to rebin the histograms. In case of rebinning, the binning used in the plots has to be compatible with the one of the input histograms.
 
 The `Cut` objects listed in `preselections` and `categories` have to be defined in `parameters.cuts.baseline_cuts`. A library of pre-defined functions for event is available in `lib.cut_functions`, but custom functions can be defined in a separate file.
+
+
+### Profiling
+For profiling please select the *iterative* processor and then run
+python as:
+~~~
+python -m cProfile -o profiling output.prof  runner.py --cfg profiling/mem.py
+~~~
+Running on a few files should be enough to get stable results.
+
+After getting the profiler output we analyze it with the  [[https://jiffyclub.github.io/snakeviz/][Snakeviz]]
+library
+~~~
+snakeviz output.prof -s 
+~~~
+and open on a browser the link shown by the program.
