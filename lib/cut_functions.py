@@ -28,5 +28,12 @@ def dilepton(events, params, year, sample):
     return ak.where(ak.is_none(mask), ~ak.is_none(mask), mask)
 
 
-def count_objects(events,params,year,sample):
-    mask = ak.count(events[params["object"]], axis=1) > params
+def count_objects_gt(events,params,year,sample):
+    mask = ak.count(events[params["object"]], axis=1) > params["value"]
+    return ak.where(ak.is_none(mask), ~ak.is_none(mask), mask)
+
+def count_objects_lt(events,params,year,sample):
+    mask = ak.count(events[params["object"]], axis=1) < params["value"]
+    return ak.where(ak.is_none(mask), ~ak.is_none(mask), mask)
+
+
