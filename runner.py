@@ -29,7 +29,7 @@ if __name__ == '__main__':
     elif args.cfg[-4:] == ".pkl":
         config = pickle.load(open(args.cfg,"rb"))
     else:
-        raise NotImplemented("Please provide a .py/.pkl configuration file")
+        raise sys.exit("Please provide a .py/.pkl configuration file")
 
     if config.run_options['executor'] not in ['futures', 'iterative']:
         # dask/parsl needs to export x509 to read over xrootd
@@ -96,16 +96,17 @@ if __name__ == '__main__':
                         label="coffea_parsl_slurm",
                         address=address_by_hostname(),
                         prefetch_capacity=0,
+                        mem_per_worker=config.run_options['mem_per_worker'],
                         provider=SlurmProvider(
                             channel=LocalChannel(script_dir='logs_parsl'),
                             launcher=SrunLauncher(),
                             #launcher=SingleNodeLauncher(),
                             max_blocks=(config.run_options['scaleout'])+10,
                             init_blocks=config.run_options['scaleout'],
-                            #partition='long',
-                            partition='standard',
+                            partition=config.run_options['partition'],
                             worker_init="\n".join(env_extra) + "\nexport PYTHONPATH=$PYTHONPATH:$PWD",
-                            walltime='12:00:00'
+                            walltime=config.run_options['walltime'],
+                            exclusive=config.run_options['exclusive'],
                         ),
                     )
                 ],

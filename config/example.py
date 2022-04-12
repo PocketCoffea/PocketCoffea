@@ -1,26 +1,34 @@
 from lib.cuts import dilepton, SR, CR_top
 
 cfg =  {
-    # Dataset parameters
-    "dataset"  : "datasets/DAS/RunIISummer20UL18.txt",
-    "json"     : "datasets/RunIISummer20UL18.json",
-    "prefix"   : "/pnfs/psi.ch/cms/trivcat/store/user/mmarcheg/ttHbb",
+
+    "dataset" : {
+        "jsons": ["datasets/RunIISummer20UL18_local.json"],
+        "filter" : {
+            "samples": ["ttHTobb"],
+            "samples_exclude" : [],
+            "year": ["2018"]
+        }
+    },
 
     # Input and output files
     "workflow" : "base",
-    "input"    : "datasets/RunIISummer20UL18.json",
     "output"   : "output/example",
 
     # Executor parameters
     "run_options" : {
-        "executor"     : "futures",
-        "workers"      : 12,
-        "scaleout"     : 10,
-        "chunk"        : 50000,
-        "max"          : None,
-        "skipbadfiles" : None,
-        "voms"         : None
-        "limit"        : 2,
+        "executor"       : "futures",
+        "workers"        : 12,
+        "scaleout"       : 10,
+        "partition"      : "standard",
+        "walltime"       : "12:00:00",
+        "mem_per_worker" : None, # GB
+        "exclusive"      : True,
+        "chunk"          : 50000,
+        "max"            : None,
+        "skipbadfiles"   : None,
+        "voms"           : None
+        "limit"          : 2,
      },
 
     # Cuts and plots settings
