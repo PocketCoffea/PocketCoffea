@@ -17,14 +17,18 @@ cfg =  {
 
     # Executor parameters
     "run_options" : {
-        "executor"     : "futures",
-        "workers"      : 12,
-        "scaleout"     : 10,
-        "chunk"        : 50000,
-        "max"          : None,
-        "skipbadfiles" : None,
-        "voms"         : None,
-        "limit"        : 10,
+        "executor"       : "futures",
+        "workers"        : 12,
+        "scaleout"       : 10,
+        "partition"      : "standard",
+        "walltime"       : "12:00:00",
+        "mem_per_worker" : None, # GB
+        "exclusive"      : True,
+        "chunk"          : 50000,
+        "max"            : None,
+        "skipbadfiles"   : None,
+        "voms"           : None,
+        "limit"          : 10,
     },
 
     # Cuts and plots settings
