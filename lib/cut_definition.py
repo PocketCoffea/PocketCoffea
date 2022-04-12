@@ -22,3 +22,10 @@ class Cut:
 
     def __str__(self):
         return f"Cut: {self.name}, f:{self.function.__name__}"
+
+    def serialize(self):
+        return {
+            "name" : self.name,
+            "params": self.params,
+            "function": repr(self.function)
+        }

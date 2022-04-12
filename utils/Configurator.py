@@ -2,12 +2,13 @@ import os
 import sys
 import json
 import pprint
+import pickle
 import importlib.util
 
 from parameters.allhistograms import histogram_settings
 
 class Configurator():
-    def __init__(self, cfg, plot=False):
+    def __init__(self, cfg, overwrite_output_dir=None, plot=False):
         # Load config file and attributes
         self.plot    = plot
         self.load_config(cfg)
@@ -17,7 +18,11 @@ class Configurator():
         self.load_dataset()
 
         # Check if output file exists, and in case add a `_v01` label, make directory
-        self.overwrite_check()
+        if overwrite_output_dir:
+            self.output = overwrite_output_dir
+        else:
+            self.overwrite_check()
+         
         self.mkdir_output()
 
         # Truncate file list if self.limit is not None
@@ -159,22 +164,22 @@ class Configurator():
             raise NotImplemented
 
     def save_config(self):
-        # functions_to_import = []
-        # import_line = "from lib.cuts import "
-        # for key in self.cfg['cuts_definition'].keys():
-        #     functions_to_import.append(self.cfg['cuts_definition'][key]['f'])
-        # buffer = ''.join( ("cfg = ", pprint.pformat(self.cfg, sort_dicts=False)) )
-        # for f in functions_to_import:
-        #     buffer = buffer.replace(str(f), f.__name__)
-        # import_line = ''.join( (import_line, ', '.join([f.__name__ for f in functions_to_import])) )
-        # buffer = import_line + '\n\n' + buffer + '\n'
-
-        # if self.plot:
-        #     config_file = os.path.join(self.plots, "config.py")
-        # else:
-        #     config_file = os.path.join(self.output, "config.py")
-        # print("Saving config file to " + config_file)
-        # with open(config_file, 'w') as f:
-        #     f.write(buf    
-        # f.close()
-        pass
+        ocfg = {k:v for k,v in self.cfg.items()}
+        presel_dump = []
+        cats_dump = {}
+        for pre in ocfg["preselections"]:
+            presel_dump.append(pre.serialize())
+        for cat,cuts  in ocfg["categories"].items():
+            newcuts = []
+            for c in cuts:
+                newcuts.append(c.serialize())
+            cats_dump[cat] = newcuts
+        print(presel_dump)
+        ocfg["preselections"] = presel_dump
+        ocfg["categories"] = cats_dump           
+        # Save the serialized configuration in json
+        output_cfg = os.path.join(self.output, "config.json")
+        print("Saving config file to " + output_cfg)
+        json.dump(ocfg, open(output_cfg,"w"), indent=2)
+        #Pickle the configurator object in order to be able to reproduce completely the configuration 
+        pickle.dump(self, open(os.path.join(self.output,"configurator.pkl"),"wb"))

@@ -17,10 +17,13 @@ from utils.Configurator import Configurator
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run analysis on baconbits files using processor coffea files')
     # Inputs
-    parser.add_argument('--cfg', default=os.getcwd() + "/config/test.py", help='Config file with parameters specific to the current run', required=True)
+    parser.add_argument('--cfg', default=os.getcwd() + "/config/test.py", required=True, type=str,
+                        help='Config file with parameters specific to the current run')
+    parser.add_argument("-o", "--output-dir", required=False, type=str,
+                        help="Overwrite the output folder in the configuration")
 
     args = parser.parse_args()
-    config = Configurator(args.cfg)
+    config = Configurator(args.cfg, overwrite_output_dir=args.output_dir)
 
     if config.run_options['executor'] not in ['futures', 'iterative']:
         # dask/parsl needs to export x509 to read over xrootd
@@ -190,7 +193,9 @@ if __name__ == '__main__':
                                         },
                                         chunksize=config.run_options['chunk'], maxchunks=config.run_options['max']
                             )
-
+    else:
+        print(f"Executor {config.run_options['executor']} not defined!")
+        exit(1)
     save(output, config.outfile)
     print(output)
     print(f"Saving output to {config.outfile}")
