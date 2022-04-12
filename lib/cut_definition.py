@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from collections.abc import Callable
 import awkward as ak
 import json
+import inspect
 
 @dataclass
 class Cut:
@@ -27,5 +28,9 @@ class Cut:
         return {
             "name" : self.name,
             "params": self.params,
-            "function": repr(self.function)
+            "function": {
+                "name": self.function.__name__,
+                "module": self.function.__module__,
+                "src_file": inspect.getsourcefile(self.function)
+            }
         }
