@@ -11,6 +11,7 @@ from coffea import hist
 from coffea.nanoevents import NanoEventsFactory
 from coffea.util import load, save
 from coffea import processor
+from pprint import pprint
 
 from utils.Configurator import Configurator
 
@@ -204,5 +205,5 @@ if __name__ == '__main__':
         print(f"Executor {config.run_options['executor']} not defined!")
         exit(1)
     save(output, config.outfile)
-    print(output)
+    pprint(output)
     print(f"Saving output to {config.outfile}")

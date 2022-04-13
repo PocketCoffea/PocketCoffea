@@ -192,7 +192,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # Fill the output with the number of events in each category for each sample
         # w = self.weights.weight()
         for category, cuts in self._categories.items():
-            self.output[f"nevts_cat_{category}"][self._sample] +=  ak.sum(self._cuts_masks.all(*cuts))
+            self.output[f"nevts_cat_{category}"][self._sample] = ak.sum(self._cuts_masks.all(*cuts))
             
     def process_extra_before_presel(self) -> ak.Array:
         pass

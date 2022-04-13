@@ -1,6 +1,7 @@
 from parameters.cuts.baseline_cuts import dilepton_presel, passthrough
 from lib.cut_functions import count_objects_gt
 from lib.cut_definition import Cut
+from config.parton_matching.functions import *
 
 cfg =  {
 
@@ -14,13 +15,13 @@ cfg =  {
     },
 
     # Input and output files
-    "workflow" : "mem",
+    "workflow" : "parton_matching",
     "output"   : "output/mem",
 
     # Executor parameters
     "run_options" : {
         "executor"       : "futures",
-        "workers"        : 12,
+        "workers"        : 20,
         "scaleout"       : 10,
         "partition"      : "standard",
         "walltime"       : "12:00:00",
@@ -30,17 +31,24 @@ cfg =  {
         "max"            : None,
         "skipbadfiles"   : None,
         "voms"           : None,
-        "limit"          : 10,
+        "limit"          : None,
     },
 
     # Cuts and plots settings
     "finalstate" : "dilepton",
-    "preselections" : [dilepton_presel],
+    "preselections" : [dilepton_presel, getNjetNb_cut(4,2)],
+
     "categories": {
-        "SR" : [   Cut(name="fully_matched",
-                       params={"object": "BQuarkMatched",
-                               "value": 4},
-                       function=count_objects_gt)],
+        "3bjets" :    [getNjetNb_cut(4,3)],
+        "4bjets":     [getNjetNb_cut(4,4)],
+        "3bMatched" : [getNjetNb_cut(4,3),
+                       Cut(name="3b",
+                           params={"object": "BQuarkMatched", "value": 3},
+                           function=count_objects_gt)],
+        "4bMatched" : [ getNjetNb_cut(4,4),
+                        Cut(name="4b",
+                              params={"object": "BQuarkMatched", "value": 4},
+                              function=count_objects_gt)],
     },
     
     "variables" : {

@@ -9,7 +9,7 @@ class MEMStudiesProcessor(ttHbbBaseProcessor):
     def __init__(self,cfg) -> None:
         super().__init__(cfg=cfg)
         self.bquark_hists = [histname for histname in self._hist_dict.keys() if 'bquark' in histname and not histname in self.nobj_hists]
-        self.dr_min = 0.4    
+        self.dr_min = 0.5
         
     def parton_matching(self) -> ak.Array:
         # Select b-quarks at LHE level
