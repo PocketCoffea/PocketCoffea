@@ -1,16 +1,20 @@
+import os
+import tarfile
 import json
+
+import numpy as np
+import awkward as ak
+
 import coffea
 from coffea import hist, processor, lookup_tools
 from coffea.lumi_tools import LumiMask #, LumiData
 from coffea.analysis_tools import PackedSelection, Weights
-import os
-import numpy as np
-import awkward as ak
 
-from lib.objects import lepton_selection, jet_selection, get_dilepton
+from lib.objects import jet_correction, lepton_selection, jet_selection, get_dilepton
 from lib.fill import fill_histograms_object
 from parameters.triggers import triggers
 from parameters.btag import btag
+from parameters.jec import JECversions, JECtarFiles
 from parameters.lumi import lumi
 from parameters.samples import samples_info
 from parameters.allhistograms import histogram_settings
@@ -19,6 +23,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     def __init__(self, cfg) -> None:
         # Read required cuts and histograms from config file
         self.cfg = cfg
+
+        # Temp folder with JEC files
+        self._JECtmpFolder = os.path.abspath("parameters/corrections/JEC/tmp")
     
         # Save histogram settings of the required histograms
         self._variables = self.cfg.variables
@@ -98,6 +105,16 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self._year = self.events.metadata["year"]
         self._triggers = triggers[self.cfg.finalstate][self._year]
         self._btag = btag[self._year]
+        self.isMC = 'genWeight' in self.events.fields
+        # JEC
+        self._JECversion = JECversions[self._year]['MC' if self.isMC else 'Data']
+        self._JECtarFiles = JECtarFiles[self._year]
+        if not os.path.exists(self._JECtmpFolder):
+            os.makedirs(self._JECtmpFolder)
+        for file in self._JECtarFiles:
+            jecFile = os.path.abspath(file)
+            jesArchive = tarfile.open( jecFile, "r:gz")
+            jesArchive.extractall(self._JECtmpFolder)
 
     # Function to apply flags and lumi mask
     def clean_events(self):
@@ -116,6 +133,11 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             mask_clean = mask_clean & mask_lumi
         # add the basic clearning to the preselection mask
         self._preselection_masks.add('clean', ak.to_numpy(mask_clean))
+
+    def apply_JEC(self):
+        if int(self._year) > 2018:
+            sys.exit("Warning: Run 3 JEC are not implemented yet.")
+        self.events.Jet = jet_correction(self.events, "Jet", "AK4PFchs", self.isMC, self._JECversion, self._JECtmpFolder, verbose=True)
 
     # Function to compute masks to preselect objects and save them as attributes of `events`
     def apply_object_preselection(self):
@@ -210,13 +232,15 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         #if len(events)==0: return output
         self.nEvents_initial = self.nevents
         self.output['nevts_initial'][self._sample] += self.nEvents_initial
-        self.isMC = 'genWeight' in self.events.fields
         if self.isMC:
             # This is computed before any preselection
             self.output['sumw'][self._sample] += sum(self.events.genWeight)
 
         # Event cleaning and  PV selection
         self.clean_events()
+
+        # Apply JEC
+        self.apply_JEC()
 
         # Apply preselections, triggers and cuts
         self.apply_object_preselection()
