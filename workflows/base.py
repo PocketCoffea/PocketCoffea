@@ -137,7 +137,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     def apply_JEC(self):
         if int(self._year) > 2018:
             sys.exit("Warning: Run 3 JEC are not implemented yet.")
-        self.events.Jet = jet_correction(self.events, "Jet", "AK4PFchs", self.isMC, self._JECversion, self._JECtmpFolder, verbose=True)
+        self.events.Jet = jet_correction(self.events, "Jet", "AK4PFchs", self.isMC, self._JECversion, self._JECtmpFolder)
 
     # Function to compute masks to preselect objects and save them as attributes of `events`
     def apply_object_preselection(self):
