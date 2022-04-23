@@ -7,5 +7,6 @@ plots/
 histograms/
 output/
 logs/
+parameters/corrections/JEC/tmp/
 *~
 *.pyc

@@ -6,12 +6,82 @@ import math
 import uproot
 from vector import MomentumObject4D
 
-from coffea import hist
+from coffea import hist, lookup_tools
 from coffea.nanoevents.methods import nanoaod
+from coffea.jetmet_tools import FactorizedJetCorrector, JetCorrectionUncertainty
+from coffea.jetmet_tools import JECStack, CorrectedJetsFactory
 
 from parameters.preselection import object_preselection
 
 ak.behavior.update(nanoaod.behavior)
+
+def jet_correction(events, Jet, typeJet, isMC, JECversion, JECtmpFolder, verbose=False):
+
+    jets = events[Jet]
+
+    ext = lookup_tools.extractor()
+    #JECtypes = [ 'L1FastJet', 'L2Relative', 'L2Residual', 'L3Absolute', 'L2L3Residual', 'Uncertainty' ]
+    JECtypes = [ 'L1FastJet', 'L2Relative', 'L2Residual', 'L3Absolute', 'L2L3Residual' ]
+    jec_stack_names = [ JECversion+'_'+k+'_'+typeJet for k in JECtypes ]
+    JECtypesfiles = [ '* * '+JECtmpFolder+'/'+k+'.txt' for k in jec_stack_names ]
+    ext.add_weight_sets( JECtypesfiles )
+    ext.finalize()
+    evaluator = ext.make_evaluator()
+
+    #print("available evaluator keys:")
+    #for key in evaluator.keys():
+    #    print("\t", key)
+
+    jec_inputs = {name: evaluator[name] for name in jec_stack_names if 'Uncertainty' not in name}
+    jec_uncertainties = {name: evaluator[name] for name in jec_stack_names if 'Uncertainty' in name}
+    
+    #print("jec_inputs:", jec_inputs)
+    #print("jec_uncertainties:", jec_uncertainties)
+
+    jec_stack = JECStack(jec_inputs)
+    #corrector = FactorizedJetCorrector( **jec_uncertainties )
+    #uncertainties = JetCorrectionUncertainty( **jec_inputs )
+    for i in jec_inputs: print(i,'\n',evaluator[i])
+
+    #print(dir(evaluator))
+    #print()
+    
+    name_map = jec_stack.blank_name_map
+    name_map['JetPt'] = 'pt'
+    name_map['JetMass'] = 'mass'
+    name_map['JetEta'] = 'eta'
+    name_map['JetA'] = 'area'
+
+    jets['pt_raw'] = (1 - jets['rawFactor']) * jets['pt']
+    jets['mass_raw'] = (1 - jets['rawFactor']) * jets['mass']
+    jets['rho'] = ak.broadcast_arrays(events.fixedGridRhoFastjetAll, jets.pt)[0]
+    name_map['ptRaw'] = 'pt_raw'
+    name_map['massRaw'] = 'mass_raw'
+    name_map['Rho'] = 'rho'
+    if isMC:
+        jets['pt_gen'] = ak.values_astype(ak.fill_none(jets.matched_gen.pt, 0), np.float32)
+        name_map['ptGenJet'] = 'pt_gen'
+
+    events_cache = events.caches[0]
+    jet_factory = CorrectedJetsFactory(name_map, jec_stack)
+    corrected_jets = jet_factory.build(jets, lazy_cache=events_cache)
+    if verbose == True:
+        print()
+        print(events.event[0], 'starting columns:',ak.fields(jets), end='\n\n')
+
+        print(events.event[0], 'untransformed pt ratios',jets.pt/jets.pt_raw)
+        print(events.event[0], 'untransformed mass ratios',jets.mass/jets.mass_raw)
+
+        print(events.event[0], 'transformed pt ratios',corrected_jets.pt/corrected_jets.pt_raw)
+        print(events.event[0], 'transformed mass ratios',corrected_jets.mass/corrected_jets.mass_raw)
+
+        print()
+        print(events.event[0], 'transformed columns:', ak.fields(corrected_jets), end='\n\n')
+
+        #print('JES UP pt ratio',corrected_jets.JES_jes.up.pt/corrected_jets.pt_raw)
+        #print('JES DOWN pt ratio',corrected_jets.JES_jes.down.pt/corrected_jets.pt_raw, end='\n\n')
+
+    return corrected_jets
 
 def lepton_selection(events, Lepton, finalstate):
 
