@@ -10,11 +10,14 @@ from coffea import hist, processor, lookup_tools
 from coffea.lumi_tools import LumiMask #, LumiData
 from coffea.analysis_tools import PackedSelection, Weights
 
+import correctionlib
+
 from lib.objects import jet_correction, lepton_selection, jet_selection, get_dilepton
 from lib.fill import fill_histograms_object
 from parameters.triggers import triggers
 from parameters.btag import btag
 from parameters.jec import JECversions, JECtarFiles
+from parameters.pileup import pileupJSONfiles
 from parameters.lumi import lumi
 from parameters.samples import samples_info
 from parameters.allhistograms import histogram_settings
@@ -115,6 +118,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             jecFile = os.path.abspath(file)
             jesArchive = tarfile.open( jecFile, "r:gz")
             jesArchive.extractall(self._JECtmpFolder)
+        # pileup
+        self._puFile = pileupJSONfiles[self._year]['file']
+        self._puName = pileupJSONfiles[self._year]['name']
 
     # Function to apply flags and lumi mask
     def clean_events(self):
@@ -203,6 +209,10 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             self.weights.add('lumi', ak.full_like(self.events.genWeight, lumi[self._year]))
             self.weights.add('XS', ak.full_like(self.events.genWeight, samples_info[self._sample]["XS"]))
             self.weights.add('sumw', ak.full_like(self.events.genWeight, 1./self.output["sumw"][self._sample]))
+            puWeightsJSON = correctionlib.CorrectionSet.from_file(self._puFile)
+            self.weights.add('pileup', puWeightsJSON[self._puName].evaluate(self.events.Pileup.nPU.to_numpy(), 'nominal'),
+                              weightUp=puWeightsJSON[self._puName].evaluate(self.events.Pileup.nPU.to_numpy(), 'up'),
+                            weightDown=puWeightsJSON[self._puName].evaluate(self.events.Pileup.nPU.to_numpy(), 'down') )
 
     def fill_histograms(self):
         for (obj, obj_hists) in zip([None], [self.nobj_hists]):
