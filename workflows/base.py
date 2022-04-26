@@ -91,7 +91,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.muon_hists = [histname for histname in self._hist_dict.keys() if 'muon' in histname and not histname in self.nobj_hists]
         self.electron_hists = [histname for histname in self._hist_dict.keys() if 'electron' in histname and not histname in self.nobj_hists]
         self.jet_hists = [histname for histname in self._hist_dict.keys() if 'jet' in histname and not 'fatjet' in histname and not histname in self.nobj_hists]
-        self._accumulator = processor.dict_accumulator(self._accum_dict)        
+        self._accumulator = processor.dict_accumulator(self._accum_dict)
         
     @property
     def accumulator(self):

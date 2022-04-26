@@ -169,6 +169,9 @@ class Configurator():
         elif self.workflow == "mem":
             from workflows.mem import MEMStudiesProcessor
             self.processor_instance = MEMStudiesProcessor(cfg=self)
+        elif self.workflow == "pileup_variations":
+            from workflows.pileup_variations import pileupVariationsProcessor
+            self.processor_instance = pileupVariationsProcessor(cfg=self)
         else:
             raise NotImplemented
 
