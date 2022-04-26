@@ -273,7 +273,6 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # Weights
         self.compute_weights()
         
-        
         # Fill histograms
         self.fill_histograms()
         self.fill_histograms_extra()
