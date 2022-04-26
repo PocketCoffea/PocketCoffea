@@ -13,11 +13,11 @@ cfg =  {
 
     # Input and output files
     "workflow" : "base",
-    "output"   : "output/test_jec",
+    "output"   : "output/test_pileup",
 
     # Executor parameters
     "run_options" : {
-        "executor"       : "futures",
+        "executor"       : "iterative",
         "workers"        : 12,
         "scaleout"       : 10,
         "partition"      : "standard",
