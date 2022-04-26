@@ -17,7 +17,7 @@ cfg =  {
 
     # Executor parameters
     "run_options" : {
-        "executor"       : "iterative",
+        "executor"       : "futures",
         "workers"        : 12,
         "scaleout"       : 10,
         "partition"      : "standard",
