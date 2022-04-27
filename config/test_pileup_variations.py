@@ -12,8 +12,8 @@ cfg =  {
     },
 
     # Input and output files
-    "workflow" : "base",
-    "output"   : "output/test_jec",
+    "workflow" : "pileup_variations",
+    "output"   : "output/test_pileup_variations",
 
     # Executor parameters
     "run_options" : {
