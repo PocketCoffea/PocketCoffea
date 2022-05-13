@@ -1,71 +1,42 @@
+import os
+import copy
 import argparse
 
 import awkward as ak
 import numpy as np
 import math
 import uproot
+import correctionlib
 from vector import MomentumObject4D
 
 from coffea import hist, lookup_tools
 from coffea.nanoevents.methods import nanoaod
-from coffea.jetmet_tools import FactorizedJetCorrector, JetCorrectionUncertainty
-from coffea.jetmet_tools import JECStack, CorrectedJetsFactory
 
 from parameters.preselection import object_preselection
+from parameters.jec import JECjsonFiles
 
 ak.behavior.update(nanoaod.behavior)
+    
+# example here: https://gitlab.cern.ch/cms-nanoAOD/jsonpog-integration/-/blob/master/examples/jercExample.py
+def jet_correction(events, Jet, typeJet, year, JECversion, verbose=False):
+    jsonfile = JECjsonFiles[year][[t for t in ['AK4', 'AK8'] if typeJet.startswith(t)][0]]
+    JECfile = correctionlib.CorrectionSet.from_file(jsonfile)
+    corr = JECfile.compound[f'{JECversion}_L1L2L3Res_{typeJet}']
 
-def jet_correction(events, Jet, typeJet, isMC, JECversion, JECtmpFolder, verbose=False):
-
+    # until correctionlib handles jagged data natively we have to flatten and unflatten
     jets = events[Jet]
-
-    ext = lookup_tools.extractor()
-    #JECtypes = [ 'L1FastJet', 'L2Relative', 'L2Residual', 'L3Absolute', 'L2L3Residual', 'Uncertainty' ]
-    JECtypes = [ 'L1FastJet', 'L2Relative', 'L2Residual', 'L3Absolute', 'L2L3Residual' ]
-    jec_stack_names = [ JECversion+'_'+k+'_'+typeJet for k in JECtypes ]
-    JECtypesfiles = [ '* * '+JECtmpFolder+'/'+k+'.txt' for k in jec_stack_names ]
-    ext.add_weight_sets( JECtypesfiles )
-    ext.finalize()
-    evaluator = ext.make_evaluator()
-
-    #print("available evaluator keys:")
-    #for key in evaluator.keys():
-    #    print("\t", key)
-
-    jec_inputs = {name: evaluator[name] for name in jec_stack_names if 'Uncertainty' not in name}
-    jec_uncertainties = {name: evaluator[name] for name in jec_stack_names if 'Uncertainty' in name}
-    
-    #print("jec_inputs:", jec_inputs)
-    #print("jec_uncertainties:", jec_uncertainties)
-
-    jec_stack = JECStack(jec_inputs)
-    #corrector = FactorizedJetCorrector( **jec_uncertainties )
-    #uncertainties = JetCorrectionUncertainty( **jec_inputs )
-    for i in jec_inputs: print(i,'\n',evaluator[i])
-
-    #print(dir(evaluator))
-    #print()
-    
-    name_map = jec_stack.blank_name_map
-    name_map['JetPt'] = 'pt'
-    name_map['JetMass'] = 'mass'
-    name_map['JetEta'] = 'eta'
-    name_map['JetA'] = 'area'
-
     jets['pt_raw'] = (1 - jets['rawFactor']) * jets['pt']
     jets['mass_raw'] = (1 - jets['rawFactor']) * jets['mass']
     jets['rho'] = ak.broadcast_arrays(events.fixedGridRhoFastjetAll, jets.pt)[0]
-    name_map['ptRaw'] = 'pt_raw'
-    name_map['massRaw'] = 'mass_raw'
-    name_map['Rho'] = 'rho'
-    if isMC:
-        jets['pt_gen'] = ak.values_astype(ak.fill_none(jets.matched_gen.pt, 0), np.float32)
-        name_map['ptGenJet'] = 'pt_gen'
+    j, nj = ak.flatten(jets), ak.num(jets)
+    flatCorrFactor = corr.evaluate( np.array(j['area']), np.array(j['eta']), np.array(j['pt_raw']), np.array(j['rho']) )
+    corrFactor = ak.unflatten(flatCorrFactor, nj)
 
-    events_cache = events.caches[0]
-    jet_factory = CorrectedJetsFactory(name_map, jec_stack)
-    corrected_jets = jet_factory.build(jets, lazy_cache=events_cache)
-    if verbose == True:
+    corrected_jets = copy.copy(jets)
+    corrected_jets['pt'] = jets['pt_raw']* corrFactor
+    corrected_jets['mass'] = jets['mass_raw']* corrFactor
+
+    if verbose:
         print()
         print(events.event[0], 'starting columns:',ak.fields(jets), end='\n\n')
 
