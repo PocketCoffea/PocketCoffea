@@ -16,7 +16,7 @@ from lib.objects import jet_correction, lepton_selection, jet_selection, get_dil
 from lib.fill import fill_histograms_object
 from parameters.triggers import triggers
 from parameters.btag import btag
-from parameters.jec import JECversions, JECtarFiles
+from parameters.jec import JECversions
 from parameters.pileup import pileupJSONfiles
 from parameters.lumi import lumi
 from parameters.samples import samples_info
@@ -27,9 +27,6 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # Read required cuts and histograms from config file
         self.cfg = cfg
 
-        # Temp folder with JEC files
-        self._JECtmpFolder = os.path.abspath("parameters/corrections/JEC/tmp")
-    
         # Save histogram settings of the required histograms
         self._variables = self.cfg.variables
         self._variables2d = self.cfg.variables2d
@@ -111,13 +108,6 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.isMC = 'genWeight' in self.events.fields
         # JEC
         self._JECversion = JECversions[self._year]['MC' if self.isMC else 'Data']
-        self._JECtarFiles = JECtarFiles[self._year]
-        if not os.path.exists(self._JECtmpFolder):
-            os.makedirs(self._JECtmpFolder)
-        for file in self._JECtarFiles:
-            jecFile = os.path.abspath(file)
-            jesArchive = tarfile.open( jecFile, "r:gz")
-            jesArchive.extractall(self._JECtmpFolder)
         # pileup
         self._puFile = pileupJSONfiles[self._year]['file']
         self._puName = pileupJSONfiles[self._year]['name']
@@ -143,7 +133,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     def apply_JEC(self):
         if int(self._year) > 2018:
             sys.exit("Warning: Run 3 JEC are not implemented yet.")
-        self.events.Jet = jet_correction(self.events, "Jet", "AK4PFchs", self.isMC, self._JECversion, self._JECtmpFolder)
+        self.events.Jet = jet_correction(self.events, "Jet", "AK4PFchs", self._year, self._JECversion)
 
     # Function to compute masks to preselect objects and save them as attributes of `events`
     def apply_object_preselection(self):
