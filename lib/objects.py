@@ -85,33 +85,27 @@ def jet_selection(events, Jet, finalstate, btag=None):
 
     jets = events[Jet]
     cuts = object_preselection[finalstate][Jet]
+    # Only jets that are more distant than dr to ALL leptons are tagged as good jets
+    leptons = events["LeptonGood"]
+    # Mask for  jets not passing the preselection
+    presel_mask = (jets.pt > cuts["pt"]) & (np.abs(jets.eta) < cuts["eta"]) & (jets.jetId >= cuts["jetId"])
+    # Lepton cleaning
+    dR_jets_lep = jets.metric_table(leptons)
+    lepton_cleaning_mask = ak.prod(dR_jets_lep> cuts["dr"], axis=2) == 1
 
-    good_jets = ak.ones_like(jets.pt, dtype=bool)
+    if Jet == "Jet":
+       jetpuid_mask  =  ( (jets.pt < cuts["puId_ptlim"]) & (jets.puId >= cuts["puId"]) ) | (jets.pt >= 50) 
+       good_jets_mask = presel_mask & lepton_cleaning_mask & jetpuid_mask
+       
+    elif Jet == "FatJet":
+        raise NotImplementedError
 
-    for Lepton in ['ElectronGood', 'MuonGood']:
-        # Only jets that are more distant than dr to ALL leptons are tagged as good jets
-        leptons = events[Lepton]
-        nlep_max = ak.max(ak.num(leptons, axis=1))
+    return jets[good_jets_mask], good_jets_mask
 
-        # A fake lepton object filled with nan values is used for padding in the delta_r calculation
-        pfake = {'pt' : [-9999.9], 'eta' : [-9999.9], 'phi' : [-9999.9], 'mass' : [-9999.9]}
-        fakeLepton = ak.zip(pfake, with_name="PtEtaPhiMCandidate")
-        leptonsPadded = ak.fill_none(ak.pad_none(leptons, nlep_max), fakeLepton)
-        good_jets = good_jets & (jets.pt > cuts["pt"]) & (np.abs(jets.eta) < cuts["eta"]) & (jets.jetId >= cuts["jetId"])
 
-        for i in range(nlep_max):
-            jets_pass_dr = (jets.delta_r(leptonsPadded[:,i]) > cuts["dr"])
-            jets_pass_dr = ak.fill_none(jets_pass_dr, True)
-            good_jets = good_jets & jets_pass_dr
+def btagging(Jet, btag):
+    return  Jet[Jet[btag["btagging_algorithm"]] > btag["btagging_WP"]]
 
-        if Jet == "Jet":
-            good_jets = good_jets & ( ( (jets.pt < 50) & (jets.puId >= cuts["puId"]) ) | (jets.pt >= 50) )
-            if btag != None:
-                good_jets = good_jets & ( getattr(jets, btag["btagging_algorithm"]) > btag["btagging_WP"] )
-        elif Jet == "FatJet":
-            raise NotImplementedError
-
-    return jets[good_jets]
 
 def get_dilepton(electrons, muons, transverse=False):
 

@@ -12,7 +12,7 @@ from coffea.analysis_tools import PackedSelection, Weights
 
 import correctionlib
 
-from lib.objects import jet_correction, lepton_selection, jet_selection, get_dilepton
+from lib.objects import jet_correction, lepton_selection, jet_selection, btagging, get_dilepton
 from lib.fill import fill_histograms_object
 from parameters.triggers import triggers
 from parameters.btag import btag
@@ -142,8 +142,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.events["ElectronGood"] = lepton_selection(self.events, "Electron", self.cfg.finalstate)
         leptons = ak.with_name( ak.concatenate( (self.events.MuonGood, self.events.ElectronGood), axis=1 ), name='PtEtaPhiMCandidate' )
         self.events["LeptonGood"]   = leptons[ak.argsort(leptons.pt, ascending=False)]
-        self.events["JetGood"]  = jet_selection(self.events, "Jet", self.cfg.finalstate)
-        self.events["BJetGood"] = jet_selection(self.events, "Jet", self.cfg.finalstate, btag=self._btag)
+        self.events["JetGood"], self.jetGoodMask = jet_selection(self.events, "Jet", self.cfg.finalstate)
+        self.events["BJetGood"] = btagging(self.events["JetGood"], self._btag)
 
         # As a reference, additional masks used in the boosted analysis
         # In case the boosted analysis is implemented, the correct lepton cleaning should be checked (remove only "leading" leptons)
