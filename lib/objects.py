@@ -80,8 +80,7 @@ def lepton_selection(events, Lepton, finalstate):
 
     return leptons[good_leptons]
 
-# N.B.: This function works only with awkward v1.5.1 & coffea v0.7.9, it doesn't work with awkward 1.7.0 & coffea v0.7.11
-def jet_selection(events, Jet, finalstate, btag=None):
+def jet_selection(events, Jet, finalstate):
 
     jets = events[Jet]
     cuts = object_preselection[finalstate][Jet]
