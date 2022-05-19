@@ -13,6 +13,7 @@ from coffea.analysis_tools import PackedSelection, Weights
 import correctionlib
 
 from lib.objects import jet_correction, lepton_selection, jet_selection, btagging, get_dilepton
+from lib.scale_factors import sf_ele_reco, sf_ele_id
 from lib.fill import fill_histograms_object
 from parameters.triggers import triggers
 from parameters.btag import btag
@@ -154,7 +155,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         #self.events["FatJetGood"]   = self.events.FatJet[self.good_fatjets]
 
         if self.cfg.finalstate == 'dilepton':
-            self.events["ll"]           = get_dilepton(self.events.ElectronGood, self.events.MuonGood)
+            self.events["ll"] = get_dilepton(self.events.ElectronGood, self.events.MuonGood)
 
     # Function that counts the preselected objects and save the counts as attributes of `events`
     def count_objects(self):
@@ -203,6 +204,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             self.weights.add('pileup', puWeightsJSON[self._puName].evaluate(self.events.Pileup.nPU.to_numpy(), 'nominal'),
                               weightUp=puWeightsJSON[self._puName].evaluate(self.events.Pileup.nPU.to_numpy(), 'up'),
                             weightDown=puWeightsJSON[self._puName].evaluate(self.events.Pileup.nPU.to_numpy(), 'down') )
+            # Electron reco and id SF with nominal, up and down variations
+            self.weights.add('sf_ele_reco', *sf_ele_reco(self.events, self._year))
+            self.weights.add('sf_ele_id',   *sf_ele_id(self.events, self._year))
 
     def fill_histograms(self):
         for (obj, obj_hists) in zip([None], [self.nobj_hists]):
