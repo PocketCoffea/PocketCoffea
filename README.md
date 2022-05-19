@@ -75,7 +75,7 @@ python -m cProfile -o profiling output.prof  runner.py --cfg profiling/mem.py
 ~~~
 Running on a few files should be enough to get stable results.
 
-After getting the profiler output we analyze it with the  [[https://jiffyclub.github.io/snakeviz/][Snakeviz]]
+After getting the profiler output we analyze it with the [Snakeviz](https://jiffyclub.github.io/snakeviz/)
 library
 ~~~
 snakeviz output.prof -s 
