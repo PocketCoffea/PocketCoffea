@@ -5,7 +5,7 @@ from coffea import hist
 from workflows.base import ttHbbBaseProcessor
 from lib.fill import fill_histograms_object
 
-class MEMStudiesProcessor(ttHbbBaseProcessor):
+class PartonMatchingProcessor(ttHbbBaseProcessor):
     def __init__(self,cfg) -> None:
         super().__init__(cfg=cfg)
         self.bquark_hists = [histname for histname in self._hist_dict.keys() if 'bquark' in histname and not histname in self.nobj_hists]

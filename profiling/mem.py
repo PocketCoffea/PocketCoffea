@@ -20,7 +20,7 @@ cfg =  {
         "executor"     : "iterative",
         "workers"      : 12,
         "scaleout"     : 10,
-        "chunk"        : 10000,
+        "chunk"        : 100000,
         "max"          : None,
         "skipbadfiles" : None,
         "voms"         : None,
