@@ -166,7 +166,7 @@ class Configurator():
         if self.workflow == "base":
             from workflows.base import ttHbbBaseProcessor
             self.processor_instance = ttHbbBaseProcessor(cfg=self)
-        elif self.workflow == "mem":
+        elif self.workflow == "parton_matching":
             from workflows.parton_matching import PartonMatchingProcessor
             self.processor_instance = PartonMatchingProcessor(cfg=self)
         elif self.workflow == "pileup_variations":
