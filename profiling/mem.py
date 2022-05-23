@@ -1,4 +1,5 @@
 from parameters.cuts.baseline_cuts import dilepton_presel, passthrough
+from parameters.allhistograms import histogram_settings
 
 cfg =  {
 
@@ -12,7 +13,7 @@ cfg =  {
     },
 
     # Input and output files
-    "workflow" : "mem",
+    "workflow" : "parton_matching",
     "output"   : "output/mem",
 
     # Executor parameters
@@ -24,7 +25,7 @@ cfg =  {
         "max"          : None,
         "skipbadfiles" : None,
         "voms"         : None,
-        "limit"        : 3,
+        "limit"        : 5,
     },
 
     # Cuts and plots settings
@@ -52,13 +53,13 @@ cfg =  {
         "nlep" : None,
         "njet" : None,
         "nbjet" : None,
-        "nbquark" : None,
-        "bquark_pt" : None,
-        "bquark_eta" : None,
-        "bquark_phi" : None,
-        "bquark_drMatchedJet" : None,
-
-    },
+        "parton_pt": None,
+        "parton_eta": None,
+        "parton_pdgId" : None,
+        "parton_dRMatchedJet": None,
+     },
     "variables2d" : {},
     "scale" : "log"
 }
+
+
