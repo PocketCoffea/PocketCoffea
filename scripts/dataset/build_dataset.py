@@ -1,8 +1,7 @@
 import os
 import argparse
 import json
-from utils.Configurator import Configurator
-from utils.Dataset import Dataset
+from PocketCoffea.utils.Dataset import Dataset
 
 parser = argparse.ArgumentParser(description='Build dataset file in json format')
 parser.add_argument('--cfg', default=os.getcwd() + "/datasets/datasets_definitions.json", help='Config file with parameters specific to the current run', required=False)
@@ -13,12 +12,12 @@ args = parser.parse_args()
 config = json.load(open(args.cfg))
 
 if args.key not in config:
-    print(f"Key: {args.key} not found in the dataset configuration file")
+    print("Key: not found in the dataset configuration file")
     exit(1)
 
 dataset_cfg = config[args.key]
 
-dataset = Dataset(dataset_cfg["das_names"],dataset_cfg["storage_prefix"], dataset_cfg["json_output"])
+dataset = Dataset(dataset_cfg)
 dataset.save()
 
 if args.download:
