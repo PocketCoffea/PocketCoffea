@@ -12,8 +12,8 @@ from vector import MomentumObject4D
 from coffea import hist, lookup_tools
 from coffea.nanoevents.methods import nanoaod
 
-from parameters.preselection import object_preselection
-from parameters.jec import JECjsonFiles
+from ..parameters.preselection import object_preselection
+from ..parameters.jec import JECjsonFiles
 
 ak.behavior.update(nanoaod.behavior)
     

@@ -1,4 +1,4 @@
-from lib.cut_definition import Cut
+from PocketCoffea.lib.cut_definition import Cut
 
 def NjetsNb(events,params, **kwargs):
     mask =  ((events.njet >= params["njet"] ) &

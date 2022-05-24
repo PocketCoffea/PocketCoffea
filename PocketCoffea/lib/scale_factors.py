@@ -2,7 +2,7 @@ import awkward as ak
 
 import correctionlib
 
-from parameters.lepton_scale_factors import electronSF, electronJSONfiles
+from ..parameters.lepton_scale_factors import electronSF, electronJSONfiles
 
 def get_sf(year, pt, eta, counts, type='', pt_region=None):
     '''

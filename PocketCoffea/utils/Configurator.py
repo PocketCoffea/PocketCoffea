@@ -5,7 +5,7 @@ import pprint
 import pickle
 import importlib.util
 
-from parameters.allhistograms import histogram_settings
+from ..parameters.allhistograms import histogram_settings
 
 class Configurator():
     def __init__(self, cfg, overwrite_output_dir=None, plot=False):
@@ -39,7 +39,9 @@ class Configurator():
         # Categories: dict with a set of Cut names for each category
         self.cuts = []
         self.categories = {}
-        # Saving also a dict of Cut objects to map their names
+        # Saving also a dict of Cut objects to map their ids (name__hash)
+        # N.B. The preselections are just cuts that are applied before
+        # others. It is just a special category of cuts.
         self.cuts_dict = {}
         ## Call the function which transforms the dictionary in the cfg
         # in the objects needed in the processors
@@ -95,13 +97,13 @@ class Configurator():
 
     def load_cuts_and_categories(self):
         for presel in self.cfg["preselections"]:
-            self.cuts_dict[presel.name] = presel
+            self.cuts_dict[presel.id] = presel
         for cat, cuts in self.cfg["categories"].items():
             self.categories[cat] = []                
             for cut in cuts:
                 self.cuts.append(cut)
-                self.cuts_dict[cut.name] = cut
-                self.categories[cat].append(cut.name)
+                self.cuts_dict[cut.id] = cut
+                self.categories[cat].append(cut.id)
 
         # Unique set of cuts
         self.cuts = set(self.cuts)
@@ -163,17 +165,7 @@ class Configurator():
                 sys.exit("Missing keys in histogram binning. Required keys: {'n_or_arr', 'lo', 'hi'}")
 
     def load_workflow(self):
-        if self.workflow == "base":
-            from workflows.base import ttHbbBaseProcessor
-            self.processor_instance = ttHbbBaseProcessor(cfg=self)
-        elif self.workflow == "parton_matching":
-            from workflows.parton_matching import PartonMatchingProcessor
-            self.processor_instance = PartonMatchingProcessor(cfg=self)
-        elif self.workflow == "pileup_variations":
-            from workflows.pileup_variations import pileupVariationsProcessor
-            self.processor_instance = pileupVariationsProcessor(cfg=self)
-        else:
-            raise NotImplemented
+        self.processor_instance = self.workflow(cfg=self)
 
     def save_config(self):
         ocfg = {k:v for k,v in self.cfg.items()}
@@ -187,7 +179,8 @@ class Configurator():
                 newcuts.append(c.serialize())
             cats_dump[cat] = newcuts
         ocfg["preselections"] = presel_dump
-        ocfg["categories"] = cats_dump           
+        ocfg["categories"] = cats_dump
+        ocfg["workflow"] = self.workflow.__name__
         # Save the serialized configuration in json
         output_cfg = os.path.join(self.output, "config.json")
         print("Saving config file to " + output_cfg)

@@ -3,8 +3,8 @@ import awkward as ak
 from coffea import hist
 import numba
 
-from workflows.base import ttHbbBaseProcessor
-from lib.fill import fill_histograms_object
+from .base import ttHbbBaseProcessor
+from ..lib.fill import fill_histograms_object
 
 @numba.jit
 def get_matching_pairs_indices(idx_quark, idx_jets, builder, builder2):
