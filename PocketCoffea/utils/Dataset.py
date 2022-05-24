@@ -60,8 +60,9 @@ class Sample():
         return f"name: {self.name}, sample: {self.sample}, das_name: {self.das_name}, year: {self.year}"
 
 class Dataset():
-    def __init__(self, cfg, prefix="root://xrootd-cms.infn.it//"):
+    def __init__(self,name, cfg, prefix="root://xrootd-cms.infn.it//"):
         self.prefix = prefix
+        self.name = name
         self.outfile = cfg["json_output"]
         self.sample = cfg["sample"]
         self.sample_dict = {}
@@ -71,7 +72,7 @@ class Dataset():
     # Function to build the dataset dictionary
     def get_samples(self, files):
         for scfg in files:
-            name = f"{self.sample}_{scfg['metadata']['year']}"
+            name = f"{self.name}_{scfg['metadata']['year']}"
             if not scfg["metadata"]["isMC"]:
                 name += f"_Era{scfg['metadata']['era']}"
             sample = Sample(name=name,

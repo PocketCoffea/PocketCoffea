@@ -17,7 +17,7 @@ if args.key not in config:
 
 dataset_cfg = config[args.key]
 
-dataset = Dataset(dataset_cfg)
+dataset = Dataset(name=args.key, cfg=dataset_cfg)
 dataset.save()
 
 if args.download:
