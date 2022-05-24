@@ -1,8 +1,8 @@
-from parameters.cuts.baseline_cuts import dilepton_presel, passthrough
-from lib.cut_functions import count_objects_gt
-from lib.cut_definition import Cut
+from PocketCoffea.parameters.cuts.baseline_cuts import dilepton_presel, passthrough
+from PocketCoffea.lib.cut_functions import count_objects_gt
+from PocketCoffea.lib.cut_definition import Cut
 from config.parton_matching.functions import *
-
+from PocketCoffea.workflows.parton_matching  import PartonMatchingProcessor
 cfg =  {
 
     "dataset" : {
@@ -15,7 +15,7 @@ cfg =  {
     },
 
     # Input and output files
-    "workflow" : "parton_matching",
+    "workflow" : PartonMatchingProcessor,
     "output"   : "output/mem",
 
     # Executor parameters

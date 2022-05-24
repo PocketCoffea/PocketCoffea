@@ -9,36 +9,41 @@ from parsl.config import Config
 from parsl.executors.threads import ThreadPoolExecutor
 
 class Sample():
-    def __init__(self, path, prefix):
+    def __init__(self, dataset_key, sample=None, year=None, prefix="root://xrootd-cms.infn.it//"):
         self.prefix = prefix
-        self.path = path
+        self.dataset_key = dataset_key
         self.sample_dict = {}
-        self.load_attributes()
+        if sample == None:
+            self.load_attributes()
+        else:
+            self.year = year
+            self.sample = sample
+            self.name = f"{sample}_{year}"
         self.get_filelist()
         self.build_sample_dict()
 
     # Function to get sample name and year from dataset name on DAS
     def load_attributes(self):
-        self.sample = self.path.split('/')[1].split('_')[0]
-        self.year = '20' + self.path.split('/')[2].split('UL')[1][:2]
+        self.sample = self.dataset_key.split('/')[1].split('_')[0]
+        self.year = '20' + self.dataset_key.split('/')[2].split('UL')[1][:2]
         if self.year not in ['2016', '2017', '2018']:
             sys.exit(f"No dataset available for year '{self.year}'")
         self.name = self.sample + '_' + self.year
 
     # Function to get the dataset filelist from DAS
     def get_filelist(self):
-        command = f'dasgoclient -query="file dataset={self.path}"'
+        command = f'dasgoclient -json -query="file dataset={self.dataset_key}"'
         self.filelist = os.popen(command).read().split('\n')
         self.filelist = [os.path.join(self.prefix, *file.split('/')) for file in self.filelist if file != '']
 
     # Function to build the sample dictionary
     def build_sample_dict(self):
         self.sample_dict[self.name] = {}
-        self.sample_dict[self.name]['metadata'] = {'sample' : self.sample, 'year' : self.year, 'path' : self.path}
+        self.sample_dict[self.name]['metadata'] = {'sample' : self.sample, 'year' : self.year, 'dataset_key' : self.dataset_key}
         self.sample_dict[self.name]['files']    = self.filelist
 
     def Print(self):
-        print(f"path: {self.path}, sample: {self.sample}, year: {self.year}")
+        print(f"dataset_key: {self.dataset_key}, sample: {self.sample}, year: {self.year}")
 
 class Dataset():
     def __init__(self, file, prefix, outfile):
@@ -53,7 +58,7 @@ class Dataset():
     # Function to build the dataset dictionary
     def get_samples(self):
         for name in self.samples:
-            sample = Sample(name, "root://xrootd-cms.infn.it//")
+            sample = Sample(name)
             sample_local = Sample(name, self.prefix)
             self.sample_dict.update(sample.sample_dict)
             self.sample_dict_local.update(sample_local.sample_dict)
@@ -83,7 +88,6 @@ class Dataset():
         run_futures = [] # Future list
         for key in sorted(self.sample_dict.keys()):
             new_list = [] 
-            #print(key)
             if isinstance(self.sample_dict[key], dict):
                 filelist = self.sample_dict[key]['files']
             elif isinstance(self.sample_dict[key], list):

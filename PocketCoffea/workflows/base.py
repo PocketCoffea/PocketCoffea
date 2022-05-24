@@ -12,16 +12,16 @@ from coffea.analysis_tools import PackedSelection, Weights
 
 import correctionlib
 
-from lib.objects import jet_correction, lepton_selection, jet_selection, btagging, get_dilepton
-from lib.scale_factors import sf_ele_reco, sf_ele_id
-from lib.fill import fill_histograms_object
-from parameters.triggers import triggers
-from parameters.btag import btag
-from parameters.jec import JECversions
-from parameters.pileup import pileupJSONfiles
-from parameters.lumi import lumi
-from parameters.samples import samples_info
-from parameters.allhistograms import histogram_settings
+from ..lib.objects import jet_correction, lepton_selection, jet_selection, btagging, get_dilepton
+from ..lib.scale_factors import sf_ele_reco, sf_ele_id
+from ..lib.fill import fill_histograms_object
+from ..parameters.triggers import triggers
+from ..parameters.btag import btag
+from ..parameters.jec import JECversions
+from ..parameters.pileup import pileupJSONfiles
+from ..parameters.lumi import lumi
+from ..parameters.samples import samples_info
+from ..parameters.allhistograms import histogram_settings
 
 class ttHbbBaseProcessor(processor.ProcessorABC):
     def __init__(self, cfg) -> None:

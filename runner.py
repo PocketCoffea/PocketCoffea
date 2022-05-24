@@ -13,7 +13,7 @@ from coffea.util import load, save
 from coffea import processor
 from pprint import pprint
 
-from utils.Configurator import Configurator
+from PocketCoffea.utils.Configurator import Configurator
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run analysis on baconbits files using processor coffea files')
