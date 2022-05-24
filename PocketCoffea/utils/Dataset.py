@@ -9,59 +9,80 @@ from parsl.config import Config
 from parsl.executors.threads import ThreadPoolExecutor
 
 class Sample():
-    def __init__(self, dataset_key, sample=None, year=None, prefix="root://xrootd-cms.infn.it//"):
-        self.prefix = prefix
-        self.dataset_key = dataset_key
-        self.sample_dict = {}
-        if sample == None:
-            self.load_attributes()
-        else:
-            self.year = year
-            self.sample = sample
-            self.name = f"{sample}_{year}"
+    def __init__(self, name, das_names, sample, metadata, prefix="root://xrootd-cms.infn.it//"):
+        '''
+        Class representing a single analysis sample. 
+        - The name is the unique key of the sample in the dataset file.
+        - The DAS name is the unique identifier of the sample in CMS
+        - The sample represent the category: DATA/Wjets/ttHbb/ttBB. It is used to group the same type of events
+        - metadata contains various keys necessary for the analysis --> the dict passed around in the coffea processor
+        -- year
+        -- isMC: true/false
+        -- era: A/B/C/D (only for data)
+        '''
+        self.name = name
+        self.das_names = das_names
+        self.metadata = {}
+        self.metadata["das_names"] = das_names
+        self.metadata["sample"] = sample
+        self.metadata.update(metadata)
+        self.metadata["nevents"] = 0
+        self.metadata["size"] = 0
+        self.fileslist = []
         self.get_filelist()
-        self.build_sample_dict()
-
-    # Function to get sample name and year from dataset name on DAS
-    def load_attributes(self):
-        self.sample = self.dataset_key.split('/')[1].split('_')[0]
-        self.year = '20' + self.dataset_key.split('/')[2].split('UL')[1][:2]
-        if self.year not in ['2016', '2017', '2018']:
-            sys.exit(f"No dataset available for year '{self.year}'")
-        self.name = self.sample + '_' + self.year
 
     # Function to get the dataset filelist from DAS
     def get_filelist(self):
-        command = f'dasgoclient -json -query="file dataset={self.dataset_key}"'
-        self.filelist = os.popen(command).read().split('\n')
-        self.filelist = [os.path.join(self.prefix, *file.split('/')) for file in self.filelist if file != '']
+        # TODO: Include here a switch to select between DAS and local storage
+        for das_name in self.metadata["das_names"]:
+            command = f'dasgoclient -json -query="file dataset={das_name}"'
+            print(f"Executing query: {command}")
+            filesjson = json.loads(os.popen(command).read())
+            for fj in filesjson:
+                f = fj["file"][0]
+                if f["is_file_valid"] == 0:
+                    print(f"ERROR: File not valid on DAS: {f['name']}")
+                else:
+                    self.fileslist.append(f['name'])
+                    self.metadata["nevents"] += f['nevents']
+                    self.metadata["size"] += f['size']            
 
     # Function to build the sample dictionary
-    def build_sample_dict(self):
-        self.sample_dict[self.name] = {}
-        self.sample_dict[self.name]['metadata'] = {'sample' : self.sample, 'year' : self.year, 'dataset_key' : self.dataset_key}
-        self.sample_dict[self.name]['files']    = self.filelist
-
-    def Print(self):
-        print(f"dataset_key: {self.dataset_key}, sample: {self.sample}, year: {self.year}")
+    def get_sample_dict(self):
+        out = {
+            self.name : {
+            'metadata' : self.metadata,
+            'files': self.fileslist
+        }}
+        return out
+            
+    def __repr__(self):
+        return f"name: {self.name}, sample: {self.sample}, das_name: {self.das_name}, year: {self.year}"
 
 class Dataset():
-    def __init__(self, file, prefix, outfile):
+    def __init__(self, cfg, prefix="root://xrootd-cms.infn.it//"):
         self.prefix = prefix
-        self.outfile = outfile
+        self.outfile = cfg["json_output"]
+        self.sample = cfg["sample"]
         self.sample_dict = {}
-        self.sample_dict_local = {}
-        with open(file, 'r') as f:
-            self.samples = f.read().splitlines()
-        self.get_samples()
+        self.sample_dict_local = {}        
+        self.get_samples(cfg["files"])
 
     # Function to build the dataset dictionary
-    def get_samples(self):
-        for name in self.samples:
-            sample = Sample(name)
-            sample_local = Sample(name, self.prefix)
-            self.sample_dict.update(sample.sample_dict)
-            self.sample_dict_local.update(sample_local.sample_dict)
+    def get_samples(self, files):
+        for scfg in files:
+            name = f"{self.sample}_{scfg['metadata']['year']}"
+            if not scfg["metadata"]["isMC"]:
+                name += f"_Era{scfg['metadata']['era']}"
+            sample = Sample(name=name,
+                            das_names = scfg["das_names"],
+                            sample=self.sample,
+                            metadata=scfg["metadata"])
+            #sample_local = Sample(name, self.prefix)
+            #self.sample_dict.update(sample.sample_dict)
+            #self.sample_dict_local.update(sample_local.sample_dict)
+            self.sample_dict.update(sample.get_sample_dict())
+            self.sample_dict_local.update(sample.get_sample_dict())
 
     # Function to save the dataset dictionary with xrootd and local prefixes
     def save(self, local=True):
