@@ -183,14 +183,14 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         for cut in self._preselections:
             # Apply the cut function and add it to the mask
             mask = cut.get_mask(self.events, year=self._year, sample=self._sample)
-            self._preselection_masks.add(cut.name, mask)
+            self._preselection_masks.add(cut.id, mask)
         # Now that the preselection mask is complete we can apply it to events
         self.events = self.events[self._preselection_masks.all(*self._preselection_masks.names)]
             
     def define_categories(self):
         for cut in self._cuts:
             mask = cut.get_mask(self.events, year=self._year, sample=self._sample)
-            self._cuts_masks.add(cut.name, mask)
+            self._cuts_masks.add(cut.id, mask)
         # We make sure that for each category the list of cuts is unique in the Configurator validation
 
     def compute_weights(self):

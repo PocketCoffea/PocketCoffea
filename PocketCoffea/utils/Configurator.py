@@ -39,7 +39,9 @@ class Configurator():
         # Categories: dict with a set of Cut names for each category
         self.cuts = []
         self.categories = {}
-        # Saving also a dict of Cut objects to map their names
+        # Saving also a dict of Cut objects to map their ids (name__hash)
+        # N.B. The preselections are just cuts that are applied before
+        # others. It is just a special category of cuts.
         self.cuts_dict = {}
         ## Call the function which transforms the dictionary in the cfg
         # in the objects needed in the processors
@@ -95,13 +97,13 @@ class Configurator():
 
     def load_cuts_and_categories(self):
         for presel in self.cfg["preselections"]:
-            self.cuts_dict[presel.name] = presel
+            self.cuts_dict[presel.id] = presel
         for cat, cuts in self.cfg["categories"].items():
             self.categories[cat] = []                
             for cut in cuts:
                 self.cuts.append(cut)
-                self.cuts_dict[cut.name] = cut
-                self.categories[cat].append(cut.name)
+                self.cuts_dict[cut.id] = cut
+                self.categories[cat].append(cut.id)
 
         # Unique set of cuts
         self.cuts = set(self.cuts)
