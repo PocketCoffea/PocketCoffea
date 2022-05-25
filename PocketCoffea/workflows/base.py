@@ -13,6 +13,7 @@ from coffea.analysis_tools import PackedSelection, Weights
 import correctionlib
 
 from ..lib.objects import jet_correction, lepton_selection, jet_selection, btagging, get_dilepton
+from ..lib.pileup import sf_pileup_reweight
 from ..lib.scale_factors import sf_ele_reco, sf_ele_id
 from ..lib.fill import fill_histograms_object
 from ..parameters.triggers import triggers
@@ -109,9 +110,6 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.isMC = 'genWeight' in self.events.fields
         # JEC
         self._JECversion = JECversions[self._year]['MC' if self.isMC else 'Data']
-        # pileup
-        self._puFile = pileupJSONfiles[self._year]['file']
-        self._puName = pileupJSONfiles[self._year]['name']
 
     # Function to apply flags and lumi mask
     def clean_events(self):
@@ -200,10 +198,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             self.weights.add('lumi', ak.full_like(self.events.genWeight, lumi[self._year]))
             self.weights.add('XS', ak.full_like(self.events.genWeight, samples_info[self._sample]["XS"]))
             self.weights.add('sumw', ak.full_like(self.events.genWeight, 1./self.output["sumw"][self._sample]))
-            puWeightsJSON = correctionlib.CorrectionSet.from_file(self._puFile)
-            self.weights.add('pileup', puWeightsJSON[self._puName].evaluate(self.events.Pileup.nPU.to_numpy(), 'nominal'),
-                              weightUp=puWeightsJSON[self._puName].evaluate(self.events.Pileup.nPU.to_numpy(), 'up'),
-                            weightDown=puWeightsJSON[self._puName].evaluate(self.events.Pileup.nPU.to_numpy(), 'down') )
+            # Pileup reweighting with nominal, up and down variations
+            self.weights.add('pileup', *sf_pileup_reweight(self.events, self._year))
             # Electron reco and id SF with nominal, up and down variations
             self.weights.add('sf_ele_reco', *sf_ele_reco(self.events, self._year))
             self.weights.add('sf_ele_id',   *sf_ele_id(self.events, self._year))
