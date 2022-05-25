@@ -1,4 +1,5 @@
-from parameters.cuts.baseline_cuts import dilepton_presel, passthrough
+from PocketCoffea.parameters.cuts.baseline_cuts import dilepton_presel, passthrough
+from PocketCoffea.workflows.base import ttHbbBaseProcessor
 
 cfg =  {
 
@@ -12,12 +13,12 @@ cfg =  {
     },
 
     # Input and output files
-    "workflow" : "base",
+    "workflow" : ttHbbBaseProcessor,
     "output"   : "output/test_pileup",
 
     # Executor parameters
     "run_options" : {
-        "executor"       : "futures",
+        "executor"       : "iterative",
         "workers"        : 12,
         "scaleout"       : 10,
         "partition"      : "standard",
