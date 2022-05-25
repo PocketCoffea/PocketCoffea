@@ -1,12 +1,11 @@
-lib/__pycache__
-parameters/__pycache__
-workflows/__pycache__
+PocketCoffea/lib/__pycache__
+PocketCoffea/parameters/__pycache__
+PocketCoffea/workflows/__pycache__
 notebooks/.ipynb_checkpoints
 .ipynb_checkpoints/
 plots/
 histograms/
 output/
 logs/
-parameters/corrections/JEC/tmp/
 *~
 *.pyc

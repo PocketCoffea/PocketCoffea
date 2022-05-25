@@ -1,4 +1,5 @@
-from lib.cuts import dilepton, SR, CR_top
+from PocketCoffea.lib.cuts import dilepton, SR, CR_top
+from PocketCoffea.workflows.base import ttHbbBaseProcessor
 
 cfg =  {
 
@@ -12,7 +13,7 @@ cfg =  {
     },
 
     # Input and output files
-    "workflow" : "base",
+    "workflow" : ttHbbBaseProcessor,
     "output"   : "output/example",
 
     # Executor parameters
