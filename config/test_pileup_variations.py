@@ -18,7 +18,7 @@ cfg =  {
 
     # Executor parameters
     "run_options" : {
-        "executor"       : "parsl/slurm",
+        "executor"       : "futures",
         "workers"        : 12,
         "scaleout"       : 10,
         "partition"      : "standard",
@@ -29,7 +29,7 @@ cfg =  {
         "max"            : None,
         "skipbadfiles"   : None,
         "voms"           : None,
-        "limit"          : None,
+        "limit"          : 4,
     },
 
     # Cuts and plots settings
