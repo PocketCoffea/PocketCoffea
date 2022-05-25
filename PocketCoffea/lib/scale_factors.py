@@ -1,14 +1,19 @@
+import sys
+
+import numpy as np
 import awkward as ak
 
 import correctionlib
 
-from ..parameters.lepton_scale_factors import electronSF, electronJSONfiles
+from ..parameters.lepton_scale_factors import electronSF, muonSF, electronJSONfiles, muonJSONfiles
 
-def get_sf(year, pt, eta, counts, type='', pt_region=None):
+def get_ele_sf(year, pt, eta, counts, type='', pt_region=None):
     '''
     This function computes the per-electron reco or id SF.
     If 'reco', the appropriate corrections are chosen by using the argument `pt_region`.
     '''
+    if type not in electronSF.keys():
+        sys.exit("SF type not included in the parameters.")
     electronJSON = correctionlib.CorrectionSet.from_file(electronJSONfiles[year]['file'])
     map_name = electronJSONfiles[year]['name']
     if type == 'reco':
@@ -19,6 +24,24 @@ def get_sf(year, pt, eta, counts, type='', pt_region=None):
     sf     = electronJSON[map_name].evaluate(year, "sf",     sfName, eta.to_numpy(), pt.to_numpy())
     sfup   = electronJSON[map_name].evaluate(year, "sfup",   sfName, eta.to_numpy(), pt.to_numpy())
     sfdown = electronJSON[map_name].evaluate(year, "sfdown", sfName, eta.to_numpy(), pt.to_numpy())
+
+    # The unflattened arrays are returned in order to have one row per event.
+    return ak.unflatten(sf, counts), ak.unflatten(sfup, counts), ak.unflatten(sfdown, counts)
+
+def get_mu_sf(year, pt, eta, counts, type=''):
+    '''
+    This function computes the per-muon id or iso SF.
+    '''
+    if type not in muonSF.keys():
+        sys.exit("SF type not included in the parameters.")
+
+    muonJSON = correctionlib.CorrectionSet.from_file(muonJSONfiles[year]['file'])
+    sfName = muonSF[type]
+
+    year   = f"{year}_UL" # N.B. This works for the UL SF in the current JSON scheme (25.05.2022)
+    sf     = muonJSON[sfName].evaluate(year, np.abs(eta.to_numpy()), pt.to_numpy(), "sf")
+    sfup   = muonJSON[sfName].evaluate(year, np.abs(eta.to_numpy()), pt.to_numpy(), "systup")
+    sfdown = muonJSON[sfName].evaluate(year, np.abs(eta.to_numpy()), pt.to_numpy(), "systdown")
 
     # The unflattened arrays are returned in order to have one row per event.
     return ak.unflatten(sf, counts), ak.unflatten(sfup, counts), ak.unflatten(sfdown, counts)
@@ -43,8 +66,8 @@ def sf_ele_reco(events, year):
     ele_pt_Below20,  ele_counts_Below20 = ak.flatten(ele_pt[Below20]), ak.num(ele_pt[Below20])
     ele_eta_Below20 = ak.flatten(ele_eta[Below20])
 
-    sf_reco_Above20, sfup_reco_Above20, sfdown_reco_Above20 = get_sf(year, ele_pt_Above20, ele_eta_Above20, ele_counts_Above20, 'reco', 'pt>20')
-    sf_reco_Below20, sfup_reco_Below20, sfdown_reco_Below20 = get_sf(year, ele_pt_Below20, ele_eta_Below20, ele_counts_Below20, 'reco', 'pt<20')
+    sf_reco_Above20, sfup_reco_Above20, sfdown_reco_Above20 = get_ele_sf(year, ele_pt_Above20, ele_eta_Above20, ele_counts_Above20, 'reco', 'pt>20')
+    sf_reco_Below20, sfup_reco_Below20, sfdown_reco_Below20 = get_ele_sf(year, ele_pt_Below20, ele_eta_Below20, ele_counts_Below20, 'reco', 'pt<20')
 
     # The SF arrays corresponding to the electrons with pt above and below 20 GeV are concatenated and multiplied along the electron axis in order to obtain a per-event scale factor.
     sf_reco     = ak.prod( ak.concatenate( (sf_reco_Above20,     sf_reco_Below20),     axis=1 ), axis=1 )
@@ -62,7 +85,22 @@ def sf_ele_id(events, year):
     ele_eta = events.ElectronGood.eta
 
     ele_pt_flat, ele_eta_flat, ele_counts = ak.flatten(ele_pt), ak.flatten(ele_eta), ak.num(ele_pt)
-    sf_id, sfup_id, sfdown_id = get_sf(year, ele_pt_flat, ele_eta_flat, ele_counts, 'id')
+    sf_id, sfup_id, sfdown_id = get_ele_sf(year, ele_pt_flat, ele_eta_flat, ele_counts, 'id')
 
     # The SF arrays corresponding to the electrons are multiplied along the electron axis in order to obtain a per-event scale factor.
     return ak.prod(sf_id, axis=1), ak.prod(sfup_id, axis=1), ak.prod(sfdown_id, axis=1)
+
+def sf_mu(events, year, type=''):
+    '''
+    This function computes the per-muon id SF and returns the corresponding per-event SF, obtained by multiplying the per-muon SF in each event.
+    Additionally, also the up and down variations of the SF are returned.
+    '''
+    mu_pt  = events.MuonGood.pt
+    mu_eta = events.MuonGood.eta
+
+    # Since `correctionlib` does not support jagged arrays as an input, the pt and eta arrays are flattened.
+    mu_pt_flat, mu_eta_flat, mu_counts = ak.flatten(mu_pt), ak.flatten(mu_eta), ak.num(mu_pt)
+    sf, sfup, sfdown = get_mu_sf(year, mu_pt_flat, mu_eta_flat, mu_counts, type)
+
+    # The SF arrays corresponding to all the muons are multiplied along the muon axis in order to obtain a per-event scale factor.
+    return ak.prod(sf, axis=1), ak.prod(sfup, axis=1), ak.prod(sfdown, axis=1)

@@ -14,7 +14,7 @@ import correctionlib
 
 from ..lib.objects import jet_correction, lepton_selection, jet_selection, btagging, get_dilepton
 from ..lib.pileup import sf_pileup_reweight
-from ..lib.scale_factors import sf_ele_reco, sf_ele_id
+from ..lib.scale_factors import sf_ele_reco, sf_ele_id, sf_mu
 from ..lib.fill import fill_histograms_object
 from ..parameters.triggers import triggers
 from ..parameters.btag import btag
@@ -203,6 +203,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             # Electron reco and id SF with nominal, up and down variations
             self.weights.add('sf_ele_reco', *sf_ele_reco(self.events, self._year))
             self.weights.add('sf_ele_id',   *sf_ele_id(self.events, self._year))
+            # Muon id and iso SF with nominal, up and down variations
+            self.weights.add('sf_mu_id',  *sf_mu(self.events, self._year, 'id'))
+            self.weights.add('sf_mu_iso', *sf_mu(self.events, self._year, 'iso'))
 
     def fill_histograms(self):
         for (obj, obj_hists) in zip([None], [self.nobj_hists]):
