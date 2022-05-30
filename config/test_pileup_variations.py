@@ -1,4 +1,5 @@
-from parameters.cuts.baseline_cuts import dilepton_presel, passthrough
+from PocketCoffea.parameters.cuts.baseline_cuts import dilepton_presel, passthrough
+from PocketCoffea.workflows.pileup_variations import pileupVariationsProcessor
 
 cfg =  {
 
@@ -12,7 +13,7 @@ cfg =  {
     },
 
     # Input and output files
-    "workflow" : "pileup_variations",
+    "workflow" : pileupVariationsProcessor,
     "output"   : "output/test_pileup_variations",
 
     # Executor parameters
@@ -28,7 +29,7 @@ cfg =  {
         "max"            : None,
         "skipbadfiles"   : None,
         "voms"           : None,
-        "limit"          : 2,
+        "limit"          : 4,
     },
 
     # Cuts and plots settings
