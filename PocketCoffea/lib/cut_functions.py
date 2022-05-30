@@ -1,4 +1,5 @@
 import awkward as ak
+from .cut_definition import Cut
 
 def passthrough(events, **kargs):
     return ak.full_like(events.event, True, dtype=bool)
@@ -18,6 +19,22 @@ def count_objects_eq(events,params,year,sample):
     mask = ak.num(events[params["object"]], axis=1) == params["value"]
     return ak.where(ak.is_none(mask), ~ak.is_none(mask), mask)
 
+##################################
+# Some predefined functions
+
+def nJets_min(events, params, **kwargs):
+    mask = events.njet >= params["njet_min"]
+    return mask
+
+def get_nJets_min(njets, name=None):
+    if name == None:
+        name = f"nJets_min_{njets}"
+    return Cut(
+        name=name,
+        params={"njet_min": njets},
+        function=nJets_min
+    )
+    
 
 ##################
 # Commong preselection functions

@@ -30,6 +30,7 @@ class PartonMatchingProcessor(ttHbbBaseProcessor):
         super().__init__(cfg=cfg)
         self.parton_hists = [histname for histname in self._hist_dict.keys() if 'parton' in histname and not histname in self.nobj_hists]
         self.dr_min = 0.4
+            
                
     def parton_matching(self) -> ak.Array:
         # Selects quarks at LHE level
@@ -76,7 +77,13 @@ class PartonMatchingProcessor(ttHbbBaseProcessor):
 
     def fill_histograms_extra(self):
         fill_histograms_object(self, self.events.PartonMatched, self.parton_hists)
-
+        # Fill the parton matching 2D plot
+        hmatched = self.get_histogram("hist2d_Njet_Nparton_matched")
+        for category, cuts in self._categories.items():
+            weight = self._cuts_masks.all(*cuts)
+            hmatched.fill(sample=self._sample, cat=category, year=self._year,
+                          x=self.events.njet, y=self.events.nparton_matched, weight=weight)
+        
     def process_extra_after_presel(self) -> ak.Array:
         self.parton_matching()
         self.count_partons()

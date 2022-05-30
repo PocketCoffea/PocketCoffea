@@ -10,7 +10,8 @@ All the relevant parameters for the execution of the processor such as the input
 ### Build JSON dataset
 To build the JSON dataset, run the following script:
 ~~~
-python scripts/dataset/build_dataset.py --cfg config/base.py
+python scripts/dataset/build_dataset.py --cfg
+datasets/dataset_definitions.json 
 ~~~
 Two version of the JSON dataset will be saved: one with the `root://xrootd-cms.infn.it//` prefix and one with a local prefix passed through the config file (with label `_local.json`).
 To download the files locally, run the script with the additional argument `--download`:
