@@ -14,11 +14,12 @@ from coffea.nanoevents.methods import nanoaod
 
 from ..parameters.preselection import object_preselection
 from ..parameters.jec import JECjsonFiles
+from ..lib.deltaR_matching import get_matching_pairs_indices, object_matching
 
 ak.behavior.update(nanoaod.behavior)
     
 # example here: https://gitlab.cern.ch/cms-nanoAOD/jsonpog-integration/-/blob/master/examples/jercExample.py
-def jet_correction(events, Jet, typeJet, year, JECversion, verbose=False):
+def jet_correction(events, Jet, typeJet, year, JECversion, JERversion=None, verbose=False):
     jsonfile = JECjsonFiles[year][[t for t in ['AK4', 'AK8'] if typeJet.startswith(t)][0]]
     JECfile = correctionlib.CorrectionSet.from_file(jsonfile)
     corr = JECfile.compound[f'{JECversion}_L1L2L3Res_{typeJet}']
@@ -52,7 +53,35 @@ def jet_correction(events, Jet, typeJet, year, JECversion, verbose=False):
         #print('JES UP pt ratio',corrected_jets.JES_jes.up.pt/corrected_jets.pt_raw)
         #print('JES DOWN pt ratio',corrected_jets.JES_jes.down.pt/corrected_jets.pt_raw, end='\n\n')
 
+    # Apply JER pt smearing
+    if JERversion:
+        sf  = JECfile[f'{JERversion}_ScaleFactor_{typeJet}']
+        res = JECfile[f'{JERversion}_PtResolution_{typeJet}']
+        genjets = events['GenJet']
+        j, nj   = ak.flatten(corrected_jets), ak.num(corrected_jets)
+        gj, ngj = ak.flatten(genjets), ak.num(genjets)
+        flatScaleFactor  = sf.evaluate(j['eta'].to_numpy(), 'nom')
+        flatPtResolution = res.evaluate(j['eta'].to_numpy(), j['pt'].to_numpy(), j['rho'].to_numpy())
+        scaleFactor  = ak.unflatten(flatScaleFactor, nj)
+        ptResolution = ak.unflatten(flatPtResolution, nj)
+        # Match jets with gen-level jets, with DeltaR and DeltaPt requirements
+        dr_min = {'AK4PFchs' : 0.2, 'AK8PFPuppi' : 0.4}[typeJet]  # Match jets within a cone with half the jet radius
+        pt_min = 3 * ptResolution * corrected_jets['pt']          # Match jets whose pt does not differ more than 3 sigmas from the gen-level pt
+        matched_genjets, matched_jets, deltaR_matched = object_matching(genjets, corrected_jets, dr_min, pt_min)
+        corrFactor = 1 + (scaleFactor - 1) * (matched_jets['pt'] - matched_genjets['pt']) / matched_jets['pt']
+        #print("matched_genjets", matched_genjets.pt)
+        print("jets", corrected_jets.pt)
+        print("matched_jets", matched_jets.pt)
+
     return corrected_jets
+
+def jer_smearing(events, Jet, typeJet, year, JERversion):
+    jsonfile = JECjsonFiles[year][[t for t in ['AK4', 'AK8'] if typeJet.startswith(t)][0]]
+    JECfile  = correctionlib.CorrectionSet.from_file(jsonfile)
+    corr = JECfile[f'{JERversion}_ScaleFactor_{typeJet}']
+    #print([input.name for input in corr.inputs])
+    eta = 1.2
+    print("JSON result AK4: {}".format(corr.evaluate(eta,'nom')))
 
 def lepton_selection(events, Lepton, finalstate):
 

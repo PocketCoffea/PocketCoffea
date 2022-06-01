@@ -18,7 +18,7 @@ from ..lib.scale_factors import sf_ele_reco, sf_ele_id, sf_mu
 from ..lib.fill import fill_histograms_object
 from ..parameters.triggers import triggers
 from ..parameters.btag import btag
-from ..parameters.jec import JECversions
+from ..parameters.jec import JECversions, JERversions
 from ..parameters.pileup import pileupJSONfiles
 from ..parameters.lumi import lumi
 from ..parameters.samples import samples_info
@@ -110,6 +110,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.isMC = 'genWeight' in self.events.fields
         # JEC
         self._JECversion = JECversions[self._year]['MC' if self.isMC else 'Data']
+        self._JERversion = JERversions[self._year]['MC' if self.isMC else 'Data']
 
     # Function to apply flags and lumi mask
     def clean_events(self):
@@ -132,7 +133,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     def apply_JEC(self):
         if int(self._year) > 2018:
             sys.exit("Warning: Run 3 JEC are not implemented yet.")
-        self.events.Jet = jet_correction(self.events, "Jet", "AK4PFchs", self._year, self._JECversion)
+        self.events.Jet = jet_correction(self.events, "Jet", "AK4PFchs", self._year, self._JECversion, self._JERversion)
+        #self.events.Jet = jer_smearing(self.events, "Jet", "AK4PFchs", self._year, self._JERversion)
 
     # Function to compute masks to preselect objects and save them as attributes of `events`
     def apply_object_preselection(self):
