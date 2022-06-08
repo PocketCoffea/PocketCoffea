@@ -57,16 +57,29 @@ class PartonMatchingProcessor(ttHbbBaseProcessor):
         idx_pairs_sorted = ak.argsort(deltaRcut, axis=1)
         pairs = ak.argcartesian([quarks, self.events.JetGood])[maskDR]
         pairs_sorted = pairs[idx_pairs_sorted]
+        deltaR_sorted = deltaRcut[idx_pairs_sorted]
         idx_quarks, idx_jets = ak.unzip(pairs_sorted)
         
         _idx_matched_pairs, _idx_missed_pairs = get_matching_pairs_indices(idx_quarks, idx_jets, ak.ArrayBuilder(), ak.ArrayBuilder())
         idx_matched_pairs = _idx_matched_pairs.snapshot()
         idx_missed_pairs = _idx_missed_pairs.snapshot()
+        idx_matched_quarks = idx_quarks[idx_matched_pairs]
+        idx_matched_jets = idx_jets[idx_matched_pairs]
         # The invalid jet matches result in a None value. Only non-None values are selected.
-        matched_quarks = quarks[idx_quarks[idx_matched_pairs]]
-        matched_jets = self.events.JetGood[idx_jets[idx_matched_pairs]]
-        deltaR_matched = deltaRcut[idx_matched_pairs]
+        matched_quarks = quarks[idx_matched_quarks]
+        matched_jets = self.events.JetGood[idx_matched_jets]
+        deltaR_matched = deltaR_sorted[idx_matched_pairs]
 
+        # Now we want to build an array with the dimension of the Jet collection containing the matched partons
+        #indices to reorder the jet pairs
+        idx_jets_sorting = ak.argsort(idx_matched_jets)
+        idx_quarks_jetsorted = idx_matched_quarks[idx_jets_sorting]
+        deltaR_jetssorted = deltaR_matched[idx_jets_sorting]
+
+        
+        
+        
+        
         self.events["Parton"] = quarks
         self.events["PartonMatched"] = ak.with_field(matched_quarks, deltaR_matched, "dRMatchedJet" )
         self.events["JetGoodMatched"] = matched_jets
