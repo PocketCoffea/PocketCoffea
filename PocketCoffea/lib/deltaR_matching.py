@@ -76,7 +76,7 @@ def object_matching(obj, obj2, dr_min, pt_min=None):
     
     _idx_matched_pairs, _idx_missed_pairs = get_matching_pairs_indices(idx_obj, idx_obj2, ak.ArrayBuilder(), ak.ArrayBuilder())
     idx_matched_pairs = _idx_matched_pairs.snapshot()
-    idx_missed_pairs = _idx_missed_pairs.snapshot()
+    idx_missed_pairs  = _idx_missed_pairs.snapshot()
     # The indices related to the invalid jet matches are skipped
     idx_matched_obj  = idx_obj[idx_matched_pairs]
     idx_matched_obj2 = idx_obj2[idx_matched_pairs]
@@ -89,10 +89,16 @@ def object_matching(obj, obj2, dr_min, pt_min=None):
     idx_obj2_sorted = idx_matched_obj2[obj2_order]
     deltaR_sorted = deltaR_matched[obj2_order]
     maskDR_sorted = maskDR_matched[obj2_order]
-    idx_obj_sorted_padnone, idx_obj2_sorted_padnone = get_matching_objects_indices_padnone(idx_obj_sorted, idx_obj2_sorted, ak.ArrayBuilder(), ak.ArrayBuilder())
+    # Here we apply the deltaR + pT requirements on the objects
+    idx_obj_sorted_masked  = idx_obj_sorted[maskDR_sorted]
+    idx_obj2_sorted_masked = idx_obj2_sorted[maskDR_sorted]
+
+    _idx_obj_sorted_padnone, _idx_obj2_sorted_padnone = get_matching_objects_indices_padnone(idx_obj_sorted, idx_obj2_sorted, ak.ArrayBuilder(), ak.ArrayBuilder())
+    idx_obj_sorted_padnone  = _idx_obj_sorted_padnone.snapshot()
+    idx_obj2_sorted_padnone = _idx_obj2_sorted_padnone.snapshot()
     # Finally the objects are sliced through the padded indices
     # In this way, to a None entry in the indices will correspond a None entry in the object
-    matched_obj  = ak.mask(obj, idx_obj_sorted_padnone)
-    matched_obj2 = ak.mask(obj2, idx_obj2_sorted_padnone)
+    matched_obj  = obj[idx_obj_sorted_padnone]
+    matched_obj2 = obj2[idx_obj2_sorted_padnone]
 
-    return matched_obj, matched_obj2, deltaR_matched
+    return matched_obj, matched_obj2, deltaR_sorted
