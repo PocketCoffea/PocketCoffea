@@ -37,5 +37,5 @@ def fill_histograms_object_with_variations(processor, obj, obj_hists, systematic
                                                                 processor._cuts_masks.all(*cuts)) )
                         fields = {k: ak.flatten(ak.fill_none(obj[k], -9999)) for k in h.fields if k in dir(obj)}
                     fields.update({syst : variation})
-                    fields.update({s : 'varied' for s in systematics if s != syst})
+                    fields.update({s : 'nominal' for s in systematics if s != syst})
                     h.fill(sample=processor._sample, cat=category, year=processor._year, **fields, weight=weight)

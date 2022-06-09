@@ -38,6 +38,25 @@ JECversions = {
         }
 }
 
+JERversions = {
+    '2016_PreVFP' : {
+        'MC'   : 'Summer20UL16APV_JRV3_MC',
+        'Data' : 'Summer20UL16APV_JRV3_DATA'
+    },
+    '2016_PostVFP' : {
+        'MC'   : 'Summer20UL16_JRV3_MC',
+        'Data' : 'Summer20UL16_JRV3_DATA'
+    },
+    '2017' : {
+        'MC'   : 'Summer19UL17_JRV2_MC',
+        'Data' : 'Summer19UL17_JRV2_DATA'
+    },
+    '2018' : {
+        'MC'   : 'Summer19UL18_JRV2_MC',
+        'Data' : 'Summer19UL18_JRV2_DATA'
+    }
+}
+
 JECjsonFiles = {
     '2016_PreVFP' : {
         'AK4' : '/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2016preVFP_UL/jet_jerc.json.gz',
