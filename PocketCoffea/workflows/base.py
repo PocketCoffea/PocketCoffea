@@ -18,7 +18,7 @@ from ..lib.scale_factors import sf_ele_reco, sf_ele_id, sf_mu
 from ..lib.fill import fill_histograms_object
 from ..parameters.triggers import triggers
 from ..parameters.btag import btag
-from ..parameters.jec import JECversions
+from ..parameters.jec import JECversions, JERversions
 from ..parameters.pileup import pileupJSONfiles
 from ..parameters.lumi import lumi
 from ..parameters.samples import samples_info
@@ -59,6 +59,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # Accumulator with number of events passing each category for each sample
         self._cutflow_dict = { "nevts_cat_"+ key: processor.defaultdict_accumulator(int) for key in self._categories}
         self._accum_dict.update(self._cutflow_dict)
+        # Accumulator with seed number used for the stochastic smearing, for each processed chunk
+        self._seed_dict = {"seed_chunk" : processor.defaultdict_accumulator(int)}
+        self._accum_dict.update(self._seed_dict)
 
         #for var in self._vars_to_plot.keys():
         #       self._accumulator.add(processor.dict_accumulator({var : processor.column_accumulator(np.array([]))}))
@@ -115,6 +118,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.isMC = 'genWeight' in self.events.fields
         # JEC
         self._JECversion = JECversions[self._year]['MC' if self.isMC else 'Data']
+        self._JERversion = JERversions[self._year]['MC' if self.isMC else 'Data']
 
     # Function to apply flags and lumi mask
     def clean_events(self):
@@ -134,10 +138,14 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # add the basic clearning to the preselection mask
         self._preselection_masks.add('clean', ak.to_numpy(mask_clean))
 
-    def apply_JEC(self):
+    def apply_JERC(self, JER=True, verbose=False):
         if int(self._year) > 2018:
             sys.exit("Warning: Run 3 JEC are not implemented yet.")
-        self.events.Jet = jet_correction(self.events, "Jet", "AK4PFchs", self._year, self._JECversion)
+        if JER:
+            self.events.Jet, seed_dict = jet_correction(self.events, "Jet", "AK4PFchs", self._year, self._JECversion, self._JERversion, verbose=verbose)
+            self.output['seed_chunk'].update(seed_dict)
+        else:
+            self.events.Jet = jet_correction(self.events, "Jet", "AK4PFchs", self._year, self._JECversion, verbose=verbose)
 
     # Function to compute masks to preselect objects and save them as attributes of `events`
     def apply_object_preselection(self):
@@ -247,8 +255,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # Event cleaning and  PV selection
         self.clean_events()
 
-        # Apply JEC
-        self.apply_JEC()
+        # Apply JEC + JER
+        self.apply_JERC()
 
         # Apply preselections, triggers and cuts
         self.apply_object_preselection()
