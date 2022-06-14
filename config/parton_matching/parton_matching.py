@@ -20,7 +20,7 @@ cfg =  {
 
     # Executor parameters
     "run_options" : {
-        "executor"       : "futures",
+        "executor"       : "iterative",
         "workers"        : 5,
         "scaleout"       : 5,
         "partition"      : "standard",
@@ -31,7 +31,7 @@ cfg =  {
         "max"            : None,
         "skipbadfiles"   : None,
         "voms"           : None,
-        "limit"          : None,
+        "limit"          : 1,
     },
 
     # Cuts and plots settings
@@ -40,9 +40,9 @@ cfg =  {
 
     "categories": {
         "4j" : [get_nJets_min(4)],
-        "4j_2bjets": [getNjetNb_cut(4,2)],
-        "4j_3bjets" :    [getNjetNb_cut(4,3)],
-        "4j_4bjets":     [getNjetNb_cut(4,4)],
+        # "4j_2bjets": [getNjetNb_cut(4,2)],
+        # "4j_3bjets" :    [getNjetNb_cut(4,3)],
+        # "4j_4bjets":     [getNjetNb_cut(4,4)],
         # "3partonMatched" : [getNjetNb_cut(4,3),
         #                Cut(name="3parton-matched",
         #                    params={"object": "PartonMatched", "value": 3},
@@ -75,7 +75,7 @@ cfg =  {
         "parton_pt" : None,
         "parton_eta" : None,
         "parton_phi" : None,
-        "parton_dRMatchedJet" : None,
+#        "parton_dRMatchedJet" : None,
         "parton_pdgId": None,
 
     },

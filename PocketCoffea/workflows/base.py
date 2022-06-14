@@ -106,7 +106,10 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
 
 
     def get_histogram(self, name):
-        return self.output[name]
+        if name in self.output:
+            return self.output[name]
+        else:
+            raise Exception("Missing histogram: ", name)
     
     # Function to load year-dependent parameters
     def load_metadata(self):

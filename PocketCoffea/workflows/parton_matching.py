@@ -5,25 +5,7 @@ import numba
 
 from .base import ttHbbBaseProcessor
 from ..lib.fill import fill_histograms_object
-
-@numba.jit
-def get_matching_pairs_indices(idx_quark, idx_jets, builder, builder2):
-    for ev_q, ev_j in zip(idx_quark, idx_jets):
-        builder.begin_list()
-        builder2.begin_list()
-        q_done = []
-        j_done = []
-        for i, (q,j) in enumerate(zip(ev_q, ev_j)):
-            if q not in q_done:
-                if j not in j_done:
-                    builder.append(i)
-                    q_done.append(q)
-                    j_done.append(j)
-                else: 
-                    builder2.append(i)
-        builder.end_list()
-        builder2.end_list()
-    return builder, builder2
+from ..lib.deltaR_matching import object_matching
 
 class PartonMatchingProcessor(ttHbbBaseProcessor):
     def __init__(self,cfg) -> None:
@@ -49,53 +31,27 @@ class PartonMatchingProcessor(ttHbbBaseProcessor):
             # Sort b-quarks by pt
             quarks = ak.with_name(quarks[ak.argsort(quarks.pt, ascending=False)], name='PtEtaPhiMCandidate')
 
-        # Compute deltaR(quark, jet) and save the nearest jet (deltaR matching)
-        deltaR = ak.flatten(quarks.metric_table(self.events.JetGood), axis=2)
-        # keeping only the pairs with a deltaR min
-        maskDR = deltaR < self.dr_min
-        deltaRcut = deltaR[maskDR]
-        idx_pairs_sorted = ak.argsort(deltaRcut, axis=1)
-        pairs = ak.argcartesian([quarks, self.events.JetGood])[maskDR]
-        pairs_sorted = pairs[idx_pairs_sorted]
-        deltaR_sorted = deltaRcut[idx_pairs_sorted]
-        idx_quarks, idx_jets = ak.unzip(pairs_sorted)
-        
-        _idx_matched_pairs, _idx_missed_pairs = get_matching_pairs_indices(idx_quarks, idx_jets, ak.ArrayBuilder(), ak.ArrayBuilder())
-        idx_matched_pairs = _idx_matched_pairs.snapshot()
-        idx_missed_pairs = _idx_missed_pairs.snapshot()
-        idx_matched_quarks = idx_quarks[idx_matched_pairs]
-        idx_matched_jets = idx_jets[idx_matched_pairs]
-        # The invalid jet matches result in a None value. Only non-None values are selected.
-        matched_quarks = quarks[idx_matched_quarks]
-        matched_jets = self.events.JetGood[idx_matched_jets]
-        deltaR_matched = deltaR_sorted[idx_matched_pairs]
-
-        # Now we want to build an array with the dimension of the Jet collection containing the matched partons
-        #indices to reorder the jet pairs
-        idx_jets_sorting = ak.argsort(idx_matched_jets)
-        idx_quarks_jetsorted = idx_matched_quarks[idx_jets_sorting]
-        deltaR_jetssorted = deltaR_matched[idx_jets_sorting]
-
-        
-        
-        
+        # Calling our general object_matching function.
+        # The output is an awkward array with the shape of the second argument and None where there is no matching.
+        # So, calling like this, we will get out an array of matched_quarks with the dimension of the JetGood. 
+        matched_quarks, matched_jets, deltaR_matched = object_matching(quarks, self.events.JetGood, dr_min=self.dr_min)
         
         self.events["Parton"] = quarks
         self.events["PartonMatched"] = ak.with_field(matched_quarks, deltaR_matched, "dRMatchedJet" )
         self.events["JetGoodMatched"] = matched_jets
-
+        
     def count_partons(self):
         self.events["nparton"] = ak.count(self.events.Parton.pt, axis=1)
-        self.events["nparton_matched"] = ak.num(self.events.PartonMatched, axis=1)
+        self.events["nparton_matched"] = ak.count(self.events.PartonMatched.pt, axis=1)
 
     def fill_histograms_extra(self):
-        fill_histograms_object(self, self.events.PartonMatched, self.parton_hists)
+        fill_histograms_object(self, self.events.Parton, self.parton_hists)
         # Fill the parton matching 2D plot
-        hmatched = self.get_histogram("hist2d_Njet_Nparton_matched")
-        for category, cuts in self._categories.items():
-            weight = self._cuts_masks.all(*cuts)
-            hmatched.fill(sample=self._sample, cat=category, year=self._year,
-                          x=self.events.njet, y=self.events.nparton_matched, weight=weight)
+        # hmatched = self.get_histogram("hist2d_Njet_Nparton_matched")
+        # for category, cuts in self._categories.items():
+        #     weight = self._cuts_masks.all(*cuts)
+        #     hmatched.fill(sample=self._sample, cat=category, year=self._year, 
+        #                   x=self.events.njet, y=self.events.nparton_matched, weight=weight)
         
     def process_extra_after_presel(self) -> ak.Array:
         self.parton_matching()
