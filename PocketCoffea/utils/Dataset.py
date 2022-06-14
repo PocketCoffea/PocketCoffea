@@ -33,8 +33,8 @@ class Sample():
     # Function to get the dataset filelist from DAS
     def get_filelist(self):
         command = f'dasgoclient -json -query="file dataset={self.dataset_key}"'
-        self.filelist = os.popen(command).read().split('\n')
-        self.filelist = [os.path.join(self.prefix, *file.split('/')) for file in self.filelist if file != '']
+        records = json.load(os.popen(command))
+        self.filelist = [os.path.join(self.prefix, *record['file'][0]['name'].split('/')) for record in records]
 
     # Function to build the sample dictionary
     def build_sample_dict(self):
@@ -59,7 +59,7 @@ class Dataset():
     def get_samples(self):
         for name in self.samples:
             sample = Sample(name)
-            sample_local = Sample(name, self.prefix)
+            sample_local = Sample(name, prefix=self.prefix)
             self.sample_dict.update(sample.sample_dict)
             self.sample_dict_local.update(sample_local.sample_dict)
 

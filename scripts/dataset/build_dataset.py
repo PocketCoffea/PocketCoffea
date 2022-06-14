@@ -1,8 +1,8 @@
 import os
 import argparse
 import json
-from utils.Configurator import Configurator
-from utils.Dataset import Dataset
+from PocketCoffea.utils.Configurator import Configurator
+from PocketCoffea.utils.Dataset import Dataset
 
 parser = argparse.ArgumentParser(description='Build dataset file in json format')
 parser.add_argument('--cfg', default=os.getcwd() + "/datasets/datasets_definitions.json", help='Config file with parameters specific to the current run', required=False)
