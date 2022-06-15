@@ -45,9 +45,11 @@ samples_info = {
                 '2018' : 74634736.73,
                 },
       },
-    "ST_tW_antitop_5f_inclusiveDecays": {
+    "ST_tW_antitop_5f_NoFullyHadronicDecays": {
       "process": "ST_tW_antitop",
+      ### !!!!!!!!!!!!!!! TO BE CHECKED !!!!!!!!!!!!!!! ###
       "XS": 35.85,
+      ### !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! ###
       #"ngen_weight": 182291193.36093727 #reduced file list
             "ngen_weight": {
                 '2016' : 174109580.67,
@@ -55,9 +57,11 @@ samples_info = {
                 '2018' : 266470421.96,
                 },
       },
-    "ST_tW_top_5f_inclusiveDecays": {
+    "ST_tW_top_5f_NoFullyHadronicDecays": {
       "process": "ST_tW_top",
+      ### !!!!!!!!!!!!!!! TO BE CHECKED !!!!!!!!!!!!!!! ###
       "XS": 35.85,
+      ### !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! ###
       #"ngen_weight": 241590614.9098064 #reduced file list
             "ngen_weight": {
                 '2016' : 173908712.95,
