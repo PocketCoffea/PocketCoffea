@@ -16,7 +16,7 @@ import coffea.hist as hist
 
 from multiprocessing import Pool
 from PocketCoffea.parameters.allhistograms import histogram_settings
-from PocketCoffea.parameters.lumi import lumi
+from PocketCoffea.parameters.lumi import lumi, femtobarn
 
 from PocketCoffea.utils.Configurator import Configurator
 
@@ -98,7 +98,7 @@ if not os.path.exists(config.plots):
     os.makedirs(config.plots)
 
 def make_plots(entrystart, entrystop):
-    _accumulator = dict(list(accumulator.items())[entrystart:entrystop])
+    _accumulator = dict( [(key, value) for key, value in accumulator.items() if key.startswith('hist_')][entrystart:entrystop] )
     for histname in _accumulator:
         if config.only and not (config.only in histname): continue
         if not histname.startswith('hist_'): continue
@@ -108,7 +108,7 @@ def make_plots(entrystart, entrystop):
 
         for year in [str(s) for s in h.identifiers('year')]:
             # Convert lumi in fb^-1 and round to the first decimal digit
-            totalLumi = round(lumi[year]/1000, 1)            
+            totalLumi = femtobarn(lumi[year], digits=1)
             for cat in [str(s) for s in h.identifiers('cat')]:
                 selection_text = selection['_'.join([finalstate, cat])]
                 samples = [str(s) for s in h.identifiers('sample')]
@@ -166,6 +166,7 @@ NtotHists = len(HistsToPlot)
 NHistsToPlot = len([key for key in HistsToPlot if config.only in key])
 print("# tot histograms = ", NtotHists)
 print("# histograms to plot = ", NHistsToPlot)
+print("Histograms to plot:", HistsToPlot)
 delimiters = np.linspace(0, NtotHists, config.run_options['workers'] + 1).astype(int)
 chunks = [(delimiters[i], delimiters[i+1]) for i in range(len(delimiters[:-1]))]
 pool = Pool()
