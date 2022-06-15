@@ -22,9 +22,10 @@ from PocketCoffea.utils.Configurator import Configurator
 
 parser = argparse.ArgumentParser(description='Plot histograms from coffea file')
 parser.add_argument('--cfg', default=os.getcwd() + "/config/test.json", help='Config file with parameters specific to the current run', required=False)
+parser.add_argument('-v', '--version', type=str, default=None, help='Version of output (e.g. `v01`, `v02`, etc.)')
 
 args = parser.parse_args()
-config = Configurator(args.cfg, plot=True)
+config = Configurator(args.cfg, plot=True, plot_version=args.version)
 
 finalstate = config.finalstate
 
@@ -32,7 +33,6 @@ print("Starting ", end='')
 print(time.ctime())
 start = time.time()
 
-print( config.outfile )
 if os.path.isfile( config.outfile ): accumulator = load(config.outfile)
 else: sys.exit("Input file does not exist")
 

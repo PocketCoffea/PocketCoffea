@@ -8,9 +8,10 @@ import importlib.util
 from ..parameters.allhistograms import histogram_settings
 
 class Configurator():
-    def __init__(self, cfg, overwrite_output_dir=None, plot=False):
+    def __init__(self, cfg, overwrite_output_dir=None, plot=False, plot_version=None):
         # Load config file and attributes
-        self.plot    = plot
+        self.plot = plot
+        self.plot_version = plot_version
         self.load_config(cfg)
         self.load_attributes()
 
@@ -68,7 +69,18 @@ class Configurator():
         for key in ['only']:
             try: getattr(self, key)
             except: setattr(self, key, '')
-        self.plots = os.path.join( os.path.abspath(self.output), "plots" )
+        if self.plot:
+            # If a specific version is specified, plot that version
+            if self.plot_version:
+                self.output = self.output + f'_{self.plot_version}'
+                if not os.path.exists(self.output):
+                    sys.exit(f"The output folder {self.output} does not exist")
+            # If no version is specified, plot the latest version of the output
+            else:
+                parent_dir = os.path.abspath(os.path.join(self.output, os.pardir))
+                output_dir = os.path.basename(self.output)
+                self.output = os.path.join(parent_dir, [folder for folder in sorted(os.listdir(parent_dir)) if output_dir in folder][-1])
+            self.plots = os.path.join( os.path.abspath(self.output), "plots" )
 
     def load_dataset(self):
         self.fileset = {}

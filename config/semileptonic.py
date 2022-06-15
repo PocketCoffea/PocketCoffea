@@ -6,7 +6,10 @@ cfg =  {
     "dataset" : {
         "jsons": ["datasets/RunIISummer20UL18_t3_local.json"],
         "filter" : {
-            "samples": ["ttHTobb", "TTToSemiLeptonic", "TTTo2L2Nu"],
+            "samples": ["ttHTobb", "TTToSemiLeptonic", "TTTo2L2Nu",
+                        "ST_s-channel_4f_leptonDecays",
+                        "ST_t-channel_top_4f_InclusiveDecays", "ST_t-channel_antitop_4f_InclusiveDecays",
+                        "ST_tW_top_5f_NoFullyHadronicDecays", "ST_tW_antitop_5f_NoFullyHadronicDecays"],
             "samples_exclude" : [],
             "year": ["2018"]
         }
@@ -14,7 +17,7 @@ cfg =  {
 
     # Input and output files
     "workflow" : ttHbbBaseProcessor,
-    "output"   : "output/semileptonic_samples",
+    "output"   : "output/semileptonic_ST",
 
     # Executor parameters
     "run_options" : {
