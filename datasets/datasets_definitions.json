@@ -1,9 +1,14 @@
 {
     "Run2UL2018_test" :
     {
-        "das_names"  : "datasets/DAS/RunIISummer20UL18.txt",
-        "json_output"     : "datasets/RunIISummer20UL18.json",
-        "storage_prefix" : "/pnfs/psi.ch/cms/trivcat/store/user/mmarcheg/ttHbb"
+        "das_names"      : "datasets/DAS/RunIISummer20UL18.json",
+        "json_output"    : "datasets/RunIISummer20UL18.json",
+        "storage_prefix" : "/pnfs/psi.ch/cms/trivcat/store/mc"
+    },
+    "Run2UL2018_t3" :
+    {
+        "das_names"      : "datasets/DAS/RunIISummer20UL18.json",
+        "json_output"    : "datasets/RunIISummer20UL18_t3.json",
+        "storage_prefix" : "/pnfs/psi.ch/cms/trivcat"
     }
-   
 }

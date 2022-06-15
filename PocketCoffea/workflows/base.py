@@ -12,6 +12,7 @@ from coffea.analysis_tools import PackedSelection, Weights
 
 import correctionlib
 
+from ..lib.triggers import get_trigger_mask
 from ..lib.objects import jet_correction, lepton_selection, jet_selection, btagging, get_dilepton
 from ..lib.pileup import sf_pileup_reweight
 from ..lib.scale_factors import sf_ele_reco, sf_ele_id, sf_mu
@@ -175,15 +176,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     # Function that computes the trigger masks and save the logical OR of the mumu, emu and ee triggers in the PackedSelector
     def apply_triggers(self):
         # Trigger logic
-        self.trigger_mumu = np.zeros(len(self.events), dtype='bool')
-        self.trigger_emu = np.zeros(len(self.events), dtype='bool')
-        self.trigger_ee = np.zeros(len(self.events), dtype='bool')
-
-        for trigger in self._triggers["mumu"]: self.trigger_mumu = self.trigger_mumu | self.events.HLT[trigger.lstrip("HLT_")]
-        for trigger in self._triggers["emu"]:  self.trigger_emu  = self.trigger_emu  | self.events.HLT[trigger.lstrip("HLT_")]
-        for trigger in self._triggers["ee"]:   self.trigger_ee   = self.trigger_ee   | self.events.HLT[trigger.lstrip("HLT_")]
-        # Trigger preselection
-        self._preselection_masks.add('trigger', ak.to_numpy(self.trigger_mumu | self.trigger_emu | self.trigger_ee))
+        self._preselection_masks.add('trigger', get_trigger_mask(self.events, self._triggers, self.cfg.finalstate))
 
     def apply_preselection_cuts(self):
         for cut in self._preselections:
