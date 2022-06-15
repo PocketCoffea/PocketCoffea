@@ -52,14 +52,14 @@ class Dataset():
         self.sample_dict = {}
         self.sample_dict_local = {}
         with open(file, 'r') as f:
-            self.samples = f.read().splitlines()
+            self.samples = json.load(f)
         self.get_samples()
 
     # Function to build the dataset dictionary
     def get_samples(self):
-        for name in self.samples:
-            sample = Sample(name)
-            sample_local = Sample(name, prefix=self.prefix)
+        for sample_key, dataset in self.samples.items():
+            sample = Sample(dataset['dataset_key'], sample=sample_key, year=dataset['year'])
+            sample_local = Sample(dataset['dataset_key'], sample=sample_key, year=dataset['year'], prefix=self.prefix)
             self.sample_dict.update(sample.sample_dict)
             self.sample_dict_local.update(sample_local.sample_dict)
 
