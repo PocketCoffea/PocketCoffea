@@ -14,7 +14,6 @@ def count_objects_lt(events,params,year,sample):
     mask = ak.num(events[params["object"]], axis=1) < params["value"]
     return ak.where(ak.is_none(mask), ~ak.is_none(mask), mask)
 
-
 def count_objects_eq(events,params,year,sample):
     mask = ak.num(events[params["object"]], axis=1) == params["value"]
     return ak.where(ak.is_none(mask), ~ak.is_none(mask), mask)
@@ -37,7 +36,7 @@ def get_nJets_min(njets, name=None):
     
 
 ##################
-# Commong preselection functions
+# Common preselection functions
 def dilepton(events, params, year, sample):
 
     MET  = events[params["METbranch"][year]]
@@ -57,8 +56,25 @@ def dilepton(events, params, year, sample):
              (events.ll.mass > params["mll"]) &
              # If same-flavour we exclude a mll mass interval 
              ( ( SF & ( (events.ll.mass < params["mll_SFOS"]["low"]) | (events.ll.mass > params["mll_SFOS"]["high"]) ) )
-               | not_SF) )
+               | not_SF ) )
 
     # Pad None values with False
     return ak.where(ak.is_none(mask), ~ak.is_none(mask), mask)
 
+def semileptonic(events, params, year, sample):
+
+    MET  = events[params["METbranch"][year]]
+
+    has_one_electron = (events.nelectron == 1)
+    has_one_muon     = (events.nmuon == 1)
+
+    mask = ( (events.nlep == 1) &
+              # Here we properly distinguish between leading muon and leading electron
+             ( (has_one_electron & (ak.firsts(events.LeptonGood.pt) > params["pt_leading_electron"][year])) |
+               (has_one_muon & (ak.firsts(events.LeptonGood.pt) > params["pt_leading_muon"][year])) ) &
+             (events.njet >= params["njet"]) &
+             (events.nbjet >= params["nbjet"]) &
+             (MET.pt > params["met"]) )
+
+    # Pad None values with False
+    return ak.where(ak.is_none(mask), ~ak.is_none(mask), mask)

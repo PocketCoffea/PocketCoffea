@@ -15,22 +15,24 @@ from coffea.hist import plot
 import coffea.hist as hist
 
 from multiprocessing import Pool
-from parameters.allhistograms import histogram_settings
-from parameters.lumi import lumi
+from PocketCoffea.parameters.allhistograms import histogram_settings
+from PocketCoffea.parameters.lumi import lumi, femtobarn
 
-from utils.Configurator import Configurator
+from PocketCoffea.utils.Configurator import Configurator
 
 parser = argparse.ArgumentParser(description='Plot histograms from coffea file')
 parser.add_argument('--cfg', default=os.getcwd() + "/config/test.json", help='Config file with parameters specific to the current run', required=False)
+parser.add_argument('-v', '--version', type=str, default=None, help='Version of output (e.g. `v01`, `v02`, etc.)')
 
 args = parser.parse_args()
-config = Configurator(args.cfg, plot=True)
+config = Configurator(args.cfg, plot=True, plot_version=args.version)
+
+finalstate = config.finalstate
 
 print("Starting ", end='')
 print(time.ctime())
 start = time.time()
 
-print( config.outfile )
 if os.path.isfile( config.outfile ): accumulator = load(config.outfile)
 else: sys.exit("Input file does not exist")
 
@@ -77,8 +79,18 @@ ggH_opts = {
 
 selection = {
     'trigger'  : (r'Trigger'),
-    'baseline' : (r'Trigger'+'\n'+
-                  r'Dilepton cuts')
+    'dilepton_SR' : (r'Trigger'+'\n'+
+                     r'Dilepton cuts'+'\n'+
+                     r'SR'),
+    'dilepton_CR' : (r'Trigger'+'\n'+
+                     r'Dilepton cuts'+'\n'+
+                     r'CR'),
+    'semileptonic_SR' : (r'Trigger'+'\n'+
+                     r'Semileptonic cuts'+'\n'+
+                     r'SR'),
+    'semileptonic_CR' : (r'Trigger'+'\n'+
+                     r'Semileptonic cuts'+'\n'+
+                     r'CR'),
 }
 
 plt.style.use([hep.style.ROOT, {'font.size': 16}])
@@ -86,7 +98,7 @@ if not os.path.exists(config.plots):
     os.makedirs(config.plots)
 
 def make_plots(entrystart, entrystop):
-    _accumulator = dict(list(accumulator.items())[entrystart:entrystop])
+    _accumulator = dict( [(key, value) for key, value in accumulator.items() if key.startswith('hist_')][entrystart:entrystop] )
     for histname in _accumulator:
         if config.only and not (config.only in histname): continue
         if not histname.startswith('hist_'): continue
@@ -96,9 +108,9 @@ def make_plots(entrystart, entrystop):
 
         for year in [str(s) for s in h.identifiers('year')]:
             # Convert lumi in fb^-1 and round to the first decimal digit
-            totalLumi = round(lumi[year]/1000, 1)            
-            for cut in [str(s) for s in h.identifiers('cut')]:
-                selection_text = selection[cut]
+            totalLumi = femtobarn(lumi[year], digits=1)
+            for cat in [str(s) for s in h.identifiers('cat')]:
+                selection_text = selection['_'.join([finalstate, cat])]
                 samples = [str(s) for s in h.identifiers('sample')]
                 varname = h.fields[-1]
                 varlabel = h.axis(varname).label
@@ -112,14 +124,14 @@ def make_plots(entrystart, entrystop):
                     fig, ax = plt.subplots(1, 1, figsize=(12,9))
                     fig.subplots_adjust(hspace=.07)
                     if len(h.axes()) > 4:
-                        categories_to_sum_over = ['cut', 'year']
+                        categories_to_sum_over = ['cat', 'year']
                         collections = [str(s) for s in h.identifiers('collection')]
-                        plot.plot1d(h.sum('sample')[(cut, year)].sum(*categories_to_sum_over), ax=ax, legend_opts={'loc':1})
-                        maxY = 1.2 *max( [ max(h.sum('sample')[(cut, year)].sum(*categories_to_sum_over).values()[(collection,)]) for collection in collections] )
+                        plot.plot1d(h.sum('sample')[(cat, year)].sum(*categories_to_sum_over), ax=ax, legend_opts={'loc':1})
+                        maxY = 1.2 *max( [ max(h.sum('sample')[(cat, year)].sum(*categories_to_sum_over).values()[(collection,)]) for collection in collections] )
                     else:
-                        categories_to_sum_over = ['cut', 'year']
-                        plot.plot1d(h[(samples, cut, year)].sum(*categories_to_sum_over), ax=ax, legend_opts={'loc':1})
-                        maxY = 1.2 *max( [ max(h[(sample, cut, year)].sum(*categories_to_sum_over).values()[(sample,)]) for sample in samples] )
+                        categories_to_sum_over = ['cat', 'year']
+                        plot.plot1d(h[(samples, cat, year)].sum(*categories_to_sum_over), ax=ax, legend_opts={'loc':1})
+                        maxY = 1.2 *max( [ max(h[(sample, cat, year)].sum(*categories_to_sum_over).values()[(sample,)]) for sample in samples] )
 
                     hep.cms.text("Preliminary", ax=ax)
                     hep.cms.lumitext(text=f'{totalLumi}' + r' fb$^{-1}$, 13 TeV,' + f' {year}', fontsize=18, ax=ax)
@@ -135,7 +147,7 @@ def make_plots(entrystart, entrystop):
                         elif histname == 'hist_bquark_pt':
                             ax.set_xlim(0,200)
                         #ax.set_xlim(**histogram_settings['variables']['_'.join(histname.lstrip('hist_').split('_')[:2])]['xlim'])
-                    filepath = os.path.join(config.plots, f"{histname}_{cut}_{year}.png")
+                    filepath = os.path.join(config.plots, f"{histname}_{finalstate}_{cat}_{year}.png")
                     if config.scale == 'log':
                         ax.semilogy()
                         exp_high = 2 + math.floor(math.log(maxY, 10))
@@ -154,6 +166,7 @@ NtotHists = len(HistsToPlot)
 NHistsToPlot = len([key for key in HistsToPlot if config.only in key])
 print("# tot histograms = ", NtotHists)
 print("# histograms to plot = ", NHistsToPlot)
+print("Histograms to plot:", HistsToPlot)
 delimiters = np.linspace(0, NtotHists, config.run_options['workers'] + 1).astype(int)
 chunks = [(delimiters[i], delimiters[i+1]) for i in range(len(delimiters[:-1]))]
 pool = Pool()

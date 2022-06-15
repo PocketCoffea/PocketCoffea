@@ -9,7 +9,7 @@ from parsl.config import Config
 from parsl.executors.threads import ThreadPoolExecutor
 
 class Sample():
-    def __init__(self, name, das_names, sample, metadata, prefix="root://xrootd-cms.infn.it//"):
+    def __init__(self, name, das_names, sample, metadata):
         '''
         Class representing a single analysis sample. 
         - The name is the unique key of the sample in the dataset file.
@@ -30,10 +30,10 @@ class Sample():
         self.metadata["size"] = 0
         self.fileslist = []
         self.get_filelist()
+        
 
     # Function to get the dataset filelist from DAS
     def get_filelist(self):
-        # TODO: Include here a switch to select between DAS and local storage
         for das_name in self.metadata["das_names"]:
             command = f'dasgoclient -json -query="file dataset={das_name}"'
             print(f"Executing query: {command}")
@@ -45,30 +45,39 @@ class Sample():
                 else:
                     self.fileslist.append(f['name'])
                     self.metadata["nevents"] += f['nevents']
-                    self.metadata["size"] += f['size']            
-
+                    self.metadata["size"] += f['size']
+            if len(self.fileslist)==0:
+                raise Exception(f"Found 0 files for sample {self}!")
     # Function to build the sample dictionary
-    def get_sample_dict(self):
+    def get_sample_dict(self, prefix="root://xrootd-cms.infn.it//"):
         out = {
             self.name : {
             'metadata' : self.metadata,
-            'files': self.fileslist
+            'files': [prefix + f for f in self.fileslist]
         }}
         return out
+
+    def check_files(self, prefix):
+        for f in self.fileslist:
+            ff = prefix + f
+            if not os.path.exists(ff):
+                print(f"Missing file: {ff}")
             
     def __repr__(self):
-        return f"name: {self.name}, sample: {self.sample}, das_name: {self.das_name}, year: {self.year}"
+        return f"name: {self.name}, sample: {self.metadata['sample']}, das_name: {self.metadata['das_names']}, year: {self.metadata['year']}"
 
 class Dataset():
-    def __init__(self,name, cfg, prefix="root://xrootd-cms.infn.it//"):
-        self.prefix = prefix
+    def __init__(self,name, cfg):
+        self.prefix = cfg["storage_prefix"]
         self.name = name
         self.outfile = cfg["json_output"]
         self.sample = cfg["sample"]
         self.sample_dict = {}
-        self.sample_dict_local = {}        
+        self.sample_dict_local = {}
+        self.samples_obj = []
         self.get_samples(cfg["files"])
 
+        
     # Function to build the dataset dictionary
     def get_samples(self, files):
         for scfg in files:
@@ -79,20 +88,39 @@ class Dataset():
                             das_names = scfg["das_names"],
                             sample=self.sample,
                             metadata=scfg["metadata"])
-            #sample_local = Sample(name, self.prefix)
-            #self.sample_dict.update(sample.sample_dict)
-            #self.sample_dict_local.update(sample_local.sample_dict)
+            self.samples_obj.append(sample)
+            # Get the default prefix and the the one
             self.sample_dict.update(sample.get_sample_dict())
-            self.sample_dict_local.update(sample.get_sample_dict())
+            self.sample_dict_local.update(sample.get_sample_dict(prefix=self.prefix))
+
 
     # Function to save the dataset dictionary with xrootd and local prefixes
-    def save(self, local=True):
+    def save(self, append=True, overwrite=False):
         for outfile, sample_dict in zip([self.outfile, self.outfile.replace('.json', '_local.json')], [self.sample_dict, self.sample_dict_local]):
             print(f"Saving datasets to {outfile}")
+            if append and os.path.exists(outfile):
+                # Update the same json file
+                previous = json.load(open(outfile))
+                if overwrite:
+                    previous.update(sample_dict)
+                    sample_dict = previous
+                else:
+                    for k,v in sample_dict.values():
+                        if k in previous:
+                            raise Exception(f"Sample {k} already present in file {outfile}, not overwriting!")
+                        else:
+                            previous[k] = v
+                    sample_dict = previous
             with open(outfile, 'w') as fp:
                 json.dump(sample_dict, fp, indent=4)
                 fp.close()
 
+
+    def check_samples(self):
+        for sample in self.samples_obj:
+            print(f"Checking sample {sample.name}")
+            sample.check_files(self.prefix)
+                
     @python_app
     def down_file(fname, out, ith=None):
         if ith is not None:
