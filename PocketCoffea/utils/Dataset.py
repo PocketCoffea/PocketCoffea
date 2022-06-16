@@ -1,7 +1,7 @@
 import os
 import sys
 import json
-import importlib.util
+from collections import defaultdict 
 
 import parsl
 from parsl import python_app
@@ -9,68 +9,133 @@ from parsl.config import Config
 from parsl.executors.threads import ThreadPoolExecutor
 
 class Sample():
-    def __init__(self, dataset_key, sample=None, year=None, prefix="root://xrootd-cms.infn.it//"):
-        self.prefix = prefix
-        self.dataset_key = dataset_key
-        self.sample_dict = {}
-        if sample == None:
-            self.load_attributes()
-        else:
-            self.year = year
-            self.sample = sample
-            self.name = f"{sample}_{year}"
+    def __init__(self, name, das_names, sample, metadata):
+        '''
+        Class representing a single analysis sample. 
+        - The name is the unique key of the sample in the dataset file.
+        - The DAS name is the unique identifier of the sample in CMS
+        - The sample represent the category: DATA/Wjets/ttHbb/ttBB. It is used to group the same type of events
+        - metadata contains various keys necessary for the analysis --> the dict passed around in the coffea processor
+        -- year
+        -- isMC: true/false
+        -- era: A/B/C/D (only for data)
+        '''
+        self.name = name
+        self.das_names = das_names
+        self.metadata = {}
+        self.metadata["das_names"] = das_names
+        self.metadata["sample"] = sample
+        self.metadata.update(metadata)
+        self.metadata["nevents"] = 0
+        self.metadata["size"] = 0
+        self.fileslist = []
         self.get_filelist()
-        self.build_sample_dict()
-
-    # Function to get sample name and year from dataset name on DAS
-    def load_attributes(self):
-        self.sample = self.dataset_key.split('/')[1].split('_')[0]
-        self.year = '20' + self.dataset_key.split('/')[2].split('UL')[1][:2]
-        if self.year not in ['2016', '2017', '2018']:
-            sys.exit(f"No dataset available for year '{self.year}'")
-        self.name = self.sample + '_' + self.year
+        
 
     # Function to get the dataset filelist from DAS
     def get_filelist(self):
-        command = f'dasgoclient -json -query="file dataset={self.dataset_key}"'
-        records = json.load(os.popen(command))
-        self.filelist = [os.path.join(self.prefix, *record['file'][0]['name'].split('/')) for record in records]
-
+        for das_name in self.metadata["das_names"]:
+            command = f'dasgoclient -json -query="file dataset={das_name}"'
+            print(f"Executing query: {command}")
+            filesjson = json.loads(os.popen(command).read())
+            for fj in filesjson:
+                f = fj["file"][0]
+                if f["is_file_valid"] == 0:
+                    print(f"ERROR: File not valid on DAS: {f['name']}")
+                else:
+                    self.fileslist.append(f['name'])
+                    self.metadata["nevents"] += f['nevents']
+                    self.metadata["size"] += f['size']
+            if len(self.fileslist)==0:
+                raise Exception(f"Found 0 files for sample {self}!")
     # Function to build the sample dictionary
-    def build_sample_dict(self):
-        self.sample_dict[self.name] = {}
-        self.sample_dict[self.name]['metadata'] = {'sample' : self.sample, 'year' : self.year, 'dataset_key' : self.dataset_key}
-        self.sample_dict[self.name]['files']    = self.filelist
+    def get_sample_dict(self, prefix="root://xrootd-cms.infn.it//"):
+        out = {
+            self.name : {
+            'metadata' : self.metadata,
+            'files': [prefix + f for f in self.fileslist]
+        }}
+        return out
 
-    def Print(self):
-        print(f"dataset_key: {self.dataset_key}, sample: {self.sample}, year: {self.year}")
+    def check_files(self, prefix):
+        for f in self.fileslist:
+            ff = prefix + f
+            if not os.path.exists(ff):
+                print(f"Missing file: {ff}")
+            
+    def __repr__(self):
+        return f"name: {self.name}, sample: {self.metadata['sample']}, das_name: {self.metadata['das_names']}, year: {self.metadata['year']}"
 
 class Dataset():
-    def __init__(self, file, prefix, outfile):
-        self.prefix = prefix
-        self.outfile = outfile
+    def __init__(self,name, cfg):
+        self.prefix = cfg["storage_prefix"]
+        self.name = name
+        self.outfile = cfg["json_output"]
+        self.sample = cfg["sample"]
         self.sample_dict = {}
         self.sample_dict_local = {}
-        with open(file, 'r') as f:
-            self.samples = json.load(f)
-        self.get_samples()
+        self.samples_obj = []
+        self.get_samples(cfg["files"])
 
+        
     # Function to build the dataset dictionary
-    def get_samples(self):
-        for sample_key, dataset in self.samples.items():
-            sample = Sample(dataset['dataset_key'], sample=sample_key, year=dataset['year'])
-            sample_local = Sample(dataset['dataset_key'], sample=sample_key, year=dataset['year'], prefix=self.prefix)
-            self.sample_dict.update(sample.sample_dict)
-            self.sample_dict_local.update(sample_local.sample_dict)
+    def get_samples(self, files):
+        for scfg in files:
+            name = f"{self.name}_{scfg['metadata']['year']}"
+            if not scfg["metadata"]["isMC"]:
+                name += f"_Era{scfg['metadata']['era']}"
+            sample = Sample(name=name,
+                            das_names = scfg["das_names"],
+                            sample=self.sample,
+                            metadata=scfg["metadata"])
+            self.samples_obj.append(sample)
+            # Get the default prefix and the the one
+            self.sample_dict.update(sample.get_sample_dict())
+            self.sample_dict_local.update(sample.get_sample_dict(prefix=self.prefix))
 
+    def _write_dataset(self, outfile, sample_dict, append=True, overwrite=False):
+        print(f"Saving datasets {self.name} to {outfile}")
+        if append and os.path.exists(outfile):
+            # Update the same json file
+            previous = json.load(open(outfile))
+            if overwrite:
+                previous.update(sample_dict)
+                sample_dict = previous
+            else:
+                for k,v in sample_dict.values():
+                    if k in previous:
+                        raise Exception(f"Sample {k} already present in file {outfile}, not overwriting!")
+                    else:
+                        previous[k] = v
+                        sample_dict = previous
+        with open(outfile, 'w') as fp:
+            json.dump(sample_dict, fp, indent=4)
+            fp.close()
+        
     # Function to save the dataset dictionary with xrootd and local prefixes
-    def save(self, local=True):
-        for outfile, sample_dict in zip([self.outfile, self.outfile.replace('.json', '_local.json')], [self.sample_dict, self.sample_dict_local]):
-            print(f"Saving datasets to {outfile}")
-            with open(outfile, 'w') as fp:
-                json.dump(sample_dict, fp, indent=4)
-                fp.close()
+    def save(self, append=True, overwrite=False, split=False):
+        if not split:
+            for outfile, sample_dict in zip([self.outfile, self.outfile.replace('.json', '_local.json')], [self.sample_dict, self.sample_dict_local]):
+                self._write_dataset(outfile, sample_dict, append, overwrite)
+        else:
+            samples_byyear = defaultdict(dict)
+            samples_local_byyear = defaultdict(dict)            
+            for k,v in self.sample_dict.items():
+                samples_byyear[v["metadata"]["year"]][k] = v
+            for k,v in self.sample_dict_local.items():
+                samples_local_byyear[v["metadata"]["year"]][k] = v
+            for year, sample_dict in samples_byyear.items():
+                self._write_dataset(self.outfile.replace(".json",f"_{year}.json"), sample_dict, append, overwrite)
+            for year, sample_dict in samples_local_byyear.items():
+                self._write_dataset(self.outfile.replace(".json",f"_{year}_local.json"), sample_dict, append, overwrite)
+                
 
+
+    def check_samples(self):
+        for sample in self.samples_obj:
+            print(f"Checking sample {sample.name}")
+            sample.check_files(self.prefix)
+                
     @python_app
     def down_file(fname, out, ith=None):
         if ith is not None:

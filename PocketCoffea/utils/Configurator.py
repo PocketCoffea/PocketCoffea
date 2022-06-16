@@ -37,7 +37,7 @@ class Configurator():
 
         ## Load cuts and categories
         # Cuts: set of Cut objects
-        # Categories: dict with a set of Cut names for each category
+        # Categories: dict with a set of Cut ids for each category
         self.cuts = []
         self.categories = {}
         # Saving also a dict of Cut objects to map their ids (name__hash)

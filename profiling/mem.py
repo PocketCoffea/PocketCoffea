@@ -1,5 +1,8 @@
-from parameters.cuts.baseline_cuts import dilepton_presel, passthrough
-from parameters.allhistograms import histogram_settings
+from PocketCoffea.parameters.cuts.baseline_cuts import dilepton_presel, passthrough
+from PocketCoffea.lib.cut_functions import count_objects_gt, get_nJets_min
+from PocketCoffea.lib.cut_definition import Cut
+from config.parton_matching.functions import *
+from PocketCoffea.workflows.parton_matching  import PartonMatchingProcessor
 
 cfg =  {
 
@@ -13,7 +16,7 @@ cfg =  {
     },
 
     # Input and output files
-    "workflow" : "parton_matching",
+    "workflow" : PartonMatchingProcessor,
     "output"   : "output/mem",
 
     # Executor parameters
@@ -56,7 +59,7 @@ cfg =  {
         "parton_pt": None,
         "parton_eta": None,
         "parton_pdgId" : None,
-        "parton_dRMatchedJet": None,
+       # "parton_dRMatchedJet": None,
      },
     "variables2d" : {},
     "scale" : "log"

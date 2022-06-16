@@ -7,15 +7,57 @@ This file is then processed through the script `scripts/plot/make_plots.py` to p
 The workflows can be run locally or by submitting jobs on a cluster. All the commands for the execution are wrapped up in a runner script `runner.py`.
 All the relevant parameters for the execution of the processor such as the input and output files' names, the execution parameters, the cuts to apply and the histogram settings are contained in a Python dictionary, defined in a configuration file in `config/`, which is passed to the runner script as an argument.
 ## How to run
-### Build JSON dataset
+### Build the dataset definition
+Datasets are collection of samples, their corresponding files, and their metadata. 
+Datasets are defined in JSON files following this syntax.
+
+~~~
+    "ttHTobb_latestver": {
+        "sample": "ttHTobb",
+        "json_output" : "datasets/signal_ttHTobb.json",
+        "storage_prefix": "/pnfs/psi.ch/cms/trivcat/",
+        "files": [
+            { "das_names": ["/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM"],
+              "metadata":{
+                  "year": "2018",
+                  "isMC": true
+              }
+            }
+        ]
+    },
+~~~
+The name of the object makes the dataset unique. The `sample` key is the one used internally in the framework. The
+`json_output` defines the output location for the list of files. The `storage_prefix` defines the local position of the
+files on the cluster. 
+The same dataset can contain different group of **DAS** names with a separate metadata dictionary. They `year` metadata
+is added to the final sample name. Doing so one can define in a single location all the files for different data-taking
+periods. 
+
+
 To build the JSON dataset, run the following script:
 ~~~
-python scripts/dataset/build_dataset.py --cfg config/base.py
+python scripts/dataset/build_dataset.py -h
+
+Build dataset file in json format
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --cfg CFG             Config file with parameters specific to the current run
+  -k KEYS [KEYS ...], --keys KEYS [KEYS ...]
+                        Dataset keys
+  -d, --download        Download dataset files on local machine
+  -o, --overwrite       Overwrite existing files
+  -c, --check           Check file existance in the local prefix
+
 ~~~
 Two version of the JSON dataset will be saved: one with the `root://xrootd-cms.infn.it//` prefix and one with a local prefix passed through the config file (with label `_local.json`).
 To download the files locally, run the script with the additional argument `--download`:
 ~~~
-python scripts/dataset/build_dataset.py --cfg config/base.py --download
+python scripts/dataset/build_dataset.py --cfg config/base.py dataset/dataset_definitions.json  --download
+~~~
+To check if the files are already present in the local cluster run:
+~~~
+python scripts/dataset/build_dataset.py --cfg config/base.py dataset/dataset_definitions.json  --check
 ~~~
 
 ### Execution on local machine with Futures Executor
@@ -80,4 +122,4 @@ library
 ~~~
 snakeviz output.prof -s 
 ~~~
-and open on a browser the link shown by the program.
+    and open on a browser the link shown by the program.
