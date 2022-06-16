@@ -6,32 +6,32 @@
         "files":[
             { "das_names": ["/DoubleMuon/Run2017B-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD"],
               "metadata": {
-                  "year":"2016",
+                  "year":"2017",
                   "isMC": false,
                   "era": "B" }},
             { "das_names": ["/DoubleMuon/Run2017C-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD"],
               "metadata": {
-                  "year":"2016",
+                  "year":"2017",
                   "isMC": false,
                   "era": "C" }},
             { "das_names": ["/DoubleMuon/Run2017D-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD"],
               "metadata": {
-                  "year":"2016",
+                  "year":"2017",
                   "isMC": false,
                   "era": "D" }},
             { "das_names": ["/DoubleMuon/Run2017E-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD"],
               "metadata": {
-                  "year":"2016",
+                  "year":"2017",
                   "isMC": false,
                   "era": "E" }},
             { "das_names": ["/DoubleMuon/Run2017F-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD"],
               "metadata": {
-                  "year":"2016",
+                  "year":"2017",
                   "isMC": false,
                   "era": "F" }},
             { "das_names": ["/DoubleMuon/Run2017G-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD"],
               "metadata": {
-                  "year":"2016",
+                  "year":"2017",
                   "isMC": false,
                   "era": "G" }}
         ]

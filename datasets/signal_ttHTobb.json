@@ -69,5 +69,6 @@
             "root://xrootd-cms.infn.it///store/mc/RunIISummer20UL18NanoAODv9/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/106X_upgrade2018_realistic_v16_L1v1-v2/40000/BB7B00C5-1F8C-764D-99B5-BA6300031F7B.root",
             "root://xrootd-cms.infn.it///store/mc/RunIISummer20UL18NanoAODv9/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/106X_upgrade2018_realistic_v16_L1v1-v2/40000/203A478C-5B2F-6C45-BD2F-5BBAEFAE2F5B.root"
         ]
-    }
+    },
+    "metadata": "files"
 }

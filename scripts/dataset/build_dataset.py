@@ -9,6 +9,7 @@ parser.add_argument("-k", "--keys", nargs="+", required=False, help="Dataset key
 parser.add_argument('-d', '--download', action='store_true', default=False, help='Download dataset files on local machine', required=False)
 parser.add_argument('-o','--overwrite', action='store_true', help="Overwrite existing files", default=False)
 parser.add_argument('-c','--check', action='store_true', help="Check file existance in the local prefix", default=False)
+parser.add_argument('-s','--split-by-year',help="Split output files by year", action="store_true", default=False)
 
 args = parser.parse_args()
 config = json.load(open(args.cfg))
@@ -24,7 +25,7 @@ for key in keys:
         exit(1)
     dataset_cfg = config[key]
     dataset = Dataset(name=key, cfg=dataset_cfg)
-    dataset.save(overwrite=args.overwrite)
+    dataset.save(overwrite=args.overwrite,split=args.split_by_year)
     if args.check:
         dataset.check_samples()
     

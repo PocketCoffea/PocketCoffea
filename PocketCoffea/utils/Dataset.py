@@ -1,7 +1,7 @@
 import os
 import sys
 import json
-import importlib.util
+from collections import defaultdict 
 
 import parsl
 from parsl import python_app
@@ -93,27 +93,42 @@ class Dataset():
             self.sample_dict.update(sample.get_sample_dict())
             self.sample_dict_local.update(sample.get_sample_dict(prefix=self.prefix))
 
-
+    def _write_dataset(self, outfile, sample_dict, append=True, overwrite=False):
+        print(f"Saving datasets {self.name} to {outfile}")
+        if append and os.path.exists(outfile):
+            # Update the same json file
+            previous = json.load(open(outfile))
+            if overwrite:
+                previous.update(sample_dict)
+                sample_dict = previous
+            else:
+                for k,v in sample_dict.values():
+                    if k in previous:
+                        raise Exception(f"Sample {k} already present in file {outfile}, not overwriting!")
+                    else:
+                        previous[k] = v
+                        sample_dict = previous
+        with open(outfile, 'w') as fp:
+            json.dump(sample_dict, fp, indent=4)
+            fp.close()
+        
     # Function to save the dataset dictionary with xrootd and local prefixes
-    def save(self, append=True, overwrite=False):
-        for outfile, sample_dict in zip([self.outfile, self.outfile.replace('.json', '_local.json')], [self.sample_dict, self.sample_dict_local]):
-            print(f"Saving datasets to {outfile}")
-            if append and os.path.exists(outfile):
-                # Update the same json file
-                previous = json.load(open(outfile))
-                if overwrite:
-                    previous.update(sample_dict)
-                    sample_dict = previous
-                else:
-                    for k,v in sample_dict.values():
-                        if k in previous:
-                            raise Exception(f"Sample {k} already present in file {outfile}, not overwriting!")
-                        else:
-                            previous[k] = v
-                    sample_dict = previous
-            with open(outfile, 'w') as fp:
-                json.dump(sample_dict, fp, indent=4)
-                fp.close()
+    def save(self, append=True, overwrite=False, split=False):
+        if not split:
+            for outfile, sample_dict in zip([self.outfile, self.outfile.replace('.json', '_local.json')], [self.sample_dict, self.sample_dict_local]):
+                self._write_dataset(outfile, sample_dict, append, overwrite)
+        else:
+            samples_byyear = defaultdict(dict)
+            samples_local_byyear = defaultdict(dict)            
+            for k,v in self.sample_dict.items():
+                samples_byyear[v["metadata"]["year"]][k] = v
+            for k,v in self.sample_dict_local.items():
+                samples_local_byyear[v["metadata"]["year"]][k] = v
+            for year, sample_dict in samples_byyear.items():
+                self._write_dataset(self.outfile.replace(".json",f"_{year}.json"), sample_dict, append, overwrite)
+            for year, sample_dict in samples_local_byyear.items():
+                self._write_dataset(self.outfile.replace(".json",f"_{year}_local.json"), sample_dict, append, overwrite)
+                
 
 
     def check_samples(self):
