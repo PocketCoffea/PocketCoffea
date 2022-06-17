@@ -9,24 +9,13 @@ import correctionlib
 from vector import MomentumObject4D
 from numba import njit
 
+
 from coffea import hist, lookup_tools
 from coffea.nanoevents.methods import nanoaod
 
 from ..parameters.preselection import object_preselection
 from ..parameters.jec import JECjsonFiles
 from ..lib.deltaR_matching import get_matching_pairs_indices, object_matching
-
-@njit
-def delta_pt_jets_coll(jets, genJets, mask, builder):
-    for js , genJs, ms in zip(jets, genJets, mask):
-        builder.begin_list()
-        for j, g, m in zip(js, genJs, ms):
-            if m:
-                builder.append(abs(j.pt-g.pt))
-            else:
-                builder.append(None)
-        builder.end_list()
-    return builder
 
 
 def jet_correction(events, Jet, typeJet, year, JECversion, JERversion=None, verbose=False):
@@ -101,7 +90,8 @@ def jet_correction(events, Jet, typeJet, year, JECversion, JERversion=None, verb
         matched_genjets = genjets[matched_genjets_idx]
         matched_jets = ak.mask(jets_corrected, matched_objs_mask)
 
-        deltaPt = delta_pt_jets_coll(matched_jets, matched_genjets, matched_objs_mask, ak.ArrayBuilder()).snapshot()
+        
+        deltaPt = ak.unflatten(np.abs(ak.flatten(matched_jets.pt) - ak.flatten(matched_genjets.pt)), ak.num(matched_genjets))
         matched_genjets = ak.mask(matched_genjets, deltaPt < pt_min)      
         matched_jets = ak.mask(matched_jets, deltaPt < pt_min)
         
