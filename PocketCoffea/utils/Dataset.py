@@ -44,7 +44,7 @@ class Sample():
                     print(f"ERROR: File not valid on DAS: {f['name']}")
                 else:
                     self.fileslist.append(f['name'])
-                    self.metadata["nevents"] += f['nevents']
+                    self.metadata["nevents"] +=f['nevents']
                     self.metadata["size"] += f['size']
             if len(self.fileslist)==0:
                 raise Exception(f"Found 0 files for sample {self}!")
@@ -52,7 +52,7 @@ class Sample():
     def get_sample_dict(self, prefix="root://xrootd-cms.infn.it//"):
         out = {
             self.name : {
-            'metadata' : self.metadata,
+            'metadata' : { k: str(v) for k,v in self.metadata.items()},
             'files': [prefix + f for f in self.fileslist]
         }}
         return out
@@ -81,10 +81,10 @@ class Dataset():
     # Function to build the dataset dictionary
     def get_samples(self, files):
         for scfg in files:
-            name = f"{self.name}_{scfg['metadata']['year']}"
+            sname = f"{self.name}_{scfg['metadata']['year']}"
             if not scfg["metadata"]["isMC"]:
-                name += f"_Era{scfg['metadata']['era']}"
-            sample = Sample(name=name,
+                sname += f"_Era{scfg['metadata']['era']}"
+            sample = Sample(name=sname,
                             das_names = scfg["das_names"],
                             sample=self.sample,
                             metadata=scfg["metadata"])
@@ -124,6 +124,7 @@ class Dataset():
                 samples_byyear[v["metadata"]["year"]][k] = v
             for k,v in self.sample_dict_local.items():
                 samples_local_byyear[v["metadata"]["year"]][k] = v
+
             for year, sample_dict in samples_byyear.items():
                 self._write_dataset(self.outfile.replace(".json",f"_{year}.json"), sample_dict, append, overwrite)
             for year, sample_dict in samples_local_byyear.items():

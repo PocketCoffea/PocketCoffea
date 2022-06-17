@@ -6,9 +6,10 @@ from PocketCoffea.workflows.parton_matching  import PartonMatchingProcessor
 cfg =  {
 
     "dataset" : {
-        "jsons": ["datasets/RunIISummer20UL18_local.json"],
+        "jsons": ["datasets/signal_ttHTobb_2018_local.json",
+                  "datasets/backgrounds_MC_2018_local.json"],
         "filter" : {
-            "samples": ["ttHTobb"],
+            "samples": ["ttHTobb","TTTo2L2Nu"],
             "samples_exclude" : [],
             "year": ["2018"]
         }
@@ -20,14 +21,14 @@ cfg =  {
 
     # Executor parameters
     "run_options" : {
-        "executor"       : "iterative",
-        "workers"        : 5,
-        "scaleout"       : 5,
+        "executor"       : "futures",
+        "workers"        : 10,
+        "scaleout"       : 10,
         "partition"      : "standard",
         "walltime"       : "12:00:00",
         "mem_per_worker" : None, # GB
         "exclusive"      : True,
-        "chunk"          : 250000,
+        "chunk"          : 100000,
         "max"            : None,
         "skipbadfiles"   : None,
         "voms"           : None,

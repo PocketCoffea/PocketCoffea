@@ -1,15 +1,13 @@
 {
-    "DATA_DoubleMuon_2016_EraB": {
+    "DATA_DoubleMuon_2017_EraB": {
         "metadata": {
-            "das_names": [
-                "/DoubleMuon/Run2017B-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD"
-            ],
+            "das_names": "['/DoubleMuon/Run2017B-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD']",
             "sample": "DATA",
-            "year": "2016",
-            "isMC": false,
+            "year": "2017",
+            "isMC": "False",
             "era": "B",
-            "nevents": 14501767,
-            "size": 12670428161
+            "nevents": "14501767",
+            "size": "12670428161"
         },
         "files": [
             "/pnfs/psi.ch/cms/trivcat//store/data/Run2017B/DoubleMuon/NANOAOD/UL2017_MiniAODv2_NanoAODv9-v1/280000/10AE822E-7D57-2244-B31F-FFB818DB9742.root",
@@ -22,17 +20,15 @@
             "/pnfs/psi.ch/cms/trivcat//store/data/Run2017B/DoubleMuon/NANOAOD/UL2017_MiniAODv2_NanoAODv9-v1/120000/AB770B30-F662-C244-A8FC-52C189E5DF66.root"
         ]
     },
-    "DATA_DoubleMuon_2016_EraC": {
+    "DATA_DoubleMuon_2017_EraC": {
         "metadata": {
-            "das_names": [
-                "/DoubleMuon/Run2017C-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD"
-            ],
+            "das_names": "['/DoubleMuon/Run2017C-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD']",
             "sample": "DATA",
-            "year": "2016",
-            "isMC": false,
+            "year": "2017",
+            "isMC": "False",
             "era": "C",
-            "nevents": 49636525,
-            "size": 47479568863
+            "nevents": "49636525",
+            "size": "47479568863"
         },
         "files": [
             "/pnfs/psi.ch/cms/trivcat//store/data/Run2017C/DoubleMuon/NANOAOD/UL2017_MiniAODv2_NanoAODv9-v1/280000/9FBF77DA-08FA-3B4F-887F-162848B6D5CA.root",
@@ -66,17 +62,15 @@
             "/pnfs/psi.ch/cms/trivcat//store/data/Run2017C/DoubleMuon/NANOAOD/UL2017_MiniAODv2_NanoAODv9-v1/270000/E10772AA-661A-F140-AD7A-8C9080269DE4.root"
         ]
     },
-    "DATA_DoubleMuon_2016_EraD": {
+    "DATA_DoubleMuon_2017_EraD": {
         "metadata": {
-            "das_names": [
-                "/DoubleMuon/Run2017D-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD"
-            ],
+            "das_names": "['/DoubleMuon/Run2017D-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD']",
             "sample": "DATA",
-            "year": "2016",
-            "isMC": false,
+            "year": "2017",
+            "isMC": "False",
             "era": "D",
-            "nevents": 23075733,
-            "size": 22212218349
+            "nevents": "23075733",
+            "size": "22212218349"
         },
         "files": [
             "/pnfs/psi.ch/cms/trivcat//store/data/Run2017D/DoubleMuon/NANOAOD/UL2017_MiniAODv2_NanoAODv9-v1/70000/71ACCC76-F6B9-9149-80F4-DD19FAA80C84.root",
@@ -97,17 +91,15 @@
             "/pnfs/psi.ch/cms/trivcat//store/data/Run2017D/DoubleMuon/NANOAOD/UL2017_MiniAODv2_NanoAODv9-v1/70000/62E2B505-0CB6-3748-9CB8-D7B7DEE5D505.root"
         ]
     },
-    "DATA_DoubleMuon_2016_EraE": {
+    "DATA_DoubleMuon_2017_EraE": {
         "metadata": {
-            "das_names": [
-                "/DoubleMuon/Run2017E-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD"
-            ],
+            "das_names": "['/DoubleMuon/Run2017E-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD']",
             "sample": "DATA",
-            "year": "2016",
-            "isMC": false,
+            "year": "2017",
+            "isMC": "False",
             "era": "E",
-            "nevents": 51531477,
-            "size": 53211533985
+            "nevents": "51531477",
+            "size": "53211533985"
         },
         "files": [
             "/pnfs/psi.ch/cms/trivcat//store/data/Run2017E/DoubleMuon/NANOAOD/UL2017_MiniAODv2_NanoAODv9-v1/120000/1F7B5E46-EDD7-5945-9C4F-1F607E5F8D4F.root",
@@ -146,17 +138,15 @@
             "/pnfs/psi.ch/cms/trivcat//store/data/Run2017E/DoubleMuon/NANOAOD/UL2017_MiniAODv2_NanoAODv9-v1/270000/91B2330E-0E00-7644-A0C6-3BB08F2ED2D2.root"
         ]
     },
-    "DATA_DoubleMuon_2016_EraF": {
+    "DATA_DoubleMuon_2017_EraF": {
         "metadata": {
-            "das_names": [
-                "/DoubleMuon/Run2017F-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD"
-            ],
+            "das_names": "['/DoubleMuon/Run2017F-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD']",
             "sample": "DATA",
-            "year": "2016",
-            "isMC": false,
+            "year": "2017",
+            "isMC": "False",
             "era": "F",
-            "nevents": 79756560,
-            "size": 82387423214
+            "nevents": "79756560",
+            "size": "82387423214"
         },
         "files": [
             "/pnfs/psi.ch/cms/trivcat//store/data/Run2017F/DoubleMuon/NANOAOD/UL2017_MiniAODv2_NanoAODv9-v1/120000/A981EC80-FC60-884A-B607-AB75B0F00B48.root",
@@ -221,17 +211,15 @@
             "/pnfs/psi.ch/cms/trivcat//store/data/Run2017F/DoubleMuon/NANOAOD/UL2017_MiniAODv2_NanoAODv9-v1/120000/98364FDB-08D6-0242-ACC9-6161FFD8A695.root"
         ]
     },
-    "DATA_DoubleMuon_2016_EraG": {
+    "DATA_DoubleMuon_2017_EraG": {
         "metadata": {
-            "das_names": [
-                "/DoubleMuon/Run2017G-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD"
-            ],
+            "das_names": "['/DoubleMuon/Run2017G-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD']",
             "sample": "DATA",
-            "year": "2016",
-            "isMC": false,
+            "year": "2017",
+            "isMC": "False",
             "era": "G",
-            "nevents": 892686175,
-            "size": 215401418916
+            "nevents": "892686175",
+            "size": "215401418916"
         },
         "files": [
             "/pnfs/psi.ch/cms/trivcat//store/data/Run2017G/DoubleMuon/NANOAOD/UL2017_MiniAODv2_NanoAODv9-v1/100000/ADD5AD9B-3E0E-4B4B-91FA-DAD788F310F6.root",
