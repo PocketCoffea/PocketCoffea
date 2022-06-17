@@ -1,9 +1,13 @@
+import os
+import copy
+
 import awkward as ak
 import numpy as np
 import math
 import uproot
 import correctionlib
 from vector import MomentumObject4D
+from numba import njit
 
 from coffea import hist, lookup_tools
 from coffea.nanoevents.methods import nanoaod
@@ -12,10 +16,26 @@ from ..parameters.preselection import object_preselection
 from ..parameters.jec import JECjsonFiles
 from ..lib.deltaR_matching import get_matching_pairs_indices, object_matching
 
+@njit
+def delta_pt_jets_coll(jets, genJets, mask, builder):
+    for js , genJs, ms in zip(jets, genJets, mask):
+        builder.begin_list()
+        for j, g, m in zip(js, genJs, ms):
+            if m:
+                builder.append(abs(j.pt-g.pt))
+            else:
+                builder.append(None)
+        builder.end_list()
+    return builder
 
 
-# example here: https://gitlab.cern.ch/cms-nanoAOD/jsonpog-integration/-/blob/master/examples/jercExample.py
 def jet_correction(events, Jet, typeJet, year, JECversion, JERversion=None, verbose=False):
+    '''
+    This function implements the Jet Energy corrections and Jet energy smearning
+    using factors from correctionlib common-POG json file
+    example here: https://gitlab.cern.ch/cms-nanoAOD/jsonpog-integration/-/blob/master/examples/jercExample.py
+
+    '''
     jsonfile = JECjsonFiles[year][[t for t in ['AK4', 'AK8'] if typeJet.startswith(t)][0]]
     JECfile = correctionlib.CorrectionSet.from_file(jsonfile)
     corr = JECfile.compound[f'{JECversion}_L1L2L3Res_{typeJet}']
@@ -68,7 +88,23 @@ def jet_correction(events, Jet, typeJet, year, JECversion, JERversion=None, verb
         # Match jets with gen-level jets, with DeltaR and DeltaPt requirements
         dr_min = {'AK4PFchs' : 0.2, 'AK8PFPuppi' : 0.4}[typeJet]  # Match jets within a cone with half the jet radius
         pt_min = 3 * ptResolution * jets_corrected['pt']          # Match jets whose pt does not differ more than 3 sigmas from the gen-level pt
-        matched_genjets, matched_jets, deltaR_matched = object_matching(genjets, jets_corrected, dr_min, pt_min)
+
+        # They can be matched manually
+        #matched_genjets, matched_jets, deltaR_matched = object_matching(genjets, jets_corrected, dr_min, pt_min)
+        # Or the association in NanoAOD it can be used, removing the indices that are not found. That happens because
+        # not all the genJet are saved in the NanoAODs.
+        Ngenjet = ak.num(genjets)
+        matched_genjets_idx = ak.mask(jets_corrected.genJetIdx,(jets_corrected.genJetIdx < Ngenjet) & (jets_corrected.genJetIdx !=-1))
+        # this array of indices has already the dimension of the Jet collection
+        # in NanoAOD nomatch == -1 --> convert to None with a mask
+        matched_objs_mask = ~ak.is_none(matched_genjets_idx, axis=1)
+        matched_genjets = genjets[matched_genjets_idx]
+        matched_jets = ak.mask(jets_corrected, matched_objs_mask)
+
+        deltaPt = delta_pt_jets_coll(matched_jets, matched_genjets, matched_objs_mask, ak.ArrayBuilder()).snapshot()
+        matched_genjets = ak.mask(matched_genjets, deltaPt < pt_min)      
+        matched_jets = ak.mask(matched_jets, deltaPt < pt_min)
+        
         # Compute energy correction factor with the scaling method
         detSmear = 1 + (scaleFactor - 1) * (matched_jets['pt'] - matched_genjets['pt']) / matched_jets['pt']
         # Compute energy correction factor with the stochastic method

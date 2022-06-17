@@ -6,7 +6,7 @@ import numpy as np
 import awkward as ak
 
 import coffea
-from coffea import hist, processor, lookup_tools
+from coffea import processor, lookup_tools, hist
 from coffea.processor import dict_accumulator, defaultdict_accumulator
 from coffea.lumi_tools import LumiMask #, LumiData
 from coffea.analysis_tools import PackedSelection, Weights
@@ -70,9 +70,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         #       self._accumulator.add(processor.dict_accumulator({var : processor.column_accumulator(np.array([]))}))
 
         # Define axes
-        sample_axis = hist.Cat("sample", "Sample")
-        cat_axis    = hist.Cat("cat", "Cat")
-        year_axis   = hist.Cat("year", "Year")
+        self._sample_axis = hist.Cat("sample", "Sample")
+        self._cat_axis    = hist.Cat("cat", "Cat")
+        self._year_axis   = hist.Cat("year", "Year")
 
         # Create histogram accumulators
         for var_name in self._variables.keys():
@@ -80,14 +80,19 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                 field = var_name
             else:
                 obj, field = var_name.split('_')
-            variable_axis = hist.Bin( field, self._variables[var_name]['xlabel'], **self._variables[var_name]['binning'] )
-            self._hist_dict[f'hist_{var_name}'] = hist.Hist("$N_{events}$", sample_axis, cat_axis, year_axis, variable_axis)
+            variable_axis = hist.Bin( field, self._variables[var_name]['xlabel'],
+                                      **self._variables[var_name]['binning'] )
+            self._hist_dict[f'hist_{var_name}'] = hist.Hist("$N_{events}$", self._sample_axis,
+                                                            self._cat_axis, self._year_axis, variable_axis)
         for hist2d_name in self._variables2d.keys():
             varname_x = list(self._variables2d[hist2d_name].keys())[0]
             varname_y = list(self._variables2d[hist2d_name].keys())[1]
-            variable_x_axis = hist.Bin("x", self._variables2d[hist2d_name][varname_x]['xlabel'], **self._variables2d[hist2d_name][varname_x]['binning'] )
-            variable_y_axis = hist.Bin("y", self._variables2d[hist2d_name][varname_y]['ylabel'], **self._variables2d[hist2d_name][varname_y]['binning'] )
-            self._hist2d_dict[f'hist2d_{hist2d_name}'] = hist.Hist("$N_{events}$", sample_axis, cat_axis, year_axis, variable_x_axis, variable_y_axis)
+            variable_x_axis = hist.Bin("x", self._variables2d[hist2d_name][varname_x]['xlabel'],
+                                       **self._variables2d[hist2d_name][varname_x]['binning'] )
+            variable_y_axis = hist.Bin("y", self._variables2d[hist2d_name][varname_y]['ylabel'],
+                                       **self._variables2d[hist2d_name][varname_y]['binning'] )
+            self._hist2d_dict[f'hist2d_{hist2d_name}'] = hist.Hist("$N_{events}$", self._sample_axis, self._cat_axis,
+                                                                   self._year_axis, variable_x_axis, variable_y_axis)
             
         self._accum_dict.update(self._hist_dict)
         self._accum_dict.update(self._hist2d_dict)

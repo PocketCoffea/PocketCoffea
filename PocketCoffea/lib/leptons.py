@@ -1,3 +1,6 @@
+import os
+import copy
+
 import awkward as ak
 import numpy as np
 import math
