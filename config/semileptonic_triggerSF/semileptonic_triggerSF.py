@@ -1,20 +1,20 @@
 from PocketCoffea.parameters.cuts.baseline_cuts import semileptonic_triggerSF_presel, passthrough
 from config.semileptonic_triggerSF.functions import get_trigger_passfail
-from PocketCoffea.workflows.base import ttHbbBaseProcessor
+from PocketCoffea.workflows.semileptonic_triggerSF import semileptonicTriggerProcessor
 
 cfg =  {
 
     "dataset" : {
-        "jsons": ["datasets/RunIISummer20UL18_t3_local.json"],
+        "jsons": ["datasets/backgrounds_MC_local.json", "datasets/DATA_SingleMuon_local.json"],
         "filter" : {
-            "samples": ["TTToSemiLeptonic", "TTTo2L2Nu"],
+            "samples": ["TTToSemiLeptonic", "TTTo2L2Nu", "DATA"],
             "samples_exclude" : [],
             "year": ["2018"]
         }
     },
 
     # Input and output files
-    "workflow" : ttHbbBaseProcessor,
+    "workflow" : semileptonicTriggerProcessor,
     "output"   : "output/semileptonic_triggerSF",
 
     # Executor parameters
@@ -41,6 +41,9 @@ cfg =  {
         "Ele32_WPTight_Gsf_fail" : [get_trigger_passfail("Ele32_WPTight_Gsf", "fail")],
         "inclusive" : [passthrough],
     },
+
+    # List of triggers for SF measurement
+    "triggers_to_measure" : ["Ele32_WPTight_Gsf"],
     
     "variables" : {
         "muon_pt" : {'binning' : {'n_or_arr' : 200, 'lo' : 0, 'hi' : 2000}, 'xlim' : (0,500),  'xlabel' : "$p_{T}^{\mu}$ [GeV]"},
