@@ -91,6 +91,9 @@ selection = {
     'semileptonic_CR' : (r'Trigger'+'\n'+
                      r'Semileptonic cuts'+'\n'+
                      r'CR'),
+    'semileptonic_triggerSF_Ele32_WPTight_Gsf_fail' : 'Trigger fail',
+    'semileptonic_triggerSF_Ele32_WPTight_Gsf_pass' : 'Trigger pass',
+    'semileptonic_triggerSF_inclusive' : 'Inclusive',
 }
 
 plt.style.use([hep.style.ROOT, {'font.size': 16}])

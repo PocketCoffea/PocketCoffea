@@ -105,7 +105,6 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     def nevents(self):
         return ak.count(self.events.event)
 
-
     def get_histogram(self, name):
         if name in self.output:
             return self.output[name]
@@ -193,6 +192,10 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             self._preselection_masks.add(cut.id, mask)
         # Now that the preselection mask is complete we can apply it to events
         self.events = self.events[self._preselection_masks.all(*self._preselection_masks.names)]
+        if self.nevents == 0:
+            self.has_events = False
+        else:
+            self.has_events = True
             
     def define_categories(self):
         for cut in self._cuts:
@@ -264,6 +267,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.apply_preselection_cuts()
         self.nEvents_after_presel = self.nevents
         self.output['nevts_presel'][self._sample] += self.nEvents_after_presel
+        if not self.has_events: return self.output
 
         # This function is empty in the base processor, but can be overriden in processors derived from the class ttHbbBaseProcessor
         self.process_extra_after_presel()

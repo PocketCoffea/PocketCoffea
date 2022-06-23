@@ -51,3 +51,21 @@ semileptonic_presel = Cut(
 	},
     function = cuts_f.semileptonic
  )
+
+semileptonic_triggerSF_presel = Cut(
+    name ="semileptonic_triggerSF",
+    params = {
+		"njet"  : 4,
+		"pt_leading_electron" : {
+			'2016' : 29,
+			'2017' : 30,
+			'2018' : 30,
+		},
+		"pt_leading_muon" : {
+			'2016' : 26,
+			'2017' : 29,
+			'2018' : 26,
+		},
+	},
+    function = cuts_f.semileptonic_triggerSF
+ )
