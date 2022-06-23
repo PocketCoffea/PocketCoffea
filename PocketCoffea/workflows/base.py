@@ -6,7 +6,8 @@ import numpy as np
 import awkward as ak
 
 import coffea
-from coffea import hist, processor, lookup_tools
+from coffea import processor, lookup_tools, hist
+from coffea.processor import dict_accumulator, defaultdict_accumulator
 from coffea.lumi_tools import LumiMask #, LumiData
 from coffea.analysis_tools import PackedSelection, Weights
 
@@ -52,14 +53,15 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self._hist_dict = {}
         self._hist2d_dict = {}
         self._sumw_dict = {
-            "sumw": processor.defaultdict_accumulator(float),
-            "nevts_initial": processor.defaultdict_accumulator(int),
-            "nevts_presel" : processor.defaultdict_accumulator(int),
+            "sumw": defaultdict_accumulator(float),
+            "nevts_initial": defaultdict_accumulator(int),
         }
         self._accum_dict.update(self._sumw_dict)
         # Accumulator with number of events passing each category for each sample
-        self._cutflow_dict = { "nevts_cat_"+ key: processor.defaultdict_accumulator(int) for key in self._categories}
-        self._accum_dict.update(self._cutflow_dict)
+        self._cutflow_dict =   {cat: defaultdict_accumulator(int) for cat in self._categories}
+        self._cutflow_dict["presel"] = defaultdict_accumulator(int)
+        self._accum_dict["cutflow"] = dict_accumulator(self._cutflow_dict)
+        
         # Accumulator with seed number used for the stochastic smearing, for each processed chunk
         self._seed_dict = {"seed_chunk" : processor.defaultdict_accumulator(int)}
         self._accum_dict.update(self._seed_dict)
@@ -68,9 +70,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         #       self._accumulator.add(processor.dict_accumulator({var : processor.column_accumulator(np.array([]))}))
 
         # Define axes
-        sample_axis = hist.Cat("sample", "Sample")
-        cat_axis    = hist.Cat("cat", "Cat")
-        year_axis   = hist.Cat("year", "Year")
+        self._sample_axis = hist.Cat("sample", "Sample")
+        self._cat_axis    = hist.Cat("cat", "Cat")
+        self._year_axis   = hist.Cat("year", "Year")
 
         # Create histogram accumulators
         for var_name in self._variables.keys():
@@ -78,14 +80,19 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                 field = var_name
             else:
                 obj, field = var_name.split('_')
-            variable_axis = hist.Bin( field, self._variables[var_name]['xlabel'], **self._variables[var_name]['binning'] )
-            self._hist_dict[f'hist_{var_name}'] = hist.Hist("$N_{events}$", sample_axis, cat_axis, year_axis, variable_axis)
+            variable_axis = hist.Bin( field, self._variables[var_name]['xlabel'],
+                                      **self._variables[var_name]['binning'] )
+            self._hist_dict[f'hist_{var_name}'] = hist.Hist("$N_{events}$", self._sample_axis,
+                                                            self._cat_axis, self._year_axis, variable_axis)
         for hist2d_name in self._variables2d.keys():
             varname_x = list(self._variables2d[hist2d_name].keys())[0]
             varname_y = list(self._variables2d[hist2d_name].keys())[1]
-            variable_x_axis = hist.Bin("x", self._variables2d[hist2d_name][varname_x]['xlabel'], **self._variables2d[hist2d_name][varname_x]['binning'] )
-            variable_y_axis = hist.Bin("y", self._variables2d[hist2d_name][varname_y]['ylabel'], **self._variables2d[hist2d_name][varname_y]['binning'] )
-            self._hist2d_dict[f'hist2d_{hist2d_name}'] = hist.Hist("$N_{events}$", sample_axis, cat_axis, year_axis, variable_x_axis, variable_y_axis)
+            variable_x_axis = hist.Bin("x", self._variables2d[hist2d_name][varname_x]['xlabel'],
+                                       **self._variables2d[hist2d_name][varname_x]['binning'] )
+            variable_y_axis = hist.Bin("y", self._variables2d[hist2d_name][varname_y]['ylabel'],
+                                       **self._variables2d[hist2d_name][varname_y]['binning'] )
+            self._hist2d_dict[f'hist2d_{hist2d_name}'] = hist.Hist("$N_{events}$", self._sample_axis, self._cat_axis,
+                                                                   self._year_axis, variable_x_axis, variable_y_axis)
             
         self._accum_dict.update(self._hist_dict)
         self._accum_dict.update(self._hist2d_dict)
@@ -94,12 +101,25 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.muon_hists = [histname for histname in self._hist_dict.keys() if 'muon' in histname and not histname in self.nobj_hists]
         self.electron_hists = [histname for histname in self._hist_dict.keys() if 'electron' in histname and not histname in self.nobj_hists]
         self.jet_hists = [histname for histname in self._hist_dict.keys() if 'jet' in histname and not 'fatjet' in histname and not histname in self.nobj_hists]
-        # saving the final accumulator dict
-        self._accumulator = processor.dict_accumulator(self._accum_dict)
+        # The final accumulator dictionary is built when the accumulator() property is called for the first time.
+        # Doing so, subclasses can add additional context to the self._accum_dict. 
+        # self._accumulator = dict_accumulator(self._accum_dict)
+        self._accumulator = None
         
     @property
     def accumulator(self):
+        ''' The accumulator instance of the processor is not built in the constructor directly because sub-classes
+        can add more accumulators to the self._accum_dict definition.
+        When the accumulator() property if then accessed the dict_accumulator is built.'''
+        if not self._accumulator:
+            self._accumulator = dict_accumulator(self._accum_dict)
         return self._accumulator
+
+    def add_additional_histograms(self, histograms_dict):
+        '''Helper function to add additional histograms to the dict_accumulator.
+        Usually useful for derived classes to include the definition of custom histograms '''
+        self.accumulator.add(dict_accumulator(histograms_dict))
+        
 
     @property
     def nevents(self):
@@ -226,7 +246,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # Fill the output with the number of events in each category for each sample
         # w = self.weights.weight()
         for category, cuts in self._categories.items():
-            self.output[f"nevts_cat_{category}"][self._sample] = ak.sum(self._cuts_masks.all(*cuts))
+            self.output["cutflow"][category][self._sample] = ak.sum(self._cuts_masks.all(*cuts))
             
     def process_extra_before_presel(self) -> ak.Array:
         pass
@@ -240,6 +260,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     def process(self, events):
         self.events = events
         self.load_metadata()
+        # Define the accumulator instance for this chunk
         self.output = self.accumulator.identity()
         #if len(events)==0: return output
         self.nEvents_initial = self.nevents
@@ -263,7 +284,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # This will remove all the events not passing preselection from further 
         self.apply_preselection_cuts()
         self.nEvents_after_presel = self.nevents
-        self.output['nevts_presel'][self._sample] += self.nEvents_after_presel
+        self.output['cutflow']['presel'][self._sample] += self.nEvents_after_presel
 
         # This function is empty in the base processor, but can be overriden in processors derived from the class ttHbbBaseProcessor
         self.process_extra_after_presel()
