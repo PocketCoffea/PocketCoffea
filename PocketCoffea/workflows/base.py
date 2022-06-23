@@ -115,7 +115,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             self._accumulator = dict_accumulator(self._accum_dict)
         return self._accumulator
 
-    def add_addictional_histograms(self, histograms_dict):
+    def add_additional_histograms(self, histograms_dict):
         '''Helper function to add additional histograms to the dict_accumulator.
         Usually useful for derived classes to include the definition of custom histograms '''
         self.accumulator.add(dict_accumulator(histograms_dict))
