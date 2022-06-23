@@ -12,7 +12,7 @@ from coffea.nanoevents.methods import nanoaod
 
 from parameters.nureco import nureco
 
-ak.behavior.update(nanoaod.behavior)
+#ak.behavior.update(nanoaod.behavior)
 
 def METzCalculator_kernel(A, B, tmproot, tmpsol1, tmpsol2, pzlep, pznu):
     for i in range(len(tmpsol1)):

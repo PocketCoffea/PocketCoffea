@@ -6,9 +6,10 @@ from PocketCoffea.workflows.parton_matching  import PartonMatchingProcessor
 cfg =  {
 
     "dataset" : {
-        "jsons": ["datasets/RunIISummer20UL18_local.json"],
+        "jsons": ["datasets/signal_ttHTobb_2018_local.json",
+                  "datasets/backgrounds_MC_2018_local.json"],
         "filter" : {
-            "samples": ["ttHTobb"],
+            "samples": ["TTTo2L2Nu"],
             "samples_exclude" : [],
             "year": ["2018"]
         }

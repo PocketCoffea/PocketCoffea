@@ -18,6 +18,7 @@ if args.keys:
     keys = args.keys
 else:
     keys = config.keys()
+
     
 for key in keys:
     if key not in config:
