@@ -21,7 +21,6 @@ from ..lib.fill import fill_histograms_object
 from ..parameters.triggers import triggers
 from ..parameters.btag import btag
 from ..parameters.jec import JECversions, JERversions
-from ..parameters.pileup import pileupJSONfiles
 from ..parameters.lumi import lumi
 from ..parameters.samples import samples_info
 from ..parameters.allhistograms import histogram_settings
@@ -53,15 +52,19 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self._hist_dict = {}
         self._hist2d_dict = {}
         self._sumw_dict = {
-            "sumw": defaultdict_accumulator(float),
-            "nevts_initial": defaultdict_accumulator(int),
+            "sum_genweights": defaultdict_accumulator(float),
         }
         self._accum_dict.update(self._sumw_dict)
         # Accumulator with number of events passing each category for each sample
         self._cutflow_dict =   {cat: defaultdict_accumulator(int) for cat in self._categories}
+        self._cutflow_dict["initial"] = defaultdict_accumulator(int)
         self._cutflow_dict["presel"] = defaultdict_accumulator(int)
         self._accum_dict["cutflow"] = dict_accumulator(self._cutflow_dict)
         
+        # Accumulator with sum of weights of the events passing each category for each sample
+        self._sumw_weighted_dict =   {cat: defaultdict_accumulator(float) for cat in self._categories}
+        self._accum_dict["sumw"] = dict_accumulator(self._sumw_weighted_dict)
+
         # Accumulator with seed number used for the stochastic smearing, for each processed chunk
         self._seed_dict = {"seed_chunk" : processor.defaultdict_accumulator(int)}
         self._accum_dict.update(self._seed_dict)
@@ -155,13 +158,14 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         mask_clean = mask_clean & (self.events.PV.npvsGood > 0)
 
         # In case of data: check if event is in golden lumi file
-        if not self.isMC and not (lumimask is None):
-            mask_lumi = lumimask(self.events.run, self.events.luminosityBlock)
-            mask_clean = mask_clean & mask_lumi
+        #if not self.isMC and not (lumimask is None):
+        #    mask_lumi = lumimask(self.events.run, self.events.luminosityBlock)
+        #    mask_clean = mask_clean & mask_lumi
         # add the basic clearning to the preselection mask
         self._preselection_masks.add('clean', ak.to_numpy(mask_clean))
 
     def apply_JERC(self, JER=True, verbose=False):
+        if not self.isMC: return
         if int(self._year) > 2018:
             sys.exit("Warning: Run 3 JEC are not implemented yet.")
         if JER:
@@ -229,7 +233,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             self.weights.add('genWeight', self.events.genWeight)
             self.weights.add('lumi', ak.full_like(self.events.genWeight, lumi[self._year]))
             self.weights.add('XS', ak.full_like(self.events.genWeight, samples_info[self._sample]["XS"]))
-            self.weights.add('sumw', ak.full_like(self.events.genWeight, 1./self.output["sumw"][self._sample]))
+            self.weights.add('sum_genweights', ak.full_like(self.events.genWeight, 1./self.output["sum_genweights"][self._sample]))
             # Pileup reweighting with nominal, up and down variations
             self.weights.add('pileup', *sf_pileup_reweight(self.events, self._year))
             # Electron reco and id SF with nominal, up and down variations
@@ -246,10 +250,13 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             fill_histograms_object(self, obj, obj_hists)
 
     def count_events(self):
-        # Fill the output with the number of events in each category for each sample
-        # w = self.weights.weight()
+        # Fill the output with the number of events and the sum of their weights in each category for each sample
         for category, cuts in self._categories.items():
-            self.output["cutflow"][category][self._sample] = ak.sum(self._cuts_masks.all(*cuts))
+            mask = self._cuts_masks.all(*cuts)
+            self.output["cutflow"][category][self._sample] = ak.sum(mask)
+            if self.isMC:
+                w = self.weights.weight()
+                self.output["sumw"][category][self._sample] = ak.sum(w*mask)
             
     def process_extra_before_presel(self) -> ak.Array:
         pass
@@ -267,10 +274,10 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.output = self.accumulator.identity()
         #if len(events)==0: return output
         self.nEvents_initial = self.nevents
-        self.output['nevts_initial'][self._sample] += self.nEvents_initial
+        self.output['cutflow']['initial'][self._sample] += self.nEvents_initial
         if self.isMC:
             # This is computed before any preselection
-            self.output['sumw'][self._sample] += sum(self.events.genWeight)
+            self.output['sum_genweights'][self._sample] += sum(self.events.genWeight)
 
         # Event cleaning and  PV selection
         self.clean_events()
