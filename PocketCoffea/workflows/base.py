@@ -21,7 +21,6 @@ from ..lib.fill import fill_histograms_object
 from ..parameters.triggers import triggers
 from ..parameters.btag import btag
 from ..parameters.jec import JECversions, JERversions
-from ..parameters.pileup import pileupJSONfiles
 from ..parameters.lumi import lumi
 from ..parameters.samples import samples_info
 from ..parameters.allhistograms import histogram_settings
@@ -53,15 +52,19 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self._hist_dict = {}
         self._hist2d_dict = {}
         self._sumw_dict = {
-            "sumw": defaultdict_accumulator(float),
-            "nevts_initial": defaultdict_accumulator(int),
+            "sum_genweights": defaultdict_accumulator(float),
         }
         self._accum_dict.update(self._sumw_dict)
         # Accumulator with number of events passing each category for each sample
         self._cutflow_dict =   {cat: defaultdict_accumulator(int) for cat in self._categories}
+        self._cutflow_dict["initial"] = defaultdict_accumulator(int)
         self._cutflow_dict["presel"] = defaultdict_accumulator(int)
         self._accum_dict["cutflow"] = dict_accumulator(self._cutflow_dict)
         
+        # Accumulator with sum of weights of the events passing each category for each sample
+        self._sumw_weighted_dict =   {cat: defaultdict_accumulator(float) for cat in self._categories}
+        self._accum_dict["sumw"] = dict_accumulator(self._sumw_weighted_dict)
+
         # Accumulator with seed number used for the stochastic smearing, for each processed chunk
         self._seed_dict = {"seed_chunk" : processor.defaultdict_accumulator(int)}
         self._accum_dict.update(self._seed_dict)
@@ -87,9 +90,11 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         for hist2d_name in self._variables2d.keys():
             varname_x = list(self._variables2d[hist2d_name].keys())[0]
             varname_y = list(self._variables2d[hist2d_name].keys())[1]
-            variable_x_axis = hist.Bin("x", self._variables2d[hist2d_name][varname_x]['xlabel'],
+            obj_x, field_x = varname_x.split('_')
+            obj_y, field_y = varname_y.split('_')
+            variable_x_axis = hist.Bin(field_x, self._variables2d[hist2d_name][varname_x]['xlabel'],
                                        **self._variables2d[hist2d_name][varname_x]['binning'] )
-            variable_y_axis = hist.Bin("y", self._variables2d[hist2d_name][varname_y]['ylabel'],
+            variable_y_axis = hist.Bin(field_y, self._variables2d[hist2d_name][varname_y]['ylabel'],
                                        **self._variables2d[hist2d_name][varname_y]['binning'] )
             self._hist2d_dict[f'hist2d_{hist2d_name}'] = hist.Hist("$N_{events}$", self._sample_axis, self._cat_axis,
                                                                    self._year_axis, variable_x_axis, variable_y_axis)
@@ -125,7 +130,6 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     def nevents(self):
         return ak.count(self.events.event)
 
-
     def get_histogram(self, name):
         if name in self.output:
             return self.output[name]
@@ -156,13 +160,14 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         mask_clean = mask_clean & (self.events.PV.npvsGood > 0)
 
         # In case of data: check if event is in golden lumi file
-        if not self.isMC and not (lumimask is None):
-            mask_lumi = lumimask(self.events.run, self.events.luminosityBlock)
-            mask_clean = mask_clean & mask_lumi
+        #if not self.isMC and not (lumimask is None):
+        #    mask_lumi = lumimask(self.events.run, self.events.luminosityBlock)
+        #    mask_clean = mask_clean & mask_lumi
         # add the basic clearning to the preselection mask
         self._preselection_masks.add('clean', ak.to_numpy(mask_clean))
 
     def apply_JERC(self, JER=True, verbose=False):
+        if not self.isMC: return
         if int(self._year) > 2018:
             sys.exit("Warning: Run 3 JEC are not implemented yet.")
         if JER:
@@ -173,6 +178,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
 
     # Function to compute masks to preselect objects and save them as attributes of `events`
     def apply_object_preselection(self):
+        # Include the supercluster pseudorapidity variable
+        electron_etaSC = self.events.Electron.eta + self.events.Electron.deltaEtaSC
+        self.events["Electron"] = ak.with_field(self.events.Electron, electron_etaSC, "etaSC")
         # Build masks for selection of muons, electrons, jets, fatjets
         self.events["MuonGood"]     = lepton_selection(self.events, "Muon", self.cfg.finalstate)
         self.events["ElectronGood"] = lepton_selection(self.events, "Electron", self.cfg.finalstate)
@@ -213,6 +221,10 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             self._preselection_masks.add(cut.id, mask)
         # Now that the preselection mask is complete we can apply it to events
         self.events = self.events[self._preselection_masks.all(*self._preselection_masks.names)]
+        if self.nevents == 0:
+            self.has_events = False
+        else:
+            self.has_events = True
             
     def define_categories(self):
         for cut in self._cuts:
@@ -226,7 +238,6 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             self.weights.add('genWeight', self.events.genWeight)
             self.weights.add('lumi', ak.full_like(self.events.genWeight, lumi[self._year]))
             self.weights.add('XS', ak.full_like(self.events.genWeight, samples_info[self._sample]["XS"]))
-            self.weights.add('sumw', ak.full_like(self.events.genWeight, 1./self.output["sumw"][self._sample]))
             # Pileup reweighting with nominal, up and down variations
             self.weights.add('pileup', *sf_pileup_reweight(self.events, self._year))
             # Electron reco and id SF with nominal, up and down variations
@@ -243,10 +254,13 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             fill_histograms_object(self, obj, obj_hists)
 
     def count_events(self):
-        # Fill the output with the number of events in each category for each sample
-        # w = self.weights.weight()
+        # Fill the output with the number of events and the sum of their weights in each category for each sample
         for category, cuts in self._categories.items():
-            self.output["cutflow"][category][self._sample] = ak.sum(self._cuts_masks.all(*cuts))
+            mask = self._cuts_masks.all(*cuts)
+            self.output["cutflow"][category][self._sample] = ak.sum(mask)
+            if self.isMC:
+                w = self.weights.weight()
+                self.output["sumw"][category][self._sample] = ak.sum(w*mask)
             
     def process_extra_before_presel(self) -> ak.Array:
         pass
@@ -264,10 +278,10 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.output = self.accumulator.identity()
         #if len(events)==0: return output
         self.nEvents_initial = self.nevents
-        self.output['nevts_initial'][self._sample] += self.nEvents_initial
+        self.output['cutflow']['initial'][self._sample] += self.nEvents_initial
         if self.isMC:
             # This is computed before any preselection
-            self.output['sumw'][self._sample] += sum(self.events.genWeight)
+            self.output['sum_genweights'][self._sample] += sum(self.events.genWeight)
 
         # Event cleaning and  PV selection
         self.clean_events()
@@ -285,6 +299,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.apply_preselection_cuts()
         self.nEvents_after_presel = self.nevents
         self.output['cutflow']['presel'][self._sample] += self.nEvents_after_presel
+        if not self.has_events: return self.output
 
         # This function is empty in the base processor, but can be overriden in processors derived from the class ttHbbBaseProcessor
         self.process_extra_after_presel()
@@ -304,5 +319,17 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         return self.output
 
     def postprocess(self, accumulator):
+        # Rescale MC histograms by the total sum of the genweights
+        scale_genweight = {}
+        h = accumulator[list(self._hist_dict.keys())[0]]
+        for sample in h.identifiers('sample'):
+            sample = str(sample)
+            scale_genweight[sample] = 1 if sample.startswith('DATA') else 1./accumulator['sum_genweights'][sample]
+
+        for histname in accumulator:
+            if (histname in self._hist_dict) | (histname in self._hist2d_dict):
+                accumulator[histname].scale(scale_genweight, axis='sample')
+
+        accumulator["scale_genweight"] = scale_genweight
 
         return accumulator

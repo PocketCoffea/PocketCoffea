@@ -69,16 +69,23 @@ triggers = {
     "semileptonic" : {
         "2016" : {
             "e" : [
+                "Ele27_WPTight_Gsf",
+                "Ele27_WPTight_Gsf_L1JetTauSeeded"
             ],
             "mu" : [
+                "IsoMu24",
+                "IsoTkMu24"
             ]
         },
         "2017" : {
             "e" : [
+                "Ele32_WPTight_Gsf_L1DoubleEG",
+                "Ele28_eta2p1_WPTight_Gsf_HT150"
             ],
             "e_flag" : [
             ],
             "mu" : [
+                "IsoMu27",
             ]
         },
         "2018" : {
@@ -98,5 +105,16 @@ triggers = {
                 "IsoMu24_eta2p1_MediumChargedIsoPFTau50_Trk30_eta2p1_1pr"
             ]
         }
+    },
+    "semileptonic_triggerSF" : {
+        "2016" : {
+            "mu" : ["IsoMu24"]
+        },
+        "2017" : {
+            "mu" : ["IsoMu27"]
+        },
+        "2018" : {
+            "mu" : ["IsoMu24"]
+        },
     }
 }
