@@ -238,7 +238,6 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             self.weights.add('genWeight', self.events.genWeight)
             self.weights.add('lumi', ak.full_like(self.events.genWeight, lumi[self._year]))
             self.weights.add('XS', ak.full_like(self.events.genWeight, samples_info[self._sample]["XS"]))
-            self.weights.add('sum_genweights', ak.full_like(self.events.genWeight, 1./self.output["sum_genweights"][self._sample]))
             # Pileup reweighting with nominal, up and down variations
             self.weights.add('pileup', *sf_pileup_reweight(self.events, self._year))
             # Electron reco and id SF with nominal, up and down variations
@@ -320,5 +319,17 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         return self.output
 
     def postprocess(self, accumulator):
+        # Rescale MC histograms by the total sum of the genweights
+        scale_genweight = {}
+        h = accumulator[list(self._hist_dict.keys())[0]]
+        for sample in h.identifiers('sample'):
+            sample = str(sample)
+            scale_genweight[sample] = 1 if sample.startswith('DATA') else 1./accumulator['sum_genweights'][sample]
+
+        for histname in accumulator:
+            if (histname in self._hist_dict) | (histname in self._hist2d_dict):
+                accumulator[histname].scale(scale_genweight, axis='sample')
+
+        accumulator["scale_genweight"] = scale_genweight
 
         return accumulator

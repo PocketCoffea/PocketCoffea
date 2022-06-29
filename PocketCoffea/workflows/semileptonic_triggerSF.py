@@ -28,7 +28,6 @@ class semileptonicTriggerProcessor(ttHbbBaseProcessor):
             self.weights.add('genWeight', self.events.genWeight)
             self.weights.add('lumi', ak.full_like(self.events.genWeight, lumi[self._year]))
             self.weights.add('XS', ak.full_like(self.events.genWeight, samples_info[self._sample]["XS"]))
-            self.weights.add('sum_genweights', ak.full_like(self.events.genWeight, 1./self.output["sum_genweights"][self._sample]))
             # Pileup reweighting with nominal, up and down variations
             self.weights.add('pileup', *sf_pileup_reweight(self.events, self._year))
             # Electron reco and id SF with nominal, up and down variations
