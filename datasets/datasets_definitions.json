@@ -36,6 +36,34 @@
                   "era": "G" }}
         ]
     },
+
+    "DATA_SingleMuon":{
+        "sample": "DATA",
+        "json_output"     : "datasets/DATA_SingleMuon.json",
+        "storage_prefix" : "/pnfs/psi.ch/cms/trivcat/",
+        "files":[
+            { "das_names": ["/SingleMuon/Run2018A-UL2018_MiniAODv2_NanoAODv9-v2/NANOAOD"],
+              "metadata": {
+                  "year":"2018",
+                  "isMC": false,
+                  "era": "A" }},
+            { "das_names": ["/SingleMuon/Run2018B-UL2018_MiniAODv2_NanoAODv9-v2/NANOAOD"],
+              "metadata": {
+                  "year":"2018",
+                  "isMC": false,
+                  "era": "B" }},
+            { "das_names": ["/SingleMuon/Run2018C-UL2018_MiniAODv2_NanoAODv9-v2/NANOAOD"],
+              "metadata": {
+                  "year":"2018",
+                  "isMC": false,
+                  "era": "C" }},
+            { "das_names": ["/SingleMuon/Run2018D-UL2018_MiniAODv2_NanoAODv9-v1/NANOAOD"],
+              "metadata": {
+                  "year":"2018",
+                  "isMC": false,
+                  "era": "D" }}
+        ]
+    },
         
     "ttHTobb": {
         "sample": "ttHTobb",

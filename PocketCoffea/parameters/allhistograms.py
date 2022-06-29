@@ -110,6 +110,18 @@ histogram_settings = {
         'weights_nominal'          : {'binning' : {'n_or_arr' : 50, 'lo' : 0, 'hi' : 2},     'xlim' : (0,2),    'xlabel' : 'weights (nominal)'},
     },
     'variables2d' : {
+        'electron_etaSC_vs_electron_pt' : {
+            'electron_pt'               : {'binning' : {'n_or_arr' : 400, 'lo' : 0, 'hi' : 2000},  'xlim' : (0,500),    'xlabel' : "Electron $p_{T}$ [GeV]"},
+            'electron_etaSC'            : {'binning' : {'n_or_arr' : 10, 'lo' : -2.5, 'hi' : 2.5}, 'xlim' : (-2.5,2.5), 'ylabel' : "Electron Supercluster $\eta$"},
+        },
+        'electron_phi_vs_electron_pt' : {
+            'electron_pt'               : {'binning' : {'n_or_arr' : 400, 'lo' : 0, 'hi' : 2000},  'xlim' : (0,500),    'xlabel' : "Electron $p_{T}$ [GeV]"},
+            'electron_phi'              : {'binning' : {'n_or_arr' : 128, 'lo' : -pi, 'hi' : pi}, 'xlim' : (-pi,pi),    'ylabel' : "$\phi_{e}$"},
+        },
+        'electron_etaSC_vs_electron_phi' : {
+            'electron_phi'              : {'binning' : {'n_or_arr' : 128, 'lo' : -pi, 'hi' : pi}, 'xlim' : (-pi,pi),    'xlabel' : "$\phi_{e}$"},
+            'electron_etaSC'            : {'binning' : {'n_or_arr' : 10, 'lo' : -2.5, 'hi' : 2.5}, 'xlim' : (-2.5,2.5), 'ylabel' : "Electron Supercluster $\eta$"},
+        },
         'm_top_vs_met' : {
             'met'                       : {'binning' : {'n_or_arr' : 200, 'lo' : 0, 'hi' : 2000}, 'xlim' : (0,300), 'xlabel' : "$p_{T}^{MET}$ [GeV]"},
             'm_top'                     : {'binning' : {'n_or_arr' : 200, 'lo' : 0, 'hi' : 2000}, 'ylim' : (0,500), 'ylabel' : "$m_{t}$ [GeV]"},
