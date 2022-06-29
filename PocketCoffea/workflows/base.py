@@ -118,7 +118,11 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     def add_additional_histograms(self, histograms_dict):
         '''Helper function to add additional histograms to the dict_accumulator.
         Usually useful for derived classes to include the definition of custom histograms '''
-        self.accumulator.add(dict_accumulator(histograms_dict))
+        for k,h in histograms_dict.items():
+            if k in self._accum_dict:
+                raise Exception(f"You are trying to overwrite an already defined histogram {k}!")
+            else:
+                self._accum_dict[k] = h
         
 
     @property
@@ -201,9 +205,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.events["nbjet"]     = ak.num(self.events.BJetGood)
         #self.events["nfatjet"]   = ak.num(self.events.FatJetGood)
 
-    # Function that computes the trigger masks and save the logical OR of the mumu, emu and ee triggers in the PackedSelector
+    # Function that computes the trigger masks and save it in the PackedSelector
     def apply_triggers(self):
-        # Trigger logic
+        # Trigger logic is included in the preselection mask
         self._preselection_masks.add('trigger', get_trigger_mask(self.events, self._triggers, self.cfg.finalstate))
 
     def apply_preselection_cuts(self):
