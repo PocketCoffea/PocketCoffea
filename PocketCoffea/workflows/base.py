@@ -90,9 +90,11 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         for hist2d_name in self._variables2d.keys():
             varname_x = list(self._variables2d[hist2d_name].keys())[0]
             varname_y = list(self._variables2d[hist2d_name].keys())[1]
-            variable_x_axis = hist.Bin("x", self._variables2d[hist2d_name][varname_x]['xlabel'],
+            obj_x, field_x = varname_x.split('_')
+            obj_y, field_y = varname_y.split('_')
+            variable_x_axis = hist.Bin(field_x, self._variables2d[hist2d_name][varname_x]['xlabel'],
                                        **self._variables2d[hist2d_name][varname_x]['binning'] )
-            variable_y_axis = hist.Bin("y", self._variables2d[hist2d_name][varname_y]['ylabel'],
+            variable_y_axis = hist.Bin(field_y, self._variables2d[hist2d_name][varname_y]['ylabel'],
                                        **self._variables2d[hist2d_name][varname_y]['binning'] )
             self._hist2d_dict[f'hist2d_{hist2d_name}'] = hist.Hist("$N_{events}$", self._sample_axis, self._cat_axis,
                                                                    self._year_axis, variable_x_axis, variable_y_axis)
@@ -176,6 +178,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
 
     # Function to compute masks to preselect objects and save them as attributes of `events`
     def apply_object_preselection(self):
+        # Include the supercluster pseudorapidity variable
+        electron_etaSC = self.events.Electron.eta + self.events.Electron.deltaEtaSC
+        self.events["Electron"] = ak.with_field(self.events.Electron, electron_etaSC, "etaSC")
         # Build masks for selection of muons, electrons, jets, fatjets
         self.events["MuonGood"]     = lepton_selection(self.events, "Muon", self.cfg.finalstate)
         self.events["ElectronGood"] = lepton_selection(self.events, "Electron", self.cfg.finalstate)

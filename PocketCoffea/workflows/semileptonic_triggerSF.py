@@ -16,7 +16,12 @@ class semileptonicTriggerProcessor(ttHbbBaseProcessor):
         # Accumulator with sum of weights of the events passing each category for each sample
         self._eff_dict = {cat: defaultdict_accumulator(float) for cat in self._categories}
         self._accum_dict["trigger_efficiency"] = dict_accumulator(self._eff_dict)
+        # Add 2D histogram for trigger efficiency computation
+        self.efficiency_maps = ["hist2d_electron_etaSC_vs_electron_pt", "hist2d_electron_phi_vs_electron_pt", "hist2d_electron_etaSC_vs_electron_phi"]
+        self.electron_hists = self.electron_hists + self.efficiency_maps
 
+    # Overwrite the method `compute_weights()` in order to take into account the weights of all the corrections previously applied
+    # In this way, even if the method is modified in the base processor, only the weights reported here are used for the event reweighting.
     def compute_weights(self):
         self.weights = Weights(self.nevents)
         if self.isMC:
@@ -36,17 +41,16 @@ class semileptonicTriggerProcessor(ttHbbBaseProcessor):
     def postprocess(self, accumulator):
         super().postprocess(accumulator=accumulator)
 
-        for trigger in self.cfg.triggers_to_measure:
-            den_mc   = sum(accumulator["sumw"]["inclusive"].values())
-            den_data = accumulator["cutflow"]["inclusive"]["DATA"]
-            for category, cuts in self._categories.items():
-                num_mc = sum(accumulator["sumw"][category].values())
-                num_data = accumulator["cutflow"][category]["DATA"]
-                eff_mc   = num_mc/den_mc
-                eff_data = num_data/den_data
-                accumulator["trigger_efficiency"][category] = {}
-                accumulator["trigger_efficiency"][category]["mc"] = eff_mc
-                accumulator["trigger_efficiency"][category]["data"] = eff_data
-                accumulator["trigger_efficiency"][category]["sf"] = eff_data/eff_mc
+        den_mc   = sum(accumulator["sumw"]["inclusive"].values())
+        den_data = accumulator["cutflow"]["inclusive"]["DATA"]
+        for category, cuts in self._categories.items():
+            num_mc = sum(accumulator["sumw"][category].values())
+            num_data = accumulator["cutflow"][category]["DATA"]
+            eff_mc   = num_mc/den_mc
+            eff_data = num_data/den_data
+            accumulator["trigger_efficiency"][category] = {}
+            accumulator["trigger_efficiency"][category]["mc"] = eff_mc
+            accumulator["trigger_efficiency"][category]["data"] = eff_data
+            accumulator["trigger_efficiency"][category]["sf"] = eff_data/eff_mc
 
         return accumulator
