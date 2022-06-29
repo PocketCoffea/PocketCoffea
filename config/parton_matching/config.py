@@ -1,4 +1,4 @@
-from PocketCoffea.parameters.cuts.baseline_cuts import dilepton_presel, passthrough
+from PocketCoffea.parameters.cuts.baseline_cuts import dilepton_presel, semileptonic_presel, passthrough
 from PocketCoffea.lib.cut_functions import count_objects_gt, get_nJets_min
 from PocketCoffea.lib.cut_definition import Cut
 from config.parton_matching.functions import *
@@ -9,7 +9,7 @@ cfg =  {
         "jsons": ["datasets/signal_ttHTobb_2018_local.json",
                   "datasets/backgrounds_MC_2018_local.json"],
         "filter" : {
-            "samples": ["TTTo2L2Nu"],
+            "samples": ["TTToSemiLeptonic", "ttHTobb"],
             "samples_exclude" : [],
             "year": ["2018"]
         }
@@ -17,41 +17,47 @@ cfg =  {
 
     # Input and output files
     "workflow" : PartonMatchingProcessor,
-    "output"   : "output/mem",
+    "output"   : "output/parton_matching",
 
-    # Executor parameters
+    # # Executor parameters
+    # "run_options" : {
+    #     "executor"       : "iterative",
+    #     "workers"        : 10,
+    #     "scaleout"       : 10,
+    #     "partition"      : "standard",
+    #     "walltime"       : "12:00:00",
+    #     "mem_per_worker" : None, # GB
+    #     "exclusive"      : True,
+    #     "chunk"          : 200000,
+    #     "max"            : None,
+    #     "skipbadfiles"   : None,
+    #     "voms"           : None,
+    #     "limit"          : 1,
+    # },
+
     "run_options" : {
         "executor"       : "iterative",
-        "workers"        : 5,
-        "scaleout"       : 5,
-        "partition"      : "standard",
-        "walltime"       : "12:00:00",
-        "mem_per_worker" : None, # GB
-        "exclusive"      : True,
-        "chunk"          : 250000,
+        "workers"        : 1,
+        "scaleout"       : 10,
+        "partition"      : "short",
+        "walltime"       : "06:00:00",
+        "mem_per_worker" : "4GB", # GB
+        "exclusive"      : False,
+        "chunk"          : 500000,
+        "retries"        : 3,
         "max"            : None,
         "skipbadfiles"   : None,
         "voms"           : None,
-        "limit"          : 1,
+        "limit"          : 3,
     },
-
+    
     # Cuts and plots settings
-    "finalstate" : "dilepton",
-    "preselections" : [dilepton_presel, getNjetNb_cut(4,2)],
+    "finalstate" : "semileptonic",
+    "preselections" : [semileptonic_presel],
 
     "categories": {
-        "4j" : [get_nJets_min(4)],
-        # "4j_2bjets": [getNjetNb_cut(4,2)],
-        # "4j_3bjets" :    [getNjetNb_cut(4,3)],
-        # "4j_4bjets":     [getNjetNb_cut(4,4)],
-        # "3partonMatched" : [getNjetNb_cut(4,3),
-        #                Cut(name="3parton-matched",
-        #                    params={"object": "PartonMatched", "value": 3},
-        #                    function=count_objects_gt)],
-        # "4partonsMatched" : [ getNjetNb_cut(4,4),
-        #                 Cut(name="4parton-matched",
-        #                       params={"object": "PartonMatched", "value": 4},
-        #                       function=count_objects_gt)],
+        "4j_3bjets" : [passthrough],
+        "4j_4bjets" : [getNjetNb_cut(4,4)],
     },
     
     "variables" : {
@@ -83,8 +89,8 @@ cfg =  {
     "variables2d" : {
 
         "Njet_Nparton_matched": {
-            "Njet": { 'binning': {"n_or_arr": 10, 'lo': 0, 'hi':9}, "xlabel": "N jets"},
-            "Nparton" : { 'binning': {"n_or_arr": 10, 'lo': 0, 'hi':9}, "ylabel": "N partons"}
+            "Njet": { 'binning': {"n_or_arr": 15, 'lo': 0, 'hi':15}, "xlabel": "N jets"},
+            "Nparton" : { 'binning': {"n_or_arr": 15, 'lo': 0, 'hi':15}, "ylabel": "N partons"}
         }
     },
     "scale" : "log"

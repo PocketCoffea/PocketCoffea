@@ -22,7 +22,8 @@ if __name__ == '__main__':
                         help='Config file with parameters specific to the current run')
     parser.add_argument("-o", "--output-dir", required=False, type=str,
                         help="Overwrite the output folder in the configuration")
-
+    # parser.add_argument("-l", "--limit-files", required=False, type=int,
+    #                     help="Overwrite number of files limit")
     args = parser.parse_args()
 
     if args.cfg[-3:] == ".py":
@@ -54,7 +55,7 @@ if __name__ == '__main__':
             'source /etc/profile.d/conda.sh',
             'export PATH=$CONDA_PREFIX/bin:$PATH',
             'conda activate coffea',
-            'cd /afs/cern.ch/work/m/mmarcheg/PocketCoffea/',
+            'cd /afs/cern.ch/work/m/mmarcheg/PocketCoffea/', # TO BE GENERALIZED
         ]
 
         condor_cfg = '''
@@ -77,7 +78,7 @@ if __name__ == '__main__':
                                     executor_args={
                                         'skipbadfiles':config.run_options['skipbadfiles'],
                                         'schema': processor.NanoAODSchema,
-                                        'workers': config.run_options['workers']},
+                                        'workers': config.run_options['scaleout']},
                                     chunksize=config.run_options['chunk'], maxchunks=config.run_options['max']
                                     )
     #elif config.run_options['executor'] == 'parsl/slurm':
@@ -171,12 +172,12 @@ if __name__ == '__main__':
 
         if 'slurm' in config.run_options['executor']:
             cluster = SLURMCluster(
-                queue='all',
+                queue='standard',
                 cores=config.run_options['workers'],
                 processes=config.run_options['workers'],
-                memory="200 GB",
-                retries=10,
-                walltime='00:30:00',
+                memory=config.run_options['mem_per_worker'],
+               # retries=config.run_options['retries'],
+                walltime=config.run_options["walltime"],
                 env_extra=env_extra,
             )
         elif 'condor' in config.run_options['executor']:
