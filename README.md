@@ -110,7 +110,9 @@ The `Cut` objects listed in `preselections` and `categories` have to be defined 
 
 
 ### Profiling
-For profiling please select the *iterative* processor and then run
+
+#### CPU profiling
+For profiling the CPU time of each function please select the *iterative* processor and then run
 python as:
 ~~~
 python -m cProfile -o profiling output.prof  runner.py --cfg profiling/mem.py
@@ -123,3 +125,23 @@ library
 snakeviz output.prof -s 
 ~~~
     and open on a browser the link shown by the program.
+
+#### Memory profiling
+
+For memory profiling we use the [memray](https://github.com/bloomberg/memray) library: 
+
+~~~
+python -m memray run -o profiling/memtest.bin runner.py --cfg config/config.py
+~~~
+
+the output can be visualized in many ways. One of the most useful is the `flamegraph`: 
+~~~
+memray flamegraph profiling/memtest.bin
+~~~
+
+then open the output .html file in you browser to explore the peak memory allocation. 
+
+Alternatively the process can be monitored **live** during execution by doing:
+~~~
+memray run --live  runner.py --cfg config/config.py
+~~~

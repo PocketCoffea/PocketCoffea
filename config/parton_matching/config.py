@@ -19,36 +19,20 @@ cfg =  {
     "workflow" : PartonMatchingProcessor,
     "output"   : "output/parton_matching",
 
-    # # Executor parameters
-    # "run_options" : {
-    #     "executor"       : "iterative",
-    #     "workers"        : 10,
-    #     "scaleout"       : 10,
-    #     "partition"      : "standard",
-    #     "walltime"       : "12:00:00",
-    #     "mem_per_worker" : None, # GB
-    #     "exclusive"      : True,
-    #     "chunk"          : 200000,
-    #     "max"            : None,
-    #     "skipbadfiles"   : None,
-    #     "voms"           : None,
-    #     "limit"          : 1,
-    # },
-
     "run_options" : {
-        "executor"       : "iterative",
+        "executor"       : "dask/slurm",
         "workers"        : 1,
-        "scaleout"       : 10,
-        "partition"      : "short",
-        "walltime"       : "06:00:00",
-        "mem_per_worker" : "4GB", # GB
+        "scaleout"       : 30,
+        "partition"      : "standard",
+        "walltime"       : "03:00:00",
+        "mem_per_worker" : "3GB", # GB
         "exclusive"      : False,
-        "chunk"          : 50000,
-        "retries"        : 3,
+        "chunk"          : 100000,
+        "retries"        : 30,
         "max"            : None,
         "skipbadfiles"   : None,
         "voms"           : None,
-        "limit"          : 3,
+        "limit"          : 100,
     },
     
     # Cuts and plots settings
@@ -86,12 +70,12 @@ cfg =  {
         "parton_pdgId": None,
 
     },
-    "variables2d" : {
+     "variables2d" : {
 
         "Njet_Nparton_matched": {
             "Njet": { 'binning': {"n_or_arr": 15, 'lo': 0, 'hi':15}, "xlabel": "N jets"},
             "Nparton" : { 'binning': {"n_or_arr": 15, 'lo': 0, 'hi':15}, "ylabel": "N partons"}
-        }
-    },
+     }
+     },
     "scale" : "log"
 }
