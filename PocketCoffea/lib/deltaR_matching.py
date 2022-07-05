@@ -89,7 +89,9 @@ def object_matching(obj, obj2, dr_min, dpt_max=None, return_indices=False):
 
     # Now get only the matching indices by looping over the pairs in order of deltaR.
     # The result contains the list of pairs that are considered valid
-    _idx_matched_pairs, _idx_missed_pairs = get_matching_pairs_indices(idx_obj, idx_obj2, ak.ArrayBuilder(), ak.ArrayBuilder())
+    _idx_matched_pairs, _idx_missed_pairs = get_matching_pairs_indices(ak.Array(idx_obj, behavior={}),
+                                                                       ak.Array(idx_obj2, behavior={}),
+                                                                       ak.ArrayBuilder(), ak.ArrayBuilder())
     idx_matched_pairs = _idx_matched_pairs.snapshot()
     # The indices related to the invalid jet matches are skipped
     # idx_missed_pairs  = _idx_missed_pairs.snapshot()
@@ -121,14 +123,15 @@ def object_matching(obj, obj2, dr_min, dpt_max=None, return_indices=False):
     # but we would like to have an ak.Array of the dimension of the collection 2, with "None"
     # in the places where there is not matching.
     # We need a special function for that, building the ak.Array of object from collection 1, with the dimension of collection 2, with None padding.
-    _idx_obj_padnone, _idx_obj2_padnone, _deltaR_padnone = get_matching_objects_indices_padnone(idx_obj_masked, 
-                                                                                                idx_obj2_masked, 
-                                                                                                ak.num(obj2), deltaR_masked,
+    _idx_obj_padnone, _idx_obj2_padnone, _deltaR_padnone = get_matching_objects_indices_padnone(ak.Array(idx_obj_masked, behavior={}), 
+                                                                                                ak.Array(idx_obj2_masked, behavior={}), 
+                                                                                                ak.Array(ak.num(obj2), behavior={}),
+                                                                                                ak.Array(deltaR_masked, behavior={}),
                                                                                                 ak.ArrayBuilder(), ak.ArrayBuilder(), ak.ArrayBuilder())
     idx_obj_padnone  = _idx_obj_padnone.snapshot()
     idx_obj2_padnone = _idx_obj2_padnone.snapshot()
     deltaR_padnone   = _deltaR_padnone.snapshot()
-    
+
     # Finally the objects are sliced through the padded indices
     # In this way, to a None entry in the indices will correspond a None entry in the object
     matched_obj  = obj[idx_obj_padnone]
