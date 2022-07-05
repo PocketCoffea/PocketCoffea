@@ -90,11 +90,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         for hist2d_name in self._variables2d.keys():
             varname_x = list(self._variables2d[hist2d_name].keys())[0]
             varname_y = list(self._variables2d[hist2d_name].keys())[1]
-            obj_x, field_x = varname_x.split('_')
-            obj_y, field_y = varname_y.split('_')
-            variable_x_axis = hist.Bin(field_x, self._variables2d[hist2d_name][varname_x]['xlabel'],
+            variable_x_axis = hist.Bin(varname_x, self._variables2d[hist2d_name][varname_x]['xlabel'],
                                        **self._variables2d[hist2d_name][varname_x]['binning'] )
-            variable_y_axis = hist.Bin(field_y, self._variables2d[hist2d_name][varname_y]['ylabel'],
+            variable_y_axis = hist.Bin(varname_y, self._variables2d[hist2d_name][varname_y]['ylabel'],
                                        **self._variables2d[hist2d_name][varname_y]['binning'] )
             self._hist2d_dict[f'hist2d_{hist2d_name}'] = hist.Hist("$N_{events}$", self._sample_axis, self._cat_axis,
                                                                    self._year_axis, variable_x_axis, variable_y_axis)
