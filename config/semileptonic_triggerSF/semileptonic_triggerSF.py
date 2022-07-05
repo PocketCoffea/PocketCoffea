@@ -16,18 +16,18 @@ cfg =  {
 
     # Input and output files
     "workflow" : semileptonicTriggerProcessor,
-    "output"   : "output/semileptonic_triggerSF_2018",
+    "output"   : "output/semileptonic_triggerSF_2018_lumimask",
 
     # Executor parameters
     "run_options" : {
-        "executor"       : "parsl/slurm",
-        "workers"        : 12,
-        "scaleout"       : 10,
-        "partition"      : "standard",
-        "walltime"       : "12:00:00",
-        "mem_per_worker" : None, # GB
-        "exclusive"      : True,
-        "chunk"          : 50000,
+        "executor"       : "dask/slurm",
+        "workers"        : 1,
+        "scaleout"       : 200,
+        "partition"      : "short",
+        "walltime"       : "1:00:00",
+        "mem_per_worker" : "4GB", # GB
+        "exclusive"      : False,
+        "chunk"          : 100000,
         "max"            : None,
         "skipbadfiles"   : None,
         "voms"           : None,
