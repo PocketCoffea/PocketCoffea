@@ -21,7 +21,7 @@ from ..lib.fill import fill_histograms_object
 from ..parameters.triggers import triggers
 from ..parameters.btag import btag
 from ..parameters.jec import JECversions, JERversions
-from ..parameters.lumi import lumi
+from ..parameters.lumi import lumi, goldenJSON
 from ..parameters.samples import samples_info
 from ..parameters.allhistograms import histogram_settings
 
@@ -58,6 +58,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # Accumulator with number of events passing each category for each sample
         self._cutflow_dict =   {cat: defaultdict_accumulator(int) for cat in self._categories}
         self._cutflow_dict["initial"] = defaultdict_accumulator(int)
+        self._cutflow_dict["skim"] = defaultdict_accumulator(int)
         self._cutflow_dict["presel"] = defaultdict_accumulator(int)
         self._accum_dict["cutflow"] = dict_accumulator(self._cutflow_dict)
         
@@ -151,24 +152,27 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # JEC
         self._JECversion = JECversions[self._year]['MC' if self.isMC else 'Data']
         self._JERversion = JERversions[self._year]['MC' if self.isMC else 'Data']
+        self._goldenJSON = goldenJSON[self._year]
+        print(self._goldenJSON)
 
     # Function to apply flags and lumi mask
-    def clean_events(self):
-        mask_clean = np.ones(self.nEvents_initial, dtype=np.bool)
+    def skim_events(self):
+        mask_skim = np.ones(self.nEvents_initial, dtype=np.bool)
         flags = [
             "goodVertices", "globalSuperTightHalo2016Filter", "HBHENoiseFilter", "HBHENoiseIsoFilter", "EcalDeadCellTriggerPrimitiveFilter", "BadPFMuonFilter"]#, "BadChargedCandidateFilter", "ecalBadCalibFilter"]
         if not self.isMC:
             flags.append("eeBadScFilter")
         for flag in flags:
-            mask_clean = mask_clean & getattr(self.events.Flag, flag)
-        mask_clean = mask_clean & (self.events.PV.npvsGood > 0)
+            mask_skim = mask_skim & getattr(self.events.Flag, flag)
+        mask_skim = mask_skim & (self.events.PV.npvsGood > 0)
 
         # In case of data: check if event is in golden lumi file
-        #if not self.isMC and not (lumimask is None):
-        #    mask_lumi = lumimask(self.events.run, self.events.luminosityBlock)
-        #    mask_clean = mask_clean & mask_lumi
-        # add the basic clearning to the preselection mask
-        self._preselection_masks.add('clean', ak.to_numpy(mask_clean))
+        if not self.isMC:
+            #mask_lumi = lumimask(self.events.run, self.events.luminosityBlock)
+            mask_lumi = LumiMask(self._goldenJSON)(self.events.run, self.events.luminosityBlock)
+            mask_skim = mask_skim & mask_lumi
+        # skim the events
+        self.events = self.events[mask_skim]
 
     def apply_JERC(self, JER=True, verbose=False):
         if not self.isMC: return
@@ -287,8 +291,10 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             # This is computed before any preselection
             self.output['sum_genweights'][self._sample] += sum(self.events.genWeight)
 
-        # Event cleaning and  PV selection
-        self.clean_events()
+        # Event cleaning, PV selection and lumimask
+        self.skim_events()
+        self.nEvents_after_skim = self.nevents
+        self.output['cutflow']['skim'][self._sample] += self.nEvents_after_skim
 
         # Apply JEC + JER
         self.apply_JERC()
