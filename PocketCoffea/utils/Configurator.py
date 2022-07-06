@@ -13,6 +13,7 @@ class Configurator():
         self.plot = plot
         self.plot_version = plot_version
         self.load_config(cfg)
+        # Load all the keys in the config (dangerous, can be improved)
         self.load_attributes()
 
         # Load dataset
@@ -38,7 +39,7 @@ class Configurator():
         ## Load cuts and categories
         # Cuts: set of Cut objects
         # Categories: dict with a set of Cut ids for each category
-        self.cuts = []
+        self.cut_functions = []
         self.categories = {}
         # Saving also a dict of Cut objects to map their ids (name__hash)
         # N.B. The preselections are just cuts that are applied before
@@ -108,17 +109,20 @@ class Configurator():
             exit(1)
 
     def load_cuts_and_categories(self):
+        # The cuts_dict is saved just for record
+        for skim in self.cfg["skim"]:
+            self.cuts_dict[skim.id ] = skim
         for presel in self.cfg["preselections"]:
             self.cuts_dict[presel.id] = presel
         for cat, cuts in self.cfg["categories"].items():
             self.categories[cat] = []                
             for cut in cuts:
-                self.cuts.append(cut)
+                self.cut_functions.append(cut)
                 self.cuts_dict[cut.id] = cut
                 self.categories[cat].append(cut.id)
 
         # Unique set of cuts
-        self.cuts = set(self.cuts)
+        self.cut_functions = set(self.cut_functions)
         for cat, cuts in self.categories.items():
             self.categories[cat] = set(cuts)
         print("Cuts:", list(self.cuts_dict.keys()))
