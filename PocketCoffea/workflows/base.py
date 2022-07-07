@@ -21,6 +21,7 @@ from ..lib.fill import fill_histograms_object
 from ..parameters.triggers import triggers
 from ..parameters.btag import btag
 from ..parameters.jec import JECversions, JERversions
+from ..parameters.event_flags import event_flags, event_flags_data
 from ..parameters.lumi import lumi, goldenJSON
 from ..parameters.samples import samples_info
 from ..parameters.allhistograms import histogram_settings
@@ -33,18 +34,24 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # Save histogram settings of the required histograms
         self._variables = self.cfg.variables
         self._variables2d = self.cfg.variables2d
-        
-        # Get the preselection list from the cfg.
-        # The set of unique cuts functions and cut groups (categories)
-        # are also explicited in the cfg.
+
+        ### Cuts
+        # The definition of the cuts in the analysis is hierarchical.
+        # 1) a list of *skim* functions is applied on bare NanoAOD, with no object preselection or correction.
+        #   Triggers are also applied there. 
+        # 2) Objects are corrected and selected and a list of *preselection* cuts are applied to skim the dataset.
+        # 3) A list of cut function is applied and the masks are kept in memory to defined later "categories"
+        self._skim = self.cfg.skim
         self._preselections  = self.cfg.preselections
-        self._cuts = self.cfg.cuts
+        self._cuts = self.cfg.cut_functions
         self._categories = self.cfg.categories
         ### Define PackedSelector to save per-event cuts and dictionary of selections
-        # The preselection mask is extracted on the baseline nanoaod and applied to skim the events
+        # The skim mask is applied on baseline nanoaod before any object is corrected
+        self._skim_masks = PackedSelection()
+        # The preselection mask is applied after the objects have been corrected
         self._preselection_masks = PackedSelection()
         # After the preselections more cuts are defined and combined in categories.
-        # These cuts are applied only before the output 
+        # These cuts are applied only for outputs, so they cohexists in the form of masks
         self._cuts_masks = PackedSelection()
         
         # Accumulators for the output
@@ -91,11 +98,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         for hist2d_name in self._variables2d.keys():
             varname_x = list(self._variables2d[hist2d_name].keys())[0]
             varname_y = list(self._variables2d[hist2d_name].keys())[1]
-            obj_x, field_x = varname_x.split('_')
-            obj_y, field_y = varname_y.split('_')
-            variable_x_axis = hist.Bin(field_x, self._variables2d[hist2d_name][varname_x]['xlabel'],
+            variable_x_axis = hist.Bin(varname_x, self._variables2d[hist2d_name][varname_x]['xlabel'],
                                        **self._variables2d[hist2d_name][varname_x]['binning'] )
-            variable_y_axis = hist.Bin(field_y, self._variables2d[hist2d_name][varname_y]['ylabel'],
+            variable_y_axis = hist.Bin(varname_y, self._variables2d[hist2d_name][varname_y]['ylabel'],
                                        **self._variables2d[hist2d_name][varname_y]['binning'] )
             self._hist2d_dict[f'hist2d_{hist2d_name}'] = hist.Hist("$N_{events}$", self._sample_axis, self._cat_axis,
                                                                    self._year_axis, variable_x_axis, variable_y_axis)
@@ -130,10 +135,10 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             else:
                 self._accum_dict[k] = h
         
-
     @property
     def nevents(self):
-        return ak.count(self.events.event)
+        '''The current number of events in the chunk is computed with a property'''
+        return ak.count(self.events.event, axis=0)
 
     def get_histogram(self, name):
         if name in self.output:
@@ -153,27 +158,46 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self._JECversion = JECversions[self._year]['MC' if self.isMC else 'Data']
         self._JERversion = JERversions[self._year]['MC' if self.isMC else 'Data']
         self._goldenJSON = goldenJSON[self._year]
-        print(self._goldenJSON)
+
+    # Function that computes the trigger masks and save it in the PackedSelector
+    def apply_triggers(self):
+        # Trigger logic is included in the preselection mask
+        self._skim_masks.add('trigger', get_trigger_mask(self.events, self._triggers, self.cfg.finalstate))
+
 
     # Function to apply flags and lumi mask
     def skim_events(self):
-        mask_skim = np.ones(self.nEvents_initial, dtype=np.bool)
-        flags = [
-            "goodVertices", "globalSuperTightHalo2016Filter", "HBHENoiseFilter", "HBHENoiseIsoFilter", "EcalDeadCellTriggerPrimitiveFilter", "BadPFMuonFilter"]#, "BadChargedCandidateFilter", "ecalBadCalibFilter"]
+        # In the initial skimming we apply METfilters, PV requirement, lumimask(for DATA), the trigger,
+        # and user-defined skimming function.
+        # BE CAREFUL: the skimming is done before any object preselection and cleaning
+        mask_flags = np.ones(self.nEvents_initial, dtype=np.bool)
+        flags = event_flags[self._year]
         if not self.isMC:
-            flags.append("eeBadScFilter")
+            flags += event_flags_data[self._year]
         for flag in flags:
-            mask_skim = mask_skim & getattr(self.events.Flag, flag)
-        mask_skim = mask_skim & (self.events.PV.npvsGood > 0)
+            mask_flags = getattr(self.events.Flag, flag)
+        self._skim_masks.add("event_flags", mask_flags)
+        
+        # Primary vertex requirement
+        self._skim_masks.add("PVgood", self.events.PV.npvsGood > 0)
 
         # In case of data: check if event is in golden lumi file
         if not self.isMC:
             #mask_lumi = lumimask(self.events.run, self.events.luminosityBlock)
             mask_lumi = LumiMask(self._goldenJSON)(self.events.run, self.events.luminosityBlock)
-            mask_skim = mask_skim & mask_lumi
-        # skim the events
-        self.events = self.events[mask_skim]
+            self._skim_masks.add("lumi_golden", mask_lumi)
 
+        for skim_func in self._skim:
+            # Apply the skim function and add it to the mask
+            mask = skim_func.get_mask(self.events, year=self._year, sample=self._sample)
+            self._skim_masks_masks.add(skim_func.id, mask)
+            
+        # Finally we skim the events and count them
+        self.events = self.events[self._skim_masks.all(*self._skim_masks.names)]
+        self.nEvents_after_skim = self.nevents
+        self.output['cutflow']['skim'][self._sample] += self.nEvents_after_skim
+        self.has_events = self.nEvents_after_skim > 0
+        
     def apply_JERC(self, JER=True, verbose=False):
         if not self.isMC: return
         if int(self._year) > 2018:
@@ -217,22 +241,20 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.events["nbjet"]     = ak.num(self.events.BJetGood)
         #self.events["nfatjet"]   = ak.num(self.events.FatJetGood)
 
-    # Function that computes the trigger masks and save it in the PackedSelector
-    def apply_triggers(self):
-        # Trigger logic is included in the preselection mask
-        self._preselection_masks.add('trigger', get_trigger_mask(self.events, self._triggers, self.cfg.finalstate))
 
-    def apply_preselection_cuts(self):
+    def apply_preselections(self):
+        ''' The function computes all the masks from the preselection cuts
+        and filter out the events to speed up the later computations.
+        N.B.: Preselection happens after the objects correction and cleaning'''
         for cut in self._preselections:
             # Apply the cut function and add it to the mask
             mask = cut.get_mask(self.events, year=self._year, sample=self._sample)
             self._preselection_masks.add(cut.id, mask)
         # Now that the preselection mask is complete we can apply it to events
         self.events = self.events[self._preselection_masks.all(*self._preselection_masks.names)]
-        if self.nevents == 0:
-            self.has_events = False
-        else:
-            self.has_events = True
+        self.nEvents_after_presel = self.nevents
+        self.output['cutflow']['presel'][self._sample] += self.nEvents_after_presel
+        self.has_events = self.nEvents_after_presel > 0
             
     def define_categories(self):
         for cut in self._cuts:
@@ -269,11 +291,14 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             if self.isMC:
                 w = self.weights.weight()
                 self.output["sumw"][category][self._sample] = ak.sum(w*mask)
-            
-    def process_extra_before_presel(self) -> ak.Array:
-        pass
 
-    def process_extra_after_presel(self) -> ak.Array:
+    def process_extra_before_skim(self):
+        pass
+    
+    def process_extra_before_presel(self):
+        pass
+    
+    def process_extra_after_presel(self):
         pass
 
     def fill_histograms_extra(self):
@@ -281,6 +306,11 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     
     def process(self, events):
         self.events = events
+
+        ###################
+        # At the beginning of the processing the initial number of events
+        # and the sum of the genweights is stored for later use
+        #################
         self.load_metadata()
         # Define the accumulator instance for this chunk
         self.output = self.accumulator.identity()
@@ -291,31 +321,47 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             # This is computed before any preselection
             self.output['sum_genweights'][self._sample] += sum(self.events.genWeight)
 
-        # Event cleaning, PV selection and lumimask
+        ########################
+        # Then the first skimming happens. 
+        # Events that are for sure useless are removed, and trigger are applied.
+        # The user can specify in the configuration a function to apply for the skiming.
+        # BE CAREFUL: objects are not corrected and cleaned at this stage, the skimming
+        # selections MUST be loose and inclusive w.r.t the final selections. 
+        #########################
+        # Trigger are applied at the beginning since they do not change 
+        self.apply_triggers()
+        # Customization point for derived workflows before skimming
+        self.process_extra_before_skim()
+        # MET filter, lumimask, + custom skimming function
         self.skim_events()
-        self.nEvents_after_skim = self.nevents
-        self.output['cutflow']['skim'][self._sample] += self.nEvents_after_skim
+        if not self.has_events: return self.output
 
+        #########################
+        # After the skimming we apply the object corrections and preselection
+        # Doing so we avoid to compute them on the full NanoAOD dataset
+        #########################
         # Apply JEC + JER
         self.apply_JERC()
 
-        # Apply preselections, triggers and cuts
+        # Apply preselections
         self.apply_object_preselection()
         self.count_objects()
-        self.apply_triggers()
-        # Possible extra work before applying preselections
+        # Customization point for derived workflows after preselection cuts
         self.process_extra_before_presel()
-        # This will remove all the events not passing preselection from further 
-        self.apply_preselection_cuts()
-        self.nEvents_after_presel = self.nevents
-        self.output['cutflow']['presel'][self._sample] += self.nEvents_after_presel
+        # This will remove all the events not passing preselection from further processing
+        self.apply_preselections()
+       
+        # If not events remains after the preselection we skip the chunk
         if not self.has_events: return self.output
 
-        # This function is empty in the base processor, but can be overriden in processors derived from the class ttHbbBaseProcessor
+        ##########################
+        # After the preselection cuts has been applied more processing is performwend 
+        ##########################
+        # Customization point for derived workflows after preselection cuts
         self.process_extra_after_presel()
         
-        # This function looks at the categories in the cfg file,
-        # apply the single cut functions and then prepares the categories
+        # This function applies all the cut functions in the cfg file
+        # Each category is an AND of some cuts. 
         self.define_categories()
 
         # Weights

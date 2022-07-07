@@ -5,7 +5,26 @@ The development of the code is driven by user-friendliness, reproducibility and 
 All the operations on ntuples are executed within Coffea processors, defined in `workflows/`, to save the output histograms in a Coffea file.
 This file is then processed through the script `scripts/plot/make_plots.py` to plot the histograms.
 The workflows can be run locally or by submitting jobs on a cluster. All the commands for the execution are wrapped up in a runner script `runner.py`.
-All the relevant parameters for the execution of the processor such as the input and output files' names, the execution parameters, the cuts to apply and the histogram settings are contained in a Python dictionary, defined in a configuration file in `config/`, which is passed to the runner script as an argument.
+All the relevant parameters for the execution of the processor such as the input and output files' names, the execution
+parameters, the cuts to apply and the histogram settings are contained in a Python dictionary, defined in a
+configuration file in `config/`, which is passed to the runner script as an argument.
+
+### Filtering
+
+We have now three modes of "filtering" event in the base workflow
+
+1) **Skim**: before any object correction and preselection to remove events at the very beginning and save processing time.
+    
+Trigger, METFilters, PV selection, goldenJson lumi mask are applied here.
+N.B,. the skim selection must be loose w.r.t of possible systematic variations or object corrections.
+
+2) **Preselections**: a set of cuts is applied after the object corrections and object preselections.
+
+JERC, lepton scales etc have been already applied before this step. The preselection cuts can use the fully corrected events.
+
+3) **Categories**: groups of cut functions are applied as masks in order to define categories. Events are not removed but the masks are used for the output.
+
+
 ## How to run
 ### Build the dataset definition
 Datasets are collection of samples, their corresponding files, and their metadata. 
@@ -76,6 +95,7 @@ or use the newly created copy of the config file (__useful for traceability__):
 python scripts/plot/make_plots.py --cfg output/base/config.py
 ~~~
 The output plots will be saved in `output/base/plots` together with the config file `output/base/plots/config.py` that was given as an argument to `scripts/plot/make_plots.py`.
+
 ### Config file
 The config file in `.py` format is passed as the argument `--cfg` of the `runner.py` script. The file has the following structure:
 
