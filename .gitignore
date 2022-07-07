@@ -9,3 +9,4 @@ output/
 logs/
 *~
 *.pyc
+slurm-*
