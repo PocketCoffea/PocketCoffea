@@ -79,7 +79,8 @@ class Configurator():
             else:
                 parent_dir = os.path.abspath(os.path.join(self.output, os.pardir))
                 output_dir = os.path.basename(self.output)
-                self.output = os.path.join(parent_dir, [folder for folder in sorted(os.listdir(parent_dir)) if output_dir in folder][-1])
+                latest_dir = list(filter(lambda folder : ((output_dir == folder) | (output_dir+'_v' in folder)), sorted(os.listdir(parent_dir))))[-1]
+                self.output = os.path.join(parent_dir, latest_dir)
             self.plots = os.path.join( os.path.abspath(self.output), "plots" )
 
     def load_dataset(self):
@@ -172,9 +173,16 @@ class Configurator():
             elif not isinstance(self.cfg['variables'][var_name], dict):
                 sys.exit("Format non valid for histogram settings")
             elif set(self.cfg['variables'][var_name].keys()) != {'binning', 'xlim', 'xlabel'}:
-                sys.exit("Missing keys in histogram settings. Required keys: {'binning', 'xlim', 'xlabel'}")
-            elif set(self.cfg['variables'][var_name]['binning'].keys()) != {'n_or_arr', 'lo', 'hi'}:
-                sys.exit("Missing keys in histogram binning. Required keys: {'n_or_arr', 'lo', 'hi'}")
+                set_ctrl = {'binning', 'xlim', 'xlabel'}
+                sys.exit(f"{var_name}: missing keys in histogram settings. Required keys missing: {set_ctrl - set(self.cfg['variables'][var_name].keys())}")
+            elif 'n_or_arr' not in set(self.cfg['variables'][var_name]['binning'].keys()):
+                sys.exit(f"{var_name}: missing keys in histogram binning. Required keys missing: {'n_or_arr'}")
+            elif ( ('n_or_arr' in set(self.cfg['variables'][var_name]['binning'].keys())) &
+                   (type(self.cfg['variables'][var_name]['binning']['n_or_arr']) == int)  &
+                   (set(self.cfg['variables'][var_name]['binning'].keys()) != {'n_or_arr', 'lo', 'hi'}) ):
+                set_ctrl = {'n_or_arr', 'lo', 'hi'}
+                sys.exit(f"{var_name}: missing keys in histogram binning. Required keys missing: {set_ctrl - set(self.cfg['variables'][var_name]['binning'].keys())}")
+
 
     def load_workflow(self):
         self.processor_instance = self.workflow(cfg=self)
