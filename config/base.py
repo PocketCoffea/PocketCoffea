@@ -1,4 +1,4 @@
-from PocketCoffea.parameters.cuts.baseline_cuts import dilepton_presel, passthrough
+from PocketCoffea.parameters.cuts.baseline_cuts import semileptonic_presel, passthrough
 from PocketCoffea.workflows.base import ttHbbBaseProcessor
 
 cfg =  {
@@ -14,18 +14,18 @@ cfg =  {
 
     # Input and output files
     "workflow" : ttHbbBaseProcessor,
-    "output"   : "output/base",
+    "output"   : "output/base/base",
 
     # Executor parameters
     "run_options" : {
-        "executor"       : "parsl/slurm",
-        "workers"        : 12,
-        "scaleout"       : 10,
-        "partition"      : "standard",
-        "walltime"       : "12:00:00",
-        "mem_per_worker" : None, # GB
-        "exclusive"      : True,
-        "chunk"          : 50000,
+        "executor"       : "dask/slurm",
+        "workers"        : 1,
+        "scaleout"       : 40,
+        "partition"      : "short",
+        "walltime"       : "1:00:00",
+        "mem_per_worker" : "4GB", # GB
+        "exclusive"      : False,
+        "chunk"          : 100000,
         "max"            : None,
         "skipbadfiles"   : None,
         "voms"           : None,
@@ -34,14 +34,15 @@ cfg =  {
 
     # Cuts and plots settings
     "finalstate" : "dilepton",
-    "preselections" : [dilepton_presel],
+    "skim": [],
+    "preselections" : [semileptonic_presel],
     "categories": {
         "SR" : [passthrough],
         "CR" : [passthrough]
     },
     
     "variables" : {
-        "muon_pt" : {'binning' : {'n_or_arr' : 200, 'lo' : 0, 'hi' : 2000}, 'xlim' : (0,500),  'xlabel' : "$p_{T}^{\mu}$ [GeV]"},
+        "muon_pt" : {'binning' : {'n_or_arr' : 200, 'lo' : 0, 'hi' : 2000}, 'xlim' : (0,500), 'xlabel' : "$p_{T}^{\mu}$ [GeV]"},
         "muon_eta" : None,
         "muon_phi" : None,
         "electron_pt" : None,

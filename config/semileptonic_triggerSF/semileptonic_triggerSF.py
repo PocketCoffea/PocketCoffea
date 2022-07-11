@@ -2,6 +2,7 @@ from PocketCoffea.parameters.cuts.baseline_cuts import semileptonic_triggerSF_pr
 from config.semileptonic_triggerSF.functions import get_trigger_passfail
 from PocketCoffea.workflows.semileptonic_triggerSF import semileptonicTriggerProcessor
 from math import pi
+import numpy as np
 
 cfg =  {
 
@@ -16,15 +17,15 @@ cfg =  {
 
     # Input and output files
     "workflow" : semileptonicTriggerProcessor,
-    "output"   : "output/semileptonic_triggerSF_2018_lumimask",
+    "output"   : "output/sf_ele_trigger_semilep/semileptonic_triggerSF_2018_lumimask_etaSC",
 
     # Executor parameters
     "run_options" : {
         "executor"       : "dask/slurm",
         "workers"        : 1,
-        "scaleout"       : 200,
-        "partition"      : "short",
-        "walltime"       : "1:00:00",
+        "scaleout"       : 50,
+        "partition"      : "standard",
+        "walltime"       : "12:00:00",
         "mem_per_worker" : "4GB", # GB
         "exclusive"      : False,
         "chunk"          : 100000,
@@ -36,6 +37,7 @@ cfg =  {
 
     # Cuts and plots settings
     "finalstate" : "semileptonic_triggerSF",
+    "skim" : [],
     "preselections" : [semileptonic_triggerSF_presel],
     "categories": {
         "Ele32_EleHT_pass" : [get_trigger_passfail(["Ele32_WPTight_Gsf", "Ele28_eta2p1_WPTight_Gsf_HT150"], "pass")],
@@ -50,9 +52,10 @@ cfg =  {
         "muon_pt" : {'binning' : {'n_or_arr' : 200, 'lo' : 0, 'hi' : 2000}, 'xlim' : (0,500),  'xlabel' : "$p_{T}^{\mu}$ [GeV]"},
         "muon_eta" : None,
         "muon_phi" : None,
-        "electron_pt" : None,
-        "electron_eta" : None,
-        "electron_phi" : None,
+        "electron_pt" : {'binning' : {'n_or_arr' : 400, 'lo' : 0, 'hi' : 2000}, 'xlim' : (0,500),  'xlabel' : "$p_{T}^{e}$ [GeV]"},
+        "electron_eta" : {'binning' : {'n_or_arr' : [-2.5, -2.3, -2.1, -1.9, -1.7, -1.5660, -1.4442, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.5660, 1.7, 1.9, 2.1, 2.3, 2.5]}, 'xlim' : (-2.5,2.5), 'xlabel' : "Electron $\eta$"},
+        "electron_etaSC" : {'binning' : {'n_or_arr' : [-2.5, -2.3, -2.1, -1.9, -1.7, -1.5660, -1.4442, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.5660, 1.7, 1.9, 2.1, 2.3, 2.5]}, 'xlim' : (-2.5,2.5), 'xlabel' : "Electron Supercluster $\eta$"},
+        "electron_phi" : {'binning' : {'n_or_arr' : 24, 'lo' : -pi, 'hi' : pi}, 'xlim' : (-pi,pi), 'xlabel' : "$\phi_{e}$"},
         "jet_pt" : None,
         "jet_eta" : None,
         "jet_phi" : None,
@@ -64,22 +67,29 @@ cfg =  {
     },
     "variables2d" : {
         'electron_etaSC_vs_electron_pt' : {
-            'electron_pt'               : {'binning' : {'n_or_arr' : [0, 25, 35, 45, 55, 100, 500, 2000]},  'xlim' : (20,500),    'xlabel' : "Electron $p_{T}$ [GeV]",
+            'pt'               : {'binning' : {'n_or_arr' : [0, 25, 35, 45, 55, 65, 75, 85, 100, 200, 500, 2000]},  'xlim' : (20,500),    'xlabel' : "Electron $p_{T}$ [GeV]",
                                            'xticks' : [20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500]},
-            'electron_etaSC'            : {'binning' : {'n_or_arr' : [-2.5, -1.5660, -1.4442, -0.8, 0.0, 0.8, 1.4442, 1.5660, 2.5]}, 'ylim' : (-2.5,2.5), 'ylabel' : "Electron Supercluster $\eta$"},
+            'etaSC'            : {'binning' : {'n_or_arr' : [-2.5, -2.3, -2.1, -1.9, -1.7, -1.5660, -1.4442, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.5660, 1.7, 1.9, 2.1, 2.3, 2.5]}, 'ylim' : (-2.5,2.5), 'ylabel' : "Electron Supercluster $\eta$"},
         },
         'electron_phi_vs_electron_pt' : {
-            'electron_pt'               : {'binning' : {'n_or_arr' : [0, 25, 35, 45, 55, 100, 500, 2000]},  'xlim' : (20,500),    'xlabel' : "Electron $p_{T}$ [GeV]",
+            'pt'               : {'binning' : {'n_or_arr' : [0, 25, 35, 45, 55, 65, 75, 85, 100, 200, 500, 2000]},  'xlim' : (20,500),    'xlabel' : "Electron $p_{T}$ [GeV]",
                                            'xticks' : [20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500]},
-            'electron_phi'              : {'binning' : {'n_or_arr' : 12, 'lo' : -pi, 'hi' : pi}, 'ylim' : (-pi,pi), 'ylabel' : "$\phi_{e}$"},
+            'phi'              : {'binning' : {'n_or_arr' : 12, 'lo' : -pi, 'hi' : pi}, 'ylim' : (-pi,pi), 'ylabel' : "$\phi_{e}$"},
         },
         'electron_etaSC_vs_electron_phi' : {
-            'electron_phi'              : {'binning' : {'n_or_arr' : 12, 'lo' : -pi, 'hi' : pi}, 'xlim' : (-pi,pi),    'xlabel' : "$\phi_{e}$"},
-            'electron_etaSC'            : {'binning' : {'n_or_arr' : [-2.5, -1.5660, -1.4442, -0.8, 0.0, 0.8, 1.4442, 1.5660, 2.5]}, 'ylim' : (-2.5,2.5), 'ylabel' : "Electron Supercluster $\eta$"},
+            'phi'              : {'binning' : {'n_or_arr' : 12, 'lo' : -pi, 'hi' : pi}, 'xlim' : (-pi,pi),    'xlabel' : "$\phi_{e}$"},
+            'etaSC'            : {'binning' : {'n_or_arr' : [-2.5, -2.3, -2.1, -1.9, -1.7, -1.5660, -1.4442, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.5660, 1.7, 1.9, 2.1, 2.3, 2.5]}, 'ylim' : (-2.5,2.5), 'ylabel' : "Electron Supercluster $\eta$"},
         },
     },
     "plot_options" : {
+        #"only" : "hist2d_electron_etaSC_vs_electron_pt",
+        "only" : "hist2d_electron_",
+        "workers" : 24,
         "scale" : "log",
         "fontsize" : 14,
+        "rebin" : {
+            'electron_pt' : {'binning' : {'n_or_arr' : np.arange(0, 100, 10).tolist() + [100, 200, 500, 2000]}}
+        }
+        #"rebin" : {}
     }
 }
