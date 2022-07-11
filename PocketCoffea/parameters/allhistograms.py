@@ -12,6 +12,7 @@ histogram_settings = {
         'goodmuon_phi'             : {'binning' : {'n_or_arr' : 128, 'lo' : -pi, 'hi' : pi}, 'xlim' : (-pi,pi), 'xlabel' : "$\phi_{\mu}$"},
         'electron_pt'              : {'binning' : {'n_or_arr' : 200, 'lo' : 0, 'hi' : 2000}, 'xlim' : (0,500),  'xlabel' : "$p_{T}^{e}$ [GeV]"},
         'electron_eta'             : {'binning' : {'n_or_arr' : 80, 'lo' : -4, 'hi' : 4},    'xlim' : (-4,4),   'xlabel' : "$\eta_{e}$"},
+        "electron_etaSC"           : {'binning' : {'n_or_arr' : [-2.5, -2.3, -2.1, -1.9, -1.7, -1.5660, -1.4442, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.5660, 1.7, 1.9, 2.1, 2.3, 2.5]}, 'ylim' : (-2.5,2.5), 'ylabel' : "Electron Supercluster $\eta$"},
         'electron_phi'             : {'binning' : {'n_or_arr' : 128, 'lo' : -pi, 'hi' : pi}, 'xlim' : (-pi,pi), 'xlabel' : "$\phi_{e}$"},
         'goodelectron_pt'          : {'binning' : {'n_or_arr' : 200, 'lo' : 0, 'hi' : 2000}, 'xlim' : (0,500),  'xlabel' : "$p_{T}^{e}$ [GeV]"},
         'goodelectron_eta'         : {'binning' : {'n_or_arr' : 80, 'lo' : -4, 'hi' : 4},    'xlim' : (-4,4),   'xlabel' : "$\eta_{e}$"},
