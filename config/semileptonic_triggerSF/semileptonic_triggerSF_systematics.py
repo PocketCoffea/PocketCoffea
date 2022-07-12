@@ -17,18 +17,18 @@ cfg =  {
 
     # Input and output files
     "workflow" : semileptonicTriggerProcessor,
-    "output"   : "output/sf_ele_trigger_semilep/semileptonic_triggerSF_2018_lumimask_etaSC",
+    "output"   : "output/sf_ele_trigger_semilep/semileptonic_triggerSF_2018_systematics",
 
     # Executor parameters
     "run_options" : {
         "executor"       : "dask/slurm",
         "workers"        : 1,
-        "scaleout"       : 50,
+        "scaleout"       : 250,
         "partition"      : "standard",
         "walltime"       : "12:00:00",
         "mem_per_worker" : "4GB", # GB
         "exclusive"      : False,
-        "chunk"          : 100000,
+        "chunk"          : 50000,
         "max"            : None,
         "skipbadfiles"   : None,
         "voms"           : None,
@@ -82,9 +82,8 @@ cfg =  {
         },
     },
     "plot_options" : {
-        #"only" : "electron_etaSC_vs_electron_pt",
         "only" : None,
-        "workers" : 24,
+        "workers" : 16,
         "scale" : "log",
         "fontsize" : 18,
         "fontsize_map" : 10,
