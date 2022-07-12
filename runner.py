@@ -172,11 +172,10 @@ if __name__ == '__main__':
 
         if 'slurm' in config.run_options['executor']:
             cluster = SLURMCluster(
-                queue=config.run_options['partition'],
+                queue='standard',
                 cores=config.run_options['workers'],
                 processes=config.run_options['workers'],
                 memory=config.run_options['mem_per_worker'],
-               # retries=config.run_options['retries'],
                 walltime=config.run_options["walltime"],
                 env_extra=env_extra,
                 #job_extra=[f'-o {os.path.join(config.output, "slurm-output", "slurm-%j.out")}'],
@@ -201,6 +200,8 @@ if __name__ == '__main__':
                                             'client': client,
                                             'skipbadfiles':config.run_options['skipbadfiles'],
                                             'schema': processor.NanoAODSchema,
+                                            'retries' : config.run_options['retries'],
+                                            'treereduction' : config.run_options.get('treereduction', 20)
                                         },
                                         chunksize=config.run_options['chunk'], maxchunks=config.run_options['max']
                             )
