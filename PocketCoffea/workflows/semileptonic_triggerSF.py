@@ -14,13 +14,11 @@ from ..parameters.samples import samples_info
 class semileptonicTriggerProcessor(ttHbbBaseProcessor):
     def __init__(self,cfg) -> None:
         super().__init__(cfg=cfg)
-        pileup_axis   = hist.Cat("pileup", "Pileup")
-        sf_ele_reco_axis = hist.Cat("sf_ele_reco", "SF (ele, reco)")
-        sf_ele_id_axis   = hist.Cat("sf_ele_id", "SF (ele, ID)")
+        variations_axis   = hist.Cat("var", "Variations")
         for histname, h in self._hist_dict.items():
-            self._hist_dict[histname] = hist.Hist("$N_{events}$", *h.axes(), pileup_axis, sf_ele_reco_axis, sf_ele_id_axis)
+            self._hist_dict[histname] = hist.Hist("$N_{events}$", *h.sparse_axes(), variations_axis, *h.dense_axes())
         for histname, h in self._hist2d_dict.items():
-            self._hist2d_dict[histname] = hist.Hist("$N_{events}$", *h.axes(), pileup_axis, sf_ele_reco_axis, sf_ele_id_axis)
+            self._hist2d_dict[histname] = hist.Hist("$N_{events}$", *h.sparse_axes(), variations_axis, *h.dense_axes())
         # Accumulator with sum of weights of the events passing each category for each sample
         self._eff_dict = {cat: defaultdict_accumulator(float) for cat in self._categories}
         self._accum_dict["trigger_efficiency"] = dict_accumulator(self._eff_dict)
@@ -49,10 +47,10 @@ class semileptonicTriggerProcessor(ttHbbBaseProcessor):
             self.weights.add('sf_mu_iso', *sf_mu(self.events, self._year, 'iso'))
 
     def fill_histograms(self):
-        variations = ['pileup', 'sf_ele_reco', 'sf_ele_id']
+        systematics = ['pileup', 'sf_ele_reco', 'sf_ele_id']
         for (obj, obj_hists) in zip([self.events.MuonGood, self.events.ElectronGood, self.events.JetGood], [self.muon_hists, self.electron_hists, self.jet_hists]):
         #for (obj, obj_hists) in zip([self.events.ElectronGood], [self.electron_hists]):
-            fill_histograms_object_with_variations(self, obj, obj_hists, variations)
+            fill_histograms_object_with_variations(self, obj, obj_hists, systematics)
 
     def postprocess(self, accumulator):
         super().postprocess(accumulator=accumulator)

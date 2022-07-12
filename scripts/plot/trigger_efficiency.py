@@ -16,7 +16,6 @@ import coffea.hist as hist
 
 from multiprocessing import Pool
 from PocketCoffea.parameters.allhistograms import histogram_settings
-from PocketCoffea.parameters.lumi import lumi, femtobarn
 
 from PocketCoffea.utils.Configurator import Configurator
 from PocketCoffea.utils.Plot import plot_efficiency
