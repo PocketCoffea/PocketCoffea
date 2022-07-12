@@ -193,8 +193,11 @@ class Configurator():
 
     def save_config(self):
         ocfg = {k:v for k,v in self.cfg.items()}
+        skim_dump = []
         presel_dump = []
         cats_dump = {}
+        for sk in ocfg["skim"]:
+            skim_dump.append(sk.serialize())
         for pre in ocfg["preselections"]:
             presel_dump.append(pre.serialize())
         for cat,cuts  in ocfg["categories"].items():
@@ -202,6 +205,7 @@ class Configurator():
             for c in cuts:
                 newcuts.append(c.serialize())
             cats_dump[cat] = newcuts
+        ocfg["skim"] = skim_dump
         ocfg["preselections"] = presel_dump
         ocfg["categories"] = cats_dump
         ocfg["workflow"] = self.workflow.__name__

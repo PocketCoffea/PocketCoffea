@@ -43,7 +43,7 @@ Datasets are defined in JSON files following this syntax.
               }
             }
         ]
-    },
+    }
 ~~~
 The name of the object makes the dataset unique. The `sample` key is the one used internally in the framework. The
 `json_output` defines the output location for the list of files. The `storage_prefix` defines the local position of the

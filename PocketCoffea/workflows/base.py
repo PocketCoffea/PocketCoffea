@@ -153,10 +153,10 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self._year = self.events.metadata["year"]
         self._triggers = triggers[self.cfg.finalstate][self._year]
         self._btag = btag[self._year]
-        self.isMC = 'genWeight' in self.events.fields
+        self._isMC = 'genWeight' in self.events.fields
         # JEC
-        self._JECversion = JECversions[self._year]['MC' if self.isMC else 'Data']
-        self._JERversion = JERversions[self._year]['MC' if self.isMC else 'Data']
+        self._JECversion = JECversions[self._year]['MC' if self._isMC else 'Data']
+        self._JERversion = JERversions[self._year]['MC' if self._isMC else 'Data']
         self._goldenJSON = goldenJSON[self._year]
 
     # Function that computes the trigger masks and save it in the PackedSelector
@@ -172,7 +172,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # BE CAREFUL: the skimming is done before any object preselection and cleaning
         mask_flags = np.ones(self.nEvents_initial, dtype=np.bool)
         flags = event_flags[self._year]
-        if not self.isMC:
+        if not self._isMC:
             flags += event_flags_data[self._year]
         for flag in flags:
             mask_flags = getattr(self.events.Flag, flag)
@@ -182,15 +182,15 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self._skim_masks.add("PVgood", self.events.PV.npvsGood > 0)
 
         # In case of data: check if event is in golden lumi file
-        if not self.isMC:
+        if not self._isMC:
             #mask_lumi = lumimask(self.events.run, self.events.luminosityBlock)
             mask_lumi = LumiMask(self._goldenJSON)(self.events.run, self.events.luminosityBlock)
             self._skim_masks.add("lumi_golden", mask_lumi)
 
         for skim_func in self._skim:
             # Apply the skim function and add it to the mask
-            mask = skim_func.get_mask(self.events, year=self._year, sample=self._sample)
-            self._skim_masks_masks.add(skim_func.id, mask)
+            mask = skim_func.get_mask(self.events, year=self._year, sample=self._sample, btag=self._btag, isMC=self._isMC)
+            self._skim_masks.add(skim_func.id, mask)
             
         # Finally we skim the events and count them
         self.events = self.events[self._skim_masks.all(*self._skim_masks.names)]
@@ -199,14 +199,14 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.has_events = self.nEvents_after_skim > 0
         
     def apply_JERC(self, JER=True, verbose=False):
-        if not self.isMC: return
+        if not self._isMC: return
         if int(self._year) > 2018:
             sys.exit("Warning: Run 3 JEC are not implemented yet.")
         if JER:
             self.events.Jet, seed_dict = jet_correction(self.events, "Jet", "AK4PFchs", self._year, self._JECversion, self._JERversion, verbose=verbose)
             self.output['seed_chunk'].update(seed_dict)
         else:
-            self.events.Jet = jet_correction(self.events, "Jet", "AK4PFchs", self._year, self._JECversion, verbose=verbose)
+            selfd.events.Jet = jet_correction(self.events, "Jet", "AK4PFchs", self._year, self._JECversion, verbose=verbose)
 
     # Function to compute masks to preselect objects and save them as attributes of `events`
     def apply_object_preselection(self):
@@ -248,7 +248,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         N.B.: Preselection happens after the objects correction and cleaning'''
         for cut in self._preselections:
             # Apply the cut function and add it to the mask
-            mask = cut.get_mask(self.events, year=self._year, sample=self._sample)
+            mask = cut.get_mask(self.events, year=self._year, sample=self._sample, isMC=self._isMC)
             self._preselection_masks.add(cut.id, mask)
         # Now that the preselection mask is complete we can apply it to events
         self.events = self.events[self._preselection_masks.all(*self._preselection_masks.names)]
@@ -263,8 +263,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # We make sure that for each category the list of cuts is unique in the Configurator validation
 
     def compute_weights(self):
-        self.weights = Weights(self.nevents)
-        if self.isMC:
+        self.weights = Weights(self.nEvents_after_presel)
+        if self._isMC:
             self.weights.add('genWeight', self.events.genWeight)
             self.weights.add('lumi', ak.full_like(self.events.genWeight, lumi[self._year]))
             self.weights.add('XS', ak.full_like(self.events.genWeight, samples_info[self._sample]["XS"]))
@@ -288,7 +288,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         for category, cuts in self._categories.items():
             mask = self._cuts_masks.all(*cuts)
             self.output["cutflow"][category][self._sample] = ak.sum(mask)
-            if self.isMC:
+            if self._isMC:
                 w = self.weights.weight()
                 self.output["sumw"][category][self._sample] = ak.sum(w*mask)
 
@@ -317,7 +317,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         #if len(events)==0: return output
         self.nEvents_initial = self.nevents
         self.output['cutflow']['initial'][self._sample] += self.nEvents_initial
-        if self.isMC:
+        if self._isMC:
             # This is computed before any preselection
             self.output['sum_genweights'][self._sample] += sum(self.events.genWeight)
 
