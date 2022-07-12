@@ -19,25 +19,56 @@ def count_objects_eq(events,params,year,sample):
     return ak.where(ak.is_none(mask), ~ak.is_none(mask), mask)
 
 ##################################
-# Some predefined functions
+# Min number of objects with pt cut
 
-def nJets_min(events, params, **kwargs):
-    mask = events.njet >= params["njet_min"]
-    return mask
+def nObj(events, params, **kwargs):
+    return ak.num(events[params['coll']]) >= params["N"]
 
-def get_nJets_min(njets, name=None):
+def nObj_minPt(events, params, **kwargs):
+    return ak.sum(events[params["coll"]].pt >= params["N"], axis=1) >= params["N"]
+
+def get_nObj(N, minpt=None, coll="JetGood", name=None):
     if name == None:
-        name = f"nJets_min_{njets}"
+        if minpt:
+            name = f"n{coll}_min{N}_pt{minpt}"
+        else:
+            name = f"n{coll}_min{N}"
+    if minpt:
+        return Cut(
+            name=name,
+            params={"N": N, "coll":coll, "minpt": minpt},
+            function=nObj_minPt
+        )
+    else:
+        return Cut(
+            name=name,
+            params={"N": N, "coll":coll},
+            function=nObj
+        )
+
+##########################################
+# Min b-tagged jets with custom collection
+
+def nBtag(events, params, btag, **kwargs):
+    ''' Mask for min N jets with minpt and passing btagging.
+    The btag params will come from the processor, not from the parameters
+    '''
+    return ak.sum((events[params["coll"]][btag["btagging_algorithm"]] > btag["btagging_WP"]) &
+                  (events[params["coll"]].pt >= params["minpt"]),
+                  axis=1) >= params["N"]
+
+def get_nBtag(N, minpt=0, coll="JetGood", name=None):
+    if name == None:
+        name = f"n{coll}_btag_{N}_pt{minpt}"
     return Cut(
         name=name,
-        params={"njet_min": njets},
-        function=nJets_min
+        params = {"N": N, "coll": coll, "minpt": minpt},
+        function=nBtag
     )
-    
 
 ##################
 # Common preselection functions
-def dilepton(events, params, year, sample):
+def dilepton(events, params, year, sample, **kwargs):
 
     MET  = events[params["METbranch"][year]]
 
@@ -61,7 +92,7 @@ def dilepton(events, params, year, sample):
     # Pad None values with False
     return ak.where(ak.is_none(mask), ~ak.is_none(mask), mask)
 
-def semileptonic(events, params, year, sample):
+def semileptonic(events, params, year, sample, **kwargs):
 
     MET  = events[params["METbranch"][year]]
 
@@ -79,7 +110,7 @@ def semileptonic(events, params, year, sample):
     # Pad None values with False
     return ak.where(ak.is_none(mask), ~ak.is_none(mask), mask)
 
-def semileptonic_triggerSF(events, params, year, sample):
+def semileptonic_triggerSF(events, params, year, sample, **kwargs):
 
     has_one_electron = (events.nelectron == 1)
     has_one_muon     = (events.nmuon == 1)
