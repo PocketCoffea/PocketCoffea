@@ -9,7 +9,7 @@ cfg =  {
         "jsons": ["datasets/signal_ttHTobb_2018_local.json",
                   "datasets/backgrounds_MC_2018_local.json"],
         "filter" : {
-            "samples": ["TTToSemiLeptonic"],
+            "samples": ["TTToSemiLeptonic","ttHTobb"],
             "samples_exclude" : [],
             "year": ["2018"]
         }
@@ -38,14 +38,14 @@ cfg =  {
     "run_options" : {
         "executor"       : "dask/slurm",
         "workers"        : 1,
-        "scaleout"       : 50,
-        "partition"      : "standard",
-        "walltime"       : "02:00:00",
+        "scaleout"       : 80,
+        "partition"      : "short",
+        "walltime"       : "01:00:00",
         "mem_per_worker" : "5GB", # GB
         "exclusive"      : False,
-        "chunk"          : 100000,
+        "chunk"          : 300000,
         "retries"        : 30,
-        "treereduction"  : 10,
+        "treereduction"  : 20,
         "max"            : None,
         "skipbadfiles"   : None,
         "voms"           : None,
@@ -55,7 +55,8 @@ cfg =  {
 
     # Cuts and plots settings
     "finalstate" : "semileptonic",
-    "skim": [ get_nBtag(3, 20., "Jet") ],
+    "skim": [ get_nObj(4, 20., "Jet"),
+              get_nBtag(3, 20., "Jet") ],
     "preselections" : [semileptonic_presel],
 
     "categories": {
@@ -90,20 +91,25 @@ cfg =  {
         "parton_phi" : None,
 #        "parton_dRMatchedJet" : None,
         "parton_pdgId": None,
+        "npartonmatched" : {'binning' : {'n_or_arr' : 20, 'lo' : 0, 'hi' : 20}, 'xlim' : (0,20),  'xlabel' : "N. Partons matched"},
+        "partonmatched_pt" : {'binning' : {'n_or_arr' : 100, 'lo' : 0, 'hi' : 500}, 'xlim' : (0,500),  'xlabel' : "$p_{T}$ [GeV] matched parton"},
+        "partonmatched_eta" : {'binning' : {'n_or_arr' :50, 'lo' : -3, 'hi' : 3}, 'xlim' : (-3,3),  'xlabel' : "$\eta$ matched parton"},
+#        "parton_dRMatchedJet" : None,
+        "partonmatched_pdgId": {'binning' : {'n_or_arr' : 50, 'lo' : -25, 'hi' : 25},  'xlim' : (0,1),    'xlabel' : r'Parton matched pdgId'},
 
     },
      "variables2d" : {
         "Njet_Nparton_total": {
             "Njet": { 'binning': {"n_or_arr": 11, 'lo': 4, 'hi':15}, "xlabel": "N jets"},
-            "Nparton" : { 'binning': {"n_or_arr": 13, 'lo': 2, 'hi':15}, "ylabel": "N partons"}
+            "Nparton" : { 'binning': {"n_or_arr": 11, 'lo': 4, 'hi':15}, "ylabel": "N partons"}
         },
         "Njet_Nparton_matched": {
-            "Njet": { 'binning': {"n_or_arr": 6, 'lo': 2, 'hi':8}, "xlabel": "N jets"},
-            "Nparton" : { 'binning': {"n_or_arr": 6, 'lo': 2, 'hi':8}, "ylabel": "N partons"}
+            "Njet": { 'binning': {"n_or_arr": 11, 'lo': 4, 'hi':15}, "xlabel": "N jets"},
+            "Nparton_matched" : { 'binning': {"n_or_arr": 15, 'lo': 0, 'hi':15}, "ylabel": "N partons matched"}
         },
         "Nparton_Nparton_matched": {
-            "Nparton": { 'binning': {"n_or_arr": 6, 'lo': 2, 'hi':8}, "xlabel": "N partons"},
-            "Nparton_matched" : { 'binning': {"n_or_arr": 6, 'lo': 2, 'hi':8}, "ylabel": "N partons matched"}
+            "Nparton": { 'binning': {"n_or_arr": 11, 'lo': 4, 'hi':15}, "xlabel": "N partons"},
+            "Nparton_matched" : { 'binning': {"n_or_arr": 15, 'lo': 0, 'hi':15}, "ylabel": "N partons matched"}
         }
      },
     "scale" : "log"

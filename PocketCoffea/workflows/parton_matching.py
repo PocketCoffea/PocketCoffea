@@ -11,6 +11,7 @@ class PartonMatchingProcessor(ttHbbBaseProcessor):
     def __init__(self,cfg) -> None:
         super().__init__(cfg=cfg)
         self.parton_hists = [histname for histname in self._hist_dict.keys() if 'parton' in histname and not histname in self.nobj_hists]
+        self.partonmatched_hists = [histname for histname in self._hist_dict.keys() if 'partonmatched' in histname and not histname in self.nobj_hists]
         self.dr_min = 0.4
         more_histos = {}
         more_histos["hist_ptComparison_parton_matching"] = hist.Hist("hist_parton_matching", self._sample_axis, self._cat_axis,
@@ -29,15 +30,16 @@ class PartonMatchingProcessor(ttHbbBaseProcessor):
     def do_parton_matching(self) -> ak.Array:
         # Selects quarks at LHE level
         isOutgoing = self.events.LHEPart.status == 1
-        isB = abs(self.events.LHEPart.pdgId) == 5
-        #bquarks = self.events.LHEPart[isB & isOutgoing]
-        quarks = self.events.LHEPart[isOutgoing]
+        isParton = (abs(self.events.LHEPart.pdgId) < 6) | \
+                           (self.events.LHEPart.pdgId == 21) 
+        quarks = self.events.LHEPart[isOutgoing & isParton]
         
         # Select b-quarks at Gen level, coming from H->bb decay
         if self.events.metadata["sample"] == 'ttHTobb':
             higgs = self.events.GenPart[(self.events.GenPart.pdgId == 25) & (self.events.GenPart.hasFlags(['fromHardProcess']))]
             higgs =  higgs[ak.num(higgs.childrenIdxG, axis=2) == 2]
-            quarks = ak.concatenate( (quarks, ak.flatten(higgs.children, axis=2)), axis=1 )
+            higgs_partons = ak.with_field(ak.flatten(higgs.children, axis=2), 25, "from_part")
+            quarks = ak.concatenate( (quarks, higgs_partons) , axis=1 )
             # Sort b-quarks by pt
             quarks = ak.with_name(quarks[ak.argsort(quarks.pt, ascending=False)], name='PtEtaPhiMCandidate')
 
@@ -53,22 +55,25 @@ class PartonMatchingProcessor(ttHbbBaseProcessor):
         
     def count_partons(self):
         self.events["nparton"] = ak.count(self.events.Parton.pt, axis=1)
-        self.events["nparton_matched"] = ak.count(self.events.PartonMatched.pt, axis=1)
+        self.events["npartonmatched"] = ak.count(self.events.PartonMatched.pt, axis=1)
 
     def fill_histograms_extra(self):
         fill_histograms_object(self, self.events.Parton, self.parton_hists)
+        fill_histograms_object(self, self.events.PartonMatched, self.partonmatched_hists)
         # Fill the parton matching 2D plot
         hjetpartontotal = self.get_histogram("hist2d_Njet_Nparton_total")
         hmatched = self.get_histogram("hist2d_Njet_Nparton_matched")
         hppmatched = self.get_histogram("hist2d_Nparton_Nparton_matched")
         for category, cuts in self._categories.items():
             weight = self._cuts_masks.all(*cuts)
-            hmatched.fill(sample=self._sample, cat=category, year=self._year, 
-                           Njet=self.events.njet, Nparton=self.events.nparton_matched, weight=weight)
             hjetpartontotal.fill(sample=self._sample, cat=category, year=self._year, 
                            Njet=self.events.njet, Nparton=self.events.nparton, weight=weight)
+            
+            hmatched.fill(sample=self._sample, cat=category, year=self._year, 
+                           Njet=self.events.njet, Nparton_matched=self.events.npartonmatched, weight=weight)
+
             hppmatched.fill(sample=self._sample, cat=category, year=self._year, 
-                            Nparton=self.events.nparton,  Nparton_matched=self.events.nparton_matched, weight=weight)
+                            Nparton=self.events.nparton,  Nparton_matched=self.events.npartonmatched, weight=weight)
 
         hpts = self.get_histogram("hist_ptComparison_parton_matching")
         hdeltaR = self.get_histogram("hist_deltaR_parton_matching")
