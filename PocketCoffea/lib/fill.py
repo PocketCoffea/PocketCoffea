@@ -1,4 +1,5 @@
 from coffea import hist
+from coffea.processor.accumulator import column_accumulator
 import awkward as ak
 
 def hist_is_in(histname, hist_list, accumulator):
@@ -40,3 +41,21 @@ def fill_histograms_object_with_variations(processor, obj, obj_hists, systematic
                     fields.update({syst : variation})
                     fields.update({s : 'nominal' for s in systematics if s != syst})
                     h.fill(sample=processor._sample, cat=category, year=processor._year, **fields, weight=weight)
+
+
+def fill_column_accumulator(processor, name, cat, awk_array, save_size=False, flatten=True):
+    '''
+    This function filles the column_accumulator of the processor flattening and converting to numpy
+    the awk_array.
+    If save_file is True the number of object for each event is also saved
+    '''
+    acc = processor.output["columns"]
+    if cat not in acc:
+        raise Exception("Category not found: " + cat)
+
+    if flatten:
+        acc[cat][name][processor._sample] = column_accumulator(ak.to_numpy(ak.flatten(awk_array)))
+    else:
+        acc[cat][name][processor._sample] = column_accumulator(ak.to_numpy(awk_array))
+    if save_size and name+"_size" in acc[cat]:
+        acc[cat][name+"_size"][processor._sample] = column_accumulator(ak.to_numpy(ak.num(awk_array)))

@@ -7,7 +7,7 @@ import awkward as ak
 
 import coffea
 from coffea import processor, lookup_tools, hist
-from coffea.processor import dict_accumulator, defaultdict_accumulator
+from coffea.processor import dict_accumulator, defaultdict_accumulator, column_accumulator
 from coffea.lumi_tools import LumiMask #, LumiData
 from coffea.analysis_tools import PackedSelection, Weights
 
@@ -108,6 +108,10 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self._accum_dict.update(self._hist_dict)
         self._accum_dict.update(self._hist2d_dict)
 
+        # prepare a special entry for column accumulator
+        # one for each category
+        self._accum_dict["columns"] = dict_accumulator({cat: dict_accumulator() for cat in self._categories})
+
         self.nobj_hists = [histname for histname in self._hist_dict.keys() if histname.lstrip('hist_').startswith('n') and not 'nevts' in histname]
         self.muon_hists = [histname for histname in self._hist_dict.keys() if 'muon' in histname and not histname in self.nobj_hists]
         self.electron_hists = [histname for histname in self._hist_dict.keys() if 'electron' in histname and not histname in self.nobj_hists]
@@ -134,7 +138,29 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                 raise Exception(f"You are trying to overwrite an already defined histogram {k}!")
             else:
                 self._accum_dict[k] = h
-        
+
+    def add_column_accumulator(self, name, cat=None, store_size=True):
+        '''
+        Add a column_accumulator with `name` to the category `cat` (to all the category if `cat`==None).
+        If store_size == True, create a parallel column called name_size, containing the number of entries
+        for each event. 
+        '''
+        if cat == None:
+            # add the column accumulator to all the categories
+            for cat in self._categories:
+                # we need a defaultdict accumulator to be able to include different samples for different chunks
+                self._accum_dict['columns'][cat][name] = dict_accumulator()
+                if store_size:
+                    # in thise case we save also name+size which will contain the number of entries per event
+                    self._accum_dict['columns'][cat][name+"_size"] = dict_accumulator()
+        else:
+            if cat not in self._categories:
+                raise Exception(f"Category not found: {cat}")
+            self._accum_dict['columns'][cat][name] = dict_accumulator()
+            if store_size:
+                # in thise case we save also name+size which will contain the number of entries per event
+                self._accum_dict['columns'][cat][name+"_size"] = dict_accumulator()
+                
     @property
     def nevents(self):
         '''The current number of events in the chunk is computed with a property'''
