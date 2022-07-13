@@ -1,6 +1,8 @@
 from PocketCoffea.parameters.cuts.baseline_cuts import semileptonic_triggerSF_presel, passthrough
-from config.semileptonic_triggerSF.functions import get_trigger_passfail
+from PocketCoffea.lib.cut_functions import get_nObj
 from PocketCoffea.workflows.semileptonic_triggerSF import semileptonicTriggerProcessor
+from config.semileptonic_triggerSF.functions import get_trigger_passfail
+from config.semileptonic_triggerSF.plot_options import efficiency, scalefactor
 from math import pi
 import numpy as np
 
@@ -23,12 +25,14 @@ cfg =  {
     "run_options" : {
         "executor"       : "dask/slurm",
         "workers"        : 1,
-        "scaleout"       : 250,
+        "scaleout"       : 75,
         "partition"      : "standard",
         "walltime"       : "12:00:00",
-        "mem_per_worker" : "4GB", # GB
+        "mem_per_worker" : "5GB", # GB
         "exclusive"      : False,
         "chunk"          : 50000,
+        "retries"        : 30,
+        "treereduction"  : 10,
         "max"            : None,
         "skipbadfiles"   : None,
         "voms"           : None,
@@ -37,7 +41,7 @@ cfg =  {
 
     # Cuts and plots settings
     "finalstate" : "semileptonic_triggerSF",
-    "skim" : [],
+    "skim" : [ get_nObj(3, 15., "Jet") ],
     "preselections" : [semileptonic_triggerSF_presel],
     "categories": {
         "Ele32_EleHT_pass" : [get_trigger_passfail(["Ele32_WPTight_Gsf", "Ele28_eta2p1_WPTight_Gsf_HT150"], "pass")],
@@ -82,6 +86,7 @@ cfg =  {
         },
     },
     "plot_options" : {
+        #"only" : "hist_electron_",
         "only" : None,
         "workers" : 16,
         "scale" : "log",
@@ -90,7 +95,9 @@ cfg =  {
         "dpi" : 150,
         "rebin" : {
             'electron_pt' : {'binning' : {'n_or_arr' : np.arange(0, 100, 10).tolist() + [100, 200, 500, 2000]}}
-        }
+        },
+        "efficiency" : efficiency,
+        "scalefactor" : scalefactor
         #"rebin" : {}
     }
 }
