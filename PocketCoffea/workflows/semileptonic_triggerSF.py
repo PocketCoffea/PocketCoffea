@@ -32,8 +32,8 @@ class semileptonicTriggerProcessor(ttHbbBaseProcessor):
     # Overwrite the method `compute_weights()` in order to take into account the weights of all the corrections previously applied
     # In this way, even if the method is modified in the base processor, only the weights reported here are used for the event reweighting.
     def compute_weights(self):
-        self.weights = Weights(self.nevents)
-        if self.isMC:
+        self.weights = Weights(self.nEvents_after_presel)
+        if self._isMC:
             self.weights.add('genWeight', self.events.genWeight)
             self.weights.add('lumi', ak.full_like(self.events.genWeight, lumi[self._year]))
             self.weights.add('XS', ak.full_like(self.events.genWeight, samples_info[self._sample]["XS"]))

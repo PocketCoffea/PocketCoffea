@@ -27,7 +27,7 @@ def fill_histograms_object_with_variations(processor, obj, obj_hists, systematic
             systematics = [systematics]
 
         modifiers = { 'nominal' : None }
-        if processor.isMC:
+        if processor._isMC:
             for syst in systematics:
                 modifiers.update({ f'{syst}Up' : f'{syst}Up', f'{syst}Down' : f'{syst}Down' })
 
