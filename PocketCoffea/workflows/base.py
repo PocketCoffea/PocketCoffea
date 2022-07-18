@@ -139,13 +139,13 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             else:
                 self._accum_dict[k] = h
 
-    def add_column_accumulator(self, name, cat=None, store_size=True):
+    def add_column_accumulator(self, name, cats=None, store_size=True):
         '''
-        Add a column_accumulator with `name` to the category `cat` (to all the category if `cat`==None).
+        Add a column_accumulator with `name` to the categories `cats` (to all the category if `cats`==None).
         If store_size == True, create a parallel column called name_size, containing the number of entries
         for each event. 
         '''
-        if cat == None:
+        if not cats:
             # add the column accumulator to all the categories
             for cat in self._categories:
                 # we need a defaultdict accumulator to be able to include different samples for different chunks
@@ -154,12 +154,13 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                     # in thise case we save also name+size which will contain the number of entries per event
                     self._accum_dict['columns'][cat][name+"_size"] = dict_accumulator()
         else:
-            if cat not in self._categories:
-                raise Exception(f"Category not found: {cat}")
-            self._accum_dict['columns'][cat][name] = dict_accumulator()
-            if store_size:
-                # in thise case we save also name+size which will contain the number of entries per event
-                self._accum_dict['columns'][cat][name+"_size"] = dict_accumulator()
+            for cat in cats:
+                if cat not in self._categories:
+                    raise Exception(f"Category not found: {cat}")
+                self._accum_dict['columns'][cat][name] = dict_accumulator()
+                if store_size:
+                    # in thise case we save also name+size which will contain the number of entries per event
+                    self._accum_dict['columns'][cat][name+"_size"] = dict_accumulator()
                 
     @property
     def nevents(self):

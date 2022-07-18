@@ -27,13 +27,13 @@ class PartonMatchingProcessor(ttHbbBaseProcessor):
         self.add_additional_histograms(more_histos)
 
         # Defining the column accumulators for parton and jet pts,
-        self.add_column_accumulator("parton_pt", cat='4j', store_size=False)
-        self.add_column_accumulator("parton_pdgId", cat='4j', store_size=False)
-        self.add_column_accumulator("jet_pt", cat='4j', store_size=False)
-        self.add_column_accumulator("jet_eta", cat='4j', store_size=False)
-        self.add_column_accumulator("parton_jet_dR", cat='4j',store_size=False)
-        self.add_column_accumulator("njet_matched", cat='4j', store_size=False)
-        self.add_column_accumulator("jet_btag", cat='4j', store_size=False)
+        self.add_column_accumulator("parton_pt", cats=['4j'], store_size=False)
+        self.add_column_accumulator("parton_pdgId", cat=['4j'], store_size=False)
+        self.add_column_accumulator("jet_pt", cat=['4j'], store_size=False)
+        self.add_column_accumulator("jet_eta", cat=['4j'], store_size=False)
+        self.add_column_accumulator("parton_jet_dR", cat=['4j'],store_size=False)
+        self.add_column_accumulator("njet_matched", cat=['4j'], store_size=False)
+        self.add_column_accumulator("jet_btag", cat=['4j'], store_size=False)
                
     def do_parton_matching(self) -> ak.Array:
         # Selects quarks at LHE level
@@ -102,12 +102,12 @@ class PartonMatchingProcessor(ttHbbBaseProcessor):
         self.count_partons()
 
         
-        fill_column_accumulator(self,"parton_pt", '4j', self.events.PartonMatched.pt[self.matched_partons_mask])
-        fill_column_accumulator(self,"jet_pt", '4j', self.events.JetGoodMatched.pt[self.matched_partons_mask])
-        fill_column_accumulator(self,"jet_eta", '4j', self.events.JetGoodMatched.eta[self.matched_partons_mask])
-        fill_column_accumulator(self,"parton_jet_dR", '4j', self.events.PartonMatched.dRMatchedJet[self.matched_partons_mask])
-        fill_column_accumulator(self,"njet_matched", '4j', self.events.npartonmatched, flatten=False)
-        fill_column_accumulator(self, "parton_pdgId", '4j', self.events.PartonMatched.pdgId[self.matched_partons_mask])
-        fill_column_accumulator(self, "jet_btag", '4j', self.events.JetGoodMatched[self._btag['btagging_algorithm']][self.matched_partons_mask])
+        fill_column_accumulator(self,"parton_pt", ['4j'], self.events.PartonMatched.pt[self.matched_partons_mask])
+        fill_column_accumulator(self,"jet_pt", ['4j'], self.events.JetGoodMatched.pt[self.matched_partons_mask])
+        fill_column_accumulator(self,"jet_eta", ['4j'], self.events.JetGoodMatched.eta[self.matched_partons_mask])
+        fill_column_accumulator(self,"parton_jet_dR", ['4j'], self.events.PartonMatched.dRMatchedJet[self.matched_partons_mask])
+        fill_column_accumulator(self,"njet_matched", ['4j'], self.events.npartonmatched, flatten=False)
+        fill_column_accumulator(self, "parton_pdgId", ['4j'], self.events.PartonMatched.pdgId[self.matched_partons_mask])
+        fill_column_accumulator(self, "jet_btag", ['4j'], self.events.JetGoodMatched[self._btag['btagging_algorithm']][self.matched_partons_mask])
 
                                           
