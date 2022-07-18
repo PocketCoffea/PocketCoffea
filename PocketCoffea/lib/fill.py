@@ -13,9 +13,9 @@ def fill_histograms_object(processor, obj, obj_hists, event_var=False):
         for category, cuts in processor._categories.items():
             if event_var:
                 keys = [k for k in h.fields if k in histname]
-                isnotnone = ak.flatten(~ak.is_none(getattr(processor.events, keys[0])))
+                isnotnone = ~ak.is_none(getattr(processor.events, keys[0]))
                 weight = processor.weights.weight() * processor._cuts_masks.all(*cuts)[isnotnone]
-                fields = {k: ak.flatten(getattr(processor.events, k))[isnotnone] for k in h.fields if k in histname}
+                fields = {k: getattr(processor.events, k)[isnotnone] for k in h.fields if k in histname}
             else:
                 isnotnone = ak.flatten(~ak.is_none(obj, axis=1))
                 weight = ak.flatten( processor.weights.weight() * ak.Array(ak.ones_like(obj.pt) *

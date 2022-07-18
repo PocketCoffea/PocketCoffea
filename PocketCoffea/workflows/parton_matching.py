@@ -12,7 +12,7 @@ class PartonMatchingProcessor(ttHbbBaseProcessor):
         super().__init__(cfg=cfg)
         self.parton_hists = [histname for histname in self._hist_dict.keys() if 'parton' in histname and not histname in self.nobj_hists]
         self.partonmatched_hists = [histname for histname in self._hist_dict.keys() if 'partonmatched' in histname and not histname in self.nobj_hists]
-        self.dr_min = 0.4
+        self.dr_min = cfg.workflow_extra_options.get('deltaR', 0.2)
         more_histos = {}
         more_histos["hist_ptComparison_parton_matching"] = hist.Hist("hist_parton_matching", self._sample_axis, self._cat_axis,
                                         self._year_axis,
