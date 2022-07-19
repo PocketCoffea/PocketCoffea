@@ -48,7 +48,7 @@ def fill_histograms_object_with_variations(processor, obj, obj_hists, systematic
                     isnotnone = ak.flatten(~ak.is_none(obj, axis=1))
                     weight = ak.flatten( processor.weights.weight(modifier=modifier) * ak.Array(ak.ones_like(obj.pt) *
                                                             processor._cuts_masks.all(*cuts)) )[isnotnone]
-                    fields = {k: k: ak.flatten(obj[k])[isnotnone] for k in h.fields if k in dir(obj)}
+                    fields = {k: ak.flatten(obj[k])[isnotnone] for k in h.fields if k in dir(obj)}
                 h.fill(sample=processor._sample, cat=category, year=processor._year, var=var, **fields, weight=weight)
 
 def fill_column_accumulator(processor, name, cats, awk_array, save_size=False, flatten=True):
