@@ -148,15 +148,17 @@ def jet_selection(events, Jet, finalstate):
     # Mask for  jets not passing the preselection
     presel_mask = (jets.pt > cuts["pt"]) & (np.abs(jets.eta) < cuts["eta"]) & (jets.jetId >= cuts["jetId"])
     # Lepton cleaning
-    dR_jets_lep = jets.metric_table(leptons)
-    lepton_cleaning_mask = ak.prod(dR_jets_lep> cuts["dr"], axis=2) == 1
+    if "dr" in cuts.keys():
+        dR_jets_lep = jets.metric_table(leptons)
+        lepton_cleaning_mask = ak.prod(dR_jets_lep> cuts["dr"], axis=2) == 1
 
     if Jet == "Jet":
-       jetpuid_mask  =  ( (jets.pt < cuts["puId_ptlim"]) & (jets.puId >= cuts["puId"]) ) | (jets.pt >= 50) 
-       good_jets_mask = presel_mask & lepton_cleaning_mask & jetpuid_mask
+        jetpuid_mask  =  ( (jets.pt < cuts["puId_ptlim"]) & (jets.puId >= cuts["puId"]) ) | (jets.pt >= 50)
+        good_jets_mask = presel_mask & lepton_cleaning_mask & jetpuid_mask
        
     elif Jet == "FatJet":
-        raise NotImplementedError
+        nsubjet_mask = (ak.count(jets.subjets.pt, axis=2) >= cuts["nsubjet"])
+        good_jets_mask = presel_mask & nsubjet_mask
 
     return jets[good_jets_mask], good_jets_mask
 
