@@ -17,8 +17,8 @@ cfg =  {
 
     # Input and output files
     "workflow" : PartonMatchingProcessor,
-    "output"   : "output/parton_matching",
-
+    "output"   : "output/parton_matching_dR02",
+    "workflow_extra_options": {"deltaR": 0.2},
 
     # "run_options" : {
     #     "executor"       : "iterative",
@@ -38,12 +38,12 @@ cfg =  {
     "run_options" : {
         "executor"       : "dask/slurm",
         "workers"        : 1,
-        "scaleout"       : 80,
+        "scaleout"       : 60,
         "partition"      : "short",
         "walltime"       : "01:00:00",
         "mem_per_worker" : "5GB", # GB
         "exclusive"      : False,
-        "chunk"          : 300000,
+        "chunk"          : 250000,
         "retries"        : 30,
         "treereduction"  : 20,
         "max"            : None,
@@ -61,10 +61,10 @@ cfg =  {
 
     "categories": {
         "4j" : [passthrough],
-        "5j" : [ get_nObj(5, coll="JetGood")],
-        "6j" : [ get_nObj(6, coll="JetGood")],
-        "7j" : [ get_nObj(7, coll="JetGood")],
-        "8j" : [ get_nObj(8, coll="JetGood")],
+        #"5j" : [ get_nObj(5, coll="JetGood")],
+        #"6j" : [ get_nObj(6, coll="JetGood")],
+        #"7j" : [ get_nObj(7, coll="JetGood")],
+        #"8j" : [ get_nObj(8, coll="JetGood")],
     },
     
     "variables" : {
