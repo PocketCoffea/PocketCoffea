@@ -38,6 +38,40 @@ JECversions = {
         }
 }
 
+JECversions_EOY = {
+    '2016' : {
+        'MC' : 'Summer16_07Aug2017_V11_MC',
+        'Data' : {
+            'B' : 'Summer16_07Aug2017BCD_V11_DATA',
+            'C' : 'Summer16_07Aug2017BCD_V11_DATA',
+            'D' : 'Summer16_07Aug2017BCD_V11_DATA',
+            'E' : 'Summer16_07Aug2017EF_V11_DATA',
+            'F' : 'Summer16_07Aug2017EF_V11_DATA',
+            'G' : 'Summer16_07Aug2017GH_V11_DATA',
+            'H' : 'Summer16_07Aug2017GH_V11_DATA',
+            }
+        },
+    '2017' : {
+        'MC' : 'Fall17_17Nov2017_V32_MC',
+        'Data' : {
+            'B' : 'Fall17_17Nov2017B_V32_DATA',
+            'C' : 'Fall17_17Nov2017C_V32_DATA',
+            'D' : 'Fall17_17Nov2017DE_V32_DATA',
+            'E' : 'Fall17_17Nov2017DE_V32_DATA',
+            'F' : 'Fall17_17Nov2017F_V32_DATA'
+            }
+        },
+    '2018' : {
+        'MC' : 'Autumn18_V19_MC',
+        'Data' : {
+            'A' : 'Autumn18_RunA_V19_DATA',
+            'B' : 'Autumn18_RunB_V19_DATA',
+            'C' : 'Autumn18_RunC_V19_DATA',
+            'D' : 'Autumn18_RunD_V19_DATA',
+            }
+        }
+}
+
 JERversions = {
     '2016_PreVFP' : {
         'MC'   : 'Summer20UL16APV_JRV3_MC',

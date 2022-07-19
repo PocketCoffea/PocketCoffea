@@ -16,3 +16,15 @@ pileupJSONfiles = {
         'name' : "Collisions18_UltraLegacy_goldenJSON"
     }
 }
+
+pileupJSONfiles_EOY = {
+    '2016' : {
+        'file' : "/work/mmarcheg/BTVNanoCommissioning/correction_files/PileupHistogram-goldenJSON-13tev-2016-69200ub-99bins.root"
+    },
+    '2017' : {
+        'file' : "/work/mmarcheg/BTVNanoCommissioning/correction_files/PileupHistogram-goldenJSON-13tev-2017-69200ub-99bins.root"
+    },
+    '2018' : {
+        'file' : "/work/mmarcheg/BTVNanoCommissioning/correction_files/PileupHistogram-goldenJSON-13tev-2018-69200ub-99bins.root"
+    }
+}
