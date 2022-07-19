@@ -4,6 +4,12 @@ import time
 import json
 import argparse
 
+# Include PocketCoffea to python paths (needed if running from outside PocketCoffea)
+PATH_TO_SCRIPT = '/'.join(sys.argv[0].split('/')[:-1])
+PATH_TO_MODULE = os.path.abspath(os.path.join(os.path.abspath(PATH_TO_SCRIPT), "../.."))
+if not PATH_TO_MODULE in sys.path:
+    sys.path.append(PATH_TO_MODULE)
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.offsetbox import AnchoredText
@@ -45,11 +51,11 @@ data_err_opts = {
 }
 
 qcd_opts = {
-    'facecolor': 'None',
-    'edgecolor': 'blue',
-    'linestyle': '-',
-    'linewidth': 2,
-    'alpha': 0.7
+    #'facecolor': 'None',
+    'edgecolor': 'black',
+    #'linestyle': '-',
+    #'linewidth': 2,
+    'alpha': 1.0
 }
 
 signal_opts = {
@@ -103,9 +109,10 @@ if not os.path.exists(config.plots):
 def make_plots(entrystart, entrystop):
     _accumulator = dict( [(key, value) for key, value in accumulator.items() if key.startswith('hist_')][entrystart:entrystop] )
     for histname in _accumulator:
-        if config.only and not (config.only in histname): continue
+        if config.plot_options["only"] and not (config.plot_options["only"] in histname): continue
         if not histname.startswith('hist_'): continue
-        variable = histname.lstrip('hist_')
+        variable = histname.split('hist_')[1]
+        print(histname, variable)
         if not variable.startswith(tuple(config.variables)): continue
         h = _accumulator[histname]
 
@@ -113,7 +120,11 @@ def make_plots(entrystart, entrystop):
             # Convert lumi in fb^-1 and round to the first decimal digit
             totalLumi = femtobarn(lumi[year], digits=1)
             for cat in [str(s) for s in h.identifiers('cat')]:
-                selection_text = selection['_'.join([finalstate, cat])]
+                key = '_'.join([finalstate, cat])
+                if key not in selection:
+                    selection_text = cat
+                else:
+                    selection_text = selection[key]
                 samples = [str(s) for s in h.identifiers('sample')]
                 varname = h.fields[-1]
                 varlabel = h.axis(varname).label
@@ -124,15 +135,26 @@ def make_plots(entrystart, entrystop):
 
                 if not 'hist2d' in histname:
 
-                    fig, ax = plt.subplots(1, 1, figsize=(12,9))
+                    if variable in config.plot_options["rebin"].keys():
+                        print(f"Rebinning {histname}")
+                        h = h.rebin(h.dense_axes()[0], hist.Bin(h.dense_axes()[0].name, config.plot_options["rebin"][variable]['xlabel'], **config.plot_options["rebin"][variable]["binning"]))
+
+                    fig, (ax, rax) = plt.subplots(2, 1, figsize=(12, 12), gridspec_kw={"height_ratios": (3, 1)}, sharex=True)
                     fig.subplots_adjust(hspace=.07)
                     if len(h.axes()) > 4:
-                        categories_to_sum_over = ['cat', 'year']
-                        collections = [str(s) for s in h.identifiers('collection')]
-                        plot.plot1d(h.sum('sample')[(cat, year)].sum(*categories_to_sum_over), ax=ax, legend_opts={'loc':1})
-                        maxY = 1.2 *max( [ max(h.sum('sample')[(cat, year)].sum(*categories_to_sum_over).values()[(collection,)]) for collection in collections] )
+                        #categories_to_sum_over = ['cat', 'year', 'flavor']
+                        categories_to_sum_over = config.plot_options["sum_over"]
+                        sparse_axis = [axis.name for axis in h.sparse_axes() if not axis.name in config.plot_options["sum_over"]][0]
+                        samples_data = list(filter(lambda x : 'DATA' in x, samples))
+                        samples_qcd  = list(filter(lambda x : 'QCD' in x, samples))
+                        plot.plot1d(h[(samples_qcd, cat, year)].sum(*categories_to_sum_over), ax=ax, fill_opts=qcd_opts, legend_opts={'loc':1}, stack=True)
+                        plot.plot1d(h[(samples_data, cat, year)].sum(*categories_to_sum_over), ax=ax, error_opts=data_err_opts, legend_opts={'loc':1}, clear=False)
+                        plot.plotratio(num=h[(samples_data, cat, year)].sum(*categories_to_sum_over, sparse_axis), denom=h[(samples_qcd, cat, year)].sum(*categories_to_sum_over, sparse_axis), ax=rax,
+                                   error_opts=data_err_opts, denom_fill_opts={}, guide_opts={}, unc='num')
+                        maxY = 1.2 *max( [ max(h[(s, cat, year)].sum(*categories_to_sum_over, sparse_axis).values()[()]) for s in [samples_qcd, samples_data]] )
                     else:
-                        categories_to_sum_over = ['cat', 'year']
+                        #categories_to_sum_over = ['cat', 'year']
+                        categories_to_sum_over = config.plot_options["sum_over"]
                         plot.plot1d(h[(samples, cat, year)].sum(*categories_to_sum_over), ax=ax, legend_opts={'loc':1})
                         maxY = 1.2 *max( [ max(h[(sample, cat, year)].sum(*categories_to_sum_over).values()[(sample,)]) for sample in samples] )
 
@@ -143,6 +165,8 @@ def make_plots(entrystart, entrystop):
                     ax.add_artist(at)
                     ax.set_xlim(*config.variables[variable]['xlim'])
                     ax.set_ylim(0,maxY)
+                    rax.set_ylim(0,2)
+                    rax.set_ylabel("data/MC")
 
                     if histname.lstrip('hist_').startswith( tuple(histogram_settings['variables'].keys()) ):
                         if histname == 'hist_bquark_drMatchedJet':
@@ -170,7 +194,7 @@ NHistsToPlot = len([key for key in HistsToPlot if config.only in key])
 print("# tot histograms = ", NtotHists)
 print("# histograms to plot = ", NHistsToPlot)
 print("Histograms to plot:", HistsToPlot)
-delimiters = np.linspace(0, NtotHists, config.run_options['workers'] + 1).astype(int)
+delimiters = np.linspace(0, NtotHists, config.plot_options['workers'] + 1).astype(int)
 chunks = [(delimiters[i], delimiters[i+1]) for i in range(len(delimiters[:-1]))]
 pool = Pool()
 pool.starmap(make_plots, chunks)
