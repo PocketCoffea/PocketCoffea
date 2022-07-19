@@ -14,7 +14,7 @@ cfg =  {
 
     # Input and output files
     "workflow" : pileupVariationsProcessor,
-    "output"   : "output/test_pileup_variations",
+    "output"   : "output/pileup/test_pileup_variations",
 
     # Executor parameters
     "run_options" : {
