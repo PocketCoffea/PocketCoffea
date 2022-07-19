@@ -1,5 +1,5 @@
 
-m coffea import hist
+from coffea import hist
 from coffea.processor.accumulator import column_accumulator
 import awkward as ak
 
