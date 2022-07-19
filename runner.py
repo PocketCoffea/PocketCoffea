@@ -178,6 +178,8 @@ if __name__ == '__main__':
                 memory=config.run_options['mem_per_worker'],
                 walltime=config.run_options["walltime"],
                 env_extra=env_extra,
+                #job_extra=[f'-o {os.path.join(config.output, "slurm-output", "slurm-%j.out")}'],
+                local_directory=os.path.join(config.output, "slurm-output"),
             )
         elif 'condor' in config.run_options['executor']:
             cluster = HTCondorCluster(
@@ -189,7 +191,7 @@ if __name__ == '__main__':
         cluster.scale(jobs=config.run_options['scaleout'])
 
         client = Client(cluster)
-        with performance_report(filename="dask-report.html"):
+        with performance_report(filename=os.path.join(config.output, "dask-report.html")):
             output = processor.run_uproot_job(config.fileset,
                                         treename='Events',
                                         processor_instance=config.processor_instance,

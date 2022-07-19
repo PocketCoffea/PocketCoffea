@@ -17,7 +17,7 @@ cfg =  {
 
     # Input and output files
     "workflow" : ttHbbBaseProcessor,
-    "output"   : "output/semileptonic_ST",
+    "output"   : "output/semileptonic/semileptonic_ST",
 
     # Executor parameters
     "run_options" : {
