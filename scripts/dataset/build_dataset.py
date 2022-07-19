@@ -1,6 +1,14 @@
 import os
+import sys
 import argparse
 import json
+
+# Include PocketCoffea to python paths (needed if running from outside PocketCoffea)
+PATH_TO_SCRIPT = '/'.join(sys.argv[0].split('/')[:-1])
+PATH_TO_MODULE = os.path.abspath(os.path.join(os.path.abspath(PATH_TO_SCRIPT), "../.."))
+if not PATH_TO_MODULE in sys.path:
+    sys.path.append(PATH_TO_MODULE)
+
 from PocketCoffea.utils.Dataset import Dataset
 
 parser = argparse.ArgumentParser(description='Build dataset file in json format')
