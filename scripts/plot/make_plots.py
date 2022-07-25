@@ -5,9 +5,14 @@ import json
 import argparse
 
 import numpy as np
+
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.offsetbox import AnchoredText
 
+matplotlib.use('Agg')
+
+import matplotlib.pyplot as plt
 import math
 import mplhep as hep
 from coffea.util import load
