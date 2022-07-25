@@ -11,8 +11,10 @@ if not PATH_TO_MODULE in sys.path:
     sys.path.append(PATH_TO_MODULE)
 
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.offsetbox import AnchoredText
+matplotlib.use('Agg')
 
 import math
 import mplhep as hep
