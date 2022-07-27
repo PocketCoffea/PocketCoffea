@@ -9,7 +9,7 @@ from parsl.config import Config
 from parsl.executors.threads import ThreadPoolExecutor
 
 class Sample():
-    def __init__(self, name, das_names, sample, metadata):
+    def __init__(self, name, das_names, sample, metadata, dbs_instance=None):
         '''
         Class representing a single analysis sample. 
         - The name is the unique key of the sample in the dataset file.
@@ -24,17 +24,24 @@ class Sample():
         self.das_names = das_names
         self.metadata = {}
         self.metadata["das_names"] = das_names
+        self.metadata["dbs_instance"] = dbs_instance
         self.metadata["sample"] = sample
         self.metadata.update(metadata)
         self.metadata["nevents"] = 0
         self.metadata["size"] = 0
         self.fileslist = []
+        print("*****************************************")
+        print(self.metadata)
+        print("*****************************************")
         self.get_filelist()
 
     # Function to get the dataset filelist from DAS
     def get_filelist(self):
         for das_name in self.metadata["das_names"]:
-            command = f'dasgoclient -json -query="file dataset={das_name}"'
+            if self.metadata["dbs_instance"] != None:
+                command = f'dasgoclient -json -query="file dataset={das_name} instance={self.metadata["dbs_instance"]}"'
+            else:
+                command = f'dasgoclient -json -query="file dataset={das_name}"'
             print(f"Executing query: {command}")
             filesjson = json.loads(os.popen(command).read())
             for fj in filesjson:
@@ -83,10 +90,17 @@ class Dataset():
             sname = f"{self.name}_{scfg['metadata']['year']}"
             if not scfg["metadata"]["isMC"]:
                 sname += f"_Era{scfg['metadata']['era']}"
-            sample = Sample(name=sname,
-                            das_names = scfg["das_names"],
-                            sample=self.sample,
-                            metadata=scfg["metadata"])
+            if "dbs_instance" in scfg.keys():
+                sample = Sample(name=sname,
+                                das_names = scfg["das_names"],
+                                sample=self.sample,
+                                metadata=scfg["metadata"],
+                                dbs_instance=scfg["dbs_instance"])
+            else:
+                sample = Sample(name=sname,
+                                das_names = scfg["das_names"],
+                                sample=self.sample,
+                                metadata=scfg["metadata"])
             self.samples_obj.append(sample)
             # Get the default prefix and the the one
             self.sample_dict.update(sample.get_sample_dict())
@@ -188,5 +202,4 @@ class Dataset():
         print(f"Writing files to {outfile}")
         with open(outfile, 'w') as fp:
             json.dump(out_dict, fp, indent=4)
-
 
