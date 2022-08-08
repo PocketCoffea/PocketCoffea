@@ -28,6 +28,22 @@ class semileptonicTriggerProcessor(ttHbbBaseProcessor):
         self._accum_dict.update(self._hist_dict)
         self._accum_dict.update(self._hist2d_dict)
         self._accumulator = processor.dict_accumulator(self._accum_dict)
+        if self.cfg.triggerSF != None:
+            self._apply_triggerSF = True
+        else:
+            self._apply_triggerSF = False
+        self.define_triggerSF_maps()
+
+    # Define trigger SF map to apply
+    def define_triggerSF_maps(self):
+        self._triggerSF_map = {}
+        for category in self._categories.keys():
+            if 'Ele32_EleHT_pass' in category:
+                self._triggerSF_map[category] = 'sf_nominal'
+            elif category in ['Ele32_EleHT_fail', 'inclusive']:
+                self._triggerSF_map[category] = 'identity'
+            else:
+                sys.exit(f"The association of the category '{category}' to a trigger SF key is ambiguous")
 
     # Overwrite the method `compute_weights()` in order to take into account the weights of all the corrections previously applied
     # In this way, even if the method is modified in the base processor, only the weights reported here are used for the event reweighting.
@@ -48,9 +64,11 @@ class semileptonicTriggerProcessor(ttHbbBaseProcessor):
 
     def fill_histograms(self):
         systematics = ['pileup', 'sf_ele_reco', 'sf_ele_id']
+        for (obj, obj_hists) in zip([None], [self.nobj_hists]):
+            fill_histograms_object_with_variations(self, obj, obj_hists, systematics, event_var=True, split_eras=self.cfg.split_eras, triggerSF=self._apply_triggerSF)
         for (obj, obj_hists) in zip([self.events.MuonGood, self.events.ElectronGood, self.events.JetGood], [self.muon_hists, self.electron_hists, self.jet_hists]):
         #for (obj, obj_hists) in zip([self.events.ElectronGood], [self.electron_hists]):
-            fill_histograms_object_with_variations(self, obj, obj_hists, systematics)
+            fill_histograms_object_with_variations(self, obj, obj_hists, systematics, split_eras=self.cfg.split_eras, triggerSF=self._apply_triggerSF)
 
     def postprocess(self, accumulator):
         super().postprocess(accumulator=accumulator)
