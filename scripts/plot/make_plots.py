@@ -33,6 +33,8 @@ args = parser.parse_args()
 config = Configurator(args.cfg, plot=True, plot_version=args.version)
 
 finalstate = config.finalstate
+categories_to_sum_over = config.plot_options["sum_over"]
+var = config.plot_options["var"]
 
 print("Starting ", end='')
 print(time.ctime())
@@ -49,12 +51,12 @@ data_err_opts = {
     'elinewidth': 1,
 }
 
-qcd_opts = {
-    'facecolor': 'None',
-    'edgecolor': 'blue',
-    'linestyle': '-',
-    'linewidth': 2,
-    'alpha': 0.7
+mc_opts = {
+    #'facecolor': 'None',
+    'edgecolor': 'black',
+    #'linestyle': '-',
+    'linewidth': 1,
+    'alpha': 1.0
 }
 
 signal_opts = {
@@ -108,10 +110,11 @@ if not os.path.exists(config.plots):
 def make_plots(entrystart, entrystop):
     _accumulator = dict( [(key, value) for key, value in accumulator.items() if key.startswith('hist_')][entrystart:entrystop] )
     for histname in _accumulator:
-        if config.only and not (config.only in histname): continue
+        if config.plot_options["only"] and not (config.plot_options["only"] in histname): continue
         if not histname.startswith('hist_'): continue
         variable = histname.lstrip('hist_')
         if not variable.startswith(tuple(config.variables)): continue
+
         h = _accumulator[histname]
 
         for year in [str(s) for s in h.identifiers('year')]:
@@ -127,19 +130,28 @@ def make_plots(entrystart, entrystop):
                 #    h = h.rebin(varname, hist.Bin(varname, varlabel, **histogram_settings['variables']['_'.join(histname.split('_')[:2])]['binning']))
                 #h.scale( scaleXS, axis='sample' )
 
+
                 if not 'hist2d' in histname:
 
-                    fig, ax = plt.subplots(1, 1, figsize=(12,9))
+                    if variable in config.plot_options["rebin"].keys():
+                        print(f"Rebinning {histname}")
+                        h = h.rebin(h.dense_axes()[0], hist.Bin(h.dense_axes()[0].name, config.plot_options["rebin"][variable]['xlabel'], **config.plot_options["rebin"][variable]["binning"]))
+
+                    fig, (ax, rax) = plt.subplots(2, 1, figsize=(12, 12), gridspec_kw={"height_ratios": (3, 1)}, sharex=True)
                     fig.subplots_adjust(hspace=.07)
                     if len(h.axes()) > 4:
-                        categories_to_sum_over = ['cat', 'year']
-                        collections = [str(s) for s in h.identifiers('collection')]
-                        plot.plot1d(h.sum('sample')[(cat, year)].sum(*categories_to_sum_over), ax=ax, legend_opts={'loc':1})
-                        maxY = 1.2 *max( [ max(h.sum('sample')[(cat, year)].sum(*categories_to_sum_over).values()[(collection,)]) for collection in collections] )
+                        sparse_axis = [axis.name for axis in h.sparse_axes() if not axis.name in config.plot_options["sum_over"]][0]
+                        samples_data = list(filter(lambda x : 'DATA' in x, samples))
+                        samples_mc   = list(filter(lambda x : 'DATA' not in x, samples))
+
+                        plot.plot1d(h[(samples_mc, cat, year, var)].sum(*categories_to_sum_over), ax=ax, fill_opts=mc_opts, legend_opts={'loc':1}, stack=True)
+                        plot.plot1d(h[(samples_data, cat, year, var)].sum(*categories_to_sum_over), ax=ax, error_opts=data_err_opts, legend_opts={'loc':1}, clear=False)
+                        plot.plotratio(num=h[(samples_data, cat, year, var)].sum(*categories_to_sum_over, sparse_axis), denom=h[(samples_mc, cat, year, var)].sum(*categories_to_sum_over, sparse_axis), ax=rax,
+                                   error_opts=data_err_opts, denom_fill_opts={}, guide_opts={}, unc='num')
+                        maxY = 1.2 *max( [ max(h[(s, cat, year, var)].sum(*categories_to_sum_over, sparse_axis).values()[()]) for s in [samples_mc, samples_data]] )
                     else:
-                        categories_to_sum_over = ['cat', 'year']
                         plot.plot1d(h[(samples, cat, year)].sum(*categories_to_sum_over), ax=ax, legend_opts={'loc':1})
-                        maxY = 1.2 *max( [ max(h[(sample, cat, year)].sum(*categories_to_sum_over).values()[(sample,)]) for sample in samples] )
+                        maxY = 1.2 *max( [ max(h[(sample, cat, year, var)].sum(*categories_to_sum_over).values()[(sample,)]) for sample in samples] )
 
                     hep.cms.text("Preliminary", ax=ax)
                     hep.cms.lumitext(text=f'{totalLumi}' + r' fb$^{-1}$, 13 TeV,' + f' {year}', fontsize=18, ax=ax)
@@ -147,7 +159,9 @@ def make_plots(entrystart, entrystop):
                     at = AnchoredText(selection_text, loc=2, frameon=False)
                     ax.add_artist(at)
                     ax.set_xlim(*config.variables[variable]['xlim'])
-                    ax.set_ylim(0,maxY)
+                    ax.set_ylim(0, maxY)
+                    rax.set_ylim(0.5, 1.5)
+                    rax.set_ylabel("data/MC")
 
                     if histname.lstrip('hist_').startswith( tuple(histogram_settings['variables'].keys()) ):
                         if histname == 'hist_bquark_drMatchedJet':
