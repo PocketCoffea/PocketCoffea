@@ -19,15 +19,15 @@ cfg =  {
 
     # Input and output files
     "workflow" : semileptonicTriggerProcessor,
-    "output"   : "output/sf_ele_trigger_semilep/semileptonic_triggerSF_2018_systematics",
+    "output"   : "output/sf_ele_trigger_semilep/semileptonic_triggerSF_2018_closuretest_TEST",
     "output_triggerSF" : "PocketCoffea/parameters/semileptonic_triggerSF/triggerSF_2018UL_Ele32_EleHT",
-    "triggerSF" : None,
+    "triggerSF" : "PocketCoffea/parameters/semileptonic_triggerSF/triggerSF_2018UL_Ele32_EleHT/sf_trigger_electron_etaSC_vs_electron_pt_2018_Ele32_EleHT_pass_v03.coffea",
 
     # Executor parameters
     "run_options" : {
         "executor"       : "dask/slurm",
         "workers"        : 1,
-        "scaleout"       : 75,
+        "scaleout"       : 125,
         "partition"      : "standard",
         "walltime"       : "12:00:00",
         "mem_per_worker" : "5GB", # GB
@@ -90,7 +90,6 @@ cfg =  {
     "plot_options" : {
         "sum_over" : ['cat', 'year', 'var'],
         "var" : 'nominal',
-        #"only" : "hist2d_electron_",
         "only" : "hist_electron_pt",
         "workers" : 16,
         "scale" : "linear",
