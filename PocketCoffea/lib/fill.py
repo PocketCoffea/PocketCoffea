@@ -7,7 +7,7 @@ def hist_is_in(histname, hist_list, accumulator):
     isHist = type(accumulator[histname]) == hist.Hist
     return ( isHist & (histname in hist_list) )
 
-def fill_histograms_object(processor, obj, obj_hists, event_var=False):
+def fill_histograms_object(processor, obj, obj_hists, event_var=False, split_eras=False):
     accumulator = processor.output
     for histname in filter( lambda x : hist_is_in(x, obj_hists, accumulator), accumulator.keys() ):
         h = accumulator[histname]
@@ -22,9 +22,12 @@ def fill_histograms_object(processor, obj, obj_hists, event_var=False):
                 weight = ak.flatten( processor.weights.weight() * ak.Array(ak.ones_like(obj.pt) *
                                                         processor._cuts_masks.all(*cuts)) )[isnotnone]
                 fields = {k: ak.flatten(obj[k])[isnotnone] for k in h.fields if k in dir(obj)}
-            h.fill(sample=processor._sample, cat=category, year=processor._year, **fields, weight=weight)
+            if split_eras:
+                h.fill(sample=processor._sample, cat=category, year=processor._year, era=processor._era, **fields, weight=weight)
+            else:
+                h.fill(sample=processor._sample, cat=category, year=processor._year, **fields, weight=weight)
 
-def fill_histograms_object_with_variations(processor, obj, obj_hists, systematics, event_var=False):
+def fill_histograms_object_with_variations(processor, obj, obj_hists, systematics, event_var=False, split_eras=False, triggerSF=False):
     accumulator = processor.output
     for histname in filter( lambda x : hist_is_in(x, obj_hists, accumulator), accumulator.keys() ):
         h = accumulator[histname]
@@ -42,14 +45,26 @@ def fill_histograms_object_with_variations(processor, obj, obj_hists, systematic
                 if event_var:
                     keys = [k for k in h.fields if k in histname]
                     isnotnone = ~ak.is_none(getattr(processor.events, keys[0]))
-                    weight = processor.weights.weight(modifier=modifier) * processor._cuts_masks.all(*cuts)[isnotnone]
+                    if triggerSF:
+                        key_correction = processor._triggerSF_map[category]
+                        weight = ( processor.triggerSF_weights[key_correction].weight() * processor.weights.weight(modifier=modifier) * processor._cuts_masks.all(*cuts) )[isnotnone]
+                    else:
+                        weight = ( processor.weights.weight(modifier=modifier) * processor._cuts_masks.all(*cuts) )[isnotnone]
                     fields = {k: getattr(processor.events, k)[isnotnone] for k in h.fields if k in histname}
                 else:
                     isnotnone = ak.flatten(~ak.is_none(obj, axis=1))
-                    weight = ak.flatten( processor.weights.weight(modifier=modifier) * ak.Array(ak.ones_like(obj.pt) *
-                                                            processor._cuts_masks.all(*cuts)) )[isnotnone]
+                    if triggerSF:
+                        key_correction = processor._triggerSF_map[category]
+                        weight = ak.flatten( processor.triggerSF_weights[key_correction].weight() * processor.weights.weight(modifier=modifier) * ak.Array(ak.ones_like(obj.pt) *
+                                             processor._cuts_masks.all(*cuts)) )[isnotnone]
+                    else:
+                        weight = ak.flatten( processor.weights.weight(modifier=modifier) * ak.Array(ak.ones_like(obj.pt) *
+                                             processor._cuts_masks.all(*cuts)) )[isnotnone]
                     fields = {k: ak.flatten(obj[k])[isnotnone] for k in h.fields if k in dir(obj)}
-                h.fill(sample=processor._sample, cat=category, year=processor._year, var=var, **fields, weight=weight)
+                if split_eras:
+                    h.fill(sample=processor._sample, cat=category, year=processor._year, era=processor._era, var=var, **fields, weight=weight)
+                else:
+                    h.fill(sample=processor._sample, cat=category, year=processor._year, var=var, **fields, weight=weight)
 
 def fill_column_accumulator(processor, name, cats, awk_array, save_size=False, flatten=True):
     '''
