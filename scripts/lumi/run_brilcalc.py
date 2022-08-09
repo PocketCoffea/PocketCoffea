@@ -31,7 +31,7 @@ for era, runs_list in runs_dataset.items():
         rows = []
         for row in csvreader:
             rows.append(row)
-        for i, row in rows:
+        for i, row in enumerate(rows):
             for word in row:
                 if 'Summary' in word:
                     lumi_recorded = float(rows[i+2][-1])
