@@ -6,6 +6,7 @@ import awkward as ak
 import correctionlib
 
 from ..parameters.lepton_scale_factors import electronSF, muonSF, electronJSONfiles, muonJSONfiles
+from ..parameters.jet_scale_factors import btagSF
 
 def get_ele_sf(year, pt, eta, counts, type='', pt_region=None):
     '''
@@ -104,3 +105,33 @@ def sf_mu(events, year, type=''):
 
     # The SF arrays corresponding to all the muons are multiplied along the muon axis in order to obtain a per-event scale factor.
     return ak.prod(sf, axis=1), ak.prod(sfup, axis=1), ak.prod(sfdown, axis=1)
+
+
+
+
+def sf_btag(jets, btag_discriminator, year, variation="central"):
+    '''
+    DeepJet AK4 btagging SF. See https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/BTV_btagging_Run2_UL/BTV_btagging_2018_UL.html
+    The scale factors have 8 default uncertainty 
+    sources (hf,lf,hfstats1/2,lfstats1/2,cferr1/2) (all of this up_*var*, and down_*var*).
+    All except the cferr1/2 uncertainties are to be 
+    applied to light and b jets. The cferr1/2 uncertainties are to be applied to c jets. 
+    hf/lfstats1/2 uncertainties are to be decorrelated between years, the others correlated.
+    '''
+    cset = correctionlib.CorrectionSet.from_file(btagSF[year])
+    corr = cset["deepJet_shape"]
+
+    #if variation in ["cferr1"]
+    
+    flavour = ak.to_numpy(ak.flatten(jets.hadronFlavour))
+    abseta = np.abs(ak.to_numpy(ak.flatten(jets.eta)))
+    pt = ak.to_numpy(ak.flatten(jets.pt))
+    discr = ak.to_numpy(ak.flatten(jets[btag_discriminator]))
+    counts = ak.num(jets)
+
+    w = ak.unflatten(corr.evaluate(variation, flavour, abseta, pt, discr), counts)
+    # product over the jets
+    return ak.prod(w, axis=1)
+
+    
+    

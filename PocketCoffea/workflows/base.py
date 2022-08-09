@@ -17,7 +17,7 @@ import correctionlib
 from ..lib.triggers import get_trigger_mask
 from ..lib.objects import jet_correction, lepton_selection, jet_selection, btagging, get_dilepton
 from ..lib.pileup import sf_pileup_reweight
-from ..lib.scale_factors import sf_ele_reco, sf_ele_id, sf_mu
+from ..lib.scale_factors import sf_ele_reco, sf_ele_id, sf_mu, sf_btag
 from ..lib.fill import fill_histograms_object
 from ..parameters.triggers import triggers
 from ..parameters.btag import btag
@@ -241,14 +241,6 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.events["JetGood"], self.jetGoodMask = jet_selection(self.events, "Jet", self.cfg.finalstate)
         self.events["BJetGood"] = btagging(self.events["JetGood"], self._btag)
 
-        # As a reference, additional masks used in the boosted analysis
-        # In case the boosted analysis is implemented, the correct lepton cleaning should be checked (remove only "leading" leptons)
-        #self.good_fatjets = jet_selection(self.events, "FatJet", self.cfg.finalstate)
-        #self.good_jets_nohiggs = ( self.good_jets & (jets.delta_r(leading_fatjets) > 1.2) )
-        #self.good_bjets_boosted = self.good_jets_nohiggs & (getattr(self.events.jets, self.parameters["btagging_algorithm"]) > self.parameters["btagging_WP"])
-        #self.good_nonbjets_boosted = self.good_jets_nohiggs & (getattr(self.events.jets, self.parameters["btagging_algorithm"]) < self.parameters["btagging_WP"])
-        #self.events["FatJetGood"]   = self.events.FatJet[self.good_fatjets]
-
         if self.cfg.finalstate == 'dilepton':
             self.events["ll"] = get_dilepton(self.events.ElectronGood, self.events.MuonGood)
 
@@ -285,7 +277,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     @classmethod
     def available_weights(cls):
         return ['genWeight', 'lumi', 'XS', 'pileup',
-                'sf_ele_reco_id', 'sf_mu_id_iso']
+                'sf_ele_reco_id', 'sf_mu_id_iso', 'sf_btag']
         
     def compute_weights(self):
         '''
@@ -313,6 +305,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                 # Muon id and iso SF with nominal, up and down variations
                 weight_obj.add('sf_mu_id',  *sf_mu(self.events, self._year, 'id'))
                 weight_obj.add('sf_mu_iso', *sf_mu(self.events, self._year, 'iso'))
+            elif weight == 'sf_btag':
+                weight_obj.add("sf_btag", sf_btag(self.events.JetGood, self._btag['btagging_algorithm'], self._year, variation="central"))
 
         #Inclusive weights
         self._weights_incl = Weights(self.nEvents_after_presel)
