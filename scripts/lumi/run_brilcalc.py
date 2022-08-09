@@ -38,6 +38,7 @@ for era, runs_list in runs_dataset.items():
                     lumi_dict[args.year][era] = lumi_recorded
     f.close()
 
+lumi_dict[args.year]['tot'] = sum(lumi_dict[args.year].values())
 summary_file = os.path.join(args.output, f"lumi_summary_{args.dataset}_{args.year}.json")
 with open(summary_file, 'w') as f:
     json.dump(lumi_dict, f, indent=2)
