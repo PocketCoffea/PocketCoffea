@@ -28,13 +28,17 @@ for era, runs_list in runs_dataset.items():
     os.system(command)
     with open(out_file, 'r') as f:
         csvreader = csv.reader(f)
-        for i, row in enumerate(csvreader):
-            if 'Summary' in row:
-                lumi_recorded = float(csvreader[i+2][-1])
-                lumi_dict[args.year][era] = lumi_recorded
+        rows = []
+        for row in csvreader:
+            rows.append(row)
+        for i, row in rows:
+            for word in row:
+                if 'Summary' in word:
+                    lumi_recorded = float(rows[i+2][-1])
+                    lumi_dict[args.year][era] = lumi_recorded
     f.close()
 
 summary_file = os.path.join(args.output, f"lumi_summary_{args.dataset}_{args.year}.json")
 with open(summary_file, 'w') as f:
-    json.dump(lumi_dict, summary_file, indent=2)
+    json.dump(lumi_dict, f, indent=2)
 f.close()
