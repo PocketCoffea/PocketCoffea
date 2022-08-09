@@ -21,4 +21,4 @@ for era, runs_list in runs_dataset.items():
     run_begin = runs_list[0]
     run_end   = runs_list[-1]
     command = f"brilcalc lumi -u /fb --normtag {normtag} -i {goldenJSON[args.year]} --begin {run_begin} --end {run_end} -o lumi_{args.dataset}_{args.year}{era}_{run_begin}-{run_end}.csv"
-    os.command(command)
+    os.system(command)
