@@ -12,7 +12,8 @@ def get_trigger_mask(events, triggers, finalstate):
         for trigger in triggers["ee"]:   trigger_ee   = trigger_ee   | events.HLT[trigger.lstrip("HLT_")]
 
         return ak.to_numpy(trigger_mumu | trigger_emu | trigger_ee)
-    elif finalstate == 'semileptonic':
+    
+    elif finalstate in ['semileptonic', 'semileptonic_partonmatching']:
         trigger_mu = np.zeros(len(events), dtype='bool')
         trigger_e  = np.zeros(len(events), dtype='bool')
 
@@ -26,9 +27,13 @@ def get_trigger_mask(events, triggers, finalstate):
             else:
                 trigger_e  = trigger_e  | events.HLT[trigger.lstrip("HLT_")]
         return ak.to_numpy(trigger_mu | trigger_e)
+    
     elif finalstate == 'semileptonic_triggerSF':
         trigger_mu = np.zeros(len(events), dtype='bool')
 
         for trigger in triggers["mu"]: trigger_mu = trigger_mu | events.HLT[trigger.lstrip("HLT_")]
 
         return ak.to_numpy(trigger_mu)
+
+    else:
+        raise Exception(f"Trigger finalstate: {finalstate}, not implemented!")
