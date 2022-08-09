@@ -7,9 +7,10 @@ import awkward as ak
 
 import coffea
 from coffea import processor, lookup_tools, hist
-from coffea.processor import dict_accumulator, defaultdict_accumulator, column_accumulator
+from coffea.processor import dict_accumulator, defaultdict_accumulator
 from coffea.lumi_tools import LumiMask #, LumiData
 from coffea.analysis_tools import PackedSelection, Weights
+from coffea.util import load
 
 import correctionlib
 
@@ -53,6 +54,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # After the preselections more cuts are defined and combined in categories.
         # These cuts are applied only for outputs, so they cohexists in the form of masks
         self._cuts_masks = PackedSelection()
+
+        # Trigger SF
+        self._apply_triggerSF = True
         
         # Accumulators for the output
         self._accum_dict = {}
@@ -84,6 +88,11 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self._sample_axis = hist.Cat("sample", "Sample")
         self._cat_axis    = hist.Cat("cat", "Cat")
         self._year_axis   = hist.Cat("year", "Year")
+        self._sparse_axes = [self._sample_axis, self._cat_axis, self._year_axis]
+
+        if self.cfg.split_eras:
+            self._era_axis = hist.Cat("era", "Era")
+            self._sparse_axes = [self._sample_axis, self._cat_axis, self._year_axis, self._era_axis]
 
         # Create histogram accumulators
         for var_name in self._variables.keys():
@@ -93,8 +102,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                 obj, field = var_name.split('_')
             variable_axis = hist.Bin( field, self._variables[var_name]['xlabel'],
                                       **self._variables[var_name]['binning'] )
-            self._hist_dict[f'hist_{var_name}'] = hist.Hist("$N_{events}$", self._sample_axis,
-                                                            self._cat_axis, self._year_axis, variable_axis)
+            self._hist_dict[f'hist_{var_name}'] = hist.Hist("$N_{events}$", *self._sparse_axes, variable_axis)
         for hist2d_name in self._variables2d.keys():
             varname_x = list(self._variables2d[hist2d_name].keys())[0]
             varname_y = list(self._variables2d[hist2d_name].keys())[1]
@@ -102,15 +110,10 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                                        **self._variables2d[hist2d_name][varname_x]['binning'] )
             variable_y_axis = hist.Bin(varname_y, self._variables2d[hist2d_name][varname_y]['ylabel'],
                                        **self._variables2d[hist2d_name][varname_y]['binning'] )
-            self._hist2d_dict[f'hist2d_{hist2d_name}'] = hist.Hist("$N_{events}$", self._sample_axis, self._cat_axis,
-                                                                   self._year_axis, variable_x_axis, variable_y_axis)
+            self._hist2d_dict[f'hist2d_{hist2d_name}'] = hist.Hist("$N_{events}$", *self._sparse_axes, variable_x_axis, variable_y_axis)
             
         self._accum_dict.update(self._hist_dict)
         self._accum_dict.update(self._hist2d_dict)
-
-        # prepare a special entry for column accumulator
-        # one for each category
-        self._accum_dict["columns"] = dict_accumulator({cat: dict_accumulator() for cat in self._categories})
 
         self.nobj_hists = [histname for histname in self._hist_dict.keys() if histname.lstrip('hist_').startswith('n') and not 'nevts' in histname]
         self.muon_hists = [histname for histname in self._hist_dict.keys() if 'muon' in histname and not histname in self.nobj_hists]
@@ -138,30 +141,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                 raise Exception(f"You are trying to overwrite an already defined histogram {k}!")
             else:
                 self._accum_dict[k] = h
-
-    def add_column_accumulator(self, name, cats=None, store_size=True):
-        '''
-        Add a column_accumulator with `name` to the categories `cats` (to all the category if `cats`==None).
-        If store_size == True, create a parallel column called name_size, containing the number of entries
-        for each event. 
-        '''
-        if not cats:
-            # add the column accumulator to all the categories
-            for cat in self._categories:
-                # we need a defaultdict accumulator to be able to include different samples for different chunks
-                self._accum_dict['columns'][cat][name] = dict_accumulator()
-                if store_size:
-                    # in thise case we save also name+size which will contain the number of entries per event
-                    self._accum_dict['columns'][cat][name+"_size"] = dict_accumulator()
-        else:
-            for cat in cats:
-                if cat not in self._categories:
-                    raise Exception(f"Category not found: {cat}")
-                self._accum_dict['columns'][cat][name] = dict_accumulator()
-                if store_size:
-                    # in thise case we save also name+size which will contain the number of entries per event
-                    self._accum_dict['columns'][cat][name+"_size"] = dict_accumulator()
-                
+        
     @property
     def nevents(self):
         '''The current number of events in the chunk is computed with a property'''
@@ -172,6 +152,10 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             return self.output[name]
         else:
             raise Exception("Missing histogram: ", name)
+
+    # Define trigger SF map to apply
+    def define_triggerSF_maps(self):
+        pass
     
     # Function to load year-dependent parameters
     def load_metadata(self):
@@ -181,6 +165,10 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self._triggers = triggers[self.cfg.finalstate][self._year]
         self._btag = btag[self._year]
         self._isMC = 'genWeight' in self.events.fields
+        if self._isMC:
+            self._era = "MC"
+        else:
+            self._era = self.events.metadata["era"]
         # JEC
         self._JECversion = JECversions[self._year]['MC' if self._isMC else 'Data']
         self._JERversion = JERversions[self._year]['MC' if self._isMC else 'Data']
@@ -190,7 +178,6 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     def apply_triggers(self):
         # Trigger logic is included in the preselection mask
         self._skim_masks.add('trigger', get_trigger_mask(self.events, self._triggers, self.cfg.finalstate))
-
 
     # Function to apply flags and lumi mask
     def skim_events(self):
@@ -304,11 +291,24 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             self.weights.add('sf_mu_id',  *sf_mu(self.events, self._year, 'id'))
             self.weights.add('sf_mu_iso', *sf_mu(self.events, self._year, 'iso'))
 
+    def apply_triggerSF(self):
+        if self.cfg.triggerSF != None:
+            dict_corr = load(self.cfg.triggerSF)
+            self.triggerSF_weights = {cat : Weights(self.nEvents_after_presel) for cat in dict_corr.keys()}
+            for cat, corr in dict_corr.items():
+                if self._isMC:
+                    # By filling the None in the pt array with -999, the SF will be fixed to 1 for events with 0 electrons
+                    self.triggerSF_weights[cat].add( 'triggerSFcorr', corr(ak.fill_none(ak.firsts(self.events.ElectronGood.pt), -999), ak.fill_none(ak.firsts(self.events.ElectronGood.eta), -999)) )
+                else:
+                    print(self.events.ElectronGood.pt)
+                    print(ak.ones_like(ak.fill_none(self.events.ElectronGood.pt, 0)))
+                    self.triggerSF_weights[cat].add( 'triggerSFcorr', ak.ones_like(ak.fill_none(ak.firsts(self.events.ElectronGood.pt), 0)) )
+
     def fill_histograms(self):
         for (obj, obj_hists) in zip([None], [self.nobj_hists]):
-            fill_histograms_object(self, obj, obj_hists, event_var=True)
+            fill_histograms_object(self, obj, obj_hists, event_var=True, split_eras=self.cfg.split_eras)
         for (obj, obj_hists) in zip([self.events.MuonGood, self.events.ElectronGood, self.events.JetGood], [self.muon_hists, self.electron_hists, self.jet_hists]):
-            fill_histograms_object(self, obj, obj_hists)
+            fill_histograms_object(self, obj, obj_hists, split_eras=self.cfg.split_eras)
 
     def count_events(self):
         # Fill the output with the number of events and the sum of their weights in each category for each sample
@@ -393,6 +393,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
 
         # Weights
         self.compute_weights()
+
+        # Per-event trigger SF reweighting
+        self.apply_triggerSF()
         
         # Fill histograms
         self.fill_histograms()

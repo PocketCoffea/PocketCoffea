@@ -14,7 +14,7 @@ cfg =  {
 
     # Input and output files
     "workflow" : ttHbbBaseProcessor,
-    "output"   : "output/test_pileup",
+    "output"   : "output/pileup/test_pileup",
 
     # Executor parameters
     "run_options" : {

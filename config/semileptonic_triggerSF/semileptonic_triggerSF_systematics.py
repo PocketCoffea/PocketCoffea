@@ -1,6 +1,8 @@
 from PocketCoffea.parameters.cuts.baseline_cuts import semileptonic_triggerSF_presel, passthrough
-from config.semileptonic_triggerSF.functions import get_trigger_passfail
+from PocketCoffea.lib.cut_functions import get_nObj
 from PocketCoffea.workflows.semileptonic_triggerSF import semileptonicTriggerProcessor
+from config.semileptonic_triggerSF.functions import get_trigger_passfail
+from config.semileptonic_triggerSF.plot_options import efficiency, scalefactor, ratio, residue
 from math import pi
 import numpy as np
 
@@ -17,18 +19,22 @@ cfg =  {
 
     # Input and output files
     "workflow" : semileptonicTriggerProcessor,
-    "output"   : "output/sf_ele_trigger_semilep/semileptonic_triggerSF_2018_lumimask_etaSC",
+    "output"   : "output/sf_ele_trigger_semilep/semileptonic_triggerSF_2018_systematics",
+    "output_triggerSF" : "PocketCoffea/parameters/semileptonic_triggerSF/triggerSF_2018UL_Ele32_EleHT",
+    "triggerSF" : None,
 
     # Executor parameters
     "run_options" : {
         "executor"       : "dask/slurm",
         "workers"        : 1,
-        "scaleout"       : 50,
+        "scaleout"       : 75,
         "partition"      : "standard",
         "walltime"       : "12:00:00",
-        "mem_per_worker" : "4GB", # GB
+        "mem_per_worker" : "5GB", # GB
         "exclusive"      : False,
-        "chunk"          : 100000,
+        "chunk"          : 50000,
+        "retries"        : 30,
+        "treereduction"  : 10,
         "max"            : None,
         "skipbadfiles"   : None,
         "voms"           : None,
@@ -37,7 +43,7 @@ cfg =  {
 
     # Cuts and plots settings
     "finalstate" : "semileptonic_triggerSF",
-    "skim" : [],
+    "skim" : [ get_nObj(3, 15., "Jet") ],
     "preselections" : [semileptonic_triggerSF_presel],
     "categories": {
         "Ele32_EleHT_pass" : [get_trigger_passfail(["Ele32_WPTight_Gsf", "Ele28_eta2p1_WPTight_Gsf_HT150"], "pass")],
@@ -82,16 +88,22 @@ cfg =  {
         },
     },
     "plot_options" : {
-        #"only" : "electron_etaSC_vs_electron_pt",
-        "only" : None,
-        "workers" : 24,
-        "scale" : "log",
+        "sum_over" : ['cat', 'year', 'var'],
+        "var" : 'nominal',
+        #"only" : "hist2d_electron_",
+        "only" : "hist_electron_pt",
+        "workers" : 16,
+        "scale" : "linear",
         "fontsize" : 18,
         "fontsize_map" : 10,
         "dpi" : 150,
         "rebin" : {
-            'electron_pt' : {'binning' : {'n_or_arr' : np.arange(0, 100, 10).tolist() + [100, 200, 500, 2000]}}
-        }
+            'electron_pt' : {'binning' : {'n_or_arr' : 1, 'lo' : 0, 'hi' : 500}, 'xlim' : (0,500),  'xlabel' : "$p_{T}^{e}$ [GeV]"}
+        },
+        "efficiency" : efficiency,
+        "scalefactor" : scalefactor,
+        "ratio" : ratio,
+        "residue" : residue,
         #"rebin" : {}
     }
 }

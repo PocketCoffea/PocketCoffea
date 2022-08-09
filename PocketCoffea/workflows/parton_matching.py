@@ -4,7 +4,7 @@ from coffea import hist
 import numba
 
 from .base import ttHbbBaseProcessor
-from ..lib.fill import fill_histograms_object, fill_column_accumulator
+from ..lib.fill import fill_histograms_object
 from ..lib.deltaR_matching import object_matching
 
 class PartonMatchingProcessor(ttHbbBaseProcessor):
@@ -12,7 +12,7 @@ class PartonMatchingProcessor(ttHbbBaseProcessor):
         super().__init__(cfg=cfg)
         self.parton_hists = [histname for histname in self._hist_dict.keys() if 'parton' in histname and not histname in self.nobj_hists]
         self.partonmatched_hists = [histname for histname in self._hist_dict.keys() if 'partonmatched' in histname and not histname in self.nobj_hists]
-        self.dr_min = cfg.workflow_extra_options.get('deltaR', 0.2)
+        self.dr_min = 0.4
         more_histos = {}
         more_histos["hist_ptComparison_parton_matching"] = hist.Hist("hist_parton_matching", self._sample_axis, self._cat_axis,
                                         self._year_axis,
@@ -38,7 +38,8 @@ class PartonMatchingProcessor(ttHbbBaseProcessor):
     def do_parton_matching(self) -> ak.Array:
         # Selects quarks at LHE level
         isOutgoing = self.events.LHEPart.status == 1
-        isParton = (abs(self.events.LHEPart.pdgId) < 6) | (self.events.LHEPart.pdgId == 21) 
+        isParton = (abs(self.events.LHEPart.pdgId) < 6) | \
+                           (self.events.LHEPart.pdgId == 21) 
         quarks = self.events.LHEPart[isOutgoing & isParton]
         
         # Select b-quarks at Gen level, coming from H->bb decay
@@ -101,13 +102,3 @@ class PartonMatchingProcessor(ttHbbBaseProcessor):
         self.do_parton_matching()
         self.count_partons()
 
-        
-        fill_column_accumulator(self,"parton_pt", ['4j'], self.events.PartonMatched.pt[self.matched_partons_mask])
-        fill_column_accumulator(self,"jet_pt", ['4j'], self.events.JetGoodMatched.pt[self.matched_partons_mask])
-        fill_column_accumulator(self,"jet_eta", ['4j'], self.events.JetGoodMatched.eta[self.matched_partons_mask])
-        fill_column_accumulator(self,"parton_jet_dR", ['4j'], self.events.PartonMatched.dRMatchedJet[self.matched_partons_mask])
-        fill_column_accumulator(self,"njet_matched", ['4j'], self.events.npartonmatched, flatten=False)
-        fill_column_accumulator(self, "parton_pdgId", ['4j'], self.events.PartonMatched.pdgId[self.matched_partons_mask])
-        fill_column_accumulator(self, "jet_btag", ['4j'], self.events.JetGoodMatched[self._btag['btagging_algorithm']][self.matched_partons_mask])
-
-                                          
