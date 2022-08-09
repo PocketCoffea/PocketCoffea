@@ -1,7 +1,7 @@
 import os
 import argparse
 import json
-from PocketCoffea.parameters.eras import runs
+from PocketCoffea.parameters.lumi import runs
 
 parser = argparse.ArgumentParser(description='Build dataset file in json format')
 parser.add_argument("-i", "--input", required=True, help="Input luminosity JSON file")
@@ -19,8 +19,8 @@ runs_dataset = runs[args.dataset][args.year]
 with open(args.input, 'r') as file:
     runs_total = json.load(file)
 
-output_list = []
 for era, runs_list in runs_dataset.items():
+    output_list = []
     for tag, run in runs_total:
         run_number = int(list(run.keys())[0])
         if run_number in runs_list:
