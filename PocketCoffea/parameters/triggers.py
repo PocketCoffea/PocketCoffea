@@ -118,3 +118,7 @@ triggers = {
         },
     }
 }
+
+
+### Customizations
+triggers["semileptonic_partonmatching"] = triggers["semileptonic"]

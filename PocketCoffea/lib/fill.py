@@ -15,11 +15,11 @@ def fill_histograms_object(processor, obj, obj_hists, event_var=False, split_era
             if event_var:
                 keys = [k for k in h.fields if k in histname]
                 isnotnone = ~ak.is_none(getattr(processor.events, keys[0]))
-                weight = ( processor.weights.weight() * processor._cuts_masks.all(*cuts) )[isnotnone]
+                weight = ( processor.get_weight(category) * processor._cuts_masks.all(*cuts) )[isnotnone]
                 fields = {k: getattr(processor.events, k)[isnotnone] for k in h.fields if k in histname}
             else:
                 isnotnone = ak.flatten(~ak.is_none(obj, axis=1))
-                weight = ak.flatten( processor.weights.weight() * ak.Array(ak.ones_like(obj.pt) *
+                weight = ak.flatten( processor.get_weight(category) * ak.Array(ak.ones_like(obj.pt) *
                                                         processor._cuts_masks.all(*cuts)) )[isnotnone]
                 fields = {k: ak.flatten(obj[k])[isnotnone] for k in h.fields if k in dir(obj)}
             if split_eras:
@@ -47,18 +47,18 @@ def fill_histograms_object_with_variations(processor, obj, obj_hists, systematic
                     isnotnone = ~ak.is_none(getattr(processor.events, keys[0]))
                     if triggerSF:
                         key_correction = processor._triggerSF_map[category]
-                        weight = ( processor.triggerSF_weights[key_correction].weight() * processor.weights.weight(modifier=modifier) * processor._cuts_masks.all(*cuts) )[isnotnone]
+                        weight = ( processor.triggerSF_weights[key_correction].weight() * processor.get_weight(category, modifier=modifier) * processor._cuts_masks.all(*cuts) )[isnotnone]
                     else:
-                        weight = ( processor.weights.weight(modifier=modifier) * processor._cuts_masks.all(*cuts) )[isnotnone]
+                        weight = ( processor.get_weight(category, modifier=modifier) * processor._cuts_masks.all(*cuts) )[isnotnone]
                     fields = {k: getattr(processor.events, k)[isnotnone] for k in h.fields if k in histname}
                 else:
                     isnotnone = ak.flatten(~ak.is_none(obj, axis=1))
                     if triggerSF:
                         key_correction = processor._triggerSF_map[category]
-                        weight = ak.flatten( processor.triggerSF_weights[key_correction].weight() * processor.weights.weight(modifier=modifier) * ak.Array(ak.ones_like(obj.pt) *
+                        weight = ak.flatten( processor.triggerSF_weights[key_correction].weight() * processor.get_weight(category, modifier=modifier) * ak.Array(ak.ones_like(obj.pt) *
                                              processor._cuts_masks.all(*cuts)) )[isnotnone]
                     else:
-                        weight = ak.flatten( processor.weights.weight(modifier=modifier) * ak.Array(ak.ones_like(obj.pt) *
+                        weight = ak.flatten( processor.get_weight(category, modifier=modifier) * ak.Array(ak.ones_like(obj.pt) *
                                              processor._cuts_masks.all(*cuts)) )[isnotnone]
                     fields = {k: ak.flatten(obj[k])[isnotnone] for k in h.fields if k in dir(obj)}
                 if split_eras:

@@ -17,8 +17,8 @@ cfg =  {
 
     # Input and output files
     "workflow" : PartonMatchingProcessor,
-    "output"   : "output/parton_matching",
-
+    "output"   : "output/parton_matching_dR03",
+    "workflow_extra_options": {"deltaR": 0.3},
 
     # "run_options" : {
     #     "executor"       : "iterative",
@@ -38,14 +38,14 @@ cfg =  {
     "run_options" : {
         "executor"       : "dask/slurm",
         "workers"        : 1,
-        "scaleout"       : 80,
-        "partition"      : "short",
-        "walltime"       : "01:00:00",
-        "mem_per_worker" : "5GB", # GB
+        "scaleout"       : 100,
+        "partition"      : "standard",
+        "walltime"       : "05:00:00",
+        "mem_per_worker" : "12GB", # GB
         "exclusive"      : False,
-        "chunk"          : 300000,
+        "chunk"          : 200000,
         "retries"        : 30,
-        "treereduction"  : 20,
+        "treereduction"  : 5,
         "max"            : None,
         "skipbadfiles"   : None,
         "voms"           : None,
@@ -54,9 +54,9 @@ cfg =  {
 
 
     # Cuts and plots settings
-    "finalstate" : "semileptonic",
-    "skim": [ get_nObj(4, 20., "Jet"),
-              get_nBtag(3, 20., "Jet") ],
+    "finalstate" : "semileptonic_partonmatching",
+    "skim": [ get_nObj(4, 15., "Jet"),
+              get_nBtag(3, 15., "Jet") ],
     "preselections" : [semileptonic_presel],
 
     "categories": {
