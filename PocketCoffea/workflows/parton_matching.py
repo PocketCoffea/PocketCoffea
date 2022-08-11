@@ -25,7 +25,15 @@ class PartonMatchingProcessor(ttHbbBaseProcessor):
                                       hist.Bin("deltaR", "deltaR", 50, 0, 0.4))
         #adding the histograms to the accumulator
         self.add_additional_histograms(more_histos)
-        
+
+        # Defining the column accumulators for parton and jet pts,
+        self.add_column_accumulator("parton_pt", cats=['4j'], store_size=False)
+        self.add_column_accumulator("parton_pdgId", cats=['4j'], store_size=False)
+        self.add_column_accumulator("jet_pt", cats=['4j'], store_size=False)
+        self.add_column_accumulator("jet_eta", cats=['4j'], store_size=False)
+        self.add_column_accumulator("parton_jet_dR", cats=['4j'],store_size=False)
+        self.add_column_accumulator("njet_matched", cats=['4j'], store_size=False)
+        self.add_column_accumulator("jet_btag", cats=['4j'], store_size=False)
                
     def do_parton_matching(self) -> ak.Array:
         # Selects quarks at LHE level

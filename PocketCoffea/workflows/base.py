@@ -28,6 +28,7 @@ from ..parameters.samples import samples_info
 from ..parameters.allhistograms import histogram_settings
 
 class ttHbbBaseProcessor(processor.ProcessorABC):
+
     def __init__(self, cfg) -> None:
         # Read required cuts and histograms from config file
         self.cfg = cfg
@@ -57,6 +58,11 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
 
         # Trigger SF
         self._apply_triggerSF = True
+
+        # Weights configuration
+        self.weights_split_bycat = self.cfg.weights_split_bycat
+        self.weights_config = self.cfg.weights_config
+        self.weights_config_bycat = self.cfg.weights_config_bycat
         
         # Accumulators for the output
         self._accum_dict = {}
@@ -276,21 +282,70 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             self._cuts_masks.add(cut.id, mask)
         # We make sure that for each category the list of cuts is unique in the Configurator validation
 
+    @classmethod
+    def available_weights(cls):
+        return ['genWeight', 'lumi', 'XS', 'pileup',
+                'sf_ele_reco_id', 'sf_mu_id_iso']
+        
     def compute_weights(self):
-        self.weights = Weights(self.nEvents_after_presel)
-        if self._isMC:
-            self.weights.add('genWeight', self.events.genWeight)
-            self.weights.add('lumi', ak.full_like(self.events.genWeight, lumi[self._year]['tot']))
-            self.weights.add('XS', ak.full_like(self.events.genWeight, samples_info[self._sample]["XS"]))
-            # Pileup reweighting with nominal, up and down variations
-            self.weights.add('pileup', *sf_pileup_reweight(self.events, self._year))
-            # Electron reco and id SF with nominal, up and down variations
-            self.weights.add('sf_ele_reco', *sf_ele_reco(self.events, self._year))
-            self.weights.add('sf_ele_id',   *sf_ele_id(self.events, self._year))
-            # Muon id and iso SF with nominal, up and down variations
-            self.weights.add('sf_mu_id',  *sf_mu(self.events, self._year, 'id'))
-            self.weights.add('sf_mu_iso', *sf_mu(self.events, self._year, 'iso'))
+        '''
+        This function computes the weights to be applied on MC.
+        Weights can be inclusive or by category.
+        Moreover, different samples can have different weights, as defined in the weights_configuration.
+        The name of the weights available in the current workflow are defined in the class methods "available_weights"
+        '''
+        # Helper function defining the weights
+        def __add_weight(weight, weight_obj):
+            if weight == "genWeight":
+                weight_obj.add('genWeight', self.events.genWeight)
+            elif weight == 'lumi':
+                weight_obj.add('lumi', ak.full_like(self.events.genWeight, lumi[self._year]['tot']))
+            elif weight == 'XS':
+                weight_obj.add('XS', ak.full_like(self.events.genWeight, samples_info[self._sample]["XS"]))
+            elif weight == 'pileup':
+                # Pileup reweighting with nominal, up and down variations
+                weight_obj.add('pileup', *sf_pileup_reweight(self.events, self._year))
+            elif weight == 'sf_ele_reco_id':
+                # Electron reco and id SF with nominal, up and down variations
+                weight_obj.add('sf_ele_reco', *sf_ele_reco(self.events, self._year))
+                weight_obj.add('sf_ele_id',   *sf_ele_id(self.events, self._year))
+            elif weight == 'sf_mu_id_iso':
+                # Muon id and iso SF with nominal, up and down variations
+                weight_obj.add('sf_mu_id',  *sf_mu(self.events, self._year, 'id'))
+                weight_obj.add('sf_mu_iso', *sf_mu(self.events, self._year, 'iso'))
 
+        #Inclusive weights
+        self._weights_incl = Weights(self.nEvents_after_presel)
+
+        if not self._isMC: return
+        # Compute first the inclusive weights
+        for weight in self.weights_config[self._sample]:
+            __add_weight(weight, self._weights_incl)
+
+        # Now weights for dedicated categories
+        if self.weights_split_bycat:
+            self._weights_bycat = {cat: Weights(self.nEvents_after_presel) for cat in self._categories}
+            for cat in self._categories:
+                for weight in self.weights_config_bycat[cat][self._sample]:
+                    __add_weight(weight, self._weights_bycat[cat])
+
+    def get_weight(self, category=None, modifier=None):
+        '''
+        The function returns the total weights stored in the processor for the current sample.
+        If category==None the inclusive weight is returned.
+        If category!=None but weights_split_bycat=False, the inclusive weight is returned.
+        Otherwise the inclusive*category specific weight is returned.
+        '''
+        if category==None or self.weights_split_bycat == False:
+            # return the inclusive weight
+            return self._weights_incl.weight(modifier=modifier)
+        
+        elif category and self.weights_split_bycat == True:
+            if category not in self._categories:
+                raise Exception(f"Requested weights for non-existing category: {category}")
+            # moltiply the inclusive weight and the by category one
+            return self._weights_incl.weight(modifier=modifier) * self._weights_bycat[category].weight(modifier=modifier)
+        
     def apply_triggerSF(self):
         if self.cfg.triggerSF != None:
             dict_corr = load(self.cfg.triggerSF)
@@ -316,7 +371,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             mask = self._cuts_masks.all(*cuts)
             self.output["cutflow"][category][self._sample] = ak.sum(mask)
             if self._isMC:
-                w = self.weights.weight()
+                w = self.get_weight(category)
                 self.output["sumw"][category][self._sample] = ak.sum(w*mask)
 
     def process_extra_before_skim(self):
@@ -327,7 +382,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     
     def process_extra_after_presel(self):
         pass
-
+    
     def fill_histograms_extra(self):
         pass
     
@@ -411,11 +466,15 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         for sample in h.identifiers('sample'):
             sample = str(sample)
             scale_genweight[sample] = 1 if sample.startswith('DATA') else 1./accumulator['sum_genweights'][sample]
+            # correct also the sumw (sum of weighted events) accumulator
+            for cat in self._categories:
+                accumulator["sumw"][cat][sample] *= scale_genweight[sample]
 
         for histname in accumulator:
             if (histname in self._hist_dict) | (histname in self._hist2d_dict):
                 accumulator[histname].scale(scale_genweight, axis='sample')
 
         accumulator["scale_genweight"] = scale_genweight
+        
 
         return accumulator
