@@ -104,8 +104,14 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         for var_name in self._variables.keys():
             if var_name.startswith('n'):
                 field = var_name
+            elif "_" in var_name:
+                splits = obj, field = var_name.split('_')
+                if splits[0] in ["electron", "muon", "jet"]:
+                    field = splits[1]
+                else:
+                    field = var_name
             else:
-                obj, field = var_name.split('_')
+                field = var_name
             variable_axis = hist.Bin( field, self._variables[var_name]['xlabel'],
                                       **self._variables[var_name]['binning'] )
             self._hist_dict[f'hist_{var_name}'] = hist.Hist("$N_{events}$", *self._sparse_axes, variable_axis)
@@ -424,6 +430,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.count_objects()
         # Customization point for derived workflows after preselection cuts
         self.process_extra_before_presel()
+        
         # This will remove all the events not passing preselection from further processing
         self.apply_preselections()
        

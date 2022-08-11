@@ -20,6 +20,7 @@ histogram_settings = {
         'jet_pt'                   : {'binning' : {'n_or_arr' : 150, 'lo' : 0, 'hi' : 1500}, 'xlim' : (0,500),  'xlabel' : "$p_{T}^{j}$ [GeV]"},
         'jet_eta'                  : {'binning' : {'n_or_arr' : 80, 'lo' : -4, 'hi' : 4},    'xlim' : (-4,4),   'xlabel' : "$\eta_{j}$"},
         'jet_phi'                  : {'binning' : {'n_or_arr' : 128, 'lo' : -pi, 'hi' : pi}, 'xlim' : (-pi,pi), 'xlabel' : "$\phi_{j}$"},
+        'jet_btagDeepFlavB'        : {'binning' : {'n_or_arr' : 50, 'lo' : 0, 'hi' : 1}, 'xlim':(0, 1), 'xlabel' : "AK4 DeepJet b-tag score"},
         'goodjet_pt'               : {'binning' : {'n_or_arr' : 150, 'lo' : 0, 'hi' : 1500}, 'xlim' : (0,500),  'xlabel' : "$p_{T}^{j}$ [GeV]"},
         'goodjet_eta'              : {'binning' : {'n_or_arr' : 80, 'lo' : -4, 'hi' : 4},    'xlim' : (-4,4),   'xlabel' : "$\eta_{j}$"},
         'goodjet_phi'              : {'binning' : {'n_or_arr' : 128, 'lo' : -pi, 'hi' : pi}, 'xlim' : (-pi,pi), 'xlabel' : "$\phi_{j}$"},

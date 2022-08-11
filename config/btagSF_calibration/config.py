@@ -2,7 +2,8 @@ from PocketCoffea.parameters.cuts.baseline_cuts import semileptonic_presel_nobta
 from config.parton_matching.functions import *
 from PocketCoffea.lib.cut_definition import Cut
 from PocketCoffea.lib.cut_functions import get_nObj, get_nBtag
-from PocketCoffea.workflows.base import ttHbbBaseProcessor
+from PocketCoffea.workflows.btag_sf_calibration import BtagSFCalibration
+
 cfg =  {
 
     "dataset" : {
@@ -16,7 +17,7 @@ cfg =  {
     },
 
     # Input and output files
-    "workflow" : ttHbbBaseProcessor,
+    "workflow" : BtagSFCalibration,
     "output"   : "output/btagSF_calibration",
     "workflow_extra_options": {},
     "split_eras" :False,
@@ -88,6 +89,7 @@ cfg =  {
         "jet_pt" : None,
         "jet_eta" : None,
         "jet_phi" : None,
+        "jet_btagDeepFlavB" : None,
         "nmuon" : None,
         "nelectron" : None,
         "nlep" : None,
@@ -96,8 +98,13 @@ cfg =  {
         "nlep" : None,
         "njet" : None,
         "nbjet" : None,
+        "Ht" : {'binning' : {'n_or_arr' : 100, 'lo' : 0, 'hi' : 2500}, 'xlim':(0, 500), 'xlabel' : "$H_T$ Jets [GeV]"},
     },
      "variables2d" : {
+         "Njet_Ht": {
+             "Njet": {'binning': {"n_or_arr": 16, 'lo':4, 'hi':20}, "xlabel":"N Jets"},
+             "Ht": {'binning': {"n_or_arr": 20, 'lo':0, 'hi':2500}, "ylabel":"$H_T$ Jets"}
+         }
      },
     "scale" : "log"
 }
