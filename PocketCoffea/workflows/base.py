@@ -280,7 +280,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.weights = Weights(self.nEvents_after_presel)
         if self._isMC:
             self.weights.add('genWeight', self.events.genWeight)
-            self.weights.add('lumi', ak.full_like(self.events.genWeight, lumi[self._year]))
+            self.weights.add('lumi', ak.full_like(self.events.genWeight, lumi[self._year]['tot']))
             self.weights.add('XS', ak.full_like(self.events.genWeight, samples_info[self._sample]["XS"]))
             # Pileup reweighting with nominal, up and down variations
             self.weights.add('pileup', *sf_pileup_reweight(self.events, self._year))
