@@ -297,7 +297,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             if weight == "genWeight":
                 weight_obj.add('genWeight', self.events.genWeight)
             elif weight == 'lumi':
-                weight_obj.add('lumi', ak.full_like(self.events.genWeight, lumi[self._year]))
+                weight_obj.add('lumi', ak.full_like(self.events.genWeight, lumi[self._year]['tot']))
             elif weight == 'XS':
                 weight_obj.add('XS', ak.full_like(self.events.genWeight, samples_info[self._sample]["XS"]))
             elif weight == 'pileup':
