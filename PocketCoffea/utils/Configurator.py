@@ -303,7 +303,14 @@ class Configurator():
         ocfg["skim"] = skim_dump
         ocfg["preselections"] = presel_dump
         ocfg["categories"] = cats_dump
-        ocfg["workflow"] = self.workflow.__name__
+        ocfg["workflow"] = {
+            "name": self.workflow.__name__,
+            "file": self.workflow.__path__
+        }
+        ocfg["weights"] = {
+            "weights_inclusive" : self.weights_config,
+            "weight_bycategory" : self.weight_config_bycat
+        }
         # Save the serialized configuration in json
         output_cfg = os.path.join(self.output, "config.json")
         print("Saving config file to " + output_cfg)

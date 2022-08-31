@@ -17,7 +17,7 @@ import correctionlib
 from ..lib.triggers import get_trigger_mask
 from ..lib.objects import jet_correction, lepton_selection, jet_selection, btagging, get_dilepton
 from ..lib.pileup import sf_pileup_reweight
-from ..lib.scale_factors import sf_ele_reco, sf_ele_id, sf_mu, sf_btag
+from ..lib.scale_factors import sf_ele_reco, sf_ele_id, sf_mu, sf_btag, sf_btag_calib
 from ..lib.fill import fill_histograms_object
 from ..parameters.triggers import triggers
 from ..parameters.btag import btag
@@ -283,7 +283,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     @classmethod
     def available_weights(cls):
         return ['genWeight', 'lumi', 'XS', 'pileup',
-                'sf_ele_reco_id', 'sf_mu_id_iso', 'sf_btag']
+                'sf_ele_reco_id', 'sf_mu_id_iso', 'sf_btag',
+                'sf_btag_calib']
         
     def compute_weights(self):
         '''
@@ -297,7 +298,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             if weight == "genWeight":
                 weight_obj.add('genWeight', self.events.genWeight)
             elif weight == 'lumi':
-                weight_obj.add('lumi', ak.full_like(self.events.genWeight, lumi[self._year]['tot']))
+                weight_obj.add('lumi', ak.full_like(self.events.genWeight, lumi[self._year]["tot"]))
             elif weight == 'XS':
                 weight_obj.add('XS', ak.full_like(self.events.genWeight, samples_info[self._sample]["XS"]))
             elif weight == 'pileup':
@@ -313,6 +314,10 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                 weight_obj.add('sf_mu_iso', *sf_mu(self.events, self._year, 'iso'))
             elif weight == 'sf_btag':
                 weight_obj.add("sf_btag", sf_btag(self.events.JetGood, self._btag['btagging_algorithm'], self._year, variation="central"))
+            elif weight == 'sf_btag_calib':
+                # This variable needs to be defined in another method
+                jetsHt = ak.sum(abs(self.events.JetGood.pt), axis=1)
+                weight_obj.add("sf_btag_calib", sf_btag_calib(self._sample, self._year, self.events.njet, jetsHt ) )
 
         #Inclusive weights
         self._weights_incl = Weights(self.nEvents_after_presel)

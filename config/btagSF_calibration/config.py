@@ -38,7 +38,7 @@ cfg =  {
     #     "voms"           : None,
     #     "limit"          : 1,
     # },
-    "run_options" : {
+   "run_options" : {
         "executor"       : "dask/slurm",
         "workers"        : 1,
         "scaleout"       : 100,
@@ -64,8 +64,13 @@ cfg =  {
     "categories": {
         "no_btagSF" : [passthrough],
         "btagSF" : [passthrough],
-        "2btag" : [ get_nObj(2, coll="BJetGood")], 
-        "3btag" :  [ get_nObj(3, coll="BJetGood")],
+        "btagSF_calib": [passthrough],
+        "2b" : [ get_nObj(2, coll="BJetGood")], 
+        "3b" :  [ get_nObj(3, coll="BJetGood")],
+        "2b_btagSF" : [ get_nObj(2, coll="BJetGood")], 
+        "3b_btagSF" :  [ get_nObj(3, coll="BJetGood")],
+        "2b_btagSF_calib" : [ get_nObj(2, coll="BJetGood")], 
+        "3b_btagSF_calib" :  [ get_nObj(3, coll="BJetGood")],
     },
 
     "weights": {
@@ -73,8 +78,11 @@ cfg =  {
             "inclusive": ["genWeight","lumi","XS", "pileup", "sf_ele_reco_id", "sf_mu_id_iso"],
             "bycategory" : {
                 "btagSF" : ["sf_btag"],
-                "2btag" : ["sf_btag"],
-                "3btag" : ["sf_btag"],
+                "2b_btagSF" : ["sf_btag"],
+                "3b_btagSF" : ["sf_btag"],
+                "btagSF_calib" : ["sf_btag","sf_btag_calib"],
+                "2b_btagSF_calib" : ["sf_btag","sf_btag_calib"],
+                "3b_btagSF_calib" : ["sf_btag","sf_btag_calib"],
             }
         },
     },

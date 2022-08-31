@@ -6,7 +6,7 @@ import awkward as ak
 import correctionlib
 
 from ..parameters.lepton_scale_factors import electronSF, muonSF, electronJSONfiles, muonJSONfiles
-from ..parameters.jet_scale_factors import btagSF
+from ..parameters.jet_scale_factors import btagSF, btagSF_calibration
 
 def get_ele_sf(year, pt, eta, counts, type='', pt_region=None):
     '''
@@ -134,4 +134,12 @@ def sf_btag(jets, btag_discriminator, year, variation="central"):
     return ak.prod(w, axis=1)
 
     
+def sf_btag_calib(sample, year, njets, jetsHt):
+    '''Correction to btagSF computing by comparing the inclusive shape without btagSF and with btagSF in 2D:
+    njets-JetsHT bins. Each sample/year has a different correction stored in the correctionlib format.'''
+    cset = correctionlib.CorrectionSet.from_file(btagSF_calibration[year])
+    corr = cset["btagSF_norm_correction"]
+    w = corr.evaluate(sample, year, ak.to_numpy(njets), ak.to_numpy(jetsHt))
+    return w
+
     
