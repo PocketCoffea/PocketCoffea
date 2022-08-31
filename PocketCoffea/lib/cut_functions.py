@@ -25,7 +25,7 @@ def nObj(events, params, **kwargs):
     return ak.num(events[params['coll']]) >= params["N"]
 
 def nObj_minPt(events, params, **kwargs):
-    return ak.sum(events[params["coll"]].pt >= params["N"], axis=1) >= params["N"]
+    return ak.sum(events[params["coll"]].pt >= params["minpt"], axis=1) >= params["N"]
 
 def get_nObj(N, minpt=None, coll="JetGood", name=None):
     if name == None:

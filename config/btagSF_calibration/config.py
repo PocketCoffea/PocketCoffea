@@ -102,8 +102,8 @@ cfg =  {
     },
      "variables2d" : {
          "Njet_Ht": {
-             "Njet": {'binning': {"n_or_arr": 16, 'lo':4, 'hi':20}, "xlabel":"N Jets"},
-             "Ht": {'binning': {"n_or_arr": 20, 'lo':0, 'hi':2500}, "ylabel":"$H_T$ Jets"}
+             "Njet": {'binning': {"n_or_arr": [4,5,6,7,8,9,17]}, "xlabel":"N Jets"},
+             "Ht": {'binning': {"n_or_arr": [0,500,750,1000,1250,1500, 2000]}, "ylabel":"$H_T$ Jets"}
          }
      },
     "scale" : "log"
