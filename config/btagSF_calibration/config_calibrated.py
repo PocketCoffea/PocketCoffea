@@ -46,7 +46,7 @@ cfg =  {
         "walltime"       : "05:00:00",
         "mem_per_worker" : "10GB", # GB
         "exclusive"      : False,
-        "chunk"          : 400000,
+        "chunk"          : 500000,
         "retries"        : 30,
         "treereduction"  : 10,
         "max"            : None,
@@ -69,6 +69,8 @@ cfg =  {
         "3b" :  [ get_nObj(3, coll="BJetGood")],
         "2b_btagSF" : [ get_nObj(2, coll="BJetGood")], 
         "3b_btagSF" :  [ get_nObj(3, coll="BJetGood")],
+        "2b_btagSF_calib" : [ get_nObj(2, coll="BJetGood")], 
+        "3b_btagSF_calib" :  [ get_nObj(3, coll="BJetGood")],
     },
 
     "weights": {
@@ -78,6 +80,9 @@ cfg =  {
                 "btagSF" : ["sf_btag"],
                 "2b_btagSF" : ["sf_btag"],
                 "3b_btagSF" : ["sf_btag"],
+                "btagSF_calib" : ["sf_btag","sf_btag_calib"],
+                "2b_btagSF_calib" : ["sf_btag","sf_btag_calib"],
+                "3b_btagSF_calib" : ["sf_btag","sf_btag_calib"],
             }
         },
     },
@@ -86,7 +91,7 @@ cfg =  {
         "muon_pt" : {'binning' : {'n_or_arr' : 100, 'lo' : 0, 'hi' : 500}, 'xlim' : (0,500),  'xlabel' : "$p_{T}^{\mu}$ [GeV]"},
         "muon_eta" : None,
         "muon_phi" : None,
-        "electron_pt" : None,
+        "electron_pt" : {'binning' : {'n_or_arr' : 100, 'lo' : 0, 'hi' : 500}, 'xlim' : (0,500),  'xlabel' : "$p_{T}^{\ele}$ [GeV]"},
         "electron_eta" : None,
         "electron_phi" : None,
         "jet_pt" : None,
@@ -107,10 +112,6 @@ cfg =  {
          "Njet_Ht_bins1": {
              "Njet": {'binning': {"n_or_arr": [4,5,6,7,8,9,20]}, "xlabel":"N Jets"},
              "Ht": {'binning': {"n_or_arr": [0,500,750,1000,1250,1500, 2000, 5000]}, "ylabel":"$H_T$ Jets"}
-         },
-         "Njet_Ht_bins2": {
-             "Njet": {'binning': {"n_or_arr": [4,5,6,7,8,9,12,20]}, "xlabel":"N Jets"},
-             "Ht": {'binning': {"n_or_arr": [0,500,600,700,800,1000,1200,1400,1600, 1800, 2000, 5000]}, "ylabel":"$H_T$ Jets"}
          },
          "Njet_Ht_bins3": {
              "Njet": {'binning': {"n_or_arr": [4,5,6,7,8,9,11,20]}, "xlabel":"N Jets"},
