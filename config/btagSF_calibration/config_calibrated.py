@@ -109,11 +109,7 @@ cfg =  {
         "Ht" : {'binning' : {'n_or_arr' : 100, 'lo' : 0, 'hi' : 2500}, 'xlim':(0, 500), 'xlabel' : "$H_T$ Jets [GeV]"},
     },
      "variables2d" : {
-         "Njet_Ht_bins1": {
-             "Njet": {'binning': {"n_or_arr": [4,5,6,7,8,9,20]}, "xlabel":"N Jets"},
-             "Ht": {'binning': {"n_or_arr": [0,500,750,1000,1250,1500, 2000, 5000]}, "ylabel":"$H_T$ Jets"}
-         },
-         "Njet_Ht_bins3": {
+         "Njet_Ht": {
              "Njet": {'binning': {"n_or_arr": [4,5,6,7,8,9,11,20]}, "xlabel":"N Jets"},
              "Ht": {'binning': {"n_or_arr": [0,500,650,800,1000,1200,1400,1600, 1800, 2000, 5000]}, "ylabel":"$H_T$ Jets"}
          },
