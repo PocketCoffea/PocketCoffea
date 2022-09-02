@@ -67,9 +67,7 @@ def jet_correction(events, Jet, typeJet, year, JECversion, JERversion=None, verb
     if JERversion:
         sf  = JECfile[f'{JERversion}_ScaleFactor_{typeJet}']
         res = JECfile[f'{JERversion}_PtResolution_{typeJet}']
-        genjets = events['GenJet']
         j, nj   = ak.flatten(jets_corrected), ak.num(jets_corrected)
-        gj, ngj = ak.flatten(genjets), ak.num(genjets)
         scaleFactor_flat  = sf.evaluate(j['eta'].to_numpy(), 'nom')
         ptResolution_flat = res.evaluate(j['eta'].to_numpy(), j['pt'].to_numpy(), j['rho'].to_numpy())
         scaleFactor  = ak.unflatten(scaleFactor_flat, nj)
@@ -82,6 +80,7 @@ def jet_correction(events, Jet, typeJet, year, JECversion, JERversion=None, verb
         #matched_genjets, matched_jets, deltaR_matched = object_matching(genjets, jets_corrected, dr_min, pt_min)
         # Or the association in NanoAOD it can be used, removing the indices that are not found. That happens because
         # not all the genJet are saved in the NanoAODs.
+        genjets = events['GenJet']
         Ngenjet = ak.num(genjets)
         matched_genjets_idx = ak.mask(jets_corrected.genJetIdx,(jets_corrected.genJetIdx < Ngenjet) & (jets_corrected.genJetIdx !=-1))
         # this array of indices has already the dimension of the Jet collection
@@ -138,7 +137,6 @@ def jet_correction(events, Jet, typeJet, year, JECversion, JERversion=None, verb
 
 
 
-
 def jet_selection(events, Jet, finalstate):
 
     jets = events[Jet]
@@ -152,7 +150,7 @@ def jet_selection(events, Jet, finalstate):
     lepton_cleaning_mask = ak.prod(dR_jets_lep> cuts["dr"], axis=2) == 1
 
     if Jet == "Jet":
-       jetpuid_mask  =  ( (jets.pt < cuts["puId_ptlim"]) & (jets.puId >= cuts["puId"]) ) | (jets.pt >= 50) 
+       jetpuid_mask  =   (jets.puId >= cuts["puId"]["value"]) | (jets.pt >=cuts["puId"]["maxpt"])
        good_jets_mask = presel_mask & lepton_cleaning_mask & jetpuid_mask
        
     elif Jet == "FatJet":

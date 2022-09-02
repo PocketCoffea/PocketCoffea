@@ -6,7 +6,8 @@ import awkward as ak
 import correctionlib
 
 from ..parameters.lepton_scale_factors import electronSF, muonSF, electronJSONfiles, muonJSONfiles
-from ..parameters.jet_scale_factors import btagSF, btagSF_calibration
+from ..parameters.jet_scale_factors import btagSF, btagSF_calibration, jet_puId
+from ..parameters.object_preselection import object_preselection
 
 def get_ele_sf(year, pt, eta, counts, type='', pt_region=None):
     '''
@@ -177,6 +178,44 @@ def sf_btag_calib(sample, year, njets, jetsHt):
     cset = correctionlib.CorrectionSet.from_file(btagSF_calibration[year])
     corr = cset["btagSF_norm_correction"]
     w = corr.evaluate(sample, year, ak.to_numpy(njets), ak.to_numpy(jetsHt))
-    return w
+    retur
 
     
+
+def sf_jet_puid(jets, finalstate, year, njets=None):
+    # The SF is applied only on jets passing the preselection (JetGood), pt < maxpt, and matched to a GenJet.
+    # In other words the SF is not applied on jets not passing the Jet Pu ID SF.
+    # We ASSUME that this function is applied on cleaned, preselected Jets == JetGood.
+    # We don't reapply jet puId selection, only the pt limit.
+    jet_puId_cfg = object_preselection[finalstate]["puId"]
+    
+    pt = ak.to_numpy(ak.flatten(jets.pt))
+    eta = ak.to_numpy(ak.flatten(jets.eta))
+    if njets:
+        # Save time avoiding to compute the number of jets
+        counts = njets
+    else:
+        counts = ak.num(jets)
+
+    # GenGet matching by index, needs some checkes
+    cset = correctionlib.CorrectionSet.from_file(jet_puId[year])
+    corr = cset["PUJetID_eff"]
+
+    # Requiring jet < maxpt and matched to a GenJet (with a genJet idx != -1)
+    mask = (pt < jet_puId_cfg["maxpt"]) & (jets.genJetIdx >=0)
+    index = (np.indices(pt.shape)).flatten()[mask]
+    sf = np.ones_like(pt, dtype=float)
+    sfup = np.ones_like(pt, dtype=float)
+    sfdown = np.ones_like(pt, dtype=float)
+    w = corr.evaluate(eta[mask], pt[mask], "nom", jet_puId_cfg["wp"])
+    wup = corr.evaluate(eta[mask], pt[mask], "up", jet_puId_cfg["wp"])
+    wdown = corr.evaluate(eta[mask], pt[mask], "down", jet_puId_cfg["wp"])
+    sf[index] = w
+    sfup[index] = wup
+    sfdown[index] = wdown
+
+    sf_out = ak.prod(ak.unflatten(sf, counts), axis=1)
+    sf_up_out = ak.prod(ak.unflatten(sfup, counts), axis=1)
+    sf_down_out = ak.prod(ak.unflatten(sfdown, counts), axis=1)
+
+    return sf_out, sf_up_out, sf_down_out
