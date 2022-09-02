@@ -284,7 +284,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     def available_weights(cls):
         return ['genWeight', 'lumi', 'XS', 'pileup',
                 'sf_ele_reco_id', 'sf_mu_id_iso', 'sf_btag',
-                'sf_btag_calib']
+                'sf_btag_calib', 'sf_jet_puId']
         
     def compute_weights(self):
         '''
@@ -326,7 +326,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                 weight_obj.add("sf_btag_calib", sf_btag_calib(self._sample, self._year, self.events.njet, jetsHt ) )
 
             elif weight == 'sf_jet_puId':
-                weight_obj.add('sf_jet_puId', *sf_jet_puId(self.events.JetGood, self.cfg.finalstate))
+                weight_obj.add('sf_jet_puId', *sf_jet_puId(self.events.JetGood, self.cfg.finalstate,
+                                                           self._year, njets=self.events.njet))
 
         #Inclusive weights
         self._weights_incl = Weights(self.nEvents_after_presel, storeIndividual=True)
