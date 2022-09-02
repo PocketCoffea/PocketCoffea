@@ -109,7 +109,7 @@ def sf_mu(events, year, type=''):
 
 
 
-def sf_btag(jets, btag_discriminator, year, variation="central"):
+def sf_btag(jets, btag_discriminator, year, variations=["central"], njets=None):
     '''
     DeepJet AK4 btagging SF. See https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/BTV_btagging_Run2_UL/BTV_btagging_2018_UL.html
     The scale factors have 8 default uncertainty 
@@ -117,23 +117,60 @@ def sf_btag(jets, btag_discriminator, year, variation="central"):
     All except the cferr1/2 uncertainties are to be 
     applied to light and b jets. The cferr1/2 uncertainties are to be applied to c jets. 
     hf/lfstats1/2 uncertainties are to be decorrelated between years, the others correlated.
+    Additional jes-varied scale factors are supplied to be applied for the jes variations.
+
+    if variation is not one of the jes ones both the up and down sf is returned.
+    If variation is a jet variation the argument must be up_jes* or down_jes* since it is applied on the specified
+    Jes variation jets. 
     '''
     cset = correctionlib.CorrectionSet.from_file(btagSF[year])
     corr = cset["deepJet_shape"]
 
-    #if variation in ["cferr1"]
-    
     flavour = ak.to_numpy(ak.flatten(jets.hadronFlavour))
     abseta = np.abs(ak.to_numpy(ak.flatten(jets.eta)))
     pt = ak.to_numpy(ak.flatten(jets.pt))
     discr = ak.to_numpy(ak.flatten(jets[btag_discriminator]))
-    counts = ak.num(jets)
+    if njets:
+        # Save time avoiding to compute the number of jets
+        counts = njets
+    else:
+        counts = ak.num(jets)
 
-    w = ak.unflatten(corr.evaluate(variation, flavour, abseta, pt, discr), counts)
-    # product over the jets
-    return ak.prod(w, axis=1)
+    def _getsfwithmask(variation, mask ):
+        index = (np.indices(discr.shape)).flatten()[mask]
+        sf = np.ones_like(discr, dtype=float)
+        w = corr.evaluate(variation, flavour[mask], abseta[mask], pt[mask], discr[mask])
+        sf[index] = w
+        sf_out = ak.prod(ak.unflatten(sf, counts), axis=1)
+        return sf_out
 
-    
+    output = {}
+    for variation in variations:        
+        if variation == "central":
+            output[variation] = (ak.prod(ak.unflatten(
+                corr.evaluate(variation, flavour, abseta, pt, discr),
+                counts), axis=1), )
+        else:
+            # Nominal sf==1 
+            nominal = np.ones(ak.num(counts, axis=0))
+            # Systematic variations
+            if "cferr" in variation:
+                # Computing the scale factor only on c-flavour jets
+                c_mask = (flavour == 4)
+                output[variation] = nominal, _getsfwithmask(f"up_{variation}", c_mask), _getsfwithmask(f"down_{variation}", c_mask)
+
+            elif "jes" in variation:
+                # This is a special case where a dedicate btagSF is computed for up and down Jes shape variations.
+                # This is not an up/down variation, but a single modified SF.
+                notc_mask = (flavour != 4)
+                output[variation] =  _getsfwithmask(variation, notcmask)
+            else:
+                # Computing the scale factor only NON c-flavour jets
+                notc_mask = (flavour != 4)
+                output[variation] = nominal, _getsfwithmask(f"up_{variation}", notc_mask), _getsfwithmask(f"down_{variation}", notc_mask)
+
+    return output
+
 def sf_btag_calib(sample, year, njets, jetsHt):
     '''Correction to btagSF computing by comparing the inclusive shape without btagSF and with btagSF in 2D:
     njets-JetsHT bins. Each sample/year has a different correction stored in the correctionlib format.'''

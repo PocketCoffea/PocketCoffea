@@ -20,7 +20,7 @@ from ..lib.pileup import sf_pileup_reweight
 from ..lib.scale_factors import sf_ele_reco, sf_ele_id, sf_mu, sf_btag, sf_btag_calib
 from ..lib.fill import fill_histograms_object
 from ..parameters.triggers import triggers
-from ..parameters.btag import btag
+from ..parameters.btag import btag, btag_variations
 from ..parameters.jec import JECversions, JERversions
 from ..parameters.event_flags import event_flags, event_flags_data
 from ..parameters.lumi import lumi, goldenJSON
@@ -313,14 +313,19 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                 weight_obj.add('sf_mu_id',  *sf_mu(self.events, self._year, 'id'))
                 weight_obj.add('sf_mu_iso', *sf_mu(self.events, self._year, 'iso'))
             elif weight == 'sf_btag':
-                weight_obj.add("sf_btag", sf_btag(self.events.JetGood, self._btag['btagging_algorithm'], self._year, variation="central"))
+                # Get all the nominal and variation SF
+                btagsf = sf_btag(self.events.JetGood, self._btag['btagging_algorithm'], self._year,
+                                 variations=["central"]+btag_variations[self._year])
+                for variation, weights in btagsf.items():
+                    weight_obj.add(f"sf_btag_{variation}", *weights)
+                
             elif weight == 'sf_btag_calib':
                 # This variable needs to be defined in another method
                 jetsHt = ak.sum(abs(self.events.JetGood.pt), axis=1)
                 weight_obj.add("sf_btag_calib", sf_btag_calib(self._sample, self._year, self.events.njet, jetsHt ) )
 
         #Inclusive weights
-        self._weights_incl = Weights(self.nEvents_after_presel)
+        self._weights_incl = Weights(self.nEvents_after_presel, storeIndividual=True)
 
         if not self._isMC: return
         # Compute first the inclusive weights
@@ -329,7 +334,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
 
         # Now weights for dedicated categories
         if self.weights_split_bycat:
-            self._weights_bycat = {cat: Weights(self.nEvents_after_presel) for cat in self._categories}
+            self._weights_bycat = { cat: Weights(self.nEvents_after_presel, storeIndividual=True)
+                                    for cat in self._categories}
             for cat in self._categories:
                 for weight in self.weights_config_bycat[cat][self._sample]:
                     __add_weight(weight, self._weights_bycat[cat])
