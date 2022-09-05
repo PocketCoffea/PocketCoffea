@@ -17,7 +17,7 @@ import correctionlib
 from ..lib.triggers import get_trigger_mask
 from ..lib.objects import jet_correction, lepton_selection, jet_selection, btagging, get_dilepton
 from ..lib.pileup import sf_pileup_reweight
-from ..lib.scale_factors import sf_ele_reco, sf_ele_id, sf_mu, sf_btag, sf_btag_calib
+from ..lib.scale_factors import sf_ele_reco, sf_ele_id, sf_mu, sf_btag, sf_btag_calib, sf_jet_puId
 from ..lib.fill import fill_histograms_object
 from ..parameters.triggers import triggers
 from ..parameters.btag import btag, btag_variations
@@ -284,7 +284,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     def available_weights(cls):
         return ['genWeight', 'lumi', 'XS', 'pileup',
                 'sf_ele_reco_id', 'sf_mu_id_iso', 'sf_btag',
-                'sf_btag_calib']
+                'sf_btag_calib', 'sf_jet_puId']
         
     def compute_weights(self):
         '''
@@ -315,7 +315,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             elif weight == 'sf_btag':
                 # Get all the nominal and variation SF
                 btagsf = sf_btag(self.events.JetGood, self._btag['btagging_algorithm'], self._year,
-                                 variations=["central"]+btag_variations[self._year])
+                                 variations=["central"]+btag_variations[self._year],
+                                 njets = self.events.njet)
                 for variation, weights in btagsf.items():
                     weight_obj.add(f"sf_btag_{variation}", *weights)
                 
@@ -323,6 +324,10 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                 # This variable needs to be defined in another method
                 jetsHt = ak.sum(abs(self.events.JetGood.pt), axis=1)
                 weight_obj.add("sf_btag_calib", sf_btag_calib(self._sample, self._year, self.events.njet, jetsHt ) )
+
+            elif weight == 'sf_jet_puId':
+                weight_obj.add('sf_jet_puId', *sf_jet_puId(self.events.JetGood, self.cfg.finalstate,
+                                                           self._year, njets=self.events.njet))
 
         #Inclusive weights
         self._weights_incl = Weights(self.nEvents_after_presel, storeIndividual=True)

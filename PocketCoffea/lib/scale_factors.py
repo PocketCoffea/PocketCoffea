@@ -6,7 +6,8 @@ import awkward as ak
 import correctionlib
 
 from ..parameters.lepton_scale_factors import electronSF, muonSF, electronJSONfiles, muonJSONfiles
-from ..parameters.jet_scale_factors import btagSF, btagSF_calibration
+from ..parameters.jet_scale_factors import btagSF, btagSF_calibration, jet_puId
+from ..parameters.object_preselection import object_preselection
 
 def get_ele_sf(year, pt, eta, counts, type='', pt_region=None):
     '''
@@ -109,7 +110,7 @@ def sf_mu(events, year, type=''):
 
 
 
-def sf_btag(jets, btag_discriminator, year, variations=["central"], njets=None):
+def sf_btag(jets, btag_discriminator, year, njets, variations=["central"]):
     '''
     DeepJet AK4 btagging SF. See https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/BTV_btagging_Run2_UL/BTV_btagging_2018_UL.html
     The scale factors have 8 default uncertainty 
@@ -130,18 +131,13 @@ def sf_btag(jets, btag_discriminator, year, variations=["central"], njets=None):
     abseta = np.abs(ak.to_numpy(ak.flatten(jets.eta)))
     pt = ak.to_numpy(ak.flatten(jets.pt))
     discr = ak.to_numpy(ak.flatten(jets[btag_discriminator]))
-    if njets:
-        # Save time avoiding to compute the number of jets
-        counts = njets
-    else:
-        counts = ak.num(jets)
 
     def _getsfwithmask(variation, mask ):
         index = (np.indices(discr.shape)).flatten()[mask]
         sf = np.ones_like(discr, dtype=float)
         w = corr.evaluate(variation, flavour[mask], abseta[mask], pt[mask], discr[mask])
         sf[index] = w
-        sf_out = ak.prod(ak.unflatten(sf, counts), axis=1)
+        sf_out = ak.prod(ak.unflatten(sf, njets), axis=1)
         return sf_out
 
     output = {}
@@ -149,10 +145,10 @@ def sf_btag(jets, btag_discriminator, year, variations=["central"], njets=None):
         if variation == "central":
             output[variation] = (ak.prod(ak.unflatten(
                 corr.evaluate(variation, flavour, abseta, pt, discr),
-                counts), axis=1), )
+                njets), axis=1), )
         else:
             # Nominal sf==1 
-            nominal = np.ones(ak.num(counts, axis=0))
+            nominal = np.ones(ak.num(njets, axis=0))
             # Systematic variations
             if "cferr" in variation:
                 # Computing the scale factor only on c-flavour jets
@@ -177,6 +173,40 @@ def sf_btag_calib(sample, year, njets, jetsHt):
     cset = correctionlib.CorrectionSet.from_file(btagSF_calibration[year])
     corr = cset["btagSF_norm_correction"]
     w = corr.evaluate(sample, year, ak.to_numpy(njets), ak.to_numpy(jetsHt))
-    return w
+    retur
 
     
+
+def sf_jet_puId(jets, finalstate, year, njets):
+    # The SF is applied only on jets passing the preselection (JetGood), pt < maxpt, and matched to a GenJet.
+    # In other words the SF is not applied on jets not passing the Jet Pu ID SF.
+    # We ASSUME that this function is applied on cleaned, preselected Jets == JetGood.
+    # We don't reapply jet puId selection, only the pt limit.
+    jet_puId_cfg = object_preselection[finalstate]["Jet"]["puId"]
+    
+    pt = ak.to_numpy(ak.flatten(jets.pt))
+    eta = ak.to_numpy(ak.flatten(jets.eta))
+    genJetId_mask = ak.flatten(jets.genJetIdx >= 0)
+
+    # GenGet matching by index, needs some checkes
+    cset = correctionlib.CorrectionSet.from_file(jet_puId[year])
+    corr = cset["PUJetID_eff"]
+
+    # Requiring jet < maxpt and matched to a GenJet (with a genJet idx != -1)
+    mask = (pt < jet_puId_cfg["maxpt"]) & genJetId_mask
+    index = (np.indices(pt.shape)).flatten()[mask]
+    sf = np.ones_like(pt, dtype=float)
+    sfup = np.ones_like(pt, dtype=float)
+    sfdown = np.ones_like(pt, dtype=float)
+    w = corr.evaluate(eta[mask], pt[mask], "nom", jet_puId_cfg["wp"])
+    wup = corr.evaluate(eta[mask], pt[mask], "up", jet_puId_cfg["wp"])
+    wdown = corr.evaluate(eta[mask], pt[mask], "down", jet_puId_cfg["wp"])
+    sf[index] = w
+    sfup[index] = wup
+    sfdown[index] = wdown
+
+    sf_out = ak.prod(ak.unflatten(sf, njets), axis=1)
+    sf_up_out = ak.prod(ak.unflatten(sfup, njets), axis=1)
+    sf_down_out = ak.prod(ak.unflatten(sfdown, njets), axis=1)
+
+    return sf_out, sf_up_out, sf_down_out
