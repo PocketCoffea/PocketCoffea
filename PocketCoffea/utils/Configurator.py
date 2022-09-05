@@ -5,6 +5,7 @@ from pprint import pprint
 import pickle
 import importlib.util
 from collections import defaultdict
+import inspect
 
 from ..lib.cut_definition import Cut
 from ..parameters.allhistograms import histogram_settings
@@ -303,7 +304,14 @@ class Configurator():
         ocfg["skim"] = skim_dump
         ocfg["preselections"] = presel_dump
         ocfg["categories"] = cats_dump
-        ocfg["workflow"] = self.workflow.__name__
+        ocfg["workflow"] = {
+            "name": self.workflow.__name__,
+            "srcfile": inspect.getsourcefile(self.workflow)
+        }
+        ocfg["weights"] = {
+            "weights_inclusive" : self.weights_config,
+            "weight_bycategory" : self.weights_config_bycat
+        }
         # Save the serialized configuration in json
         output_cfg = os.path.join(self.output, "config.json")
         print("Saving config file to " + output_cfg)

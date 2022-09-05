@@ -17,10 +17,10 @@ import correctionlib
 from ..lib.triggers import get_trigger_mask
 from ..lib.objects import jet_correction, lepton_selection, jet_selection, btagging, get_dilepton
 from ..lib.pileup import sf_pileup_reweight
-from ..lib.scale_factors import sf_ele_reco, sf_ele_id, sf_mu
+from ..lib.scale_factors import sf_ele_reco, sf_ele_id, sf_mu, sf_btag, sf_btag_calib, sf_jet_puId
 from ..lib.fill import fill_histograms_object
 from ..parameters.triggers import triggers
-from ..parameters.btag import btag
+from ..parameters.btag import btag, btag_variations
 from ..parameters.jec import JECversions, JERversions
 from ..parameters.event_flags import event_flags, event_flags_data
 from ..parameters.lumi import lumi, goldenJSON
@@ -104,8 +104,14 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         for var_name in self._variables.keys():
             if var_name.startswith('n'):
                 field = var_name
+            elif "_" in var_name:
+                splits = obj, field = var_name.split('_')
+                if splits[0] in ["electron", "muon", "jet"]:
+                    field = splits[1]
+                else:
+                    field = var_name
             else:
-                obj, field = var_name.split('_')
+                field = var_name
             variable_axis = hist.Bin( field, self._variables[var_name]['xlabel'],
                                       **self._variables[var_name]['binning'] )
             self._hist_dict[f'hist_{var_name}'] = hist.Hist("$N_{events}$", *self._sparse_axes, variable_axis)
@@ -241,14 +247,6 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.events["JetGood"], self.jetGoodMask = jet_selection(self.events, "Jet", self.cfg.finalstate)
         self.events["BJetGood"] = btagging(self.events["JetGood"], self._btag)
 
-        # As a reference, additional masks used in the boosted analysis
-        # In case the boosted analysis is implemented, the correct lepton cleaning should be checked (remove only "leading" leptons)
-        #self.good_fatjets = jet_selection(self.events, "FatJet", self.cfg.finalstate)
-        #self.good_jets_nohiggs = ( self.good_jets & (jets.delta_r(leading_fatjets) > 1.2) )
-        #self.good_bjets_boosted = self.good_jets_nohiggs & (getattr(self.events.jets, self.parameters["btagging_algorithm"]) > self.parameters["btagging_WP"])
-        #self.good_nonbjets_boosted = self.good_jets_nohiggs & (getattr(self.events.jets, self.parameters["btagging_algorithm"]) < self.parameters["btagging_WP"])
-        #self.events["FatJetGood"]   = self.events.FatJet[self.good_fatjets]
-
         if self.cfg.finalstate == 'dilepton':
             self.events["ll"] = get_dilepton(self.events.ElectronGood, self.events.MuonGood)
 
@@ -285,7 +283,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     @classmethod
     def available_weights(cls):
         return ['genWeight', 'lumi', 'XS', 'pileup',
-                'sf_ele_reco_id', 'sf_mu_id_iso']
+                'sf_ele_reco_id', 'sf_mu_id_iso', 'sf_btag',
+                'sf_btag_calib', 'sf_jet_puId']
         
     def compute_weights(self):
         '''
@@ -299,7 +298,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             if weight == "genWeight":
                 weight_obj.add('genWeight', self.events.genWeight)
             elif weight == 'lumi':
-                weight_obj.add('lumi', ak.full_like(self.events.genWeight, lumi[self._year]['tot']))
+                weight_obj.add('lumi', ak.full_like(self.events.genWeight, lumi[self._year]["tot"]))
             elif weight == 'XS':
                 weight_obj.add('XS', ak.full_like(self.events.genWeight, samples_info[self._sample]["XS"]))
             elif weight == 'pileup':
@@ -313,9 +312,25 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                 # Muon id and iso SF with nominal, up and down variations
                 weight_obj.add('sf_mu_id',  *sf_mu(self.events, self._year, 'id'))
                 weight_obj.add('sf_mu_iso', *sf_mu(self.events, self._year, 'iso'))
+            elif weight == 'sf_btag':
+                # Get all the nominal and variation SF
+                btagsf = sf_btag(self.events.JetGood, self._btag['btagging_algorithm'], self._year,
+                                 variations=["central"]+btag_variations[self._year],
+                                 njets = self.events.njet)
+                for variation, weights in btagsf.items():
+                    weight_obj.add(f"sf_btag_{variation}", *weights)
+                
+            elif weight == 'sf_btag_calib':
+                # This variable needs to be defined in another method
+                jetsHt = ak.sum(abs(self.events.JetGood.pt), axis=1)
+                weight_obj.add("sf_btag_calib", sf_btag_calib(self._sample, self._year, self.events.njet, jetsHt ) )
+
+            elif weight == 'sf_jet_puId':
+                weight_obj.add('sf_jet_puId', *sf_jet_puId(self.events.JetGood, self.cfg.finalstate,
+                                                           self._year, njets=self.events.njet))
 
         #Inclusive weights
-        self._weights_incl = Weights(self.nEvents_after_presel)
+        self._weights_incl = Weights(self.nEvents_after_presel, storeIndividual=True)
 
         if not self._isMC: return
         # Compute first the inclusive weights
@@ -324,7 +339,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
 
         # Now weights for dedicated categories
         if self.weights_split_bycat:
-            self._weights_bycat = {cat: Weights(self.nEvents_after_presel) for cat in self._categories}
+            self._weights_bycat = { cat: Weights(self.nEvents_after_presel, storeIndividual=True)
+                                    for cat in self._categories}
             for cat in self._categories:
                 for weight in self.weights_config_bycat[cat][self._sample]:
                     __add_weight(weight, self._weights_bycat[cat])
@@ -430,6 +446,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.count_objects()
         # Customization point for derived workflows after preselection cuts
         self.process_extra_before_presel()
+        
         # This will remove all the events not passing preselection from further processing
         self.apply_preselections()
        

@@ -1,12 +1,11 @@
-PocketCoffea/lib/__pycache__
-PocketCoffea/parameters/__pycache__
-PocketCoffea/workflows/__pycache__
+*.pyc
 notebooks/.ipynb_checkpoints
 .ipynb_checkpoints/
 plots/
 histograms/
 output/
 logs/
+profiling/
 *~
 *.pyc
 slurm-*

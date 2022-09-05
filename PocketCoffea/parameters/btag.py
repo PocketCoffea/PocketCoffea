@@ -38,3 +38,10 @@ btag = {
         'bbtagSF_DDBvL_M1_hiPt_down' : 0.71,
     },
 }
+
+btag_variations = {
+    "2016preVFP": ["hf","lf","hfstats1","hfstats2","lfstats1","lfstats2","cferr1","cferr2"],
+    "2016postFP": ["hf","lf","hfstats1","hfstats2","lfstats1","lfstats2","cferr1","cferr2"],
+    "2017": ["hf","lf","hfstats1","hfstats2","lfstats1","lfstats2","cferr1","cferr2"],
+    "2018": ["hf","lf","hfstats1","hfstats2","lfstats1","lfstats2","cferr1","cferr2"],
+}
