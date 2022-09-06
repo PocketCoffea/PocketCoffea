@@ -1,3 +1,4 @@
+import sys
 import awkward as ak
 
 from coffea import hist, processor
@@ -36,38 +37,23 @@ class semileptonicTriggerProcessor(ttHbbBaseProcessor):
 
     # Define trigger SF map to apply
     def define_triggerSF_maps(self):
-        self._triggerSF_map = {}
-        for category in self._categories.keys():
-            if 'Ele32_EleHT_pass' in category:
-                self._triggerSF_map[category] = 'sf_nominal'
-            elif category in ['Ele32_EleHT_fail', 'inclusive']:
-                self._triggerSF_map[category] = 'identity'
-            else:
-                sys.exit(f"The association of the category '{category}' to a trigger SF key is ambiguous")
-
-    # Overwrite the method `compute_weights()` in order to take into account the weights of all the corrections previously applied
-    # In this way, even if the method is modified in the base processor, only the weights reported here are used for the event reweighting.
-    def compute_weights(self):
-        self.weights = Weights(self.nEvents_after_presel)
-        if self._isMC:
-            self.weights.add('genWeight', self.events.genWeight)
-            self.weights.add('lumi', ak.full_like(self.events.genWeight, lumi[self._year]))
-            self.weights.add('XS', ak.full_like(self.events.genWeight, samples_info[self._sample]["XS"]))
-            # Pileup reweighting with nominal, up and down variations
-            self.weights.add('pileup', *sf_pileup_reweight(self.events, self._year))
-            # Electron reco and id SF with nominal, up and down variations
-            self.weights.add('sf_ele_reco', *sf_ele_reco(self.events, self._year))
-            self.weights.add('sf_ele_id',   *sf_ele_id(self.events, self._year))
-            # Muon id and iso SF with nominal, up and down variations
-            self.weights.add('sf_mu_id',  *sf_mu(self.events, self._year, 'id'))
-            self.weights.add('sf_mu_iso', *sf_mu(self.events, self._year, 'iso'))
+        if self._apply_triggerSF:
+            self._triggerSF_map = {}
+            for category in self._categories.keys():
+                if 'Ele32_EleHT_pass' in category:
+                    self._triggerSF_map[category] = 'sf_nominal'
+                elif category in ['Ele32_EleHT_fail', 'inclusive']:
+                    self._triggerSF_map[category] = 'identity'
+                else:
+                    sys.exit(f"The association of the category '{category}' to a trigger SF key is ambiguous")
+        else:
+            return
 
     def fill_histograms(self):
         systematics = ['pileup', 'sf_ele_reco', 'sf_ele_id']
-        for (obj, obj_hists) in zip([None], [self.nobj_hists]):
+        for (obj, obj_hists) in zip([None], [self.perevent_hists]):
             fill_histograms_object_with_variations(self, obj, obj_hists, systematics, event_var=True, split_eras=self.cfg.split_eras, triggerSF=self._apply_triggerSF)
         for (obj, obj_hists) in zip([self.events.MuonGood, self.events.ElectronGood, self.events.JetGood], [self.muon_hists, self.electron_hists, self.jet_hists]):
-        #for (obj, obj_hists) in zip([self.events.ElectronGood], [self.electron_hists]):
             fill_histograms_object_with_variations(self, obj, obj_hists, systematics, split_eras=self.cfg.split_eras, triggerSF=self._apply_triggerSF)
 
     def postprocess(self, accumulator):
