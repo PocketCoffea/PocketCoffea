@@ -28,6 +28,7 @@ histogram_settings = {
         'nelectron'                : {'binning' : {'n_or_arr' : 5, 'lo' : 0, 'hi' : 5},      'xlim' : (0,5),    'xlabel' : "$N_{e}$"},
         'nlep'                     : {'binning' : {'n_or_arr' : 5, 'lo' : 0, 'hi' : 5},      'xlim' : (0,5),    'xlabel' : "$N_{lep}$"},
         'njet'                     : {'binning' : {'n_or_arr' : 25, 'lo' : 0, 'hi' : 25},    'xlim' : (0,25),   'xlabel' : "$N_{jet}$"},
+        'ht'                       : {'binning' : {'n_or_arr' : 400, 'lo' : 0, 'hi' : 4000}, 'xlim' : (0,1000), 'xlabel' : "$H_T$"},
         'nmuongood'                : {'binning' : {'n_or_arr' : 5, 'lo' : 0, 'hi' : 5},      'xlim' : (0,5),    'xlabel' : "$N_{\mu}$"},
         'nelectrongood'            : {'binning' : {'n_or_arr' : 5, 'lo' : 0, 'hi' : 5},      'xlim' : (0,5),    'xlabel' : "$N_{e}$"},
         'ngoodjet'                 : {'binning' : {'n_or_arr' : 25, 'lo' : 0, 'hi' : 25},    'xlim' : (0,25),   'xlabel' : "$N_{goodjet}$"},
