@@ -5,8 +5,12 @@ import json
 import argparse
 
 import numpy as np
+
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.offsetbox import AnchoredText
+
+matplotlib.use('Agg')
 
 import math
 import mplhep as hep
@@ -18,7 +22,7 @@ from multiprocessing import Pool
 from PocketCoffea.parameters.allhistograms import histogram_settings
 
 from PocketCoffea.utils.Configurator import Configurator
-from PocketCoffea.utils.Plot import plot_efficiency
+from PocketCoffea.utils.Plot import plot_efficiency, plot_efficiency_eras, plot_efficiency_ht
 
 parser = argparse.ArgumentParser(description='Plot histograms from coffea file')
 parser.add_argument('--cfg', default=os.getcwd() + "/config/test.json", help='Config file with parameters specific to the current run', required=False)
@@ -52,6 +56,14 @@ def _plot_efficiency(entrystart, entrystop):
     _accumulator = dict( [(key, value) for key, value in accumulator.items() if key.startswith('hist')][entrystart:entrystop] )
     plot_efficiency(_accumulator, config)
 
+def _plot_efficiency_eras(entrystart, entrystop):
+    _accumulator = dict( [(key, value) for key, value in accumulator.items() if key.startswith('hist')][entrystart:entrystop] )
+    plot_efficiency_eras(_accumulator, config)
+
+def _plot_efficiency_ht(entrystart, entrystop):
+    _accumulator = dict( [(key, value) for key, value in accumulator.items() if key.startswith('hist')][entrystart:entrystop] )
+    plot_efficiency_ht(_accumulator, config)
+
 HistsToPlot   = [k for k in accumulator.keys() if k.startswith('hist')]
 NtotHists   = len(HistsToPlot)
 NHistsToPlot   = len([key for key in HistsToPlot if config.only in key])
@@ -61,8 +73,16 @@ print("histograms to plot:", HistsToPlot)
 delimiters = np.linspace(0, NtotHists, config.plot_options['workers'] + 1).astype(int)
 chunks     = [(delimiters[i], delimiters[i+1]) for i in range(len(delimiters[:-1]))]
 #print("chunks:", chunks)
+
+if config.split_eras:
+    function = _plot_efficiency_eras
+elif config.split_ht:
+    function = _plot_efficiency_ht
+else:
+    function = _plot_efficiency
+
 pool = Pool()
-pool.starmap(_plot_efficiency, chunks)
+pool.starmap(function, chunks)
 pool.close()
 
 end = time.time()
