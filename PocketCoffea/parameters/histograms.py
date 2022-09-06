@@ -46,52 +46,46 @@ common_settings = {
         'mll'                      : {"field":"mll", "bins": 300, "start":0, 'end' : 1500, "lim" : (0,500), 'label' : "$m_{\ell\ell}$ [GeV]"},   
 }
 
-def default_hists_jet(name, collection="JetGood", fields=None):
+collection_fields = {
+    'jet': ["eta","pt","phi", "btagDeepFlavB"],
+    'parton':  ["eta","pt","phi", "dRMatchedJet","pdgId"],
+    'electron': ["eta","pt","phi", "etaSC"],
+    'muon':  ["eta","pt","phi"]
+} 
+
+
+def _get_default_hist(name, type, collection, pos=None, fields=None):
     out = {}
-    for field in ["eta","pt","phi", "btagDeepFlavB"]:
+    for field in collection_fields[type]:
         if fields == None or field in fields:
-            setting = common_settings[f"jet_{field}"]
+            hist_name = f"hist_{name}_{field}"
+            setting = common_settings[f"{type}_{field}"]
             setting["coll"] = collection
-            out[f"hist_{name}_{field}"] = HistConf(
-                axes=[ Axis(**setting)]
+            # If the position argument is given the histogram is
+            # created for the specific position
+            if pos:
+                setting["pos"] = pos
+                hist_name += f"_{pos}"
+                
+            out[hist_name] = HistConf(
+                axes=[Axis(**setting)]
             )
     return out
 
-
-def default_hists_parton(name, collection="PartonMatched", fields=None):
-    out = {}
-    for field in ["eta","pt","phi", "dRMatchedJet","pdgId"]:
-        if fields == None or field in fields:
-            setting = common_settings[f"parton_{field}"]
-            setting["coll"] = collection
-            out[f"hist_{name}_{field}"] = HistConf(
-                axes=[ Axis(**setting)]
-            )
-    return out
+    
+def default_hists_jet(name, collection="JetGood", pos=None, fields=None):
+    return _get_default_hist(name, "jet", collection, pos, fields)
 
 
-def default_hists_ele(name, collection="ElectronGood", fields=None):
-    out = {}
-    for field in ["eta","pt","phi", "etaSC"]:
-        if fields == None or field in fields:
-            setting = common_settings[f"electron_{field}"]
-            setting["coll"] = collection
-            out[f"hist_{name}_{field}"] = HistConf(
-                axes=[ Axis(**setting)]
-            )
-    return out
+def default_hists_parton(name, collection="PartonMatched",  pos=None,fields=None):
+    return _get_default_hist(name, "parton", collection, pos, fields)
 
-def default_hists_muon(name, collection="MuonGood", fields=None):
-    out = {}
-    for field in ["eta","pt","phi"]:
-        if fields == None or field in fields:
-            setting = common_settings[f"muon_{field}"]
-            setting["coll"] = collection
-            out[f"hist_{name}_{field}"] = HistConf(
-                axes=[ Axis(**setting)]
-            )
-    return out
 
+def default_hists_ele(name, collection="ElectronGood", pos=None, fields=None):
+     return _get_default_hist(name, "electron", collection, pos, fields)
+
+def default_hists_muon(name, collection="MuonGood",  pos=None, fields=None):
+    return _get_default_hist(name, "muon", collection, pos, fields)
 
 def default_hists_count(name, collection, bins=10, start=0, end=9, label=None):
     return {
