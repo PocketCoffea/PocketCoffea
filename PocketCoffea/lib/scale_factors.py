@@ -173,9 +173,7 @@ def sf_btag_calib(sample, year, njets, jetsHt):
     cset = correctionlib.CorrectionSet.from_file(btagSF_calibration[year])
     corr = cset["btagSF_norm_correction"]
     w = corr.evaluate(sample, year, ak.to_numpy(njets), ak.to_numpy(jetsHt))
-    retur
-
-    
+    return w
 
 def sf_jet_puId(jets, finalstate, year, njets):
     # The SF is applied only on jets passing the preselection (JetGood), pt < maxpt, and matched to a GenJet.
