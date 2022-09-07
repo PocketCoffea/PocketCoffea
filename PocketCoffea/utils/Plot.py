@@ -393,10 +393,11 @@ round_opts = {
 
 def overwrite_check(outfile):
     path = outfile
+    fmt  = '.'+path.split('.')[-1]
     version = 1
     while os.path.exists(path):
         tag = str(version).rjust(2, '0')
-        path = outfile.replace('.coffea', f'_v{tag}.coffea')
+        path = outfile.replace(fmt, f'_v{tag}{fmt}')
         version += 1
     #if path != outfile:
     #    print(f"The output will be saved to {path}")
@@ -524,6 +525,315 @@ def plot_residue(x, y, ynom, yerrnom, xerr, edges, xlabel, ylabel, syst, var, op
     ax.set_xlabel(xlabel, fontsize=kwargs['fontsize'])
     ax.set_ylabel(ylabel, fontsize=kwargs['fontsize'])
     ax.set_ylim(*ylim)
+
+class EfficiencyMap:
+
+    def __init__(self, config, histname, h) -> None:
+        self.config = config
+        self.plot_dir = os.path.join(self.config.plots, "trigger_efficiency")
+        self.fontsize = self.config.plot_options["fontsize"]
+        plt.style.use([hep.style.ROOT, {'font.size': self.fontsize}])
+        if not os.path.exists(self.plot_dir):
+            os.makedirs(self.plot_dir)
+        self.histname = histname
+        self.h = h
+        self.datasets = [str(s) for s in h.identifiers('sample')]
+        self.datasets_data = list(filter(lambda x : 'DATA' in x, self.datasets))
+        self.datasets_mc   = list(filter(lambda x : 'TTTo' in x, self.datasets))
+        self.years = [str(s) for s in self.h.identifiers('year')]
+        self.categories = [str(s) for s in self.h.identifiers('cat')]
+        self.dim = h.dense_dim()
+
+        if self.dim == 1:
+            self.variable = self.histname.split('hist_')[1]
+            if len(self.variable.split('_')) == 2:
+                self.varname_x  = self.variable.split('_')[1]
+            elif len(self.variable.split('_')) == 1:
+                self.varname_x  = self.variable.split('_')[0]
+            self.varnames = [self.varname_x]
+            if self.variable in self.config.plot_options["rebin"].keys():
+                self.h = self.h.rebin(self.varname_x, Bin(self.varname_x, self.h.axis(self.varname_x).label, **self.config.plot_options["rebin"][variable]["binning"]))
+            self.axis_x = self.h.dense_axes()[-1]
+            self.binwidth_x = np.ediff1d(self.axis_x.edges())
+            self.bincenter_x = self.axis_x.edges()[:-1] + 0.5*self.binwidth_x
+            self.fields = {self.varname_x : self.bincenter_x}
+        elif self.dim == 2:
+            self.variable2d = self.histname.lstrip('hist2d_') 
+            self.varname_x = list(self.config.variables2d[self.variable2d].keys())[0]
+            self.varname_y = list(self.config.variables2d[self.variable2d].keys())[1]
+            self.varnames = [self.varname_x, self.varname_y]
+            self.axis_x = self.h.axis(self.varname_x)
+            self.axis_y = self.h.axis(self.varname_y)
+            self.binwidth_x = np.ediff1d(self.axis_x.edges())
+            self.binwidth_y = np.ediff1d(self.axis_y.edges())
+            self.bincenter_x = self.axis_x.edges()[:-1] + 0.5*self.binwidth_x
+            self.bincenter_y = self.axis_y.edges()[:-1] + 0.5*self.binwidth_y
+            self.y, self.x = np.meshgrid(self.bincenter_y, self.bincenter_x)
+            self.fields = {self.varname_x : self.x.flatten(), self.varname_y : self.y.flatten()}
+            corr_dict = processor.defaultdict_accumulator(float)
+        else:
+            raise NotImplementedError
+
+    def define_datamc(self, year):
+        self.totalLumi = femtobarn(lumi[year]['tot'], digits=1)
+        self.h_data = self.h[(self.datasets_data, self.categories, year, )].sum('sample', 'year')
+        self.h_mc   = self.h[(self.datasets_mc, self.categories, year, )].sum('sample', 'year')
+        self.axis_cat          = self.h_mc.axis('cat')
+        self.axis_var          = self.h_mc.axis('var')
+        self.axes_electron     = [self.h_mc.axis(varname) for varname in self.varnames]
+        # We extract all the variations saved in the histograms and the name of the systematics
+        variations = [str(s) for s in self.h.identifiers('var')]
+        self.systematics = ['nominal'] + [s.split("Up")[0] for s in variations if 'Up' in s]
+        self.corrections = []
+
+    def define_1d_figures(self, year, cat, syst):
+        if self.dim == 1:
+            self.fig_eff, self.ax_eff = plt.subplots(1,1,figsize=[10,10])
+            self.fig_sf1, (self.ax_sf1, self.ax_sf_ratio)   = plt.subplots(2,1,figsize=[10,10], gridspec_kw={"height_ratios": (3, 1)}, sharex=True)
+            self.fig_sf2, (self.ax_sf2, self.ax_sf_residue)   = plt.subplots(2,1,figsize=[10,10], gridspec_kw={"height_ratios": (3, 1)}, sharex=True)
+            self.filepath_eff = os.path.join(self.plot_dir, f"{self.histname}_{year}_eff_datamc_{cat}_{syst}.png")
+            self.filepath_sf = os.path.join(self.plot_dir, f"{self.histname}_{year}_sf_{cat}_{syst}.png")
+            self.filepath_sf_residue = os.path.join(self.plot_dir, f"{self.histname}_{year}_sf_{cat}_{syst}_residue.png")
+        elif self.dim == 2:
+            pass
+        else:
+            sys.exit(f"1D figures cannot be defined for histogram with dimension {self.dim}")
+
+    def define_variations(self, syst):
+        self.eff_nominal = None
+        self.unc_eff_nominal = None
+        self.ratio_sf = None
+        self.variations = ['nominal', f'{syst}Down', f'{syst}Up'] if syst != 'nominal' else ['nominal']
+
+    def compute_efficiency(self, cat, var):
+        num_data = self.h_data[cat,'nominal',:].sum('cat', 'var').values()[()]
+        den_data = self.h_data['inclusive','nominal',:].sum('cat', 'var').values()[()]
+        eff_data = np.nan_to_num( num_data / den_data )
+        num_mc, sumw2_num_mc   = self.h_mc[cat,var,:].sum('cat', 'var').values(sumw2=True)[()]
+        den_mc, sumw2_den_mc   = self.h_mc['inclusive',var,:].sum('cat', 'var').values(sumw2=True)[()]
+        eff_mc   = np.nan_to_num( num_mc / den_mc )
+        sf       = np.nan_to_num( eff_data / eff_mc )
+        sf       = np.where(sf < 100, sf, 100)
+        if var == 'nominal':
+            self.sf_nominal = sf
+        unc_eff_data = uncertainty_efficiency(eff_data, den_data)
+        unc_eff_mc   = uncertainty_efficiency(eff_mc, den_mc, sumw2_num_mc, sumw2_den_mc, mc=True)
+        unc_sf       = uncertainty_sf(eff_data, eff_mc, unc_eff_data, unc_eff_mc)
+        unc_rel_eff_data = np.nan_to_num(unc_eff_data / eff_data)
+        unc_rel_eff_mc   = np.nan_to_num(unc_eff_mc / eff_mc)
+        unc_rel_sf       = np.nan_to_num(unc_sf / sf)
+        self.eff     = Hist("Trigger efficiency", self.axis_cat, *self.axes_electron)
+        self.unc_eff = Hist("Trigger eff. unc.", self.axis_cat, *self.axes_electron)
+        self.unc_rel_eff = Hist("Trigger eff. relative unc. ", self.axis_cat, *self.axes_electron)
+
+        if self.eff_nominal != None:
+            print(cat, var)
+            self.ratio = np.nan_to_num(sf / self.sf_nominal)
+            self.ratio_sf = Hist("SF ratio", self.axis_cat, *self.axes_electron)
+            self.ratio_sf.fill(cat='ratio_sf', **self.fields, weight=self.ratio.flatten())
+
+        self.eff.fill(cat='data', **self.fields, weight=eff_data.flatten())
+        self.eff.fill(cat='mc', **self.fields, weight=eff_mc.flatten())
+        self.eff.fill(cat='sf', **self.fields, weight=sf.flatten())
+        self.unc_eff.fill(cat='unc_data', **self.fields, weight=unc_eff_data.flatten())
+        self.unc_eff.fill(cat='unc_mc', **self.fields, weight=unc_eff_mc.flatten())
+        self.unc_eff.fill(cat='unc_sf', **self.fields, weight=unc_sf.flatten())
+        self.unc_rel_eff.fill(cat='unc_rel_data', **self.fields, weight=unc_rel_eff_data.flatten())
+        self.unc_rel_eff.fill(cat='unc_rel_mc', **self.fields, weight=unc_rel_eff_mc.flatten())
+        self.unc_rel_eff.fill(cat='unc_rel_sf', **self.fields, weight=unc_rel_sf.flatten())
+        if var == 'nominal':
+            self.eff_nominal = self.eff
+            self.unc_eff_nominal = self.unc_eff
+
+    def plot1d(self, year, cat, syst, var):
+        fontsize = self.config.plot_options["fontsize"]
+        if self.dim == 1:
+            extra_args = {'totalLumi' : self.totalLumi, 'histname' : self.histname, 'year' : year, 'variable' : self.variable, 'config' : self.config, 'cat' : cat, 'fontsize' : fontsize}
+            plot_variation(self.bincenter_x, self.eff['data'].sum('cat').values()[()], self.unc_eff['unc_data'].sum('cat').values()[()], 0.5*self.binwidth_x,
+                           self.axis_x.label, self.eff.label, syst, var, opts_data, self.ax_eff, data=True, sf=False, **extra_args)
+            plot_variation(self.bincenter_x, self.eff['mc'].sum('cat').values()[()], self.unc_eff['unc_mc'].sum('cat').values()[()], 0.5*self.binwidth_x,
+                           self.axis_x.label, self.eff.label, syst, var, opts_mc[var.split(syst)[-1] if syst != 'nominal' else syst], self.ax_eff, data=False, sf=False, **extra_args)
+
+            for ax_sf in [self.ax_sf1, self.ax_sf2]:
+                plot_variation(self.bincenter_x, self.eff['sf'].sum('cat').values()[()], self.unc_eff['unc_sf'].sum('cat').values()[()], 0.5*self.binwidth_x,
+                               self.axis_x.label, "Trigger SF", syst, var, opts_sf[var.split(syst)[-1] if syst != 'nominal' else syst], self.ax_sf, data=False, sf=True, **extra_args)
+            plot_ratio(self.bincenter_x, self.eff['sf'].sum('cat').values()[()], self.eff_nominal['sf'].sum('cat').values()[()], self.unc_eff_nominal['unc_sf'].sum('cat').values()[()], 0.5*self.binwidth_x, self.axis_x.edges(),
+                       self.axis_x.label, 'var. / nom.', syst, var, opts_sf[var.split(syst)[-1] if syst != 'nominal' else syst], self.ax_sf_ratio, data=False, sf=True, **extra_args)
+            plot_residue(self.bincenter_x, self.eff['sf'].sum('cat').values()[()], self.eff_nominal['sf'].sum('cat').values()[()], self.unc_eff_nominal['unc_sf'].sum('cat').values()[()], 0.5*self.binwidth_x, self.axis_x.edges(),
+                         self.axis_x.label, '(var - nom.) / nom.', syst, var, opts_sf[var.split(syst)[-1] if syst != 'nominal' else syst], self.ax_sf_residue, data=False, sf=True, **extra_args)
+        elif self.dim == 2:
+            pass
+        else:
+            sys.exit(f"Histograms with dimension {self.dim} are not supported")
+
+    def plot2d(self, year, cat, syst, var, save_plots=True):
+        fontsize = self.config.plot_options["fontsize"]
+        if self.dim == 2:
+            if (syst != 'nominal') and (var == 'nominal'): pass
+            for (label, histo) in zip(["data", "mc", "sf", "unc_data", "unc_mc", "unc_sf", "unc_rel_data", "unc_rel_mc", "unc_rel_sf", "ratio_sf"], [self.eff, self.eff, self.eff, self.unc_eff, self.unc_eff, self.unc_eff, self.unc_rel_eff, self.unc_rel_eff, self.unc_rel_eff, self.ratio_sf]):
+                if (var == 'nominal') and (label == "ratio_sf"): continue
+                self.map2d = histo[label].sum('cat')
+
+                if save_plots:
+                    fig_map, ax_map = plt.subplots(1,1,figsize=[16,10])
+                    if label == "sf":
+                        self.map2d.label = "Trigger SF"
+                    elif label == "unc_sf":
+                        self.map2d.label = "Trigger SF unc."
+                    elif label == "ratio_sf":
+                        self.map2d.label = "SF var./nom."
+
+                    plot.plot2d(self.map2d, ax=ax_map, xaxis=self.eff.axes()[-2], patch_opts=patch_opts[label])
+                    hep.cms.text("Preliminary", loc=0, ax=ax_map)
+                    hep.cms.lumitext(text=f'{self.totalLumi}' + r' fb$^{-1}$, 13 TeV,' + f' {year}', fontsize=18, ax=ax_map)
+                    ax_map.set_title(var)
+                    if self.varname_x == 'pt':
+                        ax_map.set_xscale('log')
+                    ax_map.set_xlim(*self.config.variables2d[self.variable2d][self.varname_x]['xlim'])
+                    ax_map.set_ylim(*self.config.variables2d[self.variable2d][self.varname_y]['ylim'])
+                    #xticks = [20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500]
+                    #yticks = axis_y.edges()
+                    if 'xticks' in self.config.variables2d[self.variable2d][self.varname_x].keys():
+                        xticks = self.config.variables2d[self.variable2d][self.varname_x]['xticks']
+                    else:
+                        xticks = self.axis_x.edges()
+                    if 'yticks' in self.config.variables2d[self.variable2d][self.varname_y].keys():
+                        yticks = self.config.variables2d[self.variable2d][self.varname_y]['yticks']
+                    else:
+                        yticks = self.axis_y.edges()
+                    ax_map.xaxis.label.set_size(fontsize)   
+                    ax_map.yaxis.label.set_size(fontsize)
+                    ax_map.set_xticks(xticks, [str(round(t, 4)) for t in xticks], fontsize=fontsize)
+                    ax_map.set_yticks(yticks, [str(round(t, 4)) for t in yticks], fontsize=fontsize)
+
+                    #plt.yticks(yticks, [str(t) for t in yticks], fontsize=fontsize)
+                    plt.vlines(self.axis_x.edges(), self.axis_y.edges()[-1], self.axis_y.edges()[0], linestyle='--', color='gray')
+                    plt.hlines(self.axis_y.edges(), self.axis_x.edges()[-1], self.axis_x.edges()[0], linestyle='--', color='gray')
+
+                    for (i, x) in enumerate(self.bincenter_x):
+                        if (x < ax_map.get_xlim()[0]) | (x > ax_map.get_xlim()[1]): continue
+                        for (j, y) in enumerate(self.bincenter_y):
+                            color = "w" if self.map2d.values()[()][i][j] < patch_opts[label]['vmax'] else "k"
+                            #color = "w"
+                            if self.histname == "hist2d_electron_etaSC_vs_electron_pt":
+                                ax_map.text(x, y, f"{round(self.map2d.values()[()][i][j], round_opts[label]['round'])}",
+                                        color=color, ha="center", va="center", fontsize=fontsize, fontweight="bold")
+                            else:
+                                ax_map.text(x, y, f"{round(self.map2d.values()[()][i][j], round_opts[label]['round'])}",
+                                        color=color, ha="center", va="center", fontsize=fontsize, fontweight="bold")
+                self.save2d(year, cat, syst, var, label, save_plots)
+        elif self.dim == 1:
+            pass
+        else:
+            sys.exit(f"Histograms with dimension {self.dim} are not supported")
+
+    def save1d(self):
+        if self.dim == 1:
+            print("Saving", self.filepath_eff)
+            self.fig_eff.savefig(self.filepath_eff, dpi=self.config.plot_options['dpi'], format="png")
+            plt.close(self.fig_eff)
+            print("Saving", self.filepath_sf)
+            self.fig_sf1.savefig(self.filepath_sf, dpi=self.config.plot_options['dpi'], format="png")
+            plt.close(self.fig_sf1)
+            print("Saving", self.filepath_sf_residue)
+            self.fig_sf2.savefig(self.filepath_sf_residue, dpi=self.config.plot_options['dpi'], format="png")
+            plt.close(self.fig_sf2)
+        elif self.dim == 2:
+            pass
+        else:
+            sys.exit(f"Histograms with dimension {self.dim} are not supported")
+
+    def save2d(self, year, cat, syst, var, label, save_plots):
+        if self.dim == 2:
+            if (syst != 'nominal') and (var == 'nominal'): return
+            if (var == 'nominal') and (label == "ratio_sf"): return
+            filepath = os.path.join(self.plot_dir, f"{self.histname}_{year}_{label}_{cat}_{var}.png")
+
+            if save_plots:
+                print("Saving", filepath)
+                plt.savefig(filepath, dpi=self.config.plot_options['dpi'], format="png")
+            if self.config.output_triggerSF:
+                if label in ["sf", "unc_sf"]:
+                    A = self.map2d.to_hist()
+                    eff_map = self.map2d.values()[()]
+                    if (syst == "nominal") and (var == "nominal") and (label == "unc_sf"):
+                        ratio = self.eff_nominal["sf"].sum('cat').values()[()]
+                        unc = np.array(eff_map)
+                        ratios  = [ ratio - unc, ratio + unc ]
+                        print(ratios[0])
+                        names   = [ f"sf_statDown", f"sf_statUp" ]
+                        sfhists = [ hist.Hist(A.axes[0], A.axes[1], data=ratios[i], label='out', name=names[i]) for i in range(2) ]
+                        descriptions = [ f"SF matching the semileptonic trigger efficiency in MC and data.\nVariation: {name.split('_')[-1]}" for name in names ]
+                    elif label == "sf":
+                        ratio = np.where(eff_map != 0, eff_map, 1.)
+                        sfhist = hist.Hist(A.axes[0], A.axes[1], data=ratio)
+                        sfhist.label = "out"
+                        sfhist.name = f"sf_{var}"
+                        description = f"SF matching the semileptonic trigger efficiency in MC and data.\nVariation: {var}"
+                        sfhists = [sfhist]
+                        descriptions = [description]
+                    else:
+                        return
+                    for i in range(len(sfhists)):
+                        clibcorr = correctionlib.convert.from_histogram(sfhists[i])
+                        clibcorr.description = descriptions[i]
+                        self.corrections.append(clibcorr)
+        elif self.dim == 1:
+            pass
+        else:
+            sys.exit(f"Histograms with dimension {self.dim} are not supported")
+
+    def save_corrections(self, year, cat):
+        if not os.path.exists(self.config.output_triggerSF):
+            os.makedirs(self.config.output_triggerSF)
+        local_folder = os.path.join(self.config.output, *self.config.output_triggerSF.split('/')[-2:])
+        if not os.path.exists(local_folder):
+            os.makedirs(local_folder)
+        map_name = self.histname.split("hist2d_")[-1]
+        filename = f'sf_trigger_{map_name}_{year}_{cat}.json'
+        if self.h.dense_dim() == 2:
+            print("***************************")
+            for correction in self.corrections:
+                print(correction.name)
+            print("***************************")
+            cset = correctionlib.schemav2.CorrectionSet(
+                schema_version=2,
+                description="Semileptonic trigger efficiency SF",
+                corrections=self.corrections,
+            )
+            rich.print(cset)
+            for outdir in [self.config.output_triggerSF, local_folder]:
+                outfile_triggersf = os.path.join(outdir, filename)
+                outfile_triggersf = overwrite_check(outfile_triggersf)
+                print(f"Saving semileptonic trigger scale factors in {outfile_triggersf}")
+                with open(outfile_triggersf, "w") as fout:
+                    fout.write(cset.json(exclude_unset=True))
+
+def plot_efficiency_maps(accumulator, config):
+    for (histname, h) in accumulator.items():
+        if config.plot_options["only"] and not (config.plot_options["only"] in histname): continue
+        if not histname.startswith('hist'): continue        
+        print("Histogram:", histname)
+
+        efficiency_map = EfficiencyMap(config, histname, h)
+
+        for year in efficiency_map.years:
+            efficiency_map.define_datamc(year)
+
+            for cat in [c for c in efficiency_map.categories if 'pass' in c]:
+
+                for syst in efficiency_map.systematics:
+                    efficiency_map.define_1d_figures(year, cat, syst)
+                    efficiency_map.define_variations(syst)
+
+                    for var in efficiency_map.variations:
+                        efficiency_map.compute_efficiency(cat, var)
+                        efficiency_map.plot1d(year, cat, syst, var)
+                        efficiency_map.plot2d(year, cat, syst, var, save_plots=False)
+
+                    efficiency_map.save1d()
+
+                efficiency_map.save_corrections(year, cat)
 
 def plot_efficiency(accumulator, config):
     plot_dir = os.path.join(config.plots, "trigger_efficiency")

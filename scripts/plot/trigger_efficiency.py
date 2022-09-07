@@ -22,7 +22,7 @@ from multiprocessing import Pool
 from PocketCoffea.parameters.allhistograms import histogram_settings
 
 from PocketCoffea.utils.Configurator import Configurator
-from PocketCoffea.utils.Plot import plot_efficiency, plot_efficiency_eras, plot_efficiency_ht
+from PocketCoffea.utils.Plot import plot_efficiency_maps, plot_efficiency, plot_efficiency_eras, plot_efficiency_ht
 
 parser = argparse.ArgumentParser(description='Plot histograms from coffea file')
 parser.add_argument('--cfg', default=os.getcwd() + "/config/test.json", help='Config file with parameters specific to the current run', required=False)
@@ -52,6 +52,11 @@ if not os.path.exists(plot_dir):
 
 print(accumulator.keys())
 
+def _plot_efficiency_maps(entrystart, entrystop):
+    _accumulator = dict( [(key, value) for key, value in accumulator.items() if key.startswith('hist')][entrystart:entrystop] )
+    plot_efficiency_maps(_accumulator, config)
+
+
 def _plot_efficiency(entrystart, entrystop):
     _accumulator = dict( [(key, value) for key, value in accumulator.items() if key.startswith('hist')][entrystart:entrystop] )
     plot_efficiency(_accumulator, config)
@@ -79,7 +84,8 @@ if config.split_eras:
 elif config.split_ht:
     function = _plot_efficiency_ht
 else:
-    function = _plot_efficiency
+    function = _plot_efficiency_maps
+    #function = _plot_efficiency
 
 pool = Pool()
 pool.starmap(function, chunks)

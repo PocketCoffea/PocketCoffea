@@ -20,7 +20,7 @@ cfg =  {
     # Input and output files
     "workflow" : semileptonicTriggerProcessor,
     "output"   : "output/sf_ele_trigger_semilep/semileptonic_triggerSF_2018_systematics",
-    "output_triggerSF" : "PocketCoffea/parameters/semileptonic_triggerSF/triggerSF_2018UL_Ele32_EleHT",
+    "output_triggerSF" : "PocketCoffea/parameters/semileptonic_triggerSF/triggerSF_2018_Ele32_EleHT",
     "triggerSF" : None,
 
     # Executor parameters
@@ -51,9 +51,17 @@ cfg =  {
         "inclusive" : [passthrough],
     },
 
-    # List of triggers for SF measurement
-    "triggers_to_measure" : ["Ele32_WPTight_Gsf", "Ele28_eta2p1_WPTight_Gsf_HT150"],
-    
+    "split_eras" : False,
+    "split_ht" : False,
+
+    "weights": {
+        "common": {
+            "inclusive": ["genWeight","lumi","XS", "pileup", "sf_ele_reco_id", "sf_mu_id_iso"],
+        },
+        "bysample": {
+        }
+    },
+
     "variables" : {
         "muon_pt" : {'binning' : {'n_or_arr' : 200, 'lo' : 0, 'hi' : 2000}, 'xlim' : (0,500),  'xlabel' : "$p_{T}^{\mu}$ [GeV]"},
         "muon_eta" : None,
@@ -88,10 +96,9 @@ cfg =  {
         },
     },
     "plot_options" : {
-        "sum_over" : ['cat', 'year', 'var'],
-        "var" : 'nominal',
-        #"only" : "hist2d_electron_",
-        "only" : "hist_electron_pt",
+        #"sum_over" : ['cat', 'year', 'var'],
+        #"var" : 'nominal',
+        "only" : "hist2d_",
         "workers" : 16,
         "scale" : "linear",
         "fontsize" : 18,
