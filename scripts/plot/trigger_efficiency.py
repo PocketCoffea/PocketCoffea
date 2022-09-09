@@ -22,11 +22,12 @@ from multiprocessing import Pool
 from PocketCoffea.parameters.allhistograms import histogram_settings
 
 from PocketCoffea.utils.Configurator import Configurator
-from PocketCoffea.utils.Plot import plot_efficiency_maps, plot_efficiency, plot_efficiency_eras, plot_efficiency_ht
+from PocketCoffea.utils.Plot import plot_efficiency_maps, plot_efficiency_maps_splitHT, plot_efficiency_maps_spliteras
 
 parser = argparse.ArgumentParser(description='Plot histograms from coffea file')
 parser.add_argument('--cfg', default=os.getcwd() + "/config/test.json", help='Config file with parameters specific to the current run', required=False)
 parser.add_argument('-v', '--version', type=str, default=None, help='Version of output (e.g. `v01`, `v02`, etc.)')
+parser.add_argument('--save_plots', default=False, action='store_true', help='Save efficiency and SF plots')
 
 args = parser.parse_args()
 config = Configurator(args.cfg, plot=True, plot_version=args.version)
@@ -54,20 +55,15 @@ print(accumulator.keys())
 
 def _plot_efficiency_maps(entrystart, entrystop):
     _accumulator = dict( [(key, value) for key, value in accumulator.items() if key.startswith('hist')][entrystart:entrystop] )
-    plot_efficiency_maps(_accumulator, config)
+    plot_efficiency_maps(_accumulator, config, args.save_plots)
 
-
-def _plot_efficiency(entrystart, entrystop):
+def _plot_efficiency_maps_splitHT(entrystart, entrystop):
     _accumulator = dict( [(key, value) for key, value in accumulator.items() if key.startswith('hist')][entrystart:entrystop] )
-    plot_efficiency(_accumulator, config)
+    plot_efficiency_maps_splitHT(_accumulator, config, args.save_plots)
 
-def _plot_efficiency_eras(entrystart, entrystop):
+def _plot_efficiency_maps_spliteras(entrystart, entrystop):
     _accumulator = dict( [(key, value) for key, value in accumulator.items() if key.startswith('hist')][entrystart:entrystop] )
-    plot_efficiency_eras(_accumulator, config)
-
-def _plot_efficiency_ht(entrystart, entrystop):
-    _accumulator = dict( [(key, value) for key, value in accumulator.items() if key.startswith('hist')][entrystart:entrystop] )
-    plot_efficiency_ht(_accumulator, config)
+    plot_efficiency_maps_spliteras(_accumulator, config, args.save_plots)
 
 HistsToPlot   = [k for k in accumulator.keys() if k.startswith('hist')]
 NtotHists   = len(HistsToPlot)
@@ -80,9 +76,9 @@ chunks     = [(delimiters[i], delimiters[i+1]) for i in range(len(delimiters[:-1
 #print("chunks:", chunks)
 
 if config.split_eras:
-    function = _plot_efficiency_eras
+    function = _plot_efficiency_maps_spliteras
 elif config.split_ht:
-    function = _plot_efficiency_ht
+    function = _plot_efficiency_maps_splitHT
 else:
     function = _plot_efficiency_maps
     #function = _plot_efficiency
