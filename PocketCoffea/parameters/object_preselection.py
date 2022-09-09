@@ -19,7 +19,11 @@ object_preselection = {
             "pt": 30,
             "eta": 2.4,
             "jetId": 2,
-            "puId": 2,
+            "puId": {
+                "wp": "L",
+                "value": 4,
+                "maxpt": 50.
+            },
             "puId_ptlim": 50,
         },
     },
@@ -41,7 +45,11 @@ object_preselection = {
             "pt": 30,
             "eta": 2.4,
             "jetId": 2,
-            "puId": 2,
+            "puId": {
+                "wp": "L",
+                "value": 4,
+                "maxpt": 50.
+            },
             "puId_ptlim": 50,
         },
     },
@@ -63,7 +71,11 @@ object_preselection = {
             "pt": 30,
             "eta": 2.4,
             "jetId": 2,
-            "puId": 2,
+            "puId": {
+                "wp": "L",
+                "value": 4,
+                "maxpt": 50.
+            },
             "puId_ptlim": 50,
         },
     },
@@ -85,7 +97,11 @@ object_preselection = {
             "pt": 20,
             "eta": 2.4,
             "jetId": 2,
-            "puId": 2,
+            "puId": {
+                "wp": "L",
+                "value": 4,
+                "maxpt": 50.
+            },
             "puId_ptlim": 50,
         },
     },

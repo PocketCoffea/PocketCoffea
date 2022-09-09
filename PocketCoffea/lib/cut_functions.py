@@ -53,10 +53,22 @@ def nBtag(events, params, btag, **kwargs):
     ''' Mask for min N jets with minpt and passing btagging.
     The btag params will come from the processor, not from the parameters
     '''
-    return ak.sum((events[params["coll"]][btag["btagging_algorithm"]] > btag["btagging_WP"]) &
-                  (events[params["coll"]].pt >= params["minpt"]),
-                  axis=1) >= params["N"]
-
+    if params["coll"] == "BJetGood":
+        # Assume that the collection of clean bjets has been created
+        if params["minpt"] > 0.:
+            return ak.sum((events.BJetGood.pt >= params["minpt"]),
+                      axis=1) >= params["N"]
+        else:
+            return events.nbjet >= params["N"]
+    else:
+        if params["minpt"] > 0.:
+            return ak.sum((events[params["coll"]][btag["btagging_algorithm"]] > btag["btagging_WP"]) &
+                      (events[params["coll"]].pt >= params["minpt"]),
+                      axis=1) >= params["N"]
+        else:
+            return ak.sum((events[params["coll"]][btag["btagging_algorithm"]] > btag["btagging_WP"]),
+                      axis=1) >= params["N"]
+ 
 def get_nBtag(N, minpt=0, coll="JetGood", name=None):
     if name == None:
         name = f"n{coll}_btag_{N}_pt{minpt}"

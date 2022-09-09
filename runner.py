@@ -20,14 +20,14 @@ if __name__ == '__main__':
     # Inputs
     parser.add_argument('--cfg', default=os.getcwd() + "/config/test.py", required=True, type=str,
                         help='Config file with parameters specific to the current run')
-    parser.add_argument("-o", "--output-dir", required=False, type=str,
+    parser.add_argument("-o", "--outputdir", required=False, type=str,
                         help="Overwrite the output folder in the configuration")
     # parser.add_argument("-l", "--limit-files", required=False, type=int,
     #                     help="Overwrite number of files limit")
     args = parser.parse_args()
 
     if args.cfg[-3:] == ".py":
-        config = Configurator(args.cfg, overwrite_output_dir=args.output_dir)
+        config = Configurator(args.cfg, overwrite_output_dir=args.outputdir)
     elif args.cfg[-4:] == ".pkl":
         config = pickle.load(open(args.cfg,"rb"))
     else:

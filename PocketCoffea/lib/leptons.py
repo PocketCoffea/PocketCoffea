@@ -11,7 +11,7 @@ from vector import MomentumObject4D
 from coffea import hist, lookup_tools
 from coffea.nanoevents.methods import nanoaod
 
-from ..parameters.preselection import object_preselection
+from ..parameters.object_preselection import object_preselection
 from ..parameters.jec import JECjsonFiles
 from ..lib.deltaR_matching import get_matching_pairs_indices, object_matching
 
