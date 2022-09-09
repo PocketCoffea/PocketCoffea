@@ -1,3 +1,4 @@
+import sys
 import os
 import tarfile
 import json
@@ -102,7 +103,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
 
         # Create histogram accumulators
         for var_name in self._variables.keys():
-            if var_name.startswith('n'):
+            if (var_name.startswith('n')) | (var_name.startswith('ht')):
                 field = var_name
             elif "_" in var_name:
                 splits = obj, field = var_name.split('_')
@@ -128,6 +129,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self._accum_dict.update(self._hist2d_dict)
 
         self.nobj_hists = [histname for histname in self._hist_dict.keys() if histname.lstrip('hist_').startswith('n') and not 'nevts' in histname]
+        self.perevent_hists = self.nobj_hists
+        if 'hist_ht' in self._hist_dict.keys():
+            self.perevent_hists.append('hist_ht')
         self.muon_hists = [histname for histname in self._hist_dict.keys() if 'muon' in histname and not histname in self.nobj_hists]
         self.electron_hists = [histname for histname in self._hist_dict.keys() if 'electron' in histname and not histname in self.nobj_hists]
         self.jet_hists = [histname for histname in self._hist_dict.keys() if 'jet' in histname and not 'fatjet' in histname and not histname in self.nobj_hists]
@@ -259,6 +263,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.events["nbjet"]     = ak.num(self.events.BJetGood)
         #self.events["nfatjet"]   = ak.num(self.events.FatJetGood)
 
+    # Function that defines common variables employed in analyses and save them as attributes of `events`
+    def define_common_variables(self):
+        self.events["ht"] = ak.sum(abs(self.events.JetGood.pt), axis=1)
 
     def apply_preselections(self):
         ''' The function computes all the masks from the preselection cuts
@@ -376,7 +383,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                     self.triggerSF_weights[cat].add( 'triggerSFcorr', ak.ones_like(ak.fill_none(ak.firsts(self.events.ElectronGood.pt), 0)) )
 
     def fill_histograms(self):
-        for (obj, obj_hists) in zip([None], [self.nobj_hists]):
+        for (obj, obj_hists) in zip([None], [self.perevent_hists]):
             fill_histograms_object(self, obj, obj_hists, event_var=True, split_eras=self.cfg.split_eras)
         for (obj, obj_hists) in zip([self.events.MuonGood, self.events.ElectronGood, self.events.JetGood], [self.muon_hists, self.electron_hists, self.jet_hists]):
             fill_histograms_object(self, obj, obj_hists, split_eras=self.cfg.split_eras)
@@ -399,6 +406,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     def process_extra_after_presel(self):
         pass
     
+    def define_common_variables_extra(self):
+        pass
+
     def fill_histograms_extra(self):
         pass
     
@@ -444,6 +454,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # Apply preselections
         self.apply_object_preselection()
         self.count_objects()
+        self.define_common_variables()
         # Customization point for derived workflows after preselection cuts
         self.process_extra_before_presel()
         
