@@ -150,7 +150,7 @@ def jet_selection(events, Jet, finalstate):
     lepton_cleaning_mask = ak.prod(dR_jets_lep> cuts["dr"], axis=2) == 1
 
     if Jet == "Jet":
-       jetpuid_mask  =   (jets.puId >= cuts["puId"]["value"]) | (jets.pt >=cuts["puId"]["maxpt"])
+       jetpuid_mask  =  (jets.puId >= cuts["puId"]["value"]) | (jets.pt >=cuts["puId"]["maxpt"])
        good_jets_mask = presel_mask & lepton_cleaning_mask & jetpuid_mask
        
     elif Jet == "FatJet":

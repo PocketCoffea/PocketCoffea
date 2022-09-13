@@ -173,27 +173,28 @@ def sf_btag_calib(sample, year, njets, jetsHt):
     cset = correctionlib.CorrectionSet.from_file(btagSF_calibration[year])
     corr = cset["btagSF_norm_correction"]
     w = corr.evaluate(sample, year, ak.to_numpy(njets), ak.to_numpy(jetsHt))
-    retur
+    return w
 
     
 
 def sf_jet_puId(jets, finalstate, year, njets):
     # The SF is applied only on jets passing the preselection (JetGood), pt < maxpt, and matched to a GenJet.
     # In other words the SF is not applied on jets not passing the Jet Pu ID SF.
-    # We ASSUME that this function is applied on cleaned, preselected Jets == JetGood.
-    # We don't reapply jet puId selection, only the pt limit.
+    # We DON'T assume that the function is applied on JetGood, so we REAPPLY jetPUID selections to be sure. 
+    # We apply also the pt limit.
     jet_puId_cfg = object_preselection[finalstate]["Jet"]["puId"]
     
     pt = ak.to_numpy(ak.flatten(jets.pt))
     eta = ak.to_numpy(ak.flatten(jets.eta))
+    puId = ak.to_numpy(ak.flatten(jets.puId))
     genJetId_mask = ak.flatten(jets.genJetIdx >= 0)
 
     # GenGet matching by index, needs some checkes
     cset = correctionlib.CorrectionSet.from_file(jet_puId[year])
     corr = cset["PUJetID_eff"]
 
-    # Requiring jet < maxpt and matched to a GenJet (with a genJet idx != -1)
-    mask = (pt < jet_puId_cfg["maxpt"]) & genJetId_mask
+    # Requiring jet < maxpt, passing the jetpuid WP and matched to a GenJet (with a genJet idx != -1)
+    mask = (pt < jet_puId_cfg["maxpt"] & puId>=jet_puId_cfg["value"] ) & genJetId_mask
     index = (np.indices(pt.shape)).flatten()[mask]
     sf = np.ones_like(pt, dtype=float)
     sfup = np.ones_like(pt, dtype=float)
