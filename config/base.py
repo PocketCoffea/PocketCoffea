@@ -1,5 +1,7 @@
 from PocketCoffea.parameters.cuts.baseline_cuts import semileptonic_presel, passthrough
 from PocketCoffea.workflows.base import ttHbbBaseProcessor
+from PocketCoffea.lib.cut_functions import get_nObj, get_nBtag
+from PocketCoffea.parameters.histograms import *
 
 cfg =  {
 
@@ -14,49 +16,63 @@ cfg =  {
 
     # Input and output files
     "workflow" : ttHbbBaseProcessor,
-    "output"   : "output/base/base",
+    "output"   : "output/test_base",
+    "worflow_options" : {}
 
     # Executor parameters
-    "run_options" : {
-        "executor"       : "dask/slurm",
+        "run_options" : {
+        "executor"       : "iterative",
         "workers"        : 1,
-        "scaleout"       : 40,
-        "partition"      : "short",
-        "walltime"       : "1:00:00",
+        "scaleout"       : 60,
+        "partition"      : "standard",
+        "walltime"       : "03:00:00",
         "mem_per_worker" : "4GB", # GB
         "exclusive"      : False,
-        "chunk"          : 100000,
+        "chunk"          : 200000,
+        "retries"        : 30,
         "max"            : None,
         "skipbadfiles"   : None,
         "voms"           : None,
-        "limit"          : 2,
-    },
+        "limit"          : 1}
+
 
     # Cuts and plots settings
-    "finalstate" : "dilepton",
-    "skim": [],
+    "finalstate" : "semileptonic",
+    "skim": [get_nObj(4, 15., "Jet")],
     "preselections" : [semileptonic_presel],
     "categories": {
         "SR" : [passthrough],
         "CR" : [passthrough]
     },
-    
-    "variables" : {
-        "muon_pt" : {'binning' : {'n_or_arr' : 200, 'lo' : 0, 'hi' : 2000}, 'xlim' : (0,500), 'xlabel' : "$p_{T}^{\mu}$ [GeV]"},
-        "muon_eta" : None,
-        "muon_phi" : None,
-        "electron_pt" : None,
-        "electron_eta" : None,
-        "electron_phi" : None,
-        "jet_pt" : None,
-        "jet_eta" : None,
-        "jet_phi" : None,
-        "nmuon" : None,
-        "nelectron" : None,
-        "nlep" : None,
-        "njet" : None,
-        "nbjet" : None,
+
+
+    "weights": {
+        "common": {
+            "inclusive": ["genWeight","lumi","XS", "pileup", "sf_ele_reco_id", "sf_mu_id_iso","sf_btag", "sf_btag_calib","sf_jet_puId"],
+            "bycategory" : {
+            }
+        },
+        "bysample": {
+        }
     },
-    "variables2d" : {},
-    "scale" : "log"
+
+    "variations": {
+        "weights": {
+            "common": {
+                "inclusive": ["pileup", "sf_ele_reco", "sf_ele_id", "sf_mu_id", "sf_mu_iso", "sf_jet_puId"],
+                "bycategory" : {
+                }
+            },
+        "bysample": {
+        }    
+        },
+        
+    },
+
+   "variables":
+    {
+        **default_hists_jet("jet", coll="JetGood"),
+        **default_hists_ele("ele", coll="EleGood")
+
+    }
 }

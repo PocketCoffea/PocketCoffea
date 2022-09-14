@@ -40,8 +40,8 @@ class Configurator():
         self.define_output()
 
         # Load histogram settings
-        self.load_histogram_settings()
-
+        # No manipulation is needed, maybe some check can be added
+        
         ## Load cuts and categories
         # Cuts: set of Cut objects
         # Categories: dict with a set of Cut ids for each category
@@ -59,6 +59,16 @@ class Configurator():
                                     "bycategory": { c: [] for c in self.categories.keys()},
                                     "is_split_bycat": False} for s in self.samples }
         self.load_weights_config()
+        ## Variations configuration
+        # The structure is very similar to the weights one,
+        # but the common and inclusive collections are fully flattened on a
+        # sample:category structure
+        self.variations_config = {
+            "weights":{
+                s: { c: [] for c in self.categories.keys()}
+                for s in self.samples,
+        }
+        self.load_variations_config()
 
         # Load workflow
         self.load_workflow()
@@ -225,7 +235,72 @@ class Configurator():
                 
         print("Weights configuration")
         pprint(self.weights_config)
-    
+
+
+    def load_variations_config(self):
+        ''' This function loads the variations definition and prepares a list of
+        weights to be applied for each sample and category'''
+        # Get the list of statically available variations defined in the workflow
+        available_variations = self.workflow.available_variations()
+        #Read the config and save the list of variations names for each sample (and category if needed)
+        wcfg = self.cfg["variations"]["weights"]
+        # TODO Add shape variations
+        if "common" not in wcfg:
+            print("Variation configuration error: missing 'common' weights key")
+            raise Exception("Wrong variation configuration")
+        # common/inclusive variations
+        for w in wcfg["common"]["inclusive"]:
+            if isinstance(w, str):
+                if w not in available_variations:
+                    print(f"Variation {w} not available in the workflow")
+                    raise Exception("Wrong variation configuration")
+            # do now check if the variations is not string but custom
+            for wsample in self.variations_config["weights"].values():
+                # add the variation to all the categories and samples
+                for wcat in wsample.values():
+                    wcat.append(w)
+
+        if "bycategory" in wcfg["common"]:
+            for cat, variations in wcfg["common"]["bycategory"].items():
+                for w in variations:
+                    if isinstance(w, str):
+                        if w not in available_variations:
+                            print(f"Variation {w} not available in the workflow")
+                            raise Exception("Wrong variation configuration")
+                    for wsample in self.variations_config["weights"].values():
+                        if w not in wsample[cat]:
+                            wsample[cat].append(w)
+
+        # Now look at specific samples configurations
+        if "bysample" in wcfg:
+            for sample, s_wcfg in wcfg["bysample"].items():
+                if sample not in self.samples:
+                    print(f"Requested missing sample {sample} in the variations configuration")
+                    raise Exception("Wrong variation configuration")
+                if "inclusive" in s_wcfg:
+                    for w in s_wcfg["inclusive"]:
+                        if isinstance(w, str):
+                            if w not in available_variations:
+                                print(f"Variation {w} not available in the workflow")
+                                raise Exception("Wrong variation configuration")
+                        # append only to the specific sample
+                        for wcat in self.variations_config["weights"][sample].values():
+                            if w not in wcat:
+                                wcat.append(w)
+
+                if "bycategory" in s_wcfg:
+                    for cat, variation  in s_wcfg["bycategory"].items():
+                        for w in variation :
+                            if isinstance(w, str):
+                                if w not in available_variations :
+                                    print(f"Variation {w} not available in the workflow")
+                                    raise Exception("Wrong variation configuration")
+                            self.variations_config["weights"][sample][cat].append(w)
+                
+        print("Variation configuration")
+        pprint(self.variations_config)
+ 
+        
     def overwrite_check(self):
         if self.plot:
             print(f"The output will be saved to {self.plots}")
@@ -265,25 +340,6 @@ class Configurator():
     def define_output(self):
         self.outfile = os.path.join(self.output, "output.coffea")
 
-    def load_histogram_settings(self):
-        if isinstance(self.cfg['variables'], list):
-            self.cfg['variables'] = {var_name : None for var_name in self.cfg['variables']}
-        for var_name in self.cfg['variables'].keys():
-            if self.cfg['variables'][var_name] == None:
-                self.cfg['variables'][var_name] = histogram_settings['variables'][var_name]
-            elif not isinstance(self.cfg['variables'][var_name], dict):
-                sys.exit("Format non valid for histogram settings")
-            elif set(self.cfg['variables'][var_name].keys()) != {'binning', 'xlim', 'xlabel'}:
-                set_ctrl = {'binning', 'xlim', 'xlabel'}
-                sys.exit(f"{var_name}: missing keys in histogram settings. Required keys missing: {set_ctrl - set(self.cfg['variables'][var_name].keys())}")
-            elif 'n_or_arr' not in set(self.cfg['variables'][var_name]['binning'].keys()):
-                sys.exit(f"{var_name}: missing keys in histogram binning. Required keys missing: {'n_or_arr'}")
-            elif ( ('n_or_arr' in set(self.cfg['variables'][var_name]['binning'].keys())) &
-                   (type(self.cfg['variables'][var_name]['binning']['n_or_arr']) == int)  &
-                   (set(self.cfg['variables'][var_name]['binning'].keys()) != {'n_or_arr', 'lo', 'hi'}) ):
-                set_ctrl = {'n_or_arr', 'lo', 'hi'}
-                sys.exit(f"{var_name}: missing keys in histogram binning. Required keys missing: {set_ctrl - set(self.cfg['variables'][var_name]['binning'].keys())}")
-
 
     def load_workflow(self):
         self.processor_instance = self.workflow(cfg=self)
@@ -310,6 +366,7 @@ class Configurator():
             "srcfile": inspect.getsourcefile(self.workflow)
         }
         ocfg["weights"] = self.weights_config
+        ocfg["variations"] = self.variations_config
         # Save the serialized configuration in json
         output_cfg = os.path.join(self.output, "config.json")
         print("Saving config file to " + output_cfg)
