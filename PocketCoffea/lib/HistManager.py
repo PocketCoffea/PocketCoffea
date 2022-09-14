@@ -83,12 +83,10 @@ class HistManager():
     def __init__(self, hist_config, sample, categories_config, variations_config, custom_axes=[]):
          self.histograms = {}
          self.categories_config = categories_config
+         self.variations_config = variations_config
          self.available_categories = list(self.categories_config.keys())
          # Prepare the variations Axes summing all the required variations
          # The variation config is organized as the weights one, by sample and by category
-         self.available_variations = variations_config["weights"]["inclusive"] + \
-                                     [ v for v in variations_config["weights"]["bycategory"].values()]
-         # TODO Add the list of shape variations
          
          for name, hist_conf in hist_config.items():
              # Check if the histogram is active for the current sample
@@ -112,20 +110,23 @@ class HistManager():
              cat_ax = hist.axis.StrCategory(cats,label="cat", growth=False)
              # Variation axes
              if hist_conf.variations:
+                 #Get all the variation
+                 allvariat = []
+                 for c in cats:
+                     allvariat += self.variations_config[c]
+                     
                  if hist_conf.only_variations !=None:
                      # filtering the variation list with the available ones
-                     good_var =  list(filter(lambda v: v in hist_conf.only_variations, self.available_variations))
-                     var_ax = hist.axis.StrCategory(["nominal"] + \
-                                                    [var+"Up" for var in good_var] + \
-                                                    [var+"Down" for var in good_var],
-                                                    label="variation", growth=False)
-                 else:
-                     var_ax = hist.axis.StrCategory(["nominal"] +\
-                                                    [var+"Up" for var in self.available_variations] +\
-                                                    [var+"Down" for var in self.available_variations],
-                                                    label="variation", growth=False)
+                     allvariat =  list(filter(lambda v: v in hist_conf.only_variations, allvariat))
+                    
+                 hist_config.only_variations = ["nominal"] + \
+                                               [var+"Up" for var in good_var] + \
+                                               [var+"Down" for var in allvariat]
+                 var_ax = hist.axis.StrCategory(hist_config.only_variations,
+                                                label="variation", growth=False)
              else:
                  var_ax = hist.axis.StrCategory(["nominal"], label="variation", growth=False)
+                 hist_conf.only_variations = "nominal"
 
              # Axis in the configuration + custom axes
              fields_axes = []

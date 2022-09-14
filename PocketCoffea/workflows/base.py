@@ -35,10 +35,6 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # Read required cuts and histograms from config file
         self.cfg = cfg
 
-        # Save histogram settings of the required histograms
-        self._variables = self.cfg.variables
-        self._variables2d = self.cfg.variables2d
-
         ### Cuts
         # The definition of the cuts in the analysis is hierarchical.
         # 1) a list of *skim* functions is applied on bare NanoAOD, with no object preselection or correction.
@@ -178,7 +174,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             self.events.Jet, seed_dict = jet_correction(self.events, "Jet", "AK4PFchs", self._year, self._JECversion, self._JERversion, verbose=verbose)
             self.output['seed_chunk'].update(seed_dict)
         else:
-            selfd.events.Jet = jet_correction(self.events, "Jet", "AK4PFchs", self._year, self._JECversion, verbose=verbose)
+            self.events.Jet = jet_correction(self.events, "Jet", "AK4PFchs", self._year, self._JECversion, verbose=verbose)
 
     # Function to compute masks to preselect objects and save them as attributes of `events`
     def apply_object_preselection(self):
@@ -229,7 +225,11 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     @classmethod
     def available_weights(cls):
         return WeightsManager.available_weights + []
-        
+
+    @classmethod
+    def available_variations(cls):
+        return WeightsManager.available_variations + []
+    
     def compute_weights(self):
         if not self._isMC: return
         # Creating the WeightsManager with all the configured weights
@@ -283,7 +283,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
 
         # Create the HistManager
         self.hists_manager = HistManager(self.cfg.variables, self._sample,
-                                       self._categories, self.cfg.variations_config,
+                                       self._categories,
+                                       self.cfg.variations_config[self._sample],
                                        self.custom_axes)
 
         self.nEvents_initial = self.nevents
