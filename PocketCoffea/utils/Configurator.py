@@ -8,6 +8,7 @@ from collections import defaultdict
 import inspect
 
 from ..lib.cut_definition import Cut
+from ..lib.WeightsManager import WeightsConfig
 from ..parameters.allhistograms import histogram_settings
 
 class Configurator():
@@ -165,34 +166,31 @@ class Configurator():
             print("Weights configuration error: missing 'common' weights key")
             raise Exception("Wrong weight configuration")
         # common/inclusive weights
-        for weight_name in wcfg["common"]["inclusive"]:
-            if isinstance(weight_name, str):
-                if weight_name not in available_weights:
-                    print(f"Weight {weight_name} not available in the workflow")
+        for w in wcfg["common"]["inclusive"]:
+            if isinstance(w, str):
+                if w not in available_weights:
+                    print(f"Weight {w} not available in the workflow")
                     raise Exception("Wrong weight configuration")
-                for wsample in self.weights_config.values():
-                    # add the weight to all the categories and samples
-                    wsample["inclusive"].append(weight_name)
-            else:
-                raise NotImplementedError()
+            # do now check if the weights is not string but custom
+            for wsample in self.weights_config.values():
+                # add the weight to all the categories and samples
+                wsample["inclusive"].append(w)
 
         if "bycategory" in wcfg["common"]:
             for cat, weights in wcfg["common"]["bycategory"].items():
-                for weight_name in weights:
-                    if isinstance(weight_name, str):
-                        if weight_name not in available_weights:
-                            print(f"Weight {weight_name} not available in the workflow")
+                for w in weights:
+                    if isinstance(w, str):
+                        if w not in available_weights:
+                            print(f"Weight {w} not available in the workflow")
                             raise Exception("Wrong weight configuration")
-                        for wsample in self.weights_config.values():
-                            wsample["is_split_bycat"] = True
-                            # looping on all the samples for this category
-                            if weight_name in wsample["inclusive"]:
-                                print(f"""Error! Trying to include weight {weight_name}
-                                by category, but it is already included inclusively!""")
-                                raise Exception("Wrong weight configuration")
-                            wsample["bycategory"][cat].append(weight_name)
-                    else:
-                        raise NotImplementedError()
+                    for wsample in self.weights_config.values():
+                        wsample["is_split_bycat"] = True
+                        # looping on all the samples for this category
+                        if w in wsample["inclusive"]:
+                            print(f"""Error! Trying to include weight {w}
+                            by category, but it is already included inclusively!""")
+                            raise Exception("Wrong weight configuration")
+                        wsample["bycategory"][cat].append(w)
 
         # Now look at specific samples configurations
         if "bysample" in wcfg:
@@ -202,31 +200,27 @@ class Configurator():
                     raise Exception("Wrong weight configuration")
 
                 if "inclusive" in s_wcfg:
-                    for weight_name in s_wcfg["inclusive"]:
-                        if isinstance(weight_name, str):
-                            if weight_name not in available_weights:
-                                print(f"Weight {weight_name} not available in the workflow")
+                    for w in s_wcfg["inclusive"]:
+                        if isinstance(w, str):
+                            if w not in available_weights:
+                                print(f"Weight {w} not available in the workflow")
                                 raise Exception("Wrong weight configuration")
-                            # append only to the specific sample
-                            self.weights_config[sample]["inclusive"].append(weight_name)
-                        else:
-                            raise NotImplementedError()
+                        # append only to the specific sample
+                        self.weights_config[sample]["inclusive"].append(w)
 
                 if "bycategory" in s_wcfg:
                     for cat, weights in s_wcfg["bycategory"].items():
-                        for weight_name in weights:
-                            if isinstance(weight_name, str):
-                                if weight_name not in available_weights:
-                                    print(f"Weight {weight_name} not available in the workflow")
+                        for w in weights:
+                            if isinstance(w, str):
+                                if w not in available_weights:
+                                    print(f"Weight {w} not available in the workflow")
                                     raise Exception("Wrong weight configuration")
-                                if weight_name in self.weights_config[sample]["inclusive"]:
-                                    print(f"""Error! Trying to include weight {weight_name}
-                                    by category, but it is already included inclusively!""")
-                                    raise Exception("Wrong weight configuration")
-                                self.weights_config[sample]["bycategory"][cat].append(weight_name)
-                                self.weights_config[sample]["is_split_bycat"] = True
-                            else:
-                                raise NotImplementedError()
+                            if w in self.weights_config[sample]["inclusive"]:
+                                print(f"""Error! Trying to include weight {w}
+                                by category, but it is already included inclusively!""")
+                                raise Exception("Wrong weight configuration")
+                            self.weights_config[sample]["bycategory"][cat].append(w)
+                            self.weights_config[sample]["is_split_bycat"] = True
                 
         print("Weights configuration")
         pprint(self.weights_config)

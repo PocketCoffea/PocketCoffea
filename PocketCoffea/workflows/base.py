@@ -311,7 +311,11 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             self._cuts_masks.add(cut.id, mask)
         # We make sure that for each category the list of cuts is unique in the Configurator validation
 
- 
+
+    @classmethod
+    def available_weights(cls):
+        return WeightsManager.available_weights + []
+        
     def compute_weights(self):
         if not self._isMC: return
         # Creating the WeightsManager with all the configured weights

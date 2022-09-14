@@ -17,15 +17,6 @@ class WeightCustom():
     function: Callable[[ak.Array, Weights], ak.Array]
 
 
-  def cache_weight(function):
-    # static function variable for cache, lazy initialization
-      @wraps(funct)
-      def wrapper(*args):
-        # if nothing valid in cache, insert something
-    return wrapper
-  return decorator
-
-
 class WeightManager():    
     '''
     The WeightManager class handles the
@@ -70,12 +61,14 @@ class WeightManager():
             if isinstance(w, str):
                 if w not in _weightsCache:
                     _weightsCache[w] = self._compute_weight(w, events)
-                weight_obj.add(*_weightsCache[w])
+                for we in _weightsCache[w]:
+                    weight_obj.add(*we)
             # If the Weight is a Custom weight just run the function
             elif isinstance(w, WeightCustom):
                 if w.name not in _weightsCache:
                     _weightsCache[w.name] =  w.function( self._weights_incl, events)
-                weights_obj.add(*_weightsCache[w.name])
+                for we in _weightsCache[w.name]:
+                    weight_obj.add(*we)
 
         # Compute first the inclusive weights
         for w in self.weightConf["inclusive"]:
@@ -99,38 +92,46 @@ class WeightManager():
         Predefined common weights
         '''
         if weight_name == "genWeight":
-           return ('genWeight', events.genWeight)
+            return [('genWeight', events.genWeight)]
         elif weight_name == 'lumi':
-           return ('lumi', ak.full_like(events.genWeight, lumi[self._year]["tot"]))
+            return [('lumi', ak.full_like(events.genWeight, lumi[self._year]["tot"]))]
         elif weight_name == 'XS':
-           return ('XS', ak.full_like(events.genWeight, samples_info[self._sample]["XS"]))
+            return [('XS', ak.full_like(events.genWeight, samples_info[self._sample]["XS"]))]
         elif weight_name == 'pileup':
             # Pileup reweighting with nominal, up and down variations
-           return ('pileup', *sf_pileup_reweight(events, self._year))
+            return [('pileup', *sf_pileup_reweight(events, self._year))]
         elif weight_name == 'sf_ele_reco_id':
             # Electron reco and id SF with nominal, up and down variations
-           return ('sf_ele_reco', *sf_ele_reco(events, self._year))
-           return ('sf_ele_id',   *sf_ele_id(events, self._year))
+            return [('sf_ele_reco', *sf_ele_reco(events, self._year)),
+                    ('sf_ele_id',   *sf_ele_id(events, self._year))]
         elif weight_name == 'sf_mu_id_iso':
             # Muon id and iso SF with nominal, up and down variations
-           return ('sf_mu_id',  *sf_mu(events, self._year, 'id'))
-           return ('sf_mu_iso', *sf_mu(events, self._year, 'iso'))
+            return [('sf_mu_id',  *sf_mu(events, self._year, 'id')),
+                    ('sf_mu_iso', *sf_mu(events, self._year, 'iso'))]
         elif weight_name == 'sf_btag':
+            btag_vars = btag_variations[self._year]
             # Get all the nominal and variation SF
             btagsf = sf_btag(events.JetGood, events.metadata["btag"]['btagging_algorithm'], self._year,
-                             variations=["central"]+btag_variations[self._year],
+                             variations=["central"]+btag_vars,
                              njets = events.njet)
-            for variation, weights in btagsf.items():
-               return (f"sf_btag_{variation}", *weights)
+            # BE AWARE --> COFFEA HACK
+            for var in btag_vars:
+                # Rescale the up and down variation by the central one to
+                # avoid double counting of the central SF when adding the weights
+                # as separate entries in the Weights object.
+                btagsf[var][1] /= btagsf["central"][0]
+                btagsf[var][2] /= btagsf["central"][0]
+
+            return [(f"sf_btag_{var}", *weights) for var, weights in btasf.items()]
 
         elif weight_name == 'sf_btag_calib':
             # This variable needs to be defined in another method
             jetsHt = ak.sum(abs(events.JetGood.pt), axis=1)
-           return ("sf_btag_calib", sf_btag_calib(self._sample, self._year, events.njet, jetsHt ) )
+            return [("sf_btag_calib", sf_btag_calib(self._sample, self._year, events.njet, jetsHt ) )]
 
         elif weight_name == 'sf_jet_puId':
-           return ('sf_jet_puId', *sf_jet_puId(events.JetGood, events.metadata["finalstate"],
-                                                       self._year, njets=events.njet))
+            return [('sf_jet_puId', *sf_jet_puId(events.JetGood, events.metadata["finalstate"],
+                                                       self._year, njets=events.njet))]
 
                 
     def add_weight(self, name, nominal, up=None, down=None, category=None):
