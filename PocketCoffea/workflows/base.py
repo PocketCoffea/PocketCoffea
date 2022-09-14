@@ -201,7 +201,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self._year = self.events.metadata["year"]
         self._triggers = triggers[self.cfg.finalstate][self._year]
         self._btag = btag[self._year]
-        self._isMC = 'genWeight' in self.events.fields
+        self._isMC = self.events.metadata["isMC"]
         if self._isMC:
             self._era = "MC"
         else:
@@ -210,7 +210,13 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self._JECversion = JECversions[self._year]['MC' if self._isMC else 'Data']
         self._JERversion = JERversions[self._year]['MC' if self._isMC else 'Data']
         self._goldenJSON = goldenJSON[self._year]
+        
+        #adding the metadata in the dictionary
+        self.events.metadata["triggers"] = self._triggers
+        self.events.metadata["finalstate"] = self.cfg.finalstate
+        self.events.metadata["btag"] = self._btag
 
+        
     # Function that computes the trigger masks and save it in the PackedSelector
     def apply_triggers(self):
         # Trigger logic is included in the preselection mask
