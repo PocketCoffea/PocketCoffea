@@ -20,7 +20,6 @@ from ..lib.WeightsManager import WeightsManager
 from ..lib.HistManager import HistManager, Axis, HistConf
 from ..lib.triggers import get_trigger_mask
 from ..lib.objects import jet_correction, lepton_selection, jet_selection, btagging, get_dilepton
-from ..lib.pileup import sf_pileup_reweight
 from ..lib.fill import fill_histograms_object
 from ..parameters.triggers import triggers
 from ..parameters.btag import btag, btag_variations
@@ -61,7 +60,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # Accumulators for the output
         self.output_format = {
             "sum_genweights": {},
-            "sumw":  {cat: defaultdict(float) for cat in self._categories}
+            "sumw":  {cat: defaultdict(float) for cat in self._categories},
             "cutflow": {
                 "initial" : defaultdict(int),
                 "skim": defaultdict(int),
@@ -73,7 +72,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         }
 
         # Custom axes to add to histograms in this processor
-        self.custom_axes = [Axis(field="year", bins=self.cfg.years, coll="metadata",
+        self.custom_axes = [Axis(field="year", label="year", bins=self.cfg.years, coll="metadata",
                                  type="strcat", growth=False)]
         
 
@@ -121,11 +120,6 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self._JECversion = JECversions[self._year]['MC' if self._isMC else 'Data']
         self._JERversion = JERversions[self._year]['MC' if self._isMC else 'Data']
         self._goldenJSON = goldenJSON[self._year]
-        
-        #adding the metadata in the dictionary
-        self.events.metadata["triggers"] = self._triggers
-        self.events.metadata["finalstate"] = self.cfg.finalstate
-        self.events.metadata["btag"] = self._btag
 
         
     # Function that computes the trigger masks and save it in the PackedSelector
@@ -196,7 +190,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     def count_objects(self):
         self.events["nMuonGood"]     = ak.num(self.events.MuonGood)
         self.events["nElectronGood"] = ak.num(self.events.ElectronGood)
-        self.events["nLep"]      = self.events["nmuon"] + self.events["nelectron"]
+        self.events["nLepGood"]      = self.events["nMuonGood"] + self.events["nElectronGood"]
         self.events["nJetGood"]      = ak.num(self.events.JetGood)
         self.events["nBJetGood"]     = ak.num(self.events.BJetGood)
         #self.events["nfatjet"]   = ak.num(self.events.FatJetGood)
@@ -224,18 +218,23 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
 
     @classmethod
     def available_weights(cls):
-        return WeightsManager.available_weights + []
+        return WeightsManager.available_weights()
 
     @classmethod
     def available_variations(cls):
-        return WeightsManager.available_variations + []
+        return WeightsManager.available_variations()
     
     def compute_weights(self):
         if not self._isMC: return
         # Creating the WeightsManager with all the configured weights
         self.weights_manager = WeightsManager(self.weights_config_allsamples[self._sample],
                                              self.nEvents_after_presel, self.events,
-                                             storeIndividual=False)
+                                              storeIndividual=False,
+                                              metadata={
+                                                  "year": self._year,
+                                                  "sample": self._sample,
+                                                  "finalstate": self.cfg.finalstate
+                                              })
     def compute_weights_extra(self):
         pass
         
@@ -252,11 +251,11 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     def fill_histograms(self):
         # Filling the autofill=True histogram automatically
         self.hists_manager.fill_histograms(self.events,
-                                           self.weightsManager,
+                                           self.weights_manager,
                                            self.cuts_masks,
                                            custom_fields=None)
         # Saving in the output the filled histograms for the current sample
-        self.output["variables"][self._sample].update(self.hists_manager.histograms)
+        self.output["variables"][self._sample].update(self.hists_manager.get_histograms())
         
     def process_extra_before_skim(self):
         pass
@@ -342,9 +341,6 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.compute_weights()
         self.compute_weights_extra()
 
-        # Per-event trigger SF reweighting
-        self.apply_triggerSF()
-        
         # Fill histograms
         self.fill_histograms()
         self.fill_histograms_extra()

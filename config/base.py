@@ -4,9 +4,8 @@ from PocketCoffea.lib.cut_functions import get_nObj, get_nBtag
 from PocketCoffea.parameters.histograms import *
 
 cfg =  {
-
-    "dataset" : {
-        "jsons": ["datasets/RunIISummer20UL18_local.json"],
+  "dataset" : {
+        "jsons": ["datasets/signal_ttHTobb_2018_local.json"],
         "filter" : {
             "samples": ["ttHTobb"],
             "samples_exclude" : [],
@@ -17,7 +16,7 @@ cfg =  {
     # Input and output files
     "workflow" : ttHbbBaseProcessor,
     "output"   : "output/test_base",
-    "worflow_options" : {}
+    "worflow_options" : {},
 
     # Executor parameters
         "run_options" : {
@@ -33,7 +32,8 @@ cfg =  {
         "max"            : None,
         "skipbadfiles"   : None,
         "voms"           : None,
-        "limit"          : 1}
+        "limit"          : 1
+        },
 
 
     # Cuts and plots settings

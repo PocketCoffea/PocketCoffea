@@ -30,7 +30,11 @@ class HistConf():
     only_samples: List[str] = None
     exclude_categories: List[str] = None
     only_categories: List[str] = None
-    hist = None
+
+    def serialize(self):
+        out= { **self.__dict__ }
+        out["axes"] = [a.__dict__ for a in self.axes]
+        return out
 
 def _get_hist_axis(ax: Axis):
     if ax.type == "regular":
@@ -82,83 +86,86 @@ class HistManager():
 
     def __init__(self, hist_config, sample, categories_config, variations_config, custom_axes=[]):
          self.histograms = {}
+         self._hist_objs = {}
          self.categories_config = categories_config
          self.variations_config = variations_config
          self.available_categories = list(self.categories_config.keys())
          # Prepare the variations Axes summing all the required variations
          # The variation config is organized as the weights one, by sample and by category
-         
-         for name, hist_conf in hist_config.items():
+
+         for name, hcfg in hist_config.items():
              # Check if the histogram is active for the current sample
-             if hist_conf.only_samples != None:
-                 if sample not in hist_conf.only_samples:
+             if hcfg.only_samples != None:
+                 if sample not in cfg.only_samples:
                      continue
-             elif hist_conf.exclude_samples != None:
-                 if sample in hist_conf.exclude_samples:
+             elif hcfg.exclude_samples != None:
+                 if sample in hcfg.exclude_samples:
                      continue
              # Now we handle the selection of the categories
              cats = [ ]
              for c in self.available_categories:
-                 if hist_conf.only_categories!=None:
-                     if c in hist_conf.only_categories:
+                 if hcfg.only_categories!=None:
+                     if c in hcfg.only_categories:
                          cats.append(c)
-                 elif hist_conf.exclude_categories !=None:
-                     if c not in hist_conf.exclude_categories:
+                 elif hcfg.exclude_categories !=None:
+                     if c not in hcfg.exclude_categories:
                          cats.append(c)
                  else:
                          cats.append(c)
-             cat_ax = hist.axis.StrCategory(cats,label="cat", growth=False)
+
+             cat_ax = hist.axis.StrCategory(cats, label="cat", growth=False)
              # Variation axes
-             if hist_conf.variations:
+             if hcfg.variations:
                  #Get all the variation
                  allvariat = []
                  for c in cats:
-                     allvariat += self.variations_config[c]
+                     allvariat += self.variations_config["weights"][c]
                      
-                 if hist_conf.only_variations !=None:
+                 if hcfg.only_variations !=None:
                      # filtering the variation list with the available ones
-                     allvariat =  list(filter(lambda v: v in hist_conf.only_variations, allvariat))
+                     allvariat =  list(filter(lambda v: v in hcfg.only_variations, allvariat))
                     
-                 hist_config.only_variations = ["nominal"] + \
-                                               [var+"Up" for var in good_var] + \
+                 hcfg.only_variations = ["nominal"] + \
+                                               [var+"Up" for var in allvariat] + \
                                                [var+"Down" for var in allvariat]
-                 var_ax = hist.axis.StrCategory(hist_config.only_variations,
+                 var_ax = hist.axis.StrCategory(hcfg.only_variations,
                                                 label="variation", growth=False)
              else:
                  var_ax = hist.axis.StrCategory(["nominal"], label="variation", growth=False)
-                 hist_conf.only_variations = "nominal"
+                 hcfg.only_variations = ["nominal"]
 
              # Axis in the configuration + custom axes
              fields_axes = []
-             # the custom axis get included in the hist_conf for future use
-             hist_conf.axes = custom_axes + hist_conf.axes
-             for ax in hist_conf.axes:
+             # the custom axis get included in the hcfg for future use
+             hcfg.axes = custom_axes + hcfg.axes
+             for ax in hcfg.axes:
                  fields_axes.append(_get_hist_axis(ax))
 
              # Build the histogram object with the additional axes    
              histogram = hist.Hist(
-                 *([cat_ax, var_ax] + fields_axes), storage=hist_conf.storage,
+                 *([cat_ax, var_ax] + fields_axes), storage=hcfg.storage,
                  name="Counts"
              )
              #Save the hist in the configuration and store the full config object
-             hist_conf.hist = histogram
-             self.histograms[name] = hist_conf
+             self._hist_objs[name] = histogram
+             self.histograms[name] = hcfg
 
-    @property
-    def histograms(self):
-        return { key:h.histo for key, h in self.histograms.items()}
+
+    def get_histograms(self):
+        return { key:h.histo for key, h in self._hist_objs.items()}
 
     def fill_histograms(self, events, weights, cuts_masks, custom_fields=None):
         '''
         We loop on the configured histograms only
         Doing so the catergory, sample, variation selections are handled correctly (by the constructor)
         '''
-        for histo in self.histograms.values():
+        for name, histo in self.histograms.items():
             # Skipping not autofill histograms
             if histo.autofill == False: continue
+            hobj = self._hist_objs[name]
             # Loop on the categories
-            for category in histo.hist.axes[0]: #first axis is the category
-                for variation in histo.hist.axes[1]: #second axis is alway the variation
+            for category in histo.hobj.axes[0]: #first axis is the category
+                for variation in histo.hobj.axes[1]: #second axis is alway the variation
                     fill_categorical = {
                         "cat":category,
                         "variation": variation
@@ -240,4 +247,4 @@ class HistManager():
                     # If the globalisnone mask is failing the number of objects will be different and everything will crash
 
                     # Finally fit the histogram
-                    histo.hist.fill(**fill_categorical, **fill_numeric)
+                    hobj.fill(**fill_categorical, **fill_numeric)

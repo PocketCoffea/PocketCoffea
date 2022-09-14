@@ -8,8 +8,8 @@ from collections import defaultdict
 import inspect
 
 from ..lib.cut_definition import Cut
-from ..lib.WeightsManager import WeightsConfig
-from ..lib.HistManager import Axis, HistConfig
+from ..lib.WeightsManager import WeightCustom
+from ..lib.HistManager import Axis, HistConf
 
 class Configurator():
     def __init__(self, cfg, overwrite_output_dir=None, plot=False, plot_version=None):
@@ -64,10 +64,8 @@ class Configurator():
         # but the common and inclusive collections are fully flattened on a
         # sample:category structure
         self.variations_config = {
-            "weights":{
-                s: { c: [] for c in self.categories.keys()}
-                for s in self.samples,
-        }
+             s: { "weights": {c: [] for c in self.categories.keys()}}
+                for s in self.samples   }
         self.load_variations_config()
 
         # Load workflow
@@ -255,9 +253,9 @@ class Configurator():
                     print(f"Variation {w} not available in the workflow")
                     raise Exception("Wrong variation configuration")
             # do now check if the variations is not string but custom
-            for wsample in self.variations_config["weights"].values():
+            for wsample in self.variations_config.values():
                 # add the variation to all the categories and samples
-                for wcat in wsample.values():
+                for wcat in wsample["weights"].values():
                     wcat.append(w)
 
         if "bycategory" in wcfg["common"]:
@@ -267,9 +265,9 @@ class Configurator():
                         if w not in available_variations:
                             print(f"Variation {w} not available in the workflow")
                             raise Exception("Wrong variation configuration")
-                    for wsample in self.variations_config["weights"].values():
-                        if w not in wsample[cat]:
-                            wsample[cat].append(w)
+                    for wsample in self.variations_config.values():
+                        if w not in wsample["weights"][cat]:
+                            wsample["weights"][cat].append(w)
 
         # Now look at specific samples configurations
         if "bysample" in wcfg:
@@ -284,7 +282,7 @@ class Configurator():
                                 print(f"Variation {w} not available in the workflow")
                                 raise Exception("Wrong variation configuration")
                         # append only to the specific sample
-                        for wcat in self.variations_config["weights"][sample].values():
+                        for wcat in self.variations_config[sample]["weights"].values():
                             if w not in wcat:
                                 wcat.append(w)
 
@@ -295,7 +293,7 @@ class Configurator():
                                 if w not in available_variations :
                                     print(f"Variation {w} not available in the workflow")
                                     raise Exception("Wrong variation configuration")
-                            self.variations_config["weights"][sample][cat].append(w)
+                            self.variations_config[sample]["weights"][cat].append(w)
                 
         print("Variation configuration")
         pprint(self.variations_config)
@@ -367,6 +365,9 @@ class Configurator():
         }
         ocfg["weights"] = self.weights_config
         ocfg["variations"] = self.variations_config
+        ocfg["variables"] = {
+            key: val.serialize() for key,val in self.variables.items()
+        }
         # Save the serialized configuration in json
         output_cfg = os.path.join(self.output, "config.json")
         print("Saving config file to " + output_cfg)

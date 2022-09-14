@@ -39,7 +39,7 @@ collection_fields = {
 
 def _get_default_hist(name, type, coll, pos=None, fields=None):
     out = {}
-    for field in coll_fields[type]:
+    for field in collection_fields[type]:
         if fields == None or field in fields:
             hist_name = f"{name}_{field}"
             setting = common_settings[f"{type}_{field}"]
