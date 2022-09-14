@@ -32,7 +32,11 @@ class WeightManager():
     weights defined by the framework and custom weights created
     by the user in the processor or by configuration.
 
-    It handles inclusive or bycategory weights for each sample. 
+    It handles inclusive or bycategory weights for each sample.
+    Weights can be inclusive or by category.
+    Moreover, different samples can have different weights, as defined in the weights_configuration.
+    The name of the weights available in the current workflow are defined in the class methods "available_weights"
+     
     '''
     @classmethod
     def available_weights(cls):
@@ -90,7 +94,7 @@ class WeightManager():
         #Clear the cache once the Weights objects have been added
         _weightsCache.clear()
                        
-    def _compute_weight(weight_name, events):
+    def _compute_weight(self, weight_name, events):
         '''
         Predefined common weights
         '''
@@ -129,7 +133,7 @@ class WeightManager():
                                                        self._year, njets=events.njet))
 
                 
-    def add_weight(name, nominal, up=None, down=None, category=None):
+    def add_weight(self, name, nominal, up=None, down=None, category=None):
         '''
         Add manually a weight to a specific category'''
         if category== None:
@@ -140,5 +144,23 @@ class WeightManager():
 
 
     
+    def get_weight(self, category=None, modifier=None):
+        '''
+        The function returns the total weights stored in the processor for the current sample.
+        If category==None the inclusive weight is returned.
+        If category!=None but weights_split_bycat=False, the inclusive weight is returned.
+        Otherwise the inclusive*category specific weight is returned.
+        '''
+        if category==None or self.weightConfig["is_split_bycat"] == False:
+            # return the inclusive weight
+            return self._weightsIncl.weight(modifier=modifier)
+        
+        elif category and self.weightConfig["is_split_bycat"] == True:
+            if category not in self._categories:
+                raise Exception(f"Requested weights for non-existing category: {category}")
+            # moltiply the inclusive weight and the by category one
+            return self._weightsIncl.weight(modifier=modifier) * self._weightsByCat[category].weight(modifier=modifier)
+
 
     
+

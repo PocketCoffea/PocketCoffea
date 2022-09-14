@@ -14,10 +14,10 @@ from coffea.util import load
 
 import correctionlib
 
+from ..lib.WeightsManager import WeightsManager
 from ..lib.triggers import get_trigger_mask
 from ..lib.objects import jet_correction, lepton_selection, jet_selection, btagging, get_dilepton
 from ..lib.pileup import sf_pileup_reweight
-from ..lib.scale_factors import sf_ele_reco, sf_ele_id, sf_mu, sf_btag, sf_btag_calib, sf_jet_puId
 from ..lib.fill import fill_histograms_object
 from ..parameters.triggers import triggers
 from ..parameters.btag import btag, btag_variations
@@ -283,11 +283,11 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
 
     # Function that counts the preselected objects and save the counts as attributes of `events`
     def count_objects(self):
-        self.events["nmuon"]     = ak.num(self.events.MuonGood)
-        self.events["nelectron"] = ak.num(self.events.ElectronGood)
-        self.events["nlep"]      = self.events["nmuon"] + self.events["nelectron"]
-        self.events["njet"]      = ak.num(self.events.JetGood)
-        self.events["nbjet"]     = ak.num(self.events.BJetGood)
+        self.events["nMuonGood"]     = ak.num(self.events.MuonGood)
+        self.events["nElectronGood"] = ak.num(self.events.ElectronGood)
+        self.events["nLep"]      = self.events["nmuon"] + self.events["nelectron"]
+        self.events["nJetGood"]      = ak.num(self.events.JetGood)
+        self.events["nBJetGood"]     = ak.num(self.events.BJetGood)
         #self.events["nfatjet"]   = ak.num(self.events.FatJetGood)
  
 
@@ -311,89 +311,15 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             self._cuts_masks.add(cut.id, mask)
         # We make sure that for each category the list of cuts is unique in the Configurator validation
 
-    @classmethod
-    def available_weights(cls):
-        return ['genWeight', 'lumi', 'XS', 'pileup',
-                'sf_ele_reco_id', 'sf_mu_id_iso', 'sf_btag',
-                'sf_btag_calib', 'sf_jet_puId']
-        
+ 
     def compute_weights(self):
-        '''
-        This function computes the weights to be applied on MC.
-        Weights can be inclusive or by category.
-        Moreover, different samples can have different weights, as defined in the weights_configuration.
-        The name of the weights available in the current workflow are defined in the class methods "available_weights"
-        '''
-        # Helper function defining the weights
-        def __add_weight(weight, weight_obj):
-            if weight == "genWeight":
-                weight_obj.add('genWeight', self.events.genWeight)
-            elif weight == 'lumi':
-                weight_obj.add('lumi', ak.full_like(self.events.genWeight, lumi[self._year]["tot"]))
-            elif weight == 'XS':
-                weight_obj.add('XS', ak.full_like(self.events.genWeight, samples_info[self._sample]["XS"]))
-            elif weight == 'pileup':
-                # Pileup reweighting with nominal, up and down variations
-                weight_obj.add('pileup', *sf_pileup_reweight(self.events, self._year))
-            elif weight == 'sf_ele_reco_id':
-                # Electron reco and id SF with nominal, up and down variations
-                weight_obj.add('sf_ele_reco', *sf_ele_reco(self.events, self._year))
-                weight_obj.add('sf_ele_id',   *sf_ele_id(self.events, self._year))
-            elif weight == 'sf_mu_id_iso':
-                # Muon id and iso SF with nominal, up and down variations
-                weight_obj.add('sf_mu_id',  *sf_mu(self.events, self._year, 'id'))
-                weight_obj.add('sf_mu_iso', *sf_mu(self.events, self._year, 'iso'))
-            elif weight == 'sf_btag':
-                # Get all the nominal and variation SF
-                btagsf = sf_btag(self.events.JetGood, self._btag['btagging_algorithm'], self._year,
-                                 variations=["central"]+btag_variations[self._year],
-                                 njets = self.events.njet)
-                for variation, weights in btagsf.items():
-                    weight_obj.add(f"sf_btag_{variation}", *weights)
-                
-            elif weight == 'sf_btag_calib':
-                # This variable needs to be defined in another method
-                jetsHt = ak.sum(abs(self.events.JetGood.pt), axis=1)
-                weight_obj.add("sf_btag_calib", sf_btag_calib(self._sample, self._year, self.events.njet, jetsHt ) )
-
-            elif weight == 'sf_jet_puId':
-                weight_obj.add('sf_jet_puId', *sf_jet_puId(self.events.JetGood, self.cfg.finalstate,
-                                                           self._year, njets=self.events.njet))
-
-        #Inclusive weights
-        self._weights_incl = Weights(self.nEvents_after_presel, storeIndividual=True)
-
         if not self._isMC: return
-        # Compute first the inclusive weights
-        for weight in self.weights_config["inclusive"]:
-            __add_weight(weight, self._weights_incl)
-
-        # Now weights for dedicated categories
-        if self.weights_config["is_split_bycat"]:
-            #Create the weights object only if for the current sample there is a weights_by_category
-            #configuration
-            self._weights_bycat = { cat: Weights(self.nEvents_after_presel, storeIndividual=True)
-                                    for cat in self._categories if len(self.weights_config["bycategory"][cat])!=0}
-            for cat, ws in self.weights_config["bycategory"].items():
-                for weight in ws:
-                    __add_weight(weight, self._weights_bycat[cat])
-
-    def get_weight(self, category=None, modifier=None):
-        '''
-        The function returns the total weights stored in the processor for the current sample.
-        If category==None the inclusive weight is returned.
-        If category!=None but weights_split_bycat=False, the inclusive weight is returned.
-        Otherwise the inclusive*category specific weight is returned.
-        '''
-        if category==None or self.weights_config["is_split_bycat"] == False:
-            # return the inclusive weight
-            return self._weights_incl.weight(modifier=modifier)
-        
-        elif category and self.weights_config["is_split_bycat"] == True:
-            if category not in self._categories:
-                raise Exception(f"Requested weights for non-existing category: {category}")
-            # moltiply the inclusive weight and the by category one
-            return self._weights_incl.weight(modifier=modifier) * self._weights_bycat[category].weight(modifier=modifier)
+        # Creating the WeightsManager with all the configured weights
+        self.weightsManager = WeightsManager(self.weights_config_allsamples[self._sample],
+                                             self.nEvents_after_presel, self.events,
+                                             storeIndividual=False)
+    def compute_weights_extra(self):
+        pass
         
     def apply_triggerSF(self):
         if self.cfg.triggerSF != None:
@@ -499,6 +425,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
 
         # Weights
         self.compute_weights()
+        self.compute_weights_extra()
 
         # Per-event trigger SF reweighting
         self.apply_triggerSF()
