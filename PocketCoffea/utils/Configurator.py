@@ -9,7 +9,7 @@ import inspect
 
 from ..lib.cut_definition import Cut
 from ..lib.WeightsManager import WeightsConfig
-from ..parameters.allhistograms import histogram_settings
+from ..lib.HistManager import Axis, HistConfig
 
 class Configurator():
     def __init__(self, cfg, overwrite_output_dir=None, plot=False, plot_version=None):
@@ -22,6 +22,7 @@ class Configurator():
 
         # Load dataset
         self.samples = []
+        self.years = []
         self.load_dataset()
 
         # Check if output file exists, and in case add a `_v01` label, make directory
@@ -120,9 +121,9 @@ class Configurator():
             raise Exception("Wrong fileset configuration")
         else:
             for name, d in self.fileset.items():
-                if (s:=d["metadata"]["sample"]) not in self.samples:
-                    self.samples.append(s)
-            
+                if (m:=d["metadata"]) not in self.samples:
+                    self.samples.append(m["sample"])
+                    self.years.append(m["year"])
 
     def load_cuts_and_categories(self):
         '''This function loads the list of cuts and groups them in categories.

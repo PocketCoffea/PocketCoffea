@@ -1,13 +1,15 @@
 import os
 import tarfile
 import json
+import copy 
 
 import numpy as np
 import awkward as ak
+from collections import defaultdict
 
 import coffea
 from coffea import processor, lookup_tools, hist
-from coffea.processor import dict_accumulator, defaultdict_accumulator,column_accumulator
+from coffea.processor import column_accumulator
 from coffea.lumi_tools import LumiMask #, LumiData
 from coffea.analysis_tools import PackedSelection, Weights
 from coffea.util import load
@@ -15,6 +17,7 @@ from coffea.util import load
 import correctionlib
 
 from ..lib.WeightsManager import WeightsManager
+from ..lib.HistManager import HistManager, Axis, HistConf
 from ..lib.triggers import get_trigger_mask
 from ..lib.objects import jet_correction, lepton_selection, jet_selection, btagging, get_dilepton
 from ..lib.pileup import sf_pileup_reweight
@@ -25,7 +28,6 @@ from ..parameters.jec import JECversions, JERversions
 from ..parameters.event_flags import event_flags, event_flags_data
 from ..parameters.lumi import lumi, goldenJSON
 from ..parameters.samples import samples_info
-from ..parameters.allhistograms import histogram_settings
 
 class ttHbbBaseProcessor(processor.ProcessorABC):
 
@@ -56,106 +58,28 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # These cuts are applied only for outputs, so they cohexists in the form of masks
         self._cuts_masks = PackedSelection()
 
-        # Trigger SF
-        self._apply_triggerSF = True
-
         # Weights configuration
         self.weights_config_allsamples = self.cfg.weights_config
-        
+
+        # Output format
         # Accumulators for the output
-        self._accum_dict = {}
-        self._hist_dict = {}
-        self._hist2d_dict = {}
-        self._sumw_dict = {
+        self.output_format = {
             "sum_genweights": {},
+            "sumw":  {cat: defaultdict(float) for cat in self._categories}
+            "cutflow": {
+                "initial" : defaultdict(int),
+                "skim": defaultdict(int),
+                "presel": defaultdict(int),
+            },
+            "seed_chunk": defaultdict(str),
+            "variables": defaultdict(dict),
+            "columns" :  {cat: {} for cat in self._categories}
         }
-        self._accum_dict.update(self._sumw_dict)
-        # Accumulator with number of events passing each category for each sample
-        self._cutflow_dict =   {cat: defaultdict_accumulator(int) for cat in self._categories}
-        self._cutflow_dict["initial"] = defaultdict_accumulator(int)
-        self._cutflow_dict["skim"] = defaultdict_accumulator(int)
-        self._cutflow_dict["presel"] = defaultdict_accumulator(int)
-        self._accum_dict["cutflow"] = dict_accumulator(self._cutflow_dict)
+
+        # Custom axes to add to histograms in this processor
+        self.custom_axes = [Axis(field="year", bins=self.cfg.years, coll="metadata",
+                                 type="strcat", growth=False)]
         
-        # Accumulator with sum of weights of the events passing each category for each sample
-        self._sumw_weighted_dict =   {cat: defaultdict_accumulator(float) for cat in self._categories}
-        self._accum_dict["sumw"] = dict_accumulator(self._sumw_weighted_dict)
-
-        # Accumulator with seed number used for the stochastic smearing, for each processed chunk
-        self._seed_dict = {"seed_chunk" : processor.defaultdict_accumulator(int)}
-        self._accum_dict.update(self._seed_dict)
-
-        #for var in self._vars_to_plot.keys():
-        #       self._accumulator.add(processor.dict_accumulator({var : processor.column_accumulator(np.array([]))}))
-
-        # Define axes
-        self._sample_axis = hist.Cat("sample", "Sample")
-        self._cat_axis    = hist.Cat("cat", "Cat")
-        self._year_axis   = hist.Cat("year", "Year")
-        self._sparse_axes = [self._sample_axis, self._cat_axis, self._year_axis]
-
-        if self.cfg.split_eras:
-            self._era_axis = hist.Cat("era", "Era")
-            self._sparse_axes = [self._sample_axis, self._cat_axis, self._year_axis, self._era_axis]
-
-        # Create histogram accumulators
-        for var_name in self._variables.keys():
-            if var_name.startswith('n'):
-                field = var_name
-            elif "_" in var_name:
-                splits = obj, field = var_name.split('_')
-                if splits[0] in ["electron", "muon", "jet"]:
-                    field = splits[1]
-                else:
-                    field = var_name
-            else:
-                field = var_name
-            variable_axis = hist.Bin( field, self._variables[var_name]['xlabel'],
-                                      **self._variables[var_name]['binning'] )
-            self._hist_dict[f'hist_{var_name}'] = hist.Hist("$N_{events}$", *self._sparse_axes, variable_axis)
-        for hist2d_name in self._variables2d.keys():
-            varname_x = list(self._variables2d[hist2d_name].keys())[0]
-            varname_y = list(self._variables2d[hist2d_name].keys())[1]
-            variable_x_axis = hist.Bin(varname_x, self._variables2d[hist2d_name][varname_x]['xlabel'],
-                                       **self._variables2d[hist2d_name][varname_x]['binning'] )
-            variable_y_axis = hist.Bin(varname_y, self._variables2d[hist2d_name][varname_y]['ylabel'],
-                                       **self._variables2d[hist2d_name][varname_y]['binning'] )
-            self._hist2d_dict[f'hist2d_{hist2d_name}'] = hist.Hist("$N_{events}$", *self._sparse_axes, variable_x_axis, variable_y_axis)
-            
-        self._accum_dict.update(self._hist_dict)
-        self._accum_dict.update(self._hist2d_dict)
-
-        self.nobj_hists = [histname for histname in self._hist_dict.keys() if histname.lstrip('hist_').startswith('n') and not 'nevts' in histname]
-        self.muon_hists = [histname for histname in self._hist_dict.keys() if 'muon' in histname and not histname in self.nobj_hists]
-        self.electron_hists = [histname for histname in self._hist_dict.keys() if 'electron' in histname and not histname in self.nobj_hists]
-        self.jet_hists = [histname for histname in self._hist_dict.keys() if 'jet' in histname and not 'fatjet' in histname and not histname in self.nobj_hists]
-
-        # prepare a special entry for column accumulator
-        # one for each category
-        self._accum_dict["columns"] = {cat: {} for cat in self._categories}
-
-        # The final accumulator dictionary is built when the accumulator() property is called for the first time.
-        # Doing so, subclasses can add additional context to the self._accum_dict. 
-        # self._accumulator = dict_accumulator(self._accum_dict)
-        self._accumulator = None
-        
-    @property
-    def accumulator(self):
-        ''' The accumulator instance of the processor is not built in the constructor directly because sub-classes
-        can add more accumulators to the self._accum_dict definition.
-        When the accumulator() property if then accessed the dict_accumulator is built.'''
-        if not self._accumulator:
-            self._accumulator = dict_accumulator(self._accum_dict)
-        return self._accumulator
-
-    def add_additional_histograms(self, histograms_dict):
-        '''Helper function to add additional histograms to the dict_accumulator.
-        Usually useful for derived classes to include the definition of custom histograms '''
-        for k,h in histograms_dict.items():
-            if k in self._accum_dict:
-                raise Exception(f"You are trying to overwrite an already defined histogram {k}!")
-            else:
-                self._accum_dict[k] = h
 
     def add_column_accumulator(self, name, cat=None, store_size=True):
         '''
@@ -167,32 +91,23 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             # add the column accumulator to all the categories
             for cat in self._categories:
                 # we need a defaultdict accumulator to be able to include different samples for different chunks
-                self._accum_dict['columns'][cat][name] = {}
+                self.output_format['columns'][cat][name] = {}
                 if store_size:
                     # in thise case we save also name+size which will contain the number of entries per event
-                    self._accum_dict['columns'][cat][name+"_size"] = {}
+                    self.output_format['columns'][cat][name+"_size"] = {}
         else:
             if cat not in self._categories:
                 raise Exception(f"Category not found: {cat}")
-            self._accum_dict['columns'][cat][name] ={}
+            self.output_format['columns'][cat][name] ={}
             if store_size:
                 # in thise case we save also name+size which will contain the number of entries per event
-                self._accum_dict['columns'][cat][name+"_size"] = {}
+                self.output_format['columns'][cat][name+"_size"] = {}
         
     @property
     def nevents(self):
         '''The current number of events in the chunk is computed with a property'''
         return ak.count(self.events.event, axis=0)
 
-    def get_histogram(self, name):
-        if name in self.output:
-            return self.output[name]
-        else:
-            raise Exception("Missing histogram: ", name)
-
-    # Define trigger SF map to apply
-    def define_triggerSF_maps(self):
-        pass
     
     # Function to load year-dependent parameters
     def load_metadata(self):
@@ -311,7 +226,6 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             self._cuts_masks.add(cut.id, mask)
         # We make sure that for each category the list of cuts is unique in the Configurator validation
 
-
     @classmethod
     def available_weights(cls):
         return WeightsManager.available_weights + []
@@ -319,31 +233,12 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     def compute_weights(self):
         if not self._isMC: return
         # Creating the WeightsManager with all the configured weights
-        self.weightsManager = WeightsManager(self.weights_config_allsamples[self._sample],
+        self.weights_manager = WeightsManager(self.weights_config_allsamples[self._sample],
                                              self.nEvents_after_presel, self.events,
                                              storeIndividual=False)
     def compute_weights_extra(self):
         pass
         
-    def apply_triggerSF(self):
-        if self.cfg.triggerSF != None:
-            dict_corr = load(self.cfg.triggerSF)
-            self.triggerSF_weights = {cat : Weights(self.nEvents_after_presel) for cat in dict_corr.keys()}
-            for cat, corr in dict_corr.items():
-                if self._isMC:
-                    # By filling the None in the pt array with -999, the SF will be fixed to 1 for events with 0 electrons
-                    self.triggerSF_weights[cat].add( 'triggerSFcorr', corr(ak.fill_none(ak.firsts(self.events.ElectronGood.pt), -999), ak.fill_none(ak.firsts(self.events.ElectronGood.eta), -999)) )
-                else:
-                    print(self.events.ElectronGood.pt)
-                    print(ak.ones_like(ak.fill_none(self.events.ElectronGood.pt, 0)))
-                    self.triggerSF_weights[cat].add( 'triggerSFcorr', ak.ones_like(ak.fill_none(ak.firsts(self.events.ElectronGood.pt), 0)) )
-
-    def fill_histograms(self):
-        for (obj, obj_hists) in zip([None], [self.nobj_hists]):
-            fill_histograms_object(self, obj, obj_hists, event_var=True, split_eras=self.cfg.split_eras)
-        for (obj, obj_hists) in zip([self.events.MuonGood, self.events.ElectronGood, self.events.JetGood], [self.muon_hists, self.electron_hists, self.jet_hists]):
-            fill_histograms_object(self, obj, obj_hists, split_eras=self.cfg.split_eras)
-
     def count_events(self):
         # Fill the output with the number of events and the sum of their weights in each category for each sample
         for category, cuts in self._categories.items():
@@ -353,6 +248,16 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                 w = self.get_weight(category)
                 self.output["sumw"][category][self._sample] = ak.sum(w*mask)
 
+
+    def fill_histograms(self):
+        # Filling the autofill=True histogram automatically
+        self.hists_manager.fill_histograms(self.events,
+                                           self.weightsManager,
+                                           self.cuts_masks,
+                                           custom_fields=None)
+        # Saving in the output the filled histograms for the current sample
+        self.output["variables"][self._sample].update(self.hists_manager.histograms)
+        
     def process_extra_before_skim(self):
         pass
     
@@ -374,8 +279,13 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         #################
         self.load_metadata()
         # Define the accumulator instance for this chunk
-        self.output = self.accumulator.identity()
-        #if len(events)==0: return output
+        self.output = copy.deepcopy(self.output_format)
+
+        # Create the HistManager
+        self.hists_manager = HistManager(self.cfg.variables, self._sample,
+                                       self._categories, self.cfg.variations_config,
+                                       self.custom_axes)
+
         self.nEvents_initial = self.nevents
         self.output['cutflow']['initial'][self._sample] += self.nEvents_initial
         if self._isMC:
@@ -458,5 +368,5 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
 
         accumulator["scale_genweight"] = scale_genweight
         
-
         return accumulator
+ 

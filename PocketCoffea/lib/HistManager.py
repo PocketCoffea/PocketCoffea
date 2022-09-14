@@ -80,7 +80,7 @@ def _get_hist_axis(ax: Axis):
 
 class HistManager():
 
-    def __init__(self, config, sample, categories_config, variations_config, custom_axes=[]):
+    def __init__(self, hist_config, sample, categories_config, variations_config, custom_axes=[]):
          self.histograms = {}
          self.categories_config = categories_config
          self.available_categories = list(self.categories_config.keys())
@@ -90,7 +90,7 @@ class HistManager():
                                      [ v for v in variations_config["weights"]["bycategory"].values()]
          # TODO Add the list of shape variations
          
-         for name, hist_conf in config.items():
+         for name, hist_conf in hist_config.items():
              # Check if the histogram is active for the current sample
              if hist_conf.only_samples != None:
                  if sample not in hist_conf.only_samples:
@@ -142,6 +142,10 @@ class HistManager():
              #Save the hist in the configuration and store the full config object
              hist_conf.hist = histogram
              self.histograms[name] = hist_conf
+
+    @property
+    def histograms(self):
+        return { key:h.histo for key, h in self.histograms.items()}
 
     def fill_histograms(self, events, weights, cuts_masks, custom_fields=None):
         '''
