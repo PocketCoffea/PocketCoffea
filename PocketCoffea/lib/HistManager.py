@@ -6,11 +6,11 @@ from dataclasses import dataclass, field
 @dataclass
 class Axis():
     field: str # variable to plot
-    bins: int
-    start: float
-    stop: float
     label: str
-    coll: str = "events"  # Collection or events
+    bins: int
+    start: float = None
+    stop: float = None
+    coll: str = "events" # Collection or events or metadata or custom
     pos : int = None # index in the collection to plot. If None plot all the objects on the same histogram
     type: str = "regular"
     transform: str = None
@@ -52,7 +52,7 @@ def _get_hist_axis(ax: Axis):
             overflow=ax.overflow,
             underflow=ax.underflow,
             growth=ax.growth)
-    elif ax.type == "integer":
+    elif ax.type == "int":
         return hist.axis.Variable(
             name=ax.field,
             start=ax.start,
@@ -74,20 +74,19 @@ def _get_hist_axis(ax: Axis):
             ax.bins, 
             name=ax.field,
             label=ax.label,
-            overflow=ax.overflow,
-            underflow=ax.underflow,
             growth=ax.growth)
                     
 
 
 class HistManager():
 
-    def __init__(self, config, sample, categories, variations_config, custom_axes=[]):
-         self.histograms = {}        
-         self.available_categories = categories
+    def __init__(self, config, sample, categories_config, variations_config, custom_axes=[]):
+         self.histograms = {}
+         self.categories_config = categories_config
+         self.available_categories = list(self.categories_config.keys())
          # Prepare the variations Axes summing all the required variations
          # The variation config is organized as the weights one, by sample and by category
-         self.available_variations = ["nominal"] + variations_config["weights"]["inclusive"] + \
+         self.available_variations = variations_config["weights"]["inclusive"] + \
                                      [ v for v in variations_config["weights"]["bycategory"].values()]
          # TODO Add the list of shape variations
          
@@ -115,26 +114,125 @@ class HistManager():
              if hist_conf.variations:
                  if hist_conf.only_variations !=None:
                      # filtering the variation list with the available ones
-                      var_ax = hist.axis.StrCategory(filter(lambda v: v in hist_conf.only_variations,
-                                                    self.available_variations), label="variation", growth=False)
+                     good_var =  list(filter(lambda v: v in hist_conf.only_variations, self.available_variations))
+                     var_ax = hist.axis.StrCategory(["nominal"] + \
+                                                    [var+"Up" for var in good_var] + \
+                                                    [var+"Down" for var in good_var],
+                                                    label="variation", growth=False)
                  else:
-                     var_ax = hist.axis.StrCategory(self.available_variations, label="variation", growth=False)
+                     var_ax = hist.axis.StrCategory(["nominal"] +\
+                                                    [var+"Up" for var in self.available_variations] +\
+                                                    [var+"Down" for var in self.available_variations],
+                                                    label="variation", growth=False)
              else:
                  var_ax = hist.axis.StrCategory(["nominal"], label="variation", growth=False)
-             # prepare the axes
+
+             # Axis in the configuration + custom axes
              fields_axes = []
+             # the custom axis get included in the hist_conf for future use
+             hist_conf.axes = custom_axes + hist_conf.axes
              for ax in hist_conf.axes:
                  fields_axes.append(_get_hist_axis(ax))
 
              # Build the histogram object with the additional axes    
              histogram = hist.Hist(
-                 *(custom_axes + [cat_ax, var_ax] + fields_axes), storage=hist_conf.storage,
+                 *([cat_ax, var_ax] + fields_axes), storage=hist_conf.storage,
                  name="Counts"
              )
              #Save the hist in the configuration and store the full config object
              hist_conf.hist = histogram
              self.histograms[name] = hist_conf
 
-    def fill_histograms(self, events, weights, ):
-        pass
-    
+    def fill_histograms(self, events, weights, cuts_masks, custom_fields=None):
+        '''
+        We loop on the configured histograms only
+        Doing so the catergory, sample, variation selections are handled correctly (by the constructor)
+        '''
+        for histo in self.histograms.values():
+            # Skipping not autofill histograms
+            if histo.autofill == False: continue
+            # Loop on the categories
+            for category in histo.hist.axes[0]: #first axis is the category
+                for variation in histo.hist.axes[1]: #second axis is alway the variation
+                    fill_categorical = {
+                        "cat":category,
+                        "variation": variation
+                    }
+                    fill_numeric = {}
+
+                    # Getting the cut mask
+                    mask = cuts_masks.all(*self.categories_config[category])
+                    if variation == "nominal":
+                        weight = weights.get_weight(category)[masks]
+                    else:
+                        weight = weights.get_weight(category, modifier=variation)[mask]
+
+                    flattened = False
+                    global_isnotnone = None
+
+                    # Looping on Axis definition to get the collection and metadata
+                    # all the axes have been included in the configuration object
+                    for ax in histo.axes:
+                        # Checkout the collection type
+                        if ax.type in ["regular", "variable", "int"]:
+                            if ax.coll == "events":
+                                # These are event level information
+                                data = events[mask][ax.field]
+                            elif ax.coll == "metadata":
+                                data = events.metadata[ax.field]
+                            elif ax.coll not in ["events", "metadata"]:
+                                # General collections
+                                if ax.pos == None:
+                                    data = events[mask][ax.coll][ax.field]
+                                elif ax.pos >=0:
+                                    data = ak.pad_none(events[mask][ax.coll][ax.field], ax.pos, axis=1)
+                                else:
+                                    raise Exception(f"Invalid position {ax.pos} requested for collection {ax.coll}")
+                            elif ax.coll == "custom":
+                                # taking the data from the custom_fields argument
+                                data = custom_fields[mask][ax.field]
+                            else:
+                                raise NotImplementedError()
+                                                            
+                            # Flattening
+                            if data.dim > 1:
+                                # it needs to be flattened
+                                # and the weight must be brought down in the dimension
+                                if flattened == False:
+                                    weight = ak.flatten(ak.ones_like(data) * weight)
+                                    flattened = True
+                                #flatten the data in one dimension
+                                data = ak.flatten(data)
+                            # Filling the numerical axes
+                            fill_numeric[ax.field] = data
+                                
+                            # check isnotnone
+                            if global_isnotnone==None:
+                                global_isnotnone = ~ak.is_none(data)
+                            else:
+                                global_isnotnone &= ~ak.is_none(data)
+                            # The nontnone filter will be applied at the end
+                                                    
+
+                        #### --> end of numeric axes
+                        # Categorical axes (not appling the mask)
+                        else:
+                            if ax.coll == "metadata":
+                                data = events.metadata[ax.field]
+                                fill_categorical[ax.field] = data
+                            elif ax.coll == "custom":
+                                # taking the data from the custom_fields argument
+                                data = custom_fields[ax.field]
+                            else:
+                                raise NotImplementedError()
+
+                    # Now apply the isnone mask to all the numeric fileds
+                    for key, value in fill_numeric.items():
+                        value = value[global_isnotnone]
+                    # Apply the isnone mask to weights
+                    weight = weight[global_isnotnone]
+
+                    # If the globalisnone mask is failing the number of objects will be different and everything will crash
+
+                    # Finally fit the histogram
+                    histo.hist.fill(**fill_categorical, **fill_numeric)

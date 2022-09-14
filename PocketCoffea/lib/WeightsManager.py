@@ -136,13 +136,13 @@ class WeightManager():
                 
     def add_weight(self, name, nominal, up=None, down=None, category=None):
         '''
-        Add manually a weight to a specific category'''
+        Add manually a weight to a specific category
+        '''
         if category== None:
             # add the weights to all the categories (inclusive)
             self._weightsIncl.add(name, nominal, up, down)
         else:
             self._weightsByCat[category].add(name, nominal, up, down)
-
 
     
     def get_weight(self, category=None, modifier=None):
