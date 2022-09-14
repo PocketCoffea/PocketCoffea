@@ -53,9 +53,9 @@ class Configurator():
         # in the objects needed in the processors
         self.load_cuts_and_categories()
         ## Weights configuration
-        self.weights_split_bycat = False
-        self.weights_config = { s: [] for s in self.samples }
-        self.weights_config_bycat =  { c: {s:[] for s in self.samples} for c in self.categories.keys()}
+        self.weights_config = { s: {"inclusive":[],
+                                    "bycategory": { c: [] for c in self.categories.keys()},
+                                    "is_split_bycat": False} for s in self.samples }
         self.load_weights_config()
 
         # Load workflow
@@ -116,7 +116,7 @@ class Configurator():
                 self.fileset.update(ds_dict)
         if len(self.fileset) == 0:
             print("File set is empty: please check you dataset definition...")
-            exit(1)
+            raise Exception("Wrong fileset configuration")
         else:
             for name, d in self.fileset.items():
                 if (s:=d["metadata"]["sample"]) not in self.samples:
@@ -130,19 +130,19 @@ class Configurator():
         for skim in self.cfg["skim"]:
             if not isinstance(skim, Cut):
                 print("Please define skim, preselections and cuts as Cut objects")
-                exit(1)
+                raise Exception("Wrong categories/cuts configuration")
             self.cuts_dict[skim.id] = skim
         for presel in self.cfg["preselections"]:
             if not isinstance(presel, Cut):
                 print("Please define skim, preselections and cuts as Cut objects")
-                exit(1)
+                raise Exception("Wrong categories/cuts configuration")
             self.cuts_dict[presel.id] = presel
         for cat, cuts in self.cfg["categories"].items():
             self.categories[cat] = []                
             for cut in cuts:
                 if not isinstance(cut, Cut):
                     print("Please define skim, preselections and cuts as Cut objects")
-                    exit(1)
+                    raise Exception("Wrong categories/cuts configuration")
                 self.cut_functions.append(cut)
                 self.cuts_dict[cut.id] = cut
                 self.categories[cat].append(cut.id)
@@ -163,29 +163,34 @@ class Configurator():
         wcfg = self.cfg["weights"]
         if "common" not in wcfg:
             print("Weights configuration error: missing 'common' weights key")
-            exit(1)
+            raise Exception("Wrong weight configuration")
         # common/inclusive weights
         for weight_name in wcfg["common"]["inclusive"]:
             if isinstance(weight_name, str):
                 if weight_name not in available_weights:
                     print(f"Weight {weight_name} not available in the workflow")
-                    exit(1)
-                for w in self.weights_config.values():
-                    w.append(weight_name)
+                    raise Exception("Wrong weight configuration")
+                for wsample in self.weights_config.values():
+                    # add the weight to all the categories and samples
+                    wsample["inclusive"].append(weight_name)
             else:
                 raise NotImplementedError()
 
         if "bycategory" in wcfg["common"]:
-            self.weights_split_bycat = True
             for cat, weights in wcfg["common"]["bycategory"].items():
                 for weight_name in weights:
                     if isinstance(weight_name, str):
                         if weight_name not in available_weights:
                             print(f"Weight {weight_name} not available in the workflow")
-                            exit(1)
-                        for w in self.weights_config_bycat[cat].values():
+                            raise Exception("Wrong weight configuration")
+                        for wsample in self.weights_config.values():
+                            wsample["is_split_bycat"] = True
                             # looping on all the samples for this category
-                            w.append(weight_name)
+                            if weight_name in wsample["inclusive"]:
+                                print(f"""Error! Trying to include weight {weight_name}
+                                by category, but it is already included inclusively!""")
+                                raise Exception("Wrong weight configuration")
+                            wsample["bycategory"][cat].append(weight_name)
                     else:
                         raise NotImplementedError()
 
@@ -194,36 +199,37 @@ class Configurator():
             for sample, s_wcfg in wcfg["bysample"].items():
                 if sample not in self.samples:
                     print(f"Requested missing sample {sample} in the weights configuration")
-                    exit(1)
+                    raise Exception("Wrong weight configuration")
 
                 if "inclusive" in s_wcfg:
                     for weight_name in s_wcfg["inclusive"]:
                         if isinstance(weight_name, str):
                             if weight_name not in available_weights:
                                 print(f"Weight {weight_name} not available in the workflow")
-                                exit(1)
+                                raise Exception("Wrong weight configuration")
                             # append only to the specific sample
-                            self.weights_config[sample].append(weight_name)
+                            self.weights_config[sample]["inclusive"].append(weight_name)
                         else:
                             raise NotImplementedError()
 
                 if "bycategory" in s_wcfg:
-                    self.weights_split_bycat = True
                     for cat, weights in s_wcfg["bycategory"].items():
                         for weight_name in weights:
                             if isinstance(weight_name, str):
                                 if weight_name not in available_weights:
                                     print(f"Weight {weight_name} not available in the workflow")
-                                    exit(1)
-                                self.weights_config_bycat[cat][sample].append(weight_name)
+                                    raise Exception("Wrong weight configuration")
+                                if weight_name in self.weights_config[sample]["inclusive"]:
+                                    print(f"""Error! Trying to include weight {weight_name}
+                                    by category, but it is already included inclusively!""")
+                                    raise Exception("Wrong weight configuration")
+                                self.weights_config[sample]["bycategory"][cat].append(weight_name)
+                                self.weights_config[sample]["is_split_bycat"] = True
                             else:
                                 raise NotImplementedError()
                 
         print("Weights configuration")
         pprint(self.weights_config)
-        print("Weights configuration by category")
-        pprint(self.weights_config_bycat)
-        
     
     def overwrite_check(self):
         if self.plot:
@@ -308,10 +314,7 @@ class Configurator():
             "name": self.workflow.__name__,
             "srcfile": inspect.getsourcefile(self.workflow)
         }
-        ocfg["weights"] = {
-            "weights_inclusive" : self.weights_config,
-            "weight_bycategory" : self.weights_config_bycat
-        }
+        ocfg["weights"] = self.weights_config
         # Save the serialized configuration in json
         output_cfg = os.path.join(self.output, "config.json")
         print("Saving config file to " + output_cfg)

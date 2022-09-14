@@ -7,7 +7,7 @@ import awkward as ak
 
 import coffea
 from coffea import processor, lookup_tools, hist
-from coffea.processor import dict_accumulator, defaultdict_accumulator
+from coffea.processor import dict_accumulator, defaultdict_accumulator,column_accumulator
 from coffea.lumi_tools import LumiMask #, LumiData
 from coffea.analysis_tools import PackedSelection, Weights
 from coffea.util import load
@@ -60,16 +60,14 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self._apply_triggerSF = True
 
         # Weights configuration
-        self.weights_split_bycat = self.cfg.weights_split_bycat
-        self.weights_config = self.cfg.weights_config
-        self.weights_config_bycat = self.cfg.weights_config_bycat
+        self.weights_config_allsamples = self.cfg.weights_config
         
         # Accumulators for the output
         self._accum_dict = {}
         self._hist_dict = {}
         self._hist2d_dict = {}
         self._sumw_dict = {
-            "sum_genweights": defaultdict_accumulator(float),
+            "sum_genweights": {},
         }
         self._accum_dict.update(self._sumw_dict)
         # Accumulator with number of events passing each category for each sample
@@ -131,6 +129,11 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.muon_hists = [histname for histname in self._hist_dict.keys() if 'muon' in histname and not histname in self.nobj_hists]
         self.electron_hists = [histname for histname in self._hist_dict.keys() if 'electron' in histname and not histname in self.nobj_hists]
         self.jet_hists = [histname for histname in self._hist_dict.keys() if 'jet' in histname and not 'fatjet' in histname and not histname in self.nobj_hists]
+
+        # prepare a special entry for column accumulator
+        # one for each category
+        self._accum_dict["columns"] = {cat: {} for cat in self._categories}
+
         # The final accumulator dictionary is built when the accumulator() property is called for the first time.
         # Doing so, subclasses can add additional context to the self._accum_dict. 
         # self._accumulator = dict_accumulator(self._accum_dict)
@@ -153,6 +156,28 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                 raise Exception(f"You are trying to overwrite an already defined histogram {k}!")
             else:
                 self._accum_dict[k] = h
+
+    def add_column_accumulator(self, name, cat=None, store_size=True):
+        '''
+        Add a column_accumulator with `name` to the category `cat` (to all the category if `cat`==None).
+        If store_size == True, create a parallel column called name_size, containing the number of entries
+        for each event. 
+        '''
+        if cat == None:
+            # add the column accumulator to all the categories
+            for cat in self._categories:
+                # we need a defaultdict accumulator to be able to include different samples for different chunks
+                self._accum_dict['columns'][cat][name] = {}
+                if store_size:
+                    # in thise case we save also name+size which will contain the number of entries per event
+                    self._accum_dict['columns'][cat][name+"_size"] = {}
+        else:
+            if cat not in self._categories:
+                raise Exception(f"Category not found: {cat}")
+            self._accum_dict['columns'][cat][name] ={}
+            if store_size:
+                # in thise case we save also name+size which will contain the number of entries per event
+                self._accum_dict['columns'][cat][name+"_size"] = {}
         
     @property
     def nevents(self):
@@ -258,7 +283,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.events["njet"]      = ak.num(self.events.JetGood)
         self.events["nbjet"]     = ak.num(self.events.BJetGood)
         #self.events["nfatjet"]   = ak.num(self.events.FatJetGood)
-
+ 
 
     def apply_preselections(self):
         ''' The function computes all the masks from the preselection cuts
@@ -334,15 +359,17 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
 
         if not self._isMC: return
         # Compute first the inclusive weights
-        for weight in self.weights_config[self._sample]:
+        for weight in self.weights_config["inclusive"]:
             __add_weight(weight, self._weights_incl)
 
         # Now weights for dedicated categories
-        if self.weights_split_bycat:
+        if self.weights_config["is_split_bycat"]:
+            #Create the weights object only if for the current sample there is a weights_by_category
+            #configuration
             self._weights_bycat = { cat: Weights(self.nEvents_after_presel, storeIndividual=True)
-                                    for cat in self._categories}
-            for cat in self._categories:
-                for weight in self.weights_config_bycat[cat][self._sample]:
+                                    for cat in self._categories if len(self.weights_config["bycategory"][cat])!=0}
+            for cat, ws in self.weights_config["bycategory"].items():
+                for weight in ws:
                     __add_weight(weight, self._weights_bycat[cat])
 
     def get_weight(self, category=None, modifier=None):
@@ -352,11 +379,11 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         If category!=None but weights_split_bycat=False, the inclusive weight is returned.
         Otherwise the inclusive*category specific weight is returned.
         '''
-        if category==None or self.weights_split_bycat == False:
+        if category==None or self.weights_config["is_split_bycat"] == False:
             # return the inclusive weight
             return self._weights_incl.weight(modifier=modifier)
         
-        elif category and self.weights_split_bycat == True:
+        elif category and self.weights_config["is_split_bycat"] == True:
             if category not in self._categories:
                 raise Exception(f"Requested weights for non-existing category: {category}")
             # moltiply the inclusive weight and the by category one
@@ -417,8 +444,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.output['cutflow']['initial'][self._sample] += self.nEvents_initial
         if self._isMC:
             # This is computed before any preselection
-            self.output['sum_genweights'][self._sample] += sum(self.events.genWeight)
+            self.output['sum_genweights'][self._sample] = ak.sum(self.events.genWeight)
 
+        self.weights_config = self.weights_config_allsamples[self._sample]
         ########################
         # Then the first skimming happens. 
         # Events that are for sure useless are removed, and trigger are applied.
