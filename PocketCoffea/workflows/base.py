@@ -65,6 +65,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                 "initial" : defaultdict(int),
                 "skim": defaultdict(int),
                 "presel": defaultdict(int),
+                **{cat: defaultdict(int) for cat in self._categories}
             },
             "seed_chunk": defaultdict(str),
             "variables": defaultdict(dict),
@@ -244,7 +245,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             mask = self._cuts_masks.all(*cuts)
             self.output["cutflow"][category][self._sample] = ak.sum(mask)
             if self._isMC:
-                w = self.get_weight(category)
+                w = self.weights_manager.get_weight(category)
                 self.output["sumw"][category][self._sample] = ak.sum(w*mask)
 
 
@@ -252,7 +253,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # Filling the autofill=True histogram automatically
         self.hists_manager.fill_histograms(self.events,
                                            self.weights_manager,
-                                           self.cuts_masks,
+                                           self._cuts_masks,
                                            custom_fields=None)
         # Saving in the output the filled histograms for the current sample
         self.output["variables"][self._sample].update(self.hists_manager.get_histograms())
@@ -351,17 +352,15 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     def postprocess(self, accumulator):
         # Rescale MC histograms by the total sum of the genweights
         scale_genweight = {}
-        h = accumulator[list(self._hist_dict.keys())[0]]
-        for sample in h.identifiers('sample'):
-            sample = str(sample)
+        for sample in accumulator["cutflow"]["initial"].keys():
             scale_genweight[sample] = 1 if sample.startswith('DATA') else 1./accumulator['sum_genweights'][sample]
             # correct also the sumw (sum of weighted events) accumulator
             for cat in self._categories:
                 accumulator["sumw"][cat][sample] *= scale_genweight[sample]
 
-        for histname in accumulator:
-            if (histname in self._hist_dict) | (histname in self._hist2d_dict):
-                accumulator[histname].scale(scale_genweight, axis='sample')
+        for sample, hists in accumulator["variables"].items():
+             for h in hists.values():
+                 h *= scale_genweight[sample]
 
         accumulator["scale_genweight"] = scale_genweight
         

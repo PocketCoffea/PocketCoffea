@@ -27,12 +27,12 @@ cfg =  {
         "walltime"       : "03:00:00",
         "mem_per_worker" : "4GB", # GB
         "exclusive"      : False,
-        "chunk"          : 200000,
+        "chunk"          : 400000,
         "retries"        : 30,
         "max"            : None,
         "skipbadfiles"   : None,
         "voms"           : None,
-        "limit"          : 1
+        "limit"          : 3
         },
 
 
@@ -72,7 +72,7 @@ cfg =  {
    "variables":
     {
         **default_hists_jet("jet", coll="JetGood"),
-        **default_hists_ele("ele", coll="EleGood")
+        **default_hists_ele("ele", coll="ElectronGood")
 
     }
 }

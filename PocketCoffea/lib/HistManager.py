@@ -1,4 +1,5 @@
 import hist
+import awkward as ak
 from collections import namedtuple
 from typing import List, Tuple
 from dataclasses import dataclass, field
@@ -112,8 +113,8 @@ class HistManager():
                          cats.append(c)
                  else:
                          cats.append(c)
-
-             cat_ax = hist.axis.StrCategory(cats, label="cat", growth=False)
+             cat_ax = hist.axis.StrCategory(cats,name="cat", label="Category", growth=False)
+             
              # Variation axes
              if hcfg.variations:
                  #Get all the variation
@@ -129,9 +130,9 @@ class HistManager():
                                                [var+"Up" for var in allvariat] + \
                                                [var+"Down" for var in allvariat]
                  var_ax = hist.axis.StrCategory(hcfg.only_variations,
-                                                label="variation", growth=False)
+                                                name="variation", label="Variation", growth=False)
              else:
-                 var_ax = hist.axis.StrCategory(["nominal"], label="variation", growth=False)
+                 var_ax = hist.axis.StrCategory(["nominal"],name="variation", label="Variation", growth=False)
                  hcfg.only_variations = ["nominal"]
 
              # Axis in the configuration + custom axes
@@ -152,7 +153,7 @@ class HistManager():
 
 
     def get_histograms(self):
-        return { key:h.histo for key, h in self._hist_objs.items()}
+        return { key:h for key, h in self._hist_objs.items()}
 
     def fill_histograms(self, events, weights, cuts_masks, custom_fields=None):
         '''
@@ -163,9 +164,13 @@ class HistManager():
             # Skipping not autofill histograms
             if histo.autofill == False: continue
             hobj = self._hist_objs[name]
+            #print(name, histo)
+            #print("axes", hobj.axes)
+
             # Loop on the categories
-            for category in histo.hobj.axes[0]: #first axis is the category
-                for variation in histo.hobj.axes[1]: #second axis is alway the variation
+            for category in hobj.axes[0]: #first axis is the category
+                for variation in hobj.axes[1]: #second axis is alway the variation
+                    # print(category, variation)
                     fill_categorical = {
                         "cat":category,
                         "variation": variation
@@ -175,7 +180,7 @@ class HistManager():
                     # Getting the cut mask
                     mask = cuts_masks.all(*self.categories_config[category])
                     if variation == "nominal":
-                        weight = weights.get_weight(category)[masks]
+                        weight = weights.get_weight(category)[mask]
                     else:
                         weight = weights.get_weight(category, modifier=variation)[mask]
 
@@ -185,6 +190,7 @@ class HistManager():
                     # Looping on Axis definition to get the collection and metadata
                     # all the axes have been included in the configuration object
                     for ax in histo.axes:
+                        #print(ax)
                         # Checkout the collection type
                         if ax.type in ["regular", "variable", "int"]:
                             if ax.coll == "events":
@@ -205,9 +211,9 @@ class HistManager():
                                 data = custom_fields[mask][ax.field]
                             else:
                                 raise NotImplementedError()
-                                                            
+                            #print(data)
                             # Flattening
-                            if data.dim > 1:
+                            if data.ndim > 1:
                                 # it needs to be flattened
                                 # and the weight must be brought down in the dimension
                                 if flattened == False:
@@ -217,7 +223,7 @@ class HistManager():
                                 data = ak.flatten(data)
                             # Filling the numerical axes
                             fill_numeric[ax.field] = data
-                                
+                            #print(data)
                             # check isnotnone
                             if global_isnotnone==None:
                                 global_isnotnone = ~ak.is_none(data)
@@ -247,4 +253,5 @@ class HistManager():
                     # If the globalisnone mask is failing the number of objects will be different and everything will crash
 
                     # Finally fit the histogram
-                    hobj.fill(**fill_categorical, **fill_numeric)
+                    #print({**fill_categorical, **fill_numeric})
+                    hobj.fill(**{**fill_categorical, **fill_numeric})

@@ -16,7 +16,7 @@ common_settings = {
         'jet_pt'                   : {"field":"pt", "bins": 150, "start":0, 'stop' : 1500, "lim" : (0,500), 'label' : "$p_{T}^{j}$ [GeV]"},
         'jet_eta'                  : {"field":"eta", "bins": 80, "start":-4, 'stop' : 4, "lim" : (-4,4),  'label' : "$\eta_{j}$"},
         'jet_phi'                  : {"field":"phi", "bins": 128, "start":-math.pi, 'stop' : math.pi, "lim" : (-math.pi,math.pi),'label' : "$\phi_{j}$"},
-        'jet_btagDeepFlavB'        : {"field":"btagDeepFlav", "bins": 50, "start":0, 'stop' : 1, "lim":(0, 1),'label' : "AK4 DeepJet b-tag score"},
+        'jet_btagDeepFlavB'        : {"field":"btagDeepFlavB", "bins": 50, "start":0, 'stop' : 1, "lim":(0, 1),'label' : "AK4 DeepJet b-tag score"},
 
         'parton_pt'                : {"field":"pt", "bins": 150, "start":0, 'stop' : 1500, "lim" : (0,500), 'label' : "$p_{T}^{parton}$ [GeV]"},
         'parton_eta'               : {"field":"eta", "bins": 80, "start":-4, 'stop' : 4, "lim" : (-4,4),  'label' : "$\eta_{parton}$"},
@@ -59,10 +59,8 @@ def _get_default_hist(name, type, coll, pos=None, fields=None):
 def default_hists_jet(name, coll="JetGood", pos=None, fields=None):
     return _get_default_hist(name, "jet", coll, pos, fields)
 
-
 def default_hists_parton(name, coll="PartonMatched",  pos=None,fields=None):
     return _get_default_hist(name, "parton", coll, pos, fields)
-
 
 def default_hists_ele(name, coll="ElectronGood", pos=None, fields=None):
      return _get_default_hist(name, "electron", coll, pos, fields)

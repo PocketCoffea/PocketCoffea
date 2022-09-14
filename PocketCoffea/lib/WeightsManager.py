@@ -67,12 +67,14 @@ class WeightsManager():
                 if w not in _weightsCache:
                     _weightsCache[w] = self._compute_weight(w, events)
                 for we in _weightsCache[w]:
+                    # print(we)
                     weight_obj.add(*we)
             # If the Weight is a Custom weight just run the function
             elif isinstance(w, WeightCustom):
                 if w.name not in _weightsCache:
                     _weightsCache[w.name] =  w.function( self._weights_incl, events)
                 for we in _weightsCache[w.name]:
+                    # print(we)
                     weight_obj.add(*we)
 
         # Compute first the inclusive weights
@@ -116,7 +118,6 @@ class WeightsManager():
         elif weight_name == 'sf_btag':
             btag_vars = btag_variations[self._year]
             # Get all the nominal and variation SF
-            print(events.metadata)
             btagsf = sf_btag(events.JetGood,btag[self._year]['btagging_algorithm'] ,
                              self._year, variations=["central"]+btag_vars,
                              njets = events.nJetGood)
@@ -127,7 +128,7 @@ class WeightsManager():
                 # as separate entries in the Weights object.
                 btagsf[var][1] = btagsf[var][1]/ btagsf["central"][0]
                 btagsf[var][2] = btagsf[var][2] / btagsf["central"][0]
-
+                
             return [(f"sf_btag_{var}", *weights) for var, weights in btagsf.items()]
 
         elif weight_name == 'sf_btag_calib':
@@ -158,11 +159,11 @@ class WeightsManager():
         If category!=None but weights_split_bycat=False, the inclusive weight is returned.
         Otherwise the inclusive*category specific weight is returned.
         '''
-        if category==None or self.weightsConfig["is_split_bycat"] == False:
+        if category==None or self.weightsConf["is_split_bycat"] == False:
             # return the inclusive weight
             return self._weightsIncl.weight(modifier=modifier)
         
-        elif category and self.weightsConfig["is_split_bycat"] == True:
+        elif category and self.weightsConf["is_split_bycat"] == True:
             if category not in self._categories:
                 raise Exception(f"Requested weights for non-existing category: {category}")
             # moltiply the inclusive weight and the by category one
