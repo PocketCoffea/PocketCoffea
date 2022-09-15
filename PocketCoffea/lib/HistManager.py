@@ -172,7 +172,9 @@ class HistManager():
                     }
                 fill_numeric = {}
                 ndim = None
+                has_none_mask = False
                 global_isnotnone = None
+                has_data_structure = False
                 data_structure = None
                 # Getting the cut mask
                 mask = cuts_masks.all(*self.categories_config[category])
@@ -212,17 +214,19 @@ class HistManager():
                         if data.ndim > 1:
                             ndim = data.ndim
                             # Save the data structure for weights propagation
-                            if data_structure == None:
+                            if not has_data_structure:
                                 data_structure = ak.ones_like(data)
+                                had_data_structure = True
                             #flatten the data in one dimension
                             data = ak.flatten(data)
                         # Filling the numerical axes
                         fill_numeric[ax.field] = data
                         # check isnotnone
-                        if global_isnotnone==None:
-                            global_isnotnone = ~ak.is_none(data)
+                        if not has_none_mask:  # this is the first axis analyzed
+                            global_isnotnone = (~ak.is_none(data))
+                            has_none_mask = True
                         else:
-                            global_isnotnone &= ~ak.is_none(data)
+                            global_isnotnone = global_isnotnone & (~ak.is_none(data))
                         # The nontnone filter will be applied at the end
                         # to all the numerical axes
 

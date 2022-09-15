@@ -213,7 +213,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             
     def define_categories(self):
         for cut in self._cuts:
-            mask = cut.get_mask(self.events, year=self._year, sample=self._sample)
+            mask = cut.get_mask(self.events, year=self._year, sample=self._sample, isMC=self._isMC )
             self._cuts_masks.add(cut.id, mask)
         # We make sure that for each category the list of cuts is unique in the Configurator validation
 

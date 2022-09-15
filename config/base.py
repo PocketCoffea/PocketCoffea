@@ -28,7 +28,7 @@ cfg =  {
         "walltime"       : "05:00:00",
         "mem_per_worker" : "10GB", # GB
         "exclusive"      : False,
-        "chunk"          : 400000,
+        "chunk"          : 300000,
         "retries"        : 30,
         "treereduction"  : 10,
         "max"            : None,
@@ -99,5 +99,23 @@ cfg =  {
         **jet_hists(coll="BJetGood", pos=2),
         **jet_hists(coll="BJetGood", pos=3),
         **jet_hists(coll="BJetGood", pos=4),
+
+        # 2D plots
+        "jet_eta_pt_leading": HistConf(
+            [
+                Axis(coll="JetGood", field="pt", pos=0, bins=40, start=0, stop=1000,
+                     label="Leading jet $p_T$"),
+                Axis(coll="JetGood", field="eta", pos=0, bins=40, start=-2.4, stop=2.4,
+                     label="Leading jet $\eta$")
+            ]
+        ),
+        "jet_eta_pt_all": HistConf(
+            [
+                Axis(coll="JetGood", field="pt", bins=40, start=0, stop=1000,
+                     label="Leading jet $p_T$"),
+                Axis(coll="JetGood", field="eta", bins=40, start=-2.4, stop=2.4,
+                     label="Leading jet $\eta$")
+            ]
+        )
     }
 }

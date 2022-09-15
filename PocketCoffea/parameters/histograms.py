@@ -2,7 +2,7 @@ from ..lib.HistManager import Axis, HistConf
 import math
 
 
-common_settings = {
+default_axis_settings = {
         'muon_pt'                  : {"field":"pt", "bins": 200, "start":0, 'stop' : 1000, "lim" : (0,500), 'label' : "$p_{T}^{\mu}$ [GeV]"},
         'muon_eta'                 : {"field":"eta", "bins": 80, "start":-4, 'stop' : 4 , "lim" : (-4,4),  'label' : "$\eta_{\mu}$"},
         'muon_phi'                 : {"field":"phi", "bins": 128, "start":-math.pi, 'stop' : math.pi, "lim" : (-math.pi,math.pi), 'label' : "$\phi_{\mu}$"},
@@ -14,7 +14,7 @@ common_settings = {
                                       'lim' : (-2.5,2.5), 'label' : "Electron Supercluster $\eta$", "type":"variable"},
         'electron_phi'             : {"field":"phi", "bins": 128, "start":-math.pi, 'stop' : math.pi, "lim" : (-math.pi,math.pi),'label' : "$\phi_{e}$"},
         'jet_pt'                   : {"field":"pt", "bins": 150, "start":0, 'stop' : 1500, "lim" : (0,500), 'label' : "$p_{T}^{j}$ [GeV]"},
-        'jet_eta'                  : {"field":"eta", "bins": 80, "start":-4, 'stop' : 4, "lim" : (-4,4),  'label' : "$\eta_{j}$"},
+        'jet_eta'                  : {"field":"eta", "bins": 100, "start":-3, 'stop' : 3, "lim" : (-3,3),  'label' : "$\eta_{j}$"},
         'jet_phi'                  : {"field":"phi", "bins": 128, "start":-math.pi, 'stop' : math.pi, "lim" : (-math.pi,math.pi),'label' : "$\phi_{j}$"},
         'jet_btagDeepFlavB'        : {"field":"btagDeepFlavB", "bins": 50, "start":0, 'stop' : 1, "lim":(0, 1),'label' : "AK4 DeepJet b-tag score"},
 
@@ -42,7 +42,7 @@ def _get_default_hist(name, type, coll, pos=None, fields=None):
     for field in collection_fields[type]:
         if fields == None or field in fields:
             hist_name = f"{name}_{field}"
-            setting = common_settings[f"{type}_{field}"]
+            setting = default_axis_settings[f"{type}_{field}"]
             setting["coll"] = coll
             # If the position argument is given the histogram is
             # created for the specific position

@@ -244,7 +244,6 @@ class Configurator():
         #Read the config and save the list of variations names for each sample (and category if needed)
         wcfg = self.cfg["variations"]["weights"]
         # TODO Add shape variations
-        print(available_variations)
         if "common" not in wcfg:
             print("Variation configuration error: missing 'common' weights key")
             raise Exception("Wrong variation configuration")
@@ -297,8 +296,8 @@ class Configurator():
                                     raise Exception("Wrong variation configuration")
                             self.variations_config[sample]["weights"][cat].append(w)
                 
-        print("Variation configuration")
-        pprint(self.variations_config)
+        # print("Variation configuration")
+        # pprint(self.variations_config)
  
         
     def overwrite_check(self):
