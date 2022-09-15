@@ -250,8 +250,11 @@ class HistManager():
                     # Apply the isnone mask to weights
                     weight = weight[global_isnotnone]
 
-                    # If the globalisnone mask is failing the number of objects will be different and everything will crash
+                    # If the globalisnone mask is failing the number of
+                    #objects will be different and everything will crash
 
                     # Finally fit the histogram
                     #print({**fill_categorical, **fill_numeric})
-                    hobj.fill(**{**fill_categorical, **fill_numeric})
+                    hobj.fill(**{**fill_categorical,
+                                 **fill_numeric,},
+                              weight=weight)

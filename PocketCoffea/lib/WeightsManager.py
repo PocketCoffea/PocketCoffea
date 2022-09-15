@@ -17,10 +17,10 @@ from ..parameters.btag import btag, btag_variations
 @dataclass
 class WeightCustom():
     name: str
-    function: Callable[[ak.Array, Weights], ak.Array]
+    function: Callable[[ak.Array, Weights, dict], ak.Array]
     variations: List[str] = None
 
-
+    
 class WeightsManager():    
     '''
     The WeightManager class handles the
@@ -36,8 +36,10 @@ class WeightsManager():
     @classmethod
     def available_weights(cls):
         return set(['genWeight', 'lumi', 'XS', 'pileup',
-                'sf_ele_reco_id', 'sf_mu_id_iso', 'sf_btag',
-                'sf_btag_calib', 'sf_jet_puId'])
+                    'sf_ele_reco', 'sf_ele_id',
+                    'sf_mu_id', 'sf_mu_iso',
+                    'sf_btag', 'sf_btag_calib',
+                    'sf_jet_puId'])
 
     @classmethod
     def available_variations(cls):
@@ -72,7 +74,7 @@ class WeightsManager():
             # If the Weight is a Custom weight just run the function
             elif isinstance(w, WeightCustom):
                 if w.name not in _weightsCache:
-                    _weightsCache[w.name] =  w.function( self._weights_incl, events)
+                    _weightsCache[w.name] =  w.function(self._weights_incl, events, metadata)
                 for we in _weightsCache[w.name]:
                     # print(we)
                     weight_obj.add(*we)
@@ -83,8 +85,8 @@ class WeightsManager():
 
         # Now weights for dedicated categories
         if self.weightsConf["is_split_bycat"]:
-            #Create the weights object only if for the current sample there is a weights_by_category
-            #configuration
+            #Create the weights object only if for the current sample
+            #there is a weights_by_category configuration
             for cat, ws in self.weightsConf["bycategory"].items():
                 if len(ws) == 0: continue
                 self._weightsByCat[cat] = Weights(size, storeIndividual)
@@ -96,7 +98,13 @@ class WeightsManager():
                        
     def _compute_weight(self, weight_name, events):
         '''
-        Predefined common weights
+        Predefined common weights.
+        The function return a list of tuples containing a
+        weighs and its variations in each tuple.
+        [("name", nominal, up, donw),
+         ("name", nominal, up, down)]
+        Each variation is then added to the Weights object by the caller
+        in the constructor. 
         '''
         if weight_name == "genWeight":
             return [('genWeight', events.genWeight)]
@@ -107,14 +115,16 @@ class WeightsManager():
         elif weight_name == 'pileup':
             # Pileup reweighting with nominal, up and down variations
             return [('pileup', *sf_pileup_reweight(events, self._year))]
-        elif weight_name == 'sf_ele_reco_id':
+        elif weight_name == 'sf_ele_reco':
             # Electron reco and id SF with nominal, up and down variations
-            return [('sf_ele_reco', *sf_ele_reco(events, self._year)),
-                    ('sf_ele_id',   *sf_ele_id(events, self._year))]
-        elif weight_name == 'sf_mu_id_iso':
+            return [('sf_ele_reco', *sf_ele_reco(events, self._year))]
+        elif weight_name == "sf_ele_id":
+            return [('sf_ele_id',   *sf_ele_id(events, self._year))]
+        elif weight_name == 'sf_mu_id':
             # Muon id and iso SF with nominal, up and down variations
-            return [('sf_mu_id',  *sf_mu(events, self._year, 'id')),
-                    ('sf_mu_iso', *sf_mu(events, self._year, 'iso'))]
+            return [('sf_mu_id',  *sf_mu(events, self._year, 'id'))]
+        elif weight_name == "sf_mu_iso":
+            return [('sf_mu_iso', *sf_mu(events, self._year, 'iso'))]
         elif weight_name == 'sf_btag':
             btag_vars = btag_variations[self._year]
             # Get all the nominal and variation SF
@@ -167,7 +177,8 @@ class WeightsManager():
             if category not in self._categories:
                 raise Exception(f"Requested weights for non-existing category: {category}")
             # moltiply the inclusive weight and the by category one
-            return self._weightsIncl.weight(modifier=modifier) * self._weightsByCat[category].weight(modifier=modifier)
+            return self._weightsIncl.weight(modifier=modifier) * \
+                self._weightsByCat[category].weight(modifier=modifier)
 
 
     

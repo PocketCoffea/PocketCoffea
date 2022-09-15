@@ -60,15 +60,15 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # Accumulators for the output
         self.output_format = {
             "sum_genweights": {},
-            "sumw":  {cat: defaultdict(float) for cat in self._categories},
+            "sumw":  {cat: { s: 0. for s in self.cfg.samples } for cat in self._categories},
             "cutflow": {
-                "initial" : defaultdict(int),
-                "skim": defaultdict(int),
-                "presel": defaultdict(int),
-                **{cat: defaultdict(int) for cat in self._categories}
+                "initial" : { s: 0 for s in self.cfg.samples },
+                "skim":     { s: 0 for s in self.cfg.samples },
+                "presel":   { s: 0 for s in self.cfg.samples },
+                **{cat: { s: 0. for s in self.cfg.samples } for cat in self._categories}
             },
             "seed_chunk": defaultdict(str),
-            "variables": defaultdict(dict),
+            "variables": { s : {} for s in self.cfg.samples},
             "columns" :  {cat: {} for cat in self._categories}
         }
 
@@ -229,7 +229,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         if not self._isMC: return
         # Creating the WeightsManager with all the configured weights
         self.weights_manager = WeightsManager(self.weights_config_allsamples[self._sample],
-                                             self.nEvents_after_presel, self.events,
+                                              self.nEvents_after_presel, self.events,
                                               storeIndividual=False,
                                               metadata={
                                                   "year": self._year,
@@ -361,8 +361,6 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         for sample, hists in accumulator["variables"].items():
              for h in hists.values():
                  h *= scale_genweight[sample]
-
         accumulator["scale_genweight"] = scale_genweight
-        
         return accumulator
  
