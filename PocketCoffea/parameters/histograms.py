@@ -70,9 +70,9 @@ def default_hists_muon(name, coll="MuonGood",  pos=None, fields=None):
 
 def default_hists_count(name, coll, bins=10, start=0, stop=9, label=None):
     return {
-        f"hist_{name}": HistConf(axes=[
+        f"{name}": HistConf(axes=[
         Axis(coll="events", field=f"n{coll}",
-             label=f"$N_{{{coll}}}",
+             label=f"$N_{{{coll}}}$",
              bins=bins, start=start, stop=stop)
         ])
     }

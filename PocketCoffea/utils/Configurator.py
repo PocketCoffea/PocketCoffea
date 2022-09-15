@@ -11,6 +11,7 @@ from ..lib.cut_definition import Cut
 from ..lib.WeightsManager import WeightCustom
 from ..lib.HistManager import Axis, HistConf
 
+
 class Configurator():
     def __init__(self, cfg, overwrite_output_dir=None, plot=False, plot_version=None):
         # Load config file and attributes
@@ -243,6 +244,7 @@ class Configurator():
         #Read the config and save the list of variations names for each sample (and category if needed)
         wcfg = self.cfg["variations"]["weights"]
         # TODO Add shape variations
+        print(available_variations)
         if "common" not in wcfg:
             print("Variation configuration error: missing 'common' weights key")
             raise Exception("Wrong variation configuration")

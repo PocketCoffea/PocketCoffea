@@ -43,10 +43,11 @@ class WeightsManager():
 
     @classmethod
     def available_variations(cls):
-        return set(["nominal", "pileup","sf_ele_reco", "sf_ele_id",
-                "sf_mu_id", "sf_mu_iso","sf_jet_puId"] + \
-                list(chain.from_iterable(btag_variations)))
-
+        out = ["nominal", "pileup","sf_ele_reco", "sf_ele_id",
+                "sf_mu_id", "sf_mu_iso","sf_jet_puId"]
+        for year, bvars in btag_variations.items():
+            out += [ f"sf_btag_{var}" for var in bvars]
+        return set(out)
 
     def __init__(self, weightsConf, size, events, metadata, storeIndividual=False):
         self._sample = metadata["sample"]

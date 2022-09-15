@@ -121,10 +121,10 @@ class HistManager():
                  allvariat = []
                  for c in cats:
                      allvariat += self.variations_config["weights"][c]
-                     
+                 allvariat = set(allvariat) 
                  if hcfg.only_variations !=None:
                      # filtering the variation list with the available ones
-                     allvariat =  list(filter(lambda v: v in hcfg.only_variations, allvariat))
+                     allvariat =  set(filter(lambda v: v in hcfg.only_variations, allvariat))
                     
                  hcfg.only_variations = ["nominal"] + \
                                                [var+"Up" for var in allvariat] + \
@@ -170,6 +170,10 @@ class HistManager():
             # Loop on the categories
             for category in hobj.axes[0]: #first axis is the category
                 for variation in hobj.axes[1]: #second axis is alway the variation
+                    # Using directly the axes of the histogram
+                    # we are sure to use only the variations configured by the user
+                    # If not variations are requested only the "nominal"
+                    # variation is present.
                     # print(category, variation)
                     fill_categorical = {
                         "cat":category,
@@ -178,7 +182,7 @@ class HistManager():
                     fill_numeric = {}
 
                     # Getting the cut mask
-                    mask = cuts_masks.all(*self.categories_config[category])
+                    mask = cuts_masks.all(*self.categories_config[category]) # Move this out
                     if variation == "nominal":
                         weight = weights.get_weight(category)[mask]
                     else:
@@ -190,6 +194,7 @@ class HistManager():
                     # Looping on Axis definition to get the collection and metadata
                     # all the axes have been included in the configuration object
                     for ax in histo.axes:
+                        # Move all of this output of the variation
                         #print(ax)
                         # Checkout the collection type
                         if ax.type in ["regular", "variable", "int"]:

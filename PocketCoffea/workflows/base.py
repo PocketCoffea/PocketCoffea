@@ -8,7 +8,7 @@ import awkward as ak
 from collections import defaultdict
 
 import coffea
-from coffea import processor, lookup_tools, hist
+from coffea import processor, lookup_tools
 from coffea.processor import column_accumulator
 from coffea.lumi_tools import LumiMask #, LumiData
 from coffea.analysis_tools import PackedSelection, Weights
@@ -68,7 +68,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                 **{cat: { s: 0. for s in self.cfg.samples } for cat in self._categories}
             },
             "seed_chunk": defaultdict(str),
-            "variables": { s : {} for s in self.cfg.samples},
+            "variables": { v: {} for v in self.cfg.variables.keys()},
             "columns" :  {cat: {} for cat in self._categories}
         }
 
@@ -256,7 +256,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                                            self._cuts_masks,
                                            custom_fields=None)
         # Saving in the output the filled histograms for the current sample
-        self.output["variables"][self._sample].update(self.hists_manager.get_histograms())
+        for var, H in self.hists_manager.get_histograms().items():
+            self.output["variables"][var][self._sample] = H
         
     def process_extra_before_skim(self):
         pass
@@ -358,8 +359,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             for cat in self._categories:
                 accumulator["sumw"][cat][sample] *= scale_genweight[sample]
 
-        for sample, hists in accumulator["variables"].items():
-             for h in hists.values():
+        for var, hists in accumulator["variables"].items():
+             for sample, h in hists.items():
                  h *= scale_genweight[sample]
         accumulator["scale_genweight"] = scale_genweight
         return accumulator
