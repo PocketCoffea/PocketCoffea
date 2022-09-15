@@ -1,5 +1,6 @@
 import awkward as ak
 from .cut_definition import Cut
+from ..parameters.btag import btag
 
 def passthrough(events, **kargs):
     return ak.full_like(events.event, True, dtype=bool)
@@ -22,6 +23,8 @@ def count_objects_eq(events,params,year,sample):
 # Min number of objects with pt cut
 
 def nObj(events, params, **kwargs):
+    if f"n{params['coll']}" in events.fields:
+        return events[f"n{params['coll']}"] >= params["N"]
     return ak.num(events[params['coll']]) >= params["N"]
 
 def nObj_minPt(events, params, **kwargs):
@@ -49,11 +52,12 @@ def get_nObj(N, minpt=None, coll="JetGood", name=None):
 ##########################################
 # Min b-tagged jets with custom collection
 
-def nBtag(events, params, btag, **kwargs):
+def nBtag(events, params, year, **kwargs):
     ''' Mask for min N jets with minpt and passing btagging.
     The btag params will come from the processor, not from the parameters
     '''
     if params["coll"] == "BJetGood":
+        # No need to apply the btaggin on the jet 
         # Assume that the collection of clean bjets has been created
         if params["minpt"] > 0.:
             return ak.sum((events.BJetGood.pt >= params["minpt"]),
@@ -61,15 +65,16 @@ def nBtag(events, params, btag, **kwargs):
         else:
             return events.nBJetGood >= params["N"]
     else:
+        btagparam = btag[year]
         if params["minpt"] > 0.:
-            return ak.sum((events[params["coll"]][btag["btagging_algorithm"]] > btag["btagging_WP"]) &
+            return ak.sum((events[params["coll"]][btagparam["btagging_algorithm"]] > btagparam["btagging_WP"]) &
                       (events[params["coll"]].pt >= params["minpt"]),
                       axis=1) >= params["N"]
         else:
-            return ak.sum((events[params["coll"]][btag["btagging_algorithm"]] > btag["btagging_WP"]),
+            return ak.sum((events[params["coll"]][btagparam["btagging_algorithm"]] > btagparam["btagging_WP"]),
                       axis=1) >= params["N"]
  
-def get_nBtag(N, minpt=0, coll="JetGood", name=None):
+def get_nBtag(N, minpt=0, coll="BJetGood", name=None):
     if name == None:
         name = f"n{coll}_btag_{N}_pt{minpt}"
     return Cut(

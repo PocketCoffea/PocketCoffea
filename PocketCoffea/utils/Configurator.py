@@ -22,6 +22,7 @@ class Configurator():
         self.load_attributes()
 
         # Load dataset
+        self.fileset = {}
         self.samples = []
         self.years = []
         self.load_dataset()
@@ -105,7 +106,6 @@ class Configurator():
             self.plots = os.path.join( os.path.abspath(self.output), "plots" )
 
     def load_dataset(self):
-        self.fileset = {}
         for json_dataset in self.dataset["jsons"]:
             ds_dict = json.load(open(json_dataset))
             ds_filter = self.dataset.get("filter",None)

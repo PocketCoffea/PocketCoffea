@@ -164,102 +164,113 @@ class HistManager():
             # Skipping not autofill histograms
             if histo.autofill == False: continue
             hobj = self._hist_objs[name]
-            #print(name, histo)
-            #print("axes", hobj.axes)
 
             # Loop on the categories
             for category in hobj.axes[0]: #first axis is the category
+                fill_categorical = {
+                        "cat":category,
+                    }
+                fill_numeric = {}
+                ndim = None
+                global_isnotnone = None
+                data_structure = None
+                # Getting the cut mask
+                mask = cuts_masks.all(*self.categories_config[category])
+                # Looping on Axis definition to get the collection and metadata
+                # all the axes have been included in the configuration object
+                for ax in histo.axes:
+                    # Move all of this output of the variation
+                    # Checkout the collection type
+                    if ax.type in ["regular", "variable", "int"]:
+                        if ax.coll == "events":
+                            # These are event level information
+                            data = events[mask][ax.field]
+                        elif ax.coll == "metadata":
+                            data = events.metadata[ax.field]
+                        elif ax.coll not in ["events", "metadata"]:
+                            # General collections
+                            if ax.pos == None:
+                                data = events[mask][ax.coll][ax.field]
+                            elif ax.pos >=0:
+                                data = ak.pad_none(events[mask][ax.coll][ax.field], ax.pos+1, axis=1)[:,ax.pos]
+                            else:
+                                raise Exception(f"Invalid position {ax.pos} requested for collection {ax.coll}")
+                        elif ax.coll == "custom":
+                            # taking the data from the custom_fields argument
+                            data = custom_fields[mask][ax.field]
+                        else:
+                            raise NotImplementedError()
+
+                        # Flattening
+                        if ndim == None:
+                            ndim = data.ndim
+                        elif ndim !=  data.ndim:
+                            raise Exception(f"Incompatible shapes for Axis {ax} of hist {histo}")
+                        # If we have multidim data we need to flatten it
+                        # and to save the structure to reflatten the weights
+                        # accordingly
+                        if data.ndim > 1:
+                            ndim = data.ndim
+                            # Save the data structure for weights propagation
+                            if data_structure == None:
+                                data_structure = ak.ones_like(data)
+                            #flatten the data in one dimension
+                            data = ak.flatten(data)
+                        # Filling the numerical axes
+                        fill_numeric[ax.field] = data
+                        # check isnotnone
+                        if global_isnotnone==None:
+                            global_isnotnone = ~ak.is_none(data)
+                        else:
+                            global_isnotnone &= ~ak.is_none(data)
+                        # The nontnone filter will be applied at the end
+                        # to all the numerical axes
+
+                    #### --> end of numeric axes
+                    # Categorical axes (not appling the mask)
+                    else:
+                        if ax.coll == "metadata":
+                            data = events.metadata[ax.field]
+                            fill_categorical[ax.field] = data
+                        elif ax.coll == "custom":
+                            # taking the data from the custom_fields argument
+                            data = custom_fields[ax.field]
+                            fill_categorical[ax.field] = data
+                        else:
+                            raise NotImplementedError()
+
+                # Now apply the isnone mask to all the numeric fileds
+                for key, value in fill_numeric.items():
+                    fill_numeric[key] = value[global_isnotnone]
+                            
+                # Only weights variations for the moment 
                 for variation in hobj.axes[1]: #second axis is alway the variation
                     # Using directly the axes of the histogram
                     # we are sure to use only the variations configured by the user
                     # If not variations are requested only the "nominal"
                     # variation is present.
-                    # print(category, variation)
-                    fill_categorical = {
-                        "cat":category,
-                        "variation": variation
-                    }
-                    fill_numeric = {}
-
-                    # Getting the cut mask
-                    mask = cuts_masks.all(*self.categories_config[category]) # Move this out
+                    # Weights are masked. If the ndim of data > 1 the weights
+                    # are propagated and then flattened.
+                    # Finally the isNone mask is applied
+                    fill_categorical["variation"] = variation
                     if variation == "nominal":
                         weight = weights.get_weight(category)[mask]
                     else:
                         weight = weights.get_weight(category, modifier=variation)[mask]
 
-                    flattened = False
-                    global_isnotnone = None
-
-                    # Looping on Axis definition to get the collection and metadata
-                    # all the axes have been included in the configuration object
-                    for ax in histo.axes:
-                        # Move all of this output of the variation
-                        #print(ax)
-                        # Checkout the collection type
-                        if ax.type in ["regular", "variable", "int"]:
-                            if ax.coll == "events":
-                                # These are event level information
-                                data = events[mask][ax.field]
-                            elif ax.coll == "metadata":
-                                data = events.metadata[ax.field]
-                            elif ax.coll not in ["events", "metadata"]:
-                                # General collections
-                                if ax.pos == None:
-                                    data = events[mask][ax.coll][ax.field]
-                                elif ax.pos >=0:
-                                    data = ak.pad_none(events[mask][ax.coll][ax.field], ax.pos, axis=1)
-                                else:
-                                    raise Exception(f"Invalid position {ax.pos} requested for collection {ax.coll}")
-                            elif ax.coll == "custom":
-                                # taking the data from the custom_fields argument
-                                data = custom_fields[mask][ax.field]
-                            else:
-                                raise NotImplementedError()
-                            #print(data)
-                            # Flattening
-                            if data.ndim > 1:
-                                # it needs to be flattened
-                                # and the weight must be brought down in the dimension
-                                if flattened == False:
-                                    weight = ak.flatten(ak.ones_like(data) * weight)
-                                    flattened = True
-                                #flatten the data in one dimension
-                                data = ak.flatten(data)
-                            # Filling the numerical axes
-                            fill_numeric[ax.field] = data
-                            #print(data)
-                            # check isnotnone
-                            if global_isnotnone==None:
-                                global_isnotnone = ~ak.is_none(data)
-                            else:
-                                global_isnotnone &= ~ak.is_none(data)
-                            # The nontnone filter will be applied at the end
-                                                    
-
-                        #### --> end of numeric axes
-                        # Categorical axes (not appling the mask)
-                        else:
-                            if ax.coll == "metadata":
-                                data = events.metadata[ax.field]
-                                fill_categorical[ax.field] = data
-                            elif ax.coll == "custom":
-                                # taking the data from the custom_fields argument
-                                data = custom_fields[ax.field]
-                            else:
-                                raise NotImplementedError()
-
-                    # Now apply the isnone mask to all the numeric fileds
-                    for key, value in fill_numeric.items():
-                        value = value[global_isnotnone]
+                    # it needs to be flattened
+                    # and the weight must be brought down in the dimension
+                    # COntinue from here
+                    if ndim > 1:
+                        # Propagate the weights to other axis and flatten
+                        weight = ak.flatten(data_structure * weight)
+                    
                     # Apply the isnone mask to weights
                     weight = weight[global_isnotnone]
 
                     # If the globalisnone mask is failing the number of
                     #objects will be different and everything will crash
-
                     # Finally fit the histogram
-                    #print({**fill_categorical, **fill_numeric})
                     hobj.fill(**{**fill_categorical,
                                  **fill_numeric,},
                               weight=weight)

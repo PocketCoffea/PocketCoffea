@@ -46,9 +46,10 @@ def _get_default_hist(name, type, coll, pos=None, fields=None):
             setting["coll"] = coll
             # If the position argument is given the histogram is
             # created for the specific position
-            if pos:
+            if pos!=None:
                 setting["pos"] = pos
-                hist_name += f"_{pos}"
+                # Avoid 0-indexing for the name of the histogram
+                hist_name += f"_{pos+1}"
                 
             out[hist_name] = HistConf(
                 axes=[Axis(**setting)]
@@ -56,19 +57,19 @@ def _get_default_hist(name, type, coll, pos=None, fields=None):
     return out
 
     
-def default_hists_jet(name, coll="JetGood", pos=None, fields=None):
+def jet_hists(name="jet", coll="JetGood", pos=None, fields=None):
     return _get_default_hist(name, "jet", coll, pos, fields)
 
-def default_hists_parton(name, coll="PartonMatched",  pos=None,fields=None):
+def parton_hists(name="parton", coll="PartonMatched",  pos=None,fields=None):
     return _get_default_hist(name, "parton", coll, pos, fields)
 
-def default_hists_ele(name, coll="ElectronGood", pos=None, fields=None):
+def ele_hists(name="ele", coll="ElectronGood", pos=None, fields=None):
      return _get_default_hist(name, "electron", coll, pos, fields)
 
-def default_hists_muon(name, coll="MuonGood",  pos=None, fields=None):
+def muon_hists(name="muon", coll="MuonGood",  pos=None, fields=None):
     return _get_default_hist(name, "muon", coll, pos, fields)
 
-def default_hists_count(name, coll, bins=10, start=0, stop=9, label=None):
+def count_hist(name, coll, bins=10, start=0, stop=9, label=None):
     return {
         f"{name}": HistConf(axes=[
         Axis(coll="events", field=f"n{coll}",
@@ -76,7 +77,6 @@ def default_hists_count(name, coll, bins=10, start=0, stop=9, label=None):
              bins=bins, start=start, stop=stop)
         ])
     }
-
 
 
 
