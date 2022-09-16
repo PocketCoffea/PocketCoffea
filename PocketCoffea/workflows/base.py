@@ -1,3 +1,4 @@
+import sys
 import os
 import tarfile
 import json
@@ -196,7 +197,10 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.events["nJetGood"]      = ak.num(self.events.JetGood)
         self.events["nBJetGood"]     = ak.num(self.events.BJetGood)
         #self.events["nfatjet"]   = ak.num(self.events.FatJetGood)
- 
+
+    # Function that defines common variables employed in analyses and save them as attributes of `events`
+    def define_common_variables(self):
+        self.events["ht"] = ak.sum(abs(self.events.JetGood.pt), axis=1)
 
     def apply_preselections(self):
         ''' The function computes all the masks from the preselection cuts
@@ -281,6 +285,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     def process_extra_after_presel(self):
         pass
     
+    def define_common_variables_extra(self):
+        pass
+
     def fill_histograms_extra(self):
         pass
     
@@ -334,6 +341,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # Apply preselections
         self.apply_object_preselection()
         self.count_objects()
+        self.define_common_variables()
         # Customization point for derived workflows after preselection cuts
         self.process_extra_before_presel()
         

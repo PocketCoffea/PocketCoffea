@@ -175,8 +175,6 @@ def sf_btag_calib(sample, year, njets, jetsHt):
     w = corr.evaluate(sample, year, ak.to_numpy(njets), ak.to_numpy(jetsHt))
     return w
 
-    
-
 def sf_jet_puId(jets, finalstate, year, njets):
     # The SF is applied only on jets passing the preselection (JetGood), pt < maxpt, and matched to a GenJet.
     # In other words the SF is not applied on jets not passing the Jet Pu ID SF.
