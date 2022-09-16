@@ -1,8 +1,8 @@
 from PocketCoffea.parameters.cuts.baseline_cuts import semileptonic_triggerSF_presel, passthrough
 from PocketCoffea.lib.cut_functions import get_nObj
 from PocketCoffea.workflows.semileptonic_triggerSF import semileptonicTriggerProcessor
-from config.semileptonic_triggerSF.functions import get_trigger_passfail
-from config.semileptonic_triggerSF.plot_options import efficiency, scalefactor, ratio, residue
+from config.semileptonic_triggerSF.functions import get_trigger_passfail, get_ht_above, get_ht_below
+from config.semileptonic_triggerSF.plot_options import efficiency, scalefactor, ratio, residue, scalefactor_ht, ratio_ht, residue_ht
 from math import pi
 import numpy as np
 
@@ -19,15 +19,15 @@ cfg =  {
 
     # Input and output files
     "workflow" : semileptonicTriggerProcessor,
-    "output"   : "output/sf_ele_trigger_semilep/semileptonic_triggerSF_2018_systematics",
-    "output_triggerSF" : "PocketCoffea/parameters/semileptonic_triggerSF/triggerSF_2018_Ele32_EleHT",
+    "output"   : "output/sf_ele_trigger_semilep/semileptonic_triggerSF_2018_allsystematics",
+    "output_triggerSF" : "PocketCoffea/parameters/semileptonic_triggerSF/triggerSF_2018_Ele32_EleHT_allsystematics",
     "triggerSF" : None,
 
     # Executor parameters
     "run_options" : {
         "executor"       : "dask/slurm",
         "workers"        : 1,
-        "scaleout"       : 75,
+        "scaleout"       : 125,
         "partition"      : "standard",
         "walltime"       : "12:00:00",
         "mem_per_worker" : "5GB", # GB
@@ -48,10 +48,13 @@ cfg =  {
     "categories": {
         "Ele32_EleHT_pass" : [get_trigger_passfail(["Ele32_WPTight_Gsf", "Ele28_eta2p1_WPTight_Gsf_HT150"], "pass")],
         "Ele32_EleHT_fail" : [get_trigger_passfail(["Ele32_WPTight_Gsf", "Ele28_eta2p1_WPTight_Gsf_HT150"], "fail")],
+        "Ele32_EleHT_pass_lowHT" : [get_trigger_passfail(["Ele32_WPTight_Gsf", "Ele28_eta2p1_WPTight_Gsf_HT150"], "pass"), get_ht_below(400)],
+        "Ele32_EleHT_fail_lowHT" : [get_trigger_passfail(["Ele32_WPTight_Gsf", "Ele28_eta2p1_WPTight_Gsf_HT150"], "fail"), get_ht_below(400)],
+        "Ele32_EleHT_pass_highHT" : [get_trigger_passfail(["Ele32_WPTight_Gsf", "Ele28_eta2p1_WPTight_Gsf_HT150"], "pass"), get_ht_above(400)],
+        "Ele32_EleHT_fail_highHT" : [get_trigger_passfail(["Ele32_WPTight_Gsf", "Ele28_eta2p1_WPTight_Gsf_HT150"], "fail"), get_ht_above(400)],
         "inclusive" : [passthrough],
     },
-
-    "split_eras" : False,
+    "split_eras" : True,
     "split_ht" : False,
 
     "weights": {
@@ -61,7 +64,7 @@ cfg =  {
         "bysample": {
         }
     },
-
+    
     "variables" : {
         "muon_pt" : {'binning' : {'n_or_arr' : 200, 'lo' : 0, 'hi' : 2000}, 'xlim' : (0,500),  'xlabel' : "$p_{T}^{\mu}$ [GeV]"},
         "muon_eta" : None,
@@ -78,6 +81,7 @@ cfg =  {
         "nlep" : None,
         "njet" : None,
         "nbjet" : None,
+        "ht" : None,
     },
     "variables2d" : {
         'electron_etaSC_vs_electron_pt' : {
@@ -96,21 +100,21 @@ cfg =  {
         },
     },
     "plot_options" : {
-        #"sum_over" : ['cat', 'year', 'var'],
-        #"var" : 'nominal',
-        "only" : "hist2d_",
+        "only" : "hist_electron_etaSC",
+        #"only" : None,
         "workers" : 16,
-        "scale" : "linear",
+        "scale" : "log",
         "fontsize" : 18,
         "fontsize_map" : 10,
         "dpi" : 150,
         "rebin" : {
-            'electron_pt' : {'binning' : {'n_or_arr' : 1, 'lo' : 0, 'hi' : 500}, 'xlim' : (0,500),  'xlabel' : "$p_{T}^{e}$ [GeV]"}
+            'electron_pt' : {'binning' : {'n_or_arr' : np.arange(0, 100, 10).tolist() + [100, 200, 500, 2000]}},
+            'ht'          : {'binning' : {'n_or_arr' : 80, 'lo' : 0, 'hi' : 4000}, 'xlim' : (0,1000), 'xlabel' : "$H_T$"},
         },
         "efficiency" : efficiency,
-        "scalefactor" : scalefactor,
-        "ratio" : ratio,
-        "residue" : residue,
+        "scalefactor" : scalefactor_ht,
+        "ratio" : ratio_ht,
+        "residue" : residue_ht,
         #"rebin" : {}
     }
 }

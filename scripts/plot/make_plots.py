@@ -119,7 +119,7 @@ def make_plots(entrystart, entrystop):
 
         for year in [str(s) for s in h.identifiers('year')]:
             # Convert lumi in fb^-1 and round to the first decimal digit
-            totalLumi = femtobarn(lumi[year], digits=1)
+            totalLumi = femtobarn(lumi[year]['tot'], digits=1)
             for cat in [str(s) for s in h.identifiers('cat')]:
                 selection_text = selection['_'.join([finalstate, cat])]
                 samples = [str(s) for s in h.identifiers('sample')]

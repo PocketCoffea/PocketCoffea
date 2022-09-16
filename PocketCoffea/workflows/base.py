@@ -1,23 +1,26 @@
+import sys
 import os
 import tarfile
 import json
+import copy 
 
 import numpy as np
 import awkward as ak
+from collections import defaultdict
 
 import coffea
-from coffea import processor, lookup_tools, hist
-from coffea.processor import dict_accumulator, defaultdict_accumulator
+from coffea import processor, lookup_tools
+from coffea.processor import column_accumulator
 from coffea.lumi_tools import LumiMask #, LumiData
 from coffea.analysis_tools import PackedSelection, Weights
 from coffea.util import load
 
 import correctionlib
 
+from ..lib.WeightsManager import WeightsManager
+from ..lib.HistManager import HistManager, Axis, HistConf
 from ..lib.triggers import get_trigger_mask
 from ..lib.objects import jet_correction, lepton_selection, jet_selection, btagging, get_dilepton
-from ..lib.pileup import sf_pileup_reweight
-from ..lib.scale_factors import sf_ele_reco, sf_ele_id, sf_mu, sf_btag, sf_btag_calib, sf_jet_puId
 from ..lib.fill import fill_histograms_object
 from ..parameters.triggers import triggers
 from ..parameters.btag import btag, btag_variations
@@ -25,17 +28,12 @@ from ..parameters.jec import JECversions, JERversions
 from ..parameters.event_flags import event_flags, event_flags_data
 from ..parameters.lumi import lumi, goldenJSON
 from ..parameters.samples import samples_info
-from ..parameters.allhistograms import histogram_settings
 
 class ttHbbBaseProcessor(processor.ProcessorABC):
 
     def __init__(self, cfg) -> None:
         # Read required cuts and histograms from config file
         self.cfg = cfg
-
-        # Save histogram settings of the required histograms
-        self._variables = self.cfg.variables
-        self._variables2d = self.cfg.variables2d
 
         ### Cuts
         # The definition of the cuts in the analysis is hierarchical.
@@ -56,118 +54,58 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # These cuts are applied only for outputs, so they cohexists in the form of masks
         self._cuts_masks = PackedSelection()
 
-        # Trigger SF
-        self._apply_triggerSF = True
+        # Weights configuration 
+        self.weights_config_allsamples = self.cfg.weights_config
 
-        # Weights configuration
-        self.weights_split_bycat = self.cfg.weights_split_bycat
-        self.weights_config = self.cfg.weights_config
-        self.weights_config_bycat = self.cfg.weights_config_bycat
-        
+        # Output format
         # Accumulators for the output
-        self._accum_dict = {}
-        self._hist_dict = {}
-        self._hist2d_dict = {}
-        self._sumw_dict = {
-            "sum_genweights": defaultdict_accumulator(float),
+        self.output_format = {
+            "sum_genweights": {},
+            "sumw":  {cat: { s: 0. for s in self.cfg.samples } for cat in self._categories},
+            "cutflow": {
+                "initial" : { s: 0 for s in self.cfg.samples },
+                "skim":     { s: 0 for s in self.cfg.samples },
+                "presel":   { s: 0 for s in self.cfg.samples },
+                **{cat: { s: 0. for s in self.cfg.samples } for cat in self._categories}
+            },
+            "seed_chunk": defaultdict(str),
+            "variables": { v: {} for v, vcfg in self.cfg.variables.items() if not vcfg.metadata_hist},
+            "columns" :  {cat: {} for cat in self._categories},
+            "processing_metadata": { v: {} for v, vcfg in self.cfg.variables.items() if vcfg.metadata_hist}
         }
-        self._accum_dict.update(self._sumw_dict)
-        # Accumulator with number of events passing each category for each sample
-        self._cutflow_dict =   {cat: defaultdict_accumulator(int) for cat in self._categories}
-        self._cutflow_dict["initial"] = defaultdict_accumulator(int)
-        self._cutflow_dict["skim"] = defaultdict_accumulator(int)
-        self._cutflow_dict["presel"] = defaultdict_accumulator(int)
-        self._accum_dict["cutflow"] = dict_accumulator(self._cutflow_dict)
+
+        # Custom axes to add to histograms in this processor
+        self.custom_axes = [Axis(field="year", label="year", bins=self.cfg.years,
+                                 coll="metadata", type="strcat", growth=False)]
         
-        # Accumulator with sum of weights of the events passing each category for each sample
-        self._sumw_weighted_dict =   {cat: defaultdict_accumulator(float) for cat in self._categories}
-        self._accum_dict["sumw"] = dict_accumulator(self._sumw_weighted_dict)
 
-        # Accumulator with seed number used for the stochastic smearing, for each processed chunk
-        self._seed_dict = {"seed_chunk" : processor.defaultdict_accumulator(int)}
-        self._accum_dict.update(self._seed_dict)
-
-        #for var in self._vars_to_plot.keys():
-        #       self._accumulator.add(processor.dict_accumulator({var : processor.column_accumulator(np.array([]))}))
-
-        # Define axes
-        self._sample_axis = hist.Cat("sample", "Sample")
-        self._cat_axis    = hist.Cat("cat", "Cat")
-        self._year_axis   = hist.Cat("year", "Year")
-        self._sparse_axes = [self._sample_axis, self._cat_axis, self._year_axis]
-
-        if self.cfg.split_eras:
-            self._era_axis = hist.Cat("era", "Era")
-            self._sparse_axes = [self._sample_axis, self._cat_axis, self._year_axis, self._era_axis]
-
-        # Create histogram accumulators
-        for var_name in self._variables.keys():
-            if var_name.startswith('n'):
-                field = var_name
-            elif "_" in var_name:
-                splits = obj, field = var_name.split('_')
-                if splits[0] in ["electron", "muon", "jet"]:
-                    field = splits[1]
-                else:
-                    field = var_name
-            else:
-                field = var_name
-            variable_axis = hist.Bin( field, self._variables[var_name]['xlabel'],
-                                      **self._variables[var_name]['binning'] )
-            self._hist_dict[f'hist_{var_name}'] = hist.Hist("$N_{events}$", *self._sparse_axes, variable_axis)
-        for hist2d_name in self._variables2d.keys():
-            varname_x = list(self._variables2d[hist2d_name].keys())[0]
-            varname_y = list(self._variables2d[hist2d_name].keys())[1]
-            variable_x_axis = hist.Bin(varname_x, self._variables2d[hist2d_name][varname_x]['xlabel'],
-                                       **self._variables2d[hist2d_name][varname_x]['binning'] )
-            variable_y_axis = hist.Bin(varname_y, self._variables2d[hist2d_name][varname_y]['ylabel'],
-                                       **self._variables2d[hist2d_name][varname_y]['binning'] )
-            self._hist2d_dict[f'hist2d_{hist2d_name}'] = hist.Hist("$N_{events}$", *self._sparse_axes, variable_x_axis, variable_y_axis)
-            
-        self._accum_dict.update(self._hist_dict)
-        self._accum_dict.update(self._hist2d_dict)
-
-        self.nobj_hists = [histname for histname in self._hist_dict.keys() if histname.lstrip('hist_').startswith('n') and not 'nevts' in histname]
-        self.muon_hists = [histname for histname in self._hist_dict.keys() if 'muon' in histname and not histname in self.nobj_hists]
-        self.electron_hists = [histname for histname in self._hist_dict.keys() if 'electron' in histname and not histname in self.nobj_hists]
-        self.jet_hists = [histname for histname in self._hist_dict.keys() if 'jet' in histname and not 'fatjet' in histname and not histname in self.nobj_hists]
-        # The final accumulator dictionary is built when the accumulator() property is called for the first time.
-        # Doing so, subclasses can add additional context to the self._accum_dict. 
-        # self._accumulator = dict_accumulator(self._accum_dict)
-        self._accumulator = None
-        
-    @property
-    def accumulator(self):
-        ''' The accumulator instance of the processor is not built in the constructor directly because sub-classes
-        can add more accumulators to the self._accum_dict definition.
-        When the accumulator() property if then accessed the dict_accumulator is built.'''
-        if not self._accumulator:
-            self._accumulator = dict_accumulator(self._accum_dict)
-        return self._accumulator
-
-    def add_additional_histograms(self, histograms_dict):
-        '''Helper function to add additional histograms to the dict_accumulator.
-        Usually useful for derived classes to include the definition of custom histograms '''
-        for k,h in histograms_dict.items():
-            if k in self._accum_dict:
-                raise Exception(f"You are trying to overwrite an already defined histogram {k}!")
-            else:
-                self._accum_dict[k] = h
+    def add_column_accumulator(self, name, cat=None, store_size=True):
+        '''
+        Add a column_accumulator with `name` to the category `cat` (to all the category if `cat`==None).
+        If store_size == True, create a parallel column called name_size, containing the number of entries
+        for each event. 
+        '''
+        if cat == None:
+            # add the column accumulator to all the categories
+            for cat in self._categories:
+                # we need a defaultdict accumulator to be able to include different samples for different chunks
+                self.output_format['columns'][cat][name] = {}
+                if store_size:
+                    # in thise case we save also name+size which will contain the number of entries per event
+                    self.output_format['columns'][cat][name+"_size"] = {}
+        else:
+            if cat not in self._categories:
+                raise Exception(f"Category not found: {cat}")
+            self.output_format['columns'][cat][name] ={}
+            if store_size:
+                # in thise case we save also name+size which will contain the number of entries per event
+                self.output_format['columns'][cat][name+"_size"] = {}
         
     @property
     def nevents(self):
         '''The current number of events in the chunk is computed with a property'''
         return ak.count(self.events.event, axis=0)
 
-    def get_histogram(self, name):
-        if name in self.output:
-            return self.output[name]
-        else:
-            raise Exception("Missing histogram: ", name)
-
-    # Define trigger SF map to apply
-    def define_triggerSF_maps(self):
-        pass
     
     # Function to load year-dependent parameters
     def load_metadata(self):
@@ -176,7 +114,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self._year = self.events.metadata["year"]
         self._triggers = triggers[self.cfg.finalstate][self._year]
         self._btag = btag[self._year]
-        self._isMC = 'genWeight' in self.events.fields
+        self._isMC = self.events.metadata["isMC"]
         if self._isMC:
             self._era = "MC"
         else:
@@ -186,6 +124,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self._JERversion = JERversions[self._year]['MC' if self._isMC else 'Data']
         self._goldenJSON = goldenJSON[self._year]
 
+        
     # Function that computes the trigger masks and save it in the PackedSelector
     def apply_triggers(self):
         # Trigger logic is included in the preselection mask
@@ -232,7 +171,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             self.events.Jet, seed_dict = jet_correction(self.events, "Jet", "AK4PFchs", self._year, self._JECversion, self._JERversion, verbose=verbose)
             self.output['seed_chunk'].update(seed_dict)
         else:
-            selfd.events.Jet = jet_correction(self.events, "Jet", "AK4PFchs", self._year, self._JECversion, verbose=verbose)
+            self.events.Jet = jet_correction(self.events, "Jet", "AK4PFchs", self._year, self._JECversion, verbose=verbose)
 
     # Function to compute masks to preselect objects and save them as attributes of `events`
     def apply_object_preselection(self):
@@ -252,13 +191,16 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
 
     # Function that counts the preselected objects and save the counts as attributes of `events`
     def count_objects(self):
-        self.events["nmuon"]     = ak.num(self.events.MuonGood)
-        self.events["nelectron"] = ak.num(self.events.ElectronGood)
-        self.events["nlep"]      = self.events["nmuon"] + self.events["nelectron"]
-        self.events["njet"]      = ak.num(self.events.JetGood)
-        self.events["nbjet"]     = ak.num(self.events.BJetGood)
+        self.events["nMuonGood"]     = ak.num(self.events.MuonGood)
+        self.events["nElectronGood"] = ak.num(self.events.ElectronGood)
+        self.events["nLepGood"]      = self.events["nMuonGood"] + self.events["nElectronGood"]
+        self.events["nJetGood"]      = ak.num(self.events.JetGood)
+        self.events["nBJetGood"]     = ak.num(self.events.BJetGood)
         #self.events["nfatjet"]   = ak.num(self.events.FatJetGood)
 
+    # Function that defines common variables employed in analyses and save them as attributes of `events`
+    def define_common_variables(self):
+        self.events["ht"] = ak.sum(abs(self.events.JetGood.pt), axis=1)
 
     def apply_preselections(self):
         ''' The function computes all the masks from the preselection cuts
@@ -276,120 +218,64 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             
     def define_categories(self):
         for cut in self._cuts:
-            mask = cut.get_mask(self.events, year=self._year, sample=self._sample)
+            mask = cut.get_mask(self.events, year=self._year, sample=self._sample, isMC=self._isMC )
             self._cuts_masks.add(cut.id, mask)
         # We make sure that for each category the list of cuts is unique in the Configurator validation
 
     @classmethod
     def available_weights(cls):
-        return ['genWeight', 'lumi', 'XS', 'pileup',
-                'sf_ele_reco_id', 'sf_mu_id_iso', 'sf_btag',
-                'sf_btag_calib', 'sf_jet_puId']
-        
+        return WeightsManager.available_weights()
+
+    @classmethod
+    def available_variations(cls):
+        return WeightsManager.available_variations()
+    
     def compute_weights(self):
-        '''
-        This function computes the weights to be applied on MC.
-        Weights can be inclusive or by category.
-        Moreover, different samples can have different weights, as defined in the weights_configuration.
-        The name of the weights available in the current workflow are defined in the class methods "available_weights"
-        '''
-        # Helper function defining the weights
-        def __add_weight(weight, weight_obj):
-            if weight == "genWeight":
-                weight_obj.add('genWeight', self.events.genWeight)
-            elif weight == 'lumi':
-                weight_obj.add('lumi', ak.full_like(self.events.genWeight, lumi[self._year]["tot"]))
-            elif weight == 'XS':
-                weight_obj.add('XS', ak.full_like(self.events.genWeight, samples_info[self._sample]["XS"]))
-            elif weight == 'pileup':
-                # Pileup reweighting with nominal, up and down variations
-                weight_obj.add('pileup', *sf_pileup_reweight(self.events, self._year))
-            elif weight == 'sf_ele_reco_id':
-                # Electron reco and id SF with nominal, up and down variations
-                weight_obj.add('sf_ele_reco', *sf_ele_reco(self.events, self._year))
-                weight_obj.add('sf_ele_id',   *sf_ele_id(self.events, self._year))
-            elif weight == 'sf_mu_id_iso':
-                # Muon id and iso SF with nominal, up and down variations
-                weight_obj.add('sf_mu_id',  *sf_mu(self.events, self._year, 'id'))
-                weight_obj.add('sf_mu_iso', *sf_mu(self.events, self._year, 'iso'))
-            elif weight == 'sf_btag':
-                # Get all the nominal and variation SF
-                btagsf = sf_btag(self.events.JetGood, self._btag['btagging_algorithm'], self._year,
-                                 variations=["central"]+btag_variations[self._year],
-                                 njets = self.events.njet)
-                for variation, weights in btagsf.items():
-                    weight_obj.add(f"sf_btag_{variation}", *weights)
-                
-            elif weight == 'sf_btag_calib':
-                # This variable needs to be defined in another method
-                jetsHt = ak.sum(abs(self.events.JetGood.pt), axis=1)
-                weight_obj.add("sf_btag_calib", sf_btag_calib(self._sample, self._year, self.events.njet, jetsHt ) )
-
-            elif weight == 'sf_jet_puId':
-                weight_obj.add('sf_jet_puId', *sf_jet_puId(self.events.JetGood, self.cfg.finalstate,
-                                                           self._year, njets=self.events.njet))
-
-        #Inclusive weights
-        self._weights_incl = Weights(self.nEvents_after_presel, storeIndividual=True)
-
         if not self._isMC: return
-        # Compute first the inclusive weights
-        for weight in self.weights_config[self._sample]:
-            __add_weight(weight, self._weights_incl)
-
-        # Now weights for dedicated categories
-        if self.weights_split_bycat:
-            self._weights_bycat = { cat: Weights(self.nEvents_after_presel, storeIndividual=True)
-                                    for cat in self._categories}
-            for cat in self._categories:
-                for weight in self.weights_config_bycat[cat][self._sample]:
-                    __add_weight(weight, self._weights_bycat[cat])
-
-    def get_weight(self, category=None, modifier=None):
-        '''
-        The function returns the total weights stored in the processor for the current sample.
-        If category==None the inclusive weight is returned.
-        If category!=None but weights_split_bycat=False, the inclusive weight is returned.
-        Otherwise the inclusive*category specific weight is returned.
-        '''
-        if category==None or self.weights_split_bycat == False:
-            # return the inclusive weight
-            return self._weights_incl.weight(modifier=modifier)
+        # Creating the WeightsManager with all the configured weights
+        self.weights_manager = WeightsManager(self.weights_config_allsamples[self._sample],
+                                              self.nEvents_after_presel,
+                                              self.events, # to compute weights
+                                              storeIndividual=False,
+                                              metadata={
+                                                  "year": self._year,
+                                                  "sample": self._sample,
+                                                  "finalstate": self.cfg.finalstate
+                                              })
+    def compute_weights_extra(self):
+        pass
         
-        elif category and self.weights_split_bycat == True:
-            if category not in self._categories:
-                raise Exception(f"Requested weights for non-existing category: {category}")
-            # moltiply the inclusive weight and the by category one
-            return self._weights_incl.weight(modifier=modifier) * self._weights_bycat[category].weight(modifier=modifier)
-        
-    def apply_triggerSF(self):
-        if self.cfg.triggerSF != None:
-            dict_corr = load(self.cfg.triggerSF)
-            self.triggerSF_weights = {cat : Weights(self.nEvents_after_presel) for cat in dict_corr.keys()}
-            for cat, corr in dict_corr.items():
-                if self._isMC:
-                    # By filling the None in the pt array with -999, the SF will be fixed to 1 for events with 0 electrons
-                    self.triggerSF_weights[cat].add( 'triggerSFcorr', corr(ak.fill_none(ak.firsts(self.events.ElectronGood.pt), -999), ak.fill_none(ak.firsts(self.events.ElectronGood.eta), -999)) )
-                else:
-                    print(self.events.ElectronGood.pt)
-                    print(ak.ones_like(ak.fill_none(self.events.ElectronGood.pt, 0)))
-                    self.triggerSF_weights[cat].add( 'triggerSFcorr', ak.ones_like(ak.fill_none(ak.firsts(self.events.ElectronGood.pt), 0)) )
-
-    def fill_histograms(self):
-        for (obj, obj_hists) in zip([None], [self.nobj_hists]):
-            fill_histograms_object(self, obj, obj_hists, event_var=True, split_eras=self.cfg.split_eras)
-        for (obj, obj_hists) in zip([self.events.MuonGood, self.events.ElectronGood, self.events.JetGood], [self.muon_hists, self.electron_hists, self.jet_hists]):
-            fill_histograms_object(self, obj, obj_hists, split_eras=self.cfg.split_eras)
-
     def count_events(self):
-        # Fill the output with the number of events and the sum of their weights in each category for each sample
+        # Fill the output with the number of events and the sum
+        # of their weights in each category for each sample
         for category, cuts in self._categories.items():
             mask = self._cuts_masks.all(*cuts)
             self.output["cutflow"][category][self._sample] = ak.sum(mask)
             if self._isMC:
-                w = self.get_weight(category)
+                w = self.weights_manager.get_weight(category)
                 self.output["sumw"][category][self._sample] = ak.sum(w*mask)
 
+
+    def fill_histograms(self):
+        # Filling the autofill=True histogram automatically
+        self.hists_manager.fill_histograms(self.events,
+                                           self.weights_manager,
+                                           self._cuts_masks,
+                                           custom_fields=None)
+        # Saving in the output the filled histograms for the current sample
+        for var, H in self.hists_manager.get_histograms().items():
+            self.output["variables"][var][self._sample] = H
+        # Filling the special histograms for events if they are present
+        if "events_per_chunk" in self.hists_manager.histograms:
+            h_cfg, hepc = self.hists_manager.get_histogram("events_per_chunk")
+            hepc.fill(cat=hepc.axes["cat"][0],
+                      variation= "nominal",
+                      year= self._year,
+                      nEvents_initial = self.nEvents_initial,
+                      nEvents_after_skim=self.nEvents_after_skim,
+                      nEvents_after_presel=self.nEvents_after_presel)
+            self.output["processing_metadata"]["events_per_chunk"][self._sample] = hepc
+            
     def process_extra_before_skim(self):
         pass
     
@@ -399,6 +285,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     def process_extra_after_presel(self):
         pass
     
+    def define_common_variables_extra(self):
+        pass
+
     def fill_histograms_extra(self):
         pass
     
@@ -411,14 +300,22 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         #################
         self.load_metadata()
         # Define the accumulator instance for this chunk
-        self.output = self.accumulator.identity()
-        #if len(events)==0: return output
+        self.output = copy.deepcopy(self.output_format)
+
+        # Create the HistManager
+        self.hists_manager = HistManager(self.cfg.variables,
+                                         self._sample,
+                                         self._categories,
+                                         self.cfg.variations_config[self._sample],
+                                         self.custom_axes)
+
         self.nEvents_initial = self.nevents
         self.output['cutflow']['initial'][self._sample] += self.nEvents_initial
         if self._isMC:
             # This is computed before any preselection
-            self.output['sum_genweights'][self._sample] += sum(self.events.genWeight)
+            self.output['sum_genweights'][self._sample] = ak.sum(self.events.genWeight)
 
+        self.weights_config = self.weights_config_allsamples[self._sample]
         ########################
         # Then the first skimming happens. 
         # Events that are for sure useless are removed, and trigger are applied.
@@ -444,6 +341,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # Apply preselections
         self.apply_object_preselection()
         self.count_objects()
+        self.define_common_variables()
         # Customization point for derived workflows after preselection cuts
         self.process_extra_before_presel()
         
@@ -465,10 +363,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
 
         # Weights
         self.compute_weights()
+        self.compute_weights_extra()
 
-        # Per-event trigger SF reweighting
-        self.apply_triggerSF()
-        
         # Fill histograms
         self.fill_histograms()
         self.fill_histograms_extra()
@@ -479,19 +375,17 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     def postprocess(self, accumulator):
         # Rescale MC histograms by the total sum of the genweights
         scale_genweight = {}
-        h = accumulator[list(self._hist_dict.keys())[0]]
-        for sample in h.identifiers('sample'):
-            sample = str(sample)
+        for sample in accumulator["cutflow"]["initial"].keys():
             scale_genweight[sample] = 1 if sample.startswith('DATA') else 1./accumulator['sum_genweights'][sample]
             # correct also the sumw (sum of weighted events) accumulator
             for cat in self._categories:
                 accumulator["sumw"][cat][sample] *= scale_genweight[sample]
 
-        for histname in accumulator:
-            if (histname in self._hist_dict) | (histname in self._hist2d_dict):
-                accumulator[histname].scale(scale_genweight, axis='sample')
-
+        for var, hists in accumulator["variables"].items():
+            # Rescale only histogram without no_weights option
+            if self.cfg.variables[var].no_weights: continue
+            for sample, h in hists.items():
+                 h *= scale_genweight[sample]
         accumulator["scale_genweight"] = scale_genweight
-        
-
         return accumulator
+ 
