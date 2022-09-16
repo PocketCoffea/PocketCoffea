@@ -70,9 +70,9 @@ cfg =  {
     "variations": {
         "weights": {
             "common": {
-                "inclusive": [ "pileup", "sf_ele_reco", "sf_ele_id",
-                               "sf_mu_id", "sf_mu_iso", "sf_jet_puId",
-                               *[ f"sf_btag_{b}" for b in btag_variations["2018"]]
+                "inclusive": [  "pileup", "sf_ele_reco", "sf_ele_id",
+                                "sf_mu_id", "sf_mu_iso", "sf_jet_puId",
+                                *[ f"sf_btag_{b}" for b in btag_variations["2018"]]
                               ],
                 "bycategory" : {
                 }
@@ -97,7 +97,7 @@ cfg =  {
         **jet_hists(coll="JetGood", pos=2),
         **jet_hists(coll="JetGood", pos=3),
         **jet_hists(coll="JetGood", pos=4),
-        **jet_hists(name="bjet",coll="BJetGood", pos=0),
+        **jet_hists(name="bjet",coll="BJetGood", pos=0)# ,
         **jet_hists(name="bjet",coll="BJetGood", pos=1),
         **jet_hists(name="bjet",coll="BJetGood", pos=2),
         **jet_hists(name="bjet",coll="BJetGood", pos=3),
