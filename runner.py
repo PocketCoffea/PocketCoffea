@@ -31,6 +31,9 @@ if __name__ == '__main__':
     parser.add_argument("-o", "--outputdir", required=False, type=str,
                         help="Overwrite the output folder in the configuration")
     parser.add_argument("-t", "--test", action="store_true", help="Run with limit 1 interactively")
+    parser.add_argument("-lf","--limit-files", type=int, help="Limit number of files")
+    parser.add_argument("-lc","--limit-chunks", type=int, help="Limit number of chunks", default=None)
+    parser.add_argument("-e","--executor", type=str, help="Overwrite executor from config", default='iterative')
     # parser.add_argument("-l", "--limit-files", required=False, type=int,
     #                     help="Overwrite number of files limit")
     args = parser.parse_args()
@@ -42,14 +45,17 @@ if __name__ == '__main__':
     else:
         raise sys.exit("Please provide a .py/.pkl configuration file")
 
-    if args.test:
-        config.run_options["executor"] = "iterative"
-        config.run_options["limit"] = 1
+    if args.test or args.limit_files!=None:
+        if args.test:
+            config.run_options["executor"] = args.executor
+        config.run_options["limit"] = args.limit_files
+        config.run_options["max"] = args.limit_chunks
         filtered_dataset = {}
         for sample, ds in config.fileset.items():
-            ds["files"] = ds["files"][0:1]
+            ds["files"] = ds["files"][0:args.limit_files]
             filtered_dataset[sample] = ds
         config.fileset = filtered_dataset
+    
 
 
     if config.run_options['executor'] not in ['futures', 'iterative']:

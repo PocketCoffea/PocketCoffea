@@ -67,6 +67,11 @@ class WeightsManager():
         def __add_weight(w, weight_obj):
             # If the Weight is a name look into the predefined weights
             if isinstance(w, str):
+                if w not in WeightsManager.available_weights():
+                    # it means that the weight is defined in a processor.
+                    # The configurator has already checked that it is defined somewhere.
+                    # DO nothing
+                    return
                 if w not in _weightsCache:
                     _weightsCache[w] = self._compute_weight(w, events)
                 for we in _weightsCache[w]:
@@ -106,7 +111,7 @@ class WeightsManager():
          ("name", nominal, up, down)]
         Each variation is then added to the Weights object by the caller
         in the constructor. 
-        '''
+        ''' 
         if weight_name == "genWeight":
             return [('genWeight', events.genWeight)]
         elif weight_name == 'lumi':
@@ -132,7 +137,7 @@ class WeightsManager():
             btagsf = sf_btag(events.JetGood,btag[self._year]['btagging_algorithm'] ,
                              self._year, variations=["central"]+btag_vars,
                              njets = events.nJetGood)
-            # BE AWARE --> COFFEA HACK
+            # BE AWARE --> COFFEA HACK FOR MULTIPLE VARIATIONS
             for var in btag_vars:
                 # Rescale the up and down variation by the central one to
                 # avoid double counting of the central SF when adding the weights

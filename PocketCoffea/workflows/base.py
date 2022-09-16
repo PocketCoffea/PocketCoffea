@@ -74,8 +74,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         }
 
         # Custom axes to add to histograms in this processor
-        self.custom_axes = [Axis(field="year", label="year", bins=self.cfg.years, coll="metadata",
-                                 type="strcat", growth=False)]
+        self.custom_axes = [Axis(field="year", label="year", bins=self.cfg.years,
+                                 coll="metadata", type="strcat", growth=False)]
         
 
     def add_column_accumulator(self, name, cat=None, store_size=True):
@@ -230,7 +230,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         if not self._isMC: return
         # Creating the WeightsManager with all the configured weights
         self.weights_manager = WeightsManager(self.weights_config_allsamples[self._sample],
-                                              self.nEvents_after_presel, self.events,
+                                              self.nEvents_after_presel,
+                                              self.events, # to compute weights
                                               storeIndividual=False,
                                               metadata={
                                                   "year": self._year,
@@ -241,7 +242,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         pass
         
     def count_events(self):
-        # Fill the output with the number of events and the sum of their weights in each category for each sample
+        # Fill the output with the number of events and the sum
+        # of their weights in each category for each sample
         for category, cuts in self._categories.items():
             mask = self._cuts_masks.all(*cuts)
             self.output["cutflow"][category][self._sample] = ak.sum(mask)
@@ -263,11 +265,13 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         if "events_per_chunk" in self.hists_manager.histograms:
             h_cfg, hepc = self.hists_manager.get_histogram("events_per_chunk")
             hepc.fill(cat=hepc.axes["cat"][0],
-                   variation= "nominal",
-                   year= self._year,
-                   nEvents_after_skim=self.nEvents_after_skim,
-                   nEvents_after_presel=self.nEvents_after_presel)
-            self.output["processing_metadata"]["events_per_chunk"][self._sample]  = hepc
+                      variation= "nominal",
+                      year= self._year,
+                      nEvents_initial = self.nEvents_initial,
+                      nEvents_after_skim=self.nEvents_after_skim,
+                      nEvents_after_presel=self.nEvents_after_presel)
+            print(self.nEvents_initial, self.nEvents_after_skim, self.nEvents_after_presel)
+            self.output["processing_metadata"]["events_per_chunk"][self._sample] = hepc
             
     def process_extra_before_skim(self):
         pass
@@ -293,10 +297,11 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.output = copy.deepcopy(self.output_format)
 
         # Create the HistManager
-        self.hists_manager = HistManager(self.cfg.variables, self._sample,
-                                       self._categories,
-                                       self.cfg.variations_config[self._sample],
-                                       self.custom_axes)
+        self.hists_manager = HistManager(self.cfg.variables,
+                                         self._sample,
+                                         self._categories,
+                                         self.cfg.variations_config[self._sample],
+                                         self.custom_axes)
 
         self.nEvents_initial = self.nevents
         self.output['cutflow']['initial'][self._sample] += self.nEvents_initial

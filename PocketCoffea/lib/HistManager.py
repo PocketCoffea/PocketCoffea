@@ -120,6 +120,7 @@ class HistManager():
                          cats.append(c)
                  else:
                          cats.append(c)
+             #Create categories axis
              cat_ax = hist.axis.StrCategory(cats,name="cat", label="Category", growth=False)
              # Update the histConf to save the only category
              hcfg.only_categories = cats
@@ -182,7 +183,7 @@ class HistManager():
         for category in self.available_categories:
             # Getting the cut mask
             mask = cuts_masks.all(*self.categories_config[category])
-
+            masked_events = events[mask]
             # Weights must be computed for each category and variation,
             # but it is not needed to recompute them for each histo.
             # The weights will be flattened if needed for each histo
@@ -214,7 +215,7 @@ class HistManager():
                     if ax.type in ["regular", "variable", "int"]:
                         if ax.coll == "events":
                             # These are event level information
-                            data = events[mask][ax.field]
+                            data = masked_events[ax.field]
                         elif ax.coll == "metadata":
                             data = events.metadata[ax.field]
                         elif ax.coll == "custom":
@@ -226,9 +227,9 @@ class HistManager():
                                 raise ValueError(f"Collection {coll} not found in events!")
                             # General collections
                             if ax.pos == None:
-                                data = events[mask][ax.coll][ax.field]
+                                data = masked_events[ax.coll][ax.field]
                             elif ax.pos >=0:
-                                data = ak.pad_none(events[mask][ax.coll][ax.field], ax.pos+1, axis=1)[:,ax.pos]
+                                data = ak.pad_none(masked_events[ax.coll][ax.field], ax.pos+1, axis=1)[:,ax.pos]
                             else:
                                 raise Exception(f"Invalid position {ax.pos} requested for collection {ax.coll}")
 
