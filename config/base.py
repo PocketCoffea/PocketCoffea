@@ -9,7 +9,7 @@ cfg =  {
         "jsons": ["datasets/signal_ttHTobb_2018_local.json",
                   "datasets/backgrounds_MC_2018_local.json"],
         "filter" : {
-            "samples": ["TTToSemiLeptonic","ttHTobb"],
+            "samples": ["ttHTobb"],
             "samples_exclude" : [],
             "year": ["2018"]
         }
@@ -21,20 +21,20 @@ cfg =  {
     "worflow_options" : {},
 
     "run_options" : {
-        "executor"       : "dask/slurm",
+        "executor"       : "iterative",
         "workers"        : 1,
-        "scaleout"       : 100,
+        "scaleout"       : 10,
         "partition"      : "standard",
         "walltime"       : "05:00:00",
         "mem_per_worker" : "10GB", # GB
         "exclusive"      : False,
-        "chunk"          : 300000,
+        "chunk"          : 400000,
         "retries"        : 30,
         "treereduction"  : 10,
         "max"            : None,
         "skipbadfiles"   : None,
         "voms"           : None,
-        "limit"          : None,
+        "limit"          : 20,
     },
 
     # Cuts and plots settings
@@ -83,6 +83,7 @@ cfg =  {
 
    "variables":
     {
+            
         **jet_hists(coll="JetGood"),
         **jet_hists(coll="BJetGood"),
         **ele_hists(coll="ElectronGood"),
@@ -100,7 +101,7 @@ cfg =  {
         **jet_hists(coll="BJetGood", pos=3),
         **jet_hists(coll="BJetGood", pos=4),
 
-        # 2D plots
+        ##2D plots
         "jet_eta_pt_leading": HistConf(
             [
                 Axis(coll="JetGood", field="pt", pos=0, bins=40, start=0, stop=1000,
@@ -116,6 +117,24 @@ cfg =  {
                 Axis(coll="JetGood", field="eta", bins=40, start=-2.4, stop=2.4,
                      label="Leading jet $\eta$")
             ]
-        )
+        ),
+
+        # Metadata of the processing
+        "events_per_chunk" : HistConf(
+               axes=[
+                   Axis(field='nEvents_after_skim',
+                        bins=200, start=0, stop=400000,                       
+                        label="Number of events after skim per chunk",
+                        ), 
+                   Axis(field='nEvents_after_presel',
+                        bins=200, start=0, stop=400000,
+                        label="Number of events after preselection per chunk",
+                        )],
+            storage="int64",
+            autofill=False,
+            metadata_hist = True,
+            no_weights=True,
+            only_categories=["baseline"],
+            variations=False,),
     }
 }

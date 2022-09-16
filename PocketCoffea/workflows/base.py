@@ -53,7 +53,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # These cuts are applied only for outputs, so they cohexists in the form of masks
         self._cuts_masks = PackedSelection()
 
-        # Weights configuration
+        # Weights configuration 
         self.weights_config_allsamples = self.cfg.weights_config
 
         # Output format
@@ -68,8 +68,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                 **{cat: { s: 0. for s in self.cfg.samples } for cat in self._categories}
             },
             "seed_chunk": defaultdict(str),
-            "variables": { v: {} for v in self.cfg.variables.keys()},
-            "columns" :  {cat: {} for cat in self._categories}
+            "variables": { v: {} for v, vcfg in self.cfg.variables.items() if not vcfg.metadata_hist},
+            "columns" :  {cat: {} for cat in self._categories},
+            "processing_metadata": { v: {} for v, vcfg in self.cfg.variables.items() if vcfg.metadata_hist}
         }
 
         # Custom axes to add to histograms in this processor
@@ -258,7 +259,16 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # Saving in the output the filled histograms for the current sample
         for var, H in self.hists_manager.get_histograms().items():
             self.output["variables"][var][self._sample] = H
-        
+        # Filling the special histograms for events if they are present
+        if "events_per_chunk" in self.hists_manager.histograms:
+            h_cfg, hepc = self.hists_manager.get_histogram("events_per_chunk")
+            hepc.fill(cat=hepc.axes["cat"][0],
+                   variation= "nominal",
+                   year= self._year,
+                   nEvents_after_skim=self.nEvents_after_skim,
+                   nEvents_after_presel=self.nEvents_after_presel)
+            self.output["processing_metadata"]["events_per_chunk"][self._sample]  = hepc
+            
     def process_extra_before_skim(self):
         pass
     
@@ -360,7 +370,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                 accumulator["sumw"][cat][sample] *= scale_genweight[sample]
 
         for var, hists in accumulator["variables"].items():
-             for sample, h in hists.items():
+            # Rescale only histogram without no_weights option
+            if self.cfg.variables[var].no_weights: continue
+            for sample, h in hists.items():
                  h *= scale_genweight[sample]
         accumulator["scale_genweight"] = scale_genweight
         return accumulator
