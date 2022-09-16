@@ -45,7 +45,7 @@ if __name__ == '__main__':
     else:
         raise sys.exit("Please provide a .py/.pkl configuration file")
 
-    if args.test or args.limit_files!=None:
+    if args.test or args.limit_files!=None or args.limit_chunks!=None:
         if args.test:
             config.run_options["executor"] = args.executor
         config.run_options["limit"] = args.limit_files

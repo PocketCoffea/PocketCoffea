@@ -270,7 +270,6 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                       nEvents_initial = self.nEvents_initial,
                       nEvents_after_skim=self.nEvents_after_skim,
                       nEvents_after_presel=self.nEvents_after_presel)
-            print(self.nEvents_initial, self.nEvents_after_skim, self.nEvents_after_presel)
             self.output["processing_metadata"]["events_per_chunk"][self._sample] = hepc
             
     def process_extra_before_skim(self):

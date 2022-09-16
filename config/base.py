@@ -25,9 +25,9 @@ cfg =  {
         "executor"       : "dask/slurm",
         "workers"        : 1,
         "scaleout"       : 30,
-        "partition"      : "standard",
-        "walltime"       : "05:00:00",
-        "mem_per_worker" : "10GB", # GB
+        "partition"      : "short",
+        "walltime"       : "00:30:00",
+        "mem_per_worker" : "5GB", # GB
         "exclusive"      : False,
         "chunk"          : 400000,
         "retries"        : 30,
