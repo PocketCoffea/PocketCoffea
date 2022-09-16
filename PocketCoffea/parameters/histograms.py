@@ -8,10 +8,10 @@ default_axis_settings = {
         'muon_phi'                 : {"field":"phi", "bins": 128, "start":-math.pi, 'stop' : math.pi, "lim" : (-math.pi,math.pi), 'label' : "$\phi_{\mu}$"},
         'electron_pt'              : {"field":"pt", "bins": 200, "start":0, 'stop' : 1000, "lim" : (0,500), 'label' : "$p_{T}^{e}$ [GeV]"},
         'electron_eta'             : {"field":"eta", "bins": 80, "start":-4, 'stop' : 4 , "lim" : (-4,4),  'label' : "$\eta_{e}$"},
-        "electron_etaSC"           : {"field":"etaSC", "bins": [-2.5, -2.3, -2.1, -1.9, -1.7, -1.5660, -1.4442, -1.2, -1.0, -0.8,
+        "electron_etaSC"           : {"field":"etaSC", "type":"variable", "bins": [-2.5, -2.3, -2.1, -1.9, -1.7, -1.5660, -1.4442, -1.2, -1.0, -0.8,
                                                -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442,
                                                1.5660, 1.7, 1.9, 2.1, 2.3, 2.5],
-                                      'lim' : (-2.5,2.5), 'label' : "Electron Supercluster $\eta$", "type":"variable"},
+                                      'lim' : (-2.5,2.5), 'label' : "Electron Supercluster $\eta$"},
         'electron_phi'             : {"field":"phi", "bins": 128, "start":-math.pi, 'stop' : math.pi, "lim" : (-math.pi,math.pi),'label' : "$\phi_{e}$"},
         'jet_pt'                   : {"field":"pt", "bins": 150, "start":0, 'stop' : 1500, "lim" : (0,500), 'label' : "$p_{T}^{j}$ [GeV]"},
         'jet_eta'                  : {"field":"eta", "bins": 100, "start":-3, 'stop' : 3, "lim" : (-3,3),  'label' : "$\eta_{j}$"},
@@ -52,7 +52,7 @@ def _get_default_hist(name, type, coll, pos=None, fields=None):
                 hist_name += f"_{pos+1}"
                 
             out[hist_name] = HistConf(
-                axes=[Axis(**setting)]
+                axes=[Axis(**setting)],
             )
     return out
 

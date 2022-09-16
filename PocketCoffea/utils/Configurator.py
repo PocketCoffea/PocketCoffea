@@ -134,6 +134,13 @@ class Configurator():
                     self.samples.append(m["sample"])
                     self.years.append(m["year"])
 
+    def filter_dataset(self, nfiles):
+        filtered_dataset = {}
+        for sample, ds in self.fileset.items():
+            ds["files"] = ds["files"][0:nfiles]
+            filtered_dataset[sample] = ds
+        self.fileset = filtered_dataset
+                    
     def load_cuts_and_categories(self):
         '''This function loads the list of cuts and groups them in categories.
         Each cut is identified by a unique id (see Cut class definition)'''

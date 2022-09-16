@@ -33,9 +33,8 @@ if __name__ == '__main__':
     parser.add_argument("-t", "--test", action="store_true", help="Run with limit 1 interactively")
     parser.add_argument("-lf","--limit-files", type=int, help="Limit number of files")
     parser.add_argument("-lc","--limit-chunks", type=int, help="Limit number of chunks", default=None)
-    parser.add_argument("-e","--executor", type=str, help="Overwrite executor from config", default='iterative')
-    # parser.add_argument("-l", "--limit-files", required=False, type=int,
-    #                     help="Overwrite number of files limit")
+    parser.add_argument("-e","--executor", type=str, default='iterative',
+                        help="Overwrite executor from config (to be used only with the --test options)" )
     args = parser.parse_args()
 
     if args.cfg[-3:] == ".py":
@@ -45,17 +44,18 @@ if __name__ == '__main__':
     else:
         raise sys.exit("Please provide a .py/.pkl configuration file")
 
-    if args.test or args.limit_files!=None or args.limit_chunks!=None:
-        if args.test:
-            config.run_options["executor"] = args.executor
+    if args.test:
+        config.run_options["executor"] = args.executor
+        config.run_options["limit"] = args.limit_files if args.limit_files else 1
+        config.run_options["max"] = args.limit_chunks if args.limit_chunks else None
+        config.filter_dataset(config.run_options["limit"])
+
+    if args.limit_files!=None:
         config.run_options["limit"] = args.limit_files
+        config.filter_dataset(config.run_options["limit"])
+
+    if args.limit_chunks!=None:
         config.run_options["max"] = args.limit_chunks
-        filtered_dataset = {}
-        for sample, ds in config.fileset.items():
-            ds["files"] = ds["files"][0:args.limit_files]
-            filtered_dataset[sample] = ds
-        config.fileset = filtered_dataset
-    
 
 
     if config.run_options['executor'] not in ['futures', 'iterative']:
