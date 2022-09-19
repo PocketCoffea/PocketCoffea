@@ -48,7 +48,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         ### Define PackedSelector to save per-event cuts and dictionary of selections
         # The skim mask is applied on baseline nanoaod before any object is corrected
         self._skim_masks = PackedSelection()
-        # The preselection mask is applied after the objects have been corrected
+        # The preselection mask is applied after the objects have been corrected 
         self._preselection_masks = PackedSelection()
         # After the preselections more cuts are defined and combined in categories.
         # These cuts are applied only for outputs, so they cohexists in the form of masks
@@ -268,7 +268,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # Filling the special histograms for events if they are present
         if "events_per_chunk" in self.hists_manager.histograms:
             hepc = self.hists_manager.get_histogram("events_per_chunk")
-            hepc_hist_obj.fill(cat=hepc.only_categories[0],
+            hepc.hist_obj.fill(cat=hepc.only_categories[0],
                       variation= "nominal",
                       year= self._year,
                       nEvents_initial = self.nEvents_initial,

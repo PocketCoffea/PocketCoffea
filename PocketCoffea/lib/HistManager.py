@@ -119,11 +119,12 @@ class HistManager():
                      if c not in hcfg.exclude_categories:
                          cats.append(c)
                  else:
-                         cats.append(c)
-             #Create categories axis
-             cat_ax = hist.axis.StrCategory(cats,name="cat", label="Category", growth=False)
+                     cats.append(c)
              # Update the histConf to save the only category
-             hcfg.only_categories = cats
+             hcfg.only_categories = list(sorted(cats))
+             # Create categories axis
+             cat_ax = hist.axis.StrCategory(hcfg.only_categories,
+                                            name="cat", label="Category", growth=False)
              
              # Variation axes
              if hcfg.variations:
@@ -135,11 +136,12 @@ class HistManager():
                  allvariat = set(allvariat) 
                  if hcfg.only_variations !=None:
                      # filtering the variation list with the available ones
-                     allvariat =  set(filter(lambda v: v in hcfg.only_variations, allvariat))
+                     allvariat =  set(filter(
+                         lambda v: v in hcfg.only_variations, allvariat))
                     
-                 hcfg.only_variations = ["nominal"] + \
+                 hcfg.only_variations = ["nominal"] + list(sorted(
                                                [var+"Up" for var in allvariat] + \
-                                               [var+"Down" for var in allvariat]
+                                               [var+"Down" for var in allvariat]))
              else:
                  hcfg.only_variations = ["nominal"]
              #Defining the variation axis

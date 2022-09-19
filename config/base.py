@@ -10,7 +10,7 @@ cfg =  {
         "jsons": ["datasets/signal_ttHTobb_2018_local.json",
                   "datasets/backgrounds_MC_2018_local.json"],
         "filter" : {
-            "samples": ["ttHTobb","TTToSemiLeptonic"],
+            "samples": ["TTToSemiLeptonic", "ttHTobb"],
             "samples_exclude" : [],
             "year": ["2018"]
         }
@@ -24,12 +24,12 @@ cfg =  {
     "run_options" : {
         "executor"       : "dask/slurm",
         "workers"        : 1,
-        "scaleout"       : 10,
+        "scaleout"       : 50,
         "partition"      : "short",
-        "walltime"       : "00:30:00",
-        "mem_per_worker" : "5GB", # GB
+        "walltime"       : "00:40:00",
+        "mem_per_worker" : "8GB", # GB
         "exclusive"      : False,
-        "chunk"          : 400000,
+        "chunk"          : 300000,
         "retries"        : 30,
         "treereduction"  : 10,
         "max"            : None,
@@ -58,11 +58,9 @@ cfg =  {
                           "pileup",
                           "sf_ele_reco", "sf_ele_id",
                           "sf_mu_id","sf_mu_iso",
-                          "sf_jet_puId", 
+                          "sf_btag", "sf_btag_calib", "sf_jet_puId", 
                           ],
             "bycategory" : {
-                "1b":["sf_btag_calib"],
-                "2b":["sf_btag"]
             }
         },
         "bysample": {
@@ -72,7 +70,8 @@ cfg =  {
     "variations": {
         "weights": {
             "common": {
-                "inclusive": [  "pileup", "sf_ele_reco", "sf_ele_id",
+                "inclusive": [  "pileup",
+                                "sf_ele_reco", "sf_ele_id",
                                 "sf_mu_id", "sf_mu_iso", "sf_jet_puId",
                                 *[ f"sf_btag_{b}" for b in btag_variations["2018"]]
                               ],
@@ -94,56 +93,56 @@ cfg =  {
         **muon_hists(coll="MuonGood"),
         **count_hist("nJets", coll="JetGood",bins=10, start=4, stop=14),
         **count_hist("nBJets", coll="BJetGood",bins=12, start=2, stop=14),
-        # **jet_hists(coll="JetGood", pos=0),
-        # **jet_hists(coll="JetGood", pos=1),
-        # **jet_hists(coll="JetGood", pos=2),
-        # **jet_hists(coll="JetGood", pos=3),
-        # **jet_hists(coll="JetGood", pos=4),
-        # **jet_hists(name="bjet",coll="BJetGood", pos=0),
-        # **jet_hists(name="bjet",coll="BJetGood", pos=1),
-        # **jet_hists(name="bjet",coll="BJetGood", pos=2),
-        # **jet_hists(name="bjet",coll="BJetGood", pos=3),
-        # **jet_hists(name="bjet",coll="BJetGood", pos=4),
+        **jet_hists(coll="JetGood", pos=0),
+        **jet_hists(coll="JetGood", pos=1),
+        **jet_hists(coll="JetGood", pos=2),
+        **jet_hists(coll="JetGood", pos=3),
+        **jet_hists(coll="JetGood", pos=4),
+        **jet_hists(name="bjet",coll="BJetGood", pos=0),
+        **jet_hists(name="bjet",coll="BJetGood", pos=1),
+        **jet_hists(name="bjet",coll="BJetGood", pos=2),
+        **jet_hists(name="bjet",coll="BJetGood", pos=3),
+        **jet_hists(name="bjet",coll="BJetGood", pos=4),
 
-        ##2D plots
-        # "jet_eta_pt_leading": HistConf(
-        #     [
-        #         Axis(coll="JetGood", field="pt", pos=0, bins=40, start=0, stop=1000,
-        #              label="Leading jet $p_T$"),
-        #         Axis(coll="JetGood", field="eta", pos=0, bins=40, start=-2.4, stop=2.4,
-        #              label="Leading jet $\eta$"),
-        #     ]
-        # ),
-        # "jet_eta_pt_all": HistConf(
-        #     [
-        #         Axis(coll="JetGood", field="pt", bins=40, start=0, stop=1000,
-        #              label="Leading jet $p_T$"),
-        #         Axis(coll="JetGood", field="eta", bins=40, start=-2.4, stop=2.4,
-        #              label="Leading jet $\eta$")
-        #     ]
-        # ),
+        # 2D plots
+        "jet_eta_pt_leading": HistConf(
+            [
+                Axis(coll="JetGood", field="pt", pos=0, bins=40, start=0, stop=1000,
+                     label="Leading jet $p_T$"),
+                Axis(coll="JetGood", field="eta", pos=0, bins=40, start=-2.4, stop=2.4,
+                     label="Leading jet $\eta$"),
+            ]
+        ),
+        "jet_eta_pt_all": HistConf(
+            [
+                Axis(coll="JetGood", field="pt", bins=40, start=0, stop=1000,
+                     label="Leading jet $p_T$"),
+                Axis(coll="JetGood", field="eta", bins=40, start=-2.4, stop=2.4,
+                     label="Leading jet $\eta$")
+            ]
+        ),
 
-        # # Metadata of the processing
-        # "events_per_chunk" : HistConf(
-        #        axes=[
-        #            Axis(field='nEvents_initial',
-        #                 bins=100, start=0, stop=500000,                       
-        #                 label="Number of events in the chunk",
-        #                 ), 
-        #            Axis(field='nEvents_after_skim',
-        #                 bins=100, start=0, stop=500000,                       
-        #                 label="Number of events after skim per chunk",
-        #                 ), 
-        #            Axis(field='nEvents_after_presel',
-        #                 bins=100, start=0, stop=500000,
-        #                 label="Number of events after preselection per chunk",
-        #                 )
-        #        ],
-        #     storage="int64",
-        #     autofill=False,
-        #     metadata_hist = True,
-        #     no_weights=True,
-        #     only_categories=["baseline"],
-        #     variations=False,),
+        # Metadata of the processing
+        "events_per_chunk" : HistConf(
+               axes=[
+                   Axis(field='nEvents_initial',
+                        bins=100, start=0, stop=500000,                       
+                        label="Number of events in the chunk",
+                        ), 
+                   Axis(field='nEvents_after_skim',
+                        bins=100, start=0, stop=500000,                       
+                        label="Number of events after skim per chunk",
+                        ), 
+                   Axis(field='nEvents_after_presel',
+                        bins=100, start=0, stop=500000,
+                        label="Number of events after preselection per chunk",
+                        )
+               ],
+            storage="int64",
+            autofill=False,
+            metadata_hist = True,
+            no_weights=True,
+            only_categories=["baseline"],
+            variations=False,),
     }
 }
