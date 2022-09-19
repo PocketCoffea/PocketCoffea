@@ -171,7 +171,6 @@ class Configurator():
         print("Cuts:", list(self.cuts_dict.keys()))
         print("Categories:", self.categories)
 
-        
     def load_weights_config(self):
         ''' This function loads the weights definition and prepares a list of
         weights to be applied for each sample and category'''
@@ -204,9 +203,8 @@ class Configurator():
                         wsample["is_split_bycat"] = True
                         # looping on all the samples for this category
                         if w in wsample["inclusive"]:
-                            print(f"""Error! Trying to include weight {w}
+                            raise Exception("""Error! Trying to include weight {w}
                             by category, but it is already included inclusively!""")
-                            raise Exception("Wrong weight configuration")
                         wsample["bycategory"][cat].append(w)
 
         # Now look at specific samples configurations
@@ -233,15 +231,13 @@ class Configurator():
                                     print(f"Weight {w} not available in the workflow")
                                     raise Exception("Wrong weight configuration")
                             if w in self.weights_config[sample]["inclusive"]:
-                                print(f"""Error! Trying to include weight {w}
+                                raise Exception(f"""Error! Trying to include weight {w}
                                 by category, but it is already included inclusively!""")
-                                raise Exception("Wrong weight configuration")
                             self.weights_config[sample]["bycategory"][cat].append(w)
                             self.weights_config[sample]["is_split_bycat"] = True
                 
         print("Weights configuration")
         pprint(self.weights_config)
-
 
     def load_variations_config(self):
         ''' This function loads the variations definition and prepares a list of
@@ -303,10 +299,6 @@ class Configurator():
                                     raise Exception("Wrong variation configuration")
                             self.variations_config[sample]["weights"][cat].append(w)
                 
-        # print("Variation configuration")
-        # pprint(self.variations_config)
- 
-        
     def overwrite_check(self):
         if self.plot:
             print(f"The output will be saved to {self.plots}")
@@ -345,7 +337,6 @@ class Configurator():
 
     def define_output(self):
         self.outfile = os.path.join(self.output, "output.coffea")
-
 
     def load_workflow(self):
         self.processor_instance = self.workflow(cfg=self)

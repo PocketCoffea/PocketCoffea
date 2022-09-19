@@ -33,7 +33,8 @@ class HistConf():
     only_categories: List[str] = None
     no_weights : bool = False     # Do not fill the weights
     metadata_hist : bool = False  # Non-event variables, for processing metadata
-
+    hist_obj = None 
+    
     def serialize(self):
         out= { **self.__dict__ }
         out["axes"] = [a.__dict__ for a in self.axes]
@@ -89,7 +90,6 @@ class HistManager():
 
     def __init__(self, hist_config, sample, categories_config, variations_config, custom_axes=[]):
          self.histograms = {}
-         self._hist_objs = {}
          self.categories_config = categories_config
          self.variations_config = variations_config
          self.available_categories = set(self.categories_config.keys())
@@ -130,6 +130,7 @@ class HistManager():
                  #Get all the variation
                  allvariat = []
                  for c in cats:
+                     # Summing all the variations for all the categories
                      allvariat += self.variations_config["weights"][c]
                  allvariat = set(allvariat) 
                  if hcfg.only_variations !=None:
@@ -152,24 +153,23 @@ class HistManager():
                  fields_axes.append(get_hist_axis_from_config(ax))
 
              # Build the histogram object with the additional axes    
-             histogram = hist.Hist(
+             hcfg.hist_obj = hist.Hist(
                  *([cat_ax, var_ax] + fields_axes), storage=hcfg.storage,
                  name="Counts"
              )
              #Save the hist in the configuration and store the full config object
-             self._hist_objs[name] = histogram
              self.histograms[name] = hcfg
 
 
     def get_histograms(self):
         # Exclude by default metadata histo
-        return { key:h for key, h in self._hist_objs.items() if not self.histograms[key].metadata_hist}
+        return { key:h.hist_obj for key, h in self.histograms.items() if not h.metadata_hist}
 
     def get_metadata_histgrams():
-        return { key:h for key, h in self._hist_objs.items() if self.histograms[key].metadata_hist}
+        return { key:h.hist_obj for key, h in self.histograms.items() if h.metadata_hist}
 
     def get_histogram(self, name):
-        return self.histograms[name], self._hist_objs[name]
+        return self.histograms[name]
     
     def fill_histograms(self, events, weights_manager, cuts_masks, custom_fields=None):
         '''
@@ -199,7 +199,6 @@ class HistManager():
                 if category not in histo.only_categories: continue
                 if not histo.autofill: continue
                 if histo.metadata_hist: continue  # TODO dedicated function for metadata histograms
-                hobj = self._hist_objs[name]
                 # Get the filling axes and then manipulate the weights
                 # for each variation to be compatible with the shape
                 
@@ -281,7 +280,7 @@ class HistManager():
                 # data that has been masked, flattened
                 # removed the none value --> now we need weights for each variation
                 if not histo.no_weights: 
-                    for variation in hobj.axes["variation"]:
+                    for variation in histo.hist_obj.axes["variation"]:
                         weight_varied = weights[variation]
                         # Check number of dimensione
                         if ndim > 1:
@@ -289,7 +288,7 @@ class HistManager():
                         # Then we apply the notnone mask
                         weight_varied = weight_varied[all_axes_isnotnone]
                         # Fill the histogram
-                        hobj.fill(cat=category,
+                        histo.hist_obj.fill(cat=category,
                                   variation=variation,
                                   weight=weight_varied,
                                   **{**fill_categorical,
@@ -298,17 +297,21 @@ class HistManager():
                 else: # NO Weights modifier for the histogram
                     #if no_weights is requested only the nominal variation is filled with weight=1
                     if "weight" in histo.storage:
-                        hobj.fill(cat=category,
-                                  variation=variation,
-                                  weight=np.ones(ak.sum(mask)), # weight==1 with lenght of the mask
-                                  **{**fill_categorical,
-                                     **fill_numeric},
-                                  )
+                        w = ak.ones_list(data_structure)
+                        if ndim > 1:
+                            w = ak.flatten(w)
+                        w = w[all_axes_isnotnone]
+                        histo.hist_obj.fill(cat=category,
+                                            variation=variation,
+                                            weight=w,
+                                            **{**fill_categorical,
+                                               **fill_numeric},
+                                            )
                     else:
-                        hobj.fill(cat=category,
-                                  variation=variation,
-                                  **{**fill_categorical,
-                                     **fill_numeric},
+                        histo.hist_obj.fill(cat=category,
+                                            variation=variation,
+                                            **{**fill_categorical,
+                                               **fill_numeric},
                                   )
 
 

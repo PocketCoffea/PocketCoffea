@@ -4,6 +4,7 @@ from typing import List, Tuple
 import awkward as ak
 from functools import wraps
 from collections.abc import Callable
+from collections import defaultdict
 from coffea.analysis_tools import Weights
 # Scale factors functions
 from .scale_factors import sf_ele_reco, sf_ele_id, sf_mu, sf_btag, sf_btag_calib, sf_jet_puId
@@ -61,10 +62,14 @@ class WeightsManager():
         #Inclusive weights
         self._weightsIncl = Weights(size, storeIndividual)
         self._weightsByCat = {}
+        # Dictionary keeping track of which modifier can be applied to which region
+        self._available_modifiers_inclusive = []
+        self._available_modifiers_bycat = defaultdict(list)
 
         _weightsCache = {}
 
         def __add_weight(w, weight_obj):
+            installed_modifiers = []
             # If the Weight is a name look into the predefined weights
             if isinstance(w, str):
                 if w not in WeightsManager.available_weights():
@@ -75,8 +80,10 @@ class WeightsManager():
                 if w not in _weightsCache:
                     _weightsCache[w] = self._compute_weight(w, events)
                 for we in _weightsCache[w]:
-                    # print(we)
                     weight_obj.add(*we)
+                    if len(we)> 2:
+                        # the weights has variations
+                        installed_modifiers += [we[0]+"Up", we[0]+"Down"]
             # If the Weight is a Custom weight just run the function
             elif isinstance(w, WeightCustom):
                 if w.name not in _weightsCache:
@@ -84,10 +91,16 @@ class WeightsManager():
                 for we in _weightsCache[w.name]:
                     # print(we)
                     weight_obj.add(*we)
+                    if len(we)> 2:
+                        # the weights has variations
+                        installed_modifiers += [we[0]+"Up", we[0]+"Down"]
+            return installed_modifiers
 
         # Compute first the inclusive weights
         for w in self.weightsConf["inclusive"]:
-            __add_weight(w, self._weightsIncl)
+            modifiers = __add_weight(w, self._weightsIncl)
+            # Save the list of availbale modifiers
+            self._available_modifiers_inclusive += modifiers
 
         # Now weights for dedicated categories
         if self.weightsConf["is_split_bycat"]:
@@ -97,8 +110,12 @@ class WeightsManager():
                 if len(ws) == 0: continue
                 self._weightsByCat[cat] = Weights(size, storeIndividual)
                 for w in ws:
-                    __add_weight(w, self._weightsByCat[cat])
+                    modifiers = __add_weight(w, self._weightsByCat[cat])
+                    self._available_modifiers_bycat[cat] += modifiers
 
+        # make the variations unique 
+        self._available_modifiers_inclusive = set(self._available_modifiers_inclusive)
+        self._available_modifiers_bycat = { k:set(v) for k,v in self._available_modifiers_bycat.items()}
         #Clear the cache once the Weights objects have been added
         _weightsCache.clear()
                        
@@ -161,7 +178,7 @@ class WeightsManager():
         '''
         Add manually a weight to a specific category
         '''
-        if category== None:
+        if category==None:
             # add the weights to all the categories (inclusive)
             self._weightsIncl.add(name, nominal, up, down)
         else:
@@ -174,17 +191,36 @@ class WeightsManager():
         If category==None the inclusive weight is returned.
         If category!=None but weights_split_bycat=False, the inclusive weight is returned.
         Otherwise the inclusive*category specific weight is returned.
+        The requested variation==modifier must be available or in the
+        inclusive weights, or in the bycategory weights. 
         '''
-        if category==None or self.weightsConf["is_split_bycat"] == False:
+        if category==None or self.weightsConf["is_split_bycat"] == False or category not in self._weightsByCat:
             # return the inclusive weight
+            if modifier!=None and modifier not in self._available_modifiers_inclusive:
+                raise ValueError(f"Modifier {modifier} not available in inclusive weights")
             return self._weightsIncl.weight(modifier=modifier)
         
-        elif category and self.weightsConf["is_split_bycat"] == True:
-            if category not in self._categories:
-                raise Exception(f"Requested weights for non-existing category: {category}")
-            # moltiply the inclusive weight and the by category one
-            return self._weightsIncl.weight(modifier=modifier) * \
-                self._weightsByCat[category].weight(modifier=modifier)
+        elif category and self.weightsConf["is_split_bycat"] == True :
+            # Check if this category has a bycategory configuration
+            if modifier == None:
+                # Get the nominal both for the inclusive and the split weights
+                return self._weightsIncl.weight() * \
+                    self._weightsByCat[category].weight()
+            else:
+                mod_incl = modifier in self._available_modifiers_inclusive
+                mod_bycat = modifier in self._available_modifiers_bycat[category]
+
+                if mod_incl and not mod_bycat:
+                    # Get the modified inclusive and nominal bycat
+                    return self._weightsIncl.weight(modifier=modifier) * \
+                        self._weightsByCat[category].weight()
+                elif not mod_incl and mod_bycat:
+                    # Get the nominal by cat and modified inclusive
+                    return self._weightsIncl.weight()*\
+                        self._weightsByCat[category].weight(modifier=modifier)
+                else:
+                    raise ValueError(f"Modifier {modifier} not available in category {category}")
+            
 
 
     

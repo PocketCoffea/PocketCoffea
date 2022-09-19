@@ -267,14 +267,14 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             self.output["variables"][var][self._sample] = H
         # Filling the special histograms for events if they are present
         if "events_per_chunk" in self.hists_manager.histograms:
-            h_cfg, hepc = self.hists_manager.get_histogram("events_per_chunk")
-            hepc.fill(cat=hepc.axes["cat"][0],
+            hepc = self.hists_manager.get_histogram("events_per_chunk")
+            hepc_hist_obj.fill(cat=hepc.only_categories[0],
                       variation= "nominal",
                       year= self._year,
                       nEvents_initial = self.nEvents_initial,
                       nEvents_after_skim=self.nEvents_after_skim,
                       nEvents_after_presel=self.nEvents_after_presel)
-            self.output["processing_metadata"]["events_per_chunk"][self._sample] = hepc
+            self.output["processing_metadata"]["events_per_chunk"][self._sample] = hepc.hist_obj
             
     def process_extra_before_skim(self):
         pass
