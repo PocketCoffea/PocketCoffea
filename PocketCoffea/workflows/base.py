@@ -75,7 +75,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         }
 
         # Custom axes to add to histograms in this processor
-        self.custom_axes = [Axis(field="year", label="year", bins=self.cfg.years,
+        self.custom_axes = [Axis(field="year", label="year", bins=set(sorted(self.cfg.years)),
                                  coll="metadata", type="strcat", growth=False)]
         
 

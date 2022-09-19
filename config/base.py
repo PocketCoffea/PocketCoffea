@@ -12,7 +12,7 @@ cfg =  {
         "filter" : {
             "samples": ["TTToSemiLeptonic", "ttHTobb"],
             "samples_exclude" : [],
-            "year": ["2018"]
+            "year": ['2018']
         }
     },
 
