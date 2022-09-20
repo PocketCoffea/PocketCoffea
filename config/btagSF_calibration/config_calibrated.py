@@ -3,6 +3,7 @@ from config.parton_matching.functions import *
 from PocketCoffea.lib.cut_definition import Cut
 from PocketCoffea.lib.cut_functions import get_nObj, get_nBtag
 from PocketCoffea.workflows.btag_sf_calibration import BtagSFCalibration
+from PocketCoffea.parameters.histograms import *
 
 cfg =  {
 
@@ -18,37 +19,20 @@ cfg =  {
 
     # Input and output files
     "workflow" : BtagSFCalibration,
-    "output"   : "output/btagSF_calibration",
+    "output"   : "output/btagSF_calibration_hist",
     "workflow_extra_options": {},
-    "split_eras" :False,
-    "triggerSF" : "PocketCoffea/parameters/semileptonic_triggerSF/triggerSF_2018UL_Ele32_EleHT/sf_trigger_electron_etaSC_vs_electron_pt_2018_Ele32_EleHT_pass_v03.coffea",
 
-    # "run_options" : {
-    #     "executor"       : "iterative",
-    #     "workers"        : 1,
-    #     "scaleout"       : 60,
-    #     "partition"      : "standard",
-    #     "walltime"       : "03:00:00",
-    #     "mem_per_worker" : "4GB", # GB
-    #     "exclusive"      : False,
-    #     "chunk"          : 200000,
-    #     "retries"        : 30,
-    #     "max"            : None,
-    #     "skipbadfiles"   : None,
-    #     "voms"           : None,
-    #     "limit"          : 1,
-    # },
-   "run_options" : {
+    "run_options" : {
         "executor"       : "dask/slurm",
         "workers"        : 1,
-        "scaleout"       : 120,
+        "scaleout"       : 60,
         "partition"      : "standard",
-        "walltime"       : "05:00:00",
-        "mem_per_worker" : "10GB", # GB
+        "walltime"       : "01:00:00",
+        "mem_per_worker" : "6GB", # GB
         "exclusive"      : False,
-        "chunk"          : 500000,
+        "chunk"          : 450000,
         "retries"        : 30,
-        "treereduction"  : 10,
+        "treereduction"  : 20,
         "max"            : None,
         "skipbadfiles"   : None,
         "voms"           : None,
@@ -64,55 +48,72 @@ cfg =  {
     "categories": {
         "no_btagSF" : [passthrough],
         "btagSF" : [passthrough],
-        "btagSF_calib": [passthrough],
-        "2b" : [ get_nObj(2, coll="BJetGood")], 
-        "3b" :  [ get_nObj(3, coll="BJetGood")],
-        "2b_btagSF" : [ get_nObj(2, coll="BJetGood")], 
-        "3b_btagSF" :  [ get_nObj(3, coll="BJetGood")],
-        "2b_btagSF_calib" : [ get_nObj(2, coll="BJetGood")], 
-        "3b_btagSF_calib" :  [ get_nObj(3, coll="BJetGood")],
+        "btagSF_calib" : [passthrough],
     },
 
     "weights": {
         "common": {
-            "inclusive": ["genWeight","lumi","XS", "pileup", "sf_ele_reco_id", "sf_mu_id_iso"],
-            "bycategory" : {
+            "inclusive": ["genWeight","lumi","XS", "pileup",
+                          "sf_ele_id", "sf_ele_reco",
+                          "sf_mu_id", "sf_mu_iso"],
+             "bycategory" : {
                 "btagSF" : ["sf_btag"],
-                "2b_btagSF" : ["sf_btag"],
-                "3b_btagSF" : ["sf_btag"],
-                "btagSF_calib" : ["sf_btag","sf_btag_calib"],
-                "2b_btagSF_calib" : ["sf_btag","sf_btag_calib"],
-                "3b_btagSF_calib" : ["sf_btag","sf_btag_calib"],
+                "btagSF_calib": ["sf_btag","sf_btag_calib"]
             }
         },
     },
-    
-    "variables" : {
-        "muon_pt" : {'binning' : {'n_or_arr' : 100, 'lo' : 0, 'hi' : 500}, 'xlim' : (0,500),  'xlabel' : "$p_{T}^{\mu}$ [GeV]"},
-        "muon_eta" : None,
-        "muon_phi" : None,
-        "electron_pt" : {'binning' : {'n_or_arr' : 100, 'lo' : 0, 'hi' : 500}, 'xlim' : (0,500),  'xlabel' : "$p_{T}^{\ele}$ [GeV]"},
-        "electron_eta" : None,
-        "electron_phi" : None,
-        "jet_pt" : None,
-        "jet_eta" : None,
-        "jet_phi" : None,
-        "jet_btagDeepFlavB" : None,
-        "nmuon" : None,
-        "nelectron" : None,
-        "nlep" : None,
-        "nmuon" : None,
-        "nelectron" : None,
-        "nlep" : None,
-        "njet" : None,
-        "nbjet" : None,
-        "Ht" : {'binning' : {'n_or_arr' : 100, 'lo' : 0, 'hi' : 2500}, 'xlim':(0, 500), 'xlabel' : "$H_T$ Jets [GeV]"},
+    "variations": {
+        "weights": {
+            "common": {
+                "inclusive": [],
+                "bycategory": {}
+            }
+        }
     },
-     "variables2d" : {
-         "Njet_Ht": {
-             "Njet": {'binning': {"n_or_arr": [4,5,6,7,8,9,11,20]}, "xlabel":"N Jets"},
-             "Ht": {'binning': {"n_or_arr": [0,500,650,800,1000,1200,1400,1600, 1800, 2000, 5000]}, "ylabel":"$H_T$ Jets"}
-         },
-     },
-    "scale" : "log"
+
+    "variables": {
+        
+        **jet_hists(name="jet",coll="JetGood"),
+        **jet_hists(name="bjet", coll="BJetGood"),
+        **count_hist(name="nJets", coll="JetGood",bins=20, start=0, stop=20),
+        **count_hist(name="nBJets", coll="BJetGood",bins=12, start=2, stop=14),
+        **jet_hists(name="jet", coll="JetGood", pos=0),
+        **jet_hists(name="jet", coll="JetGood", pos=1),
+        **jet_hists(name="jet", coll="JetGood", pos=2),
+        **jet_hists(name="jet", coll="JetGood", pos=3),
+        **jet_hists(name="jet", coll="JetGood", pos=4),
+        **jet_hists(name="bjet",coll="BJetGood", pos=0),
+        **jet_hists(name="bjet",coll="BJetGood", pos=1),
+        **jet_hists(name="bjet",coll="BJetGood", pos=2),
+        **jet_hists(name="bjet",coll="BJetGood", pos=3),
+
+        "jets_Ht" : HistConf(
+          [Axis(coll="events", field="JetGood_Ht", bins=100, start=0, stop=2500,
+                label="Jets $H_T$ [GeV]")]  
+        ),
+        
+        # 2D plots
+        "Njet_Ht": HistConf(
+            [
+                Axis(coll="events", field="nJetGood",bins=[4,5,6,7,8,9,11,20],
+                     type="variable",   label="N. Jets (good)"),
+                Axis(coll="events", field="JetGood_Ht",
+                     bins=[0,500,650,800,1000,1200,1400,1600, 1800, 2000, 5000],
+                     type="variable",
+                     label="Jets $H_T$ [GeV]"),
+            ]
+        ),
+
+        "Njet_Ht_finerbins": HistConf(
+            [
+                Axis(coll="events", field="nJetGood",bins=[4,5,6,7,8,9,11,20],
+                     type="variable",   label="N. Jets (good)"),
+                Axis(coll="events", field="JetGood_Ht",
+                     bins=[0,300,500,600,700,800,900, 1000,1100, 1200, 1300,
+                           1400,1600, 1800, 2000, 3500, 5000],
+                     type="variable",
+                     label="Jets $H_T$ [GeV]"),
+            ]
+        ),
+    }
 }
