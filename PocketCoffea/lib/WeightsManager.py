@@ -100,7 +100,7 @@ class WeightsManager():
 
         # Compute first the inclusive weights
         for w in self.weightsConf["inclusive"]:
-            print(f"Adding weight {w} inclusively")
+            # print(f"Adding weight {w} inclusively")
             modifiers = __add_weight(w, self._weightsIncl)
             # Save the list of availbale modifiers
             self._available_modifiers_inclusive += modifiers
@@ -113,7 +113,7 @@ class WeightsManager():
                 if len(ws) == 0: continue
                 self._weightsByCat[cat] = Weights(size, storeIndividual)
                 for w in ws:
-                    print(f"Adding weight {w} in category {cat}")
+                    # print(f"Adding weight {w} in category {cat}")
                     modifiers = __add_weight(w, self._weightsByCat[cat])
                     self._available_modifiers_bycat[cat] += modifiers
 
@@ -121,8 +121,8 @@ class WeightsManager():
         self._available_modifiers_inclusive = set(self._available_modifiers_inclusive)
         self._available_modifiers_bycat = { k:set(v) for k,v in self._available_modifiers_bycat.items()}
 
-        print("Weights modifiers inclusive", self._available_modifiers_inclusive)
-        print("Weights modifiers bycat", self._available_modifiers_bycat)
+        # print("Weights modifiers inclusive", self._available_modifiers_inclusive)
+        # print("Weights modifiers bycat", self._available_modifiers_bycat)
         #Clear the cache once the Weights objects have been added
         _weightsCache.clear()
                        

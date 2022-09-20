@@ -13,6 +13,7 @@ class Axis():
     start: float = None
     stop: float = None
     coll: str = "events" # Collection or events or metadata or custom
+    name: str = None # By default is built as coll.field, if not provided 
     pos : int = None # index in the collection to plot. If None plot all the objects on the same histogram
     type: str = "regular"  #regular/variable/integer/intcat/strcat
     transform: str = None
@@ -42,11 +43,13 @@ class HistConf():
         return out
 
 def get_hist_axis_from_config(ax: Axis):
+    if ax.name == None:
+        ax.name = ax.name
     if ax.type=="regular" and isinstance(ax.bins, list):
         ax.type="variable"
     if ax.type == "regular":
         return hist.axis.Regular(
-            name=ax.field,
+            name=ax.name,
             bins=ax.bins,
             start=ax.start,
             stop=ax.stop,
@@ -58,14 +61,14 @@ def get_hist_axis_from_config(ax: Axis):
     elif ax.type == "variable":
         return hist.axis.Variable(
             ax.bins, 
-            name=ax.field,
+            name=ax.name,
             label=ax.label,
             overflow=ax.overflow,
             underflow=ax.underflow,
             growth=ax.growth)
     elif ax.type == "int":
         return hist.axis.Integer(
-            name=ax.field,
+            name=ax.name,
             start=ax.start,
             stop=ax.stop,
             label=ax.label,
@@ -75,7 +78,7 @@ def get_hist_axis_from_config(ax: Axis):
     elif ax.type == "intcat":
         return hist.axis.IntCategory(
             ax.bins, 
-            name=ax.field,
+            name=ax.name,
             label=ax.label,
             overflow=ax.overflow,
             underflow=ax.underflow,
@@ -83,7 +86,7 @@ def get_hist_axis_from_config(ax: Axis):
     elif ax.type == "strcat":
         return hist.axis.StrCategory(
             ax.bins, 
-            name=ax.field,
+            name=ax.name,
             label=ax.label,
             growth=ax.growth)
                     
@@ -239,7 +242,7 @@ class HistManager():
                             data = custom_fields[ax.field][mask]
                         else:
                             if ax.coll not in events.fields:
-                                raise ValueError(f"Collection {coll} not found in events!")
+                                raise ValueError(f"Collection {ax.coll} not found in events!")
                             # General collections
                             if ax.pos == None:
                                 data = masked_events[ax.coll][ax.field]
@@ -265,7 +268,7 @@ class HistManager():
                             data = ak.flatten(data)
 
                         # Filling the numerical axes
-                        fill_numeric[ax.field] = data
+                        fill_numeric[ax.name] = data
                         # check isnotnone AFTER the flattening
                         if not has_none_mask:  # this is the first axis analyzed
                             all_axes_isnotnone = (~ak.is_none(data))
@@ -280,11 +283,11 @@ class HistManager():
                     else:
                         if ax.coll == "metadata":
                             data = events.metadata[ax.field]
-                            fill_categorical[ax.field] = data
+                            fill_categorical[ax.name] = data
                         elif ax.coll == "custom":
                             # taking the data from the custom_fields argument
                             data = custom_fields[ax.field]
-                            fill_categorical[ax.field] = data
+                            fill_categorical[ax.name] = data
                         else:
                             raise NotImplementedError()
 

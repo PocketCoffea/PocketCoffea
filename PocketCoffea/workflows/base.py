@@ -21,7 +21,6 @@ from ..lib.WeightsManager import WeightsManager
 from ..lib.HistManager import HistManager, Axis, HistConf
 from ..lib.triggers import get_trigger_mask
 from ..lib.objects import jet_correction, lepton_selection, jet_selection, btagging, get_dilepton
-from ..lib.fill import fill_histograms_object
 from ..parameters.triggers import triggers
 from ..parameters.btag import btag, btag_variations
 from ..parameters.jec import JECversions, JERversions
@@ -75,8 +74,10 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         }
 
         # Custom axes to add to histograms in this processor
-        self.custom_axes = [Axis(field="year", label="year", bins=set(sorted(self.cfg.years)),
-                                 coll="metadata", type="strcat", growth=False)]
+        self.custom_axes = [Axis(coll="metadata", field="year",name="year".
+                                 bins=set(sorted(self.cfg.years)),
+                                  type="strcat", growth=False,
+                                  label="Year", )]
         
 
     def add_column_accumulator(self, name, categories=None, store_size=True):
@@ -302,14 +303,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.load_metadata()
         # Define the accumulator instance for this chunk
         self.output = copy.deepcopy(self.output_format)
-
-        # Create the HistManager
-        self.hists_manager = HistManager(self.cfg.variables,
-                                         self._sample,
-                                         self._categories,
-                                         self.cfg.variations_config[self._sample],
-                                         self.custom_axes)
-
+        
         self.nEvents_initial = self.nevents
         self.output['cutflow']['initial'][self._sample] += self.nEvents_initial
         if self._isMC:
@@ -367,6 +361,13 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # Weights
         self.compute_weights()
         self.compute_weights_extra()
+
+        # Create the HistManager
+        self.hists_manager = HistManager(self.cfg.variables,
+                                         self._sample,
+                                         self._categories,
+                                         self.cfg.variations_config[self._sample],
+                                         self.custom_axes)
 
         # Fill histograms
         self.fill_histograms()
