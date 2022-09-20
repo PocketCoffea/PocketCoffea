@@ -18,7 +18,7 @@ import correctionlib
 from ..lib.triggers import get_trigger_mask
 from ..lib.objects import jet_correction, lepton_selection, jet_selection, btagging, get_dilepton
 from ..lib.pileup import sf_pileup_reweight
-from ..lib.scale_factors import sf_ele_reco, sf_ele_id, sf_mu, sf_btag, sf_btag_calib, sf_jet_puId
+from ..lib.scale_factors import sf_ele_reco, sf_ele_id, sf_ele_trigger, sf_mu, sf_btag, sf_btag_calib, sf_jet_puId
 from ..lib.fill import fill_histograms_object
 from ..parameters.triggers import triggers
 from ..parameters.btag import btag, btag_variations
@@ -291,7 +291,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     def available_weights(cls):
         return ['genWeight', 'lumi', 'XS', 'pileup',
                 'sf_ele_reco_id', 'sf_mu_id_iso', 'sf_btag',
-                'sf_btag_calib', 'sf_jet_puId']
+                'sf_btag_calib', 'sf_jet_puId',
+                'sf_ele_trigger']
         
     def compute_weights(self):
         '''
@@ -336,6 +337,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                 weight_obj.add('sf_jet_puId', *sf_jet_puId(self.events.JetGood, self.cfg.finalstate,
                                                            self._year, njets=self.events.njet))
 
+            elif weight == 'sf_ele_trigger':
+                weight_obj.add('sf_ele_trigger', *sf_ele_trigger(self.events, self._year))
+
         #Inclusive weights
         self._weights_incl = Weights(self.nEvents_after_presel, storeIndividual=True)
 
@@ -368,19 +372,6 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                 raise Exception(f"Requested weights for non-existing category: {category}")
             # moltiply the inclusive weight and the by category one
             return self._weights_incl.weight(modifier=modifier) * self._weights_bycat[category].weight(modifier=modifier)
-        
-    def apply_triggerSF(self):
-        if self.cfg.triggerSF != None:
-            dict_corr = load(self.cfg.triggerSF)
-            self.triggerSF_weights = {cat : Weights(self.nEvents_after_presel) for cat in dict_corr.keys()}
-            for cat, corr in dict_corr.items():
-                if self._isMC:
-                    # By filling the None in the pt array with -999, the SF will be fixed to 1 for events with 0 electrons
-                    self.triggerSF_weights[cat].add( 'triggerSFcorr', corr(ak.fill_none(ak.firsts(self.events.ElectronGood.pt), -999), ak.fill_none(ak.firsts(self.events.ElectronGood.eta), -999)) )
-                else:
-                    print(self.events.ElectronGood.pt)
-                    print(ak.ones_like(ak.fill_none(self.events.ElectronGood.pt, 0)))
-                    self.triggerSF_weights[cat].add( 'triggerSFcorr', ak.ones_like(ak.fill_none(ak.firsts(self.events.ElectronGood.pt), 0)) )
 
     def fill_histograms(self):
         for (obj, obj_hists) in zip([None], [self.perevent_hists]):
@@ -477,9 +468,6 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # Weights
         self.compute_weights()
 
-        # Per-event trigger SF reweighting
-        self.apply_triggerSF()
-        
         # Fill histograms
         self.fill_histograms()
         self.fill_histograms_extra()
