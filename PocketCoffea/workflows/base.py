@@ -79,13 +79,13 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                                  coll="metadata", type="strcat", growth=False)]
         
 
-    def add_column_accumulator(self, name, cat=None, store_size=True):
+    def add_column_accumulator(self, name, categories=None, store_size=True):
         '''
         Add a column_accumulator with `name` to the category `cat` (to all the category if `cat`==None).
         If store_size == True, create a parallel column called name_size, containing the number of entries
         for each event. 
         '''
-        if cat == None:
+        if categories == None or len(categories)==0:
             # add the column accumulator to all the categories
             for cat in self._categories:
                 # we need a defaultdict accumulator to be able to include different samples for different chunks
@@ -94,12 +94,13 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                     # in thise case we save also name+size which will contain the number of entries per event
                     self.output_format['columns'][cat][name+"_size"] = {}
         else:
-            if cat not in self._categories:
-                raise Exception(f"Category not found: {cat}")
-            self.output_format['columns'][cat][name] ={}
-            if store_size:
-                # in thise case we save also name+size which will contain the number of entries per event
-                self.output_format['columns'][cat][name+"_size"] = {}
+            for cat in categories:
+                if cat not in self._categories:
+                    raise Exception(f"Category not found: {cat}")
+                self.output_format['columns'][cat][name] ={}
+                if store_size:
+                    # in thise case we save also name+size which will contain the number of entries per event
+                    self.output_format['columns'][cat][name+"_size"] = {}
         
     @property
     def nevents(self):
@@ -236,7 +237,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.weights_manager = WeightsManager(self.weights_config_allsamples[self._sample],
                                               self.nEvents_after_presel,
                                               self.events, # to compute weights
-                                              storeIndividual=False,
+                                              storeIndividual=True,
                                               metadata={
                                                   "year": self._year,
                                                   "sample": self._sample,

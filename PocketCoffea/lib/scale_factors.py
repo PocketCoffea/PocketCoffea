@@ -137,6 +137,8 @@ def sf_btag(jets, btag_discriminator, year, njets, variations=["central"]):
         sf = np.ones_like(discr, dtype=float)
         w = corr.evaluate(variation, flavour[mask], abseta[mask], pt[mask], discr[mask])
         sf[index] = w
+        # TODO this can be improved: we do not need to keep the order
+        # since we are doing the product --> we can simplify this
         sf_out = ak.prod(ak.unflatten(sf, njets), axis=1)
         return sf_out
 

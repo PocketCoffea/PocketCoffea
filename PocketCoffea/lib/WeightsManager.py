@@ -100,6 +100,7 @@ class WeightsManager():
 
         # Compute first the inclusive weights
         for w in self.weightsConf["inclusive"]:
+            print(f"Adding weight {w} inclusively")
             modifiers = __add_weight(w, self._weightsIncl)
             # Save the list of availbale modifiers
             self._available_modifiers_inclusive += modifiers
@@ -112,6 +113,7 @@ class WeightsManager():
                 if len(ws) == 0: continue
                 self._weightsByCat[cat] = Weights(size, storeIndividual)
                 for w in ws:
+                    print(f"Adding weight {w} in category {cat}")
                     modifiers = __add_weight(w, self._weightsByCat[cat])
                     self._available_modifiers_bycat[cat] += modifiers
 
@@ -166,7 +168,8 @@ class WeightsManager():
                 # as separate entries in the Weights object.
                 btagsf[var][1] = btagsf[var][1]/ btagsf["central"][0]
                 btagsf[var][2] = btagsf[var][2] / btagsf["central"][0]
-                
+
+            # return the nominal and everything
             return [(f"sf_btag_{var}", *weights) for var, weights in btagsf.items()]
 
         elif weight_name == 'sf_btag_calib':

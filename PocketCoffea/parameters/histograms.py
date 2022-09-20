@@ -16,7 +16,7 @@ default_axis_settings = {
         'jet_pt'                   : {"field":"pt", "bins": 150, "start":0, 'stop' : 1500, "lim" : (0,500), 'label' : "$p_{T}^{j}$ [GeV]"},
         'jet_eta'                  : {"field":"eta", "bins": 100, "start":-3, 'stop' : 3, "lim" : (-3,3),  'label' : "$\eta_{j}$"},
         'jet_phi'                  : {"field":"phi", "bins": 128, "start":-math.pi, 'stop' : math.pi, "lim" : (-math.pi,math.pi),'label' : "$\phi_{j}$"},
-        'jet_btagDeepFlavB'        : {"field":"btagDeepFlavB", "bins": 50, "start":0, 'stop' : 1, "lim":(0, 1),'label' : "AK4 DeepJet b-tag score"},
+        'jet_btagDeepFlavB'        : {"field":"btagDeepFlavB", "bins": 50, "start":0., 'stop' : 1., "lim":(0, 1),'label' : "AK4 DeepJet b-tag score"},
 
         'parton_pt'                : {"field":"pt", "bins": 150, "start":0, 'stop' : 1500, "lim" : (0,500), 'label' : "$p_{T}^{parton}$ [GeV]"},
         'parton_eta'               : {"field":"eta", "bins": 80, "start":-4, 'stop' : 4, "lim" : (-4,4),  'label' : "$\eta_{parton}$"},
@@ -57,19 +57,29 @@ def _get_default_hist(name, type, coll, pos=None, fields=None):
     return out
 
     
-def jet_hists(name="jet", coll="JetGood", pos=None, fields=None):
+def jet_hists(coll="JetGood", pos=None, fields=None, name=None):
+    if name == None:
+        name = coll
     return _get_default_hist(name, "jet", coll, pos, fields)
 
-def parton_hists(name="parton", coll="PartonMatched",  pos=None,fields=None):
+def parton_hists(coll="PartonMatched",  pos=None,fields=None, name=None):
+    if name == None:
+        name = coll
     return _get_default_hist(name, "parton", coll, pos, fields)
 
-def ele_hists(name="ele", coll="ElectronGood", pos=None, fields=None):
-     return _get_default_hist(name, "electron", coll, pos, fields)
+def ele_hists(coll="ElectronGood", pos=None, fields=None, name=None):
+    if name == None:
+        name = coll
+    return _get_default_hist(name, "electron", coll, pos, fields)
 
-def muon_hists(name="muon", coll="MuonGood",  pos=None, fields=None):
+def muon_hists(coll="MuonGood",  pos=None, fields=None, name=None):
+    if name == None:
+        name = coll
     return _get_default_hist(name, "muon", coll, pos, fields)
 
-def count_hist(name, coll, bins=10, start=0, stop=9, label=None):
+def count_hist(coll, bins=10, start=0, stop=9, label=None, name=None):
+    if name == None:
+        name = f"n{coll}"
     return {
         f"{name}": HistConf(axes=[
         Axis(coll="events", field=f"n{coll}",

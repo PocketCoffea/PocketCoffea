@@ -188,8 +188,9 @@ class HistManager():
         Custom_fields is a dict of additional array. The expected lenght of the first dimension is the number of
         events. The categories mask will be applied.
         '''
-
+        #print("===> Filling histograms")
         for category in self.available_categories:
+            #print(f"\tCategory: {category}")
             # Getting the cut mask
             mask = cuts_masks.all(*self.categories_config[category])
             masked_events = events[mask]
@@ -204,8 +205,12 @@ class HistManager():
                  else:
                      # Check if the variation is available in this category
                      weights[variation] = weights_manager.get_weight(category, modifier=variation)[mask]
-
+                 #print(f"\t\t= Weights [{variation}] = {weights[variation]} ")
+            # #print(weights["nominal"])
+            # #print(weights_manager._weightsByCat["btagSF"].partial_weight(include=["sf_btag_central"]))
+            
             for name, histo in self.histograms.items():
+                #print(f"\t\tFilling histo {name}")
                 if category not in histo.only_categories: continue
                 if not histo.autofill: continue
                 if histo.metadata_hist: continue  # TODO dedicated function for metadata histograms
@@ -220,6 +225,7 @@ class HistManager():
                 has_data_structure = False
                 data_structure = None
                 for ax in histo.axes:
+                    #print(f"\t\t\tFilling axes {ax}")
                     # Checkout the collection type
                     if ax.type in ["regular", "variable", "int"]:
                         if ax.coll == "events":
@@ -291,6 +297,7 @@ class HistManager():
                 # removed the none value --> now we need weights for each variation
                 if not histo.no_weights: 
                     for variation in histo.hist_obj.axes["variation"]:
+    #                    print(f"\t\t\tFilling variation: {variation}")
                         # Check if this variation exists for this category
                         if variation not in weights:
                             # it means that the variation is in the axes only
@@ -304,6 +311,7 @@ class HistManager():
                             weight_varied = ak.flatten(data_structure*weight_varied)
                         # Then we apply the notnone mask
                         weight_varied = weight_varied[all_axes_isnotnone]
+    #                    print(weight_varied)
                         # Fill the histogram
                         histo.hist_obj.fill(cat=category,
                                   variation=variation,
@@ -312,20 +320,7 @@ class HistManager():
                                      **fill_numeric},
                                   )
                 else: # NO Weights modifier for the histogram
-                    #if no_weights is requested only the nominal variation is filled with weight=1
-                    if "weight" in histo.storage:
-                        w = ak.ones_list(data_structure)
-                        if ndim > 1:
-                            w = ak.flatten(w)
-                        w = w[all_axes_isnotnone]
-                        histo.hist_obj.fill(cat=category,
-                                            variation=variation,
-                                            weight=w,
-                                            **{**fill_categorical,
-                                               **fill_numeric},
-                                            )
-                    else:
-                        histo.hist_obj.fill(cat=category,
+                    histo.hist_obj.fill(cat=category,
                                             variation=variation,
                                             **{**fill_categorical,
                                                **fill_numeric},
