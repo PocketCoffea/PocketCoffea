@@ -68,8 +68,8 @@ scalefactor = {
             'hist_electron_eta' : {'ylim' : (0.8, 1.2)},
             'hist_electron_etaSC' : {'ylim' : (0.8, 1.2)},
             'hist_electron_phi' : {'ylim' : (0, 1)},
-            'hist_njet' : {'ylim' : (0.4, 1.2)},
-            'hist_ht' : {'ylim' : (0.4, 1.2)},
+            'hist_njet' : {'ylim' : (0.5, 1.1)},
+            'hist_ht' : {'ylim' : (0.5, 1.1)},
         }
     },
     '2018' : {
@@ -78,8 +78,8 @@ scalefactor = {
             'hist_electron_eta' : {'ylim' : (0.8, 1.2)},
             'hist_electron_etaSC' : {'ylim' : (0.8, 1.2)},
             'hist_electron_phi' : {'ylim' : (0, 1)},
-            'hist_njet' : {'ylim' : (0.4, 1.2)},
-            'hist_ht' : {'ylim' : (0.4, 1.2)},
+            'hist_njet' : {'ylim' : (0.5, 1.1)},
+            'hist_ht' : {'ylim' : (0.5, 1.1)},
         }
     },
 }
@@ -197,8 +197,8 @@ ratio = {
             'hist_electron_eta' : {'ylim' : (0.90, 1.10)},
             'hist_electron_etaSC' : {'ylim' : (0.90, 1.10)},
             'hist_electron_phi' : {'ylim' : (0.90, 1.10)},
-            'hist_njet' : {'ylim' : (0.90, 1.10)},
-            'hist_ht' : {'ylim' : (0.90, 1.10)},
+            'hist_njet' : {'ylim' : (0.70, 1.30)},
+            'hist_ht' : {'ylim' : (0.70, 1.30)},
         }
     },
     '2018' : {
@@ -207,8 +207,8 @@ ratio = {
             'hist_electron_eta' : {'ylim' : (0.95, 1.05)},
             'hist_electron_etaSC' : {'ylim' : (0.95, 1.05)},
             'hist_electron_phi' : {'ylim' : (0.95, 1.05)},
-            'hist_njet' : {'ylim' : (0.95, 1.05)},
-            'hist_ht' : {'ylim' : (0.95, 1.05)},
+            'hist_njet' : {'ylim' : (0.70, 1.30)},
+            'hist_ht' : {'ylim' : (0.70, 1.30)},
         }
     },
 }
