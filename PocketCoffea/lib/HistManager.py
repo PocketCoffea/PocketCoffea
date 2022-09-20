@@ -1,8 +1,9 @@
 import hist
 import awkward as ak
-from collections import namedtuple
+from collections import defaultdict
 from typing import List, Tuple
 from dataclasses import dataclass, field
+
 
 @dataclass
 class Axis():
@@ -41,6 +42,8 @@ class HistConf():
         return out
 
 def get_hist_axis_from_config(ax: Axis):
+    if ax.type=="regular" and isinstance(ax.bins, list):
+        ax.type="variable"
     if ax.type == "regular":
         return hist.axis.Regular(
             name=ax.field,
@@ -94,9 +97,13 @@ class HistManager():
          self.variations_config = variations_config
          self.available_categories = set(self.categories_config.keys())
          self.available_variations = ["nominal"]
+         self.available_variations_bycat = defaultdict(list)
          for cat, vars in self.variations_config["weights"].items():
+             self.available_variations_bycat[cat].append("nominal")
              for var in vars:
-                 self.available_variations += [f"{var}Up", f"{var}Down"]
+                 vv = [f"{var}Up", f"{var}Down"]
+                 self.available_variations += vv
+                 self.available_variations_bycat[cat] += vv
          self.available_variations = set(self.available_variations)
          # Prepare the variations Axes summing all the required variations
          # The variation config is organized as the weights one, by sample and by category
@@ -191,10 +198,11 @@ class HistManager():
             # The weights will be flattened if needed for each histo
             # map of weights in this category, with mask APPLIED
             weights = {}
-            for variation in self.available_variations:
+            for variation in self.available_variations_bycat[category]:
                  if variation == "nominal":
                      weights["nominal"]  = weights_manager.get_weight(category)[mask]
                  else:
+                     # Check if the variation is available in this category
                      weights[variation] = weights_manager.get_weight(category, modifier=variation)[mask]
 
             for name, histo in self.histograms.items():
@@ -283,7 +291,14 @@ class HistManager():
                 # removed the none value --> now we need weights for each variation
                 if not histo.no_weights: 
                     for variation in histo.hist_obj.axes["variation"]:
-                        weight_varied = weights[variation]
+                        # Check if this variation exists for this category
+                        if variation not in weights:
+                            # it means that the variation is in the axes only
+                            # because it is requested for another category
+                            # In this case we fill with the nominal variation
+                            weight_varied = weights["nominal"]
+                        else:
+                            weight_varied = weights[variation]
                         # Check number of dimensione
                         if ndim > 1:
                             weight_varied = ak.flatten(data_structure*weight_varied)
@@ -319,4 +334,22 @@ class HistManager():
 
 
 
-        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                        

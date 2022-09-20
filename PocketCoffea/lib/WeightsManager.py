@@ -5,6 +5,8 @@ import awkward as ak
 from functools import wraps
 from collections.abc import Callable
 from collections import defaultdict
+from pprint import pprint
+
 from coffea.analysis_tools import Weights
 # Scale factors functions
 from .scale_factors import sf_ele_reco, sf_ele_id, sf_mu, sf_btag, sf_btag_calib, sf_jet_puId
@@ -116,6 +118,9 @@ class WeightsManager():
         # make the variations unique 
         self._available_modifiers_inclusive = set(self._available_modifiers_inclusive)
         self._available_modifiers_bycat = { k:set(v) for k,v in self._available_modifiers_bycat.items()}
+
+        print("Weights modifiers inclusive", self._available_modifiers_inclusive)
+        print("Weights modifiers bycat", self._available_modifiers_bycat)
         #Clear the cache once the Weights objects have been added
         _weightsCache.clear()
                        
@@ -197,7 +202,7 @@ class WeightsManager():
         if category==None or self.weightsConf["is_split_bycat"] == False or category not in self._weightsByCat:
             # return the inclusive weight
             if modifier!=None and modifier not in self._available_modifiers_inclusive:
-                raise ValueError(f"Modifier {modifier} not available in inclusive weights")
+                raise ValueError(f"Modifier {modifier} not available in inclusive category")
             return self._weightsIncl.weight(modifier=modifier)
         
         elif category and self.weightsConf["is_split_bycat"] == True :

@@ -298,7 +298,7 @@ class Configurator():
                                     print(f"Variation {w} not available in the workflow")
                                     raise Exception("Wrong variation configuration")
                             self.variations_config[sample]["weights"][cat].append(w)
-                
+
     def overwrite_check(self):
         if self.plot:
             print(f"The output will be saved to {self.plots}")

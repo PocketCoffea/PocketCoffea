@@ -200,7 +200,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
 
     # Function that defines common variables employed in analyses and save them as attributes of `events`
     def define_common_variables(self):
-        self.events["ht"] = ak.sum(abs(self.events.JetGood.pt), axis=1)
+        self.events["JetGood_Ht"] = ak.sum(abs(self.events.JetGood.pt), axis=1)
 
     def apply_preselections(self):
         ''' The function computes all the masks from the preselection cuts
@@ -341,7 +341,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # Apply preselections
         self.apply_object_preselection()
         self.count_objects()
+        # Compute variables after object preselection
         self.define_common_variables()
+        self.define_common_variables_extra()
         # Customization point for derived workflows after preselection cuts
         self.process_extra_before_presel()
         

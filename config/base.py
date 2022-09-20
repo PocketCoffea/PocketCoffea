@@ -58,9 +58,10 @@ cfg =  {
                           "pileup",
                           "sf_ele_reco", "sf_ele_id",
                           "sf_mu_id","sf_mu_iso",
-                          "sf_btag", "sf_btag_calib", "sf_jet_puId", 
+                          "sf_btag_calib", "sf_jet_puId", 
                           ],
             "bycategory" : {
+                "3b":["sf_btag"]
             }
         },
         "bysample": {
@@ -73,9 +74,10 @@ cfg =  {
                 "inclusive": [  "pileup",
                                 "sf_ele_reco", "sf_ele_id",
                                 "sf_mu_id", "sf_mu_iso", "sf_jet_puId",
-                                *[ f"sf_btag_{b}" for b in btag_variations["2018"]]
+                               
                               ],
                 "bycategory" : {
+                    "3b": [ f"sf_btag_{b}" for b in btag_variations["2018"]]
                 }
             },
         "bysample": {
