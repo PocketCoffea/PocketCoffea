@@ -476,6 +476,8 @@ def plot_ratio(x, y, ynom, yerrnom, xerr, edges, xlabel, ylabel, syst, var, opts
                 key = var
             elif syst == 'era':
                 key = var.split(syst)[-1]
+            else:
+                key = var.split(syst)[-1]
             errorbar_x.set_linestyle(opts_errorbar[key]['linestyle'])
             errorbar_y.set_linestyle(opts_errorbar[key]['linestyle'])
     ax.set_xlabel(xlabel, fontsize=kwargs['fontsize'])
@@ -511,6 +513,8 @@ def plot_residue(x, y, ynom, yerrnom, xerr, edges, xlabel, ylabel, syst, var, op
             if syst == 'HT':
                 key = var
             elif syst == 'era':
+                key = var.split(syst)[-1]
+            else:
                 key = var.split(syst)[-1]
             errorbar_x.set_linestyle(opts_errorbar[key]['linestyle'])
             errorbar_y.set_linestyle(opts_errorbar[key]['linestyle'])
@@ -712,6 +716,67 @@ class EfficiencyMap:
                            self.axis_x.label, 'var. / nom.', syst, var, _opts_sf, self.ax_sf_ratio, data=False, sf=True, **extra_args)
                 plot_residue(self.bincenter_x, self.eff['sf'].sum('cat').values()[()], self.eff_nominal['sf'].sum('cat').values()[()], self.unc_eff_nominal['unc_sf'].sum('cat').values()[()], 0.5*self.binwidth_x, self.axis_x.edges(),
                              self.axis_x.label, '(var - nom.) / nom.', syst, var, _opts_sf, self.ax_sf_residue, data=False, sf=True, **extra_args)
+            if self.config.output_triggerSF:
+                #sf     = self.eff['sf'].sum('cat').values()[()].to_hist()
+                A = self.eff['sf'].sum('cat').to_hist()
+                self.hist_axis_x = A.axes[0]
+
+                if (syst == "nominal") and (var == "nominal"):
+                    if self.mode in ["splitHT", "spliteras"]: return
+                    ratio = self.eff_nominal["sf"].sum('cat').values()[()]
+                    ratio = np.where(ratio != 0, ratio, np.nan)
+                    unc = np.array(self.unc_eff_nominal['unc_sf'].sum('cat').values()[()])
+                    print("************************")
+                    print(ratio)
+                    print(unc)
+                    ratios  = [ ratio, ratio - unc, ratio + unc ]
+                    labels = [ "nominal", "statDown", "statUp" ]
+                    #print(ratios[0])
+                elif (syst != "nominal"):
+                    eff_map = self.eff['sf'].sum('cat').values()[()]
+                    ratios = [ np.where(eff_map != 0, eff_map, np.nan) ]
+                    if self.mode == "standard":
+                        labels = [ var ]
+                    elif self.mode == "splitHT":
+                        labels = [ cat ]
+                    elif self.mode == "spliteras":
+                        if era == 'tot':
+                            labels = [ "tot" ]
+                        else:
+                            labels = [ era ]
+                    else:
+                        raise NotImplementedError
+                else:
+                    return
+                self.ratio_stack += ratios
+                self.variations_labels += labels
+                if (self.mode == "splitHT") and (len(self.ratio_stack) == 3):
+                    i_nominal = self.variations_labels.index([c for c in self.variations_labels if c.endswith('pass')][0])
+                    i_lowHT = self.variations_labels.index([c for c in self.variations_labels if c.endswith('pass_lowHT')][0])
+                    i_highHT = self.variations_labels.index([c for c in self.variations_labels if c.endswith('pass_highHT')][0])
+                    ratio = self.ratio_stack[i_nominal]
+                    unc = 0.5*abs(self.ratio_stack[i_highHT] - self.ratio_stack[i_lowHT])
+                    ratios  = [ ratio - unc, ratio + unc ]
+                    labels = [ "htDown", "htUp" ]
+                    self.ratio_stack = ratios
+                    self.variations_labels = labels
+                elif (self.mode == "spliteras") and (len(self.ratio_stack) == len(self.eras)):
+                    i_nominal = self.variations_labels.index('tot')
+                    ratio = self.ratio_stack[i_nominal]
+                    sf_eras = {}
+                    lumiweights = {}
+                    for i, era in enumerate(self.variations_labels):
+                        if era == 'tot': continue
+                        sf_eras[era]     = self.ratio_stack[i]
+                        lumiweights[era] = self.lumi_fractions[era]*np.ones_like(self.ratio_stack[i])
+                    print("*******************************")
+                    print(self.lumi_fractions)
+                    sf_lumiweighted = np.average(list(sf_eras.values()), axis=0, weights=list(lumiweights.values()))
+                    unc = abs(sf_lumiweighted - ratio)
+                    ratios  = [ ratio - unc, ratio + unc ]
+                    labels = [ "eraDown", "eraUp" ]
+                    self.ratio_stack = ratios
+                    self.variations_labels = labels
         elif self.dim == 2:
             pass
         else:
@@ -816,13 +881,13 @@ class EfficiencyMap:
                     if (syst == "nominal") and (var == "nominal") and (label == "unc_sf"):
                         if self.mode in ["splitHT", "spliteras"]: return
                         ratio = self.eff_nominal["sf"].sum('cat').values()[()]
-                        ratio = np.where(ratio != 0, ratio, 1.)
+                        ratio = np.where(ratio != 0, ratio, np.nan)
                         unc = np.array(eff_map)
                         ratios  = [ ratio - unc, ratio + unc ]
                         labels = [ "statDown", "statUp" ]
                         #print(ratios[0])
                     elif label == "sf":
-                        ratios = [ np.where(eff_map != 0, eff_map, 1.) ]
+                        ratios = [ np.where(eff_map != 0, eff_map, np.nan) ]
                         if self.mode == "standard":
                             labels = [ var ]
                         elif self.mode == "splitHT":
@@ -868,14 +933,15 @@ class EfficiencyMap:
         else:
             sys.exit(f"save2d: Histograms with dimension {self.dim} are not supported")
 
-    def save_corrections(self, cat):
+    def save_corrections(self):
         if self.dim == 2:
             assert len(self.ratio_stack) == len(self.variations_labels), "'ratio_stack' and 'variations_labels' have different length"
             for label, ratio in zip(self.variations_labels, self.ratio_stack):
                 self.corrections[label] = {'ratio_stack' : ratio, 'year' : self.year, 'hist_axis_x' : self.hist_axis_x, 'hist_axis_y' : self.hist_axis_y}
         elif self.dim == 1:
-            pass
-            #return self.ratio_stack, self.variations_labels
+            assert len(self.ratio_stack) == len(self.variations_labels), "'ratio_stack' and 'variations_labels' have different length"
+            for label, ratio in zip(self.variations_labels, self.ratio_stack):
+                self.corrections[label] = {'ratio_stack' : ratio, 'year' : self.year, 'hist_axis_x' : self.hist_axis_x}
 
 def plot_efficiency_maps(accumulator, config, save_plots=False):
 
@@ -906,7 +972,7 @@ def plot_efficiency_maps(accumulator, config, save_plots=False):
 
                     efficiency_map.save1d(save_plots=save_plots)
 
-                efficiency_map.save_corrections(cat)
+                efficiency_map.save_corrections()
                 corrections[histname][cat] = efficiency_map.corrections
                 #corrections[histname][cat].update({'year' : year, 'hist_axis_x' : efficiency_map.hist_axis_x, 'hist_axis_y' : efficiency_map.hist_axis_y})
     return corrections
@@ -935,7 +1001,7 @@ def plot_efficiency_maps_splitHT(accumulator, config, save_plots=False):
                 efficiency_map.plot2d(cat, "nominal", "nominal", save_plots=save_plots)
 
             efficiency_map.save1d(save_plots=save_plots)
-            efficiency_map.save_corrections(categories[0])
+            efficiency_map.save_corrections()
             corrections[histname][[c for c in categories if c.endswith('pass')][0]] = efficiency_map.corrections
     return corrections
 
@@ -965,6 +1031,6 @@ def plot_efficiency_maps_spliteras(accumulator, config, save_plots=False):
                     efficiency_map.plot2d(cat, "nominal", "nominal", save_plots=save_plots, era=era)
 
                 efficiency_map.save1d(save_plots=save_plots)
-                efficiency_map.save_corrections(cat)
+                efficiency_map.save_corrections()
                 corrections[histname][cat] = efficiency_map.corrections
     return corrections
