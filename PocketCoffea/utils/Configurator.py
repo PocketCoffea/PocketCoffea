@@ -272,7 +272,7 @@ class Configurator():
                 self.cfg['variables'][var_name] = histogram_settings['variables'][var_name]
             elif not isinstance(self.cfg['variables'][var_name], dict):
                 sys.exit("Format non valid for histogram settings")
-            elif set(self.cfg['variables'][var_name].keys()) != {'binning', 'xlim', 'xlabel'}:
+            elif not set(self.cfg['variables'][var_name].keys()).issuperset({'binning', 'xlim', 'xlabel'}):
                 set_ctrl = {'binning', 'xlim', 'xlabel'}
                 sys.exit(f"{var_name}: missing keys in histogram settings. Required keys missing: {set_ctrl - set(self.cfg['variables'][var_name].keys())}")
             elif 'n_or_arr' not in set(self.cfg['variables'][var_name]['binning'].keys()):
