@@ -9,7 +9,8 @@ from pprint import pprint
 
 from coffea.analysis_tools import Weights
 # Scale factors functions
-from .scale_factors import sf_ele_reco, sf_ele_id, sf_mu, sf_btag, sf_btag_calib, sf_jet_puId
+from .scale_factors import {sf_ele_reco, sf_ele_id, sf_ele_trigger,
+                            sf_mu, sf_btag, sf_btag_calib, sf_jet_puId}
 from ..lib.pileup import sf_pileup_reweight
 
 # Framework parameters
@@ -39,7 +40,7 @@ class WeightsManager():
     @classmethod
     def available_weights(cls):
         return set(['genWeight', 'lumi', 'XS', 'pileup',
-                    'sf_ele_reco', 'sf_ele_id',
+                    'sf_ele_reco', 'sf_ele_id', 'sf_ele_trigger',
                     'sf_mu_id', 'sf_mu_iso',
                     'sf_btag', 'sf_btag_calib',
                     'sf_jet_puId'])
@@ -150,6 +151,8 @@ class WeightsManager():
             return [('sf_ele_reco', *sf_ele_reco(events, self._year))]
         elif weight_name == "sf_ele_id":
             return [('sf_ele_id',   *sf_ele_id(events, self._year))]
+        elif weight_name == "sf_ele_trigger":
+            return [('sf_ele_trigger', *sf_ele_trigger(events, self._year)]
         elif weight_name == 'sf_mu_id':
             # Muon id and iso SF with nominal, up and down variations
             return [('sf_mu_id',  *sf_mu(events, self._year, 'id'))]

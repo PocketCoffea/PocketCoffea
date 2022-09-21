@@ -25,6 +25,7 @@ import correctionlib.convert
 
 from PocketCoffea.utils.Configurator import Configurator
 from PocketCoffea.utils.Plot import plot_efficiency_maps, plot_efficiency_maps_splitHT, plot_efficiency_maps_spliteras
+from PocketCoffea.utils.PlotSF import plot_variation_correctionlib
 
 def overwrite_check(outfile):
     path = outfile
@@ -78,8 +79,10 @@ plt.style.use([hep.style.ROOT, {'font.size': 16}])
 if not os.path.exists(config.plots):
     os.makedirs(config.plots)
 plot_dir = os.path.join(config.plots, "trigger_efficiency")
-if not os.path.exists(plot_dir):
-    os.makedirs(plot_dir)
+plot_dir_sf = os.path.join(config.plots, "trigger_scalefactor")
+for directory in [plot_dir, plot_dir_sf]:
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
 print(accumulator.keys())
 
@@ -103,17 +106,22 @@ def save_corrections(corrections):
         os.makedirs(local_folder)
     for histname, d in corrections.items():
         for cat, correction in d.items():
-            map_name = histname.split("hist2d_")[-1]
             year = correction['nominal']['year']
             hist_axis_x = correction['nominal']['hist_axis_x']
-            hist_axis_y = correction['nominal']['hist_axis_y']
+            axes = [hist_axis_x]
+            if 'hist_axis_y' in correction['nominal'].keys():
+                map_name = histname.split("hist2d_")[-1]
+                hist_axis_y = correction['nominal']['hist_axis_y']
+                axes.append(hist_axis_y)
+            else:
+                map_name = histname.split("hist_")[-1]
             variations_labels = list(correction.keys())
             ratio_stack = [correction[var]['ratio_stack'] for var in variations_labels]
             print(variations_labels)
             stack = np.stack(ratio_stack)
             axis_variation = hist.axis.StrCategory(variations_labels, name="variation")
             #print("stack", stack.shape)
-            sfhist = hist.Hist(axis_variation, hist_axis_x, hist_axis_y, data=stack)
+            sfhist = hist.Hist(axis_variation, *axes, data=stack)
             sfhist.label = "out"
             sfhist.name = f"sf_{cat.split('_pass')[0]}"
             clibcorr = correctionlib.convert.from_histogram(sfhist)
@@ -131,6 +139,10 @@ def save_corrections(corrections):
                 print(f"Saving semileptonic trigger scale factors in {outfile_triggersf}")
                 with open(outfile_triggersf, "w") as fout:
                     fout.write(cset.json(exclude_unset=True))
+                fout.close()
+            if 'hist_axis_y' not in correction['nominal'].keys():
+                extra_args = {'histname' : histname, 'year' : year, 'config' : config, 'cat' : cat, 'fontsize' : fontsize}
+                plot_variation_correctionlib(outfile_triggersf, hist_axis_x, variations_labels, plot_dir_sf, **extra_args)
 
 HistsToPlot   = [k for k in accumulator.keys() if k.startswith('hist')]
 NtotHists   = len(HistsToPlot)
