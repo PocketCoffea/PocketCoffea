@@ -238,7 +238,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.weights_manager = WeightsManager(self.weights_config_allsamples[self._sample],
                                               self.nEvents_after_presel,
                                               self.events, # to compute weights
-                                              storeIndividual=True,
+                                              storeIndividual=False,
                                               metadata={
                                                   "year": self._year,
                                                   "sample": self._sample,
@@ -292,7 +292,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
 
     def fill_histograms_extra(self):
         pass
-    
+
     def process(self, events):
         self.events = events
 

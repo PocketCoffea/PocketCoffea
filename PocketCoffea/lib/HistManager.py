@@ -172,12 +172,11 @@ class HistManager():
              #Save the hist in the configuration and store the full config object
              self.histograms[name] = hcfg
 
-
     def get_histograms(self):
         # Exclude by default metadata histo
         return { key:h.hist_obj for key, h in self.histograms.items() if not h.metadata_hist}
 
-    def get_metadata_histgrams():
+    def get_metadata_histograms():
         return { key:h.hist_obj for key, h in self.histograms.items() if h.metadata_hist}
 
     def get_histogram(self, name):

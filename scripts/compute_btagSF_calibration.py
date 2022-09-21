@@ -90,7 +90,6 @@ if args.compute:
 
     
     sample_axis = hist.axis.StrCategory(samples, name="sample", label="Sample")
-    breakpoint()
     sfhist = hist.Hist(sample_axis,A.axes[2],A.axes[3],A.axes[4], data=np.stack([r[0] for r in ratios]))
     sfhist_err = hist.Hist(sample_axis,A.axes[2],A.axes[3],A.axes[4], data=np.stack([r[1] for r in ratios]))
 
