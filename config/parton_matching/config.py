@@ -12,7 +12,7 @@ cfg =  {
         "jsons": ["datasets/signal_ttHTobb_2018_local.json",
                   "datasets/backgrounds_MC_2018_local.json"],
         "filter" : {
-            "samples": ["TTToSemiLeptonic","ttHTobb"],
+            "samples": ["ttHTobb"],
             "samples_exclude" : [],
             "year": ["2018"]
         }
@@ -20,20 +20,19 @@ cfg =  {
 
     # Input and output files
     "workflow" : PartonMatchingProcessor,
-    "output"   : "output/parton_matching_dR03",
+    "output"   : "output/parton_matching_dR03_training_dataset",
     "workflow_extra_options": {"parton_jet_min_dR": 0.3},
 
     "run_options" : {
         "executor"       : "dask/slurm",
         "workers"        : 1,
-        "scaleout"       : 120,
-        "partition"      : "standard",
-        "walltime"       : "02:00:00",
+        "scaleout"       : 30,
+        "partition"      : "short",
+        "walltime"       : "01:00:00",
         "mem_per_worker" : "6GB", # GB
         "exclusive"      : False,
-        "chunk"          : 400000,
+        "chunk"          : 500000,
         "retries"        : 30,
-        "treereduction"  : 5,
         "max"            : None,
         "skipbadfiles"   : None,
         "voms"           : None,
@@ -58,7 +57,7 @@ cfg =  {
 
 
        "weights": {
-        "common": {
+        "common": { 
             "inclusive": ["genWeight","lumi","XS",
                           "pileup",
                           "sf_ele_reco", "sf_ele_id",
