@@ -74,7 +74,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         }
 
         # Custom axes to add to histograms in this processor
-        self.custom_axes = [Axis(coll="metadata", field="year",name="year".
+        self.custom_axes = [Axis(coll="metadata", field="year",name="year",
                                  bins=set(sorted(self.cfg.years)),
                                   type="strcat", growth=False,
                                   label="Year", )]
@@ -256,7 +256,6 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             if self._isMC:
                 w = self.weights_manager.get_weight(category)
                 self.output["sumw"][category][self._sample] = ak.sum(w*mask)
-
 
     def fill_histograms(self):
         # Filling the autofill=True histogram automatically

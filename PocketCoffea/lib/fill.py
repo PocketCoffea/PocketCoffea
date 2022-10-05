@@ -77,9 +77,9 @@ def fill_column_accumulator(output, sample,name, cats, awk_array, save_size=True
             raise Exception("Category not found: " + cat)
 
         if flatten:
-            output[cat][name][sample] = column_accumulator(ak.to_numpy(ak.flatten(awk_array)))
+            output[cat][name][sample] = column_accumulator(ak.to_numpy(ak.flatten(awk_array), allow_missing=False))
         else:
-            output[cat][name][sample] = column_accumulator(ak.to_numpy(awk_array))
+            output[cat][name][sample] = column_accumulator(ak.to_numpy(awk_array, allow_missing=False))
         if save_size and name+"_size" in output[cat]:
-            output[cat][name+"_size"][sample] = column_accumulator(ak.to_numpy(ak.num(awk_array)))
+            output[cat][name+"_size"][sample] = column_accumulator(ak.to_numpy(ak.num(awk_array), allow_missing=False))
 

@@ -44,7 +44,7 @@ class HistConf():
 
 def get_hist_axis_from_config(ax: Axis):
     if ax.name == None:
-        ax.name = ax.name
+        ax.name = f"{ax.coll}.{ax.field}"
     if ax.type=="regular" and isinstance(ax.bins, list):
         ax.type="variable"
     if ax.type == "regular":
@@ -299,7 +299,7 @@ class HistManager():
                 # removed the none value --> now we need weights for each variation
                 if not histo.no_weights: 
                     for variation in histo.hist_obj.axes["variation"]:
-    #                    print(f"\t\t\tFilling variation: {variation}")
+                        # print(f"\t\t\tFilling variation: {variation}")
                         # Check if this variation exists for this category
                         if variation not in weights:
                             # it means that the variation is in the axes only
@@ -313,7 +313,6 @@ class HistManager():
                             weight_varied = ak.flatten(data_structure*weight_varied)
                         # Then we apply the notnone mask
                         weight_varied = weight_varied[all_axes_isnotnone]
-    #                    print(weight_varied)
                         # Fill the histogram
                         histo.hist_obj.fill(cat=category,
                                   variation=variation,
