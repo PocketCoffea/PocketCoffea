@@ -8,12 +8,12 @@ from dataclasses import dataclass, field
 @dataclass
 class Axis():
     field: str # variable to plot
-    label: str
-    bins: int
+    label: str # human readable label for the axis
+    bins: int = None 
     start: float = None
     stop: float = None
     coll: str = "events" # Collection or events or metadata or custom
-    name: str = None # By default is built as coll.field, if not provided 
+    name: str = None # Identifier of the axis: By default is built as coll.field, if not provided 
     pos : int = None # index in the collection to plot. If None plot all the objects on the same histogram
     type: str = "regular"  #regular/variable/integer/intcat/strcat
     transform: str = None
@@ -314,19 +314,24 @@ class HistManager():
                         # Then we apply the notnone mask
                         weight_varied = weight_varied[all_axes_isnotnone]
                         # Fill the histogram
-                        histo.hist_obj.fill(cat=category,
+                        try:
+                            histo.hist_obj.fill(cat=category,
                                   variation=variation,
                                   weight=weight_varied,
                                   **{**fill_categorical,
                                      **fill_numeric},
                                   )
+                        except:
+                            raise Exception(f"Cannot fill histogram: {name}, {histo}")
                 else: # NO Weights modifier for the histogram
-                    histo.hist_obj.fill(cat=category,
+                    try:
+                        histo.hist_obj.fill(cat=category,
                                             variation=variation,
                                             **{**fill_categorical,
                                                **fill_numeric},
                                   )
-
+                    except:
+                        raise Exception(f"Cannot fill histogram: {name}, {histo}")
 
 
 
