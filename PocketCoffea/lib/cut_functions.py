@@ -9,28 +9,38 @@ def passthrough(events, **kargs):
 ## Functions to count objects
 def count_objects_gt(events,params,year,sample):
     mask = ak.num(events[params["object"]], axis=1) > params["value"]
-    return ak.where(ak.is_none(mask), ~ak.is_none(mask), mask)
+    return ak.where(ak.is_none(mask), False, mask)
 
 def count_objects_lt(events,params,year,sample):
     mask = ak.num(events[params["object"]], axis=1) < params["value"]
-    return ak.where(ak.is_none(mask), ~ak.is_none(mask), mask)
+    return ak.where(ak.is_none(mask), False, mask)
 
 def count_objects_eq(events,params,year,sample):
     mask = ak.num(events[params["object"]], axis=1) == params["value"]
-    return ak.where(ak.is_none(mask), ~ak.is_none(mask), mask)
+    return ak.where(ak.is_none(mask), False, mask)
 
 ##################################
 # Min number of objects with pt cut
 
-def nObj(events, params, **kwargs):
+def min_nObj(events, params, **kwargs):
     if f"n{params['coll']}" in events.fields:
         return events[f"n{params['coll']}"] >= params["N"]
     return ak.num(events[params['coll']]) >= params["N"]
 
-def nObj_minPt(events, params, **kwargs):
+def min_nObj_minPt(events, params, **kwargs):
     return ak.sum(events[params["coll"]].pt >= params["minpt"], axis=1) >= params["N"]
 
-def get_nObj(N, minpt=None, coll="JetGood", name=None):
+
+def eq_nObj(events, params, **kwargs):
+    if f"n{params['coll']}" in events.fields:
+        return events[f"n{params['coll']}"] == params["N"]
+    return ak.num(events[params['coll']]) == params["N"]
+
+def eq_nObj_minPt(events, params, **kwargs):
+    return ak.sum(events[params["coll"]].pt >= params["minpt"], axis=1) == params["N"]
+
+
+def get_nObj_min(N, minpt=None, coll="JetGood", name=None):
     if name == None:
         if minpt:
             name = f"n{coll}_min{N}_pt{minpt}"
@@ -40,15 +50,37 @@ def get_nObj(N, minpt=None, coll="JetGood", name=None):
         return Cut(
             name=name,
             params={"N": N, "coll":coll, "minpt": minpt},
-            function=nObj_minPt
+            function=min_nObj_minPt
         )
     else:
         return Cut(
             name=name,
             params={"N": N, "coll":coll},
-            function=nObj
+            function=min_nObj
         )
 
+
+def get_nObj_eq(N, minpt=None, coll="JetGood", name=None):
+    if name == None:
+        if minpt:
+            name = f"n{coll}_eq{N}_pt{minpt}"
+        else:
+            name = f"n{coll}_eq{N}"
+    if minpt:
+        return Cut(
+            name=name,
+            params={"N": N, "coll":coll, "minpt": minpt},
+            function=eq_nObj_minPt
+        )
+    else:
+        return Cut(
+            name=name,
+            params={"N": N, "coll":coll},
+            function=eq_nObj
+        )
+
+
+    
 ##########################################
 # Min b-tagged jets with custom collection
 
@@ -95,7 +127,7 @@ def dilepton(events, params, year, sample, **kwargs):
     #SFOS = SF & OS
     not_SF = ( (events.nMuonGood == 1) & (events.nElectronGood == 1) )
 
-    mask = ( (events.nLepGood == 2) &
+    mask = ( (events.nLeptonGood == 2) &
              (ak.firsts(events.LeptonGood.pt) > params["pt_leading_lepton"]) &
              (events.nJetGood >= params["njet"]) &
              (events.nBJetGood >= params["nbjet"]) &
@@ -107,7 +139,7 @@ def dilepton(events, params, year, sample, **kwargs):
                | not_SF ) )
 
     # Pad None values with False
-    return ak.where(ak.is_none(mask), ~ak.is_none(mask), mask)
+    return ak.where(ak.is_none(mask), False, mask)
 
 def semileptonic(events, params, year, sample, **kwargs):
 
@@ -116,7 +148,7 @@ def semileptonic(events, params, year, sample, **kwargs):
     has_one_electron = (events.nElectronGood == 1)
     has_one_muon     = (events.nMuonGood == 1)
 
-    mask = ( (events.nLepGood == 1) &
+    mask = ( (events.nLeptonGood == 1) &
               # Here we properly distinguish between leading muon and leading electron
              ( (has_one_electron & (ak.firsts(events.LeptonGood.pt) > params["pt_leading_electron"][year])) |
                (has_one_muon & (ak.firsts(events.LeptonGood.pt) > params["pt_leading_muon"][year])) ) &
@@ -125,19 +157,19 @@ def semileptonic(events, params, year, sample, **kwargs):
              (MET.pt > params["met"]) )
 
     # Pad None values with False
-    return ak.where(ak.is_none(mask), ~ak.is_none(mask), mask)
+    return ak.where(ak.is_none(mask), False, mask)
 
 def semileptonic_triggerSF(events, params, year, sample, **kwargs):
 
     has_one_electron = (events.nElectronGood == 1)
     has_one_muon     = (events.nMuonGood == 1)
 
-    mask = ( (events.nLepGood == 2) &
+    mask = ( (events.nLeptonGood == 2) &
               # Here we properly distinguish between leading muon and leading electron
-             ( (has_one_electron & (ak.firsts(events.LeptonGood.pt) > params["pt_leading_electron"][year])) &
-               (has_one_muon & (ak.firsts(events.LeptonGood.pt) > params["pt_leading_muon"][year])) ) &
+             ( (has_one_electron & (ak.firsts(events.ElectronGood.pt) > params["pt_leading_electron"][year])) &
+               (has_one_muon & (ak.firsts(events.MuonGood.pt) > params["pt_leading_muon"][year])) ) &
              (events.nJetGood >= params["njet"]) )
              #& (events.nBJetGood >= params["nbjet"]) & (MET.pt > params["met"]) )
 
     # Pad None values with False
-    return ak.where(ak.is_none(mask), ~ak.is_none(mask), mask)
+    return ak.where(ak.is_none(mask), False, mask)

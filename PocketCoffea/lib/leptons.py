@@ -21,12 +21,12 @@ def lepton_selection(events, Lepton, finalstate):
     leptons = events[Lepton]
     cuts = object_preselection[finalstate][Lepton]
     # Requirements on pT and eta
-    passes_eta = (np.abs(leptons.eta) < cuts["eta"])
+    passes_eta = (abs(leptons.eta) < cuts["eta"])
     passes_pt = (leptons.pt > cuts["pt"])
 
     if Lepton == "Electron":
         # Requirements on SuperCluster eta, isolation and id
-        etaSC = np.abs(leptons.deltaEtaSC + leptons.eta)
+        etaSC = abs(leptons.deltaEtaSC + leptons.eta)
         passes_SC = np.invert((etaSC >= 1.4442) & (etaSC <= 1.5660))
         passes_iso = leptons.pfRelIso03_all < cuts["iso"]
         passes_id = (leptons[cuts['id']] == True)
@@ -104,7 +104,7 @@ def get_charged_leptons(electrons, muons, charge, mask):
             "charge": None,
             "x": None,
             "y": None,
-            "z": None,
+           "z": None,
     }
 
     nelectrons = ak.num(electrons)
