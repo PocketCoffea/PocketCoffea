@@ -7,11 +7,19 @@ import pickle
 import numpy as np
 
 import uproot
-from coffea import hist
 from coffea.nanoevents import NanoEventsFactory
 from coffea.util import load, save
 from coffea import processor
 from pprint import pprint
+
+print("""
+    ____             __        __  ______      ________          
+   / __ \____  _____/ /_____  / /_/ ____/___  / __/ __/__  ____ _
+  / /_/ / __ \/ ___/ //_/ _ \/ __/ /   / __ \/ /_/ /_/ _ \/ __ `/
+ / ____/ /_/ / /__/ ,< /  __/ /_/ /___/ /_/ / __/ __/  __/ /_/ / 
+/_/    \____/\___/_/|_|\___/\__/\____/\____/_/ /_/  \___/\__,_/  
+                                                                 
+""")
 
 from PocketCoffea.utils.Configurator import Configurator
 
@@ -22,8 +30,12 @@ if __name__ == '__main__':
                         help='Config file with parameters specific to the current run')
     parser.add_argument("-o", "--outputdir", required=False, type=str,
                         help="Overwrite the output folder in the configuration")
-    # parser.add_argument("-l", "--limit-files", required=False, type=int,
-    #                     help="Overwrite number of files limit")
+    parser.add_argument("-t", "--test", action="store_true", help="Run with limit 1 interactively")
+    parser.add_argument("-lf","--limit-files", type=int, help="Limit number of files")
+    parser.add_argument("-lc","--limit-chunks", type=int, help="Limit number of chunks", default=None)
+    parser.add_argument("-e","--executor", type=str, default='iterative',
+                        help="Overwrite executor from config (to be used only with the --test options)" )
+    parser.add_argument("-s","--scaleout", type=int, help="Overwrite scalout config" )
     args = parser.parse_args()
 
     if args.cfg[-3:] == ".py":
@@ -32,6 +44,23 @@ if __name__ == '__main__':
         config = pickle.load(open(args.cfg,"rb"))
     else:
         raise sys.exit("Please provide a .py/.pkl configuration file")
+
+    if args.test:
+        config.run_options["executor"] = args.executor
+        config.run_options["limit"] = args.limit_files if args.limit_files else 1
+        config.run_options["max"] = args.limit_chunks if args.limit_chunks else 2
+        config.filter_dataset(config.run_options["limit"])
+
+    if args.limit_files!=None:
+        config.run_options["limit"] = args.limit_files
+        config.filter_dataset(config.run_options["limit"])
+
+    if args.limit_chunks!=None:
+        config.run_options["max"] = args.limit_chunks
+
+    if args.scaleout!=None:
+        config.run_options["scaleout"] = args.scaleout
+
 
     if config.run_options['executor'] not in ['futures', 'iterative']:
         # dask/parsl needs to export x509 to read over xrootd
@@ -209,5 +238,4 @@ if __name__ == '__main__':
         print(f"Executor {config.run_options['executor']} not defined!")
         exit(1)
     save(output, config.outfile)
-    pprint(output)
     print(f"Saving output to {config.outfile}")

@@ -66,21 +66,20 @@ def fill_histograms_object_with_variations(processor, obj, obj_hists, systematic
                 else:
                     h.fill(sample=processor._sample, cat=category, year=processor._year, var=var, **fields, weight=weight)
 
-def fill_column_accumulator(processor, name, cats, awk_array, save_size=False, flatten=True):
+def fill_column_accumulator(output, sample,name, cats, awk_array, save_size=True, flatten=True):
     '''
     This function filles the column_accumulator of the processor flattening and converting to numpy
     the awk_array.
     If save_file is True the number of object for each event is also saved
     '''
-    acc = processor.output["columns"]
     for cat in cats:
-        if cat not in acc:
+        if cat not in output:
             raise Exception("Category not found: " + cat)
 
         if flatten:
-            acc[cat][name][processor._sample] = column_accumulator(ak.to_numpy(ak.flatten(awk_array)))
+            output[cat][name][sample] = column_accumulator(ak.to_numpy(ak.flatten(awk_array), allow_missing=False))
         else:
-            acc[cat][name][processor._sample] = column_accumulator(ak.to_numpy(awk_array))
-        if save_size and name+"_size" in acc[cat]:
-            acc[cat][name+"_size"][processor._sample] = column_accumulator(ak.to_numpy(ak.num(awk_array)))
+            output[cat][name][sample] = column_accumulator(ak.to_numpy(awk_array, allow_missing=False))
+        if save_size and name+"_size" in output[cat]:
+            output[cat][name+"_size"][sample] = column_accumulator(ak.to_numpy(ak.num(awk_array), allow_missing=False))
 

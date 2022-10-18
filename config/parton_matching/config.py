@@ -1,15 +1,18 @@
-from PocketCoffea.parameters.cuts.baseline_cuts import dilepton_presel, semileptonic_presel, passthrough
+from PocketCoffea.parameters.cuts.baseline_cuts import dilepton_presel, semileptonic_presel_nobtag, passthrough
 from PocketCoffea.lib.cut_functions import get_nObj, get_nBtag
 from PocketCoffea.lib.cut_definition import Cut
 from config.parton_matching.functions import *
 from PocketCoffea.workflows.parton_matching  import PartonMatchingProcessor
+from PocketCoffea.parameters.histograms import *
+
+
 cfg =  {
 
     "dataset" : {
         "jsons": ["datasets/signal_ttHTobb_2018_local.json",
                   "datasets/backgrounds_MC_2018_local.json"],
         "filter" : {
-            "samples": ["TTToSemiLeptonic","ttHTobb"],
+            "samples": ["ttHTobb"],
             "samples_exclude" : [],
             "year": ["2018"]
         }
@@ -17,35 +20,19 @@ cfg =  {
 
     # Input and output files
     "workflow" : PartonMatchingProcessor,
-    "output"   : "output/parton_matching_dR03",
-    "workflow_extra_options": {"deltaR": 0.3},
+    "output"   : "output/parton_matching_dR03_training_dataset",
+    "workflow_extra_options": {"parton_jet_min_dR": 0.3},
 
-    # "run_options" : {
-    #     "executor"       : "iterative",
-    #     "workers"        : 1,
-    #     "scaleout"       : 60,
-    #     "partition"      : "standard",
-    #     "walltime"       : "03:00:00",
-    #     "mem_per_worker" : "4GB", # GB
-    #     "exclusive"      : False,
-    #     "chunk"          : 500000,
-    #     "retries"        : 30,
-    #     "max"            : None,
-    #     "skipbadfiles"   : None,
-    #     "voms"           : None,
-    #     "limit"          : 10,
-    # },
     "run_options" : {
         "executor"       : "dask/slurm",
         "workers"        : 1,
-        "scaleout"       : 100,
-        "partition"      : "standard",
-        "walltime"       : "05:00:00",
-        "mem_per_worker" : "12GB", # GB
+        "scaleout"       : 30,
+        "partition"      : "short",
+        "walltime"       : "01:00:00",
+        "mem_per_worker" : "6GB", # GB
         "exclusive"      : False,
-        "chunk"          : 200000,
+        "chunk"          : 500000,
         "retries"        : 30,
-        "treereduction"  : 5,
         "max"            : None,
         "skipbadfiles"   : None,
         "voms"           : None,
@@ -56,8 +43,9 @@ cfg =  {
     # Cuts and plots settings
     "finalstate" : "semileptonic_partonmatching",
     "skim": [ get_nObj(4, 15., "Jet"),
-              get_nBtag(3, 15., "Jet") ],
-    "preselections" : [semileptonic_presel],
+              get_nBtag(2, 15., "Jet") ],
+    "preselections" : [semileptonic_presel_nobtag,
+                       get_nBtag(2, coll="BJetGood")],
 
     "categories": {
         "4j" : [passthrough],
@@ -66,51 +54,107 @@ cfg =  {
         "7j" : [ get_nObj(7, coll="JetGood")],
         "8j" : [ get_nObj(8, coll="JetGood")],
     },
+
+
+       "weights": {
+        "common": { 
+            "inclusive": ["genWeight","lumi","XS",
+                          "pileup",
+                          "sf_ele_reco", "sf_ele_id",
+                          "sf_mu_id","sf_mu_iso",
+                          "sf_btag", "sf_btag_calib",
+                          "sf_jet_puId", 
+                          ],
+            "bycategory" : {
+            }
+        },
+        "bysample": {
+        }
+    },
+
+    "variations": {
+        "weights": {
+            "common": {
+                "inclusive": [ ],
+                "bycategory" : {
+                }
+            },
+        "bysample": {
+        }    
+        },
+        
+    },
     
     "variables" : {
-        "muon_pt" : {'binning' : {'n_or_arr' : 100, 'lo' : 0, 'hi' : 500}, 'xlim' : (0,500),  'xlabel' : "$p_{T}^{\mu}$ [GeV]"},
-        "muon_eta" : None,
-        "muon_phi" : None,
-        "electron_pt" : None,
-        "electron_eta" : None,
-        "electron_phi" : None,
-        "jet_pt" : None,
-        "jet_eta" : None,
-        "jet_phi" : None,
-        "nmuon" : None,
-        "nelectron" : None,
-        "nlep" : None,
-        "nmuon" : None,
-        "nelectron" : None,
-        "nlep" : None,
-        "njet" : None,
-        "nbjet" : None,
-        "nparton" : None,
-        "parton_pt" : None,
-        "parton_eta" : None,
-        "parton_phi" : None,
-#        "parton_dRMatchedJet" : None,
-        "parton_pdgId": None,
-        "npartonmatched" : {'binning' : {'n_or_arr' : 20, 'lo' : 0, 'hi' : 20}, 'xlim' : (0,20),  'xlabel' : "N. Partons matched"},
-        "partonmatched_pt" : {'binning' : {'n_or_arr' : 100, 'lo' : 0, 'hi' : 500}, 'xlim' : (0,500),  'xlabel' : "$p_{T}$ [GeV] matched parton"},
-        "partonmatched_eta" : {'binning' : {'n_or_arr' :50, 'lo' : -3, 'hi' : 3}, 'xlim' : (-3,3),  'xlabel' : "$\eta$ matched parton"},
-#        "parton_dRMatchedJet" : None,
-        "partonmatched_pdgId": {'binning' : {'n_or_arr' : 50, 'lo' : -25, 'hi' : 25},  'xlim' : (0,1),    'xlabel' : r'Parton matched pdgId'},
 
-    },
-     "variables2d" : {
-        "Njet_Nparton_total": {
-            "Njet": { 'binning': {"n_or_arr": 11, 'lo': 4, 'hi':15}, "xlabel": "N jets"},
-            "Nparton" : { 'binning': {"n_or_arr": 11, 'lo': 4, 'hi':15}, "ylabel": "N partons"}
-        },
-        "Njet_Nparton_matched": {
-            "Njet": { 'binning': {"n_or_arr": 11, 'lo': 4, 'hi':15}, "xlabel": "N jets"},
-            "Nparton_matched" : { 'binning': {"n_or_arr": 15, 'lo': 0, 'hi':15}, "ylabel": "N partons matched"}
-        },
-        "Nparton_Nparton_matched": {
-            "Nparton": { 'binning': {"n_or_arr": 11, 'lo': 4, 'hi':15}, "xlabel": "N partons"},
-            "Nparton_matched" : { 'binning': {"n_or_arr": 15, 'lo': 0, 'hi':15}, "ylabel": "N partons matched"}
-        }
-     },
-    "scale" : "log"
+        **jet_hists(coll="JetGood"),
+        **jet_hists(coll="BJetGood"),
+        **ele_hists(coll="ElectronGood"),
+        **muon_hists(coll="MuonGood"),
+        **count_hist(name="nJets", coll="JetGood",bins=10, start=4, stop=14),
+        **count_hist(name="nBJets", coll="BJetGood",bins=12, start=2, stop=14),
+        **jet_hists(coll="JetGood", pos=0),
+        **jet_hists(coll="JetGood", pos=1),
+        **jet_hists(coll="JetGood", pos=2),
+        **jet_hists(coll="JetGood", pos=3),
+        **jet_hists(coll="JetGood", pos=4),
+        **jet_hists(name="bjet",coll="BJetGood", pos=0),
+        **jet_hists(name="bjet",coll="BJetGood", pos=1),
+        **jet_hists(name="bjet",coll="BJetGood", pos=2),
+        **jet_hists(name="bjet",coll="BJetGood", pos=3),
+        **jet_hists(name="bjet",coll="BJetGood", pos=4),
+
+        **count_hist(name="nPartons", coll="Parton", bins=10, start=0, stop=10),
+        **count_hist(name="nPartonsMatched", coll="PartonMatched", bins=10, start=0, stop=10),
+        **parton_hists(coll="Parton", fields=["pt","eta","phi","pdgId"]),
+        **parton_hists(coll="PartonMatched"),
+        
+        
+         "NJet_Nparton_total": HistConf(
+            [
+                Axis(coll="events", field="nJetGood", bins=11, start=4, stop=15,
+                     label="N. jets"),
+                Axis(coll="events", field="nParton",bins=11, start=4, stop=15,
+                     label="N. partons"),
+            ],
+            variations = False,
+            no_weights=True 
+        ),
+        
+         "NJet_Nparton_matched": HistConf(
+            [
+                Axis(coll="events", field="nJetGood", bins=11, start=4, stop=15,
+                     label="N. jets"),
+                Axis(coll="events", field="nPartonMatched",bins=15, start=0, stop=15,
+                     label="N. partons matched"),
+            ],
+             variations = False,
+            no_weights=True 
+        ),
+        
+         "Nparton_Nparton_matched": HistConf(
+            [
+                Axis(coll="events", field="nParton", bins=11, start=4, stop=15,
+                     label="N. partons"),
+                Axis(coll="events", field="nPartonMatched",bins=15, start=0, stop=15,
+                     label="N. partons matched"),
+            ],
+             variations = False,
+            no_weights=True 
+        ),
+
+        "hist_ptComparison_parton_matching": HistConf(
+            [
+                Axis(coll="JetGoodMatched", field="pt", bins=40, start=0, stop=300, label="Jet Pt"),
+                Axis(coll="PartonMatched", field="pt", bins=40, start=0, stop=300, label="Parton Pt"),
+                Axis(coll="JetGoodMatched", field="eta", bins=5, start=-2.4, stop=2.4, label="Jet $\eta$")
+            ],
+            variations=False,
+            no_weights=True
+        ),
+
+
+        
+        
+    }
 }

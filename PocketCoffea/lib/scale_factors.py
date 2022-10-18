@@ -160,15 +160,17 @@ def sf_btag(jets, btag_discriminator, year, njets, variations=["central"]):
         sf = np.ones_like(discr, dtype=float)
         w = corr.evaluate(variation, flavour[mask], abseta[mask], pt[mask], discr[mask])
         sf[index] = w
+        # TODO this can be improved: we do not need to keep the order
+        # since we are doing the product --> we can simplify this
         sf_out = ak.prod(ak.unflatten(sf, njets), axis=1)
         return sf_out
 
     output = {}
     for variation in variations:        
         if variation == "central":
-            output[variation] = (ak.prod(ak.unflatten(
+            output[variation] = [ak.prod(ak.unflatten(
                 corr.evaluate(variation, flavour, abseta, pt, discr),
-                njets), axis=1), )
+                njets), axis=1), ]
         else:
             # Nominal sf==1 
             nominal = np.ones(ak.num(njets, axis=0))
@@ -176,7 +178,7 @@ def sf_btag(jets, btag_discriminator, year, njets, variations=["central"]):
             if "cferr" in variation:
                 # Computing the scale factor only on c-flavour jets
                 c_mask = (flavour == 4)
-                output[variation] = nominal, _getsfwithmask(f"up_{variation}", c_mask), _getsfwithmask(f"down_{variation}", c_mask)
+                output[variation] = [nominal, _getsfwithmask(f"up_{variation}", c_mask), _getsfwithmask(f"down_{variation}", c_mask)]
 
             elif "jes" in variation:
                 # This is a special case where a dedicate btagSF is computed for up and down Jes shape variations.
@@ -186,7 +188,7 @@ def sf_btag(jets, btag_discriminator, year, njets, variations=["central"]):
             else:
                 # Computing the scale factor only NON c-flavour jets
                 notc_mask = (flavour != 4)
-                output[variation] = nominal, _getsfwithmask(f"up_{variation}", notc_mask), _getsfwithmask(f"down_{variation}", notc_mask)
+                output[variation] = [nominal, _getsfwithmask(f"up_{variation}", notc_mask), _getsfwithmask(f"down_{variation}", notc_mask)]
 
     return output
 
@@ -201,20 +203,21 @@ def sf_btag_calib(sample, year, njets, jetsHt):
 def sf_jet_puId(jets, finalstate, year, njets):
     # The SF is applied only on jets passing the preselection (JetGood), pt < maxpt, and matched to a GenJet.
     # In other words the SF is not applied on jets not passing the Jet Pu ID SF.
-    # We ASSUME that this function is applied on cleaned, preselected Jets == JetGood.
-    # We don't reapply jet puId selection, only the pt limit.
+    # We DON'T assume that the function is applied on JetGood, so we REAPPLY jetPUID selections to be sure. 
+    # We apply also the pt limit.
     jet_puId_cfg = object_preselection[finalstate]["Jet"]["puId"]
     
     pt = ak.to_numpy(ak.flatten(jets.pt))
     eta = ak.to_numpy(ak.flatten(jets.eta))
+    puId = ak.to_numpy(ak.flatten(jets.puId))
     genJetId_mask = ak.flatten(jets.genJetIdx >= 0)
 
     # GenGet matching by index, needs some checkes
     cset = correctionlib.CorrectionSet.from_file(jet_puId[year])
     corr = cset["PUJetID_eff"]
 
-    # Requiring jet < maxpt and matched to a GenJet (with a genJet idx != -1)
-    mask = (pt < jet_puId_cfg["maxpt"]) & genJetId_mask
+    # Requiring jet < maxpt, passing the jetpuid WP and matched to a GenJet (with a genJet idx != -1)
+    mask = (pt < jet_puId_cfg["maxpt"]) & (puId>=jet_puId_cfg["value"] ) & genJetId_mask
     index = (np.indices(pt.shape)).flatten()[mask]
     sf = np.ones_like(pt, dtype=float)
     sfup = np.ones_like(pt, dtype=float)

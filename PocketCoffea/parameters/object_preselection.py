@@ -24,7 +24,6 @@ object_preselection = {
                 "value": 4,
                 "maxpt": 50.
             },
-            "puId_ptlim": 50,
         },
     },
     "semileptonic" : {
@@ -50,7 +49,6 @@ object_preselection = {
                 "value": 4,
                 "maxpt": 50.
             },
-            "puId_ptlim": 50,
         },
     },
     "semileptonic_triggerSF" : {
@@ -76,7 +74,6 @@ object_preselection = {
                 "value": 4,
                 "maxpt": 50.
             },
-            "puId_ptlim": 50,
         },
     },
     "semileptonic_partonmatching" : {
@@ -102,7 +99,6 @@ object_preselection = {
                 "value": 4,
                 "maxpt": 50.
             },
-            "puId_ptlim": 50,
         },
     },
 }

@@ -49,43 +49,49 @@ parser.add_argument("--sf-hist", type=str, help="Histogram to be used for SF com
 args = parser.parse_args()
 
 os.makedirs(args.output, exist_ok=True)
-output = load(args.input)
+output = load(args.input)["variables"]
 
 variables_to_plot = [
-    'Ht',"jet_pt","jet_eta","njet", "nbjet", "jet_btagDeepFlavB"
+    'jets_Ht',"jet_pt","jet_eta","nJets", "nBJets", "jet_btagDeepFlavB"
 ]
 
-samples = list(output["hist_njet"].to_hist().axes[0])
-years = list(output["hist_njet"].to_hist().axes[2])
+samples = list(output["nJets"].keys())
+years = list(output["nJets"][samples[0]].axes[2])
 
 if args.compute:
     # Plot only shapes with and without btagSF and compute the SF
     for var, sample, year in product(variables_to_plot, samples, years):
-        print(f"Plotting {var} {sample} {year}")
+        print(var, sample)
         shapes = [
-            (sample, 'no_btagSF', year, "no btag SF"),
-            (sample, 'btagSF', year, "btag SF"),
+            (sample, 'no_btagSF', year, "nominal", "no btag SF"),
+            (sample, 'btagSF', year,"nominal", "btag SF"),
         ]
-        plot_shapes_comparison(output, f"hist_{var}", shapes, ylog=True,
+        plot_shapes_comparison(output, f"{var}", shapes, ylog=True,
                                lumi_label=f"{sample} {year}",
                                outputfile=f"{args.output}/hist_btagSFeffect_{year}_{var}_{sample}.*")
 
     # Compute the SF in one go
-    A = output[f"hist2d_{args.sf_hist}"].to_hist()
-    w_num,  _,_, x, y = A[:,'no_btagSF',:,:,:].to_numpy()
-    num_var = A[:,'no_btagSF',:,:,:].variances()
-    w_denom,  _,_, x, y = A[:, 'btagSF',:,:,:].to_numpy()
-    denom_var = A[:,'no_btagSF',:,:,:].variances()
+    ratios = [ ]
+    for sample in samples:
+        print("Computing SF for sample: ", sample)
+        A = output[f"{args.sf_hist}"][sample]
+        w_num, _, x, y = A['no_btagSF','nominal',:,:,:].to_numpy()
+        num_var = A['no_btagSF','nominal',:,:,:].variances()
+        w_denom, _, x, y = A['btagSF', 'nominal',:,:,:].to_numpy()
+        denom_var = A['no_btagSF', 'nominal',:,:,:].variances()
 
-    ratio= np.where( (w_denom>0)&(w_num>0),
-                     w_num/w_denom,
-                     1.) 
-    ratio_err =  np.where( (w_denom>0)&(w_num>0),
-                           np.sqrt((1/w_denom)**2 * num_var + (w_num/w_denom**2)**2 * denom_var),
-                           0.)
-    import hist
-    sfhist = hist.Hist(A.axes[0],A.axes[2],A.axes[3],A.axes[4], data=ratio)
-    sfhist_err = hist.Hist(A.axes[0],A.axes[2],A.axes[3],A.axes[4], data=ratio_err)
+        ratio= np.where( (w_denom>0)&(w_num>0),
+                         w_num/w_denom,
+                         1.) 
+        ratio_err =  np.where( (w_denom>0)&(w_num>0),
+                               np.sqrt((1/w_denom)**2 * num_var + (w_num/w_denom**2)**2 * denom_var),
+                               0.)
+        ratios.append((ratio, ratio_err))
+
+    
+    sample_axis = hist.axis.StrCategory(samples, name="sample", label="Sample")
+    sfhist = hist.Hist(sample_axis,A.axes[2],A.axes[3],A.axes[4], data=np.stack([r[0] for r in ratios]))
+    sfhist_err = hist.Hist(sample_axis,A.axes[2],A.axes[3],A.axes[4], data=np.stack([r[1] for r in ratios]))
 
     # Exporting it to correctionlib
     import correctionlib, rich
@@ -140,10 +146,10 @@ if args.validate:
     for var, sample, year in product(variables_to_plot, samples, years):
         print(f"Plotting validation for {var} {sample} {year}")
         shapes = [
-            (sample, 'no_btagSF', year, "no btag SF"),
-            (sample, 'btagSF', year, "btag SF"),
-            (sample, 'btagSF_calib', year, "btag SF calibrated"),
+            (sample, 'no_btagSF', year, "nominal", "no btag SF"),
+            (sample, 'btagSF', year, "nominal", "btag SF"),
+            (sample, 'btagSF_calib', year, "nominal", "btag SF calibrated"),
         ]
-        plot_shapes_comparison(output, f"hist_{var}", shapes, ylog=True,
+        plot_shapes_comparison(output, f"{var}", shapes, ylog=True,
                                lumi_label=f"{sample} {year}",
                                outputfile=f"{args.output}/hist_btagSFcalibrated_{year}_{var}_{sample}.*")

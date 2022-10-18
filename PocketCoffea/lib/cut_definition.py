@@ -6,7 +6,7 @@ import inspect
 
 @dataclass
 class Cut:
-    """Class for keeping track of an item in inventory."""
+    """Class for keeping track of a cut and its parameters."""
     name: str
     params: dict[str,...]
     function: Callable[[ak.Array, dict[str,...],... ], ak.Array]

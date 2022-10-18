@@ -1,62 +1,150 @@
-from PocketCoffea.parameters.cuts.baseline_cuts import semileptonic_presel, passthrough
+from PocketCoffea.parameters.cuts.baseline_cuts import *
 from PocketCoffea.workflows.base import ttHbbBaseProcessor
+from PocketCoffea.lib.cut_functions import get_nObj, get_nBtag
+from PocketCoffea.parameters.histograms import *
+from PocketCoffea.parameters.btag import btag_variations
+
 
 cfg =  {
-
     "dataset" : {
-        "jsons": ["datasets/RunIISummer20UL18_local.json"],
+        "jsons": ["datasets/signal_ttHTobb_2018_local.json",
+                  "datasets/backgrounds_MC_2018_local.json"],
         "filter" : {
-            "samples": ["ttHTobb"],
+            "samples": ["TTToSemiLeptonic", "ttHTobb"],
             "samples_exclude" : [],
-            "year": ["2018"]
+            "year": ['2018']
         }
     },
 
     # Input and output files
     "workflow" : ttHbbBaseProcessor,
-    "output"   : "output/base/base",
+    "output"   : "output/test_base",
+    "worflow_options" : {},
 
-    # Executor parameters
     "run_options" : {
         "executor"       : "dask/slurm",
         "workers"        : 1,
-        "scaleout"       : 40,
+        "scaleout"       : 50,
         "partition"      : "short",
-        "walltime"       : "1:00:00",
-        "mem_per_worker" : "4GB", # GB
+        "walltime"       : "00:40:00",
+        "mem_per_worker" : "8GB", # GB
         "exclusive"      : False,
-        "chunk"          : 100000,
+        "chunk"          : 300000,
+        "retries"        : 30,
+        "treereduction"  : 10,
         "max"            : None,
         "skipbadfiles"   : None,
         "voms"           : None,
-        "limit"          : 2,
+        "limit"          : None,
     },
 
     # Cuts and plots settings
-    "finalstate" : "dilepton",
-    "skim": [],
-    "preselections" : [semileptonic_presel],
+    "finalstate" : "semileptonic",
+    "skim": [get_nObj(4, 15., "Jet") ],
+    "preselections" : [semileptonic_presel_nobtag],
     "categories": {
-        "SR" : [passthrough],
-        "CR" : [passthrough]
+        "baseline": [passthrough],
+        "1b" : [ get_nBtag(1, coll="BJetGood")],
+        "2b" : [ get_nBtag(2, coll="BJetGood")],
+        "3b" : [ get_nBtag(3, coll="BJetGood")],
+        "4b" : [ get_nBtag(4, coll="BJetGood")]
     },
+
     
-    "variables" : {
-        "muon_pt" : {'binning' : {'n_or_arr' : 200, 'lo' : 0, 'hi' : 2000}, 'xlim' : (0,500), 'xlabel' : "$p_{T}^{\mu}$ [GeV]"},
-        "muon_eta" : None,
-        "muon_phi" : None,
-        "electron_pt" : None,
-        "electron_eta" : None,
-        "electron_phi" : None,
-        "jet_pt" : None,
-        "jet_eta" : None,
-        "jet_phi" : None,
-        "nmuon" : None,
-        "nelectron" : None,
-        "nlep" : None,
-        "njet" : None,
-        "nbjet" : None,
+
+    "weights": {
+        "common": {
+            "inclusive": ["genWeight","lumi","XS",
+                          "pileup",
+                          "sf_ele_reco", "sf_ele_id",
+                          "sf_mu_id","sf_mu_iso",
+                          "sf_btag_calib", "sf_jet_puId", 
+                          ],
+            "bycategory" : {
+                "3b":["sf_btag"]
+            }
+        },
+        "bysample": {
+        }
     },
-    "variables2d" : {},
-    "scale" : "log"
+
+    "variations": {
+        "weights": {
+            "common": {
+                "inclusive": [  "pileup",
+                                "sf_ele_reco", "sf_ele_id",
+                                "sf_mu_id", "sf_mu_iso", "sf_jet_puId",
+                               
+                              ],
+                "bycategory" : {
+                    "3b": [ f"sf_btag_{b}" for b in btag_variations["2018"]]
+                }
+            },
+        "bysample": {
+        }    
+        },
+        
+    },
+
+   "variables":
+    {
+            
+        **jet_hists(coll="JetGood"),
+        **jet_hists(coll="BJetGood"),
+        **ele_hists(coll="ElectronGood"),
+        **muon_hists(coll="MuonGood"),
+        **count_hist(name="nJets", coll="JetGood",bins=10, start=4, stop=14),
+        **count_hist(name="nBJets", coll="BJetGood",bins=12, start=2, stop=14),
+        **jet_hists(coll="JetGood", pos=0),
+        **jet_hists(coll="JetGood", pos=1),
+        **jet_hists(coll="JetGood", pos=2),
+        **jet_hists(coll="JetGood", pos=3),
+        **jet_hists(coll="JetGood", pos=4),
+        **jet_hists(name="bjet",coll="BJetGood", pos=0),
+        **jet_hists(name="bjet",coll="BJetGood", pos=1),
+        **jet_hists(name="bjet",coll="BJetGood", pos=2),
+        **jet_hists(name="bjet",coll="BJetGood", pos=3),
+        **jet_hists(name="bjet",coll="BJetGood", pos=4),
+
+        # 2D plots
+        "jet_eta_pt_leading": HistConf(
+            [
+                Axis(coll="JetGood", field="pt", pos=0, bins=40, start=0, stop=1000,
+                     label="Leading jet $p_T$"),
+                Axis(coll="JetGood", field="eta", pos=0, bins=40, start=-2.4, stop=2.4,
+                     label="Leading jet $\eta$"),
+            ]
+        ),
+        "jet_eta_pt_all": HistConf(
+            [
+                Axis(coll="JetGood", field="pt", bins=40, start=0, stop=1000,
+                     label="Leading jet $p_T$"),
+                Axis(coll="JetGood", field="eta", bins=40, start=-2.4, stop=2.4,
+                     label="Leading jet $\eta$")
+            ]
+        ),
+
+        # Metadata of the processing
+        "events_per_chunk" : HistConf(
+               axes=[
+                   Axis(field='nEvents_initial',
+                        bins=100, start=0, stop=500000,                       
+                        label="Number of events in the chunk",
+                        ), 
+                   Axis(field='nEvents_after_skim',
+                        bins=100, start=0, stop=500000,                       
+                        label="Number of events after skim per chunk",
+                        ), 
+                   Axis(field='nEvents_after_presel',
+                        bins=100, start=0, stop=500000,
+                        label="Number of events after preselection per chunk",
+                        )
+               ],
+            storage="int64",
+            autofill=False,
+            metadata_hist = True,
+            no_weights=True,
+            only_categories=["baseline"],
+            variations=False,),
+    }
 }
