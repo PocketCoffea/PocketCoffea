@@ -15,16 +15,14 @@ def plot_shapes_comparison(df, var, shapes, title=None, ylog=False, output_folde
                            outputfile=None):
     '''
     This function plots the comparison between different shapes, specified in the format
-    shapes = [ (sample,cat,year, label),]
+    shapes = [ (sample,cat,year,variation, label),]
 
     The sample, cat and year are used to retrive the shape from the `df`, the label is used in the plotting.
     The ratio of all the shapes w.r.t. of the first one in the list are printed.
 
     The plot is saved if outputfile!=None.
     '''
-    
-    H = df[var].to_hist()
-    mmax = np.max(H.values())
+    H = df[var]
     fig = plt.figure(figsize=figsize, dpi=dpi)
     gs = fig.add_gridspec(nrows=2, ncols=1, hspace=0.05, height_ratios=[0.75,0.25])
     axs = gs.subplots(sharex=True)
@@ -33,8 +31,9 @@ def plot_shapes_comparison(df, var, shapes, title=None, ylog=False, output_folde
     axu =  axs[0]
     axd =  axs[1]
 
-    for sample, cat, year, label in shapes:
-        hep.histplot(H[sample, cat,year,:], label=label, ax=axu)
+    for sample, cat, year, variation, label in shapes:
+        print(sample,cat,year,variation)
+        hep.histplot(H[sample][cat,variation,year,:], label=label, ax=axu)
         
     if ylog:
         axu.set_yscale("log")
@@ -45,15 +44,15 @@ def plot_shapes_comparison(df, var, shapes, title=None, ylog=False, output_folde
     hep.plot.yscale_legend(axu)
 
     # Ratios
-    sample, cat, year, label = shapes[0]
-    nom = H[sample,cat,year,:]
+    sample, cat, year, variation, label = shapes[0]
+    nom = H[sample][cat,variation,year,:]
     nomvalues = nom.values()
     nom_sig2 = nom.variances()
     centers = nom.axes[0].centers
     edges = nom.axes[0].edges
     minratio, maxratio = 1000.,0.
-    for  sample, cat, year, label in shapes[:]:
-        h = H[sample,cat,year,:]
+    for  sample, cat,year, variation, label in shapes[:]:
+        h = H[sample][cat,variation,year,:]
         h_val = h.values()
         h_sig2 = h.variances()
         
