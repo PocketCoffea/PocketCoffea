@@ -11,7 +11,7 @@ from coffea.hist import Bin, Hist, plot
 from coffea.lookup_tools.dense_lookup import dense_lookup
 from coffea.util import save, load
 
-import correctionlib, rich
+import correctionlib
 import correctionlib.convert
 
 from PocketCoffea.parameters.lumi import lumi, femtobarn
