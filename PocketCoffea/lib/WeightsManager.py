@@ -90,7 +90,7 @@ class WeightsManager():
             # If the Weight is a Custom weight just run the function
             elif isinstance(w, WeightCustom):
                 if w.name not in _weightsCache:
-                    _weightsCache[w.name] =  w.function(self._weights_incl, events, metadata)
+                    _weightsCache[w.name] =  w.function(events, metadata)
                 for we in _weightsCache[w.name]:
                     # print(we)
                     weight_obj.add(*we)
