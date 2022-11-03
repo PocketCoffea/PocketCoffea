@@ -366,7 +366,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                                          self._sample,
                                          self._categories,
                                          self.cfg.variations_config[self._sample],
-                                         self.custom_axes)
+                                         custom_axes=self.custom_axes,
+                                         isMC=self.isMC)
 
         # Fill histograms
         self.fill_histograms()
