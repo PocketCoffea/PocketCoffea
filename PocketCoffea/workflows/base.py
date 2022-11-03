@@ -71,14 +71,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             "variables": { v: {} for v, vcfg in self.cfg.variables.items() if not vcfg.metadata_hist},
             "columns" :  {cat: {} for cat in self._categories},
             "processing_metadata": { v: {} for v, vcfg in self.cfg.variables.items() if vcfg.metadata_hist}
-        }
-
-        # Custom axes to add to histograms in this processor
-        self.custom_axes = [Axis(coll="metadata", field="year",name="year",
-                                 bins=set(sorted(self.cfg.years)),
-                                  type="strcat", growth=False,
-                                  label="Year", )]
-        
+        }        
 
     def add_column_accumulator(self, name, categories=None, store_size=True):
         '''
@@ -116,7 +109,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self._year = self.events.metadata["year"]
         self._triggers = triggers[self.cfg.finalstate][self._year]
         self._btag = btag[self._year]
-        self._isMC = self.events.metadata["isMC"]
+        self._isMC = self.events.metadata["isMC"] == "True"
         if self._isMC:
             self._era = "MC"
         else:
@@ -246,6 +239,16 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                                               })
     def compute_weights_extra(self):
         pass
+
+    def define_custom_axes(self):
+        # Custom axes to add to histograms in this processor
+        self.custom_axes = [Axis(coll="metadata", field="year",name="year",
+                                 bins=set(sorted(self.cfg.years)),
+                                 type="strcat", growth=False,
+                                 label="Year", )]
+
+    def define_custom_axes_extra(self):
+        pass
         
     def count_events(self):
         # Fill the output with the number of events and the sum
@@ -362,6 +365,8 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.compute_weights_extra()
 
         # Create the HistManager
+        self.define_custom_axes()
+        self.define_custom_axes_extra()
         self.hists_manager = HistManager(self.cfg.variables,
                                          self._sample,
                                          self._categories,
