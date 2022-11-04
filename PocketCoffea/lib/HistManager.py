@@ -209,16 +209,14 @@ class HistManager():
             # The weights will be flattened if needed for each histo
             # map of weights in this category, with mask APPLIED
             if self.isMC:
-                 weights = {}
+                weights = {}
                 for variation in self.available_variations_bycat[category]:
-                     if variation == "nominal":
-                         weights["nominal"]  = weights_manager.get_weight(category)[mask]
-                     else:
-                         # Check if the variation is available in this category
-                         weights[variation] = weights_manager.get_weight(category, modifier=variation)[mask]
-                     #print(f"\t\t= Weights [{variation}] = {weights[variation]} ")
-                # #print(weights["nominal"])
-                # #print(weights_manager._weightsByCat["btagSF"].partial_weight(include=["sf_btag_central"]))
+                    if variation == "nominal":
+                        weights["nominal"]  = weights_manager.get_weight(category)[mask]
+                    else:
+                        # Check if the variation is available in this category
+                        weights[variation] = weights_manager.get_weight(category, modifier=variation)[mask]
+                        #print(f"\t\t= Weights [{variation}] = {weights[variation]} ")
             
             for name, histo in self.histograms.items():
                 #print(f"\t\tFilling histo {name}")
