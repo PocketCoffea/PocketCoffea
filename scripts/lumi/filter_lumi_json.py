@@ -3,7 +3,7 @@ import argparse
 import json
 from PocketCoffea.parameters.lumi import runs
 
-parser = argparse.ArgumentParser(description='Build dataset file in json format')
+parser = argparse.ArgumentParser(description='Build Lumisection file in json format')
 parser.add_argument("-i", "--input", required=True, help="Input luminosity JSON file")
 parser.add_argument("-o", "--output", default="PocketCoffea/parameters/lumi", required=False, help="Output folder")
 parser.add_argument("--dataset", default="SingleMuon", required=True, help="Dataset name")

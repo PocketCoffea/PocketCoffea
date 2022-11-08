@@ -1,3 +1,34 @@
+Metadata-Version: 2.1
+Name: PocketCoffea
+Version: 0.1.0
+Summary: Configurable analysis framework based on Coffea for CMS NanoAOD events analysis
+Author-email: Davide Valsecchi  <davide.valsecchi@cern.ch>, Matteo Marchegiani  <matteo.marchegiani@cern.ch>
+Project-URL: Homepage, https://github.com/PocketCoffea/PocketCoffea
+Project-URL: Bug Tracker, https://github.com/PocketCoffea/PocketCoffea/issues
+Project-URL: Discussions, https://github.com/PocketCoffea/PocketCoffea/discussions
+Project-URL: Changelog, https://github.com/PocketCoffea/PocketCoffea/releases
+Classifier: Development Status :: 1 - Planning
+Classifier: Intended Audience :: Science/Research
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Topic :: Scientific/Engineering
+Classifier: Typing :: Typed
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+Provides-Extra: test
+Provides-Extra: dev
+Provides-Extra: docs
+License-File: LICENSE
+
 # PocketCoffea
 
 [![Actions Status][actions-badge]][actions-link]
