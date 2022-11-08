@@ -36,12 +36,15 @@ dependencies = [
    "vector",
    "hist",
    "pyaml",
+   "requests",
    "dask",
+   "dask-lxplus",
+   "parsl",
    "distributed",
    "dask-jobqueue",
    "matplotlib",
    "mplhep",
-   "rich"
+   "rich",
 ]
 
 # [project.scripts]
@@ -55,19 +58,16 @@ dependencies = [
 test = [
   "pytest >=6",
   "pytest-cov >=3",
-  "nox"
 ]
 dev = [
   "pytest >=6",
   "pytest-cov >=3",
-  "nox"
 ]
 docs = [
   "Sphinx>=4.0",
   "myst_parser>=0.13",
   "sphinx-book-theme>=0.1.0",
   "sphinx_copybutton",
-  "nox"
 ]
 
 [project.urls]

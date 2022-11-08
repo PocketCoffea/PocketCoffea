@@ -2,7 +2,10 @@ coffea>=0.7.20
 vector
 hist
 pyaml
+requests
 dask
+dask-lxplus
+parsl
 distributed
 dask-jobqueue
 matplotlib
@@ -15,16 +18,14 @@ typing_extensions>=3.7
 [dev]
 pytest>=6
 pytest-cov>=3
-nox
 
 [docs]
 Sphinx>=4.0
 myst_parser>=0.13
+sphinx-autodoc
 sphinx-book-theme>=0.1.0
 sphinx_copybutton
-nox
 
 [test]
 pytest>=6
 pytest-cov>=3
-nox
