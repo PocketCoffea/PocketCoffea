@@ -1,16 +1,17 @@
 from PocketCoffea.parameters.cuts.baseline_cuts import semileptonic_triggerSF_presel, passthrough
-from PocketCoffea.lib.cut_functions import get_nObj
 from PocketCoffea.workflows.semileptonic_triggerSF import semileptonicTriggerProcessor
+from PocketCoffea.lib.cut_functions import get_nObj_min
+from PocketCoffea.parameters.histograms import *
 from config.semileptonic_triggerSF.functions import get_trigger_passfail, get_ht_above, get_ht_below
-from config.semileptonic_triggerSF.plot_options import efficiency, scalefactor, ratio, residue
+from config.semileptonic_triggerSF.plot_options import efficiency, scalefactor_eras, ratio, residue
 from math import pi
-import numpy as np
 
 cfg =  {
 
     "dataset" : {
         "jsons": ["datasets/backgrounds_MC_local.json", "datasets/DATA_SingleMuon_local.json"],
         "filter" : {
+            #"samples": ["TTToSemiLeptonic", "TTTo2L2Nu", "DATA"],
             "samples": ["TTToSemiLeptonic", "TTTo2L2Nu", "DATA"],
             "samples_exclude" : [],
             "year": ["2018"]
@@ -19,17 +20,17 @@ cfg =  {
 
     # Input and output files
     "workflow" : semileptonicTriggerProcessor,
-    "output"   : "output/sf_ele_trigger_semilep/semileptonic_triggerSF_2018_allsystematics",
-    "output_triggerSF" : "PocketCoffea/parameters/semileptonic_triggerSF/triggerSF_2018_Ele32_EleHT_allsystematics",
+    "output"   : "output/sf_ele_trigger_semilep/semileptonic_triggerSF_2018_06Nov22",
+    "output_triggerSF" : "PocketCoffea/parameters/semileptonic_triggerSF/triggerSF_2018_Ele32_EleHT_06Nov22",
     "triggerSF" : None,
 
     # Executor parameters
     "run_options" : {
         "executor"       : "dask/slurm",
         "workers"        : 1,
-        "scaleout"       : 125,
-        "partition"      : "standard",
-        "walltime"       : "12:00:00",
+        "scaleout"       : 16,
+        "partition"      : "short",
+        "walltime"       : "1:00:00",
         "mem_per_worker" : "5GB", # GB
         "exclusive"      : False,
         "chunk"          : 50000,
@@ -38,12 +39,12 @@ cfg =  {
         "max"            : None,
         "skipbadfiles"   : None,
         "voms"           : None,
-        "limit"          : None,
+        "limit"          : 2,
     },
 
     # Cuts and plots settings
     "finalstate" : "semileptonic_triggerSF",
-    "skim" : [ get_nObj(3, 15., "Jet") ],
+    "skim" : [ get_nObj_min(3, 15., "Jet") ],
     "preselections" : [semileptonic_triggerSF_presel],
     "categories": {
         "Ele32_EleHT_pass" : [get_trigger_passfail(["Ele32_WPTight_Gsf", "Ele28_eta2p1_WPTight_Gsf_HT150"], "pass")],
@@ -59,62 +60,114 @@ cfg =  {
 
     "weights": {
         "common": {
-            "inclusive": ["genWeight","lumi","XS", "pileup", "sf_ele_reco_id", "sf_mu_id_iso"],
+            "inclusive": ["genWeight","lumi","XS",
+                          "pileup",
+                          "sf_ele_reco", "sf_ele_id",
+                          "sf_mu_id","sf_mu_iso"],
         },
         "bysample": {
         }
     },
+
+    "variations": {
+        "weights": {
+            "common": {
+                "inclusive": [  "pileup"  ],
+                "bycategory" : {
+                }
+            },
+            "bysample": {
+            }    
+        },
+    },
     
     "variables" : {
-        "muon_pt" : {'binning' : {'n_or_arr' : 200, 'lo' : 0, 'hi' : 2000}, 'xlim' : (0,500),  'xlabel' : "$p_{T}^{\mu}$ [GeV]"},
-        "muon_eta" : None,
-        "muon_phi" : None,
-        "electron_pt" : {'binning' : {'n_or_arr' : [0, 30, 35, 40, 50, 60, 70, 80, 90, 100, 200, 500, 2000]}, 'xlim' : (30,500),  'xlabel' : "$p_{T}^{e}$ [GeV]"},
-        "electron_eta" : {'binning' : {'n_or_arr' : [-2.5, -2.0, -1.5660, -1.4442, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.5660, 2.0, 2.5]}, 'xlim' : (-2.5,2.5), 'xlabel' : "Electron $\eta$"},
-        "electron_etaSC" : {'binning' : {'n_or_arr' : [-2.5, -2.0, -1.5660, -1.4442, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.5660, 2.0, 2.5]}, 'xlim' : (-2.5,2.5), 'xlabel' : "Electron Supercluster $\eta$"},
-        "electron_phi" : {'binning' : {'n_or_arr' : 24, 'lo' : -pi, 'hi' : pi}, 'xlim' : (-pi,pi), 'xlabel' : "$\phi_{e}$"},
-        "jet_pt" : None,
-        "jet_eta" : None,
-        "jet_phi" : None,
-        "nmuon" : None,
-        "nelectron" : None,
-        "nlep" : None,
-        "njet" : None,
-        "nbjet" : None,
-        "ht" : None,
-    },
-    "variables2d" : {
-        'electron_etaSC_vs_electron_pt' : {
-            'pt'               : {'binning' : {'n_or_arr' : [0, 30, 35, 40, 50, 60, 70, 80, 90, 100, 200, 500, 2000]},  'xlim' : (30,500),    'xlabel' : "Electron $p_{T}$ [GeV]",
-                                           'xticks' : [30, 35, 40, 50, 60, 70, 80, 90, 100, 200, 500]},
-            'etaSC'            : {'binning' : {'n_or_arr' : [-2.5, -2.0, -1.5660, -1.4442, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.5660, 2.0, 2.5]}, 'ylim' : (-2.5,2.5), 'ylabel' : "Electron Supercluster $\eta$"},
-        },
-        'electron_phi_vs_electron_pt' : {
-            'pt'               : {'binning' : {'n_or_arr' : [0, 30, 35, 40, 50, 60, 70, 80, 90, 100, 200, 500, 2000]},  'xlim' : (30,500),    'xlabel' : "Electron $p_{T}$ [GeV]",
-                                           'xticks' : [30, 35, 40, 50, 60, 70, 80, 90, 100, 200, 500]},
-            'phi'              : {'binning' : {'n_or_arr' : 12, 'lo' : -pi, 'hi' : pi}, 'ylim' : (-pi,pi), 'ylabel' : "$\phi_{e}$"},
-        },
-        'electron_etaSC_vs_electron_phi' : {
-            'phi'              : {'binning' : {'n_or_arr' : 12, 'lo' : -pi, 'hi' : pi}, 'xlim' : (-pi,pi),    'xlabel' : "$\phi_{e}$"},
-            'etaSC'            : {'binning' : {'n_or_arr' : [-2.5, -2.0, -1.5660, -1.4442, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.5660, 2.0, 2.5]}, 'ylim' : (-2.5,2.5), 'ylabel' : "Electron Supercluster $\eta$"},
-        },
+        **muon_hists(coll="MuonGood"),
+        **muon_hists(coll="MuonGood", pos=0),
+        **ele_hists(coll="ElectronGood"),
+        **ele_hists(coll="ElectronGood", pos=0),
+        **jet_hists(coll="JetGood"),
+        **count_hist(name="nMuons", coll="MuonGood",bins=10, start=0, stop=10),
+        **count_hist(name="nElectrons", coll="ElectronGood",bins=10, start=0, stop=10),
+        **count_hist(name="nLeptons", coll="LeptonGood",bins=10, start=0, stop=10),
+        **count_hist(name="nJets", coll="JetGood",bins=10, start=0, stop=10),
+        **count_hist(name="nBJets", coll="BJetGood",bins=10, start=0, stop=10),
+        "ht" : HistConf(
+            [
+                Axis(coll="events", field="JetGood_Ht", bins=400, start=0, stop=4000, label="$H_T$")
+            ]
+        ),
+        "electron_etaSC_pt_leading" : HistConf(
+            [
+                Axis(coll="ElectronGood", field="pt", pos=0, type="variable",
+                     bins=[0, 30, 35, 40, 50, 60, 70, 80, 90, 100, 200, 500, 2000],
+                     label="Electron $p_{T}$ [GeV]"),
+                Axis(coll="ElectronGood", field="etaSC", pos=0, type="variable",
+                     bins=[-2.5, -2.0, -1.5660, -1.4442, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.5660, 2.0, 2.5],
+                     label="Electron Supercluster $\eta$"),
+            ]
+        ),
+        "electron_phi_pt_leading" : HistConf(
+            [
+                Axis(coll="ElectronGood", field="pt", pos=0, type="variable",
+                     bins=[0, 30, 35, 40, 50, 60, 70, 80, 90, 100, 200, 500, 2000],
+                     label="Electron $p_{T}$ [GeV]"),
+                Axis(coll="ElectronGood", field="phi", pos=0,
+                     bins=12, start=-pi, stop=pi,
+                     label="Electron $\phi$"),
+            ]
+        ),
+        "electron_etaSC_phi_leading" : HistConf(
+            [
+                Axis(coll="ElectronGood", field="phi", pos=0,
+                     bins=12, start=-pi, stop=pi,
+                     label="Electron $\phi$"),
+                Axis(coll="ElectronGood", field="etaSC", pos=0, type="variable",
+                     bins=[-2.5, -2.0, -1.5660, -1.4442, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.5660, 2.0, 2.5],
+                     label="Electron Supercluster $\eta$"),
+            ]
+        ),
+        "electron_etaSC_pt_all" : HistConf(
+            [
+                Axis(coll="ElectronGood", field="pt", type="variable",
+                     bins=[0, 30, 35, 40, 50, 60, 70, 80, 90, 100, 200, 500, 2000],
+                     label="Electron $p_{T}$ [GeV]"),
+                Axis(coll="ElectronGood", field="etaSC", type="variable",
+                     bins=[-2.5, -2.0, -1.5660, -1.4442, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.5660, 2.0, 2.5],
+                     label="Electron Supercluster $\eta$"),
+            ]
+        ),
+        "electron_phi_pt_all" : HistConf(
+            [
+                Axis(coll="ElectronGood", field="pt", type="variable",
+                     bins=[0, 30, 35, 40, 50, 60, 70, 80, 90, 100, 200, 500, 2000],
+                     label="Electron $p_{T}$ [GeV]"),
+                Axis(coll="ElectronGood", field="phi",
+                     bins=12, start=-pi, stop=pi,
+                     label="Electron $\phi$"),
+            ]
+        ),
+        "electron_etaSC_phi_all" : HistConf(
+            [
+                Axis(coll="ElectronGood", field="phi",
+                     bins=12, start=-pi, stop=pi,
+                     label="Electron $\phi$"),
+                Axis(coll="ElectronGood", field="etaSC", type="variable",
+                     bins=[-2.5, -2.0, -1.5660, -1.4442, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.5660, 2.0, 2.5],
+                     label="Electron Supercluster $\eta$"),
+            ]
+        ),
     },
     "plot_options" : {
-        "only" : "hist2d_",
-        #"only" : None,
+        "only" : None,
         "workers" : 16,
         "scale" : "log",
         "fontsize" : 18,
         "fontsize_map" : 10,
         "dpi" : 150,
-        "rebin" : {
-            'electron_pt'    : {'binning' : {'n_or_arr' : [30, 35, 40, 50, 60, 70, 80, 90, 100, 200, 500]}, 'xticks' : [30, 35, 40, 50, 60, 70, 80, 90, 100, 200, 500]},
-            'electron_etaSC' : {'binning' : {'n_or_arr' : [-2.5, -2.0, -1.5660, -1.4442, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.5660, 2.0, 2.5]}, 'xticks' : [-2.5, -2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5]},
-            'njet'           : {'binning' : {'n_or_arr' : 7, 'lo' : 4, 'hi' : 11}, 'xlim' : (4,11), 'xlabel' : "$N_{jet}$"},
-            'ht'             : {'binning' : {'n_or_arr' : 80, 'lo' : 0, 'hi' : 4000}, 'xlim' : (100,1000), 'xlabel' : "$H_T$"},
-        },
+        "rebin" : {},
         "efficiency" : efficiency,
-        "scalefactor" : scalefactor,
+        "scalefactor" : scalefactor_eras,
         "ratio" : ratio,
         "residue" : residue,
         #"rebin" : {}
