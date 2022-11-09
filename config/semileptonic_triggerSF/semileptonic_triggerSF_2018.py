@@ -26,8 +26,8 @@ cfg =  {
 
     # Executor parameters
     "run_options" : {
-        "executor"       : "dask/slurm",
-        "workers"        : 1,
+        "executor"       : "futures",
+        "workers"        : 16,
         "scaleout"       : 16,
         "partition"      : "short",
         "walltime"       : "1:00:00",
@@ -39,7 +39,7 @@ cfg =  {
         "max"            : None,
         "skipbadfiles"   : None,
         "voms"           : None,
-        "limit"          : 2,
+        "limit"          : None,
     },
 
     # Cuts and plots settings
@@ -84,34 +84,81 @@ cfg =  {
     "variables" : {
         **muon_hists(coll="MuonGood"),
         **muon_hists(coll="MuonGood", pos=0),
-        **ele_hists(coll="ElectronGood"),
-        **ele_hists(coll="ElectronGood", pos=0),
+        "ElectronGood_pt" : HistConf(
+            [
+                Axis(coll="ElectronGood", field="pt", type="variable",
+                     bins=[30, 35, 40, 50, 60, 70, 80, 90, 100, 200, 500],
+                     label="Electron $p_{T}$ [GeV]",
+                     lim=(0,500))
+            ]
+        ),
+        "ElectronGood_etaSC" : HistConf(
+            [
+                Axis(coll="ElectronGood", field="etaSC", type="variable",
+                     bins=[-2.5, -2.0, -1.5660, -1.4442, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.5660, 2.0, 2.5],
+                     label="Electron Supercluster $\eta$",
+                     lim=(-2.5,2.5))
+            ]
+        ),
+        "ElectronGood_phi" : HistConf(
+            [
+                Axis(coll="ElectronGood", field="phi",
+                     bins=12, start=-pi, stop=pi,
+                     label="Electron $\phi$"),
+            ]
+        ),
+        "ElectronGood_pt_1" : HistConf(
+            [
+                Axis(coll="ElectronGood", field="pt", pos=0, type="variable",
+                     bins=[30, 35, 40, 50, 60, 70, 80, 90, 100, 200, 500],
+                     label="Electron $p_{T}$ [GeV]",
+                     lim=(0,500))
+            ]
+        ),
+        "ElectronGood_etaSC_1" : HistConf(
+            [
+                Axis(coll="ElectronGood", field="etaSC", pos=0, type="variable",
+                     bins=[-2.5, -2.0, -1.5660, -1.4442, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.5660, 2.0, 2.5],
+                     label="Electron Supercluster $\eta$",
+                     lim=(-2.5,2.5))
+            ]
+        ),
+        "ElectronGood_phi_1" : HistConf(
+            [
+                Axis(coll="ElectronGood", field="phi", pos=0,
+                     bins=12, start=-pi, stop=pi,
+                     label="Electron $\phi$"),
+            ]
+        ),
         **jet_hists(coll="JetGood"),
-        **count_hist(name="nMuons", coll="MuonGood",bins=10, start=0, stop=10),
-        **count_hist(name="nElectrons", coll="ElectronGood",bins=10, start=0, stop=10),
-        **count_hist(name="nLeptons", coll="LeptonGood",bins=10, start=0, stop=10),
-        **count_hist(name="nJets", coll="JetGood",bins=10, start=0, stop=10),
-        **count_hist(name="nBJets", coll="BJetGood",bins=10, start=0, stop=10),
+        **count_hist(name="nMuons", coll="MuonGood",bins=10, start=0, stop=2),
+        **count_hist(name="nElectrons", coll="ElectronGood",bins=10, start=0, stop=2),
+        **count_hist(name="nLeptons", coll="LeptonGood",bins=10, start=0, stop=2),
+        **count_hist(name="nJets", coll="JetGood",bins=10, start=4, stop=10),
+        **count_hist(name="nBJets", coll="BJetGood",bins=10, start=4, stop=10),
         "ht" : HistConf(
             [
-                Axis(coll="events", field="JetGood_Ht", bins=400, start=0, stop=4000, label="$H_T$")
+                Axis(coll="events", field="JetGood_Ht", bins=400, start=0, stop=4000, label="$H_T$", lim=(0,1000))
             ]
         ),
         "electron_etaSC_pt_leading" : HistConf(
             [
                 Axis(coll="ElectronGood", field="pt", pos=0, type="variable",
-                     bins=[0, 30, 35, 40, 50, 60, 70, 80, 90, 100, 200, 500, 2000],
-                     label="Electron $p_{T}$ [GeV]"),
+                     bins=[30, 35, 40, 50, 60, 70, 80, 90, 100, 200, 500],
+                     label="Electron $p_{T}$ [GeV]",
+                     lim=(0,500)),
                 Axis(coll="ElectronGood", field="etaSC", pos=0, type="variable",
                      bins=[-2.5, -2.0, -1.5660, -1.4442, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.5660, 2.0, 2.5],
-                     label="Electron Supercluster $\eta$"),
+                     label="Electron Supercluster $\eta$",
+                     lim=(-2.5,2.5)),
             ]
         ),
         "electron_phi_pt_leading" : HistConf(
             [
                 Axis(coll="ElectronGood", field="pt", pos=0, type="variable",
-                     bins=[0, 30, 35, 40, 50, 60, 70, 80, 90, 100, 200, 500, 2000],
-                     label="Electron $p_{T}$ [GeV]"),
+                     bins=[30, 35, 40, 50, 60, 70, 80, 90, 100, 200, 500],
+                     label="Electron $p_{T}$ [GeV]",
+                     lim=(0,500)),
                 Axis(coll="ElectronGood", field="phi", pos=0,
                      bins=12, start=-pi, stop=pi,
                      label="Electron $\phi$"),
@@ -124,24 +171,28 @@ cfg =  {
                      label="Electron $\phi$"),
                 Axis(coll="ElectronGood", field="etaSC", pos=0, type="variable",
                      bins=[-2.5, -2.0, -1.5660, -1.4442, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.5660, 2.0, 2.5],
-                     label="Electron Supercluster $\eta$"),
+                     label="Electron Supercluster $\eta$",
+                     lim=(-2.5,2.5)),
             ]
         ),
         "electron_etaSC_pt_all" : HistConf(
             [
                 Axis(coll="ElectronGood", field="pt", type="variable",
-                     bins=[0, 30, 35, 40, 50, 60, 70, 80, 90, 100, 200, 500, 2000],
-                     label="Electron $p_{T}$ [GeV]"),
+                     bins=[30, 35, 40, 50, 60, 70, 80, 90, 100, 200, 500],
+                     label="Electron $p_{T}$ [GeV]",
+                     lim=(0,500)),
                 Axis(coll="ElectronGood", field="etaSC", type="variable",
                      bins=[-2.5, -2.0, -1.5660, -1.4442, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.5660, 2.0, 2.5],
-                     label="Electron Supercluster $\eta$"),
+                     label="Electron Supercluster $\eta$",
+                     lim=(-2.5,2.5)),
             ]
         ),
         "electron_phi_pt_all" : HistConf(
             [
                 Axis(coll="ElectronGood", field="pt", type="variable",
-                     bins=[0, 30, 35, 40, 50, 60, 70, 80, 90, 100, 200, 500, 2000],
-                     label="Electron $p_{T}$ [GeV]"),
+                     bins=[30, 35, 40, 50, 60, 70, 80, 90, 100, 200, 500],
+                     label="Electron $p_{T}$ [GeV]",
+                     lim=(0,500)),
                 Axis(coll="ElectronGood", field="phi",
                      bins=12, start=-pi, stop=pi,
                      label="Electron $\phi$"),
@@ -154,7 +205,8 @@ cfg =  {
                      label="Electron $\phi$"),
                 Axis(coll="ElectronGood", field="etaSC", type="variable",
                      bins=[-2.5, -2.0, -1.5660, -1.4442, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.5660, 2.0, 2.5],
-                     label="Electron Supercluster $\eta$"),
+                     label="Electron Supercluster $\eta$",
+                     lim=(-2.5,2.5)),
             ]
         ),
     },
