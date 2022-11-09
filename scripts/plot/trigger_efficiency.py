@@ -24,7 +24,7 @@ import correctionlib, rich
 import correctionlib.convert
 
 from PocketCoffea.utils.Configurator import Configurator
-from PocketCoffea.utils.Plot import plot_efficiency_maps, plot_efficiency_maps_splitHT, plot_efficiency_maps_spliteras, test_efficiency_maps
+from PocketCoffea.utils.PlotEfficiency import plot_efficiency_maps, plot_efficiency_maps_splitHT, plot_efficiency_maps_spliteras
 from PocketCoffea.utils.PlotSF import plot_variation_correctionlib
 
 def overwrite_check(outfile):
@@ -55,11 +55,15 @@ def update_recursive(dict1, dict2):
         else:
             dict1[k] = v
 
+def slice_accumulator(accumulator, entrystart, entrystop):
+    _accumulator = dict( [ (key, value) for key, value in accumulator.items() ] )
+    _accumulator['variables'] = dict( [ (key, value) for key, value in accumulator['variables'].items() ][entrystart:entrystop] )
+    return _accumulator
+
 parser = argparse.ArgumentParser(description='Plot histograms from coffea file')
 parser.add_argument('--cfg', default=os.getcwd() + "/config/test.json", help='Config file with parameters specific to the current run', required=False)
 parser.add_argument('-v', '--version', type=str, default=None, help='Version of output (e.g. `v01`, `v02`, etc.)')
 parser.add_argument('--save_plots', default=False, action='store_true', help='Save efficiency and SF plots')
-parser.add_argument('--test', default=False, action='store_true', help='Test mode for debugging')
 
 args = parser.parse_args()
 config = Configurator(args.cfg, plot=True, plot_version=args.version)
@@ -88,20 +92,18 @@ for directory in [plot_dir, plot_dir_sf]:
 print(accumulator.keys())
 
 def _plot_efficiency_maps(entrystart, entrystop):
-    _accumulator = dict( [(key, value) for key, value in accumulator.items() if key.startswith('hist')][entrystart:entrystop] )
+    _accumulator = slice_accumulator(accumulator, entrystart, entrystop)
+    if entrystart == 0:
+        print(_accumulator['variables'])
     return plot_efficiency_maps(_accumulator, config, args.save_plots)
 
 def _plot_efficiency_maps_splitHT(entrystart, entrystop):
-    _accumulator = dict( [(key, value) for key, value in accumulator.items() if key.startswith('hist')][entrystart:entrystop] )
+    _accumulator = slice_accumulator(accumulator, entrystart, entrystop)
     return plot_efficiency_maps_splitHT(_accumulator, config, args.save_plots)
 
 def _plot_efficiency_maps_spliteras(entrystart, entrystop):
-    _accumulator = dict( [(key, value) for key, value in accumulator.items() if key.startswith('hist')][entrystart:entrystop] )
+    _accumulator = slice_accumulator(accumulator, entrystart, entrystop)
     return plot_efficiency_maps_spliteras(_accumulator, config, args.save_plots)
-
-def _test_efficiency_maps(entrystart, entrystop):
-    _accumulator = dict( [(key, value) for key, value in accumulator.items() if key.startswith('hist')][entrystart:entrystop] )
-    return test_efficiency_maps(_accumulator, config, args.save_plots)
 
 def save_corrections(corrections):
     if not os.path.exists(config.output_triggerSF):
@@ -149,7 +151,7 @@ def save_corrections(corrections):
                 extra_args = {'histname' : histname, 'year' : year, 'config' : config, 'cat' : cat, 'fontsize' : fontsize}
                 plot_variation_correctionlib(outfile_triggersf, hist_axis_x, variations_labels, plot_dir_sf, **extra_args)
 
-HistsToPlot   = [k for k in accumulator.keys() if k.startswith('hist')]
+HistsToPlot   = [k for k in accumulator['variables'].keys()]
 NtotHists   = len(HistsToPlot)
 NHistsToPlot   = len([key for key in HistsToPlot if config.only in key])
 print("# tot histograms = ", NtotHists)
@@ -157,25 +159,15 @@ print("# histograms to plot = ", NHistsToPlot)
 print("histograms to plot:", HistsToPlot)
 delimiters = np.linspace(0, NtotHists, config.plot_options['workers'] + 1).astype(int)
 chunks     = [(delimiters[i], delimiters[i+1]) for i in range(len(delimiters[:-1]))]
-#print("chunks:", chunks)
 
-
-if args.test:
-    results = test_efficiency_maps(accumulator, config, args.save_plots)
-    save_corrections(results)
-else:
-    results = {}
-    for function in [_plot_efficiency_maps, _plot_efficiency_maps_spliteras, _plot_efficiency_maps_splitHT]:
-        pool = Pool()
-        corrections = pool.starmap(function, chunks)
-        if args.test: sys.exit()
-        for d in corrections:
-            update_recursive(results, d)
-        #print("***********************\nresults:")
-        #print(results['hist2d_electron_etaSC_vs_electron_pt'])
-        pool.close()
-    #print(results['hist2d_electron_etaSC_vs_electron_pt']['Ele32_EleHT_pass']['nominal'])
-    save_corrections(results)
+results = {}
+for function in [_plot_efficiency_maps, _plot_efficiency_maps_spliteras, _plot_efficiency_maps_splitHT]:
+    pool = Pool()
+    corrections = pool.starmap(function, chunks)
+    for d in corrections:
+        update_recursive(results, d)
+    pool.close()
+save_corrections(results)
 
 end = time.time()
 runTime = round(end-start)
