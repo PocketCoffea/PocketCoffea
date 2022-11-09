@@ -7,7 +7,7 @@ parser = argparse.ArgumentParser(description='Build dataset fileset in json form
 parser.add_argument('--cfg', default=os.getcwd() + "/datasets/datasets_definitions.json", help='Config file with parameters specific to the current run', required=False)
 parser.add_argument("-k", "--keys", nargs="+", required=False, help="Dataset keys to select")
 parser.add_argument('-d', '--download', action='store_true', default=False, help='Download dataset files on local machine', required=False)
-parser.add_argument('-o','--overwrite', action='store_true', help="Overwrite existing files", default=False)
+parser.add_argument('-o','--overwrite', action='store_true', help="Overwrite existing file definition json", default=False)
 parser.add_argument('-c','--check', action='store_true', help="Check file existance in the local prefix", default=False)
 parser.add_argument('-s','--split-by-year',help="Split output files by year", action="store_true", default=False)
 

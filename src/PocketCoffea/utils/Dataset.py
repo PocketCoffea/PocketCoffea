@@ -3,6 +3,8 @@ import sys
 import json
 from collections import defaultdict 
 
+import subprocess
+import requests
 import parsl
 from parsl import python_app
 from parsl.config import Config
@@ -35,17 +37,21 @@ class Sample():
     # Function to get the dataset filelist from DAS
     def get_filelist(self):
         for das_name in self.metadata["das_names"]:
-            command = f'dasgoclient -json -query="file dataset={das_name}"'
-            print(f"Executing query: {command}")
-            filesjson = json.loads(os.popen(command).read())
+            timeleft = int(subprocess.check_output("voms-proxy-info -timeleft", shell=True, text=True).strip())
+            if timeleft > 0:
+                proxy_valid
+            else:
+                raise Exception("VOMS proxy expirend or non-existing: please run `voms-proxy-init -voms cms -rfc --valid 168:0`")
+            proxy = subprocess.check_output("voms-proxy-info -path", shell=True, text=True).strip()
+            r = requests.get(f"https://cmsweb.cern.ch:8443/dbs/prod/global/DBSReader/files?dataset={das_name}&detail=True", cert=proxy, verify=False)
+            filesjson = r.json()
             for fj in filesjson:
-                f = fj["file"][0]
-                if f["is_file_valid"] == 0:
+                if fj["is_file_valid"] == 0:
                     print(f"ERROR: File not valid on DAS: {f['name']}")
                 else:
-                    self.fileslist.append(f['name'])
-                    self.metadata["nevents"] +=f['nevents']
-                    self.metadata["size"] += f['size']
+                    self.fileslist.append(fj['logical_file_name'])
+                    self.metadata["nevents"] +=fj['event_count']
+                    self.metadata["size"] += fj['file_size']
             if len(self.fileslist)==0:
                 raise Exception(f"Found 0 files for sample {self}!")
     # Function to build the sample dictionary
