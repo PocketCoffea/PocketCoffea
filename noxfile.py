@@ -57,6 +57,7 @@ def docs(session: nox.Session) -> None:
 
     session.install(".[docs]")
     session.chdir("docs")
+    session.run("sphinx-apidoc -o modules ../src/PocketCoffea")
     session.run("sphinx-build", "-M", "html", ".", "_build")
 
     if session.posargs:

@@ -37,11 +37,9 @@ dependencies = [
    "hist",
    "pyaml",
    "requests",
-   "dask",
+   "dask==2022.02.0",
    "dask-lxplus",
    "parsl",
-   "distributed",
-   "dask-jobqueue",
    "matplotlib",
    "mplhep",
    "rich",
@@ -62,6 +60,7 @@ test = [
 dev = [
   "pytest >=6",
   "pytest-cov >=3",
+  "nox"
 ]
 docs = [
   "Sphinx>=4.0",

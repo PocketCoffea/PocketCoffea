@@ -32,7 +32,7 @@ class Sample():
         self.metadata["size"] = 0
         self.fileslist = []
         self.get_filelist()
-        
+
 
     # Function to get the dataset filelist from DAS
     def get_filelist(self):
