@@ -14,7 +14,12 @@ This should be updated!
    :caption: Contents
    :glob:
 
-
+.. toctree::
+   :maxdepth: 6
+   :titlesonly:
+   :caption: API Reference
+   :glob:
+   modules
 
 Indices and tables
 ==================

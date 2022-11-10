@@ -39,7 +39,6 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
-_version.pyi
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -153,4 +152,4 @@ dmypy.json
 cython_debug/
 
 # setuptools_scm
-src/*/_version.py
+*/_version.py
