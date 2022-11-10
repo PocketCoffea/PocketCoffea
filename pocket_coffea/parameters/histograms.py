@@ -34,7 +34,7 @@ collection_fields = {
     'parton':  ["eta","pt","phi", "dRMatchedJet","pdgId"],
     'electron': ["eta","pt","phi", "etaSC"],
     'muon':  ["eta","pt","phi"]
-} 
+}
 
 
 def _get_default_hist(name, type, coll, pos=None, fields=None):
@@ -84,7 +84,8 @@ def count_hist(coll, bins=10, start=0, stop=9, label=None, name=None):
         f"{name}": HistConf(axes=[
         Axis(coll="events", field=f"n{coll}",
              label=f"$N_{{{coll}}}$",
-             bins=bins, start=start, stop=stop)
+             bins=bins, start=start, stop=stop,
+             lim=(start,stop))
         ])
     }
 

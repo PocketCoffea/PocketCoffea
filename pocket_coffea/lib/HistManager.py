@@ -166,7 +166,7 @@ class HistManager():
                  all_axes = [cat_ax, var_ax]
              else:
                  # no variation axis for data
-                 all_axies = [cat_ax]
+                 all_axes = [cat_ax]
              # the custom axis get included in the hcfg for future use
              hcfg.axes = custom_axes + hcfg.axes
              for ax in hcfg.axes:

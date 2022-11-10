@@ -208,7 +208,7 @@ if __name__ == '__main__':
 
         if 'slurm' in config.run_options['executor']:
             cluster = SLURMCluster(
-                queue='standard',
+                queue=config.run_options['partition'],
                 cores=config.run_options['workers'],
                 processes=config.run_options['workers'],
                 memory=config.run_options['mem_per_worker'],
