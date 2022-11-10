@@ -1,6 +1,6 @@
 from coffea import hist, processor
 
-from ..workflows.base import ttHbbBaseProcessor
+from .tthbb_base_processor import ttHbbBaseProcessor
 from ..lib.fill import fill_histograms_object_with_variations
 
 class pileupVariationsProcessor(ttHbbBaseProcessor):

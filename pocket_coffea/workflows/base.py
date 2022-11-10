@@ -163,11 +163,12 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
         Function which applied the initial event skimming.
         By default the skimming comprehend:
-        - METfilters,
-        - PV requirement *at least 1 good primary vertex
-        - lumi-mask (for DATA): applied the goldenJson selection
-        - requested HLT triggers
-        - **user-defined skimming cuts
+        
+          - METfilters,
+          - PV requirement *at least 1 good primary vertex
+          - lumi-mask (for DATA): applied the goldenJson selection
+          - requested HLT triggers
+          - **user-defined** skimming cuts
 
         BE CAREFUL: the skimming is done before any object preselection and cleaning.
         Only collections and branches already present in the NanoAOD before any correct
@@ -209,9 +210,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
         Function which **must** be defined by the actual user processor to preselect
         and clean objects and define the collections as attributes of `events`.
-        E.g.:
-                 self.events["ElectronGood"] = lepton_selection(self.events, "Electron", self.cfg.finalstate)
+        E.g.::
 
+             self.events["ElectronGood"] = lepton_selection(self.events, "Electron", self.cfg.finalstate)
         '''
         pass
 
