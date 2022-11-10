@@ -8,12 +8,25 @@ from __future__ import annotations
 
 # Warning: do not change the path here. To use autodoc, you need to install the
 # package first.
+import os
+import shutil
+import sys
+from pathlib import Path
+
+
+DIR = Path(__file__).parent.resolve()
+BASEDIR = DIR.parent
+
+sys.path.append(str(BASEDIR / "pocketcoffea"))
+
+# Warning: do not change the path here. To use autodoc, you need to install the
+# package first.
 
 # -- Project information -----------------------------------------------------
 
 project = "PocketCoffea"
-copyright = "2022, Davide Valsecchi "
-author = "Davide Valsecchi "
+copyright = "2022 "
+author = "Davide Valsecchi, Matteo Marchegiani"
 
 
 # -- General configuration ---------------------------------------------------
@@ -61,3 +74,24 @@ html_theme_options = {
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path: list[str] = []
+
+
+def prepare(app):
+    outer = BASEDIR / ".github"
+    inner = DIR
+    contributing = "CONTRIBUTING.md"
+    shutil.copy(outer / contributing, inner / "contributing.md")
+
+
+def clean_up(app, exception):
+    inner = DIR
+    os.unlink(inner / "contributing.md")
+
+
+def setup(app):
+
+    # Copy the file in
+    app.connect("builder-inited", prepare)
+
+    # Clean up the generated file
+    app.connect("build-finished", clean_up)
