@@ -217,8 +217,6 @@ class HistManager():
                         # Check if the variation is available in this category
                         weights[variation] = weights_manager.get_weight(category, modifier=variation)[mask]
                         #print(f"\t\t= Weights [{variation}] = {weights[variation]} ")
-                # #print(weights["nominal"])
-                # #print(weights_manager._weightsByCat["btagSF"].partial_weight(include=["sf_btag_central"]))
             
             for name, histo in self.histograms.items():
                 #print(f"\t\tFilling histo {name}")

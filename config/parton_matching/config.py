@@ -1,9 +1,9 @@
-from PocketCoffea.parameters.cuts.baseline_cuts import dilepton_presel, semileptonic_presel_nobtag, passthrough
-from PocketCoffea.lib.cut_functions import get_nObj, get_nBtag
-from PocketCoffea.lib.cut_definition import Cut
+from pocket_coffea.parameters.cuts.baseline_cuts import dilepton_presel, semileptonic_presel_nobtag, passthrough
+from pocket_coffea.lib.cut_functions import get_nObj, get_nBtag
+from pocket_coffea.lib.cut_definition import Cut
 from config.parton_matching.functions import *
-from PocketCoffea.workflows.parton_matching  import PartonMatchingProcessor
-from PocketCoffea.parameters.histograms import *
+from pocket_coffea.workflows.parton_matching  import PartonMatchingProcessor
+from pocket_coffea.parameters.histograms import *
 
 
 cfg =  {

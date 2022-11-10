@@ -1,7 +1,7 @@
 # Per-event cuts applied to each event
 import awkward as ak
-import PocketCoffea.lib.cut_functions as cuts_f
-from PocketCoffea.lib.cut_definition import Cut
+import pocket_coffea.lib.cut_functions as cuts_f
+from pocket_coffea.lib.cut_definition import Cut
 
 passthrough = Cut(
     name="passthrough",

@@ -8,8 +8,8 @@ import inspect
 class Cut:
     """Class for keeping track of a cut and its parameters."""
     name: str
-    params: dict[str,...]
-    function: Callable[[ak.Array, dict[str,...],... ], ak.Array]
+    params: dict
+    function: Callable
     _id : str = field(init=False, repr=True, hash=True, default=None)
 
     def get_mask(self, events, **kwargs):

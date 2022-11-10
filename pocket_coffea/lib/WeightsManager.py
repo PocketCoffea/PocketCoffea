@@ -21,7 +21,7 @@ from ..parameters.btag import btag, btag_variations
 @dataclass
 class WeightCustom():
     name: str
-    function: Callable[[ak.Array, Weights, dict], ak.Array]
+    function:  Callable
     variations: List[str] = None
 
     

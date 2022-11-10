@@ -228,9 +228,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     def compute_weights(self):
         if not self._isMC:
             self.weights_manager = None
-            return
-        # Creating the WeightsManager with all the configured weights
-        self.weights_manager = WeightsManager(self.weights_config_allsamples[self._sample],
+        else:
+            # Creating the WeightsManager with all the configured weights
+            self.weights_manager = WeightsManager(self.weights_config_allsamples[self._sample],
                                               self.nEvents_after_presel,
                                               self.events, # to compute weights
                                               storeIndividual=False,

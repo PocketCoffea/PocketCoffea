@@ -9,7 +9,7 @@ from parsl.config import Config
 from parsl.executors.threads import ThreadPoolExecutor
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Run analysis on baconbits files using processor coffea files')
+    parser = argparse.ArgumentParser(description='Download files specificed in a dataset.json')
     parser.add_argument('-i', '--input', default=r'metadata/dataset.json', help='')
     parser.add_argument('-d', '--dir', help='Storage directory', required=True)
     parser.add_argument('-o', '--output', default=r'metadata/dataset_local.json', help='')

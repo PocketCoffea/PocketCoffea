@@ -1,16 +1,18 @@
+#!/usr/bin/env python
 import os
 import sys
 import json
 import argparse
 import time
 import pickle
-import numpy as np
+import socket
 
 import uproot
 from coffea.nanoevents import NanoEventsFactory
 from coffea.util import load, save
 from coffea import processor
 from pprint import pprint
+
 
 print("""
     ____             __        __  ______      ________          
@@ -21,7 +23,7 @@ print("""
                                                                  
 """)
 
-from PocketCoffea.utils.Configurator import Configurator
+from pocket_coffea.utils.Configurator import Configurator
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run analysis on baconbits files using processor coffea files')
@@ -64,40 +66,41 @@ if __name__ == '__main__':
     if args.executor !=None:
         config.run_options["executor"] = args.executor
 
-    if config.run_options['executor'] not in ['futures', 'iterative']:
-        # dask/parsl needs to export x509 to read over xrootd
-        if config.run_options['voms'] is not None:
-            _x509_path = config.run_options['voms']
-        else:
+
+    
+    #### Fixing the environment (assuming this is run in singularity)
+    # dask/parsl needs to export x509 to read over xrootd
+    if config.run_options['voms'] is not None:
+        _x509_path = config.run_options['voms']
+    else:
+        try:
             _x509_localpath = [l for l in os.popen('voms-proxy-info').read().split("\n") if l.startswith('path')][0].split(":")[-1].strip()
             _x509_path = os.environ['HOME'] + f'/.{_x509_localpath.split("/")[-1]}'
             os.system(f'cp {_x509_localpath} {_x509_path}')
+        except:
+             raise Exception("VOMS proxy expirend or non-existing: please run `voms-proxy-init -voms cms -rfc --valid 168:0`")
+    env_extra = [
+        'export XRD_RUNFORKHANDLER=1',
+        f'export X509_USER_PROXY={_x509_path}',
+        # f'export X509_CERT_DIR={os.environ["X509_CERT_DIR"]}',
+        'ulimit -u 32768',
+    ]
 
-        env_extra = [
-            'export XRD_RUNFORKHANDLER=1',
-            f'export X509_USER_PROXY={_x509_path}',
-            f'export X509_CERT_DIR={os.environ["X509_CERT_DIR"]}',
-            'ulimit -u 32768',
-        ]
+    wrk_init = [
+        'export XRD_RUNFORKHANDLER=1',
+        f'export X509_USER_PROXY={_x509_path}',
+        # f'export X509_CERT_DIR={os.environ["X509_CERT_DIR"]}',
+        f'source {sys.prefix}/bin/activate',
+    ]
 
-        wrk_init = [
-            f'export X509_USER_PROXY={_x509_path}',
-            f'export X509_CERT_DIR={os.environ["X509_CERT_DIR"]}',
-            'source /etc/profile.d/conda.sh',
-            'export PATH=$CONDA_PREFIX/bin:$PATH',
-            'conda activate coffea',
-            'cd /afs/cern.ch/work/m/mmarcheg/PocketCoffea/', # TO BE GENERALIZED
-        ]
-
-        condor_cfg = '''
-        getenv      =  True
-        +JobFlavour =  "nextweek"
-        '''
-        #process_worker_pool = os.environ['CONDA_PREFIX'] + "/bin/process_worker_pool.py"
 
     #########
-    # Execute
+    # Executors
     if config.run_options['executor'] in ['futures', 'iterative']:
+        # source the environment variables
+        os.environ["XRD_RUNFORKHANDLER"] = "1"
+        os.environ["X509_USER_PROXY"] = _x509_path
+
         if config.run_options['executor'] == 'iterative':
             _exec = processor.iterative_executor
         else:
@@ -110,9 +113,10 @@ if __name__ == '__main__':
                                         'skipbadfiles':config.run_options['skipbadfiles'],
                                         'schema': processor.NanoAODSchema,
                                         'workers': config.run_options['scaleout']},
-                                    chunksize=config.run_options['chunk'], maxchunks=config.run_options['max']
+                                    chunksize=config.run_options['chunk'],
+                                    maxchunks=config.run_options['max']
                                     )
-    #elif config.run_options['executor'] == 'parsl/slurm':
+
     elif 'parsl' in config.run_options['executor']:
         import parsl
         from parsl.providers import LocalProvider, CondorProvider, SlurmProvider
@@ -136,7 +140,7 @@ if __name__ == '__main__':
                             #launcher=SingleNodeLauncher(),
                             max_blocks=(config.run_options['scaleout'])+10,
                             init_blocks=config.run_options['scaleout'],
-                            partition=config.run_options['partition'],
+                            partition=config.run_options['queue'],
                             worker_init="\n".join(env_extra) + "\nexport PYTHONPATH=$PYTHONPATH:$PWD",
                             walltime=config.run_options['walltime'],
                             exclusive=config.run_options['exclusive'],
@@ -196,6 +200,8 @@ if __name__ == '__main__':
                                         },
                                         chunksize=config.run_options['chunk'], maxchunks=config.run_options['max']
                                         )
+
+    # DASK runners
     elif 'dask' in config.run_options['executor']:
         from dask_jobqueue import SLURMCluster, HTCondorCluster
         from distributed import Client
@@ -219,10 +225,47 @@ if __name__ == '__main__':
                  disk='2GB',
                  env_extra=env_extra,
             )
-        cluster.scale(jobs=config.run_options['scaleout'])
+        elif 'lxplus' in config.run_options["executor"]:
+            from pocket_coffea.utils.network import check_port
 
+            if "lxplus" not in socket.gethostname():
+                raise Exception("Trying to run with dask/lxplus not at CERN! Please try different runner options")
+            from dask_lxplus import CernCluster
+            n_port = 8786
+            if not check_port(8786):
+                raise RuntimeError(
+                    "Port '8786' is already occupied on this node. Try another machine."
+                )
+            # Creating a CERN Cluster, special configuration for dask-on-lxplus
+            cluster = CernCluster(
+                cores=1,
+                memory=config.run_options['mem_per_worker'],
+                disk=config.run_options.get('disk_per_worker', "20GB"),
+                image_type="singularity",
+                worker_image="/cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/batch-team/dask-lxplus/lxdask-cc7:latest",
+                death_timeout="3600",
+                scheduler_options={"port": n_port, "host": socket.gethostname()},
+                log_directory = f"{config.output}/condor_log",
+                # shared_temp_directory="/tmp"
+                job_extra={
+                    "log": f"{config.output}/condor_log/dask_job_output.log",
+                    "output": f"{config.output}/condor_log/dask_job_output.out",
+                    "error": f"{config.output}/condor_log/dask_job_output.err",
+                    "should_transfer_files": "Yes",
+                    "when_to_transfer_output": "ON_EXIT",
+                    "+JobFlavour": f'"{config.run_options["queue"]}"'
+                },
+                env_extra=wrk_init,
+            )
+
+        #Cluster adaptive number of jobs only if requested
+        cluster.adapt(minimum=1 if config.run_options.get("adapt", False)
+                                else config.run_options['scaleout'],
+                      maximum=config.run_options['scaleout'])
         client = Client(cluster)
-        with performance_report(filename=os.path.join(config.output, "dask-report.html")):
+        client.wait_for_workers(1)
+
+        with performance_report(filename=os.path.join(config.output, "condor_log/dask-report.html")):
             output = processor.run_uproot_job(config.fileset,
                                         treename='Events',
                                         processor_instance=config.processor_instance,
@@ -234,7 +277,8 @@ if __name__ == '__main__':
                                             'retries' : config.run_options['retries'],
                                             'treereduction' : config.run_options.get('treereduction', 20)
                                         },
-                                        chunksize=config.run_options['chunk'], maxchunks=config.run_options['max']
+                                        chunksize=config.run_options['chunk'],
+                                        maxchunks=config.run_options['max']
                             )
     else:
         print(f"Executor {config.run_options['executor']} not defined!")

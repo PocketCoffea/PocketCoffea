@@ -1,5 +1,5 @@
-from PocketCoffea.lib.cuts import dilepton, SR, CR_top
-from PocketCoffea.workflows.base import ttHbbBaseProcessor
+from pocket_coffea.lib.cuts import dilepton, SR, CR_top
+from pocket_coffea.workflows.base import ttHbbBaseProcessor
 
 cfg =  {
 
