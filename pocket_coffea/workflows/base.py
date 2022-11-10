@@ -25,6 +25,7 @@ from ..parameters.btag import btag, btag_variations
 from ..parameters.event_flags import event_flags, event_flags_data
 from ..parameters.lumi import lumi, goldenJSON
 from ..parameters.samples import samples_info
+from ..parameters.jec import JECversions, JERversions
 
 from ..utils.configurator import Configurator
 

@@ -1,9 +1,11 @@
+import awkward as ak
+
 from .base import BaseProcessorABC
 from ..utils.configurator import Configurator
 
-from ..lib.objects import jet_correction, lepton_selection, jet_selection, btagging, get_dilepton
 from ..parameters.jec import JECversions, JERversions
-
+from ..lib.objects import jet_correction, lepton_selection, jet_selection, btagging, get_dilepton
+from ..lib.HistManager import HistManager, Axis, HistConf
 
 class ttHbbBaseProcessor(BaseProcessorABC):
     def __init__(self, cfg:Configurator):
