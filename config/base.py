@@ -7,9 +7,10 @@ from pocket_coffea.parameters.btag import btag_variations
 
 cfg =  {
     "dataset" : {
-        "jsons": ["datasets/signal_ttHTobb_lxplus.json"],
+        "jsons": ["datasets/signal_ttHTobb_lxplus.json",
+                  "datasets/backgrounds_MC.json"],
         "filter" : {
-            "samples": ["ttHTobb"],
+            "samples": ["ttHTobb","TTToSemiLeptonic"],
             "samples_exclude" : [],
             "year": ['2018']
         }
@@ -23,10 +24,10 @@ cfg =  {
     "run_options" : {
         "executor"       : "dask/lxplus",
         "workers"        : 1,
-        "scaleout"       : 10,
-        "queue"      : "espresso",
+        "scaleout"       : 100,
+        "queue"          : "longlunch",
         "walltime"       : "00:40:00",
-        "mem_per_worker" : "8GB", # GB
+        "mem_per_worker" : "6GB", # GB
         "exclusive"      : False,
         "chunk"          : 400000,
         "retries"        : 50,

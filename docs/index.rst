@@ -1,18 +1,23 @@
 
-Welcome to documentation!
+PocketCoffea
 =========================
-
 
 Introduction
 ------------
 
-This should be updated!
+PocketCoffea is a slim analysis framework based on Coffea for CMS NanoAOD events.
+
+The goal of the framework is to define an HEP analysis in a declarative way where possible (with a well defined
+configuration file), and with python code where customization is needed (by defining new coffea processors).
 
 .. toctree::
-   :maxdepth: 2
-   :titlesonly:
-   :caption: Contents
-   :glob:
+   installation
+   ..
+      concepts
+      dask
+      developers
+      examples
+   
 
 .. toctree::
    :maxdepth: 6
