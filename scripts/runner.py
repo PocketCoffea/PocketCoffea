@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import os
 import sys
 import json
@@ -225,7 +226,7 @@ if __name__ == '__main__':
                  env_extra=env_extra,
             )
         elif 'lxplus' in config.run_options["executor"]:
-            from PocketCoffea.utils.network import check_port
+            from pocket_coffea.utils.network import check_port
 
             if "lxplus" not in socket.gethostname():
                 raise Exception("Trying to run with dask/lxplus not at CERN! Please try different runner options")
@@ -235,7 +236,7 @@ if __name__ == '__main__':
                 raise RuntimeError(
                     "Port '8786' is already occupied on this node. Try another machine."
                 )
-            os.makedirs(f"{config.output}/condor_job")
+            # Creating a CERN Cluster, special configuration for dask-on-lxplus
             cluster = CernCluster(
                 cores=1,
                 memory=config.run_options['mem_per_worker'],
