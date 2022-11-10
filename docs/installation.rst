@@ -57,6 +57,7 @@ The best way to use the package on lxplus is by using **singularity** images. Th
 you need to run the Dask scheduler on HTCondor.
 A **singularity** (also called apptainer) image is just a virtual environment which isolate your code in a well defined
 environment with the correct python packages and versions.
+For more information and for a comprehensive tutorial on singularity have a look at the `HSF tutorial <https://hsf-training.github.io/hsf-training-docker/10-singularity/index.html>`_ .
 
 
 1) Clone the repository in your preferred location and move into it:

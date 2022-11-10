@@ -3,7 +3,7 @@ import awkward as ak
 from coffea import hist
 import numba
 
-from .base import ttHbbBaseProcessor
+from .ttHbb_base_processor import ttHbbBaseProcessor
 from ..lib.fill import fill_histograms_object
 from ..lib.deltaR_matching import object_matching
 

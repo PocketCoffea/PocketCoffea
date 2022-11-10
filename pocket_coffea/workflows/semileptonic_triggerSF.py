@@ -5,7 +5,7 @@ from coffea import hist, processor
 from coffea.processor import dict_accumulator, defaultdict_accumulator
 from coffea.analysis_tools import Weights
 
-from ..workflows.base import ttHbbBaseProcessor
+from ..ttHbb_base_processor import ttHbbBaseProcessor
 from ..lib.HistManager import Axis
 
 class semileptonicTriggerProcessor(ttHbbBaseProcessor):

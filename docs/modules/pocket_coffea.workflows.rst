@@ -60,6 +60,14 @@ pocket\_coffea.workflows.sf\_lepton\_variations module
    :undoc-members:
    :show-inheritance:
 
+pocket\_coffea.workflows.tthbb\_base\_processor module
+------------------------------------------------------
+
+.. automodule:: pocket_coffea.workflows.tthbb_base_processor
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Module contents
 ---------------
 
