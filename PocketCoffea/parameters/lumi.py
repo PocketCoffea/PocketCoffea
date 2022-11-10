@@ -10,6 +10,13 @@ def femtobarn(picobarn, digits=None):
 # Integrated luminosity [pb^-1] for each data-taking year
 
 lumi = {
+    "2016-PreVFP" : 19520.0,
+    "2016-PostVFP" : 16810.0,
+    "2017" : 41480.0,
+    "2018" : 59830.0,
+}
+
+lumi_EOY = {
     "2016" : 36773.0,
     "2017" : 41529.0,
     "2018" : 58830.0,

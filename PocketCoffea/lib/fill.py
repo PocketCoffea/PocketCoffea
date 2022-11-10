@@ -1,4 +1,3 @@
-
 from coffea import hist
 from coffea.processor.accumulator import column_accumulator
 import awkward as ak
@@ -36,12 +35,8 @@ def fill_histograms_object_with_flavor(processor, obj, obj_hists, event_var=Fals
                     #isnotnone = ~ak.is_none(getattr(processor.events, keys[0]))
                     isnotnone = ~ak.is_none(obj[keys[0]])
                     if pt_reweighting:
-                        keys_correction = [cat for cat in processor.pt_weights.keys() if category.startswith(cat)]
-                        if not keys_correction == []:
-                            key_correction = keys_correction[0]
-                            weight = ( processor.pt_weights[key_correction].weight() * processor.weights.weight() * processor._cuts_masks.all(*cuts) * ak.to_numpy(mask_flavor) )[isnotnone]
-                        else:
-                            weight = ( processor.weights.weight() * processor._cuts_masks.all(*cuts) * ak.to_numpy(mask_flavor) )[isnotnone]
+                        key_correction = processor._pt_reweighting_map[category]
+                        weight = ( processor.pt_weights[key_correction].weight() * processor.weights.weight() * processor._cuts_masks.all(*cuts) * ak.to_numpy(mask_flavor) )[isnotnone]
                     else:
                         weight = ( processor.weights.weight() * processor._cuts_masks.all(*cuts) * ak.to_numpy(mask_flavor) )[isnotnone]
                     #fields = {k: ak.flatten(getattr(processor.events, k))[isnotnone] for k in h.fields if k in histname}
@@ -50,14 +45,9 @@ def fill_histograms_object_with_flavor(processor, obj, obj_hists, event_var=Fals
                 else:
                     isnotnone = ak.flatten(~ak.is_none(obj, axis=1))
                     if pt_reweighting:
-                        keys_correction = [cat for cat in processor.pt_weights.keys() if category.startswith(cat)]
-                        if not keys_correction == []:
-                            key_correction = keys_correction[0]
-                            weight = ak.flatten( processor.pt_weights[key_correction].weight() * processor.weights.weight() * ak.Array(ak.ones_like(obj.pt) *
+                        key_correction = processor._pt_reweighting_map[category]
+                        weight = ak.flatten( processor.pt_weights[key_correction].weight() * processor.weights.weight() * ak.Array(ak.ones_like(obj.pt) *
                                                             processor._cuts_masks.all(*cuts)) * ak.to_numpy(mask_flavor) )[isnotnone]
-                        else:
-                            weight = ak.flatten( processor.weights.weight() * ak.Array(ak.ones_like(obj.pt) *
-                                                                processor._cuts_masks.all(*cuts)) * ak.to_numpy(mask_flavor) )[isnotnone]
                     else:
                         weight = ak.flatten( processor.weights.weight() * ak.Array(ak.ones_like(obj.pt) *
                                                             processor._cuts_masks.all(*cuts)) * ak.to_numpy(mask_flavor) )[isnotnone]

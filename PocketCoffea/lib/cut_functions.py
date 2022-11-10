@@ -27,10 +27,15 @@ def nObj(events, params, **kwargs):
 def nObj_minPt(events, params, **kwargs):
     return ak.sum(events[params["coll"]].pt >= params["N"], axis=1) >= params["N"]
 
-def get_nObj(N, minpt=None, coll="JetGood", name=None):
+def nObj_minMsd(events, params, **kwargs):
+    return ak.sum(events[params["coll"]].msoftdrop >= params["N"], axis=1) >= params["N"]
+
+def get_nObj(N, minpt=None, minmsd=None, coll="JetGood", name=None):
     if name == None:
         if minpt:
             name = f"n{coll}_min{N}_pt{minpt}"
+        elif minmsd:
+            name = f"n{coll}_min{N}_msd{minmsd}"
         else:
             name = f"n{coll}_min{N}"
     if minpt:
@@ -38,6 +43,12 @@ def get_nObj(N, minpt=None, coll="JetGood", name=None):
             name=name,
             params={"N": N, "coll":coll, "minpt": minpt},
             function=nObj_minPt
+        )
+    elif minmsd:
+        return Cut(
+            name=name,
+            params={"N": N, "coll":coll, "minmsd": minmsd},
+            function=nObj_minMsd
         )
     else:
         return Cut(
