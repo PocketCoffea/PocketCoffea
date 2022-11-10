@@ -230,6 +230,7 @@ if __name__ == '__main__':
 
             if "lxplus" not in socket.gethostname():
                 raise Exception("Trying to run with dask/lxplus not at CERN! Please try different runner options")
+            print(">> Creating dask-lxplus cluster")
             from dask_lxplus import CernCluster
             n_port = 8786
             if not check_port(8786):
@@ -259,10 +260,12 @@ if __name__ == '__main__':
             )
 
         #Cluster adaptive number of jobs only if requested
+        print(">> Sending out jobs")
         cluster.adapt(minimum=1 if config.run_options.get("adapt", False)
                                 else config.run_options['scaleout'],
                       maximum=config.run_options['scaleout'])
         client = Client(cluster)
+        print(">> Waiting for the first job to start...")
         client.wait_for_workers(1)
 
         with performance_report(filename=os.path.join(config.output, "condor_log/dask-report.html")):

@@ -17,10 +17,8 @@ from pathlib import Path
 DIR = Path(__file__).parent.resolve()
 BASEDIR = DIR.parent
 
-sys.path.append(str(BASEDIR / "pocketcoffea"))
+sys.path.append(str(BASEDIR / "pocket_coffea"))
 
-# Warning: do not change the path here. To use autodoc, you need to install the
-# package first.
 
 # -- Project information -----------------------------------------------------
 
