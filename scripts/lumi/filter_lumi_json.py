@@ -1,7 +1,7 @@
 import os
 import argparse
 import json
-from PocketCoffea.parameters.lumi import runs
+from pocket_coffea.parameters.lumi import runs
 
 parser = argparse.ArgumentParser(description='Build Lumisection file in json format')
 parser.add_argument("-i", "--input", required=True, help="Input luminosity JSON file")

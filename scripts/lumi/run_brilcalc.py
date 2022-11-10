@@ -2,7 +2,7 @@ import os
 import csv
 import argparse
 import json
-from PocketCoffea.parameters.lumi import goldenJSON, runs
+from pocket_coffea.parameters.lumi import goldenJSON, runs
 
 parser = argparse.ArgumentParser(description='Build dataset file in json format')
 parser.add_argument("-o", "--output", default="PocketCoffea/parameters/lumi", required=False, help="Output folder")

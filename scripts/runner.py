@@ -22,7 +22,7 @@ print("""
                                                                  
 """)
 
-from PocketCoffea.utils.Configurator import Configurator
+from pocket_coffea.utils.Configurator import Configurator
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run analysis on baconbits files using processor coffea files')

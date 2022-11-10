@@ -1,16 +1,15 @@
 from PocketCoffea.parameters.cuts.baseline_cuts import *
 from PocketCoffea.workflows.base import ttHbbBaseProcessor
-from PocketCoffea.lib.cut_functions import get_nObj, get_nBtag
+from PocketCoffea.lib.cut_functions import get_nObj_min, get_nObj_eq, get_nBtag
 from PocketCoffea.parameters.histograms import *
 from PocketCoffea.parameters.btag import btag_variations
 
 
 cfg =  {
     "dataset" : {
-        "jsons": ["datasets/signal_ttHTobb_2018_local.json",
-                  "datasets/backgrounds_MC_2018_local.json"],
+        "jsons": ["datasets/signal_ttHTobb_lxplus.json"],
         "filter" : {
-            "samples": ["TTToSemiLeptonic", "ttHTobb"],
+            "samples": ["ttHTobb"],
             "samples_exclude" : [],
             "year": ['2018']
         }
@@ -22,25 +21,26 @@ cfg =  {
     "worflow_options" : {},
 
     "run_options" : {
-        "executor"       : "dask/slurm",
+        "executor"       : "dask/lxplus",
         "workers"        : 1,
-        "scaleout"       : 50,
-        "partition"      : "short",
+        "scaleout"       : 10,
+        "queue"      : "espresso",
         "walltime"       : "00:40:00",
         "mem_per_worker" : "8GB", # GB
         "exclusive"      : False,
-        "chunk"          : 300000,
-        "retries"        : 30,
+        "chunk"          : 400000,
+        "retries"        : 50,
         "treereduction"  : 10,
         "max"            : None,
         "skipbadfiles"   : None,
         "voms"           : None,
         "limit"          : None,
+        "adapt"          : False,
     },
 
     # Cuts and plots settings
     "finalstate" : "semileptonic",
-    "skim": [get_nObj(4, 15., "Jet") ],
+    "skim": [get_nObj_min(4, 15., "Jet") ],
     "preselections" : [semileptonic_presel_nobtag],
     "categories": {
         "baseline": [passthrough],
@@ -127,15 +127,15 @@ cfg =  {
         # Metadata of the processing
         "events_per_chunk" : HistConf(
                axes=[
-                   Axis(field='nEvents_initial',
+                   Axis(name='nEvents_initial', field=None,
                         bins=100, start=0, stop=500000,                       
                         label="Number of events in the chunk",
                         ), 
-                   Axis(field='nEvents_after_skim',
+                   Axis(name='nEvents_after_skim', field=None,
                         bins=100, start=0, stop=500000,                       
                         label="Number of events after skim per chunk",
                         ), 
-                   Axis(field='nEvents_after_presel',
+                   Axis(name='nEvents_after_presel',field=None,
                         bins=100, start=0, stop=500000,
                         label="Number of events after preselection per chunk",
                         )
