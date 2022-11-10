@@ -1,6 +1,6 @@
-from PocketCoffea.parameters.cuts.baseline_cuts import dilepton_presel, semileptonic_presel, passthrough
-from PocketCoffea.lib.cut_functions import  get_nObj
-from PocketCoffea.workflows.base  import ttHbbBaseProcessor
+from pocket_coffea.parameters.cuts.baseline_cuts import dilepton_presel, semileptonic_presel, passthrough
+from pocket_coffea.lib.cut_functions import  get_nObj
+from pocket_coffea.workflows.base  import ttHbbBaseProcessor
 cfg =  {
 
     "dataset" : {

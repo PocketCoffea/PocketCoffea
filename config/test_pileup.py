@@ -1,5 +1,5 @@
-from PocketCoffea.parameters.cuts.baseline_cuts import dilepton_presel, passthrough
-from PocketCoffea.workflows.base import ttHbbBaseProcessor
+from pocket_coffea.parameters.cuts.baseline_cuts import dilepton_presel, passthrough
+from pocket_coffea.workflows.base import ttHbbBaseProcessor
 
 cfg =  {
 

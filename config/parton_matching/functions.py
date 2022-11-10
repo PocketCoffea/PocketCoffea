@@ -1,5 +1,5 @@
-from PocketCoffea.lib.cut_definition import Cut
-from PocketCoffea.lib.cut_functions import count_objects_gt
+from pocket_coffea.lib.cut_definition import Cut
+from pocket_coffea.lib.cut_functions import count_objects_gt
 
 def NjetsNb(events,params, **kwargs):
     mask =  ((events.njet >= params["njet"] ) &

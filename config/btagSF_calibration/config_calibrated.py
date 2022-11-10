@@ -1,9 +1,9 @@
-from PocketCoffea.parameters.cuts.baseline_cuts import semileptonic_presel_nobtag, passthrough
+from pocket_coffea.parameters.cuts.baseline_cuts import semileptonic_presel_nobtag, passthrough
 from config.parton_matching.functions import *
-from PocketCoffea.lib.cut_definition import Cut
-from PocketCoffea.lib.cut_functions import get_nObj, get_nBtag
-from PocketCoffea.workflows.btag_sf_calibration import BtagSFCalibration
-from PocketCoffea.parameters.histograms import *
+from pocket_coffea.lib.cut_definition import Cut
+from pocket_coffea.lib.cut_functions import get_nObj, get_nBtag
+from pocket_coffea.workflows.btag_sf_calibration import BtagSFCalibration
+from pocket_coffea.parameters.histograms import *
 
 cfg =  {
 

@@ -1,8 +1,8 @@
-from PocketCoffea.parameters.cuts.baseline_cuts import *
-from PocketCoffea.workflows.base import ttHbbBaseProcessor
-from PocketCoffea.lib.cut_functions import get_nObj_min, get_nObj_eq, get_nBtag
-from PocketCoffea.parameters.histograms import *
-from PocketCoffea.parameters.btag import btag_variations
+from pocket_coffea.parameters.cuts.baseline_cuts import *
+from pocket_coffea.workflows.base import ttHbbBaseProcessor
+from pocket_coffea.lib.cut_functions import get_nObj_min, get_nObj_eq, get_nBtag
+from pocket_coffea.parameters.histograms import *
+from pocket_coffea.parameters.btag import btag_variations
 
 
 cfg =  {

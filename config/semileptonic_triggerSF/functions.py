@@ -1,6 +1,6 @@
 import numpy as np
 import awkward as ak
-from PocketCoffea.lib.cut_definition import Cut
+from pocket_coffea.lib.cut_definition import Cut
 
 def trigger_mask(events, params, **kwargs):
     mask = np.zeros(len(events), dtype='bool')
