@@ -12,11 +12,11 @@ python as:
 
 .. code-block:: bash
                 
-    python -m cProfile -o profiling/output.prof runner.py --cfg config.py --test --lf 10
+    python -m cProfile -o profiling/output.prof scripts/runner.py --cfg config.py --test -lf 10 -lc 10
 
 Running on a few files should be enough to get stable results.
 
-After getting the profiler output we analyze it with the [Snakeviz](https://jiffyclub.github.io/snakeviz/)
+After getting the profiler output we analyze it with the `Snakeviz <https://jiffyclub.github.io/snakeviz/>`_
 library
 
 .. code-block:: bash
@@ -28,12 +28,12 @@ and open on a browser the link shown by the program.
 Memory profiling
 ----------------
 
-For memory profiling we use the [memray](https://github.com/bloomberg/memray) library in single thread
+For memory profiling we use the `memray <https://github.com/bloomberg/memray>`_ library in single thread
 (*iterative* processor.)
 
 .. code-block:: bash
 
-    python -m memray run -o profiling/memtest.bin runner.py --cfg config.py --test --lf 10
+    python -m memray run -o profiling/memtest.bin scripts/runner.py --cfg config.py --test -lf 10 -lc 10
 
 the output can be visualized in many ways. One of the most useful is the `flamegraph`: 
 
@@ -47,5 +47,5 @@ Alternatively the process can be monitored **live** during execution by doing:
 
 .. code-block:: bash
 
-     memray run --live  runner.py --cfg config/config.py
+     memray run --live scripts/runner.py --cfg config/config.py --test -lf 10 -lc 10
 
