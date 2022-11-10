@@ -59,6 +59,8 @@ def get_hist_axis_from_config(ax: Axis):
             underflow=ax.underflow,
             growth=ax.growth)
     elif ax.type == "variable":
+        if not isinstance(ax.bins , list):
+            raise ValueError("A list of bins edges is needed as 'bins' parameters for a type='variable' axis")
         return hist.axis.Variable(
             ax.bins, 
             name=ax.name,
@@ -94,20 +96,22 @@ def get_hist_axis_from_config(ax: Axis):
 
 class HistManager():
 
-    def __init__(self, hist_config, sample, categories_config, variations_config, custom_axes=[]):
+    def __init__(self, hist_config, sample, categories_config, variations_config, custom_axes=[], isMC=True):
+         self.isMC = isMC
          self.histograms = {}
          self.categories_config = categories_config
          self.variations_config = variations_config
          self.available_categories = set(self.categories_config.keys())
          self.available_variations = ["nominal"]
-         self.available_variations_bycat = defaultdict(list)
-         for cat, vars in self.variations_config["weights"].items():
-             self.available_variations_bycat[cat].append("nominal")
-             for var in vars:
-                 vv = [f"{var}Up", f"{var}Down"]
-                 self.available_variations += vv
-                 self.available_variations_bycat[cat] += vv
-         self.available_variations = set(self.available_variations)
+         if self.isMC:
+             self.available_variations_bycat = defaultdict(list)
+             for cat, vars in self.variations_config["weights"].items():
+                 self.available_variations_bycat[cat].append("nominal")
+                 for var in vars:
+                     vv = [f"{var}Up", f"{var}Down"]
+                     self.available_variations += vv
+                     self.available_variations_bycat[cat] += vv
+             self.available_variations = set(self.available_variations)
          # Prepare the variations Axes summing all the required variations
          # The variation config is organized as the weights one, by sample and by category
 
@@ -158,15 +162,19 @@ class HistManager():
              var_ax = hist.axis.StrCategory(hcfg.only_variations, name="variation", 
                                             label="Variation", growth=False)
              # Axis in the configuration + custom axes
-             fields_axes = []
+             if self.isMC:
+                 all_axes = [cat_ax, var_ax]
+             else:
+                 # no variation axis for data
+                 all_axes = [cat_ax]
              # the custom axis get included in the hcfg for future use
              hcfg.axes = custom_axes + hcfg.axes
              for ax in hcfg.axes:
-                 fields_axes.append(get_hist_axis_from_config(ax))
+                 all_axes.append(get_hist_axis_from_config(ax))
 
              # Build the histogram object with the additional axes    
              hcfg.hist_obj = hist.Hist(
-                 *([cat_ax, var_ax] + fields_axes), storage=hcfg.storage,
+                 *all_axes, storage=hcfg.storage,
                  name="Counts"
              )
              #Save the hist in the configuration and store the full config object
@@ -200,16 +208,17 @@ class HistManager():
             # but it is not needed to recompute them for each histo.
             # The weights will be flattened if needed for each histo
             # map of weights in this category, with mask APPLIED
-            weights = {}
-            for variation in self.available_variations_bycat[category]:
-                 if variation == "nominal":
-                     weights["nominal"]  = weights_manager.get_weight(category)[mask]
-                 else:
-                     # Check if the variation is available in this category
-                     weights[variation] = weights_manager.get_weight(category, modifier=variation)[mask]
-                 #print(f"\t\t= Weights [{variation}] = {weights[variation]} ")
-            # #print(weights["nominal"])
-            # #print(weights_manager._weightsByCat["btagSF"].partial_weight(include=["sf_btag_central"]))
+            if self.isMC:
+                weights = {}
+                for variation in self.available_variations_bycat[category]:
+                    if variation == "nominal":
+                        weights["nominal"]  = weights_manager.get_weight(category)[mask]
+                    else:
+                        # Check if the variation is available in this category
+                        weights[variation] = weights_manager.get_weight(category, modifier=variation)[mask]
+                        #print(f"\t\t= Weights [{variation}] = {weights[variation]} ")
+                # #print(weights["nominal"])
+                # #print(weights_manager._weightsByCat["btagSF"].partial_weight(include=["sf_btag_central"]))
             
             for name, histo in self.histograms.items():
                 #print(f"\t\tFilling histo {name}")
@@ -297,7 +306,7 @@ class HistManager():
                 # Ok, now we have all the numerical axes with
                 # data that has been masked, flattened
                 # removed the none value --> now we need weights for each variation
-                if not histo.no_weights: 
+                if not histo.no_weights and self.isMC: 
                     for variation in histo.hist_obj.axes["variation"]:
                         # print(f"\t\t\tFilling variation: {variation}")
                         # Check if this variation exists for this category
@@ -323,7 +332,8 @@ class HistManager():
                                   )
                         except:
                             raise Exception(f"Cannot fill histogram: {name}, {histo}")
-                else: # NO Weights modifier for the histogram
+
+                elif histo.no_weights and self.isMC: # NO Weights modifier for the histogram
                     try:
                         histo.hist_obj.fill(cat=category,
                                             variation=variation,
@@ -333,7 +343,17 @@ class HistManager():
                     except:
                         raise Exception(f"Cannot fill histogram: {name}, {histo}")
 
-
+                elif not self.isMC:
+                    # Fill histograms for Data
+                    try:
+                        histo.hist_obj.fill(cat=category,
+                                            **{**fill_categorical,
+                                               **fill_numeric},
+                                  )
+                    except:
+                        raise Exception(f"Cannot fill histogram: {name}, {histo}")                    
+                else:
+                    raise Exception(f"Cannot fill histogram: {name}, {histo}, not implemented combination of options")
 
 
 

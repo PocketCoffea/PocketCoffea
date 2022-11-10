@@ -25,6 +25,7 @@ class Configurator():
         self.fileset = {}
         self.samples = []
         self.years = []
+        self.eras = []
         self.load_dataset()
 
         # Check if output file exists, and in case add a `_v01` label, make directory
@@ -130,9 +131,12 @@ class Configurator():
             raise Exception("Wrong fileset configuration")
         else:
             for name, d in self.fileset.items():
-                if (m:=d["metadata"]) not in self.samples:
+                m = d["metadata"]
+                if (m["sample"]) not in self.samples:
                     self.samples.append(m["sample"])
                     self.years.append(m["year"])
+                    if 'era' in m.keys():
+                        self.eras.append(m["era"])
 
     def filter_dataset(self, nfiles):
         filtered_dataset = {}

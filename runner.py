@@ -33,7 +33,7 @@ if __name__ == '__main__':
     parser.add_argument("-t", "--test", action="store_true", help="Run with limit 1 interactively")
     parser.add_argument("-lf","--limit-files", type=int, help="Limit number of files")
     parser.add_argument("-lc","--limit-chunks", type=int, help="Limit number of chunks", default=None)
-    parser.add_argument("-e","--executor", type=str, default='iterative',
+    parser.add_argument("-e","--executor", type=str,
                         help="Overwrite executor from config (to be used only with the --test options)" )
     parser.add_argument("-s","--scaleout", type=int, help="Overwrite scalout config" )
     args = parser.parse_args()
@@ -46,7 +46,7 @@ if __name__ == '__main__':
         raise sys.exit("Please provide a .py/.pkl configuration file")
 
     if args.test:
-        config.run_options["executor"] = args.executor
+        config.run_options["executor"] = args.executor if args.executor else "iterative"
         config.run_options["limit"] = args.limit_files if args.limit_files else 1
         config.run_options["max"] = args.limit_chunks if args.limit_chunks else 2
         config.filter_dataset(config.run_options["limit"])
@@ -61,6 +61,8 @@ if __name__ == '__main__':
     if args.scaleout!=None:
         config.run_options["scaleout"] = args.scaleout
 
+    if args.executor !=None:
+        config.run_options["executor"] = args.executor
 
     if config.run_options['executor'] not in ['futures', 'iterative']:
         # dask/parsl needs to export x509 to read over xrootd
@@ -201,7 +203,7 @@ if __name__ == '__main__':
 
         if 'slurm' in config.run_options['executor']:
             cluster = SLURMCluster(
-                queue='standard',
+                queue=config.run_options['partition'],
                 cores=config.run_options['workers'],
                 processes=config.run_options['workers'],
                 memory=config.run_options['mem_per_worker'],

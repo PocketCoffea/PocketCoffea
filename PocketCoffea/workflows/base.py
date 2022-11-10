@@ -71,14 +71,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             "variables": { v: {} for v, vcfg in self.cfg.variables.items() if not vcfg.metadata_hist},
             "columns" :  {cat: {} for cat in self._categories},
             "processing_metadata": { v: {} for v, vcfg in self.cfg.variables.items() if vcfg.metadata_hist}
-        }
-
-        # Custom axes to add to histograms in this processor
-        self.custom_axes = [Axis(coll="metadata", field="year",name="year",
-                                 bins=set(sorted(self.cfg.years)),
-                                  type="strcat", growth=False,
-                                  label="Year", )]
-        
+        }        
 
     def add_column_accumulator(self, name, categories=None, store_size=True):
         '''
@@ -116,7 +109,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self._year = self.events.metadata["year"]
         self._triggers = triggers[self.cfg.finalstate][self._year]
         self._btag = btag[self._year]
-        self._isMC = self.events.metadata["isMC"]
+        self._isMC = self.events.metadata["isMC"] == "True"
         if self._isMC:
             self._era = "MC"
         else:
@@ -195,7 +188,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     def count_objects(self):
         self.events["nMuonGood"]     = ak.num(self.events.MuonGood)
         self.events["nElectronGood"] = ak.num(self.events.ElectronGood)
-        self.events["nLepGood"]      = self.events["nMuonGood"] + self.events["nElectronGood"]
+        self.events["nLeptonGood"]   = self.events["nMuonGood"] + self.events["nElectronGood"]
         self.events["nJetGood"]      = ak.num(self.events.JetGood)
         self.events["nBJetGood"]     = ak.num(self.events.BJetGood)
         #self.events["nfatjet"]   = ak.num(self.events.FatJetGood)
@@ -233,7 +226,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         return WeightsManager.available_variations()
     
     def compute_weights(self):
-        if not self._isMC: return
+        if not self._isMC:
+            self.weights_manager = None
+            return
         # Creating the WeightsManager with all the configured weights
         self.weights_manager = WeightsManager(self.weights_config_allsamples[self._sample],
                                               self.nEvents_after_presel,
@@ -245,6 +240,16 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                                                   "finalstate": self.cfg.finalstate
                                               })
     def compute_weights_extra(self):
+        pass
+
+    def define_custom_axes(self):
+        # Custom axes to add to histograms in this processor
+        self.custom_axes = [Axis(coll="metadata", field="year",name="year",
+                                 bins=set(sorted(self.cfg.years)),
+                                 type="strcat", growth=False,
+                                 label="Year", )]
+
+    def define_custom_axes_extra(self):
         pass
         
     def count_events(self):
@@ -362,11 +367,14 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.compute_weights_extra()
 
         # Create the HistManager
+        self.define_custom_axes()
+        self.define_custom_axes_extra()
         self.hists_manager = HistManager(self.cfg.variables,
                                          self._sample,
                                          self._categories,
                                          self.cfg.variations_config[self._sample],
-                                         self.custom_axes)
+                                         custom_axes=self.custom_axes,
+                                         isMC=self._isMC)
 
         # Fill histograms
         self.fill_histograms()

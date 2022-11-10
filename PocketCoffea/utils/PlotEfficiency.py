@@ -6,8 +6,9 @@ import matplotlib.pyplot as plt
 
 import mplhep as hep
 import hist
+from hist import Hist
 from coffea import processor
-from coffea.hist import Bin, Hist, plot
+#from coffea.hist import Bin, Hist, plot
 from coffea.lookup_tools.dense_lookup import dense_lookup
 from coffea.util import save, load
 
@@ -395,12 +396,39 @@ round_opts = {
     'ratio_sf' : {'round' : 3},
 }
 
-def rearrange_axes(accumulator):
-    for (histname, h) in accumulator.items():
-        if h.axes()[-1] == h.sparse_axes()[-1]:
-            accumulator[histname] = Hist("$N_{events}$", *h.sparse_axes(), *h.dense_axes())
+def dense_dim(h):
+    '''Returns the number of dense axes of a histogram.'''
+    dense_dim = 0
+    if type(h) == dict:
+        h = h[list(h.keys())[0]]
+    for ax in h.axes:
+        if not type(ax) in [hist.axis.StrCategory, hist.axis.IntCategory]:
+            dense_dim += 1
+    return dense_dim
+
+def dense_axes(h):
+    '''Returns the list of dense axes of a histogram.'''
+    dense_axes = []
+    if type(h) == dict:
+        h = h[list(h.keys())[0]]
+    for ax in h.axes:
+        if not type(ax) in [hist.axis.StrCategory, hist.axis.IntCategory]:
+            dense_axes.append(ax)
+    return dense_axes
+
+def stack_sum(stack):
+    '''Returns the sum histogram of a stack (`hist.stack.Stack`) of histograms.'''
+    if len(stack) == 1:
+        return stack[0]
+    else:
+        htot = stack[0]
+        for h in stack[1:]:
+            htot = htot + h
+        return htot
 
 def uncertainty_efficiency(eff, den, sumw2_num=None, sumw2_den=None, mc=False):
+    '''Returns the uncertainty on an efficiency `eff=num/den` given the efficiency `eff`, the denominator `den`.
+    For MC efficiency also the sum of the squared weights of numerator and denominator (`sumw2_num`, `sumw2_den`) have to be passed as argument and the flag `mc` has to be set to `True`.'''
     if mc:
         if (sumw2_num is None) | (sumw2_den is None):
             sys.exit("Missing sum of squared weights.")
@@ -411,9 +439,12 @@ def uncertainty_efficiency(eff, den, sumw2_num=None, sumw2_den=None, mc=False):
         return np.sqrt( eff * (1 - eff) / den )
 
 def uncertainty_sf(eff_data, eff_mc, unc_eff_data, unc_eff_mc):
+    '''Returns the uncertainty on a scale factor given the data and MC efficiency (`eff_data`, `eff_mc`) and the corresponding uncertainties (`unc_eff_data`, `unc_eff_mc`).'''
     return (eff_data/eff_mc) * np.sqrt( (unc_eff_data/eff_data)**2 + (unc_eff_mc/eff_mc)**2 )
 
 def plot_variation(x, y, yerr, xerr, xlabel, ylabel, syst, var, opts, ax, data=False, sf=False, **kwargs):
+    '''Function to plot a variation of an efficiency or scale factor on an axis `ax`.
+    To plot the data efficiency variation, the flag `data` has to be set to `True`. To plot the scale factor variation, the flag `sf` has to be set to `True`.'''
     config = kwargs['config']
     if data & sf:
         sys.exit("'data' and 'sf' cannot be True at the same time.")
@@ -443,10 +474,12 @@ def plot_variation(x, y, yerr, xerr, xlabel, ylabel, syst, var, opts, ax, data=F
     ax.legend()
     ax.set_xlabel(xlabel, fontsize=kwargs['fontsize'])
     ax.set_ylabel(ylabel, fontsize=kwargs['fontsize'])
-    ax.set_xlim(*config.variables[kwargs['variable']]['xlim'])
+    ax.set_xlim(*config.variables[kwargs['histname']].axes[0].lim)
     ax.set_ylim(*ylim)
 
 def plot_ratio(x, y, ynom, yerrnom, xerr, edges, xlabel, ylabel, syst, var, opts, ax, data=False, sf=False, **kwargs):
+    '''Function to plot the uncertainty band corresponding to the variation of an efficiency or scale factor in the ratio plot on an axis `ax`.
+    To plot the data efficiency variation, the flag `data` has to be set to `True`. To plot the scale factor variation, the flag `sf` has to be set to `True`.'''
     config = kwargs['config']
     if data & sf:
         sys.exit("'data' and 'sf' cannot be True at the same time.")
@@ -485,6 +518,8 @@ def plot_ratio(x, y, ynom, yerrnom, xerr, edges, xlabel, ylabel, syst, var, opts
     ax.set_ylim(*ylim)
 
 def plot_residue(x, y, ynom, yerrnom, xerr, edges, xlabel, ylabel, syst, var, opts, ax, data=False, sf=False, **kwargs):
+    '''Function to plot the uncertainty band corresponding to the variation of an efficiency or scale factor in the residue plot on an axis `ax`.
+    To plot the data efficiency variation, the flag `data` has to be set to `True`. To plot the scale factor variation, the flag `sf` has to be set to `True`.'''
     config = kwargs['config']
     if data & sf:
         sys.exit("'data' and 'sf' cannot be True at the same time.")
@@ -525,6 +560,7 @@ def plot_residue(x, y, ynom, yerrnom, xerr, edges, xlabel, ylabel, syst, var, op
 class EfficiencyMap:
 
     def __init__(self, config, histname, h, year, mode="standard") -> None:
+        '''h is a dictionary of `hist` histograms, one for each sample.'''
         self.config = config
         self.mode = mode
         self.plot_dir = os.path.join(self.config.plots, "trigger_efficiency")
@@ -535,39 +571,43 @@ class EfficiencyMap:
         self.histname = histname
         self.h = h
         self.year = year
-        self.datasets = [str(s) for s in h.identifiers('sample')]
+        self.datasets = h.keys()
         self.datasets_data = list(filter(lambda x : 'DATA' in x, self.datasets))
-        self.datasets_mc   = list(filter(lambda x : 'TTTo' in x, self.datasets))
-        self.years = [str(s) for s in self.h.identifiers('year')]
-        self.categories = [str(s) for s in self.h.identifiers('cat')]
-        self.dim = h.dense_dim()
+        self.datasets_mc   = list(filter(lambda x : 'DATA' not in x, self.datasets))
+        self.axis_year = self.h['DATA'].axes['year']
+        self.axis_cat  = self.h['DATA'].axes['cat']
+        self.axis_var  = self.h[self.datasets_mc[0]].axes['variation']
+        self.years      = list(self.axis_year.value(range(self.axis_year.size)))
+        self.categories = list(self.axis_cat.value(range(self.axis_cat.size)))
+        self.variations = list(self.axis_var.value(range(self.axis_var.size)))
+        self.dim = dense_dim(h)
+        self.dense_axes = dense_axes(h)
         if self.mode == "spliteras":
-            self.eras = ['tot'] + [str(s) for s in h.identifiers('era') if str(s) != 'MC']
+            self.axis_era = self.h['DATA'].axes['era']
+            self.eras = ['tot'] + list(self.axis_era.value(range(self.axis_era.size)))
 
         if self.dim == 1:
-            self.variable = self.histname.split('hist_')[1]
-            if len(self.variable.split('_')) == 2:
-                self.varname_x  = self.variable.split('_')[1]
-            elif len(self.variable.split('_')) == 1:
-                self.varname_x  = self.variable.split('_')[0]
+            self.variable = self.dense_axes[0].name
+            self.varname_x = self.variable
             self.varnames = [self.varname_x]
-            if self.variable in self.config.plot_options["rebin"].keys():
-                self.h = self.h.rebin(self.varname_x, Bin(self.varname_x, self.h.axis(self.varname_x).label, **self.config.plot_options["rebin"][self.variable]["binning"]))
-            self.axis_x = self.h.dense_axes()[-1]
-            self.binwidth_x = np.ediff1d(self.axis_x.edges())
-            self.bincenter_x = self.axis_x.edges()[:-1] + 0.5*self.binwidth_x
+            # TO DO: Implement rebinning
+            #if self.variable in self.config.plot_options["rebin"].keys():
+            #    self.h = self.h.rebin(self.varname_x, Bin(self.varname_x, self.h.axis(self.varname_x).label, **self.config.plot_options["rebin"][self.variable]["binning"]))
+            self.axis_x = self.dense_axes[-1]
+            self.binwidth_x  = np.ediff1d(self.axis_x.edges)
+            self.bincenter_x = self.axis_x.edges[:-1] + 0.5*self.binwidth_x
             self.fields = {self.varname_x : self.bincenter_x}
         elif self.dim == 2:
-            self.variable2d = self.histname.lstrip('hist2d_') 
-            self.varname_x = list(self.config.variables2d[self.variable2d].keys())[0]
-            self.varname_y = list(self.config.variables2d[self.variable2d].keys())[1]
+            #self.variable2d = self.histname.lstrip('hist2d_')
+            self.varname_x = self.dense_axes[0].name
+            self.varname_y = self.dense_axes[1].name
             self.varnames = [self.varname_x, self.varname_y]
-            self.axis_x = self.h.axis(self.varname_x)
-            self.axis_y = self.h.axis(self.varname_y)
-            self.binwidth_x = np.ediff1d(self.axis_x.edges())
-            self.binwidth_y = np.ediff1d(self.axis_y.edges())
-            self.bincenter_x = self.axis_x.edges()[:-1] + 0.5*self.binwidth_x
-            self.bincenter_y = self.axis_y.edges()[:-1] + 0.5*self.binwidth_y
+            self.axis_x = self.dense_axes[0]
+            self.axis_y = self.dense_axes[1]
+            self.binwidth_x = np.ediff1d(self.axis_x.edges)
+            self.binwidth_y = np.ediff1d(self.axis_y.edges)
+            self.bincenter_x = self.axis_x.edges[:-1] + 0.5*self.binwidth_x
+            self.bincenter_y = self.axis_y.edges[:-1] + 0.5*self.binwidth_y
             self.y, self.x = np.meshgrid(self.bincenter_y, self.bincenter_x)
             self.fields = {self.varname_x : self.x.flatten(), self.varname_y : self.y.flatten()}
             self.hist_axis_x = None
@@ -575,39 +615,46 @@ class EfficiencyMap:
         else:
             raise NotImplementedError
 
+        slicing_data = {'year' : self.year}
+        slicing_mc   = {'year' : self.year}
+        dict_data = {d : self.h[d][slicing_data] for d in self.datasets_data}
+        dict_mc   = {d : self.h[d][slicing_mc] for d in self.datasets_mc}
+        self.h_data = stack_sum(hist.Stack.from_dict(dict_data))
+        self.h_mc   = stack_sum(hist.Stack.from_dict(dict_mc))
+
     def define_systematics(self):
+        '''Define the list of systematics, given the variations.'''
         # We extract all the variations saved in the histograms and the name of the systematics
-        variations = [str(s) for s in self.h.identifiers('var')]
-        self.systematics = ['nominal'] + [s.split("Up")[0] for s in variations if 'Up' in s]
+        self.systematics = ['nominal'] + [s.split("Up")[0] for s in self.variations if 'Up' in s]
         self.lumi_fractions = {}
 
     def initialize_stack(self):
+        '''Initialize the lists and dictionaries to save the scale factor corrections in a stack.'''
         self.ratio_stack = []
         self.variations_labels = []
         self.corrections = {}
 
-    def define_datamc(self, era=None):
+    def define_datamc(self, cat, var, era=None):
+        '''Define the data and MC dictionaries used for slicing the histograms `self.h_data` and `self.h_mc`, for .'''
         if (self.mode == "spliteras") and (self.dim == 2):
             self.totalLumi = femtobarn(lumi[self.year][era], digits=1)
         else:
             self.totalLumi = femtobarn(lumi[self.year]['tot'], digits=1)
         if (self.mode == "spliteras"):
-            self.h_mc   = self.h[(self.datasets_mc, self.categories, self.year, 'MC', )].sum('sample', 'year', 'era')
+            self.slicing_mc = {'cat' : cat, 'variation' : var}
             if era == 'tot':
-                self.h_data = self.h[(self.datasets_data, self.categories, self.year, )].sum('sample', 'year', 'era')
+                self.slicing_data = {'cat' : cat}
             else:
-                self.h_data = self.h[(self.datasets_data, self.categories, self.year, era)].sum('sample', 'year', 'era')
+                self.slicing_data = {'cat' : cat, 'era' : era}
                 self.lumi_frac = lumi[self.year][era] / lumi[self.year]['tot']
                 self.lumi_fractions[era] = self.lumi_frac
-                self.h_mc.scale(self.lumi_frac)
+                self.h_mc = self.lumi_frac * self.h_mc
         else:
-            self.h_data = self.h[(self.datasets_data, self.categories, self.year, )].sum('sample', 'year', 'era')
-            self.h_mc   = self.h[(self.datasets_mc, self.categories, self.year, 'MC', )].sum('sample', 'year', 'era')
-        self.axis_cat          = self.h_mc.axis('cat')
-        self.axis_var          = self.h_mc.axis('var')
-        self.axes_electron     = [self.h_mc.axis(varname) for varname in self.varnames]
+            self.slicing_data = {'cat' : cat}
+            self.slicing_mc   = {'cat' : cat, 'variation' : var}
 
     def define_1d_figures(self, cat, syst, save_plots=True):
+        '''Define the figures of the 1D histogram plots.'''
         if self.dim == 1:
             if save_plots:
                 self.fig_eff, self.ax_eff = plt.subplots(1,1,figsize=[10,10])
@@ -622,6 +669,7 @@ class EfficiencyMap:
             sys.exit(f"define_1d_figures: 1D figures cannot be defined for histogram with dimension {self.dim}")
 
     def define_variations(self, syst):
+        '''Define the variations, given a systematic uncertainty `syst`.'''
         self.eff_nominal = None
         self.unc_eff_nominal = None
         self.ratio_sf = None
@@ -631,6 +679,8 @@ class EfficiencyMap:
             self.variations = ['nominal', f'{syst}Down', f'{syst}Up'] if syst != 'nominal' else ['nominal']
 
     def compute_efficiency(self, cat, var, era=None):
+        '''Compute the data and MC efficiency, the scale factor and the corresponding uncertainties for a given category `cat` and a variation `var`.
+        If the computation has to be performed for a specific data-taking era, also the argument `era` has to be specified.'''
         if cat.endswith(tuple(['pass_lowHT'])):
             cat_inclusive = [c for c in self.categories if c.endswith(tuple(['pass_lowHT', 'fail_lowHT']))]
         elif cat.endswith(tuple(['pass_highHT'])):
@@ -639,11 +689,18 @@ class EfficiencyMap:
             cat_inclusive = 'inclusive'
         else:
             raise NotImplementedError
-        num_data = self.h_data[cat,'nominal',:].sum('cat', 'var').values()[()]
-        den_data = self.h_data[cat_inclusive,'nominal',:].sum('cat', 'var').values()[()]
+        self.slicing_data_inclusive = {k : value for k, value in self.slicing_data.items()}
+        self.slicing_data_inclusive['cat'] = cat_inclusive
+        self.slicing_mc_inclusive = {k : value for k, value in self.slicing_mc.items()}
+        self.slicing_mc_inclusive['cat'] = cat_inclusive
+
+        num_data = self.h_data[self.slicing_data].project(*self.varnames).values()
+        den_data = self.h_data[self.slicing_data_inclusive].project(*self.varnames).values()
         eff_data = np.nan_to_num( num_data / den_data )
-        num_mc, sumw2_num_mc   = self.h_mc[cat,var,:].sum('cat', 'var').values(sumw2=True)[()]
-        den_mc, sumw2_den_mc   = self.h_mc[cat_inclusive,var,:].sum('cat', 'var').values(sumw2=True)[()]
+        num_mc       = self.h_mc[self.slicing_mc].project(*self.varnames).values()
+        sumw2_num_mc = self.h_mc[self.slicing_mc].project(*self.varnames).variances()
+        den_mc       = self.h_mc[self.slicing_mc_inclusive].project(*self.varnames).values()
+        sumw2_den_mc = self.h_mc[self.slicing_mc_inclusive].project(*self.varnames).variances()
         eff_mc   = np.nan_to_num( num_mc / den_mc )
         sf       = np.nan_to_num( eff_data / eff_mc )
         sf       = np.where(sf < 100, sf, 100)
@@ -655,25 +712,28 @@ class EfficiencyMap:
         unc_rel_eff_data = np.nan_to_num(unc_eff_data / eff_data)
         unc_rel_eff_mc   = np.nan_to_num(unc_eff_mc / eff_mc)
         unc_rel_sf       = np.nan_to_num(unc_sf / sf)
-        self.eff     = Hist("Trigger efficiency", self.axis_cat, *self.axes_electron)
-        self.unc_eff = Hist("Trigger eff. unc.", self.axis_cat, *self.axes_electron)
-        self.unc_rel_eff = Hist("Trigger eff. relative unc. ", self.axis_cat, *self.axes_electron)
+        axis_map_eff         = hist.axis.StrCategory(["data", "mc", "sf"], name="map")
+        axis_map_unc_eff     = hist.axis.StrCategory(["unc_data", "unc_mc", "unc_sf"], name="map")
+        axis_map_unc_rel_eff = hist.axis.StrCategory(["unc_rel_data", "unc_rel_mc", "unc_rel_sf"], name="map")
+        axis_map_ratio_sf    = hist.axis.StrCategory(["ratio_sf"], name="map")
+        self.eff     = Hist(axis_map_eff, *self.dense_axes)
+        self.unc_eff = Hist(axis_map_unc_eff, *self.dense_axes)
+        self.unc_rel_eff = Hist(axis_map_unc_rel_eff, *self.dense_axes)
 
         if self.eff_nominal != None:
-            #print(cat, var)
             self.ratio = np.nan_to_num(sf / self.sf_nominal)
-            self.ratio_sf = Hist("SF ratio", self.axis_cat, *self.axes_electron)
-            self.ratio_sf.fill(cat='ratio_sf', **self.fields, weight=self.ratio.flatten())
+            self.ratio_sf = Hist(axis_map_ratio_sf, *self.dense_axes)
+            self.ratio_sf.fill(map='ratio_sf', **self.fields, weight=self.ratio.flatten())
 
-        self.eff.fill(cat='data', **self.fields, weight=eff_data.flatten())
-        self.eff.fill(cat='mc', **self.fields, weight=eff_mc.flatten())
-        self.eff.fill(cat='sf', **self.fields, weight=sf.flatten())
-        self.unc_eff.fill(cat='unc_data', **self.fields, weight=unc_eff_data.flatten())
-        self.unc_eff.fill(cat='unc_mc', **self.fields, weight=unc_eff_mc.flatten())
-        self.unc_eff.fill(cat='unc_sf', **self.fields, weight=unc_sf.flatten())
-        self.unc_rel_eff.fill(cat='unc_rel_data', **self.fields, weight=unc_rel_eff_data.flatten())
-        self.unc_rel_eff.fill(cat='unc_rel_mc', **self.fields, weight=unc_rel_eff_mc.flatten())
-        self.unc_rel_eff.fill(cat='unc_rel_sf', **self.fields, weight=unc_rel_sf.flatten())
+        self.eff.fill(map='data', **self.fields, weight=eff_data.flatten())
+        self.eff.fill(map='mc', **self.fields, weight=eff_mc.flatten())
+        self.eff.fill(map='sf', **self.fields, weight=sf.flatten())
+        self.unc_eff.fill(map='unc_data', **self.fields, weight=unc_eff_data.flatten())
+        self.unc_eff.fill(map='unc_mc', **self.fields, weight=unc_eff_mc.flatten())
+        self.unc_eff.fill(map='unc_sf', **self.fields, weight=unc_sf.flatten())
+        self.unc_rel_eff.fill(map='unc_rel_data', **self.fields, weight=unc_rel_eff_data.flatten())
+        self.unc_rel_eff.fill(map='unc_rel_mc', **self.fields, weight=unc_rel_eff_mc.flatten())
+        self.unc_rel_eff.fill(map='unc_rel_sf', **self.fields, weight=unc_rel_sf.flatten())
         if self.mode == "standard":
             if var == 'nominal':
                 self.eff_nominal = self.eff
@@ -688,6 +748,9 @@ class EfficiencyMap:
                 self.unc_eff_nominal = self.unc_eff
 
     def plot1d(self, cat, syst, var, save_plots=True, era=None):
+        '''Function to plot a 1D efficiency or scale factor for a given category `cat` and a variation `var`.
+        To save the output plots, the flag `save_plots` has to be set to `True`.
+        If the computation has to be performed for a specific data-taking era, also the argument `era` has to be specified.'''
         fontsize = self.config.plot_options["fontsize"]
         if self.mode == "standard":
             _opts_mc   = opts_mc[var.split(syst)[-1] if syst != 'nominal' else syst]
@@ -703,29 +766,28 @@ class EfficiencyMap:
         if self.dim == 1:
             if save_plots:
                 extra_args = {'totalLumi' : self.totalLumi, 'histname' : self.histname, 'year' : self.year, 'variable' : self.variable, 'config' : self.config, 'cat' : cat, 'fontsize' : fontsize}
-                plot_variation(self.bincenter_x, self.eff['data'].sum('cat').values()[()], self.unc_eff['unc_data'].sum('cat').values()[()], 0.5*self.binwidth_x,
+                plot_variation(self.bincenter_x, self.eff[{'map' : 'data'}].values(), self.unc_eff[{'map' : 'unc_data'}].values(), 0.5*self.binwidth_x,
                                self.axis_x.label, self.eff.label, syst, var, _opts_data, self.ax_eff, data=True, sf=False, **extra_args)
                 if self.mode != "spliteras":
-                    plot_variation(self.bincenter_x, self.eff['mc'].sum('cat').values()[()], self.unc_eff['unc_mc'].sum('cat').values()[()], 0.5*self.binwidth_x,
+                    plot_variation(self.bincenter_x, self.eff[{'map' : 'mc'}].values(), self.unc_eff[{'map' : 'unc_mc'}].values(), 0.5*self.binwidth_x,
                                    self.axis_x.label, self.eff.label, syst, var, _opts_mc, self.ax_eff, data=False, sf=False, **extra_args)
 
                 for ax_sf in [self.ax_sf1, self.ax_sf2]:
-                    plot_variation(self.bincenter_x, self.eff['sf'].sum('cat').values()[()], self.unc_eff['unc_sf'].sum('cat').values()[()], 0.5*self.binwidth_x,
+                    plot_variation(self.bincenter_x, self.eff[{'map' : 'sf'}].values(), self.unc_eff[{'map' : 'unc_sf'}].values(), 0.5*self.binwidth_x,
                                    self.axis_x.label, "Trigger SF", syst, var, _opts_sf, ax_sf, data=False, sf=True, **extra_args)
-                plot_ratio(self.bincenter_x, self.eff['sf'].sum('cat').values()[()], self.eff_nominal['sf'].sum('cat').values()[()], self.unc_eff_nominal['unc_sf'].sum('cat').values()[()], 0.5*self.binwidth_x, self.axis_x.edges(),
+                plot_ratio(self.bincenter_x, self.eff[{'map' : 'sf'}].values(), self.eff_nominal[{'map' : 'sf'}].values(), self.unc_eff_nominal[{'map' : 'unc_sf'}].values(), 0.5*self.binwidth_x, self.axis_x.edges,
                            self.axis_x.label, 'var. / nom.', syst, var, _opts_sf, self.ax_sf_ratio, data=False, sf=True, **extra_args)
-                plot_residue(self.bincenter_x, self.eff['sf'].sum('cat').values()[()], self.eff_nominal['sf'].sum('cat').values()[()], self.unc_eff_nominal['unc_sf'].sum('cat').values()[()], 0.5*self.binwidth_x, self.axis_x.edges(),
+                plot_residue(self.bincenter_x, self.eff[{'map' : 'sf'}].values(), self.eff_nominal[{'map' : 'sf'}].values(), self.unc_eff_nominal[{'map' : 'unc_sf'}].values(), 0.5*self.binwidth_x, self.axis_x.edges,
                              self.axis_x.label, '(var - nom.) / nom.', syst, var, _opts_sf, self.ax_sf_residue, data=False, sf=True, **extra_args)
             if self.config.output_triggerSF:
-                #sf     = self.eff['sf'].sum('cat').values()[()].to_hist()
-                A = self.eff['sf'].sum('cat').to_hist()
+                A = self.eff[{'map' : 'sf'}]
                 self.hist_axis_x = A.axes[0]
 
                 if (syst == "nominal") and (var == "nominal"):
                     if self.mode in ["splitHT", "spliteras"]: return
-                    ratio = self.eff_nominal["sf"].sum('cat').values()[()]
+                    ratio = self.eff_nominal[{'map' : 'sf'}].values()
                     ratio = np.where(ratio != 0, ratio, np.nan)
-                    unc = np.array(self.unc_eff_nominal['unc_sf'].sum('cat').values()[()])
+                    unc = np.array(self.unc_eff_nominal[{'map' : 'unc_sf'}].values())
                     print("************************")
                     print(ratio)
                     print(unc)
@@ -733,7 +795,7 @@ class EfficiencyMap:
                     labels = [ "nominal", "statDown", "statUp" ]
                     #print(ratios[0])
                 elif (syst != "nominal"):
-                    eff_map = self.eff['sf'].sum('cat').values()[()]
+                    eff_map = self.eff[{'map' : 'sf'}].values()
                     ratios = [ np.where(eff_map != 0, eff_map, np.nan) ]
                     if self.mode == "standard":
                         labels = [ var ]
@@ -783,12 +845,15 @@ class EfficiencyMap:
             sys.exit(f"plot1d: Histograms with dimension {self.dim} are not supported")
 
     def plot2d(self, cat, syst, var, save_plots=True, era=None):
+        '''Function to plot a 2D efficiency or scale factor for a given category `cat` and a variation `var`.
+        To save the output plots, the flag `save_plots` has to be set to `True`.
+        If the computation has to be performed for a specific data-taking era, also the argument `era` has to be specified.'''
         fontsize = self.config.plot_options["fontsize"]
         if self.dim == 2:
             if (syst != 'nominal') and (var == 'nominal'): pass
             for (label, histo) in zip(["data", "mc", "sf", "unc_data", "unc_mc", "unc_sf", "unc_rel_data", "unc_rel_mc", "unc_rel_sf", "ratio_sf"], [self.eff, self.eff, self.eff, self.unc_eff, self.unc_eff, self.unc_eff, self.unc_rel_eff, self.unc_rel_eff, self.unc_rel_eff, self.ratio_sf]):
                 if (var == 'nominal') and (label == "ratio_sf"): continue
-                self.map2d = histo[label].sum('cat')
+                self.map2d = histo[{'map' : label}]
 
                 if save_plots:
                     fig_map, ax_map = plt.subplots(1,1,figsize=[16,10])
@@ -799,32 +864,26 @@ class EfficiencyMap:
                     elif label == "ratio_sf":
                         self.map2d.label = "SF var./nom."
 
-                    plot.plot2d(self.map2d, ax=ax_map, xaxis=self.eff.axes()[-2], patch_opts=patch_opts[label])
+                    self.map2d.plot2d(ax=ax_map)
+                    #self.map2d.plot2d(ax=ax_map, xaxis=self.axis_x, patch_opts=patch_opts[label])
                     hep.cms.text("Preliminary", loc=0, ax=ax_map)
                     hep.cms.lumitext(text=f'{self.totalLumi}' + r' fb$^{-1}$, 13 TeV,' + f' {self.year}', fontsize=18, ax=ax_map)
                     ax_map.set_title(var)
                     if self.varname_x == 'pt':
                         ax_map.set_xscale('log')
-                    ax_map.set_xlim(*self.config.variables2d[self.variable2d][self.varname_x]['xlim'])
-                    ax_map.set_ylim(*self.config.variables2d[self.variable2d][self.varname_y]['ylim'])
+                    ax_map.set_xlim(*self.config.variables[self.histname].axes[0].lim)
+                    ax_map.set_ylim(*self.config.variables[self.histname].axes[1].lim)
                     #xticks = [20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500]
                     #yticks = axis_y.edges()
-                    if 'xticks' in self.config.variables2d[self.variable2d][self.varname_x].keys():
-                        xticks = self.config.variables2d[self.variable2d][self.varname_x]['xticks']
-                    else:
-                        xticks = self.axis_x.edges()
-                    if 'yticks' in self.config.variables2d[self.variable2d][self.varname_y].keys():
-                        yticks = self.config.variables2d[self.variable2d][self.varname_y]['yticks']
-                    else:
-                        yticks = self.axis_y.edges()
+                    xticks = self.axis_x.edges
+                    yticks = self.axis_y.edges
                     ax_map.xaxis.label.set_size(fontsize)   
                     ax_map.yaxis.label.set_size(fontsize)
                     ax_map.set_xticks(xticks, [str(round(t, 4)) for t in xticks], fontsize=fontsize)
                     ax_map.set_yticks(yticks, [str(round(t, 4)) for t in yticks], fontsize=fontsize)
-
                     #plt.yticks(yticks, [str(t) for t in yticks], fontsize=fontsize)
-                    plt.vlines(self.axis_x.edges(), self.axis_y.edges()[-1], self.axis_y.edges()[0], linestyle='--', color='gray')
-                    plt.hlines(self.axis_y.edges(), self.axis_x.edges()[-1], self.axis_x.edges()[0], linestyle='--', color='gray')
+                    plt.vlines(self.axis_x.edges, self.axis_y.edges[-1], self.axis_y.edges[0], linestyle='--', color='gray')
+                    plt.hlines(self.axis_y.edges, self.axis_x.edges[-1], self.axis_x.edges[0], linestyle='--', color='gray')
 
                     for (i, x) in enumerate(self.bincenter_x):
                         if (x < ax_map.get_xlim()[0]) | (x > ax_map.get_xlim()[1]): continue
@@ -844,6 +903,7 @@ class EfficiencyMap:
             sys.exit(f"plot2d: Histograms with dimension {self.dim} are not supported")
 
     def save1d(self, save_plots):
+        '''Function to save the 1D plots as `png` files if `save_plots` is set to `True`.'''
         if self.dim == 1:
             if save_plots:
                 print("Saving", self.filepath_eff)
@@ -861,6 +921,9 @@ class EfficiencyMap:
             sys.exit(f"save1d: Histograms with dimension {self.dim} are not supported")
 
     def save2d(self, cat, syst, var, label, save_plots, era=None):
+        '''Function that saves the 2D plots as `png` files if `save_plots` is set to `True`.
+        The category `cat`, the systematic uncertainty `syst` and the variation `var` have to be specified.
+        The argument `label` is required to specify the map that needs to be plotted.'''
         if self.dim == 2:
             if (syst != 'nominal') and (var == 'nominal'): return
             if (var == 'nominal') and (label == "ratio_sf"): return
@@ -874,13 +937,14 @@ class EfficiencyMap:
                 plt.savefig(filepath, dpi=self.config.plot_options['dpi'], format="png")
             if self.config.output_triggerSF:
                 if label in ["sf", "unc_sf"]:
-                    A = self.map2d.to_hist()
+                    A = self.map2d
                     self.hist_axis_x = A.axes[0]
                     self.hist_axis_y = A.axes[1]
                     eff_map = self.map2d.values()[()]
                     if (syst == "nominal") and (var == "nominal") and (label == "unc_sf"):
                         if self.mode in ["splitHT", "spliteras"]: return
-                        ratio = self.eff_nominal["sf"].sum('cat').values()[()]
+                        ratio = self.eff_nominal[{'map' : 'sf'}].values()
+                        #ratio = self.eff_nominal["sf"].sum('cat').values()[()]
                         ratio = np.where(ratio != 0, ratio, np.nan)
                         unc = np.array(eff_map)
                         ratios  = [ ratio - unc, ratio + unc ]
@@ -934,6 +998,7 @@ class EfficiencyMap:
             sys.exit(f"save2d: Histograms with dimension {self.dim} are not supported")
 
     def save_corrections(self):
+        '''Function to save the dictionary of corrections containing the scale factor value, the x-axis (and y-axis for 2D maps) and the data-taking year.'''
         if self.dim == 2:
             assert len(self.ratio_stack) == len(self.variations_labels), "'ratio_stack' and 'variations_labels' have different length"
             for label, ratio in zip(self.variations_labels, self.ratio_stack):
@@ -944,18 +1009,17 @@ class EfficiencyMap:
                 self.corrections[label] = {'ratio_stack' : ratio, 'year' : self.year, 'hist_axis_x' : self.hist_axis_x}
 
 def plot_efficiency_maps(accumulator, config, save_plots=False):
+    '''Function to plot 1D and 2D efficiencies and scale factors and save the corrections dictionaries for the systematic variations included in the input histograms.'''
 
     corrections = {}
-    for (histname, h) in accumulator.items():
+    for (histname, h) in accumulator['variables'].items():
         if config.plot_options["only"] and not (config.plot_options["only"] in histname): continue
-        if not histname.startswith('hist'): continue
         print("Histogram:", histname)
         corrections[histname] = {}
 
         for year in config.dataset["filter"]["year"]:
             efficiency_map = EfficiencyMap(config, histname, h, year, mode="standard")
             efficiency_map.define_systematics()
-            efficiency_map.define_datamc()
             categories = [c for c in efficiency_map.categories if c.endswith(tuple(['pass']))]
 
             for cat in categories:
@@ -966,6 +1030,7 @@ def plot_efficiency_maps(accumulator, config, save_plots=False):
                     efficiency_map.define_variations(syst)
 
                     for var in efficiency_map.variations:
+                        efficiency_map.define_datamc(cat, var)
                         efficiency_map.compute_efficiency(cat, var)
                         efficiency_map.plot1d(cat, syst, var, save_plots=save_plots)
                         efficiency_map.plot2d(cat, syst, var, save_plots=save_plots)
@@ -978,24 +1043,24 @@ def plot_efficiency_maps(accumulator, config, save_plots=False):
     return corrections
 
 def plot_efficiency_maps_splitHT(accumulator, config, save_plots=False):
+    '''Function to plot 1D and 2D efficiencies and scale factors and save the corrections dictionaries for the HT systematic variation.'''
 
     corrections = {}
-    for (histname, h) in accumulator.items():
+    for (histname, h) in accumulator['variables'].items():
         if config.plot_options["only"] and not (config.plot_options["only"] in histname): continue
-        if not histname.startswith('hist'): continue
         print("Histogram:", histname)
         corrections[histname] = {}
 
         for year in config.dataset["filter"]["year"]:
             efficiency_map = EfficiencyMap(config, histname, h, year, mode="splitHT")
             efficiency_map.define_systematics()
-            efficiency_map.define_datamc()
             categories = [c for c in efficiency_map.categories if c.endswith(tuple(['pass', 'pass_lowHT', 'pass_highHT']))]
             efficiency_map.define_1d_figures(categories[0], "splitHT", save_plots=save_plots)
             efficiency_map.define_variations("splitHT")
             efficiency_map.initialize_stack()
 
             for cat in categories:
+                efficiency_map.define_datamc(cat, "nominal")
                 efficiency_map.compute_efficiency(cat, "nominal")
                 efficiency_map.plot1d(cat, "HT", cat.split('_')[-1], save_plots=save_plots)
                 efficiency_map.plot2d(cat, "nominal", "nominal", save_plots=save_plots)
@@ -1006,11 +1071,11 @@ def plot_efficiency_maps_splitHT(accumulator, config, save_plots=False):
     return corrections
 
 def plot_efficiency_maps_spliteras(accumulator, config, save_plots=False):
+    '''Function to plot 1D and 2D efficiencies and scale factors and save the corrections dictionaries for the data-taking era systematic variation.'''
 
     corrections = {}
-    for (histname, h) in accumulator.items():
+    for (histname, h) in accumulator['variables'].items():
         if config.plot_options["only"] and not (config.plot_options["only"] in histname): continue
-        if not histname.startswith('hist'): continue
         print("Histogram:", histname)
         corrections[histname] = {}
 
@@ -1025,7 +1090,7 @@ def plot_efficiency_maps_spliteras(accumulator, config, save_plots=False):
                 efficiency_map.initialize_stack()
 
                 for era in efficiency_map.eras:
-                    efficiency_map.define_datamc(era)
+                    efficiency_map.define_datamc(cat, "nominal", era)
                     efficiency_map.compute_efficiency(cat, "nominal", era=era)
                     efficiency_map.plot1d(cat, "era", f"era{era}", save_plots=save_plots, era=era)
                     efficiency_map.plot2d(cat, "nominal", "nominal", save_plots=save_plots, era=era)
