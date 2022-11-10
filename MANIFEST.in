@@ -1,1 +1,7 @@
-recursive-include src/PocketCoffea/ *.json
+graft pocket_coffea
+graft tests
+
+include LICENSE README.md pyproject.toml setup.py setup.cfg
+global-exclude __pycache__ *.py[cod] .*
+
+recursive-include pocket_coffea/ *.json
