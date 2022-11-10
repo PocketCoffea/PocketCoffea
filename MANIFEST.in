@@ -1,3 +1,2 @@
-include LICENSE README.md pyproject.toml setup.py setup.cfg
 recursive-include pocket_coffea/ *.json
-recursive-include pocket_coffea/ *.txtres 
+recursive-include pocket_coffea/ *.txt
