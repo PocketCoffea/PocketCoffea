@@ -1,4 +1,13 @@
 #!/usr/bin/env python
+print("""
+    ____             __        __  ______      ________          
+   / __ \____  _____/ /_____  / /_/ ____/___  / __/ __/__  ____ _
+  / /_/ / __ \/ ___/ //_/ _ \/ __/ /   / __ \/ /_/ /_/ _ \/ __ `/
+ / ____/ /_/ / /__/ ,< /  __/ /_/ /___/ /_/ / __/ __/  __/ /_/ / 
+/_/    \____/\___/_/|_|\___/\__/\____/\____/_/ /_/  \___/\__,_/  
+                                                                 
+""")
+
 import os
 import sys
 import json
@@ -13,17 +22,8 @@ from coffea.util import load, save
 from coffea import processor
 from pprint import pprint
 
-
-print("""
-    ____             __        __  ______      ________          
-   / __ \____  _____/ /_____  / /_/ ____/___  / __/ __/__  ____ _
-  / /_/ / __ \/ ___/ //_/ _ \/ __/ /   / __ \/ /_/ /_/ _ \/ __ `/
- / ____/ /_/ / /__/ ,< /  __/ /_/ /___/ /_/ / __/ __/  __/ /_/ / 
-/_/    \____/\___/_/|_|\___/\__/\____/\____/_/ /_/  \___/\__,_/  
-                                                                 
-""")
-
 from pocket_coffea.utils.configurator import Configurator
+from pocket_coffea.utils.network import get_proxy_path
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run analysis on baconbits files using processor coffea files')
@@ -73,12 +73,10 @@ if __name__ == '__main__':
     if config.run_options['voms'] is not None:
         _x509_path = config.run_options['voms']
     else:
-        try:
-            _x509_localpath = [l for l in os.popen('voms-proxy-info').read().split("\n") if l.startswith('path')][0].split(":")[-1].strip()
-            _x509_path = os.environ['HOME'] + f'/.{_x509_localpath.split("/")[-1]}'
-            os.system(f'cp {_x509_localpath} {_x509_path}')
-        except:
-             raise Exception("VOMS proxy expirend or non-existing: please run `voms-proxy-init -voms cms -rfc --valid 168:0`")
+        _x509_localpath = get_proxy_path()
+        _x509_path = os.environ['HOME'] + f'/.{_x509_localpath.split("/")[-1]}'
+        os.system(f'cp {_x509_localpath} {_x509_path}')
+        
     env_extra = [
         'export XRD_RUNFORKHANDLER=1',
         f'export X509_USER_PROXY={_x509_path}',
