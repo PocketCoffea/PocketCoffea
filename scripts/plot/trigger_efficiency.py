@@ -23,10 +23,10 @@ import hist
 import correctionlib, rich
 import correctionlib.convert
 
-from PocketCoffea.utils.Configurator import Configurator
-from PocketCoffea.utils.PlotUtils import slice_accumulator
-from PocketCoffea.utils.PlotEfficiency import plot_efficiency_maps, plot_efficiency_maps_splitHT, plot_efficiency_maps_spliteras
-from PocketCoffea.utils.PlotSF import plot_variation_correctionlib
+from pocket_coffea.utils.configurator import Configurator
+from pocket_coffea.utils.plot_utils import slice_accumulator
+from pocket_coffea.utils.PlotEfficiency import plot_efficiency_maps, plot_efficiency_maps_splitHT, plot_efficiency_maps_spliteras
+from pocket_coffea.utils.PlotSF import plot_variation_correctionlib
 
 def overwrite_check(outfile):
     path = outfile

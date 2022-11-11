@@ -20,11 +20,10 @@ from coffea.hist import plot
 import coffea.hist as hist
 
 from multiprocessing import Pool
-from PocketCoffea.parameters.allhistograms import histogram_settings
-from PocketCoffea.parameters.lumi import lumi, femtobarn
+from pocket_coffea.parameters.lumi import lumi, femtobarn
 
-from PocketCoffea.utils.Configurator import Configurator
-from PocketCoffea.utils.PlotUtils import slice_accumulator, plot_data_mc_hist1D
+from pocket_coffea.utils.configurator import Configurator
+from pocket_coffea.utils.plot_utils import slice_accumulator, plot_data_mc_hist1D
 
 parser = argparse.ArgumentParser(description='Plot histograms from coffea file')
 parser.add_argument('--cfg', default=os.getcwd() + "/config/test.json", help='Config file with parameters specific to the current run', required=False)
@@ -112,7 +111,6 @@ if not os.path.exists(config.plots):
 def make_plots(entrystart, entrystop):
     _accumulator = slice_accumulator(accumulator, entrystart, entrystop)
     for (histname, h) in _accumulator['variables'].items():
-        if not 'JetGood_eta' in histname: continue
         plot_data_mc_hist1D(h, histname, config)
 
 HistsToPlot   = [k for k in accumulator['variables'].keys()]

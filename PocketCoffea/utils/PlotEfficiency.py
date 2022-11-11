@@ -14,8 +14,8 @@ from coffea.util import save, load
 import correctionlib
 import correctionlib.convert
 
-from PocketCoffea.parameters.lumi import lumi, femtobarn
-from PocketCoffea.utils.PlotUtils import dense_dim, dense_axes, stack_sum
+from pocket_coffea.parameters.lumi import lumi, femtobarn
+from pocket_coffea.utils.plot_utils import dense_dim, dense_axes, stack_sum
 
 #color_datamc = {'data' : 'black', 'mc' : 'red'}
 opts_data = {
