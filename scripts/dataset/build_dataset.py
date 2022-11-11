@@ -11,6 +11,7 @@ parser.add_argument('-d', '--download', action='store_true', default=False, help
 parser.add_argument('-o','--overwrite', action='store_true', help="Overwrite existing file definition json", default=False)
 parser.add_argument('-c','--check', action='store_true', help="Check file existance in the local prefix", default=False)
 parser.add_argument('-s','--split-by-year',help="Split output files by year", action="store_true", default=False)
+parser.add_argument("-l","--local-prefix", help="Overwrite local prefix", type=str)
 
 args = parser.parse_args()
 config = json.load(open(args.cfg))
@@ -26,8 +27,12 @@ for key in keys:
         print("Key: not found in the dataset configuration file")
         exit(1)
     dataset_cfg = config[key]
+    if args.local_prefix:
+        dataset_cfg["storage_prefix"] = args.local_prefix
+        
     dataset = Dataset(name=key, cfg=dataset_cfg)
-    dataset.save(overwrite=args.overwrite,split=args.split_by_year)
+
+    dataset.save(overwrite=args.overwrite, split=args.split_by_year)
     if args.check:
         dataset.check_samples()
     

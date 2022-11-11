@@ -327,7 +327,19 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 w = self.weights_manager.get_weight(category)
                 self.output["sumw"][category][self._sample] = ak.sum(w*mask)
 
+    def define_custom_axes_extra(self):
+        '''
+        Function which get called before the definition of the Histogram
+        manager.
+        It is used to defined extra custom axes for the histograms
+        depending on the current chunk metadata.
+        E.g.: it can be used to add a `era` axes only for data.
 
+        Custom axes needed for all the samples can be added in the
+        user processor constructor, by appending to `self.custom_axes`.
+        '''
+        pass
+    
     def define_histograms(self):
         '''
         Function which created the HistManager.
@@ -465,6 +477,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self.compute_weights_extra()
 
         # Create the HistManager
+        self.define_custom_axes_extra()
         self.define_histograms()
 
         # Fill histograms

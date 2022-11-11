@@ -13,6 +13,7 @@ configuration file), and with python code where customization is needed (by defi
 .. toctree::
    installation
    concepts
+   examples
    performance
    ..
       concepts
