@@ -1,5 +1,5 @@
 from pocket_coffea.parameters.cuts.baseline_cuts import *
-from pocket_coffea.workflows.base import ttHbbBaseProcessor
+from pocket_coffea.workflows.tthbb_base_processor import ttHbbBaseProcessor
 from pocket_coffea.lib.cut_functions import get_nObj_min, get_nObj_eq, get_nBtag
 from pocket_coffea.parameters.histograms import *
 from pocket_coffea.parameters.btag import btag_variations
@@ -59,10 +59,11 @@ cfg =  {
                           "pileup",
                           "sf_ele_reco", "sf_ele_id",
                           "sf_mu_id","sf_mu_iso",
+                          "sf_btag",
                           "sf_btag_calib", "sf_jet_puId", 
                           ],
             "bycategory" : {
-                "3b":["sf_btag"]
+                
             }
         },
         "bysample": {

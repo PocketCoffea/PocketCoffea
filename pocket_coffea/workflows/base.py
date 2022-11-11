@@ -1,17 +1,17 @@
 import sys
 import os
-import tarfile
 import json
 import copy 
 
 import numpy as np
 import awkward as ak
 from collections import defaultdict
+from abc import ABC, abstractmethod
 
 import coffea
 from coffea import processor, lookup_tools
 from coffea.processor import column_accumulator
-from coffea.lumi_tools import LumiMask #, LumiData
+from coffea.lumi_tools import LumiMask
 from coffea.analysis_tools import PackedSelection, Weights
 from coffea.util import load
 
@@ -20,17 +20,29 @@ import correctionlib
 from ..lib.WeightsManager import WeightsManager
 from ..lib.HistManager import HistManager, Axis, HistConf
 from ..lib.triggers import get_trigger_mask
-from ..lib.objects import jet_correction, lepton_selection, jet_selection, btagging, get_dilepton
 from ..parameters.triggers import triggers
 from ..parameters.btag import btag, btag_variations
-from ..parameters.jec import JECversions, JERversions
 from ..parameters.event_flags import event_flags, event_flags_data
 from ..parameters.lumi import lumi, goldenJSON
 from ..parameters.samples import samples_info
+from ..parameters.jec import JECversions, JERversions
 
-class ttHbbBaseProcessor(processor.ProcessorABC):
+from ..utils.configurator import Configurator
 
-    def __init__(self, cfg) -> None:
+class BaseProcessorABC(processor.ProcessorABC, ABC):
+    '''
+    Abstract Class which defined the common operations of a PocketCoffea
+    processor. 
+    '''
+
+    def __init__(self, cfg: Configurator) -> None:
+        '''
+        Constructor of the BaseProcessor.
+        It instanties the objects needed for skimming and categories and prepared the
+        `output_format` dictionary.
+
+        :param cfg: Configurator object containing all the configurations.
+        '''
         # Read required cuts and histograms from config file
         self.cfg = cfg
 
@@ -56,6 +68,9 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # Weights configuration 
         self.weights_config_allsamples = self.cfg.weights_config
 
+        # Custom axis for the histograms
+        self.custom_axes = []
+
         # Output format
         # Accumulators for the output
         self.output_format = {
@@ -73,10 +88,16 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
             "processing_metadata": { v: {} for v, vcfg in self.cfg.variables.items() if vcfg.metadata_hist}
         }        
 
-    def add_column_accumulator(self, name, categories=None, store_size=True):
+    def add_column_accumulator(self, name :str, categories:list=None, store_size:bool=True):
         '''
-        Add a column_accumulator with `name` to the category `cat` (to all the category if `cat`==None).
-        If store_size == True, create a parallel column called name_size, containing the number of entries
+        Add a column_accumulator to the output of the processor
+        with `name` to the category `cat` (to all the category if `cat==None`).
+
+        :param name: name of the output column
+        :param categories: list of categories where the output column is requested
+        :param store_size: save an additional column called `name_size` to store the number of objects per event.
+        
+        If `store_size` == True, create a parallel column called name_size, containing the number of entries
         for each event. 
         '''
         if categories == None or len(categories)==0:
@@ -98,12 +119,17 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         
     @property
     def nevents(self):
-        '''The current number of events in the chunk is computed with a property'''
+        '''Compute the current number of events in the current chunk.
+        If the function is called after skimming or preselection the
+        number of events is reduced accordingly'''
         return ak.count(self.events.event, axis=0)
 
-    
-    # Function to load year-dependent parameters
+
     def load_metadata(self):
+        '''
+        The function is called at the beginning of the processing for each chunk
+        to load some metadata depending on the chunk sample, year and dataset.
+        '''
         self._dataset = self.events.metadata["dataset"]
         self._sample = self.events.metadata["sample"]
         self._year = self.events.metadata["year"]
@@ -119,17 +145,38 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self._JERversion = JERversions[self._year]['MC' if self._isMC else 'Data']
         self._goldenJSON = goldenJSON[self._year]
 
+    def load_metadata_extra(self):
+        '''
+        Function that can be called by a derived processor to define additional metadata.
+        For example load additional information for a specific sample.
+        '''
+        pass
         
-    # Function that computes the trigger masks and save it in the PackedSelector
     def apply_triggers(self):
+        '''
+        Function that computes the trigger masks and save it in the masks to be applied
+        at the skimming step. 
+        '''
         # Trigger logic is included in the preselection mask
         self._skim_masks.add('trigger', get_trigger_mask(self.events, self._triggers, self.cfg.finalstate))
 
-    # Function to apply flags and lumi mask
     def skim_events(self):
-        # In the initial skimming we apply METfilters, PV requirement, lumimask(for DATA), the trigger,
-        # and user-defined skimming function.
-        # BE CAREFUL: the skimming is done before any object preselection and cleaning
+        '''
+        Function which applied the initial event skimming.
+        By default the skimming comprehend:
+        
+          - METfilters,
+          - PV requirement *at least 1 good primary vertex
+          - lumi-mask (for DATA): applied the goldenJson selection
+          - requested HLT triggers
+          - **user-defined** skimming cuts
+
+        BE CAREFUL: the skimming is done before any object preselection and cleaning.
+        Only collections and branches already present in the NanoAOD before any correct
+        can be used.
+        Alternatively, if you need to apply the cut on preselected objects,
+        defined the cut at the preselection level, not at skim level.
+        '''
         mask_flags = np.ones(self.nEvents_initial, dtype=np.bool)
         flags = event_flags[self._year]
         if not self._isMC:
@@ -157,50 +204,33 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.nEvents_after_skim = self.nevents
         self.output['cutflow']['skim'][self._sample] += self.nEvents_after_skim
         self.has_events = self.nEvents_after_skim > 0
-        
-    def apply_JERC(self, JER=True, verbose=False):
-        if not self._isMC: return
-        if int(self._year) > 2018:
-            sys.exit("Warning: Run 3 JEC are not implemented yet.")
-        if JER:
-            self.events.Jet, seed_dict = jet_correction(self.events, "Jet", "AK4PFchs", self._year, self._JECversion, self._JERversion, verbose=verbose)
-            self.output['seed_chunk'].update(seed_dict)
-        else:
-            self.events.Jet = jet_correction(self.events, "Jet", "AK4PFchs", self._year, self._JECversion, verbose=verbose)
+    
 
-    # Function to compute masks to preselect objects and save them as attributes of `events`
+    @abstractmethod
     def apply_object_preselection(self):
-        # Include the supercluster pseudorapidity variable
-        electron_etaSC = self.events.Electron.eta + self.events.Electron.deltaEtaSC
-        self.events["Electron"] = ak.with_field(self.events.Electron, electron_etaSC, "etaSC")
-        # Build masks for selection of muons, electrons, jets, fatjets
-        self.events["MuonGood"]     = lepton_selection(self.events, "Muon", self.cfg.finalstate)
-        self.events["ElectronGood"] = lepton_selection(self.events, "Electron", self.cfg.finalstate)
-        leptons = ak.with_name( ak.concatenate( (self.events.MuonGood, self.events.ElectronGood), axis=1 ), name='PtEtaPhiMCandidate' )
-        self.events["LeptonGood"]   = leptons[ak.argsort(leptons.pt, ascending=False)]
-        self.events["JetGood"], self.jetGoodMask = jet_selection(self.events, "Jet", self.cfg.finalstate)
-        self.events["BJetGood"] = btagging(self.events["JetGood"], self._btag)
+        '''
+        Function which **must** be defined by the actual user processor to preselect
+        and clean objects and define the collections as attributes of `events`.
+        E.g.::
 
-        if self.cfg.finalstate == 'dilepton':
-            self.events["ll"] = get_dilepton(self.events.ElectronGood, self.events.MuonGood)
+             self.events["ElectronGood"] = lepton_selection(self.events, "Electron", self.cfg.finalstate)
+        '''
+        pass
 
-    # Function that counts the preselected objects and save the counts as attributes of `events`
+    
+    @abstractmethod
     def count_objects(self):
-        self.events["nMuonGood"]     = ak.num(self.events.MuonGood)
-        self.events["nElectronGood"] = ak.num(self.events.ElectronGood)
-        self.events["nLeptonGood"]   = self.events["nMuonGood"] + self.events["nElectronGood"]
-        self.events["nJetGood"]      = ak.num(self.events.JetGood)
-        self.events["nBJetGood"]     = ak.num(self.events.BJetGood)
-        #self.events["nfatjet"]   = ak.num(self.events.FatJetGood)
-
-    # Function that defines common variables employed in analyses and save them as attributes of `events`
-    def define_common_variables(self):
-        self.events["JetGood_Ht"] = ak.sum(abs(self.events.JetGood.pt), axis=1)
-
+        '''
+        Function that counts the preselected objects and save the counts as attributes of `events`.
+        The function **must** be defined by the user processor.
+        '''
+        pass
+  
+    
     def apply_preselections(self):
         ''' The function computes all the masks from the preselection cuts
         and filter out the events to speed up the later computations.
-        N.B.: Preselection happens after the objects correction and cleaning'''
+        N.B.: Preselection happens after the objects correction and cleaning.'''
         for cut in self._preselections:
             # Apply the cut function and add it to the mask
             mask = cut.get_mask(self.events, year=self._year, sample=self._sample, isMC=self._isMC)
@@ -210,22 +240,59 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.nEvents_after_presel = self.nevents
         self.output['cutflow']['presel'][self._sample] += self.nEvents_after_presel
         self.has_events = self.nEvents_after_presel > 0
-            
+
+        
     def define_categories(self):
+        '''
+        The function saves all the cut masks internally, in order to use them later
+        to define categories (groups of cuts.)
+        '''
         for cut in self._cuts:
             mask = cut.get_mask(self.events, year=self._year, sample=self._sample, isMC=self._isMC )
             self._cuts_masks.add(cut.id, mask)
         # We make sure that for each category the list of cuts is unique in the Configurator validation
 
+              
+    def define_common_variables_before_presel(self):
+        '''
+        Function that defines common variables employed in analyses
+        and save them as attributes of `events`, **before preselection**.
+        If the user processor does not redefine it, no common variables are built.
+        ''' 
+        pass
+
+    def define_common_variables_after_presel(self):
+        '''
+        Function that defines common variables employed in analyses
+        and save them as attributes of `events`,  **after preselection**.
+        If the user processor does not redefine it, no common variables are built.
+        ''' 
+        pass
+
     @classmethod
     def available_weights(cls):
+        '''
+        Identifiers of the weights available thorugh this processor.
+        By default they are all the weights defined in the WeightsManager
+        '''
         return WeightsManager.available_weights()
 
     @classmethod
     def available_variations(cls):
+        '''
+        Identifiers of the weights variabtions available thorugh this processor.
+        By default they are all the weights defined in the WeightsManager
+        '''
         return WeightsManager.available_variations()
+
     
     def compute_weights(self):
+        '''
+        Function which define weights (called after preselection).
+        The WeightsManager is build only for MC, not for data.
+        The user processor can redefine this function to customize the
+        weights computation object.
+        '''
         if not self._isMC:
             self.weights_manager = None
         else:
@@ -240,21 +307,19 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                                                   "finalstate": self.cfg.finalstate
                                               })
     def compute_weights_extra(self):
+        '''Function that can be defined by user processors
+        to define **additional weights** to be added to the WeightsManager.
+        To completely redefine the WeightsManager, use the function `compute_weights`
+        '''
         pass
 
-    def define_custom_axes(self):
-        # Custom axes to add to histograms in this processor
-        self.custom_axes = [Axis(coll="metadata", field="year",name="year",
-                                 bins=set(sorted(self.cfg.years)),
-                                 type="strcat", growth=False,
-                                 label="Year", )]
-
-    def define_custom_axes_extra(self):
-        pass
         
     def count_events(self):
-        # Fill the output with the number of events and the sum
-        # of their weights in each category for each sample
+        '''
+        Count the number of events in each category and
+        also sum their nominal weights (for each sample, by chunk).
+        Store the results in the `cutflow` and `sumw` outputs
+        '''
         for category, cuts in self._categories.items():
             mask = self._cuts_masks.all(*cuts)
             self.output["cutflow"][category][self._sample] = ak.sum(mask)
@@ -262,26 +327,53 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
                 w = self.weights_manager.get_weight(category)
                 self.output["sumw"][category][self._sample] = ak.sum(w*mask)
 
+    def define_custom_axes_extra(self):
+        '''
+        Function which get called before the definition of the Histogram
+        manager.
+        It is used to defined extra custom axes for the histograms
+        depending on the current chunk metadata.
+        E.g.: it can be used to add a `era` axes only for data.
+
+        Custom axes needed for all the samples can be added in the
+        user processor constructor, by appending to `self.custom_axes`.
+        '''
+        pass
+    
+    def define_histograms(self):
+        '''
+        Function which created the HistManager.
+        Redefine to customize completely the creation of the histManager.
+        '''
+        self.hists_manager = HistManager(self.cfg.variables,
+                                         self._sample,
+                                         self._categories,
+                                         self.cfg.variations_config[self._sample],
+                                         custom_axes=self.custom_axes,
+                                         isMC=self._isMC)
+    
     def fill_histograms(self):
+        '''Function which fill the histograms for each category and variation,
+        throught the HistManager.
+        '''
         # Filling the autofill=True histogram automatically
         self.hists_manager.fill_histograms(self.events,
                                            self.weights_manager,
                                            self._cuts_masks,
                                            custom_fields=None)
+
         # Saving in the output the filled histograms for the current sample
         for var, H in self.hists_manager.get_histograms().items():
             self.output["variables"][var][self._sample] = H
-        # Filling the special histograms for events if they are present
-        if "events_per_chunk" in self.hists_manager.histograms:
-            hepc = self.hists_manager.get_histogram("events_per_chunk")
-            hepc.hist_obj.fill(cat=hepc.only_categories[0],
-                      variation= "nominal",
-                      year= self._year,
-                      nEvents_initial = self.nEvents_initial,
-                      nEvents_after_skim=self.nEvents_after_skim,
-                      nEvents_after_presel=self.nEvents_after_presel)
-            self.output["processing_metadata"]["events_per_chunk"][self._sample] = hepc.hist_obj
+
             
+    def fill_histograms_extra(self):
+        '''
+        The function get called after the filling of the default histograms.
+        Redefine it to fill custom histograms
+        '''
+        pass
+        
     def process_extra_before_skim(self):
         pass
     
@@ -291,13 +383,30 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
     def process_extra_after_presel(self):
         pass
     
-    def define_common_variables_extra(self):
-        pass
 
-    def fill_histograms_extra(self):
-        pass
+    def process(self, events :ak.Array):
+        '''
+        This function get called by Coffea on each chunk of NanoAOD file.
+        The processing steps of PocketCoffea are defined in this function.
 
-    def process(self, events):
+        Customization points for user-defined processor are provided as
+        `_extra` functions. By redefining those functions the user can change the behaviour
+        of the processor in some predefined points.
+
+        The processing goes through the following steps:
+        
+          - load metadata
+          - apply triggers
+          - Skim events (first masking of events)
+          - apply object preselections
+          - count objects
+          - apply event preselection (secondo masking of events)
+          - define categories
+          - define weights
+          - define histograms
+          - count events in each category
+        '''
+        
         self.events = events
 
         ###################
@@ -305,6 +414,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # and the sum of the genweights is stored for later use
         #################
         self.load_metadata()
+        self.load_metadata_extra()
         # Define the accumulator instance for this chunk
         self.output = copy.deepcopy(self.output_format)
         
@@ -341,8 +451,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.apply_object_preselection()
         self.count_objects()
         # Compute variables after object preselection
-        self.define_common_variables()
-        self.define_common_variables_extra()
+        self.define_common_variables_before_presel()
         # Customization point for derived workflows after preselection cuts
         self.process_extra_before_presel()
         
@@ -356,6 +465,7 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         # After the preselection cuts has been applied more processing is performwend 
         ##########################
         # Customization point for derived workflows after preselection cuts
+        self.define_common_variables_after_presel()
         self.process_extra_after_presel()
         
         # This function applies all the cut functions in the cfg file
@@ -367,23 +477,28 @@ class ttHbbBaseProcessor(processor.ProcessorABC):
         self.compute_weights_extra()
 
         # Create the HistManager
-        self.define_custom_axes()
         self.define_custom_axes_extra()
-        self.hists_manager = HistManager(self.cfg.variables,
-                                         self._sample,
-                                         self._categories,
-                                         self.cfg.variations_config[self._sample],
-                                         custom_axes=self.custom_axes,
-                                         isMC=self._isMC)
+        self.define_histograms()
 
         # Fill histograms
         self.fill_histograms()
         self.fill_histograms_extra()
+
+        # Count events
         self.count_events()
         
         return self.output
 
     def postprocess(self, accumulator):
+        '''
+        The function is called by coffea at the end of the processing.
+        The total sum of the genweights is computed for the MC samples
+        and the histogram is rescaled by 1/sum_genweights.
+        The `sumw` output is corrected accordingly.
+
+        To add additional customatizaion redefine the `postprocessing` function,
+        but remember to include a super().postprocess() call. 
+        '''
         # Rescale MC histograms by the total sum of the genweights
         scale_genweight = {}
         for sample in accumulator["cutflow"]["initial"].keys():

@@ -10,6 +10,8 @@ from parsl import python_app
 from parsl.config import Config
 from parsl.executors.threads import ThreadPoolExecutor
 
+from .network import get_proxy_path
+
 class Sample():
     def __init__(self, name, das_names, sample, metadata):
         '''
@@ -37,12 +39,7 @@ class Sample():
     # Function to get the dataset filelist from DAS
     def get_filelist(self):
         for das_name in self.metadata["das_names"]:
-            timeleft = int(subprocess.check_output("voms-proxy-info -timeleft", shell=True, text=True).strip())
-            if timeleft > 0:
-                proxy_valid
-            else:
-                raise Exception("VOMS proxy expirend or non-existing: please run `voms-proxy-init -voms cms -rfc --valid 168:0`")
-            proxy = subprocess.check_output("voms-proxy-info -path", shell=True, text=True).strip()
+            proxy = get_proxy_path()
             r = requests.get(f"https://cmsweb.cern.ch:8443/dbs/prod/global/DBSReader/files?dataset={das_name}&detail=True", cert=proxy, verify=False)
             filesjson = r.json()
             for fj in filesjson:

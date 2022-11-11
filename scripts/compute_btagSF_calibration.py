@@ -36,7 +36,7 @@ import mplhep as hep
 
 hep.style.use(hep.style.ROOT)
 
-from PocketCoffea.utils.PlotUtils import plot_shapes_comparison
+from pocket_coffea.utils.plot_utils import plot_shapes_comparison
 
 import argparse
 

@@ -5,13 +5,13 @@ from coffea import hist, processor
 from coffea.processor import dict_accumulator, defaultdict_accumulator
 from coffea.analysis_tools import Weights
 
-from ..workflows.base import ttHbbBaseProcessor
+from .tthbb_base_processor import ttHbbBaseProcessor
 from ..lib.HistManager import Axis
 
 class semileptonicTriggerProcessor(ttHbbBaseProcessor):
     def __init__(self,cfg) -> None:
         super().__init__(cfg=cfg)
-
+        
         self.output_format["trigger_efficiency"] = {cat: {} for cat in self._categories}
 
     def define_custom_axes_extra(self):
@@ -22,6 +22,7 @@ class semileptonicTriggerProcessor(ttHbbBaseProcessor):
                                      type="strcat", growth=False,
                                      label="Era", )]
 
+            
     def postprocess(self, accumulator):
         super().postprocess(accumulator=accumulator)
 

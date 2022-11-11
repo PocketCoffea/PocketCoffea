@@ -2,7 +2,7 @@ from pocket_coffea.parameters.cuts.baseline_cuts import semileptonic_presel_nobt
 from config.parton_matching.functions import *
 from pocket_coffea.lib.cut_definition import Cut
 from pocket_coffea.lib.cut_functions import get_nObj, get_nBtag
-from pocket_coffea.workflows.btag_sf_calibration import BtagSFCalibration
+from pocket_coffea.workflows.tthbb_base_processor import ttHbbBaseProcessor
 from pocket_coffea.parameters.histograms import *
 
 cfg =  {
@@ -18,7 +18,7 @@ cfg =  {
     },
 
     # Input and output files
-    "workflow" : BtagSFCalibration,
+    "workflow" : ttHbbBaseProcessor,
     "output"   : "output/btagSF_calibration_hist",
     "workflow_extra_options": {},
 

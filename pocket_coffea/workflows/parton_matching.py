@@ -3,7 +3,7 @@ import awkward as ak
 from coffea import hist
 import numba
 
-from .base import ttHbbBaseProcessor
+from .tthbb_base_processor import ttHbbBaseProcessor
 from ..lib.fill import fill_column_accumulator
 from ..lib.deltaR_matching import object_matching
 from ..lib.parton_provenance import get_partons_provenance_ttHbb
