@@ -24,6 +24,7 @@ import correctionlib, rich
 import correctionlib.convert
 
 from PocketCoffea.utils.Configurator import Configurator
+from PocketCoffea.utils.PlotUtils import slice_accumulator
 from PocketCoffea.utils.PlotEfficiency import plot_efficiency_maps, plot_efficiency_maps_splitHT, plot_efficiency_maps_spliteras
 from PocketCoffea.utils.PlotSF import plot_variation_correctionlib
 
@@ -54,11 +55,6 @@ def update_recursive(dict1, dict2):
             update_recursive(dict1[k], v)
         else:
             dict1[k] = v
-
-def slice_accumulator(accumulator, entrystart, entrystop):
-    _accumulator = dict( [ (key, value) for key, value in accumulator.items() ] )
-    _accumulator['variables'] = dict( [ (key, value) for key, value in accumulator['variables'].items() ][entrystart:entrystop] )
-    return _accumulator
 
 parser = argparse.ArgumentParser(description='Plot histograms from coffea file')
 parser.add_argument('--cfg', default=os.getcwd() + "/config/test.json", help='Config file with parameters specific to the current run', required=False)
@@ -93,8 +89,6 @@ print(accumulator.keys())
 
 def _plot_efficiency_maps(entrystart, entrystop):
     _accumulator = slice_accumulator(accumulator, entrystart, entrystop)
-    if entrystart == 0:
-        print(_accumulator['variables'])
     return plot_efficiency_maps(_accumulator, config, args.save_plots)
 
 def _plot_efficiency_maps_splitHT(entrystart, entrystop):
