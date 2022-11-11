@@ -12,14 +12,6 @@ pocket\_coffea.workflows.base module
    :undoc-members:
    :show-inheritance:
 
-pocket\_coffea.workflows.btag\_sf\_calibration module
------------------------------------------------------
-
-.. automodule:: pocket_coffea.workflows.btag_sf_calibration
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 pocket\_coffea.workflows.parton\_matching module
 ------------------------------------------------
 

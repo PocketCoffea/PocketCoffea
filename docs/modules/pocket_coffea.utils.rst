@@ -4,14 +4,6 @@ pocket\_coffea.utils package
 Submodules
 ----------
 
-pocket\_coffea.utils.Configurator module
-----------------------------------------
-
-.. automodule:: pocket_coffea.utils.Configurator
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 pocket\_coffea.utils.PlotEfficiency module
 ------------------------------------------
 
@@ -28,10 +20,10 @@ pocket\_coffea.utils.PlotSF module
    :undoc-members:
    :show-inheritance:
 
-pocket\_coffea.utils.PlotUtils module
--------------------------------------
+pocket\_coffea.utils.configurator module
+----------------------------------------
 
-.. automodule:: pocket_coffea.utils.PlotUtils
+.. automodule:: pocket_coffea.utils.configurator
    :members:
    :undoc-members:
    :show-inheritance:
@@ -56,6 +48,14 @@ pocket\_coffea.utils.network module
 -----------------------------------
 
 .. automodule:: pocket_coffea.utils.network
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pocket\_coffea.utils.plot\_utils module
+---------------------------------------
+
+.. automodule:: pocket_coffea.utils.plot_utils
    :members:
    :undoc-members:
    :show-inheritance:
