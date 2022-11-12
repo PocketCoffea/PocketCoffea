@@ -13,7 +13,7 @@ def passthrough(events, **kargs):
 def count_objects_gt(events, params, **kwargs):
     '''
     Count the number of objects in `params["object"]` and
-    keep only events with larger (>) amount than `params["value"].
+    keep only events with larger (>) amount than `params["value"]`.
     '''
     mask = ak.num(events[params["object"]], axis=1) > params["value"]
     return ak.where(ak.is_none(mask), False, mask)
@@ -21,7 +21,7 @@ def count_objects_gt(events, params, **kwargs):
 def count_objects_lt(events,params,year,sample):
     '''
     Count the number of objects in `params["object"]` and
-    keep only events with smaller (<) amount than `params["value"].
+    keep only events with smaller (<) amount than `params["value"]`.
     '''
     mask = ak.num(events[params["object"]], axis=1) < params["value"]
     return ak.where(ak.is_none(mask), False, mask)
@@ -29,7 +29,7 @@ def count_objects_lt(events,params,year,sample):
 def count_objects_eq(events,params,year,sample):
     '''
     Count the number of objects in `params["object"]` and
-    keep only events with same (==) amount than `params["value"].
+    keep only events with same (==) amount than `params["value"]`.
     '''
     mask = ak.num(events[params["object"]], axis=1) == params["value"]
     return ak.where(ak.is_none(mask), False, mask)

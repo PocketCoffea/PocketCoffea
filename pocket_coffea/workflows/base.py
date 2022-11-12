@@ -424,6 +424,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             # This is computed before any preselection
             self.output['sum_genweights'][self._sample] = ak.sum(self.events.genWeight)
 
+        
         self.weights_config = self.weights_config_allsamples[self._sample]
         ########################
         # Then the first skimming happens. 
@@ -444,9 +445,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # After the skimming we apply the object corrections and preselection
         # Doing so we avoid to compute them on the full NanoAOD dataset
         #########################
-        # Apply JEC + JER
-        self.apply_JERC()
-
         # Apply preselections
         self.apply_object_preselection()
         self.count_objects()

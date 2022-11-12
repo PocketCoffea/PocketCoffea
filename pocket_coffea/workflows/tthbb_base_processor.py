@@ -45,6 +45,9 @@ class ttHbbBaseProcessor(BaseProcessorABC):
         self.events["ElectronGood"] = lepton_selection(self.events, "Electron", self.cfg.finalstate)
         leptons = ak.with_name( ak.concatenate( (self.events.MuonGood, self.events.ElectronGood), axis=1 ), name='PtEtaPhiMCandidate' )
         self.events["LeptonGood"]   = leptons[ak.argsort(leptons.pt, ascending=False)]
+
+        # Apply JEC + JER
+        self.apply_JERC()
         self.events["JetGood"], self.jetGoodMask = jet_selection(self.events, "Jet", self.cfg.finalstate)
         self.events["BJetGood"] = btagging(self.events["JetGood"], self._btag)
 
