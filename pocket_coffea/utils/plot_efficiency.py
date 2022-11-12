@@ -8,7 +8,6 @@ import mplhep as hep
 import hist
 from hist import Hist
 from coffea import processor
-#from coffea.hist import Bin, Hist, plot
 from coffea.lookup_tools.dense_lookup import dense_lookup
 from coffea.util import save, load
 
@@ -16,6 +15,7 @@ import correctionlib
 import correctionlib.convert
 
 from pocket_coffea.parameters.lumi import lumi, femtobarn
+from pocket_coffea.utils.plot_utils import dense_dim, dense_axes, stack_sum
 
 #color_datamc = {'data' : 'black', 'mc' : 'red'}
 opts_data = {
@@ -395,36 +395,6 @@ round_opts = {
     'unc_rel_sf'   : {'round' : 2},
     'ratio_sf' : {'round' : 3},
 }
-
-def dense_dim(h):
-    '''Returns the number of dense axes of a histogram.'''
-    dense_dim = 0
-    if type(h) == dict:
-        h = h[list(h.keys())[0]]
-    for ax in h.axes:
-        if not type(ax) in [hist.axis.StrCategory, hist.axis.IntCategory]:
-            dense_dim += 1
-    return dense_dim
-
-def dense_axes(h):
-    '''Returns the list of dense axes of a histogram.'''
-    dense_axes = []
-    if type(h) == dict:
-        h = h[list(h.keys())[0]]
-    for ax in h.axes:
-        if not type(ax) in [hist.axis.StrCategory, hist.axis.IntCategory]:
-            dense_axes.append(ax)
-    return dense_axes
-
-def stack_sum(stack):
-    '''Returns the sum histogram of a stack (`hist.stack.Stack`) of histograms.'''
-    if len(stack) == 1:
-        return stack[0]
-    else:
-        htot = stack[0]
-        for h in stack[1:]:
-            htot = htot + h
-        return htot
 
 def uncertainty_efficiency(eff, den, sumw2_num=None, sumw2_den=None, mc=False):
     '''Returns the uncertainty on an efficiency `eff=num/den` given the efficiency `eff`, the denominator `den`.

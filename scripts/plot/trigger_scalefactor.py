@@ -20,7 +20,7 @@ from coffea.util import load
 from coffea.hist import plot
 import hist
 
-from PocketCoffea.utils.Configurator import Configurator
+from PocketCoffea.utils.configurator import Configurator
 from PocketCoffea.utils.PlotSF import plot_variation_correctionlib
 
 def overwrite_check(outfile):
