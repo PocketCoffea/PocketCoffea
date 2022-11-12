@@ -34,5 +34,6 @@ PocketCoffea defines a customizable structure to process NanoAOD events and defi
 is done thans to a `BaseProcessor` class which defines a `workflow` of operations to go from Raw NanoAOD to histograms.
 The user can customize the process from the confguration file or by redefining well-defined steps in the workflow.
 
+## Documentation
 
-Have a look at the documentaton https://pocketcoffea.readthedocs.io
+All the documentaton is hosted at: https://pocketcoffea.readthedocs.io
