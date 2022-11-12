@@ -3,19 +3,34 @@ from .cut_definition import Cut
 from ..parameters.btag import btag
 
 def passthrough(events, **kargs):
+    '''
+    Identity cut:  passthrough of all events.
+    '''
     return ak.full_like(events.event, True, dtype=bool)
 
 ###########################
 ## Functions to count objects
-def count_objects_gt(events,params,year,sample):
+def count_objects_gt(events, params, **kwargs):
+    '''
+    Count the number of objects in `params["object"]` and
+    keep only events with larger (>) amount than `params["value"].
+    '''
     mask = ak.num(events[params["object"]], axis=1) > params["value"]
     return ak.where(ak.is_none(mask), False, mask)
 
 def count_objects_lt(events,params,year,sample):
+    '''
+    Count the number of objects in `params["object"]` and
+    keep only events with smaller (<) amount than `params["value"].
+    '''
     mask = ak.num(events[params["object"]], axis=1) < params["value"]
     return ak.where(ak.is_none(mask), False, mask)
 
 def count_objects_eq(events,params,year,sample):
+    '''
+    Count the number of objects in `params["object"]` and
+    keep only events with same (==) amount than `params["value"].
+    '''
     mask = ak.num(events[params["object"]], axis=1) == params["value"]
     return ak.where(ak.is_none(mask), False, mask)
 
@@ -41,6 +56,17 @@ def eq_nObj_minPt(events, params, **kwargs):
 
 
 def get_nObj_min(N, minpt=None, coll="JetGood", name=None):
+    '''
+    Factory function which creates a cut for minimum number of objects.
+    Optionally a minimum pT is requested.
+
+    :param N: request >= N objects
+    :param coll: collection to use
+    :param minpt: minimum pT
+    :param name: name for the cut, by defaul it is built as n{coll}_min{N}_pt{minpt}
+
+    :returns: a Cut object  
+    '''
     if name == None:
         if minpt:
             name = f"n{coll}_min{N}_pt{minpt}"

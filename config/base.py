@@ -10,7 +10,7 @@ cfg =  {
         "jsons": ["datasets/signal_ttHTobb_lxplus.json",
                   "datasets/backgrounds_MC.json"],
         "filter" : {
-            "samples": ["ttHTobb","TTToSemiLeptonic"],
+            "samples": ["TTToSemiLeptonic"],
             "samples_exclude" : [],
             "year": ['2018']
         }
@@ -25,11 +25,11 @@ cfg =  {
         "executor"       : "dask/lxplus",
         "workers"        : 1,
         "scaleout"       : 100,
-        "queue"          : "longlunch",
+        "queue"          : "microcentury",
         "walltime"       : "00:40:00",
         "mem_per_worker" : "6GB", # GB
         "exclusive"      : False,
-        "chunk"          : 400000,
+        "chunk"          : 500000,
         "retries"        : 50,
         "treereduction"  : 10,
         "max"            : None,

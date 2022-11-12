@@ -20,13 +20,7 @@ The user can customize the process from the confguration file or by redefining w
    concepts
    examples
    performance
-
-.. toctree::
-   :maxdepth: 6
-   :titlesonly:
-   :caption: API Reference
-   :glob:
-   modules
+   api
 
 Indices and tables
 ==================

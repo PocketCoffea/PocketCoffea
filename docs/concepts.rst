@@ -9,20 +9,31 @@ The engine of all these operations is the **awkward** array library, which make 
 
 The form of a Coffea processor is completely free: in PocketCoffea we define a `BaseProcessorABC` class, which covers more rigidly most of the steps are usually done to perform a CMS HEP analysis.
 
-**Flexibility** and **customization** is provided to the users in two ways:
+**Flexibility** and **customization** is provided in two ways:
 
 * Workflow customization
-    The user defines a custom processor, which derives from the base class `BaseProcessorABC`. In this code the user is free to define the object preselection, custom collections and custom processing step. The base class provides a series of entrypoints for the derived processor, to modify specific part of the computation, therefore improving a lot the readibility of the custom code.
+    The user defines a custom processor, which derives from the base class `BaseProcessorABC`. In this code the user is free to define the object preselection, custom collections and custom processing steps. The base class provides a series of entrypoints for the derived processor, to modify specific part of the computation, therefore improving a lot the readibility of the custom code, and keeping a more rigid structure.
 
 * Configuration
     The configuration of the categories, weights, systematics and histograms to plot is defined in a configuration file and not in the code. This permits a user-friendly interface if one does not need to modify the processing steps. The user provides small piece of codes (mostly python dictionaries), to customize cuts, weights and histograms. The structure of the configuration is fixed to allow users to build on top of each other setups.
 
 
-Workflow
-########
+Have a look at the rest of this page for a detailed description of the default processing steps and of the PocketCoffea configuration. 
+    
+Basic workflow
+##############
 
-Metadata
---------
+The basic workflow is defined by the `BaseProcessorABC::process()` function. This is the function which get called for each chunk.
+
+1. Load metadata
+
+2. Load metadata extra
+
+3. 
+
+
+
+
 
 Filtering
 ---------
@@ -68,4 +79,4 @@ Variations
 ----------
 
 Histograms configuration
------------------------
+------------------------

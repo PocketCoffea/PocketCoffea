@@ -265,7 +265,8 @@ if __name__ == '__main__':
         client = Client(cluster)
         print(">> Waiting for the first job to start...")
         client.wait_for_workers(1)
-
+        print(">> You can connect to the Dask viewer at http://localhost:8787")
+        
         with performance_report(filename=os.path.join(config.output, "condor_log/dask-report.html")):
             output = processor.run_uproot_job(config.fileset,
                                         treename='Events',
