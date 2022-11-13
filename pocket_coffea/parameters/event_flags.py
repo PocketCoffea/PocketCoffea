@@ -1,24 +1,30 @@
 # METFilter flags
 
 event_flags = {
-    "2018": ["goodVertices",
-             "globalSuperTightHalo2016Filter",
-             "HBHENoiseFilter",
-             "HBHENoiseIsoFilter",
-             "EcalDeadCellTriggerPrimitiveFilter",
-             "BadPFMuonFilter"], #"BadChargedCandidateFilter", "ecalBadCalibFilter
-    "2017": ["goodVertices",
-             "globalSuperTightHalo2016Filter",
-             "HBHENoiseFilter",
-             "HBHENoiseIsoFilter",
-             "EcalDeadCellTriggerPrimitiveFilter",
-             "BadPFMuonFilter"], #"BadChargedCandidateFilter", "ecalBadCalibFilter
-    "2016": ["goodVertices",
-             "globalSuperTightHalo2016Filter",
-             "HBHENoiseFilter",
-             "HBHENoiseIsoFilter",
-             "EcalDeadCellTriggerPrimitiveFilter",
-             "BadPFMuonFilter"], #"BadChargedCandidateFilter", "ecalBadCalibFilter
+    "2018": [
+        "goodVertices",
+        "globalSuperTightHalo2016Filter",
+        "HBHENoiseFilter",
+        "HBHENoiseIsoFilter",
+        "EcalDeadCellTriggerPrimitiveFilter",
+        "BadPFMuonFilter",
+    ],  # "BadChargedCandidateFilter", "ecalBadCalibFilter
+    "2017": [
+        "goodVertices",
+        "globalSuperTightHalo2016Filter",
+        "HBHENoiseFilter",
+        "HBHENoiseIsoFilter",
+        "EcalDeadCellTriggerPrimitiveFilter",
+        "BadPFMuonFilter",
+    ],  # "BadChargedCandidateFilter", "ecalBadCalibFilter
+    "2016": [
+        "goodVertices",
+        "globalSuperTightHalo2016Filter",
+        "HBHENoiseFilter",
+        "HBHENoiseIsoFilter",
+        "EcalDeadCellTriggerPrimitiveFilter",
+        "BadPFMuonFilter",
+    ],  # "BadChargedCandidateFilter", "ecalBadCalibFilter
 }
 
 event_flags_data = {

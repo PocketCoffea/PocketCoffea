@@ -41,6 +41,9 @@ ignore = [
 [tool.isort]
 profile = "black"
 
+[tool.black]
+skip-string-normalization = true
+
 
 [tool.pylint]
 master.py-version = "3.7"
