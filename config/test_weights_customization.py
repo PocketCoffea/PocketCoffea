@@ -67,25 +67,22 @@ cfg =  {
 
     
     "variables" : {
-        "muon_pt" : {'binning' : {'n_or_arr' : 100, 'lo' : 0, 'hi' : 500}, 'xlim' : (0,500),  'xlabel' : "$p_{T}^{\mu}$ [GeV]"},
-        "muon_eta" : None,
-        "muon_phi" : None,
-        "electron_pt" : None,
-        "electron_eta" : None,
-        "electron_phi" : None,
-        "jet_pt" : None,
-        "jet_eta" : None,
-        "jet_phi" : None,
-        "nmuon" : None,
-        "nelectron" : None,
-        "nlep" : None,
-        "nmuon" : None,
-        "nelectron" : None,
-        "nlep" : None,
-        "njet" : None,
-        "nbjet" : None,
-    },
-     "variables2d" : {
+        **jet_hists(coll="JetGood"),
+        **jet_hists(coll="BJetGood"),
+        **ele_hists(coll="ElectronGood"),
+        **muon_hists(coll="MuonGood"),
+        **count_hist(name="nJets", coll="JetGood",bins=10, start=4, stop=14),
+        **count_hist(name="nBJets", coll="BJetGood",bins=12, start=2, stop=14),
+        **jet_hists(coll="JetGood", pos=0),
+        **jet_hists(coll="JetGood", pos=1),
+        **jet_hists(coll="JetGood", pos=2),
+        **jet_hists(coll="JetGood", pos=3),
+        **jet_hists(coll="JetGood", pos=4),
+        **jet_hists(name="bjet",coll="BJetGood", pos=0),
+        **jet_hists(name="bjet",coll="BJetGood", pos=1),
+        **jet_hists(name="bjet",coll="BJetGood", pos=2),
+        **jet_hists(name="bjet",coll="BJetGood", pos=3),
+        **jet_hists(name="bjet",coll="BJetGood", pos=4),
+
      },
-    "scale" : "log"
 }
