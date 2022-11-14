@@ -1,6 +1,7 @@
 from itertools import chain
 from dataclasses import dataclass, field
 from typing import List, Tuple
+import inspect
 import awkward as ak
 from functools import wraps
 from collections.abc import Callable
@@ -29,9 +30,44 @@ from ..parameters.btag import btag, btag_variations
 
 @dataclass
 class WeightCustom:
+    '''
+    User-defined weight
+    
+    Custom Weights can be created by the user in the configuration
+    by using a WeightCustom object.
+
+    - name: name of the weight
+    - function:  function defining the weights of the events chunk.
+                 signuture (events, size, metadata:dict)
+    - variations: list of variations
+
+    The function must return the weights in the following format::
+
+        [(name:str, nominal, up, down),
+         (name:str, nominal, up, down)]
+
+    Variations modifiers will have the format `nameUp/nameDown`
+
+    Multiple weights can be produced by a single WeightCustom object.    
+    '''
+    
     name: str
-    function: Callable
-    variations: List[str] = None
+    function: Callable # The function is call
+
+    def serialize(self, src_code=False):
+        out = {
+            "name": self.name,
+            "function": {
+                "name": self.function.__name__,
+                "module": self.function.__module__,
+                "src_file": inspect.getsourcefile(self.function),
+                "f_hash": hash(self.function),
+            },
+        }
+        if src_code:
+            out["function"]["src_code"] = inspect.getsource(self.function)
+        return out
+
 
 
 class WeightsManager:
@@ -49,6 +85,9 @@ class WeightsManager:
 
     @classmethod
     def available_weights(cls):
+        '''
+        Predefine weights for CMS Run2 UL analysis. 
+        '''
         return set(
             [
                 'genWeight',
@@ -68,6 +107,9 @@ class WeightsManager:
 
     @classmethod
     def available_variations(cls):
+        '''
+        Predefine weights variations for CMS Run2 UL analysis. 
+        '''
         out = [
             "nominal",
             "pileup",
@@ -118,9 +160,9 @@ class WeightsManager:
             # If the Weight is a Custom weight just run the function
             elif isinstance(w, WeightCustom):
                 if w.name not in _weightsCache:
-                    _weightsCache[w.name] = w.function(events, metadata)
+                    _weightsCache[w.name] = w.function(events, self.size, metadata)
                 for we in _weightsCache[w.name]:
-                    # print(we)
+                    print(we)
                     weight_obj.add(*we)
                     if len(we) > 2:
                         # the weights has variations
@@ -162,9 +204,11 @@ class WeightsManager:
         '''
         Predefined common weights.
         The function return a list of tuples containing a
-        weighs and its variations in each tuple.
-        [("name", nominal, up, donw),
-         ("name", nominal, up, down)]
+        weighs and its variations in each tuple::
+        
+                [("name", nominal, up, donw),
+                 ("name", nominal, up, down)]
+
         Each variation is then added to the Weights object by the caller
         in the constructor.
         '''

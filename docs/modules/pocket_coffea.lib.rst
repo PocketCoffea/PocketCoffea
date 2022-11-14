@@ -4,22 +4,28 @@ pocket\_coffea.lib package
 Submodules
 ----------
 
-pocket\_coffea.lib.HistManager module
--------------------------------------
+.. _histmanager:
 
-.. automodule:: pocket_coffea.lib.HistManager
+pocket\_coffea.lib.hist_manager module
+--------------------------------------
+
+.. automodule:: pocket_coffea.lib.hist_manager
    :members:
    :undoc-members:
    :show-inheritance:
 
-pocket\_coffea.lib.WeightsManager module
-----------------------------------------
+.. _weightsmanager:
+      
+pocket\_coffea.lib.weights_manager module
+-----------------------------------------
 
-.. automodule:: pocket_coffea.lib.WeightsManager
+.. automodule:: pocket_coffea.lib.weights_manager
    :members:
    :undoc-members:
    :show-inheritance:
 
+.. _cut_definition:
+      
 pocket\_coffea.lib.cut\_definition module
 -----------------------------------------
 
@@ -28,6 +34,8 @@ pocket\_coffea.lib.cut\_definition module
    :undoc-members:
    :show-inheritance:
 
+.. _cut_functions_lib:
+      
 pocket\_coffea.lib.cut\_functions module
 ----------------------------------------
 

@@ -1,12 +1,8 @@
 import sys
 import awkward as ak
 
-from coffea import hist, processor
-from coffea.processor import dict_accumulator, defaultdict_accumulator
-from coffea.analysis_tools import Weights
-
 from .tthbb_base_processor import ttHbbBaseProcessor
-from ..lib.HistManager import Axis
+from ..lib.hist_manager import Axis
 
 
 class semileptonicTriggerProcessor(ttHbbBaseProcessor):

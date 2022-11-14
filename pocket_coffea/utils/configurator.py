@@ -1,15 +1,16 @@
 import os
 import sys
 import json
+from copy import deepcopy
 from pprint import pprint
-import pickle
+import cloudpickle
 import importlib.util
 from collections import defaultdict
 import inspect
 
 from ..lib.cut_definition import Cut
-from ..lib.WeightsManager import WeightCustom
-from ..lib.HistManager import Axis, HistConf
+from ..lib.weights_manager import WeightCustom
+from ..lib.hist_manager import Axis, HistConf
 
 
 class Configurator:
@@ -398,7 +399,24 @@ class Configurator:
             "name": self.workflow.__name__,
             "srcfile": inspect.getsourcefile(self.workflow),
         }
-        ocfg["weights"] = self.weights_config
+    
+        ocfg["weights"] = {}
+        for sample, weights in self.weights_config.items():
+            out = {"bycategory":{}, "inclusive":[] }
+            for cat, catw in weights["bycategory"].items():
+                out["bycategory"][cat] = []
+                for w in catw:
+                    if isinstance(w, WeightCustom):
+                        out["bycategory"][cat].append(w.serialize())
+                    else:
+                        out["bycategory"][cat].append(w)
+            for w in weights["inclusive"]:
+                if isinstance(w, WeightCustom):
+                    out["inclusive"].append(w.serialize())
+                else:
+                    out["inclusive"].append(w)
+            ocfg["weights"][sample] = out
+
         ocfg["variations"] = self.variations_config
         ocfg["variables"] = {
             key: val.serialize() for key, val in self.variables.items()
@@ -408,4 +426,4 @@ class Configurator:
         print("Saving config file to " + output_cfg)
         json.dump(ocfg, open(output_cfg, "w"), indent=2)
         # Pickle the configurator object in order to be able to reproduce completely the configuration
-        pickle.dump(self, open(os.path.join(self.output, "configurator.pkl"), "wb"))
+        cloudpickle.dump(self, open(os.path.join(self.output, "configurator.pkl"), "wb"))

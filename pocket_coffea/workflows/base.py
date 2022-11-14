@@ -17,8 +17,8 @@ from coffea.util import load
 
 import correctionlib
 
-from ..lib.WeightsManager import WeightsManager
-from ..lib.HistManager import HistManager, Axis, HistConf
+from ..lib.weights_manager import WeightsManager
+from ..lib.hist_manager import HistManager, Axis, HistConf
 from ..lib.triggers import get_trigger_mask
 from ..parameters.triggers import triggers
 from ..parameters.btag import btag, btag_variations

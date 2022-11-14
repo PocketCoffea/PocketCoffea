@@ -3,6 +3,8 @@ from pocket_coffea.workflows.tthbb_base_processor import ttHbbBaseProcessor
 from pocket_coffea.lib.cut_functions import get_nObj_min, get_nObj_eq, get_nBtag
 from pocket_coffea.parameters.histograms import *
 from pocket_coffea.parameters.btag import btag_variations
+from pocket_coffea.lib.weights_manager import WeightCustom
+import numpy as np
 
 
 cfg =  {
@@ -24,12 +26,12 @@ cfg =  {
     "run_options" : {
         "executor"       : "dask/lxplus",
         "workers"        : 1,
-        "scaleout"       : 100,
+        "scaleout"       : 50,
         "queue"          : "microcentury",
         "walltime"       : "00:40:00",
         "mem_per_worker" : "4GB", # GB
         "exclusive"      : False,
-        "chunk"          : 400000,
+        "chunk"          : 100000,
         "retries"        : 50,
         "treereduction"  : 10,
         "max"            : None,
@@ -63,7 +65,12 @@ cfg =  {
                           "sf_btag_calib", "sf_jet_puId", 
                           ],
             "bycategory" : {
-                
+                "4b": [
+                    WeightCustom(
+                        name="example",
+                        function= lambda events, size, metadata: [("pt_weight", 1 + events.JetGood[:,0].pt/400.)]
+                    )
+                ]               
             }
         },
         "bysample": {

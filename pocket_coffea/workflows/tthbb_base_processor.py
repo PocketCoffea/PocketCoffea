@@ -11,7 +11,7 @@ from ..lib.objects import (
     btagging,
     get_dilepton,
 )
-from ..lib.HistManager import HistManager, Axis, HistConf
+from ..lib.hist_manager import HistManager, Axis, HistConf
 
 
 class ttHbbBaseProcessor(BaseProcessorABC):

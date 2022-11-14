@@ -89,7 +89,7 @@ Categories, Weights and Histograms
 
 *  User histogram customization
       The user can request the framework to add custom axes to all the histograms for a particular workflow by redefining the function `define_custom_axes_extra()` or by adding `Axis` objects in the `self.custom_axes` attribute in the processor constructor. These axes are added to all the histograms independently by the configuration file.
-       E.g. a custom axes to save the dataset `era` attribute can be added only for chunks with Data inside.
+      E.g. a custom axes to save the dataset `era` attribute can be added only for chunks with Data inside.
     Moreover the user can directly manipolate the HistManager object before the filling by redefining the `define_histograms_extra()` function.
 
 * Histograms filling
@@ -104,7 +104,7 @@ After all this processing the base processor simply counts the events in all the
         At the end of the processing of all the chunks the `postprocess()` function, defined in the base processor is called. This function rescale the total weights of the MC histograms to normalize them w.r.t the sum of the genweights. The `scale_genweight` factor is also saved in the output. Doing so, the overall scale of the MC histograms is always correct, also if the processor is run on a partial dataset.
 
         
-  
+.. _filter_concept:
 
 Filtering
 #########
@@ -129,6 +129,56 @@ We have three steps of "filtering" events in the base workflow
 3) **Categories**:
       groups of cut functions are applied as masks in order to define categories. Events are not removed but the masks are used for the output.
 
+.. _cutobject:
+      
+Cut object
+-----------
+
+In Coffea, cuts are encoded as boolean masks on the `events` awkward array. The boolean masks can be stored in a
+`PackedSelector <https://coffeateam.github.io/coffea/notebooks/accumulators.html#PackedSelection>`_ object from coffea,
+which can store different masks and perform the **AND** of them efficiently.
+
+In PocketCoffea a small layer is defined to handle as **a single object both the cutting function and its parameters**. This is
+implemented in the `Cut` helper class (see :ref:`cut_definition`).
+
+.. code-block:: python
+   
+    def NjetsNb(events,params, **kwargs):
+         mask =  ((events.njet >= params["njet"] ) &
+         (events.nbjet >= params["nbjet"]))
+         return mask
+   
+    cut = Cut(
+       name = "4j-2b",
+       params = { "njet":4, "nbjet": 2},
+       function = NjetsNb
+    )
+    
+
+This simple object permits the user to define a parametrized cutting function and then reuse it with different
+parameters. Moreover the `Cut` object is technically implemented to be able to dump it's configuration in the most
+readable way: have a look at :ref:`config_preserve`.
+
+This structure makes possible the creation of **factory methods** to build the `Cut` objects on request
+
+.. code-block:: python
+
+    def getNjetNb_cut(njet, nb):
+      return Cut(
+            name=f"{njet}jet-{nb}bjet",
+            params ={"njet": njet, "nbjet": nb},
+            function=NjetsNb
+          )
+
+PocketCoffea implements a set of **factory methods** for common cut operations: they are defined in :ref:`cut_functions_lib`.
+
 
 Histogramming
 #############
+
+In PocketCoffea histograms are created with the **hist** library, developed by `scikit-hep <https://github.com/scikit-hep/hist>`_.
+
+.. _config_preserve:
+
+Configuration preservation
+##########################

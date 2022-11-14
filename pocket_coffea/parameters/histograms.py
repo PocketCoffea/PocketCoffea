@@ -1,4 +1,4 @@
-from ..lib.HistManager import Axis, HistConf
+from ..lib.hist_manager import Axis, HistConf
 import math
 
 

@@ -1,8 +1,8 @@
 PocketCoffea by examples
-========================
+########################
 
 Dataset creation
-----------------
+================
 
 
 Datasets are collection of samples, their corresponding files, and their metadata. 
@@ -79,3 +79,13 @@ To check if the files are already present in the local cluster run:
 
 
 
+Inspecting output
+=================
+
+.. code-block:: python
+
+  from coffea.util import load
+  out = load("output/test_run_v42/output.coffea")
+  out.keys()
+
+  
