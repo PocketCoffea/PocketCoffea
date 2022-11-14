@@ -27,9 +27,9 @@ cfg =  {
         "scaleout"       : 100,
         "queue"          : "microcentury",
         "walltime"       : "00:40:00",
-        "mem_per_worker" : "6GB", # GB
+        "mem_per_worker" : "4GB", # GB
         "exclusive"      : False,
-        "chunk"          : 500000,
+        "chunk"          : 400000,
         "retries"        : 50,
         "treereduction"  : 10,
         "max"            : None,

@@ -377,6 +377,15 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             isMC=self._isMC,
         )
 
+    def define_histograms_extra(self):
+        '''
+        Function that get called after the creation of the HistManager.
+        The user can redefine this function to manipulate the HistManager
+        histogram configuration to add customizations directly to the histogram
+        objects before the filling.
+        '''
+        pass
+
     def fill_histograms(self):
         '''Function which fill the histograms for each category and variation,
         throught the HistManager.
@@ -500,6 +509,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Create the HistManager
         self.define_custom_axes_extra()
         self.define_histograms()
+        self.define_histograms_extra()
 
         # Fill histograms
         self.fill_histograms()

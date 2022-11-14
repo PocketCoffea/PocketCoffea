@@ -15,7 +15,7 @@ from coffea.util import save, load
 import correctionlib, rich
 import correctionlib.convert
 
-from PocketCoffea.parameters.lumi import lumi, femtobarn
+from pocket_coffea.parameters.lumi import lumi, femtobarn
 
 # color_datamc = {'data' : 'black', 'mc' : 'red'}
 opts_data = {

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import PocketCoffea as m
+import pocket_coffea as m
 
 
 def test_version():
