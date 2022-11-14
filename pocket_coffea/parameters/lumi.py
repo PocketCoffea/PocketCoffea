@@ -53,22 +53,22 @@ lumi = {
 
 goldenJSON = {
     "2016_PreVFP": os.path.join(
-        __file__,
+        os.path.dirname(__file__),
         "datacert",
         "Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt",
     ),
     "2016_PostVFP": os.path.join(
-        __file__,
+        os.path.dirname(__file__),
         "datacert",
         "Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt",
     ),
     "2017": os.path.join(
-        __file__,
+        os.path.dirname(__file__),
         "datacert",
         "Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt",
     ),
     "2018": os.path.join(
-        __file__,
+        os.path.dirname(__file__),
         "datacert",
         "Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt",
     ),
