@@ -17,6 +17,7 @@ The user can customize the process from the confguration file or by redefining w
 
 .. toctree::
    installation
+   running
    concepts
    configuration
    examples

@@ -87,10 +87,10 @@ Categories, Weights and Histograms
 * Histograms
      The creation of histograms is handled by the framework mainly through the configuration file. The requested histograms are created for each category and systematic variation and stored in the output accumulator for each chunk. The `HistManager` class is responsible for understanding the configuration and managing the automatic filling of the histograms. The `HistManager` object is created for each chunk in the `define_histograms()` function defined in the Base processor.
 
-*  User histogram customization
-      The user can request the framework to add custom axes to all the histograms for a particular workflow by redefining the function `define_custom_axes_extra()` or by adding `Axis` objects in the `self.custom_axes` attribute in the processor constructor. These axes are added to all the histograms independently by the configuration file.
-      E.g. a custom axes to save the dataset `era` attribute can be added only for chunks with Data inside.
-    Moreover the user can directly manipolate the HistManager object before the filling by redefining the `define_histograms_extra()` function.
+* User histogram customization
+     The user can request the framework to add custom axes to all the histograms for a particular workflow by redefining the function `define_custom_axes_extra()` or by adding `Axis` objects in the `self.custom_axes` attribute in the processor constructor. These axes are added to all the histograms independently by the configuration file.
+     E.g. a custom axes to save the dataset `era` attribute can be added only for chunks with Data inside.
+     Moreover the user can directly manipolate the HistManager object before the filling by redefining the `define_histograms_extra()` function.
 
 * Histograms filling
       The function `fill_histogram()` is than called to automatically fill all the requested histogram from the configuration. The used can redefine the function `fill_histograms_extra()` to handle the filling of custom histograms, or special cases not handled automatically by the `HistManager`.

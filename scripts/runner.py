@@ -26,7 +26,7 @@ from pocket_coffea.utils.configurator import Configurator
 from pocket_coffea.utils.network import get_proxy_path
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Run analysis on baconbits files using processor coffea files')
+    parser = argparse.ArgumentParser(description='Run analysis on NanoAOD files using PocketCoffea processors')
     # Inputs
     parser.add_argument('--cfg', default=os.getcwd() + "/config/test.py", required=True, type=str,
                         help='Config file with parameters specific to the current run')
