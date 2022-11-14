@@ -20,26 +20,10 @@ pocket\_coffea.workflows.parton\_matching module
    :undoc-members:
    :show-inheritance:
 
-pocket\_coffea.workflows.pileup\_variations module
---------------------------------------------------
-
-.. automodule:: pocket_coffea.workflows.pileup_variations
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 pocket\_coffea.workflows.semileptonic\_triggerSF module
 -------------------------------------------------------
 
 .. automodule:: pocket_coffea.workflows.semileptonic_triggerSF
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-pocket\_coffea.workflows.sf\_ele\_reco\_variations module
----------------------------------------------------------
-
-.. automodule:: pocket_coffea.workflows.sf_ele_reco_variations
    :members:
    :undoc-members:
    :show-inheritance:

@@ -25,42 +25,89 @@ Basic workflow
 
 The basic workflow is defined by the `BaseProcessorABC::process()` function. The processor constructor is called only once for all the processing, whereas the `process()` function is called for each different chunk (piece of a NanoAOD dataset).
  
-1. Initialization
+Initialization
+--------------
 
-   * Load metadata
-        Each chunk of a NanoAOD file is read by coffea along with its metadata, specified in the dataset configuration. This function reads the sample name, year and prepares several files and configurations for the processing: triggers, SF files, JEC files, the goldenJSON. 
+* Load metadata
+     Each chunk of a NanoAOD file is read by coffea along with its metadata, specified in the dataset configuration. This function reads the sample name, year and prepares several files and configurations for the processing: triggers, SF files, JEC files, the goldenJSON. 
 
-   * Load metadata extra
-         The use can add more metadata preparation by redefining the function `load_metadata_extra()` in the derived processor. 
+* Load metadata extra
+      The use can add more metadata preparation by redefining the function `load_metadata_extra()` in the derived processor. 
 
-   * Initialize weights
-        Compute the sum of the genWeights before any preselection and initialize the configuration of the weights for the sample type of the current chunk.
+* Initialize weights
+     Compute the sum of the genWeights before any preselection and initialize the configuration of the weights for the sample type of the current chunk.
 
         
-2. Initial skimming of events
-     The first step in the processing reduces the number of events on which we need to apply object preselections and correction by applying a skimming cut.
+Skimming of events
+------------------
+The first step in the processing reduces the number of events on which we need to apply object preselections and correction by applying a skimming cut.
 
-     * Triggers 
-          The requests trigger are linked to the `finalstate` key in the configuration. Trigger are applied as the first step to reduce the number of events are the beginning.  The trigger mask is saved to be applied in the `skim_events` function
+* Triggers 
+     The requests trigger are linked to the `finalstate` key in the configuration. Trigger are applied as the first step to reduce the number of events are the beginning.  The trigger mask is saved to be applied in the `skim_events` function
 
-     * User defined extra processing
-         The user can redefine the function `process_extra_before_skim()` to add additional processing before the skimming phase, for example to add variables.
+* User defined extra processing
+    The user can redefine the function `process_extra_before_skim()` to add additional processing before the skimming phase, for example to add variables.
 
-     * Skim
-         The function `skim_events` applied the events filters, primary vertex requirement (at least 1 good PV) and triggers. Moreover, the function applies the skimming functions requested by the user from the configuration (see Configuration chapter for more details).
-         Only the events passing the skimming mask are further processed down the chain.
+* Skim
+    The function `skim_events` applied the events filters, primary vertex requirement (at least 1 good PV) and triggers. Moreover, the function applies the skimming functions requested by the user from the configuration (see Configuration chapter for more details).
+    Only the events passing the skimming mask are further processed down the chain.
 
-3. Object cleaning and preselection
+Object cleaning and preselection
+--------------------------------
+
+* Objects preselection
+       The user processor **must** define the method `apply_object_preselection()`. In this function the user should clean the NanoAOD collections and create new ones with the selected objects. For example: `Electron` --> `ElectronGood`. The new collections are added to the `self.events` awkward array attribute.
+
+* Count objects
+       The user processor **must** define the method `count_objects()` to count the number of cleaned objects. The convention is to add to the `self.events` attribute branches called `self.events["n{collection}"]`.
+
+* Define variables for event preselection
+       The user can define the function `define_common_variables_before_presel()` to compute quantities needed for the event preselection. We suggest to reduce at the minimum the amount of computation in this step, since these variables are computed on all the events passing the skim: it is better to postpone heavy processing after the events preselection. 
+
+* Extra processing before event preselection
+       The user can define the function `process_extra_before_preselection()` to add any further processing before events preselection.
+
+* Event preselection
+       The preselection cut requested by the user in the configuration are applied and the events not passing the mask are removed from the rest of the processing.
 
 
-   
+Categories, Weights and Histograms
+----------------------------------
 
-   
+* Extra processing after preselection
+      After the event preselection the number of events is now reduced and the user can add additional processing in the functions `define_common_variables_after_presel()` and `process_extra_after_presel()`. Classifiers, discriminators and MVA techniques should be applied here, now that the number of events has been reduced.
 
+* Categories
+      The categories defined by the user in the configuration are computed at this step: each category is a set of `Cut` objects which are applied with an AND. The cut masks are not applied directly, but they are saved to be used later in the histogram filling step.
 
+* Weights
+     Weights are handled by the `WeightsManager` class. The configuration of the weights for each sample and category is defined in the configuration file. The `WeightsManager` stores the weights for each category and each sample type. This object is recreated for each chunk in the `define_weights()` function, defined by the base processor class.
+     If the user wants to add custom weights directly in the code, instead of using the configuration, it can be done by redefining the `compute_weights_extra()` function.
+
+* Histograms
+     The creation of histograms is handled by the framework mainly through the configuration file. The requested histograms are created for each category and systematic variation and stored in the output accumulator for each chunk. The `HistManager` class is responsible for understanding the configuration and managing the automatic filling of the histograms. The `HistManager` object is created for each chunk in the `define_histograms()` function defined in the Base processor.
+
+*  User histogram customization
+      The user can request the framework to add custom axes to all the histograms for a particular workflow by redefining the function `define_custom_axes_extra()` or by adding `Axis` objects in the `self.custom_axes` attribute in the processor constructor. These axes are added to all the histograms independently by the configuration file.
+       E.g. a custom axes to save the dataset `era` attribute can be added only for chunks with Data inside.
+    Moreover the user can directly manipolate the HistManager object before the filling by redefining the `define_histograms_extra()` function.
+
+* Histograms filling
+      The function `fill_histogram()` is than called to automatically fill all the requested histogram from the configuration. The used can redefine the function `fill_histograms_extra()` to handle the filling of custom histograms, or special cases not handled automatically by the `HistManager`.
+
+Processor output
+----------------
+
+After all this processing the base processor simply counts the events in all the categories in the function `count_events()` and stores these metadata in the output `cutflow` and `sumw` attributes.All the output histograms and metadata coming from each chunk are accumulated by coffea in a single output dictionary.
+
+* Postprocessing
+        At the end of the processing of all the chunks the `postprocess()` function, defined in the base processor is called. This function rescale the total weights of the MC histograms to normalize them w.r.t the sum of the genweights. The `scale_genweight` factor is also saved in the output. Doing so, the overall scale of the MC histograms is always correct, also if the processor is run on a partial dataset.
+
+        
+  
 
 Filtering
----------
+#########
 
 We have three steps of "filtering" events in the base workflow
 
@@ -84,24 +131,4 @@ We have three steps of "filtering" events in the base workflow
 
 
 Histogramming
--------------
-
-
-
-Configuration
 #############
-
-Datasets
---------
-
-Cuts and categories
--------------------
-
-Weights
---------
-
-Variations
-----------
-
-Histograms configuration
-------------------------
