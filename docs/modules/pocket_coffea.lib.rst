@@ -52,14 +52,6 @@ pocket\_coffea.lib.deltaR\_matching module
    :undoc-members:
    :show-inheritance:
 
-pocket\_coffea.lib.fill module
-------------------------------
-
-.. automodule:: pocket_coffea.lib.fill
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 pocket\_coffea.lib.jets module
 ------------------------------
 
