@@ -227,6 +227,8 @@ if __name__ == '__main__':
         elif 'lxplus' in config.run_options["executor"]:
             from pocket_coffea.utils.network import check_port
 
+            log_folder = "condor_log"
+
             if "lxplus" not in socket.gethostname():
                 raise Exception("Trying to run with dask/lxplus not at CERN! Please try different runner options")
             print(">> Creating dask-lxplus cluster")
