@@ -43,9 +43,8 @@ cfg =  {
     # Cuts and plots settings
     "finalstate" : "semileptonic_partonmatching",
     "skim": [ get_nObj(4, 15., "Jet"),
-              get_nBtag(2, 15., "Jet") ],
-    "preselections" : [semileptonic_presel_nobtag,
-                       get_nBtag(2, coll="BJetGood")],
+              get_nBtag(3, 15., "Jet") ],
+    "preselections" : [semileptonic_presel],
 
     "categories": {
         "4j" : [passthrough],
