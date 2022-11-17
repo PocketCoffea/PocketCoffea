@@ -31,6 +31,12 @@ class Configurator:
         self.eras = []
         self.load_dataset()
 
+        # subsamples configuration
+        # Dictionary with subsample_name:[list of Cut ids]
+        self.subsamples = { key:subscfg
+                            for key, subscfg in self.dataset.get("subsamples",{}).items()
+                            if key in self.samples}
+        
         # Check if output file exists, and in case add a `_v01` label, make directory
         if overwrite_output_dir:
             self.output = overwrite_output_dir
@@ -185,6 +191,7 @@ class Configurator:
                 print("Please define skim, preselections and cuts as Cut objects")
                 raise Exception("Wrong categories/cuts configuration")
             self.cuts_dict[presel.id] = presel
+        # Now saving the categories and cuts
         for cat, cuts in self.cfg["categories"].items():
             self.categories[cat] = []
             for cut in cuts:
@@ -202,6 +209,7 @@ class Configurator:
         logging.info(pformat(self.cuts_dict.keys(), compact=True, indent=2))
         logging.info("Categories:")
         logging.info(pformat(self.categories, compact=True, indent=2))
+
 
     def load_weights_config(self):
         '''This function loads the weights definition and prepares a list of
@@ -391,6 +399,15 @@ class Configurator:
 
     def save_config(self):
         ocfg = {k: v for k, v in self.cfg.items()}
+
+        subsamples_cuts = ocfg["dataset"].get("subsamples", {})
+        dump_subsamples = {}
+        for sample, subsamples in subsamples_cuts.items():
+            dump_subsamples[sample] = {}
+            for subs, cuts in subsamples.items():
+                dump_subsamples[sample][subs] = [c.serialize() for c in cuts]
+        ocfg["dataset"]["subsamples"] = dump_subsamples
+        
         skim_dump = []
         presel_dump = []
         cats_dump = {}

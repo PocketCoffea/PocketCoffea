@@ -16,4 +16,5 @@ xsec = {
         ### !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! ###
     "ST_t-channel_antitop_4f_InclusiveDecays" : 80.95,
     "ST_t-channel_top_4f_InclusiveDecays" : 136.02,
+    "TTbbSemiLeptonic": 23.86
 }

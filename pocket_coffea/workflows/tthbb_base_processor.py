@@ -30,6 +30,11 @@ class ttHbbBaseProcessor(BaseProcessorABC):
             )
         )
 
+
+    def load_metadata_extra(self):
+        self._JECversion = JECversions[self._year]['MC' if self._isMC else 'Data']
+        self._JERversion = JERversions[self._year]['MC' if self._isMC else 'Data']
+        
     def apply_JERC(self, JER=True, verbose=False):
         if not self._isMC:
             return

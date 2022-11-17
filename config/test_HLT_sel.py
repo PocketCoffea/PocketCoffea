@@ -15,9 +15,11 @@ cfg =  {
                   "datasets/DATA_SingleMuon_local.json",
                   "datasets/DATA_SingleEle.json"],
         "filter" : {
-            "samples": ["TTToSemiLeptonic","TTbbSemiLeptonic",
-                        "ttHTobb",
-                        "DATA_SingleMu", "DATA_SingleEle"],
+            "samples": [
+                # "TTToSemiLeptonic","TTbbSemiLeptonic",
+                "ttHTobb",
+                # "DATA_SingleMu", "DATA_SingleEle"
+            ],
             "samples_exclude" : [],
             "year": ['2018']
         },

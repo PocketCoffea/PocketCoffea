@@ -189,7 +189,8 @@ class HistManager:
             hcfg.axes = custom_axes + hcfg.axes
             for ax in hcfg.axes:
                 all_axes.append(get_hist_axis_from_config(ax))
-
+            #print(name, all_axes, hcfg)
+            print(custom_axes)
             # Build the histogram object with the additional axes
             hcfg.hist_obj = hist.Hist(*all_axes, storage=hcfg.storage, name="Counts")
             # Save the hist in the configuration and store the full config object
@@ -209,7 +210,7 @@ class HistManager:
     def get_histogram(self, name):
         return self.histograms[name]
 
-    def fill_histograms(self, events, weights_manager, cuts_masks, custom_fields=None):
+    def fill_histograms(self, events, weights_manager, cuts_masks, subsample_mask=None, custom_fields=None):
         '''
         We loop on the configured histograms only
         Doing so the catergory, sample, variation selections are handled correctly (by the constructor).
@@ -217,11 +218,11 @@ class HistManager:
         Custom_fields is a dict of additional array. The expected lenght of the first dimension is the number of
         events. The categories mask will be applied.
         '''
-        # print("===> Filling histograms")
         for category in self.available_categories:
-            # print(f"\tCategory: {category}")
             # Getting the cut mask
             mask = cuts_masks.all(*self.categories_config[category])
+            if subsample_mask != None:
+                mask = (mask & subsample_mask)
             masked_events = events[mask]
             # Weights must be computed for each category and variation,
             # but it is not needed to recompute them for each histo.
@@ -237,10 +238,8 @@ class HistManager:
                         weights[variation] = weights_manager.get_weight(
                             category, modifier=variation
                         )[mask]
-                        # print(f"\t\t= Weights [{variation}] = {weights[variation]} ")
 
             for name, histo in self.histograms.items():
-                # print(f"\t\tFilling histo {name}")
                 if category not in histo.only_categories:
                     continue
                 if not histo.autofill:
@@ -258,7 +257,6 @@ class HistManager:
                 has_data_structure = False
                 data_structure = None
                 for ax in histo.axes:
-                    # print(f"\t\t\tFilling axes {ax}")
                     # Checkout the collection type
                     if ax.type in ["regular", "variable", "int"]:
                         if ax.coll == "events":
@@ -340,7 +338,6 @@ class HistManager:
                 # removed the none value --> now we need weights for each variation
                 if not histo.no_weights and self.isMC:
                     for variation in histo.hist_obj.axes["variation"]:
-                        # print(f"\t\t\tFilling variation: {variation}")
                         # Check if this variation exists for this category
                         if variation not in weights:
                             # it means that the variation is in the axes only

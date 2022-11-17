@@ -78,8 +78,6 @@ if __name__ == '__main__':
     if args.executor !=None:
         config.run_options["executor"] = args.executor
 
-        script_name = os.path.splitext(os.path.basename(sys.argv[0]))[0]
-
     
     #### Fixing the environment (assuming this is run in singularity)
     # dask/parsl needs to export x509 to read over xrootd
