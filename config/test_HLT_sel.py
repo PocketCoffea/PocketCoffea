@@ -27,7 +27,7 @@ cfg =  {
     # Input and output files
     "workflow" : ttHbbBaseProcessor,
     "output"   : "output/test_HLT",
-    "worflow_options" : {},
+    "workflow_options" : {},
 
     "run_options" : {
         "executor"       : "dask/slurm",
