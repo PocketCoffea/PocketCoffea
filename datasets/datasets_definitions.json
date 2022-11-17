@@ -121,9 +121,9 @@
         ]
     },
 
-     "TTbb_semileptonic_Powheg": {
-        "sample": "TTbb",
-        "json_output" : "datasets/background_MC_TTbb.json",
+     "TTbbSemiLeptonic_Powheg": {
+        "sample": "TTbbSemiLeptonic",
+        "json_output" : "datasets/backgrounds_MC_TTbb.json",
         "storage_prefix": "/pnfs/psi.ch/cms/trivcat/",
         "files": [
             { "das_names": ["/TTbb_4f_TTToSemiLeptonic_TuneCP5-Powheg-Openloops-Pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"],

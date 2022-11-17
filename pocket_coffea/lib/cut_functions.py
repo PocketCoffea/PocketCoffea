@@ -1,7 +1,7 @@
 import awkward as ak
 from .cut_definition import Cut
 from ..parameters.btag import btag
-from ..triggers import get_trigger_mask
+from .triggers import get_trigger_mask
 
 def passthrough(events, **kargs):
     '''
@@ -51,7 +51,7 @@ def get_HLTsel(key, primaryDatasets=None, invert=False):
         name = name,
         params = {"key": key,
                   "primaryDatasets": primaryDatasets,
-                  "invert": invert}
+                  "invert": invert},
         function = _get_trigger_mask_proxy 
     )
 

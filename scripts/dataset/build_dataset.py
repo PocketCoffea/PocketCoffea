@@ -1,4 +1,13 @@
 #!/usr/bin/env python
+
+print("""
+   ___       _ __   _____       __               __ 
+  / _ )__ __(_) /__/ / _ \___ _/ /____ ____ ___ / /_
+ / _  / // / / / _  / // / _ `/ __/ _ `(_-</ -_) __/
+/____/\_,_/_/_/\_,_/____/\_,_/\__/\_,_/___/\__/\__/ 
+                                                   
+""")
+
 import os
 import argparse
 import json
@@ -23,6 +32,8 @@ else:
 
     
 for key in keys:
+    print("*"*40)
+    print("> Working on dataset: ", key)
     if key not in config:
         print("Key: not found in the dataset configuration file")
         exit(1)

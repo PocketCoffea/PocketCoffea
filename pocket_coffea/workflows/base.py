@@ -19,8 +19,6 @@ import correctionlib
 
 from ..lib.weights_manager import WeightsManager
 from ..lib.hist_manager import HistManager, Axis, HistConf
-from ..lib.triggers import get_trigger_mask
-from ..parameters.triggers import triggers
 from ..parameters.btag import btag, btag_variations
 from ..parameters.event_flags import event_flags, event_flags_data
 from ..parameters.lumi import lumi, goldenJSON
@@ -144,7 +142,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self._dataset = self.events.metadata["dataset"]
         self._sample = self.events.metadata["sample"]
         self._year = self.events.metadata["year"]
-        self._triggers = triggers[self.cfg.finalstate][self._year]
         self._btag = btag[self._year]
         self._isMC = self.events.metadata["isMC"] == "True"
         if self._isMC:
@@ -171,7 +168,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
           - METfilters,
           - PV requirement *at least 1 good primary vertex
           - lumi-mask (for DATA): applied the goldenJson selection
-          - requested HLT triggers
+          - requested HLT triggers (from configuration, not hardcoded in the processor)
           - **user-defined** skimming cuts
 
         BE CAREFUL: the skimming is done before any object preselection and cleaning.
@@ -452,7 +449,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self.weights_config = self.weights_config_allsamples[self._sample]
         ########################
         # Then the first skimming happens.
-        # Events that are for sure useless are removed, and trigger are applied.
+        # Events that are for sure useless are removed.
         # The user can specify in the configuration a function to apply for the skiming.
         # BE CAREFUL: objects are not corrected and cleaned at this stage, the skimming
         # selections MUST be loose and inclusive w.r.t the final selections.
