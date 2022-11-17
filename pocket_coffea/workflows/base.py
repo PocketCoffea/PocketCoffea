@@ -19,8 +19,6 @@ import correctionlib
 
 from ..lib.weights_manager import WeightsManager
 from ..lib.hist_manager import HistManager, Axis, HistConf
-from ..lib.triggers import get_trigger_mask
-from ..parameters.triggers import triggers
 from ..parameters.btag import btag, btag_variations
 from ..parameters.event_flags import event_flags, event_flags_data
 from ..parameters.lumi import goldenJSON
@@ -70,6 +68,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
         # Custom axis for the histograms
         self.custom_axes = []
+        self.custom_histogram_fields = {}
 
         # Output format
         # Accumulators for the output
@@ -142,7 +141,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self._dataset = self.events.metadata["dataset"]
         self._sample = self.events.metadata["sample"]
         self._year = self.events.metadata["year"]
-        self._triggers = triggers[self.cfg.finalstate][self._year]
         self._btag = btag[self._year]
         self._isMC = self.events.metadata["isMC"] == "True"
         if self._isMC:
@@ -161,17 +159,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
         pass
 
-    def apply_triggers(self):
-        '''
-        Function that computes the trigger masks and save it in the masks to be applied
-        at the skimming step.
-        '''
-        # Trigger logic is included in the preselection mask
-        self._skim_masks.add(
-            'trigger',
-            get_trigger_mask(self.events, self._triggers, self.cfg.finalstate),
-        )
-
     def skim_events(self):
         '''
         Function which applied the initial event skimming.
@@ -180,7 +167,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
           - METfilters,
           - PV requirement *at least 1 good primary vertex
           - lumi-mask (for DATA): applied the goldenJson selection
-          - requested HLT triggers
+          - requested HLT triggers (from configuration, not hardcoded in the processor)
           - **user-defined** skimming cuts
 
         BE CAREFUL: the skimming is done before any object preselection and cleaning.
@@ -382,6 +369,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         The user can redefine this function to manipulate the HistManager
         histogram configuration to add customizations directly to the histogram
         objects before the filling.
+
+        This function should also be redefined to fill the `self.custom_histogram_fields`
+        that are passed to the histogram filling.
         '''
         pass
 
@@ -391,7 +381,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
         # Filling the autofill=True histogram automatically
         self.hists_manager.fill_histograms(
-            self.events, self.weights_manager, self._cuts_masks, custom_fields=None
+            self.events, self.weights_manager, self._cuts_masks, custom_fields=self.custom_histogram_fields
         )
 
         # Saving in the output the filled histograms for the current sample
@@ -426,8 +416,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         The processing goes through the following steps:
 
           - load metadata
-          - apply triggers
-          - Skim events (first masking of events)
+          - Skim events (first masking of events):
+              HLT triggers should be applied here, but their use is left to the configuration,
+              and not hardcoded in the processor.
           - apply object preselections
           - count objects
           - apply event preselection (secondo masking of events)
@@ -457,13 +448,11 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self.weights_config = self.weights_config_allsamples[self._sample]
         ########################
         # Then the first skimming happens.
-        # Events that are for sure useless are removed, and trigger are applied.
+        # Events that are for sure useless are removed.
         # The user can specify in the configuration a function to apply for the skiming.
         # BE CAREFUL: objects are not corrected and cleaned at this stage, the skimming
         # selections MUST be loose and inclusive w.r.t the final selections.
         #########################
-        # Trigger are applied at the beginning since they do not change
-        self.apply_triggers()
         # Customization point for derived workflows before skimming
         self.process_extra_before_skim()
         # MET filter, lumimask, + custom skimming function

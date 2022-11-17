@@ -1,13 +1,61 @@
 import awkward as ak
 from .cut_definition import Cut
 from ..parameters.btag import btag
-
+from .triggers import get_trigger_mask
 
 def passthrough(events, **kargs):
     '''
     Identity cut:  passthrough of all events.
     '''
     return ak.full_like(events.event, True, dtype=bool)
+
+
+##############################
+## Factory method for HLT
+def _get_trigger_mask_proxy(events, params, year, isMC, **kwargs):
+    '''
+    Helper function to call the HLT trigger mask
+    '''
+    return get_trigger_mask(events,
+                            params["key"],
+                            year,
+                            isMC,
+                            params["primaryDatasets"],
+                            params["invert"])
+
+
+def get_HLTsel(key, primaryDatasets=None, invert=False):
+    '''Create the HLT trigger mask
+
+    The Cut function reads the triggers configuration and create the mask.
+    For MC the OR of all the triggers in the specific configuration key is performed.
+    For DATA only the corresponding primary dataset triggers are applied.
+    if primaryDatasets param is passed, the correspoding triggers are applied, both
+    on DATA and MC, overwriting any other configuration.
+
+    This is useful to remove the overlap of primary datasets in data. 
+
+    :param key: Key in the trigger configuration for the list of triggers to apply
+    :param primaryDatasets: (optional) list of primaryDatasets to use. Overwrites any other config
+                                      both for Data and MC
+    :param invert: invert the mask, if True the function returns events failing the HLT selection
+ 
+    :returns: events mask
+    '''
+    name = f"HLT_{key}"
+    if primaryDatasets:
+        name += "_" + "_".join(primaryDatasets)
+    if invert:
+        name += "_NOT"
+    return Cut(
+        name = name,
+        params = {"key": key,
+                  "primaryDatasets": primaryDatasets,
+                  "invert": invert},
+        function = _get_trigger_mask_proxy 
+    )
+
+
 
 
 ###########################

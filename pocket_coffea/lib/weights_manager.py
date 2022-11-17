@@ -45,7 +45,6 @@ class WeightCustom:
 
         [(name:str, nominal, up, down),
          (name:str, nominal, up, down)]
-
     Variations modifiers will have the format `nameUp/nameDown`
 
     Multiple weights can be produced by a single WeightCustom object.    
