@@ -30,14 +30,14 @@ cfg =  {
     "worflow_options" : {},
 
     "run_options" : {
-        "executor"       : "dask/lxplus",
+        "executor"       : "dask/slurm",
         "workers"        : 1,
-        "scaleout"       : 50,
-        "queue"          : "microcentury",
+        "scaleout"       : 100,
+        "queue"          : "short",
         "walltime"       : "00:40:00",
         "mem_per_worker" : "4GB", # GB
         "exclusive"      : False,
-        "chunk"          : 100000,
+        "chunk"          : 400000,
         "retries"        : 50,
         "treereduction"  : 10,
         "max"            : None,
@@ -45,6 +45,7 @@ cfg =  {
         "voms"           : None,
         "limit"          : None,
         "adapt"          : False,
+        "env"            : "conda"
     },
 
     # Cuts and plots settings

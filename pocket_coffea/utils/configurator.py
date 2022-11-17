@@ -2,11 +2,12 @@ import os
 import sys
 import json
 from copy import deepcopy
-from pprint import pprint
+from pprint import pprint, pformat
 import cloudpickle
 import importlib.util
 from collections import defaultdict
 import inspect
+import logging
 
 from ..lib.cut_definition import Cut
 from ..lib.weights_manager import WeightCustom
@@ -189,8 +190,10 @@ class Configurator:
         self.cut_functions = set(self.cut_functions)
         for cat, cuts in self.categories.items():
             self.categories[cat] = set(cuts)
-        print("Cuts:", list(self.cuts_dict.keys()))
-        print("Categories:", self.categories)
+        logging.info("Cuts:")
+        logging.info(pformat(self.cuts_dict.keys(), compact=True, indent=2))
+        logging.info("Categories:")
+        logging.info(pformat(self.categories, compact=True, indent=2))
 
     def load_weights_config(self):
         '''This function loads the weights definition and prepares a list of
@@ -263,8 +266,8 @@ class Configurator:
                             self.weights_config[sample]["bycategory"][cat].append(w)
                             self.weights_config[sample]["is_split_bycat"] = True
 
-        print("Weights configuration")
-        pprint(self.weights_config)
+        logging.info("Weights configuration")
+        logging.info(self.weights_config)
 
     def load_variations_config(self):
         '''This function loads the variations definition and prepares a list of

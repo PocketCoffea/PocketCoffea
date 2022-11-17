@@ -15,6 +15,7 @@ import argparse
 import time
 import pickle
 import socket
+import logging 
 
 import uproot
 from coffea.nanoevents import NanoEventsFactory
@@ -24,6 +25,8 @@ from pprint import pprint
 
 from pocket_coffea.utils.configurator import Configurator
 from pocket_coffea.utils.network import get_proxy_path
+from pocket_coffea.utils.logging import setup_logging
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run analysis on NanoAOD files using PocketCoffea processors')
@@ -38,8 +41,17 @@ if __name__ == '__main__':
     parser.add_argument("-e","--executor", type=str,
                         help="Overwrite executor from config (to be used only with the --test options)" )
     parser.add_argument("-s","--scaleout", type=int, help="Overwrite scalout config" )
+    parser.add_argument("-ll","--loglevel", type=str, help="Logging level", default="INFO" )
     args = parser.parse_args()
 
+
+    # Prepare logging
+    if (not setup_logging(console_log_output="stdout", console_log_level=args.loglevel, console_log_color=True,
+                        logfile_file="last_run.log", logfile_log_level="info", logfile_log_color=False,
+                        log_line_template="%(color_on)s[%(created)d] [%(levelname)-8s] %(message)s%(color_off)s")):
+        print("Failed to setup logging, aborting.")
+        exit(1) 
+    
     if args.cfg[-3:] == ".py":
         config = Configurator(args.cfg, overwrite_output_dir=args.outputdir)
     elif args.cfg[-4:] == ".pkl":
@@ -66,6 +78,7 @@ if __name__ == '__main__':
     if args.executor !=None:
         config.run_options["executor"] = args.executor
 
+        script_name = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 
     
     #### Fixing the environment (assuming this is run in singularity)
@@ -77,19 +90,30 @@ if __name__ == '__main__':
         _x509_path = os.environ['HOME'] + f'/.{_x509_localpath.split("/")[-1]}'
         os.system(f'cp {_x509_localpath} {_x509_path}')
         
-    env_extra = [
-        'export XRD_RUNFORKHANDLER=1',
-        f'export X509_USER_PROXY={_x509_path}',
-        # f'export X509_CERT_DIR={os.environ["X509_CERT_DIR"]}',
-        'ulimit -u 32768',
-    ]
-
-    wrk_init = [
-        'export XRD_RUNFORKHANDLER=1',
-        f'export X509_USER_PROXY={_x509_path}',
-        # f'export X509_CERT_DIR={os.environ["X509_CERT_DIR"]}',
-        f'source {sys.prefix}/bin/activate',
-    ]
+    # env_extra = [
+    #     'export XRD_RUNFORKHANDLER=1',
+    #     f'export X509_USER_PROXY={_x509_path}',
+    #     # f'export X509_CERT_DIR={os.environ["X509_CERT_DIR"]}',
+    #     'ulimit -u 32768',
+    # ]
+    
+    if (run_env:=config.run_options.get("env", "singularity")) == "singularity":
+        env_extra = [
+            'export XRD_RUNFORKHANDLER=1',
+            f'export X509_USER_PROXY={_x509_path}',
+            # f'export X509_CERT_DIR={os.environ["X509_CERT_DIR"]}',
+            f'source {sys.prefix}/bin/activate',
+        ]
+    elif run_env == "conda":
+        env_extra = [
+            'export XRD_RUNFORKHANDLER=1',
+            f'export X509_USER_PROXY={_x509_path}',
+            # f'export X509_CERT_DIR={os.environ["X509_CERT_DIR"]}',
+            'source /etc/profile.d/conda.sh',
+            f'export PATH={os.environ["CONDA_PREFIX"]}/bin:$PATH',
+            f'conda activate {os.environ["CONDA_DEFAULT_ENV"]}',
+        ]
+    logging.info(env_extra)
 
 
     #########
@@ -176,7 +200,7 @@ if __name__ == '__main__':
                             launcher=SingleNodeLauncher(),
                             max_blocks=(config.run_options['scaleout'])+10,
                             init_blocks=config.run_options['scaleout'],
-                            worker_init="\n".join(wrk_init),
+                            worker_init="\n".join(env_extra),
                             #transfer_input_files=xfer_files,
                             scheduler_options=condor_cfg,
                             walltime='00:30:00'
@@ -207,20 +231,19 @@ if __name__ == '__main__':
 
         if 'slurm' in config.run_options['executor']:
             cluster = SLURMCluster(
-                queue=config.run_options['partition'],
+                queue=config.run_options['queue'],
                 cores=config.run_options['workers'],
                 processes=config.run_options['workers'],
                 memory=config.run_options['mem_per_worker'],
                 walltime=config.run_options["walltime"],
                 env_extra=env_extra,
-                #job_extra=[f'-o {os.path.join(config.output, "slurm-output", "slurm-%j.out")}'],
                 local_directory=os.path.join(config.output, "slurm-output"),
             )
         elif 'condor' in config.run_options['executor']:
             cluster = HTCondorCluster(
-                 cores=config.run_options['workers'],
-                 memory='2GB',
-                 disk='2GB',
+                 cores=1,
+                 memory=config.run_options['mem_per_worker'],
+                 disk=config.run_options.get('disk_per_worker', "20GB"),
                  env_extra=env_extra,
             )
         elif 'lxplus' in config.run_options["executor"]:
@@ -228,7 +251,7 @@ if __name__ == '__main__':
 
             if "lxplus" not in socket.gethostname():
                 raise Exception("Trying to run with dask/lxplus not at CERN! Please try different runner options")
-            print(">> Creating dask-lxplus cluster")
+            logging.info(">> Creating dask-lxplus cluster")
             from dask_lxplus import CernCluster
             n_port = 8786
             if not check_port(8786):
@@ -254,18 +277,18 @@ if __name__ == '__main__':
                     "when_to_transfer_output": "ON_EXIT",
                     "+JobFlavour": f'"{config.run_options["queue"]}"'
                 },
-                env_extra=wrk_init,
+                env_extra=env_extra,
             )
 
         #Cluster adaptive number of jobs only if requested
-        print(">> Sending out jobs")
+        logging.info(">> Sending out jobs")
         cluster.adapt(minimum=1 if config.run_options.get("adapt", False)
                                 else config.run_options['scaleout'],
                       maximum=config.run_options['scaleout'])
         client = Client(cluster)
-        print(">> Waiting for the first job to start...")
+        logging.info(">> Waiting for the first job to start...")
         client.wait_for_workers(1)
-        print(">> You can connect to the Dask viewer at http://localhost:8787")
+        logging.info(">> You can connect to the Dask viewer at http://localhost:8787")
         
         with performance_report(filename=os.path.join(config.output, "condor_log/dask-report.html")):
             output = processor.run_uproot_job(config.fileset,
