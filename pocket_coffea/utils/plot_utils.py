@@ -247,13 +247,19 @@ def plot_data_mc_hist1D(h, histname, config):
             plot_systematic_uncertainty(
                 stack_mc_nominal, syst_err_up, syst_err_down, ax
             )
-            ratio, unc = get_data_mc_ratio(stack_data, stack_mc_nominal)
-            rax.errorbar(x, ratio, unc, **opts_data)
+            if not is_mc_only:
+                ratio, unc = get_data_mc_ratio(stack_data, stack_mc_nominal)
+                rax.errorbar(x, ratio, unc, **opts_data)
             plot_systematic_uncertainty(
                 stack_mc_nominal, syst_err_up, syst_err_down, rax, ratio=True
             )
             ax.set_ylim((0, 1.20 * max(stack_sum(stack_mc_nominal).values())))
             rax.set_ylim((0.8, 1.2))
+            if config.variables[histname].axes[0].lim != (0,0):
+                ax.set_xlim(*config.variables[histname].axes[0].lim)
+            else:
+                ax.set_xlim(config.variables[histname].axes[0].start, config.variables[histname].axes[0])
+
             xlabel = ax.get_xlabel()
             ax.set_xlabel("")
             rax.set_xlabel(xlabel)

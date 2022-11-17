@@ -230,6 +230,7 @@ if __name__ == '__main__':
         from dask.distributed import performance_report
 
         if 'slurm' in config.run_options['executor']:
+            log_folder = "slurm_log"
             cluster = SLURMCluster(
                 queue=config.run_options['queue'],
                 cores=config.run_options['workers'],
@@ -237,9 +238,10 @@ if __name__ == '__main__':
                 memory=config.run_options['mem_per_worker'],
                 walltime=config.run_options["walltime"],
                 env_extra=env_extra,
-                local_directory=os.path.join(config.output, "slurm-output"),
+                local_directory=os.path.join(config.output, log_folder),
             )
         elif 'condor' in config.run_options['executor']:
+            log_folder = "condor_log"
             cluster = HTCondorCluster(
                  cores=1,
                  memory=config.run_options['mem_per_worker'],
@@ -247,6 +249,7 @@ if __name__ == '__main__':
                  env_extra=env_extra,
             )
         elif 'lxplus' in config.run_options["executor"]:
+            log_folder = "condor_log"
             from pocket_coffea.utils.network import check_port
 
             if "lxplus" not in socket.gethostname():
@@ -267,12 +270,12 @@ if __name__ == '__main__':
                 worker_image="/cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/batch-team/dask-lxplus/lxdask-cc7:latest",
                 death_timeout="3600",
                 scheduler_options={"port": n_port, "host": socket.gethostname()},
-                log_directory = f"{config.output}/condor_log",
+                log_directory = f"{config.output}/{log_folder}",
                 # shared_temp_directory="/tmp"
                 job_extra={
-                    "log": f"{config.output}/condor_log/dask_job_output.log",
-                    "output": f"{config.output}/condor_log/dask_job_output.out",
-                    "error": f"{config.output}/condor_log/dask_job_output.err",
+                    "log": f"{config.output}/{log_folder}/dask_job_output.log",
+                    "output": f"{config.output}/{log_folder}/dask_job_output.out",
+                    "error": f"{config.output}/{log_folder}/dask_job_output.err",
                     "should_transfer_files": "Yes",
                     "when_to_transfer_output": "ON_EXIT",
                     "+JobFlavour": f'"{config.run_options["queue"]}"'
@@ -290,7 +293,9 @@ if __name__ == '__main__':
         client.wait_for_workers(1)
         logging.info(">> You can connect to the Dask viewer at http://localhost:8787")
         
-        with performance_report(filename=os.path.join(config.output, "condor_log/dask-report.html")):
+        performance_report_path = os.path.join(config.output, f"{log_folder}/dask-report.html")
+        print(f"Saving performance report to {performance_report_path}")
+        with performance_report(filename=performance_report_path):
             output = processor.run_uproot_job(config.fileset,
                                         treename='Events',
                                         processor_instance=config.processor_instance,
