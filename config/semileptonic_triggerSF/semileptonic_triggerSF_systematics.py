@@ -1,6 +1,6 @@
-from PocketCoffea.parameters.cuts.baseline_cuts import semileptonic_triggerSF_presel, passthrough
-from PocketCoffea.lib.cut_functions import get_nObj
-from PocketCoffea.workflows.semileptonic_triggerSF import semileptonicTriggerProcessor
+from pocket_coffea.parameters.cuts.preselection_cuts import semileptonic_triggerSF_presel, passthrough
+from pocket_coffea.lib.cut_functions import get_nObj
+from pocket_coffea.workflows.semileptonic_triggerSF import semileptonicTriggerProcessor
 from config.semileptonic_triggerSF.functions import get_trigger_passfail
 from config.semileptonic_triggerSF.plot_options import efficiency, scalefactor, ratio, residue
 from math import pi
@@ -20,7 +20,7 @@ cfg =  {
     # Input and output files
     "workflow" : semileptonicTriggerProcessor,
     "output"   : "output/sf_ele_trigger_semilep/semileptonic_triggerSF_2018_systematics",
-    "output_triggerSF" : "PocketCoffea/parameters/semileptonic_triggerSF/triggerSF_2018_Ele32_EleHT",
+    "output_triggerSF" : "pocket_coffea/parameters/semileptonic_triggerSF/triggerSF_2018_Ele32_EleHT",
     "triggerSF" : None,
 
     # Executor parameters

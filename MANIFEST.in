@@ -1,0 +1,2 @@
+recursive-include pocket_coffea/ *.json
+recursive-include pocket_coffea/ *.txt

@@ -1,6 +1,6 @@
 import numpy as np
 import awkward as ak
-from PocketCoffea.lib.cut_definition import Cut
+from pocket_coffea.lib.cut_definition import Cut
 
 def trigger_mask(events, params, **kwargs):
     mask = np.zeros(len(events), dtype='bool')
@@ -26,11 +26,11 @@ def trigger_mask_2017(events, params, **kwargs):
     return mask
 
 def ht_above(events, params, **kwargs):
-    mask = events["ht"] > params["minht"]
+    mask = events["JetGood_Ht"] > params["minht"]
     return mask
 
 def ht_below(events, params, **kwargs):
-    mask = (events["ht"] >= 0) & (events["ht"] < params["maxht"])
+    mask = (events["JetGood_Ht"] >= 0) & (events["JetGood_Ht"] < params["maxht"])
     return mask
 
 def get_trigger_passfail(triggers, category):

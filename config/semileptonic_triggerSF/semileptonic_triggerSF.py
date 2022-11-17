@@ -1,6 +1,6 @@
-from PocketCoffea.parameters.cuts.baseline_cuts import semileptonic_triggerSF_presel, passthrough
+from pocket_coffea.parameters.cuts.preselection_cuts import semileptonic_triggerSF_presel, passthrough
 from config.semileptonic_triggerSF.functions import get_trigger_passfail
-from PocketCoffea.workflows.semileptonic_triggerSF import semileptonicTriggerProcessor
+from pocket_coffea.workflows.semileptonic_triggerSF import semileptonicTriggerProcessor
 from math import pi
 import numpy as np
 

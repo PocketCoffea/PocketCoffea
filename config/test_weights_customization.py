@@ -1,8 +1,8 @@
-from PocketCoffea.parameters.cuts.baseline_cuts import dilepton_presel, semileptonic_presel, passthrough
-from PocketCoffea.lib.cut_functions import get_nObj, get_nBtag
-from PocketCoffea.lib.cut_definition import Cut
+from pocket_coffea.parameters.cuts.baseline_cuts import dilepton_presel, semileptonic_presel, passthrough
+from pocket_coffea.lib.cut_functions import get_nObj, get_nBtag
+from pocket_coffea.lib.cut_definition import Cut
 from config.parton_matching.functions import *
-from PocketCoffea.workflows.base import ttHbbBaseProcessor
+from pocket_coffea.workflows.base import ttHbbBaseProcessor
 cfg =  {
 
     "dataset" : {
@@ -20,7 +20,7 @@ cfg =  {
     "output"   : "output/test_weights_custom",
     "workflow_extra_options": {},
     "split_eras" :False,
-     "triggerSF" : "PocketCoffea/parameters/semileptonic_triggerSF/triggerSF_2018UL_Ele32_EleHT/sf_trigger_electron_etaSC_vs_electron_pt_2018_Ele32_EleHT_pass_v03.coffea",
+     "triggerSF" : "pocket_coffea/parameters/semileptonic_triggerSF/triggerSF_2018UL_Ele32_EleHT/sf_trigger_electron_etaSC_vs_electron_pt_2018_Ele32_EleHT_pass_v03.coffea",
 
     "run_options" : {
         "executor"       : "futures",
@@ -67,25 +67,22 @@ cfg =  {
 
     
     "variables" : {
-        "muon_pt" : {'binning' : {'n_or_arr' : 100, 'lo' : 0, 'hi' : 500}, 'xlim' : (0,500),  'xlabel' : "$p_{T}^{\mu}$ [GeV]"},
-        "muon_eta" : None,
-        "muon_phi" : None,
-        "electron_pt" : None,
-        "electron_eta" : None,
-        "electron_phi" : None,
-        "jet_pt" : None,
-        "jet_eta" : None,
-        "jet_phi" : None,
-        "nmuon" : None,
-        "nelectron" : None,
-        "nlep" : None,
-        "nmuon" : None,
-        "nelectron" : None,
-        "nlep" : None,
-        "njet" : None,
-        "nbjet" : None,
-    },
-     "variables2d" : {
+        **jet_hists(coll="JetGood"),
+        **jet_hists(coll="BJetGood"),
+        **ele_hists(coll="ElectronGood"),
+        **muon_hists(coll="MuonGood"),
+        **count_hist(name="nJets", coll="JetGood",bins=10, start=4, stop=14),
+        **count_hist(name="nBJets", coll="BJetGood",bins=12, start=2, stop=14),
+        **jet_hists(coll="JetGood", pos=0),
+        **jet_hists(coll="JetGood", pos=1),
+        **jet_hists(coll="JetGood", pos=2),
+        **jet_hists(coll="JetGood", pos=3),
+        **jet_hists(coll="JetGood", pos=4),
+        **jet_hists(name="bjet",coll="BJetGood", pos=0),
+        **jet_hists(name="bjet",coll="BJetGood", pos=1),
+        **jet_hists(name="bjet",coll="BJetGood", pos=2),
+        **jet_hists(name="bjet",coll="BJetGood", pos=3),
+        **jet_hists(name="bjet",coll="BJetGood", pos=4),
+
      },
-    "scale" : "log"
 }

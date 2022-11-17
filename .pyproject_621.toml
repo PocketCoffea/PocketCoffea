@@ -1,0 +1,120 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "PocketCoffea"
+version = "0.1.0"
+authors = [
+  { name = "Davide Valsecchi ", email = "davide.valsecchi@cern.ch" },
+  { name = "Matteo Marchegiani ", email = "matteo.marchegiani@cern.ch" },
+]
+description = "Configurable analysis framework based on Coffea for CMS NanoAOD events analysis"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+  "Development Status :: 1 - Planning",
+  "Intended Audience :: Science/Research",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: BSD License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: Scientific/Engineering",
+  "Typing :: Typed",
+]
+dependencies = [
+  "typing_extensions >=3.7; python_version<'3.8'",
+   "coffea>=0.7.20",
+   "vector",
+   "hist",
+   "pyaml",
+   "requests",
+   "dask==2022.02.0",
+   "dask-lxplus",
+   "parsl",
+   "matplotlib",
+   "mplhep",
+   "rich",
+]
+
+# [project.scripts]
+# runner.py="scripts/runner.py"
+# build_dataset.py="scripts/dataset/build_dataset.py"
+# filter_lumi_json.py="scripts/lumi/filter_lumi_json.py"
+# run_brilcalc.py="scripts/lumi/run_brilcalc.py"
+
+
+[project.optional-dependencies]
+test = [
+  "pytest >=6",
+  "pytest-cov >=3",
+]
+dev = [
+  "pytest >=6",
+  "pytest-cov >=3",
+  "nox"
+]
+docs = [
+  "Sphinx>=4.0",
+  "myst_parser>=0.13",
+  "sphinx-book-theme>=0.1.0",
+  "sphinx_copybutton",
+]
+
+[project.urls]
+Homepage = "https://github.com/PocketCoffea/PocketCoffea"
+"Bug Tracker" = "https://github.com/PocketCoffea/PocketCoffea/issues"
+Discussions = "https://github.com/PocketCoffea/PocketCoffea/discussions"
+Changelog = "https://github.com/PocketCoffea/PocketCoffea/releases"
+
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
+xfail_strict = true
+filterwarnings = ["error"]
+log_cli_level = "INFO"
+testpaths = [
+  "tests",
+]
+
+
+[tool.mypy]
+files = "src"
+python_version = "3.7"
+warn_unused_configs = true
+strict = true
+show_error_codes = true
+enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
+warn_unreachable = true
+
+
+[tool.isort]
+profile = "black"
+
+
+[tool.pylint]
+master.py-version = "3.7"
+master.ignore-paths= ["src/PocketCoffea/_version.py"]
+reports.output-format = "colorized"
+similarities.ignore-imports = "yes"
+messages_control.disable = [
+  "design",
+  "fixme",
+  "line-too-long",
+  "wrong-import-position",
+]
