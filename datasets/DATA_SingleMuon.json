@@ -2,9 +2,10 @@
     "DATA_SingleMuon_2018_EraA": {
         "metadata": {
             "das_names": "['/SingleMuon/Run2018A-UL2018_MiniAODv2_NanoAODv9-v2/NANOAOD']",
-            "sample": "DATA",
+            "sample": "DATA_SingleMu",
             "year": "2018",
             "isMC": "False",
+            "primaryDataset": "SingleMu",
             "era": "A",
             "nevents": "241608232",
             "size": "211774345140"
@@ -107,9 +108,10 @@
     "DATA_SingleMuon_2018_EraB": {
         "metadata": {
             "das_names": "['/SingleMuon/Run2018B-UL2018_MiniAODv2_NanoAODv9-v2/NANOAOD']",
-            "sample": "DATA",
+            "sample": "DATA_SingleMu",
             "year": "2018",
             "isMC": "False",
+            "primaryDataset": "SingleMu",
             "era": "B",
             "nevents": "119918017",
             "size": "104200105741"
@@ -171,9 +173,10 @@
     "DATA_SingleMuon_2018_EraC": {
         "metadata": {
             "das_names": "['/SingleMuon/Run2018C-UL2018_MiniAODv2_NanoAODv9-v2/NANOAOD']",
-            "sample": "DATA",
+            "sample": "DATA_SingleMu",
             "year": "2018",
             "isMC": "False",
+            "primaryDataset": "SingleMu",
             "era": "C",
             "nevents": "109986009",
             "size": "98847838258"
@@ -240,9 +243,10 @@
     "DATA_SingleMuon_2018_EraD": {
         "metadata": {
             "das_names": "['/SingleMuon/Run2018D-UL2018_MiniAODv2_NanoAODv9-v1/NANOAOD']",
-            "sample": "DATA",
+            "sample": "DATA_SingleMu",
             "year": "2018",
             "isMC": "False",
+            "primaryDataset": "SingleMu",
             "era": "D",
             "nevents": "513909894",
             "size": "449341080911"

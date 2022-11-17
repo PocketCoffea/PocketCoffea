@@ -1,6 +1,6 @@
 {
     "DATA_DoubleMuon":{
-        "sample": "DATA",
+        "sample": "DATA_DoubleMu",
         "json_output"     : "datasets/DATA_DoubleMuon.json",
         "storage_prefix" : "/pnfs/psi.ch/cms/trivcat/",
         "files":[
@@ -44,7 +44,7 @@
     },
 
     "DATA_SingleMuon":{
-        "sample": "DATA",
+        "sample": "DATA_SingleMu",
         "json_output"     : "datasets/DATA_SingleMuon.json",
         "storage_prefix" : "/pnfs/psi.ch/cms/trivcat/",
         "files":[
@@ -74,10 +74,42 @@
                   "era": "D" }}
         ]
     },
+
+      "DATA_SingleEle":{
+        "sample": "DATA_SingleEle",
+        "json_output"     : "datasets/DATA_SingleEle.json",
+        "storage_prefix" : "/pnfs/psi.ch/cms/trivcat/",
+        "files":[
+            { "das_names": ["/EGamma/Run2018A-UL2018_MiniAODv2_NanoAODv9_GT36-v1/NANOAOD"],
+              "metadata": {
+                  "year":"2018",
+                  "isMC": false,
+                  "primaryDataset": "SingleEle",
+                  "era": "A" }},
+            { "das_names": ["/EGamma/Run2018B-UL2018_MiniAODv2_NanoAODv9_GT36-v1/NANOAOD"],
+              "metadata": {
+                  "year":"2018",
+                  "isMC": false,
+                  "primaryDataset": "SingleEle",
+                  "era": "B" }},
+            { "das_names": ["/EGamma/Run2018C-UL2018_MiniAODv2_NanoAODv9_GT36-v1/NANOAOD"],
+              "metadata": {
+                  "year":"2018",
+                  "isMC": false,
+                  "primaryDataset": "SingleEle",
+                  "era": "C" }},
+            { "das_names": ["/EGamma/Run2018D-UL2018_MiniAODv2_NanoAODv9-v3/NANOAOD"],
+              "metadata": {
+                  "year":"2018",
+                  "isMC": false,
+                  "primaryDataset": "SingleEle",
+                  "era": "D" }}
+        ]
+    },
         
     "ttHTobb": {
         "sample": "ttHTobb",
-        "json_output" : "datasets/signal_ttHTobb_lxplus.json",
+        "json_output" : "datasets/signal_ttHTobb.json",
         "storage_prefix": "/pnfs/psi.ch/cms/trivcat/",
         "files": [
             { "das_names": ["/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM"],
@@ -89,9 +121,41 @@
         ]
     },
 
+     "TTbb_semileptonic_Powheg": {
+        "sample": "TTbb",
+        "json_output" : "datasets/background_MC_TTbb.json",
+        "storage_prefix": "/pnfs/psi.ch/cms/trivcat/",
+        "files": [
+            { "das_names": ["/TTbb_4f_TTToSemiLeptonic_TuneCP5-Powheg-Openloops-Pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"],
+              "metadata":{
+                  "year": "2018",
+                  "isMC": true
+              }
+            },
+            { "das_names": ["/TTbb_4f_TTToSemiLeptonic_TuneCP5-Powheg-Openloops-Pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM"],
+              "metadata":{
+                  "year": "2017",
+                  "isMC": true
+              }
+            },
+            { "das_names": ["/TTbb_4f_TTToSemiLeptonic_TuneCP5-Powheg-Openloops-Pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM"],
+              "metadata":{
+                  "year": "2016_PreVFP",
+                  "isMC": true
+              }
+            },
+            { "das_names": ["/TTbb_4f_TTToSemiLeptonic_TuneCP5-Powheg-Openloops-Pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"],
+              "metadata":{
+                  "year": "2016_PostVFP",
+                  "isMC": true
+              }
+            }
+        ]
+    },
+
     "TTToSemiLeptonic": {
         "sample": "TTToSemiLeptonic",
-        "json_output" : "datasets/backgrounds_MC.json",
+        "json_output" : "datasets/backgrounds_MC_ttbar.json",
         "storage_prefix": "/pnfs/psi.ch/cms/trivcat/",
         "files": [
             { "das_names": ["/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"],
@@ -105,7 +169,7 @@
 
     "TTTo2L2Nu": {
         "sample": "TTTo2L2Nu",
-        "json_output" : "datasets/backgrounds_MC.json",
+        "json_output" : "datasets/backgrounds_MC_ttbar.json",
         "storage_prefix": "/pnfs/psi.ch/cms/trivcat/",
         "files": [
             { "das_names": ["/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"],
