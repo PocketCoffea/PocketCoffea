@@ -71,6 +71,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
         # Custom axis for the histograms
         self.custom_axes = []
+        self.custom_histogram_fields = {}
 
         # Output format
         # Accumulators for the output
@@ -383,6 +384,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         The user can redefine this function to manipulate the HistManager
         histogram configuration to add customizations directly to the histogram
         objects before the filling.
+
+        This function should also be redefined to fill the `self.custom_histogram_fields`
+        that are passed to the histogram filling.
         '''
         pass
 
@@ -392,7 +396,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
         # Filling the autofill=True histogram automatically
         self.hists_manager.fill_histograms(
-            self.events, self.weights_manager, self._cuts_masks, custom_fields=None
+            self.events, self.weights_manager, self._cuts_masks, custom_fields=self.custom_histogram_fields
         )
 
         # Saving in the output the filled histograms for the current sample
