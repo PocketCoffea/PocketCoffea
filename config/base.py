@@ -15,8 +15,9 @@ cfg =  {
             "samples": ["TTToSemiLeptonic"],
             "samples_exclude" : [],
             "year": ['2018']
-        }
+        },
     },
+    
 
     # Input and output files
     "workflow" : ttHbbBaseProcessor,
@@ -43,7 +44,8 @@ cfg =  {
 
     # Cuts and plots settings
     "finalstate" : "semileptonic",
-    "skim": [get_nObj_min(4, 15., "Jet") ],
+    "skim": [get_nObj_min(4, 15., "Jet"),
+             get_HLT("tthbb_semileptonic")],
     "preselections" : [semileptonic_presel_nobtag],
     "categories": {
         "baseline": [passthrough],
@@ -61,16 +63,9 @@ cfg =  {
                           "pileup",
                           "sf_ele_reco", "sf_ele_id",
                           "sf_mu_id","sf_mu_iso",
-                          "sf_btag",
-                          "sf_btag_calib", "sf_jet_puId", 
+                          "sf_btag", "sf_jet_puId", 
                           ],
             "bycategory" : {
-                "4b": [
-                    WeightCustom(
-                        name="example",
-                        function= lambda events, size, metadata: [("pt_weight", 1 + events.JetGood[:,0].pt/400.)]
-                    )
-                ]               
             }
         },
         "bysample": {
@@ -83,10 +78,9 @@ cfg =  {
                 "inclusive": [  "pileup",
                                 "sf_ele_reco", "sf_ele_id",
                                 "sf_mu_id", "sf_mu_iso", "sf_jet_puId",
-                               
+                                *[ f"sf_btag_{b}" for b in btag_variations["2018"]]                               
                               ],
                 "bycategory" : {
-                    "3b": [ f"sf_btag_{b}" for b in btag_variations["2018"]]
                 }
             },
         "bysample": {
@@ -97,11 +91,11 @@ cfg =  {
 
    "variables":
     {
-            
-        **jet_hists(coll="JetGood"),
-        **jet_hists(coll="BJetGood"),
-        **ele_hists(coll="ElectronGood"),
-        **muon_hists(coll="MuonGood"),
+
+        **ele_hists(coll="ElectronGood", pos=0),
+        **muon_hists(coll="MuonGood", pos=0),
+        **count_hist(name="nElectronGood", coll="ElectronGood",bins=3, start=0, stop=3),
+        **count_hist(name="nMuonGood", coll="MuonGood",bins=3, start=0, stop=3),
         **count_hist(name="nJets", coll="JetGood",bins=10, start=4, stop=14),
         **count_hist(name="nBJets", coll="BJetGood",bins=12, start=2, stop=14),
         **jet_hists(coll="JetGood", pos=0),
@@ -112,8 +106,6 @@ cfg =  {
         **jet_hists(name="bjet",coll="BJetGood", pos=0),
         **jet_hists(name="bjet",coll="BJetGood", pos=1),
         **jet_hists(name="bjet",coll="BJetGood", pos=2),
-        **jet_hists(name="bjet",coll="BJetGood", pos=3),
-        **jet_hists(name="bjet",coll="BJetGood", pos=4),
 
         # 2D plots
         "jet_eta_pt_leading": HistConf(
