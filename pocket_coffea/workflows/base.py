@@ -163,17 +163,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
         pass
 
-    def apply_triggers(self):
-        '''
-        Function that computes the trigger masks and save it in the masks to be applied
-        at the skimming step.
-        '''
-        # Trigger logic is included in the preselection mask
-        self._skim_masks.add(
-            'trigger',
-            get_trigger_mask(self.events, self._triggers, self.cfg.finalstate),
-        )
-
     def skim_events(self):
         '''
         Function which applied the initial event skimming.
@@ -431,8 +420,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         The processing goes through the following steps:
 
           - load metadata
-          - apply triggers
-          - Skim events (first masking of events)
+          - Skim events (first masking of events):
+              HLT triggers should be applied here, but their use is left to the configuration,
+              and not hardcoded in the processor.
           - apply object preselections
           - count objects
           - apply event preselection (secondo masking of events)
@@ -467,8 +457,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # BE CAREFUL: objects are not corrected and cleaned at this stage, the skimming
         # selections MUST be loose and inclusive w.r.t the final selections.
         #########################
-        # Trigger are applied at the beginning since they do not change
-        self.apply_triggers()
         # Customization point for derived workflows before skimming
         self.process_extra_before_skim()
         # MET filter, lumimask, + custom skimming function
