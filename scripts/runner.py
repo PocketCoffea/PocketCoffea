@@ -225,6 +225,7 @@ if __name__ == '__main__':
                  env_extra=env_extra,
             )
         elif 'lxplus' in config.run_options["executor"]:
+            log_folder = "condor_log"
             from pocket_coffea.utils.network import check_port
 
             if "lxplus" not in socket.gethostname():

@@ -9,6 +9,7 @@ from collections import defaultdict
 import inspect
 
 from ..lib.cut_definition import Cut
+from ..parameters.cuts.preselection_cuts import passthrough
 from ..lib.weights_manager import WeightCustom
 from ..lib.hist_manager import Axis, HistConf
 
@@ -165,6 +166,13 @@ class Configurator:
     def load_cuts_and_categories(self):
         '''This function loads the list of cuts and groups them in categories.
         Each cut is identified by a unique id (see Cut class definition)'''
+        # If the skim, preselection and categories list are empty, append a `passthrough` Cut
+        for cut_type in ["skim", "preselections"]:
+            if len(self.cfg[cut_type]) == 0:
+                setattr(self, cut_type, [ passthrough ])
+                self.cfg[cut_type] = [ passthrough ]
+        if self.categories == {}:
+            self.cfg["categories"]["baseline"] = [ passthrough ]
         # The cuts_dict is saved just for record
         for skim in self.cfg["skim"]:
             if not isinstance(skim, Cut):

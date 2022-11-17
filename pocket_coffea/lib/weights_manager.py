@@ -24,7 +24,7 @@ from ..lib.pileup import sf_pileup_reweight
 
 # Framework parameters
 from ..parameters.lumi import lumi, goldenJSON
-from ..parameters.samples import samples_info
+from ..parameters.xsec import xsec
 from ..parameters.btag import btag, btag_variations
 
 
@@ -218,7 +218,7 @@ class WeightsManager:
             return [('lumi', ak.full_like(events.genWeight, lumi[self._year]["tot"]))]
         elif weight_name == 'XS':
             return [
-                ('XS', ak.full_like(events.genWeight, samples_info[self._sample]["XS"]))
+                ('XS', ak.full_like(events.genWeight, xsec[self._sample]))
             ]
         elif weight_name == 'pileup':
             # Pileup reweighting with nominal, up and down variations

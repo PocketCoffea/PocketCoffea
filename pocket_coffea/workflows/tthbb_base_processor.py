@@ -116,7 +116,7 @@ class ttHbbBaseProcessor(BaseProcessorABC):
         '''
 
         # Filling the special histograms for events if they are present
-        if "events_per_chunk" in self.hists_manager.histograms:
+        if self._isMC & ("events_per_chunk" in self.hists_manager.histograms):
             hepc = self.hists_manager.get_histogram("events_per_chunk")
             hepc.hist_obj.fill(
                 cat=hepc.only_categories[0],
