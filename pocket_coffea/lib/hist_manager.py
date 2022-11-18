@@ -3,6 +3,7 @@ import awkward as ak
 from collections import defaultdict
 from typing import List, Tuple
 from dataclasses import dataclass, field
+from copy import deepcopy
 
 
 @dataclass
@@ -106,7 +107,7 @@ class HistManager:
         sample,
         categories_config,
         variations_config,
-        custom_axes=[],
+        custom_axes=None,
         isMC=True,
     ):
         self.isMC = isMC
@@ -127,7 +128,7 @@ class HistManager:
         # Prepare the variations Axes summing all the required variations
         # The variation config is organized as the weights one, by sample and by category
 
-        for name, hcfg in hist_config.items():
+        for name, hcfg in deepcopy(hist_config).items():
             # Check if the histogram is active for the current sample
             if hcfg.only_samples != None:
                 if sample not in cfg.only_samples:
@@ -187,10 +188,9 @@ class HistManager:
                 all_axes = [cat_ax]
             # the custom axis get included in the hcfg for future use
             hcfg.axes = custom_axes + hcfg.axes
+            # Then we add those axes to the full list
             for ax in hcfg.axes:
                 all_axes.append(get_hist_axis_from_config(ax))
-            #print(name, all_axes, hcfg)
-            print(custom_axes)
             # Build the histogram object with the additional axes
             hcfg.hist_obj = hist.Hist(*all_axes, storage=hcfg.storage, name="Counts")
             # Save the hist in the configuration and store the full config object
@@ -210,7 +210,14 @@ class HistManager:
     def get_histogram(self, name):
         return self.histograms[name]
 
-    def fill_histograms(self, events, weights_manager, cuts_masks, subsample_mask=None, custom_fields=None):
+    def fill_histograms(
+        self,
+        events,
+        weights_manager,
+        cuts_masks,
+        subsample_mask=None,
+        custom_fields=None,
+    ):
         '''
         We loop on the configured histograms only
         Doing so the catergory, sample, variation selections are handled correctly (by the constructor).
@@ -221,8 +228,8 @@ class HistManager:
         for category in self.available_categories:
             # Getting the cut mask
             mask = cuts_masks.all(*self.categories_config[category])
-            if subsample_mask != None:
-                mask = (mask & subsample_mask)
+            if subsample_mask is not None:
+                mask = mask & subsample_mask
             masked_events = events[mask]
             # Weights must be computed for each category and variation,
             # but it is not needed to recompute them for each histo.

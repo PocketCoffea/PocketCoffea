@@ -2,6 +2,7 @@ import numpy as np
 import awkward as ak
 from ..parameters.triggers import triggers
 
+
 def get_trigger_mask(events, key, year, isMC, primaryDatasets=None, invert=False):
     '''Computes the HLT trigger mask
 
@@ -32,27 +33,33 @@ def get_trigger_mask(events, key, year, isMC, primaryDatasets=None, invert=False
     else:
         if isMC:
             # If MC take the OR of all primary datasets
-            for pd,trgs in cfg.items():
+            for pd, trgs in cfg.items():
                 triggers_to_apply += trgs
         else:
             # If Data take only the specific pd
             triggers_to_apply += cfg[events.metadata["primaryDataset"]]
 
-    #create the mask
+    # create the mask
     trigger_mask = np.zeros(len(events), dtype="bool")
 
     for trigger in triggers_to_apply:
         # Special treatment for Ele32 in 2017
-        if year=="2017" and ((trigger == 'Ele32_WPTight_Gsf_L1DoubleEG') & ('Ele32_WPTight' not in events.HLT.fields)):
-            flag = ak.sum( (events.TrigObj.id == 11) & ((events.TrigObj.filterBits & 1024) == 1024), axis=1 ) > 0
-            trigger_mask = trigger_mask | ( events.HLT[trigger] & flag )
+        if year == "2017" and (
+            (trigger == 'Ele32_WPTight_Gsf_L1DoubleEG')
+            & ('Ele32_WPTight' not in events.HLT.fields)
+        ):
+            flag = (
+                ak.sum(
+                    (events.TrigObj.id == 11)
+                    & ((events.TrigObj.filterBits & 1024) == 1024),
+                    axis=1,
+                )
+                > 0
+            )
+            trigger_mask = trigger_mask | (events.HLT[trigger] & flag)
         else:
             trigger_mask = trigger_mask | events.HLT[trigger.lstrip("HLT_")]
-            
+
     if invert:
         trigger_mask = ~trigger_mask
     return trigger_mask
-
-
-
-

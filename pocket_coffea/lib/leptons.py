@@ -1,15 +1,5 @@
-import os
-import copy
-
 import awkward as ak
 import numpy as np
-import math
-import uproot
-import correctionlib
-from vector import MomentumObject4D
-
-from coffea import hist, lookup_tools
-from coffea.nanoevents.methods import nanoaod
 
 from ..parameters.object_preselection import object_preselection
 from ..parameters.jec import JECjsonFiles

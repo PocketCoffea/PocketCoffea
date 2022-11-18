@@ -72,7 +72,10 @@ triggers = {
             "SingleMu": ["IsoMu24", "IsoTkMu24"],
         },
         "2017": {
-            "SingleEle": ["Ele32_WPTight_Gsf_L1DoubleEG", "Ele28_eta2p1_WPTight_Gsf_HT150"],
+            "SingleEle": [
+                "Ele32_WPTight_Gsf_L1DoubleEG",
+                "Ele28_eta2p1_WPTight_Gsf_HT150",
+            ],
             "SingleMu": [
                 "IsoMu27",
             ],

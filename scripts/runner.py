@@ -48,7 +48,7 @@ if __name__ == '__main__':
     # Prepare logging
     if (not setup_logging(console_log_output="stdout", console_log_level=args.loglevel, console_log_color=True,
                         logfile_file="last_run.log", logfile_log_level="info", logfile_log_color=False,
-                        log_line_template="%(color_on)s[%(created)d] [%(levelname)-8s] %(message)s%(color_off)s")):
+                        log_line_template="%(color_on)s[%(levelname)-8s] %(message)s%(color_off)s")):
         print("Failed to setup logging, aborting.")
         exit(1) 
     
