@@ -68,13 +68,18 @@ triggers = {
     },
     "semileptonic": {
         "2016": {
-            "SingleEle": ["Ele27_WPTight_Gsf", "Ele27_WPTight_Gsf_L1JetTauSeeded"],
-            "SingleMu": ["IsoMu24", "IsoTkMu24"],
+            "SingleEle": [
+                "Ele27_WPTight_Gsf",
+            ],
+            "SingleMu": [
+                "IsoMu24",
+                "IsoTkMu24"
+            ],
         },
         "2017": {
             "SingleEle": [
                 "Ele32_WPTight_Gsf_L1DoubleEG",
-                "Ele28_eta2p1_WPTight_Gsf_HT150",
+                "Ele28_eta2p1_WPTight_Gsf_HT150"
             ],
             "SingleMu": [
                 "IsoMu27",
@@ -83,21 +88,13 @@ triggers = {
         "2018": {
             "SingleEle": [
                 "Ele32_WPTight_Gsf",
-                "Ele32_WPTight_Gsf_L1DoubleEG",
                 "Ele28_eta2p1_WPTight_Gsf_HT150",
             ],
             "SingleMu": [
-                "IsoMu24_eta2p1_TightChargedIsoPFTauHPS35_Trk1_eta2p1_Reg_CrossL1",
-                "IsoMu24_eta2p1_MediumChargedIsoPFTauHPS35_Trk1_TightID_eta2p1_Reg_CrossL1",
-                "IsoMu24_eta2p1_TightChargedIsoPFTauHPS35_Trk1_TightID_eta2p1_Reg_CrossL1",
-                "IsoMu24_eta2p1_MediumChargedIsoPFTauHPS35_Trk1_eta2p1_Reg_CrossL1",
                 "IsoMu24",
-                "IsoMu24_eta2p1",
-                "IsoMu24_TwoProngs35",
-                "IsoMu24_eta2p1_MediumChargedIsoPFTau50_Trk30_eta2p1_1pr",
             ],
         },
-    },
+    }
 }
 
 

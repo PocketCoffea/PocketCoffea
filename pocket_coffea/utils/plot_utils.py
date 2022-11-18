@@ -211,7 +211,11 @@ def plot_data_mc_hist1D(h, histname, config):
             stack_mc = hist.Stack.from_dict(dict_mc)
             stack_mc_nominal = hist.Stack.from_dict(dict_mc_nominal)
             if not is_mc_only:
-                slicing_data = {'year': '2018', 'cat': cat}
+                # Sum over eras if era axis exists in data histogram
+                if 'era' in h[samples_data[0]].axes.name:
+                    slicing_data = {'year': '2018', 'cat': cat, 'era' : sum}
+                else:
+                    slicing_data = {'year': '2018', 'cat': cat}
                 dict_data = {d: h[d][slicing_data] for d in samples_data}
                 stack_data = hist.Stack.from_dict(dict_data)
                 if len(stack_data) > 1:

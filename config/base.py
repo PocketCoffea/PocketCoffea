@@ -22,7 +22,7 @@ cfg =  {
     # Input and output files
     "workflow" : ttHbbBaseProcessor,
     "output"   : "output/test_base",
-    "worflow_options" : {},
+    "workflow_options" : {},
 
     "run_options" : {
         "executor"       : "dask/lxplus",

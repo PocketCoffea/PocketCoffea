@@ -23,7 +23,7 @@ import hist
 import correctionlib, rich
 import correctionlib.convert
 
-from pocket_coffea.utils.configurator import configurator
+from pocket_coffea.utils.configurator import Configurator
 from pocket_coffea.utils.plot_utils import slice_accumulator
 from pocket_coffea.utils.plot_efficiency import plot_efficiency_maps, plot_efficiency_maps_splitHT, plot_efficiency_maps_spliteras
 from pocket_coffea.utils.PlotSF import plot_variation_correctionlib
@@ -100,9 +100,9 @@ def _plot_efficiency_maps_spliteras(entrystart, entrystop):
     return plot_efficiency_maps_spliteras(_accumulator, config, args.save_plots)
 
 def save_corrections(corrections):
-    if not os.path.exists(config.output_triggerSF):
-        os.makedirs(config.output_triggerSF)
-    local_folder = os.path.join(config.output, *config.output_triggerSF.split('/')[-2:])
+    if not os.path.exists(config.workflow_options["output_triggerSF"]):
+        os.makedirs(config.workflow_options["output_triggerSF"])
+    local_folder = os.path.join(config.output, *config.workflow_options["output_triggerSF"].split('/')[-2:])
     if not os.path.exists(local_folder):
         os.makedirs(local_folder)
     for histname, d in corrections.items():
@@ -134,7 +134,7 @@ def save_corrections(corrections):
             )
             rich.print(cset)
             filename = f'sf_trigger_{map_name}_{year}_{cat}.json'
-            for outdir in [config.output_triggerSF, local_folder]:
+            for outdir in [config.workflow_options["output_triggerSF"], local_folder]:
                 outfile_triggersf = os.path.join(outdir, filename)
                 outfile_triggersf = overwrite_check(outfile_triggersf)
                 print(f"Saving semileptonic trigger scale factors in {outfile_triggersf}")

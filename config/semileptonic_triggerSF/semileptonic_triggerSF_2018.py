@@ -1,18 +1,20 @@
 from pocket_coffea.parameters.cuts.preselection_cuts import semileptonic_triggerSF_presel, passthrough
 from pocket_coffea.workflows.semileptonic_triggerSF import semileptonicTriggerProcessor
-from pocket_coffea.lib.cut_functions import get_nObj_min
+from pocket_coffea.lib.cut_functions import get_nObj_min, get_HLTsel
 from pocket_coffea.parameters.histograms import *
-from config.semileptonic_triggerSF.functions import get_trigger_passfail, get_ht_above, get_ht_below
+from config.semileptonic_triggerSF.functions import get_ht_above, get_ht_below
 from config.semileptonic_triggerSF.plot_options import efficiency, scalefactor_eras, ratio, residue
 from math import pi
 
 cfg =  {
 
     "dataset" : {
-        "jsons": ["datasets/backgrounds_MC_local.json", "datasets/DATA_SingleMuon_local.json"],
+        "jsons": ["datasets/backgrounds_MC_ttbar_local.json",
+                  "datasets/DATA_SingleMuon_local.json"],
         "filter" : {
-            #"samples": ["TTToSemiLeptonic", "TTTo2L2Nu", "DATA"],
-            "samples": ["TTToSemiLeptonic", "TTTo2L2Nu", "DATA"],
+            "samples": ["TTToSemiLeptonic",
+                        "TTTo2L2Nu",
+                        "DATA_SingleMu"],
             "samples_exclude" : [],
             "year": ["2018"]
         }
@@ -20,43 +22,60 @@ cfg =  {
 
     # Input and output files
     "workflow" : semileptonicTriggerProcessor,
-    "output"   : "output/sf_ele_trigger_semilep/semileptonic_triggerSF_2018_06Nov22",
-    "output_triggerSF" : "pocket_coffea/parameters/semileptonic_triggerSF/triggerSF_2018_Ele32_EleHT_06Nov22",
-    "triggerSF" : None,
+    "output"   : "output/sf_ele_trigger_semilep/semileptonic_triggerSF_2018_total",
+    "workflow_options" : {
+        "output_triggerSF" : "pocket_coffea/parameters/semileptonic_triggerSF/triggerSF_2018_Ele32_EleHT_newtriggerscheme"
+    },
 
     # Executor parameters
     "run_options" : {
-        "executor"       : "futures",
-        "workers"        : 16,
-        "scaleout"       : 16,
-        "partition"      : "short",
-        "walltime"       : "1:00:00",
-        "mem_per_worker" : "5GB", # GB
+        "executor"       : "dask/slurm",
+        "workers"        : 1,
+        "scaleout"       : 125,
+        "queue"          : "standard",
+        "walltime"       : "12:00:00",
+        "mem_per_worker" : "4GB", # GB
         "exclusive"      : False,
-        "chunk"          : 50000,
-        "retries"        : 30,
+        "chunk"          : 400000,
+        "retries"        : 50,
         "treereduction"  : 10,
         "max"            : None,
         "skipbadfiles"   : None,
         "voms"           : None,
         "limit"          : None,
+        "adapt"          : False,
     },
 
     # Cuts and plots settings
-    "finalstate" : "semileptonic_triggerSF",
-    "skim" : [ get_nObj_min(3, 15., "Jet") ],
+    "finalstate" : "semileptonic",
+    "skim" : [ get_nObj_min(3, 15., "Jet"),
+               get_HLTsel("semileptonic", primaryDatasets=["SingleMu"]) ],
     "preselections" : [semileptonic_triggerSF_presel],
     "categories": {
-        "Ele32_EleHT_pass" : [get_trigger_passfail(["Ele32_WPTight_Gsf", "Ele28_eta2p1_WPTight_Gsf_HT150"], "pass")],
-        "Ele32_EleHT_fail" : [get_trigger_passfail(["Ele32_WPTight_Gsf", "Ele28_eta2p1_WPTight_Gsf_HT150"], "fail")],
-        "Ele32_EleHT_pass_lowHT" : [get_trigger_passfail(["Ele32_WPTight_Gsf", "Ele28_eta2p1_WPTight_Gsf_HT150"], "pass"), get_ht_below(400)],
-        "Ele32_EleHT_fail_lowHT" : [get_trigger_passfail(["Ele32_WPTight_Gsf", "Ele28_eta2p1_WPTight_Gsf_HT150"], "fail"), get_ht_below(400)],
-        "Ele32_EleHT_pass_highHT" : [get_trigger_passfail(["Ele32_WPTight_Gsf", "Ele28_eta2p1_WPTight_Gsf_HT150"], "pass"), get_ht_above(400)],
-        "Ele32_EleHT_fail_highHT" : [get_trigger_passfail(["Ele32_WPTight_Gsf", "Ele28_eta2p1_WPTight_Gsf_HT150"], "fail"), get_ht_above(400)],
+        "Ele32_EleHT_pass" : [
+            get_HLTsel("semileptonic", primaryDatasets=["SingleEle"])
+        ],
+        "Ele32_EleHT_fail" : [
+            get_HLTsel("semileptonic", primaryDatasets=["SingleEle"], invert=True)
+        ],
+        "Ele32_EleHT_pass_lowHT" : [
+            get_HLTsel("semileptonic", primaryDatasets=["SingleEle"]),
+            get_ht_below(400)
+        ],
+        "Ele32_EleHT_fail_lowHT" : [
+            get_HLTsel("semileptonic", primaryDatasets=["SingleEle"], invert=True),
+            get_ht_below(400)
+        ],
+        "Ele32_EleHT_pass_highHT" : [
+            get_HLTsel("semileptonic", primaryDatasets=["SingleEle"]),
+            get_ht_above(400)
+        ],
+        "Ele32_EleHT_fail_highHT" : [
+            get_HLTsel("semileptonic", primaryDatasets=["SingleEle"], invert=True),
+            get_ht_above(400)
+        ],
         "inclusive" : [passthrough],
     },
-    "split_eras" : True,
-    "split_ht" : False,
 
     "weights": {
         "common": {
@@ -64,6 +83,8 @@ cfg =  {
                           "pileup",
                           "sf_ele_reco", "sf_ele_id",
                           "sf_mu_id","sf_mu_iso"],
+            "bycategory" : {
+            }
         },
         "bysample": {
         }
