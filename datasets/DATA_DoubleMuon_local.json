@@ -2,9 +2,10 @@
     "DATA_DoubleMuon_2017_EraB": {
         "metadata": {
             "das_names": "['/DoubleMuon/Run2017B-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD']",
-            "sample": "DATA",
+            "sample": "DATA_DoubleMu",
             "year": "2017",
             "isMC": "False",
+            "primaryDataset": "DoubleMu",
             "era": "B",
             "nevents": "14501767",
             "size": "12670428161"
@@ -23,9 +24,10 @@
     "DATA_DoubleMuon_2017_EraC": {
         "metadata": {
             "das_names": "['/DoubleMuon/Run2017C-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD']",
-            "sample": "DATA",
+            "sample": "DATA_DoubleMu",
             "year": "2017",
             "isMC": "False",
+            "primaryDataset": "DoubleMu",
             "era": "C",
             "nevents": "49636525",
             "size": "47479568863"
@@ -65,9 +67,10 @@
     "DATA_DoubleMuon_2017_EraD": {
         "metadata": {
             "das_names": "['/DoubleMuon/Run2017D-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD']",
-            "sample": "DATA",
+            "sample": "DATA_DoubleMu",
             "year": "2017",
             "isMC": "False",
+            "primaryDataset": "DoubleMu",
             "era": "D",
             "nevents": "23075733",
             "size": "22212218349"
@@ -94,9 +97,10 @@
     "DATA_DoubleMuon_2017_EraE": {
         "metadata": {
             "das_names": "['/DoubleMuon/Run2017E-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD']",
-            "sample": "DATA",
+            "sample": "DATA_DoubleMu",
             "year": "2017",
             "isMC": "False",
+            "primaryDataset": "DoubleMu",
             "era": "E",
             "nevents": "51531477",
             "size": "53211533985"
@@ -141,9 +145,10 @@
     "DATA_DoubleMuon_2017_EraF": {
         "metadata": {
             "das_names": "['/DoubleMuon/Run2017F-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD']",
-            "sample": "DATA",
+            "sample": "DATA_DoubleMu",
             "year": "2017",
             "isMC": "False",
+            "primaryDataset": "DoubleMu",
             "era": "F",
             "nevents": "79756560",
             "size": "82387423214"
@@ -214,9 +219,10 @@
     "DATA_DoubleMuon_2017_EraG": {
         "metadata": {
             "das_names": "['/DoubleMuon/Run2017G-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD']",
-            "sample": "DATA",
+            "sample": "DATA_DoubleMu",
             "year": "2017",
             "isMC": "False",
+            "primaryDataset": "DoubleMu",
             "era": "G",
             "nevents": "892686175",
             "size": "215401418916"

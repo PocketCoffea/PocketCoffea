@@ -2,13 +2,15 @@ import os
 import sys
 import json
 from copy import deepcopy
-from pprint import pprint
+from pprint import pprint, pformat
 import cloudpickle
 import importlib.util
 from collections import defaultdict
 import inspect
+import logging
 
 from ..lib.cut_definition import Cut
+from ..parameters.cuts.preselection_cuts import passthrough
 from ..lib.weights_manager import WeightCustom
 from ..lib.hist_manager import Axis, HistConf
 
@@ -28,6 +30,14 @@ class Configurator:
         self.years = []
         self.eras = []
         self.load_dataset()
+
+        # subsamples configuration
+        # Dictionary with subsample_name:[list of Cut ids]
+        self.subsamples = {
+            key: subscfg
+            for key, subscfg in self.dataset.get("subsamples", {}).items()
+            if key in self.samples
+        }
 
         # Check if output file exists, and in case add a `_v01` label, make directory
         if overwrite_output_dir:
@@ -165,6 +175,13 @@ class Configurator:
     def load_cuts_and_categories(self):
         '''This function loads the list of cuts and groups them in categories.
         Each cut is identified by a unique id (see Cut class definition)'''
+        # If the skim, preselection and categories list are empty, append a `passthrough` Cut
+        for cut_type in ["skim", "preselections"]:
+            if len(self.cfg[cut_type]) == 0:
+                setattr(self, cut_type, [passthrough])
+                self.cfg[cut_type] = [passthrough]
+        if self.categories == {}:
+            self.cfg["categories"]["baseline"] = [passthrough]
         # The cuts_dict is saved just for record
         for skim in self.cfg["skim"]:
             if not isinstance(skim, Cut):
@@ -176,6 +193,7 @@ class Configurator:
                 print("Please define skim, preselections and cuts as Cut objects")
                 raise Exception("Wrong categories/cuts configuration")
             self.cuts_dict[presel.id] = presel
+        # Now saving the categories and cuts
         for cat, cuts in self.cfg["categories"].items():
             self.categories[cat] = []
             for cut in cuts:
@@ -189,8 +207,10 @@ class Configurator:
         self.cut_functions = set(self.cut_functions)
         for cat, cuts in self.categories.items():
             self.categories[cat] = set(cuts)
-        print("Cuts:", list(self.cuts_dict.keys()))
-        print("Categories:", self.categories)
+        logging.info("Cuts:")
+        logging.info(pformat(self.cuts_dict.keys(), compact=True, indent=2))
+        logging.info("Categories:")
+        logging.info(pformat(self.categories, compact=True, indent=2))
 
     def load_weights_config(self):
         '''This function loads the weights definition and prepares a list of
@@ -263,8 +283,8 @@ class Configurator:
                             self.weights_config[sample]["bycategory"][cat].append(w)
                             self.weights_config[sample]["is_split_bycat"] = True
 
-        print("Weights configuration")
-        pprint(self.weights_config)
+        logging.info("Weights configuration")
+        logging.info(self.weights_config)
 
     def load_variations_config(self):
         '''This function loads the variations definition and prepares a list of
@@ -380,6 +400,15 @@ class Configurator:
 
     def save_config(self):
         ocfg = {k: v for k, v in self.cfg.items()}
+
+        subsamples_cuts = ocfg["dataset"].get("subsamples", {})
+        dump_subsamples = {}
+        for sample, subsamples in subsamples_cuts.items():
+            dump_subsamples[sample] = {}
+            for subs, cuts in subsamples.items():
+                dump_subsamples[sample][subs] = [c.serialize() for c in cuts]
+        ocfg["dataset"]["subsamples"] = dump_subsamples
+
         skim_dump = []
         presel_dump = []
         cats_dump = {}
@@ -399,10 +428,10 @@ class Configurator:
             "name": self.workflow.__name__,
             "srcfile": inspect.getsourcefile(self.workflow),
         }
-    
+
         ocfg["weights"] = {}
         for sample, weights in self.weights_config.items():
-            out = {"bycategory":{}, "inclusive":[] }
+            out = {"bycategory": {}, "inclusive": []}
             for cat, catw in weights["bycategory"].items():
                 out["bycategory"][cat] = []
                 for w in catw:
@@ -426,4 +455,6 @@ class Configurator:
         print("Saving config file to " + output_cfg)
         json.dump(ocfg, open(output_cfg, "w"), indent=2)
         # Pickle the configurator object in order to be able to reproduce completely the configuration
-        cloudpickle.dump(self, open(os.path.join(self.output, "configurator.pkl"), "wb"))
+        cloudpickle.dump(
+            self, open(os.path.join(self.output, "configurator.pkl"), "wb")
+        )

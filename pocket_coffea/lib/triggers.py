@@ -1,46 +1,65 @@
 import numpy as np
 import awkward as ak
+from ..parameters.triggers import triggers
 
 
-def get_trigger_mask(events, triggers, finalstate):
-    if finalstate == 'dilepton':
-        trigger_mumu = np.zeros(len(events), dtype='bool')
-        trigger_emu = np.zeros(len(events), dtype='bool')
-        trigger_ee = np.zeros(len(events), dtype='bool')
+def get_trigger_mask(events, key, year, isMC, primaryDatasets=None, invert=False):
+    '''Computes the HLT trigger mask
 
-        for trigger in triggers["mumu"]:
-            trigger_mumu = trigger_mumu | events.HLT[trigger.lstrip("HLT_")]
-        for trigger in triggers["emu"]:
-            trigger_emu = trigger_emu | events.HLT[trigger.lstrip("HLT_")]
-        for trigger in triggers["ee"]:
-            trigger_ee = trigger_ee | events.HLT[trigger.lstrip("HLT_")]
+    The function reads the triggers configuration and create the mask.
+    For MC the OR of all the triggers is performed.
+    For DATA only the corresponding primary dataset triggers are applied.
+    if primaryDataset param is passed, the correspoding triggers are applied, both
+    on DATA and MC.
 
-        return ak.to_numpy(trigger_mumu | trigger_emu | trigger_ee)
-
-    elif finalstate in ['semileptonic', 'semileptonic_partonmatching']:
-        trigger_mu = np.zeros(len(events), dtype='bool')
-        trigger_e = np.zeros(len(events), dtype='bool')
-
-        if (triggers["mu"] == []) | (triggers["e"] == []):
-            raise NotImplemented
-
-        for trigger in triggers["mu"]:
-            trigger_mu = trigger_mu | events.HLT[trigger.lstrip("HLT_")]
-        for trigger in triggers["e"]:
-            if 'e_flag' in triggers:
-                raise NotImplemented
-                # trigger_e  = trigger_e  | (events.HLT[trigger.lstrip("HLT_")] & events.Flag[triggers['e_flag']][0])
-            else:
-                trigger_e = trigger_e | events.HLT[trigger.lstrip("HLT_")]
-        return ak.to_numpy(trigger_mu | trigger_e)
-
-    elif finalstate == 'semileptonic_triggerSF':
-        trigger_mu = np.zeros(len(events), dtype='bool')
-
-        for trigger in triggers["mu"]:
-            trigger_mu = trigger_mu | events.HLT[trigger.lstrip("HLT_")]
-
-        return ak.to_numpy(trigger_mu)
-
+    :param events: Awkward arrays
+    :param key: Key of the triggers config
+    :param year: year of the dataset
+    :param isMC: MC/data
+    :param primaryDatasets: default None. Overwrite the configuration and applied the specified
+                            list of primary dataset triggers both on MC and data
+    :param invert: Invert the mask, returning which events do not path ANY of the triggers
+    :returns: the events mask.
+    '''
+    if key not in triggers:
+        raise Exception("Requested trigger config not found!")
+    cfg = triggers[key][year]
+    # If is MC
+    triggers_to_apply = []
+    if primaryDatasets:
+        # if primary dataset is passed, take all the requested trigger
+        for pd in primaryDatasets:
+            triggers_to_apply += cfg[pd]
     else:
-        raise Exception(f"Trigger finalstate: {finalstate}, not implemented!")
+        if isMC:
+            # If MC take the OR of all primary datasets
+            for pd, trgs in cfg.items():
+                triggers_to_apply += trgs
+        else:
+            # If Data take only the specific pd
+            triggers_to_apply += cfg[events.metadata["primaryDataset"]]
+
+    # create the mask
+    trigger_mask = np.zeros(len(events), dtype="bool")
+
+    for trigger in triggers_to_apply:
+        # Special treatment for Ele32 in 2017
+        if year == "2017" and (
+            (trigger == 'Ele32_WPTight_Gsf_L1DoubleEG')
+            & ('Ele32_WPTight' not in events.HLT.fields)
+        ):
+            flag = (
+                ak.sum(
+                    (events.TrigObj.id == 11)
+                    & ((events.TrigObj.filterBits & 1024) == 1024),
+                    axis=1,
+                )
+                > 0
+            )
+            trigger_mask = trigger_mask | (events.HLT[trigger] & flag)
+        else:
+            trigger_mask = trigger_mask | events.HLT[trigger.lstrip("HLT_")]
+
+    if invert:
+        trigger_mask = ~trigger_mask
+    return trigger_mask

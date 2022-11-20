@@ -598,8 +598,8 @@ class EfficiencyMap:
         self.datasets = h.keys()
         self.datasets_data = list(filter(lambda x: 'DATA' in x, self.datasets))
         self.datasets_mc = list(filter(lambda x: 'DATA' not in x, self.datasets))
-        self.axis_year = self.h['DATA'].axes['year']
-        self.axis_cat = self.h['DATA'].axes['cat']
+        self.axis_year = self.h[self.datasets_data[0]].axes['year']
+        self.axis_cat = self.h[self.datasets_data[0]].axes['cat']
         self.axis_var = self.h[self.datasets_mc[0]].axes['variation']
         self.years = list(self.axis_year.value(range(self.axis_year.size)))
         self.categories = list(self.axis_cat.value(range(self.axis_cat.size)))
@@ -607,7 +607,7 @@ class EfficiencyMap:
         self.dim = dense_dim(h)
         self.dense_axes = dense_axes(h)
         if self.mode == "spliteras":
-            self.axis_era = self.h['DATA'].axes['era']
+            self.axis_era = self.h[self.datasets_data[0]].axes['era']
             self.eras = ['tot'] + list(self.axis_era.value(range(self.axis_era.size)))
 
         if self.dim == 1:
@@ -939,7 +939,7 @@ class EfficiencyMap:
                     sf=True,
                     **extra_args,
                 )
-            if self.config.output_triggerSF:
+            if self.config.workflow_options["output_triggerSF"]:
                 A = self.eff[{'map': 'sf'}]
                 self.hist_axis_x = A.axes[0]
 
@@ -1206,7 +1206,7 @@ class EfficiencyMap:
             if save_plots:
                 print("Saving", filepath)
                 plt.savefig(filepath, dpi=self.config.plot_options['dpi'], format="png")
-            if self.config.output_triggerSF:
+            if self.config.workflow_options["output_triggerSF"]:
                 if label in ["sf", "unc_sf"]:
                     A = self.map2d
                     self.hist_axis_x = A.axes[0]
