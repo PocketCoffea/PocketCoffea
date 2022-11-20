@@ -1,8 +1,9 @@
 import awkward as ak
+import sys
 
 from .base import BaseProcessorABC
 from ..utils.configurator import Configurator
-
+from ..lib.hist_manager import Axis
 from ..parameters.jec import JECversions, JERversions
 from ..lib.objects import (
     jet_correction,
@@ -11,7 +12,6 @@ from ..lib.objects import (
     btagging,
     get_dilepton,
 )
-from ..lib.hist_manager import HistManager, Axis, HistConf
 
 
 class ttHbbBaseProcessor(BaseProcessorABC):
@@ -29,6 +29,10 @@ class ttHbbBaseProcessor(BaseProcessorABC):
                 label="Year",
             )
         )
+
+    def load_metadata_extra(self):
+        self._JECversion = JECversions[self._year]['MC' if self._isMC else 'Data']
+        self._JERversion = JERversions[self._year]['MC' if self._isMC else 'Data']
 
     def apply_JERC(self, JER=True, verbose=False):
         if not self._isMC:
@@ -116,16 +120,38 @@ class ttHbbBaseProcessor(BaseProcessorABC):
         '''
 
         # Filling the special histograms for events if they are present
-        if self._isMC & ("events_per_chunk" in self.hists_manager.histograms):
-            hepc = self.hists_manager.get_histogram("events_per_chunk")
-            hepc.hist_obj.fill(
-                cat=hepc.only_categories[0],
-                variation="nominal",
-                year=self._year,
-                nEvents_initial=self.nEvents_initial,
-                nEvents_after_skim=self.nEvents_after_skim,
-                nEvents_after_presel=self.nEvents_after_presel,
-            )
-            self.output["processing_metadata"]["events_per_chunk"][
-                self._sample
-            ] = hepc.hist_obj
+        if self._hasSubsamples:
+            for subs in self._subsamples_names:
+                if self._isMC & (
+                    "events_per_chunk" in self.hists_managers[subs].histograms
+                ):
+                    hepc = self.hists_managers[subs].get_histogram("events_per_chunk")
+                    hepc.hist_obj.fill(
+                        cat=hepc.only_categories[0],
+                        variation="nominal",
+                        year=self._year,
+                        nEvents_initial=self.nEvents_initial,
+                        nEvents_after_skim=self.nEvents_after_skim,
+                        nEvents_after_presel=self.nEvents_after_presel,
+                    )
+                    self.output["processing_metadata"]["events_per_chunk"][
+                        subs
+                    ] = hepc.hist_obj
+        else:
+            if self._isMC & (
+                "events_per_chunk" in self.hists_managers[self._sample].histograms
+            ):
+                hepc = self.hists_managers[self._sample].get_histogram(
+                    "events_per_chunk"
+                )
+                hepc.hist_obj.fill(
+                    cat=hepc.only_categories[0],
+                    variation="nominal",
+                    year=self._year,
+                    nEvents_initial=self.nEvents_initial,
+                    nEvents_after_skim=self.nEvents_after_skim,
+                    nEvents_after_presel=self.nEvents_after_presel,
+                )
+                self.output["processing_metadata"]["events_per_chunk"][
+                    self._sample
+                ] = hepc.hist_obj

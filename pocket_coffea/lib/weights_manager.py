@@ -1,12 +1,8 @@
-from itertools import chain
-from dataclasses import dataclass, field
-from typing import List, Tuple
+from dataclasses import dataclass
 import inspect
 import awkward as ak
-from functools import wraps
 from collections.abc import Callable
 from collections import defaultdict
-from pprint import pprint
 
 from coffea.analysis_tools import Weights
 
@@ -32,7 +28,7 @@ from ..parameters.btag import btag, btag_variations
 class WeightCustom:
     '''
     User-defined weight
-    
+
     Custom Weights can be created by the user in the configuration
     by using a WeightCustom object.
 
@@ -47,11 +43,11 @@ class WeightCustom:
          (name:str, nominal, up, down)]
     Variations modifiers will have the format `nameUp/nameDown`
 
-    Multiple weights can be produced by a single WeightCustom object.    
+    Multiple weights can be produced by a single WeightCustom object.
     '''
-    
+
     name: str
-    function: Callable # The function is call
+    function: Callable  # The function is call
 
     def serialize(self, src_code=False):
         out = {
@@ -66,7 +62,6 @@ class WeightCustom:
         if src_code:
             out["function"]["src_code"] = inspect.getsource(self.function)
         return out
-
 
 
 class WeightsManager:
@@ -85,7 +80,7 @@ class WeightsManager:
     @classmethod
     def available_weights(cls):
         '''
-        Predefine weights for CMS Run2 UL analysis. 
+        Predefine weights for CMS Run2 UL analysis.
         '''
         return set(
             [
@@ -107,7 +102,7 @@ class WeightsManager:
     @classmethod
     def available_variations(cls):
         '''
-        Predefine weights variations for CMS Run2 UL analysis. 
+        Predefine weights variations for CMS Run2 UL analysis.
         '''
         out = [
             "nominal",
@@ -204,7 +199,7 @@ class WeightsManager:
         Predefined common weights.
         The function return a list of tuples containing a
         weighs and its variations in each tuple::
-        
+
                 [("name", nominal, up, donw),
                  ("name", nominal, up, down)]
 
@@ -216,9 +211,7 @@ class WeightsManager:
         elif weight_name == 'lumi':
             return [('lumi', ak.full_like(events.genWeight, lumi[self._year]["tot"]))]
         elif weight_name == 'XS':
-            return [
-                ('XS', ak.full_like(events.genWeight, xsec[self._sample]))
-            ]
+            return [('XS', ak.full_like(events.genWeight, xsec[self._sample]))]
         elif weight_name == 'pileup':
             # Pileup reweighting with nominal, up and down variations
             return [('pileup', *sf_pileup_reweight(events, self._year))]
