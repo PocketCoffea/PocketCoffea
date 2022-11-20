@@ -1,14 +1,15 @@
 from dataclasses import dataclass
 from typing import List
 from coffea.processor.accumulator import column_accumulator
+import awkward as ak
 
 
 @dataclass
-class OutArray:
+class ColOut:
     collection: str  # Collection
     columns: List[str]  # list of columns to export
     flatten: bool = True  # Flatten by defaul
-    story_size: bool = True
+    store_size: bool = True
 
 
 class ColumnsManager:
@@ -16,12 +17,12 @@ class ColumnsManager:
         self.cfg = cfg[sample]
         self.categories_config = categories_config
 
-    def add_column(self, cfg:OutArray, categories=None):
+    def add_column(self, cfg: ColOut, categories=None):
         if categories is None:
             categories = self.categories_config.keys()
         for cat in categories:
             self.cfg[cat].append(cfg)
-            
+
     def fill_columns(self, events, cuts_masks, subsample_mask=None):
         self.output = {}
         for category, outarrays in self.cfg.items():
@@ -32,15 +33,15 @@ class ColumnsManager:
                 mask = mask & subsample_mask
             for outarray in outarrays:
                 if outarray.store_size:
-                    N = self.ak.num(events[mask][outarray.collection])
-                    sel.output[f"{outarray.coll}_N"] = column_accumulator(
+                    N = ak.num(events[mask][outarray.collection])
+                    self.output[category][f"{outarray.collection}_N"] = column_accumulator(
                         ak.to_numpy(N, allow_missing=False)
                     )
                 # looping on the columns
                 for col in outarray.columns:
                     if outarray.flatten:
                         self.output[category][
-                            f"{outarray.coll}_{col}"
+                            f"{outarray.collection}_{col}"
                         ] = column_accumulator(
                             ak.to_numpy(
                                 ak.flatten(events[mask][outarray.collection][col]),
@@ -49,7 +50,7 @@ class ColumnsManager:
                         )
                     else:
                         self.output[category][
-                            f"{outarray.coll}_{col}"
+                            f"{outarray.collection}_{col}"
                         ] = column_accumulator(
                             ak.to_numpy(events[mask][outarray.collection][col]),
                             allow_missing=False,

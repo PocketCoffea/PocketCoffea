@@ -88,6 +88,12 @@ class Configurator:
         }
         self.load_variations_config()
 
+        # Column accumulator config
+        self.columns = {
+            s: {c: [] for c in self.categories.keys()} for s in self.samples
+        }
+        self.load_columns_config()
+
         # Load workflow
         self.load_workflow()
 
@@ -101,7 +107,7 @@ class Configurator:
         self.cfg = cfg.cfg
 
     def load_attributes(self):
-        exclude_auto_loading = ["categories", "weights"]
+        exclude_auto_loading = ["categories", "weights", "variations", "columns"]
         for key, item in self.cfg.items():
             if key in exclude_auto_loading:
                 continue
@@ -350,6 +356,46 @@ class Configurator:
                                     raise Exception("Wrong variation configuration")
                             self.variations_config[sample]["weights"][cat].append(w)
 
+    def load_columns_config(self):
+        wcfg = self.cfg["columns"]
+        if "common" not in wcfg:
+            print("Columns configuration error: missing 'common' key")
+            raise Exception("Wrong columns configuration")
+        # common/inclusive variations
+        for w in wcfg["common"]["inclusive"]:
+            # do now check if the variations is not string but custom
+            for wsample in self.columns.values():
+                # add the variation to all the categories and samples
+                for wcat in wsample.values():
+                    wcat.append(w)
+
+        if "bycategory" in wcfg["common"]:
+            for cat, columns in wcfg["common"]["bycategory"].items():
+                for w in columns:
+                    for wsample in self.columns.values():
+                        if w not in wsample[cat]:
+                            wsample[cat].append(w)
+
+        # Now look at specific samples configurations
+        if "bysample" in wcfg:
+            for sample, s_wcfg in wcfg["bysample"].items():
+                if sample not in self.samples:
+                    print(
+                        f"Requested missing sample {sample} in the columns configuration"
+                    )
+                    raise Exception("Wrong columns configuration")
+                if "inclusive" in s_wcfg:
+                    for w in s_wcfg["inclusive"]:
+                        # append only to the specific sample
+                        for wcat in self.columns[sample].values():
+                            if w not in wcat:
+                                wcat.append(w)
+
+                if "bycategory" in s_wcfg:
+                    for cat, columns in s_wcfg["bycategory"].items():
+                        for w in columns:
+                            self.columns[sample][cat].append(w)
+
     def overwrite_check(self):
         if self.plot:
             print(f"The output will be saved to {self.plots}")
@@ -450,6 +496,13 @@ class Configurator:
         ocfg["variables"] = {
             key: val.serialize() for key, val in self.variables.items()
         }
+
+        ocfg["columns"] = {s: {c: [] for c in self.categories} for s in self.samples}
+        for sample, columns in self.columns.items():
+            for cat, cols in columns.items():
+                for col in cols:
+                    ocfg["columns"][sample][cat].append(col.__dict__)
+
         # Save the serialized configuration in json
         output_cfg = os.path.join(self.output, "config.json")
         print("Saving config file to " + output_cfg)
