@@ -362,12 +362,13 @@ class Configurator:
             print("Columns configuration error: missing 'common' key")
             raise Exception("Wrong columns configuration")
         # common/inclusive variations
-        for w in wcfg["common"]["inclusive"]:
-            # do now check if the variations is not string but custom
-            for wsample in self.columns.values():
-                # add the variation to all the categories and samples
-                for wcat in wsample.values():
-                    wcat.append(w)
+        if "inclusive" in wcfg["common"]:
+            for w in wcfg["common"]["inclusive"]:
+                # do now check if the variations is not string but custom
+                for wsample in self.columns.values():
+                    # add the variation to all the categories and samples
+                    for wcat in wsample.values():
+                        wcat.append(w)
 
         if "bycategory" in wcfg["common"]:
             for cat, columns in wcfg["common"]["bycategory"].items():

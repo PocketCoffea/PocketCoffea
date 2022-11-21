@@ -10,6 +10,8 @@ class ColOut:
     columns: List[str]  # list of columns to export
     flatten: bool = True  # Flatten by defaul
     store_size: bool = True
+    fill_none: bool = True
+    fill_value: float = -999.0  # by default the None elements are filled
 
 
 class ColumnsManager:
@@ -34,25 +36,34 @@ class ColumnsManager:
             for outarray in outarrays:
                 if outarray.store_size:
                     N = ak.num(events[mask][outarray.collection])
-                    self.output[category][f"{outarray.collection}_N"] = column_accumulator(
-                        ak.to_numpy(N, allow_missing=False)
-                    )
+                    self.output[category][
+                        f"{outarray.collection}_N"
+                    ] = column_accumulator(ak.to_numpy(N, allow_missing=False))
                 # looping on the columns
                 for col in outarray.columns:
                     if outarray.flatten:
-                        self.output[category][
-                            f"{outarray.collection}_{col}"
-                        ] = column_accumulator(
-                            ak.to_numpy(
+                        if outarray.fill_none:
+                            out = ak.fill_none(
                                 ak.flatten(events[mask][outarray.collection][col]),
-                                allow_missing=False,
+                                outarray.fill_value,
                             )
-                        )
+                        else:
+                            out = ak.flatten(events[mask][outarray.collection][col])
                     else:
-                        self.output[category][
-                            f"{outarray.collection}_{col}"
-                        ] = column_accumulator(
-                            ak.to_numpy(events[mask][outarray.collection][col]),
+                        if outarray.fill_none:
+                            out = ak.fill_none(
+                                events[mask][outarray.collection][col],
+                                outarray.fill_value,
+                            )
+                        else:
+                            out = events[mask][outarray.collection][col]
+
+                    self.output[category][
+                        f"{outarray.collection}_{col}"
+                    ] = column_accumulator(
+                        ak.to_numpy(
+                            out,
                             allow_missing=False,
                         )
-            return self.output
+                    )
+        return self.output
