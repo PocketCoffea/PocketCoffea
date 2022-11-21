@@ -4,28 +4,14 @@ pocket\_coffea.lib package
 Submodules
 ----------
 
-.. _histmanager:
+pocket\_coffea.lib.columns\_manager module
+------------------------------------------
 
-pocket\_coffea.lib.hist_manager module
---------------------------------------
-
-.. automodule:: pocket_coffea.lib.hist_manager
+.. automodule:: pocket_coffea.lib.columns_manager
    :members:
    :undoc-members:
    :show-inheritance:
 
-.. _weightsmanager:
-      
-pocket\_coffea.lib.weights_manager module
------------------------------------------
-
-.. automodule:: pocket_coffea.lib.weights_manager
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. _cut_definition:
-      
 pocket\_coffea.lib.cut\_definition module
 -----------------------------------------
 
@@ -34,8 +20,6 @@ pocket\_coffea.lib.cut\_definition module
    :undoc-members:
    :show-inheritance:
 
-.. _cut_functions_lib:
-      
 pocket\_coffea.lib.cut\_functions module
 ----------------------------------------
 
@@ -48,6 +32,22 @@ pocket\_coffea.lib.deltaR\_matching module
 ------------------------------------------
 
 .. automodule:: pocket_coffea.lib.deltaR_matching
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pocket\_coffea.lib.fill\_columns module
+---------------------------------------
+
+.. automodule:: pocket_coffea.lib.fill_columns
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pocket\_coffea.lib.hist\_manager module
+---------------------------------------
+
+.. automodule:: pocket_coffea.lib.hist_manager
    :members:
    :undoc-members:
    :show-inheritance:
@@ -112,6 +112,14 @@ pocket\_coffea.lib.triggers module
 ----------------------------------
 
 .. automodule:: pocket_coffea.lib.triggers
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pocket\_coffea.lib.weights\_manager module
+------------------------------------------
+
+.. automodule:: pocket_coffea.lib.weights_manager
    :members:
    :undoc-members:
    :show-inheritance:

@@ -11,6 +11,7 @@ from coffea.lumi_tools import LumiMask
 from coffea.analysis_tools import PackedSelection
 
 from ..lib.weights_manager import WeightsManager
+from ..lib.columns_manager import ColumnsManager
 from ..lib.hist_manager import HistManager
 from ..parameters.event_flags import event_flags, event_flags_data
 from ..parameters.lumi import goldenJSON
@@ -90,49 +91,18 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 for v, vcfg in self.cfg.variables.items()
                 if not vcfg.metadata_hist
             },
-            "columns": {cat: {} for cat in self._categories},
+            "columns": {},
             "processing_metadata": {
                 v: {} for v, vcfg in self.cfg.variables.items() if vcfg.metadata_hist
             },
         }
-
-    def add_column_accumulator(
-        self, name: str, categories: list = None, store_size: bool = True
-    ):
-        '''
-        Add a column_accumulator to the output of the processor
-        with `name` to the category `cat` (to all the category if `cat==None`).
-
-        :param name: name of the output column
-        :param categories: list of categories where the output column is requested
-        :param store_size: save an additional column called `name_size` to store the number of objects per event.
-
-        If `store_size` == True, create a parallel column called name_size, containing the number of entries
-        for each event.
-        '''
-        if categories is None or len(categories) == 0:
-            # add the column accumulator to all the categories
-            for cat in self._categories:
-                # we need a defaultdict accumulator to be able to include different samples for different chunks
-                self.output_format['columns'][cat][name] = {}
-                if store_size:
-                    # in thise case we save also name+size which will contain the number of entries per event
-                    self.output_format['columns'][cat][name + "_size"] = {}
-        else:
-            for cat in categories:
-                if cat not in self._categories:
-                    raise Exception(f"Category not found: {cat}")
-                self.output_format['columns'][cat][name] = {}
-                if store_size:
-                    # in thise case we save also name+size which will contain the number of entries per event
-                    self.output_format['columns'][cat][name + "_size"] = {}
 
     @property
     def nevents(self):
         '''Compute the current number of events in the current chunk.
         If the function is called after skimming or preselection the
         number of events is reduced accordingly'''
-        return ak.count(self.events.event, axis=0)
+        return len(self.events)
 
     def load_metadata(self):
         '''
@@ -391,8 +361,10 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
     def define_histograms(self):
         '''
-        Function which created the HistManager.
+        Initialize the HistManager.
         Redefine to customize completely the creation of the histManager.
+
+        If subsamples are defined, an histmanager is created for each of them.
         '''
         # Check if subsamples are requested
         self.hists_managers = {}
@@ -467,6 +439,51 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         The function get called after the filling of the default histograms.
         Redefine it to fill custom histograms
         '''
+        pass
+
+    def define_column_accumulators(self):
+        '''
+        Define the ColumsManagers to handle the requested columns from the configuration.
+        If Subsamples are defined a columnsmager is created for each of them.
+        '''
+        self.columns_managers = {}
+        if self._hasSubsamples:
+            for subs in self._subsamples_names:
+                self.columns_managers[subs] = ColumnsManager(
+                    self.cfg.columns, subs, self._categories
+                )
+        else:
+            self.columns_managers[self._sample] = ColumnsManager(
+                self.cfg.columns, self._sample, self._categories
+            )
+
+    def define_column_accumulators_extra(self):
+        '''
+        This function should be redefined to add column accumulators in the custom
+        processor, if they cannot be defined from the configuration
+        '''
+
+    def fill_column_accumulators(self):
+        if self._hasSubsamples:
+            # call the filling for each
+            for subs in self._subsamples_names:
+                # Get the mask
+                subsam_mask = self._subsamples_masks.all(*self._subsamples_map[subs])
+                # Calling hist manager with a subsample mask
+                self.output["columns"][subs] = self.columns_managers[subs].fill_columns(
+                    self.events,
+                    self._cuts_masks,
+                    subsample_mask=subsam_mask,
+                )
+        else:
+            self.output["columns"][self._sample] = self.columns_managers[
+                self._sample
+            ].fill_columns(
+                self.events,
+                self._cuts_masks,
+            )
+
+    def fill_column_accumulators_extra(self):
         pass
 
     def process_extra_before_skim(self):
@@ -577,10 +594,14 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self.define_custom_axes_extra()
         self.define_histograms()
         self.define_histograms_extra()
+        self.define_column_accumulators()
+        self.define_column_accumulators_extra()
 
         # Fill histograms
         self.fill_histograms()
         self.fill_histograms_extra()
+        self.fill_column_accumulators()
+        self.fill_column_accumulators_extra()
 
         # Count events
         self.count_events()

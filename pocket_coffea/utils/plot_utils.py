@@ -213,7 +213,7 @@ def plot_data_mc_hist1D(h, histname, config):
             if not is_mc_only:
                 # Sum over eras if era axis exists in data histogram
                 if 'era' in h[samples_data[0]].axes.name:
-                    slicing_data = {'year': '2018', 'cat': cat, 'era' : sum}
+                    slicing_data = {'year': '2018', 'cat': cat, 'era': sum}
                 else:
                     slicing_data = {'year': '2018', 'cat': cat}
                 dict_data = {d: h[d][slicing_data] for d in samples_data}
