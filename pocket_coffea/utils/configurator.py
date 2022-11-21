@@ -358,24 +358,22 @@ class Configurator:
 
     def load_columns_config(self):
         wcfg = self.cfg["columns"]
-        if "common" not in wcfg:
-            print("Columns configuration error: missing 'common' key")
-            raise Exception("Wrong columns configuration")
         # common/inclusive variations
-        if "inclusive" in wcfg["common"]:
-            for w in wcfg["common"]["inclusive"]:
-                # do now check if the variations is not string but custom
-                for wsample in self.columns.values():
-                    # add the variation to all the categories and samples
-                    for wcat in wsample.values():
-                        wcat.append(w)
-
-        if "bycategory" in wcfg["common"]:
-            for cat, columns in wcfg["common"]["bycategory"].items():
-                for w in columns:
+        if "common" in wcfg:
+            if "inclusive" in wcfg["common"]:
+                for w in wcfg["common"]["inclusive"]:
+                    # do now check if the variations is not string but custom
                     for wsample in self.columns.values():
-                        if w not in wsample[cat]:
-                            wsample[cat].append(w)
+                        # add the variation to all the categories and samples
+                        for wcat in wsample.values():
+                            wcat.append(w)
+
+            if "bycategory" in wcfg["common"]:
+                for cat, columns in wcfg["common"]["bycategory"].items():
+                    for w in columns:
+                        for wsample in self.columns.values():
+                            if w not in wsample[cat]:
+                                wsample[cat].append(w)
 
         # Now look at specific samples configurations
         if "bysample" in wcfg:
