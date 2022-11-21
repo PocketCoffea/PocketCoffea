@@ -6,11 +6,10 @@ import argparse
 
 import numpy as np
 
-import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.offsetbox import AnchoredText
-
 matplotlib.use('Agg')
+
 
 import matplotlib.pyplot as plt
 import math
@@ -59,7 +58,6 @@ mc_opts = {
     'edgecolor': 'black',
     #'linestyle': '-',
     'linewidth': 1,
-    'alpha': 1.0
 }
 
 signal_opts = {
@@ -118,6 +116,7 @@ def make_plots(entrystart, entrystop):
 # Filter dictionary of histograms with `args.only`
 accumulator['variables'] = { k : v for k,v in accumulator['variables'].items() if args.only in k }
 HistsToPlot = [k for k in accumulator['variables'].keys()]
+
 NtotHists = len(HistsToPlot)
 NHistsToPlot = len([key for key in HistsToPlot if args.only in key])
 print("# tot histograms = ", NtotHists)
