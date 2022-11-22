@@ -182,6 +182,9 @@ def plot_data_mc_hist1D(h, histname, config):
     The uncertainty on data corresponds to the statistical uncertainty only.'''
     for sample in h.keys():
         if dense_dim(h[sample]) != 1:
+            raise Exception(
+                f"Histograms with dense dimension {dense_dim(h[sample])} cannot be plotted. Only 1D histograms are supported."
+            )
             return
     samples = h.keys()
     samples_data = list(filter(lambda d: 'DATA' in d, samples))
