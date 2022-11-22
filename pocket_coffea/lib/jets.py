@@ -96,16 +96,18 @@ def jet_correction(
         pt_min = (
             3 * ptResolution * jets_corrected['pt']
         )  # Match jets whose pt does not differ more than 3 sigmas from the gen-level pt
+        genJet    = {'AK4PFchs': 'GenJet', 'AK8PFPuppi': 'GenJetAK8'}[typeJet]
+        genJetIdx = {'AK4PFchs': 'genJetIdx', 'AK8PFPuppi': 'genJetAK8Idx'}[typeJet]
 
         # They can be matched manually
         # matched_genjets, matched_jets, deltaR_matched = object_matching(genjets, jets_corrected, dr_min, pt_min)
         # Or the association in NanoAOD it can be used, removing the indices that are not found. That happens because
         # not all the genJet are saved in the NanoAODs.
-        genjets = events['GenJet']
+        genjets = events[genJet]
         Ngenjet = ak.num(genjets)
         matched_genjets_idx = ak.mask(
-            jets_corrected.genJetIdx,
-            (jets_corrected.genJetIdx < Ngenjet) & (jets_corrected.genJetIdx != -1),
+            jets_corrected[genJetIdx],
+            (jets_corrected[genJetIdx] < Ngenjet) & (jets_corrected[genJetIdx] != -1),
         )
         # this array of indices has already the dimension of the Jet collection
         # in NanoAOD nomatch == -1 --> convert to None with a mask
