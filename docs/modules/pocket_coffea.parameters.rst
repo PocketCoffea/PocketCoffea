@@ -12,14 +12,6 @@ Subpackages
 Submodules
 ----------
 
-pocket\_coffea.parameters.allhistograms module
-----------------------------------------------
-
-.. automodule:: pocket_coffea.parameters.allhistograms
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 pocket\_coffea.parameters.btag module
 -------------------------------------
 
@@ -100,18 +92,18 @@ pocket\_coffea.parameters.pileup module
    :undoc-members:
    :show-inheritance:
 
-pocket\_coffea.parameters.samples module
-----------------------------------------
-
-.. automodule:: pocket_coffea.parameters.samples
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 pocket\_coffea.parameters.triggers module
 -----------------------------------------
 
 .. automodule:: pocket_coffea.parameters.triggers
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pocket\_coffea.parameters.xsec module
+-------------------------------------
+
+.. automodule:: pocket_coffea.parameters.xsec
    :members:
    :undoc-members:
    :show-inheritance:

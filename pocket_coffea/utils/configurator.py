@@ -31,6 +31,14 @@ class Configurator:
         self.eras = []
         self.load_dataset()
 
+        # subsamples configuration
+        # Dictionary with subsample_name:[list of Cut ids]
+        self.subsamples = {
+            key: subscfg
+            for key, subscfg in self.dataset.get("subsamples", {}).items()
+            if key in self.samples
+        }
+
         # Check if output file exists, and in case add a `_v01` label, make directory
         if overwrite_output_dir:
             self.output = overwrite_output_dir
@@ -80,6 +88,12 @@ class Configurator:
         }
         self.load_variations_config()
 
+        # Column accumulator config
+        self.columns = {
+            s: {c: [] for c in self.categories.keys()} for s in self.samples
+        }
+        self.load_columns_config()
+
         # Load workflow
         self.load_workflow()
 
@@ -93,7 +107,7 @@ class Configurator:
         self.cfg = cfg.cfg
 
     def load_attributes(self):
-        exclude_auto_loading = ["categories", "weights"]
+        exclude_auto_loading = ["categories", "weights", "variations", "columns"]
         for key, item in self.cfg.items():
             if key in exclude_auto_loading:
                 continue
@@ -170,10 +184,10 @@ class Configurator:
         # If the skim, preselection and categories list are empty, append a `passthrough` Cut
         for cut_type in ["skim", "preselections"]:
             if len(self.cfg[cut_type]) == 0:
-                setattr(self, cut_type, [ passthrough ])
-                self.cfg[cut_type] = [ passthrough ]
+                setattr(self, cut_type, [passthrough])
+                self.cfg[cut_type] = [passthrough]
         if self.categories == {}:
-            self.cfg["categories"]["baseline"] = [ passthrough ]
+            self.cfg["categories"]["baseline"] = [passthrough]
         # The cuts_dict is saved just for record
         for skim in self.cfg["skim"]:
             if not isinstance(skim, Cut):
@@ -185,6 +199,7 @@ class Configurator:
                 print("Please define skim, preselections and cuts as Cut objects")
                 raise Exception("Wrong categories/cuts configuration")
             self.cuts_dict[presel.id] = presel
+        # Now saving the categories and cuts
         for cat, cuts in self.cfg["categories"].items():
             self.categories[cat] = []
             for cut in cuts:
@@ -341,6 +356,45 @@ class Configurator:
                                     raise Exception("Wrong variation configuration")
                             self.variations_config[sample]["weights"][cat].append(w)
 
+    def load_columns_config(self):
+        wcfg = self.cfg["columns"]
+        # common/inclusive variations
+        if "common" in wcfg:
+            if "inclusive" in wcfg["common"]:
+                for w in wcfg["common"]["inclusive"]:
+                    # do now check if the variations is not string but custom
+                    for wsample in self.columns.values():
+                        # add the variation to all the categories and samples
+                        for wcat in wsample.values():
+                            wcat.append(w)
+
+            if "bycategory" in wcfg["common"]:
+                for cat, columns in wcfg["common"]["bycategory"].items():
+                    for w in columns:
+                        for wsample in self.columns.values():
+                            if w not in wsample[cat]:
+                                wsample[cat].append(w)
+
+        # Now look at specific samples configurations
+        if "bysample" in wcfg:
+            for sample, s_wcfg in wcfg["bysample"].items():
+                if sample not in self.samples:
+                    print(
+                        f"Requested missing sample {sample} in the columns configuration"
+                    )
+                    raise Exception("Wrong columns configuration")
+                if "inclusive" in s_wcfg:
+                    for w in s_wcfg["inclusive"]:
+                        # append only to the specific sample
+                        for wcat in self.columns[sample].values():
+                            if w not in wcat:
+                                wcat.append(w)
+
+                if "bycategory" in s_wcfg:
+                    for cat, columns in s_wcfg["bycategory"].items():
+                        for w in columns:
+                            self.columns[sample][cat].append(w)
+
     def overwrite_check(self):
         if self.plot:
             print(f"The output will be saved to {self.plots}")
@@ -391,6 +445,15 @@ class Configurator:
 
     def save_config(self):
         ocfg = {k: v for k, v in self.cfg.items()}
+
+        subsamples_cuts = ocfg["dataset"].get("subsamples", {})
+        dump_subsamples = {}
+        for sample, subsamples in subsamples_cuts.items():
+            dump_subsamples[sample] = {}
+            for subs, cuts in subsamples.items():
+                dump_subsamples[sample][subs] = [c.serialize() for c in cuts]
+        ocfg["dataset"]["subsamples"] = dump_subsamples
+
         skim_dump = []
         presel_dump = []
         cats_dump = {}
@@ -410,10 +473,10 @@ class Configurator:
             "name": self.workflow.__name__,
             "srcfile": inspect.getsourcefile(self.workflow),
         }
-    
+
         ocfg["weights"] = {}
         for sample, weights in self.weights_config.items():
-            out = {"bycategory":{}, "inclusive":[] }
+            out = {"bycategory": {}, "inclusive": []}
             for cat, catw in weights["bycategory"].items():
                 out["bycategory"][cat] = []
                 for w in catw:
@@ -432,9 +495,18 @@ class Configurator:
         ocfg["variables"] = {
             key: val.serialize() for key, val in self.variables.items()
         }
+
+        ocfg["columns"] = {s: {c: [] for c in self.categories} for s in self.samples}
+        for sample, columns in self.columns.items():
+            for cat, cols in columns.items():
+                for col in cols:
+                    ocfg["columns"][sample][cat].append(col.__dict__)
+
         # Save the serialized configuration in json
         output_cfg = os.path.join(self.output, "config.json")
         print("Saving config file to " + output_cfg)
         json.dump(ocfg, open(output_cfg, "w"), indent=2)
         # Pickle the configurator object in order to be able to reproduce completely the configuration
-        cloudpickle.dump(self, open(os.path.join(self.output, "configurator.pkl"), "wb"))
+        cloudpickle.dump(
+            self, open(os.path.join(self.output, "configurator.pkl"), "wb")
+        )

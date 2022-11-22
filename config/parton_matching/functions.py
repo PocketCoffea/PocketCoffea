@@ -1,14 +1,20 @@
 from pocket_coffea.lib.cut_definition import Cut
-from pocket_coffea.lib.cut_functions import count_objects_gt
+import awkward as ak
 
-def NjetsNb(events,params, **kwargs):
-    mask =  ((events.njet >= params["njet"] ) &
-            (events.nbjet >= params["nbjet"]))
-    return mask
 
-def getNjetNb_cut(njet, nb):
-    return Cut(
-        name=f"{njet}jet-{nb}bjet",
-        params ={"njet": njet, "nbjet": nb},
-        function=NjetsNb
+semilep_lhe = Cut(
+    name="semilep_lhe",
+    params={},
+    function=lambda events, params, **kwargs: (
+        ak.sum(
+            (abs(events.LHEPart.pdgId) >= 11) & (abs(events.LHEPart.pdgId) < 15), axis=1
+        )
+        == 2
     )
+    & (
+        ak.sum(
+            (abs(events.LHEPart.pdgId) >= 15) & (abs(events.LHEPart.pdgId) < 19), axis=1
+        )
+        == 0
+    ),
+)
