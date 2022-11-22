@@ -5,7 +5,7 @@ import correctionlib
 from coffea.util import load
 from coffea import lookup_tools
 
-from ..parameters.pileup import pileupJSONfiles, pileupJSONfiles_EOY
+from ..parameters.pileup import pileupJSONfiles#, pileupJSONfiles_EOY
 
 
 def sf_pileup_reweight(events, year):
