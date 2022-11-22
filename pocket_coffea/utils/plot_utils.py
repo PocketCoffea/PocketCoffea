@@ -213,7 +213,7 @@ def plot_data_mc_hist1D(h, histname, config):
             if not is_mc_only:
                 # Sum over eras if era axis exists in data histogram
                 if 'era' in h[samples_data[0]].axes.name:
-                    slicing_data = {'year': '2018', 'cat': cat, 'era' : sum}
+                    slicing_data = {'year': '2018', 'cat': cat, 'era': sum}
                 else:
                     slicing_data = {'year': '2018', 'cat': cat}
                 dict_data = {d: h[d][slicing_data] for d in samples_data}
@@ -259,10 +259,13 @@ def plot_data_mc_hist1D(h, histname, config):
             )
             ax.set_ylim((0, 1.20 * max(stack_sum(stack_mc_nominal).values())))
             rax.set_ylim((0.8, 1.2))
-            if config.variables[histname].axes[0].lim != (0,0):
+            if config.variables[histname].axes[0].lim != (0, 0):
                 ax.set_xlim(*config.variables[histname].axes[0].lim)
             else:
-                ax.set_xlim(config.variables[histname].axes[0].start, config.variables[histname].axes[0].stop)
+                ax.set_xlim(
+                    config.variables[histname].axes[0].start,
+                    config.variables[histname].axes[0],
+                )
 
             xlabel = ax.get_xlabel()
             ax.set_xlabel("")
