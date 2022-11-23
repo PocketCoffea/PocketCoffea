@@ -15,6 +15,7 @@ from .scale_factors import (
     sf_btag,
     sf_btag_calib,
     sf_jet_puId,
+    sf_L1prefiring,
 )
 from ..lib.pileup import sf_pileup_reweight
 
@@ -96,6 +97,7 @@ class WeightsManager:
                 'sf_btag',
                 'sf_btag_calib',
                 'sf_jet_puId',
+                'sf_L1prefiring'
             ]
         )
 
@@ -112,6 +114,7 @@ class WeightsManager:
             "sf_mu_id",
             "sf_mu_iso",
             "sf_jet_puId",
+            "sf_L1prefiring"
         ]
         for year, bvars in btag_variations.items():
             out += [f"sf_btag_{var}" for var in bvars]
@@ -270,6 +273,8 @@ class WeightsManager:
                     ),
                 )
             ]
+        elif weight_name == 'sf_L1prefiring':
+            return [('sf_L1prefiring', *sf_L1prefiring(events))]
 
     def add_weight(self, name, nominal, up=None, down=None, category=None):
         '''

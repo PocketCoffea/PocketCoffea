@@ -315,3 +315,12 @@ def sf_jet_puId(jets, finalstate, year, njets):
     sf_down_out = ak.prod(ak.unflatten(sfdown, njets), axis=1)
 
     return sf_out, sf_up_out, sf_down_out
+
+def sf_L1prefiring(events):
+    '''Correction due to the wrong association of L1 trigger primitives (TP) in ECAL to the previous bunch crossing,
+    also known as "L1 prefiring".
+    The event weights produced by the latest version of the producer are included in nanoAOD starting from version V9.
+    The function returns the nominal, up and down L1 prefiring weights.'''
+    L1PreFiringWeight = events.L1PreFiringWeight
+
+    return L1PreFiringWeight['Nom'], L1PreFiringWeight['Up'], L1PreFiringWeight['Dn']

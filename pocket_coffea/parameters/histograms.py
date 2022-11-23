@@ -118,6 +118,182 @@ default_axis_settings = {
         "lim": (0, 1),
         'label': "AK4 DeepJet b-tag score",
     },
+    'fatjet_pt': {
+        "field": "pt",
+        "bins": 150,
+        "start": 0,
+        'stop': 1500,
+        "lim": (0, 1000),
+        'label': r"FatJet $p_{T}$ [GeV]",
+    },
+    'fatjet_eta': {
+        "field": "eta",
+        "bins": 80,
+        "start": -4,
+        'stop': 4,
+        "lim": (-4, 4),
+        'label': r"FatJet $\eta$",
+    },
+    'fatjet_phi': {
+        "field": "phi",
+        "bins": 128,
+        "start": -math.pi,
+        'stop': math.pi,
+        "lim": (-math.pi, math.pi),
+        'label': r"FatJet $\phi$",
+    },
+    'fatjet_mass': {
+        "field": "mass",
+        "bins": 150,
+        "start": 0,
+        'stop': 1500,
+        "lim": (0, 1000),
+        'label': "FatJet mass [GeV]",
+    },
+    'fatjet_msoftdrop': {
+        "field": "msoftdrop",
+        "bins": 150,
+        "start": 0,
+        'stop': 1500,
+        "lim": (0, 1000),
+        'label': r"FatJet $m_{SD}$ [GeV]",
+    },
+    'fatjet_rho': {
+        "field": "rho",
+        "bins": 100,
+        "start": -8,
+        'stop': 0,
+        "lim": (-7, 0),
+        'label': r"FatJet $\rho$",
+    },
+    'fatjet_tau21': {
+        "field": "tau21",
+        "bins": 80,
+        "start": 0,
+        'stop': 1,
+        "lim": (0, 1),
+        'label': r"$\tau_{21}$",
+    },
+    'fatjet_btagDDBvLV2': {
+        "field": "btagDDBvLV2",
+        "bins": 80,
+        "start": 0,
+        'stop': 1,
+        "lim": (0, 1),
+        'label': "btagDDBvLV2",
+    },
+    'fatjet_btagDDCvLV2': {
+        "field": "btagDDCvLV2",
+        "bins": 80,
+        "start": 0,
+        'stop': 1,
+        "lim": (0, 1),
+        'label': "btagDDCvLV2",
+    },
+    'fatjet_btagDDCvBV2': {
+        "field": "btagDDCvBV2",
+        "bins": 80,
+        "start": 0,
+        'stop': 1,
+        "lim": (0, 1),
+        'label': "btagDDCvBV2",
+    },
+    'fatjet_particleNetMD_Xbb': {
+        "field": "particleNetMD_Xbb",
+        "bins": 80,
+        "start": 0,
+        'stop': 1,
+        "lim": (0, 1),
+        'label': "particleNetMD_Xbb",
+    },
+    'fatjet_particleNetMD_Xcc': {
+        "field": "particleNetMD_Xcc",
+        "bins": 80,
+        "start": 0,
+        'stop': 1,
+        "lim": (0, 1),
+        'label': "particleNetMD_Xcc",
+    },
+    'fatjet_particleNetMD_Xbb_QCD': {
+        "field": "particleNetMD_Xbb_QCD",
+        "bins": 80,
+        "start": 0,
+        'stop': 1,
+        "lim": (0, 1),
+        'label': "particleNetMD Xbb/(Xbb + QCD)",
+    },
+    'fatjet_particleNetMD_Xcc_QCD': {
+        "field": "particleNetMD_Xcc_QCD",
+        "bins": 80,
+        "start": 0,
+        'stop': 1,
+        "lim": (0, 1),
+        'label': "particleNetMD Xcc/(Xcc + QCD)",
+    },
+    'sv_summass': {
+        "field": "summass",
+        "bins": 200,
+        "start": 0,
+        'stop': 1000,
+        "lim": (0, 500),
+        'label': r"$\sum({m_{SV}})$ [GeV]",
+    },
+    'sv_logsummass': {
+        "field": "logsummass",
+        "bins": 60,
+        "start": -6,
+        'stop': 6,
+        "lim": (-2.5, 6),
+        'label': r"log($\sum({m_{SV}})$)",
+    },
+    'sv_projmass': {
+        "field": "projmass",
+        "bins": 200,
+        "start": 0,
+        'stop': 1000,
+        "lim": (0, 500),
+        'label': r"$m_{SV}^{proj}$ [GeV]",
+    },
+    'sv_logprojmass': {
+        "field": "logprojmass",
+        "bins": 60,
+        "start": -6,
+        'stop': 6,
+        "lim": (-2.5, 6),
+        'label': r"log($m_{SV}^{proj}$)",
+    },
+    'sv_sv1mass': {
+        "field": "sv1mass",
+        "bins": 200,
+        "start": 0,
+        'stop': 1000,
+        "lim": (0, 500),
+        'label': r"$m_{SV,1}$ [GeV]",
+    },
+    'sv_logsv1mass': {
+        "field": "logsv1mass",
+        "bins": 60,
+        "start": -6,
+        'stop': 6,
+        "lim": (-2.5, 6),
+        'label': r"log($m_{SV,1}$)",
+    },
+    'sv_sumcorrmass': {
+        "field": "sumcorrmass",
+        "bins": 200,
+        "start": 0,
+        'stop': 1000,
+        "lim": (0, 500),
+        'label': r"$\sum({m^{corr}_{SV}})$ [GeV]",
+    },
+    'sv_logsumcorrmass': {
+        "field": "logsumcorrmass",
+        "bins": 60,
+        "start": -6,
+        'stop': 6,
+        "lim": (-2.5, 6),
+        'label': r"log($\sum({m^{corr}_{SV}})$)",
+    },
     'parton_pt': {
         "field": "pt",
         "bins": 150,
@@ -186,9 +362,13 @@ default_axis_settings = {
 
 collection_fields = {
     'jet': ["eta", "pt", "phi", "btagDeepFlavB"],
+    'fatjet': ["eta", "pt", "phi", "mass", "msoftdrop", "tau21",
+               "btagDDBvLV2", "btagDDCvLV2", "btagDDCvBV2",
+               "particleNetMD_Xbb", "particleNetMD_Xcc", "particleNetMD_Xbb_QCD", "particleNetMD_Xcc_QCD"],
     'parton': ["eta", "pt", "phi", "dRMatchedJet", "pdgId"],
     'electron': ["eta", "pt", "phi", "etaSC"],
     'muon': ["eta", "pt", "phi"],
+    'sv': ["summass", "logsummass", "projmass", "logprojmass", "sv1mass", "logsv1mass", "sumcorrmass", "logsumcorrmass"]
 }
 
 
@@ -218,6 +398,12 @@ def jet_hists(coll="JetGood", pos=None, fields=None, name=None):
     return _get_default_hist(name, "jet", coll, pos, fields)
 
 
+def fatjet_hists(coll="FatJetGood", pos=None, fields=None, name=None):
+    if name == None:
+        name = coll
+    return _get_default_hist(name, "fatjet", coll, pos, fields)
+
+
 def parton_hists(coll="PartonMatched", pos=None, fields=None, name=None):
     if name == None:
         name = coll
@@ -234,6 +420,12 @@ def muon_hists(coll="MuonGood", pos=None, fields=None, name=None):
     if name == None:
         name = coll
     return _get_default_hist(name, "muon", coll, pos, fields)
+
+
+def sv_hists(coll="SV", pos=None, fields=None, name=None):
+    if name == None:
+        name = coll
+    return _get_default_hist(name, "sv", coll, pos, fields)
 
 
 def count_hist(coll, bins=10, start=0, stop=9, label=None, name=None):
