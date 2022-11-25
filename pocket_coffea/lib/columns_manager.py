@@ -16,7 +16,7 @@ class ColOut:
 
 class ColumnsManager:
     def __init__(self, cfg, sample, categories_config):
-        self.cfg = cfg[sample]
+        self.cfg = cfg.get(sample, {})
         self.categories_config = categories_config
 
     def add_column(self, cfg: ColOut, categories=None):
