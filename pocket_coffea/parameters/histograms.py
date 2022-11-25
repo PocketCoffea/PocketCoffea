@@ -368,7 +368,8 @@ collection_fields = {
     'parton': ["eta", "pt", "phi", "dRMatchedJet", "pdgId"],
     'electron': ["eta", "pt", "phi", "etaSC"],
     'muon': ["eta", "pt", "phi"],
-    'sv': ["summass", "logsummass", "projmass", "logprojmass", "sv1mass", "logsv1mass", "sumcorrmass", "logsumcorrmass"]
+    'sv': ["summass", "logsummass", "sv1mass", "logsv1mass", "sumcorrmass", "logsumcorrmass"]
+    #'sv': ["summass", "logsummass", "projmass", "logprojmass", "sv1mass", "logsv1mass", "sumcorrmass", "logsumcorrmass"]
 }
 
 

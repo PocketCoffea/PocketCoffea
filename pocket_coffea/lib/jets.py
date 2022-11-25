@@ -7,6 +7,7 @@ import correctionlib
 from ..parameters.object_preselection import object_preselection
 from ..parameters.jec import JECjsonFiles
 from ..lib.deltaR_matching import get_matching_pairs_indices, object_matching
+from lib.sv import get_nmu_in_subjet
 
 
 def jet_correction(
@@ -200,8 +201,24 @@ def jet_selection(events, Jet, finalstate):
         good_jets_mask = presel_mask & lepton_cleaning_mask & jetpuid_mask
 
     elif Jet == "FatJet":
+        njet_max = ak.max(ak.count(jets.pt, axis=1))
+        # Select jets with a minimum number of subjets
         nsubjet_mask = (ak.count(jets.subjets.pt, axis=2) >= cuts["nsubjet"])
-        good_jets_mask = presel_mask & nsubjet_mask
+        # Select jets with a minimum number of mu-tagged subjets
+        nmusj_fatjet1 = get_nmu_in_subjet(events.FatJet, events.MuonGood, pos=0)
+        nmusj_fatjet2 = get_nmu_in_subjet(events.FatJet, events.MuonGood, pos=1)
+        nmusj = ak.concatenate( (ak.unflatten(nmusj_fatjet1, counts=1), ak.unflatten(nmusj_fatjet2, counts=1)), axis=1 )
+        events["nmusj_fatjet1"] = nmusj_fatjet1
+        events["nmusj_fatjet2"] = nmusj_fatjet2
+        events["nmusj"] = nmusj
+        nmusj_mask = (nmusj >= cuts["nmusj"])
+        # Apply di-muon pT ratio cut on FatJets
+        ptratio_mask = (events.dimuon.pt / events.FatJet.pt < cuts["dimuon_pt_ratio"])
+        ptratio_mask = ak.where( ak.is_none(ptratio_mask), ak.zeros_like(events.FatJet.pt, dtype=bool), ptratio_mask )
+        good_jets_mask = ak.ones_like(ak.fill_none(ak.pad_none(jets.pt, njet_max), 1), dtype=bool)
+        for mask in [presel_mask, nsubjet_mask, nmusj_mask, ptratio_mask]:
+            good_jets_mask = good_jets_mask & ak.pad_none(mask, njet_max)
+        good_jets_mask = mask[~ak.is_none(mask, axis=1)]
 
     return jets[good_jets_mask], good_jets_mask
 

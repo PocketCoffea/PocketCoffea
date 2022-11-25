@@ -89,6 +89,8 @@ object_preselection = {
             "eta" : 2.4,
             "jetId" : 2,
             "nsubjet" : 2,
+            "nmusj" : 1,
+            "dimuon_pt_ratio" : 0.6
         }
     }
 }
