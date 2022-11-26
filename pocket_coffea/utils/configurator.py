@@ -87,8 +87,18 @@ class Configurator:
                 "shape": {c: [] for c in self.categories.keys()}}
             for s in self.samples
         }
-        self.load_variations_config(self.cfg["variation"]["weights"], variation_type="weights")
-        self.load_variations_config(self.cfg["variation"]["shape"], variation_type="shape")
+        self.load_variations_config(self.cfg["variations"]["weights"], variation_type="weights")
+        self.load_variations_config(self.cfg["variations"]["shape"], variation_type="shape")
+        self.available_weights_variations = { s : ["nominal"] for s in self.samples}
+        self.available_shape_variations = { s : [] for s in self.samples}
+
+        for sample in self.samples:
+            # Weights variations
+            for cat, vars in self.variations_config[sample]["weights"].items():
+                self.available_weights_variations[sample] += vars
+            #Shape variations                     
+            for cat, vars in self.variations_config[sample]["shape"].items():
+                self.available_shape_variations[sample] += vars
 
         # Column accumulator config
         self.columns = {

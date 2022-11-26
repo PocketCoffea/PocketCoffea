@@ -8,11 +8,11 @@ import numpy as np
 import correctionlib
 
 from ..parameters.object_preselection import object_preselection
-from ..parameters.jec import JECjsonFiles
+from ..parameters.jec_config import JECjsonFiles
 from ..lib.deltaR_matching import get_matching_pairs_indices, object_matching
 
 # Initialization of the jet factory
-with importlib.resources.path("boostedhiggs.data", "jec_compiled.pkl.gz") as path:
+with importlib.resources.path("pocket_coffea.parameters.jec", "jets_evaluator.pkl.gz") as path:
     with gzip.open(path) as fin:
         jmestuff = cloudpickle.load(fin)
 
@@ -30,14 +30,14 @@ def add_jec_variables(jets, event_rho):
 
 def jet_correction(events, jets, jetType, year, cache, applyJER=True):
     name = year if applyJER else f"{year}_NOJER"
-    if jetType = "AK4PFchs":
-        return = jet_factory[name].build(
-            add_jet_variables(jets, events.fixedGridRhoFastjetAll),
+    if jetType == "AK4PFchs":
+        return jet_factory[name].build(
+            add_jec_variables(jets, events.fixedGridRhoFastjetAll),
             cache
         )
     elif jetType == "AK8PFPuppi":
-        return = fatjet_factory[name].build(
-            add_jet_variables(jets, events.fixedGridRhoFastjetAll),
+        return fatjet_factory[name].build(
+            add_jec_variables(jets, events.fixedGridRhoFastjetAll),
             cache
         )
 
@@ -205,11 +205,6 @@ def jet_correction_correctionlib(
         return jets_smeared, seed_dict
     else:
         return jets_corrected
-
-
-
-# def jet_correction_coffea():
-    
 
 
 def jet_selection(events, Jet, finalstate):

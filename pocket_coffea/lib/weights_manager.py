@@ -229,9 +229,10 @@ class WeightsManager:
         elif weight_name == "sf_mu_iso":
             return [('sf_mu_iso', *sf_mu(events, self._year, 'iso'))]
         elif weight_name == 'sf_btag':
-            btag_vars = btag_variations[self._year]
+            
             # Get all the nominal and variation SF
             if shape_variation == "nominal":
+                btag_vars = btag_variations[self._year]
                 btagsf = sf_btag(
                     events.JetGood,
                     btag[self._year]['btagging_algorithm'],
@@ -239,6 +240,13 @@ class WeightsManager:
                     variations=["central"] + btag_vars,
                     njets=events.nJetGood,
                 )
+                # BE AWARE --> COFFEA HACK FOR MULTIPLE VARIATIONS
+                for var in btag_vars:
+                    # Rescale the up and down variation by the central one to
+                    # avoid double counting of the central SF when adding the weights
+                    # as separate entries in the Weights object.
+                    btagsf[var][1] = btagsf[var][1] / btagsf["central"][0]
+                    btagsf[var][2] = btagsf[var][2] / btagsf["central"][0]
             else:
                 # Only the nominal if there is a shape variation
                 #TODO Implement the varied btag for the JES variations
@@ -249,13 +257,6 @@ class WeightsManager:
                     variations=["central"], 
                     njets=events.nJetGood,
                 )
-            # BE AWARE --> COFFEA HACK FOR MULTIPLE VARIATIONS
-            for var in btag_vars:
-                # Rescale the up and down variation by the central one to
-                # avoid double counting of the central SF when adding the weights
-                # as separate entries in the Weights object.
-                btagsf[var][1] = btagsf[var][1] / btagsf["central"][0]
-                btagsf[var][2] = btagsf[var][2] / btagsf["central"][0]
 
             # return the nominal and everything
             return [(f"sf_btag_{var}", *weights) for var, weights in btagsf.items()]

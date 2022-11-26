@@ -119,9 +119,10 @@ class HistManager:
         self.available_shape_variations = []
         if self.isMC:
             self.available_weights_variations_bycat = defaultdict(list)
-            self.available_weights_variations_bycat[cat].append("nominal")
+            self.available_shape_variations_bycat = defaultdict(list)
             #weights variations
             for cat, vars in self.variations_config["weights"].items():
+                self.available_weights_variations_bycat[cat].append("nominal")
                 for var in vars:
                     vv = [f"{var}Up", f"{var}Down"]
                     self.available_weights_variations += vv
@@ -130,7 +131,7 @@ class HistManager:
             for cat, vars in self.variations_config["shape"].items():
                 for var in vars:
                     vv = [f"{var}Up", f"{var}Down"]
-                    self.available_shape+variations += vv
+                    self.available_shape_variations += vv
                     self.available_shape_variations_bycat[cat] += vv
             # Reduce to set over all the categories
             self.available_weights_variations = set(self.available_weights_variations)
@@ -369,6 +370,8 @@ class HistManager:
                     if shape_variation == "nominal":
                         # if we are working on nominal we fill all the weights variations
                         for variation in histo.hist_obj.axes["variation"]:
+                            if variation in self.available_shape_variations:
+                                continue
                             # Check if this variation exists for this category
                             if variation not in weights:
                                 # it means that the variation is in the axes only
@@ -397,15 +400,15 @@ class HistManager:
                         # Check number of dimensione
                         weights_nom = weights["nominal"]
                         if ndim > 1:
-                            weight_nom = ak.flatten(data_structure * weight_nom)
+                            weights_nom = ak.flatten(data_structure * weights_nom)
                         # Then we apply the notnone mask
-                        weight_nom = weight_nom[all_axes_isnotnone]
+                        weights_nom = weights_nom[all_axes_isnotnone]
                         # Fill the histogram
                         try:
                             histo.hist_obj.fill(
                                 cat=category,
                                 variation=shape_variation,
-                                weight=weight_nom,
+                                weight=weights_nom,
                                 **{**fill_categorical, **fill_numeric},
                             )
                         except:

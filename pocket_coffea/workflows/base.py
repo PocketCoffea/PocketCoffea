@@ -64,7 +64,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # List of all samples names
         self._totalSamplesSet = self.cfg.samples[:]
         for sample, subs in self._subsamplesCfg.items():
- self._totalSamplesSet += list(subs.keys())
+            self._totalSamplesSet += list(subs.keys())
         logging.debug(f"Total samples list: {self._totalSamplesSet}")
 
         # Weights configuration
@@ -291,7 +291,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         Identifiers of the weights variabtions available thorugh this processor.
         By default they are all the weights defined in the WeightsManager
         '''
-        return WeightsManager.available_variations()
+        vars =  WeightsManager.available_variations()
+        vars.update(["JES_jes"])
+        return vars
 
     def compute_weights(self, variation):
         '''
@@ -349,7 +351,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     if self._isMC:
                         self.output["sumw"][category][subs] = ak.sum(w * mask_withsub)
 
-    def define_custom_axes_extra(self, variation):
+    def define_custom_axes_extra(self):
         '''
         Function which get called before the definition of the Histogram
         manager.
@@ -378,7 +380,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     self.cfg.variables,
                     subs,
                     self._categories,
-                    self.cfg.variations_config[self._sample],
+                    variations_config=self.cfg.variations_config[self._sample],
                     custom_axes=self.custom_axes,
                     isMC=self._isMC,
                 )
@@ -387,7 +389,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 self.cfg.variables,
                 self._sample,
                 self._categories,
-                self.cfg.variations_config[self._sample],
+                variations_config=self.cfg.variations_config[self._sample],
                 custom_axes=self.custom_axes,
                 isMC=self._isMC,
             )
@@ -431,7 +433,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 self.events,
                 self.weights_manager,
                 self._cuts_masks,
-                shape_variation = shape_variation,
+                shape_variation = variation,
                 custom_fields=self.custom_histogram_fields,
             )
 
@@ -506,7 +508,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         Generator for shape variations.
         '''
         # nominal is assumed to be the first 
-        variations = ["nominal"] + self.variations["shape"]
+        variations = ["nominal"] + self.cfg.available_shape_variations[self._sample]
         # TO be understood if a copy is needed
         nominal_events = self.events
         
@@ -518,20 +520,24 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         if hasJES:
             #correct the jets only once
             jec_cache = cachetools.Cache(np.inf)
-            jets_with_JES = jet_correction(nominal_events, events.Jet, "AK4PFchs", self._year, jec_cache)
+            jets_with_JES = jet_correction(nominal_events, nominal_events.Jet, "AK4PFchs", self._year, jec_cache)
         
         for variation in variations:
             # Restore the nominal events record since for each variation
             # the event preselections are applied
-            self.events = nominal_events
                             
             if variation == "nominal":
+                self.events = nominal_events
+                self.events["Jet"] = jets_with_JES
                 # Nominal is ASSUMED to be the first
                 yield "nominal"
             elif "JES" in variation:
                 # JES_jes is the total. JES_[type] is for different variations
+                self.events = nominal_events
                 self.events["Jet"] = jets_with_JES[variation].up
                 yield variation+ "Up"
+                #restore nominal before going to down
+                self.events = nominal_events
                 self.events["Jet"] = jets_with_JES[variation].down
                 yield variation+ "Down"
             
@@ -604,13 +610,13 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
 
         # Create the HistManager and ColumnManager before systematic variations
-        self.define_custom_axes_extra(variation)
-        self.define_histograms(variation)
-        self.define_histograms_extra(variation)
-        self.define_column_accumulators(variation)
-        self.define_column_accumulators_extra(variation)
+        self.define_custom_axes_extra()
+        self.define_histograms()
+        self.define_histograms_extra()
+        self.define_column_accumulators()
+        self.define_column_accumulators_extra()
 
-        for variation in self.get_shape_variations:
+        for variation in self.get_shape_variations():
             # Apply preselections
             self.apply_object_preselection(variation)
             self.count_objects(variation)
