@@ -92,7 +92,18 @@ cfg =  {
         },
         "shape": {
             "common":{
-                "inclusive": ["JES_jes"]
+                "inclusive": ["JES_Total",
+                              'JES_FlavorQCD',
+                              'JES_RelativeBal',
+                              'JES_HF',
+                              'JES_BBEC1',
+                              'JES_EC2',
+                              'JES_Absolute',
+                              'JES_Absolute_2018',
+                              'JES_HF_2018',
+                              'JES_EC2_2018',
+                              'JES_RelativeSample_2018',
+                              'JES_BBEC1_2018']
             }
         }
     },

@@ -285,16 +285,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
         return WeightsManager.available_weights()
 
-    @classmethod
-    def available_variations(cls):
-        '''
-        Identifiers of the weights variabtions available thorugh this processor.
-        By default they are all the weights defined in the WeightsManager
-        '''
-        vars =  WeightsManager.available_variations()
-        vars.update(["JES_jes"])
-        return vars
-
     def compute_weights(self, variation):
         '''
         Function which define weights (called after preselection).
@@ -502,6 +492,31 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
     def process_extra_after_presel(self, variation):
         pass
+
+
+
+    @classmethod
+    def available_variations(cls):
+        '''
+        Identifiers of the weights variabtions available thorugh this processor.
+        By default they are all the weights defined in the WeightsManager
+        '''
+        vars =  WeightsManager.available_variations()
+        vars.update([ "JES_Total",
+                      'JES_FlavorQCD',
+                      'JES_RelativeBal',
+                      'JES_HF',
+                      'JES_BBEC1',
+                      'JES_EC2',
+                      'JES_Absolute',
+                      'JES_Absolute_2018',
+                      'JES_HF_2018',
+                      'JES_EC2_2018',
+                      'JES_RelativeSample_2018',
+                      'JES_BBEC1_2018'])
+        return vars
+
+
 
     def get_shape_variations(self):
         '''
