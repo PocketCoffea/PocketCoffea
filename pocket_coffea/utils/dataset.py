@@ -10,7 +10,6 @@ from parsl import python_app
 from parsl.config import Config
 from parsl.executors.threads import ThreadPoolExecutor
 
-<<<<<<< HEAD:pocket_coffea/utils/dataset.py
 from .network import get_proxy_path
 
 
