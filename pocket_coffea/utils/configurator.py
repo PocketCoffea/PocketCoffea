@@ -120,8 +120,9 @@ class Configurator:
                 setattr(self, key, '')
         if self.plot:
             # If a specific version is specified, plot that version
-            if self.plot_version:
-                self.output = self.output + f'_{self.plot_version}'
+            if self.plot_version != None:
+                if self.plot_version != '':
+                    self.output = self.output + f'_{self.plot_version}'
                 if not os.path.exists(self.output):
                     sys.exit(f"The output folder {self.output} does not exist")
             # If no version is specified, plot the latest version of the output
