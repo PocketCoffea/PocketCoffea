@@ -36,7 +36,7 @@ class WeightCustom:
 
     - name: name of the weight
     - function:  function defining the weights of the events chunk.
-                 signuture (events, size, metadata:dict)
+                 signuture (events, size, metadata:dict, shape_variation:str)
     - variations: list of variations
 
     The function must return the weights in the following format::
@@ -49,7 +49,7 @@ class WeightCustom:
     '''
 
     name: str
-    function: Callable  # The function is call
+    function: Callable  # The function to call
 
     def serialize(self, src_code=False):
         out = {
@@ -122,10 +122,11 @@ class WeightsManager:
             out += [f"sf_btag_{var}" for var in bvars]
         return set(out)
 
-    def __init__(self, weightsConf, size, events, metadata, storeIndividual=False):
+    def __init__(self, weightsConf, size, events, shape_variation, metadata, storeIndividual=False):
         self._sample = metadata["sample"]
         self._year = metadata["year"]
         self._finalstate = metadata["finalstate"]
+        self._shape_variation = shape_variation
         self.weightsConf = weightsConf
         self.storeIndividual = storeIndividual
         self.size = size
@@ -150,7 +151,7 @@ class WeightsManager:
                     # DO nothing
                     return
                 if w not in _weightsCache:
-                    _weightsCache[w] = self._compute_weight(w, events)
+                    _weightsCache[w] = self._compute_weight(w, events, self._shape_variation)
                 for we in _weightsCache[w]:
                     weight_obj.add(*we)
                     if len(we) > 2:
@@ -159,7 +160,7 @@ class WeightsManager:
             # If the Weight is a Custom weight just run the function
             elif isinstance(w, WeightCustom):
                 if w.name not in _weightsCache:
-                    _weightsCache[w.name] = w.function(events, self.size, metadata)
+                    _weightsCache[w.name] = w.function(events, self.size, metadata,self._shape_variation)
                 for we in _weightsCache[w.name]:
                     print(we)
                     weight_obj.add(*we)
@@ -199,7 +200,7 @@ class WeightsManager:
         # Clear the cache once the Weights objects have been added
         _weightsCache.clear()
 
-    def _compute_weight(self, weight_name, events):
+    def _compute_weight(self, weight_name, events, shape_variation):
         '''
         Predefined common weights.
         The function return a list of tuples containing a
@@ -233,22 +234,34 @@ class WeightsManager:
         elif weight_name == "sf_mu_iso":
             return [('sf_mu_iso', *sf_mu(events, self._year, 'iso'))]
         elif weight_name == 'sf_btag':
-            btag_vars = btag_variations[self._year]
+            
             # Get all the nominal and variation SF
-            btagsf = sf_btag(
-                events.JetGood,
-                btag[self._year]['btagging_algorithm'],
-                self._year,
-                variations=["central"] + btag_vars,
-                njets=events.nJetGood,
-            )
-            # BE AWARE --> COFFEA HACK FOR MULTIPLE VARIATIONS
-            for var in btag_vars:
-                # Rescale the up and down variation by the central one to
-                # avoid double counting of the central SF when adding the weights
-                # as separate entries in the Weights object.
-                btagsf[var][1] = btagsf[var][1] / btagsf["central"][0]
-                btagsf[var][2] = btagsf[var][2] / btagsf["central"][0]
+            if shape_variation == "nominal":
+                btag_vars = btag_variations[self._year]
+                btagsf = sf_btag(
+                    events.JetGood,
+                    btag[self._year]['btagging_algorithm'],
+                    self._year,
+                    variations=["central"] + btag_vars,
+                    njets=events.nJetGood,
+                )
+                # BE AWARE --> COFFEA HACK FOR MULTIPLE VARIATIONS
+                for var in btag_vars:
+                    # Rescale the up and down variation by the central one to
+                    # avoid double counting of the central SF when adding the weights
+                    # as separate entries in the Weights object.
+                    btagsf[var][1] = btagsf[var][1] / btagsf["central"][0]
+                    btagsf[var][2] = btagsf[var][2] / btagsf["central"][0]
+            else:
+                # Only the nominal if there is a shape variation
+                #TODO Implement the varied btag for the JES variations
+                 btagsf = sf_btag(
+                    events.JetGood,
+                    btag[self._year]['btagging_algorithm'],
+                    self._year,
+                    variations=["central"], 
+                    njets=events.nJetGood,
+                )
 
             # return the nominal and everything
             return [(f"sf_btag_{var}", *weights) for var, weights in btagsf.items()]

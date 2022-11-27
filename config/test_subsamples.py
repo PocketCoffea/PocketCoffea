@@ -1,6 +1,6 @@
 from pocket_coffea.parameters.cuts.preselection_cuts import *
 from pocket_coffea.workflows.tthbb_base_processor import ttHbbBaseProcessor
-from pocket_coffea.lib.cut_functions import get_nObj_min, get_nObj_eq, get_nBtag, get_HLTsel
+from pocket_coffea.lib.cut_functions import get_nObj_min, get_nObj_eq, get_nBtag, get_HLTsel, get_nObj_less
 from pocket_coffea.parameters.histograms import *
 from pocket_coffea.parameters.btag import btag_variations
 from pocket_coffea.lib.weights_manager import WeightCustom
@@ -27,9 +27,10 @@ cfg =  {
         "subsamples": {
             "TTbbSemiLeptonic":
             {
+                "tt<3b": [get_nObj_less(3, coll="BJetGood")],
                 "tt+3b": [get_nObj_eq(3, coll="BJetGood")],
                 "tt+4b": [get_nObj_eq(4, coll="BJetGood")],
-                "tt+5b": [get_nObj_eq(5, coll="BJetGood")],
+                "tt>4b": [get_nObj_min(5, coll="BJetGood")],
             }
         }
     },

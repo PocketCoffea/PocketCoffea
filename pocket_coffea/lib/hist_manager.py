@@ -115,16 +115,27 @@ class HistManager:
         self.categories_config = categories_config
         self.variations_config = variations_config
         self.available_categories = set(self.categories_config.keys())
-        self.available_variations = ["nominal"]
+        self.available_weights_variations = ["nominal"]
+        self.available_shape_variations = []
         if self.isMC:
-            self.available_variations_bycat = defaultdict(list)
+            self.available_weights_variations_bycat = defaultdict(list)
+            self.available_shape_variations_bycat = defaultdict(list)
+            #weights variations
             for cat, vars in self.variations_config["weights"].items():
-                self.available_variations_bycat[cat].append("nominal")
+                self.available_weights_variations_bycat[cat].append("nominal")
                 for var in vars:
                     vv = [f"{var}Up", f"{var}Down"]
-                    self.available_variations += vv
-                    self.available_variations_bycat[cat] += vv
-            self.available_variations = set(self.available_variations)
+                    self.available_weights_variations += vv
+                    self.available_weights_variations_bycat[cat] += vv
+            #Shape variations                     
+            for cat, vars in self.variations_config["shape"].items():
+                for var in vars:
+                    vv = [f"{var}Up", f"{var}Down"]
+                    self.available_shape_variations += vv
+                    self.available_shape_variations_bycat[cat] += vv
+            # Reduce to set over all the categories
+            self.available_weights_variations = set(self.available_weights_variations)
+            self.available_shape_variations = set(self.available_shape_variations)
         # Prepare the variations Axes summing all the required variations
         # The variation config is organized as the weights one, by sample and by category
 
@@ -161,6 +172,7 @@ class HistManager:
                 for c in cats:
                     # Summing all the variations for all the categories
                     allvariat += self.variations_config["weights"][c]
+                    allvariat += self.variations_config["shape"][c]
                 allvariat = set(allvariat)
                 if hcfg.only_variations != None:
                     # filtering the variation list with the available ones
@@ -215,6 +227,7 @@ class HistManager:
         events,
         weights_manager,
         cuts_masks,
+        shape_variation = "nominal",
         subsample_mask=None,
         custom_fields=None,
     ):
@@ -237,14 +250,19 @@ class HistManager:
             # map of weights in this category, with mask APPLIED
             if self.isMC:
                 weights = {}
-                for variation in self.available_variations_bycat[category]:
-                    if variation == "nominal":
-                        weights["nominal"] = weights_manager.get_weight(category)[mask]
-                    else:
-                        # Check if the variation is available in this category
-                        weights[variation] = weights_manager.get_weight(
-                            category, modifier=variation
-                        )[mask]
+                if shape_variation == "nominal":
+                    for variation in self.available_weights_variations_bycat[category]:
+                        if variation == "nominal":
+                            weights["nominal"] = weights_manager.get_weight(category)[mask]
+                        else:
+                            # Check if the variation is available in this category
+                            weights[variation] = weights_manager.get_weight(
+                                category, modifier=variation
+                            )[mask]
+                else:
+                    # Save only the nominal weights if a shape variation is being processed
+                    weights["nominal"] = weights_manager.get_weight(category)[mask]
+                        
 
             for name, histo in self.histograms.items():
                 if category not in histo.only_categories:
@@ -253,6 +271,11 @@ class HistManager:
                     continue
                 if histo.metadata_hist:
                     continue  # TODO dedicated function for metadata histograms
+                # Check if a shape variation is under processing and
+                # if the current histogram does not require that
+                if shape_variation != "nominal" and shape_variation not in histo.hist_obj.axes["variation"]:
+                    continue
+            
                 # Get the filling axes and then manipulate the weights
                 # for each variation to be compatible with the shape
 
@@ -344,26 +367,48 @@ class HistManager:
                 # data that has been masked, flattened
                 # removed the none value --> now we need weights for each variation
                 if not histo.no_weights and self.isMC:
-                    for variation in histo.hist_obj.axes["variation"]:
-                        # Check if this variation exists for this category
-                        if variation not in weights:
-                            # it means that the variation is in the axes only
-                            # because it is requested for another category
-                            # In this case we fill with the nominal variation
-                            weight_varied = weights["nominal"]
-                        else:
-                            weight_varied = weights[variation]
+                    if shape_variation == "nominal":
+                        # if we are working on nominal we fill all the weights variations
+                        for variation in histo.hist_obj.axes["variation"]:
+                            if variation in self.available_shape_variations:
+                                continue
+                            # Check if this variation exists for this category
+                            if variation not in weights:
+                                # it means that the variation is in the axes only
+                                # because it is requested for another category
+                                # In this case we fill with the nominal variation
+                                weight_varied = weights["nominal"]
+                            else:
+                                weight_varied = weights[variation]
+                            # Check number of dimensione
+                            if ndim > 1:
+                                weight_varied = ak.flatten(data_structure * weight_varied)
+                            # Then we apply the notnone mask
+                            weight_varied = weight_varied[all_axes_isnotnone]
+                            # Fill the histogram
+                            try:
+                                histo.hist_obj.fill(
+                                    cat=category,
+                                    variation=variation,
+                                    weight=weight_varied,
+                                    **{**fill_categorical, **fill_numeric},
+                                )
+                            except:
+                                raise Exception(f"Cannot fill histogram: {name}, {histo}")
+                    else:
+                        # Working on shape variation! only nominal weights
                         # Check number of dimensione
+                        weights_nom = weights["nominal"]
                         if ndim > 1:
-                            weight_varied = ak.flatten(data_structure * weight_varied)
+                            weights_nom = ak.flatten(data_structure * weights_nom)
                         # Then we apply the notnone mask
-                        weight_varied = weight_varied[all_axes_isnotnone]
+                        weights_nom = weights_nom[all_axes_isnotnone]
                         # Fill the histogram
                         try:
                             histo.hist_obj.fill(
                                 cat=category,
-                                variation=variation,
-                                weight=weight_varied,
+                                variation=shape_variation,
+                                weight=weights_nom,
                                 **{**fill_categorical, **fill_numeric},
                             )
                         except:
@@ -375,7 +420,7 @@ class HistManager:
                     try:
                         histo.hist_obj.fill(
                             cat=category,
-                            variation=variation,
+                            variation="nominal",
                             **{**fill_categorical, **fill_numeric},
                         )
                     except:
