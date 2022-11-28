@@ -147,29 +147,23 @@ fatjet_factory = {
 #             "Fall17_17Nov2017_V32_MC_Uncertainty_AK8PFPuppi.junc.txt.gz",
 #         ]
 #     ),
-#     "2018mc": jet_factory_factory(
-#         files=[
-#             # https://github.com/cms-jet/JECDatabase/raw/master/textFiles/Autumn18_V19_MC/Autumn18_V19_MC_L1FastJet_AK8PFPuppi.txt
-#             "Autumn18_V19_MC_L1FastJet_AK8PFPuppi.jec.txt.gz",
-#             # https://github.com/cms-jet/JECDatabase/raw/master/textFiles/Autumn18_V19_MC/Autumn18_V19_MC_L2Relative_AK8PFPuppi.txt
-#             "Autumn18_V19_MC_L2Relative_AK8PFPuppi.jec.txt.gz",
-#             # https://raw.githubusercontent.com/cms-jet/JECDatabase/master/textFiles/Autumn18_V19_MC/Autumn18_V19_MC_UncertaintySources_AK8PFPuppi.txt
-#             "Autumn18_V19_MC_UncertaintySources_AK8PFPuppi.junc.txt.gz",
-#             # https://github.com/cms-jet/JECDatabase/raw/master/textFiles/Autumn18_V19_MC/Autumn18_V19_MC_Uncertainty_AK8PFPuppi.txt
-#             "Autumn18_V19_MC_Uncertainty_AK8PFPuppi.junc.txt.gz",
-#             # https://github.com/cms-jet/JRDatabase/raw/master/textFiles/Autumn18_V7b_MC/Autumn18_V7b_MC_PtResolution_AK8PFPuppi.txt
-#             "Autumn18_V7b_MC_PtResolution_AK8PFPuppi.jr.txt.gz",
-#             # https://github.com/cms-jet/JRDatabase/raw/master/textFiles/Autumn18_V7b_MC/Autumn18_V7b_MC_SF_AK8PFPuppi.txt
-#             "Autumn18_V7b_MC_SF_AK8PFPuppi.jersf.txt.gz",
-#         ]
-#     ),
-#     "2018mcNOJER": jet_factory_factory(
-#         files=[
-#             "Autumn18_V19_MC_L1FastJet_AK8PFPuppi.jec.txt.gz",
-#             "Autumn18_V19_MC_L2Relative_AK8PFPuppi.jec.txt.gz",
-#             "Autumn18_V19_MC_Uncertainty_AK8PFPuppi.junc.txt.gz",
-#         ]
-#     ),
+     "2018": jet_factory_factory(
+         files=[
+             "Summer19UL18_V5_MC_L1FastJet_AK8PFPuppi.jec.txt.gz",
+             "Summer19UL18_V5_MC_L2Relative_AK8PFPuppi.jec.txt.gz",
+             "Summer19UL18_V5_MC_UncertaintySources_AK8PFPuppi.junc.txt.gz",
+             "Summer19UL18_V5_MC_Uncertainty_AK8PFPuppi.junc.txt.gz",
+             "Summer19UL18_JRV2_MC_PtResolution_AK8PFPuppi.jr.txt.gz",
+             "Summer19UL18_JRV2_MC_SF_AK8PFPuppi.jersf.txt.gz",
+         ]
+     ),
+     "2018_NOJER": jet_factory_factory(
+         files=[
+             "Summer19UL18_V5_MC_L1FastJet_AK8PFPuppi.jec.txt.gz",
+             "Summer19UL18_V5_MC_L2Relative_AK8PFPuppi.jec.txt.gz",
+             "Summer19UL18_V5_MC_Uncertainty_AK8PFPuppi.junc.txt.gz",
+         ]
+     ),
 }
 
 met_factory = CorrectedMETFactory(jec_name_map)
