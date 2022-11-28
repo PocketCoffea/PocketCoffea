@@ -100,6 +100,9 @@ class Configurator:
             for cat, vars in self.variations_config[sample]["shape"].items():
                 self.available_shape_variations[sample] += vars
 
+            self.available_weights_variations[sample] = list(set(self.available_weights_variations[sample]))
+            self.available_shape_variations[sample] = list(set(self.available_shape_variations[sample]))
+
         # Column accumulator config
         self.columns = {
             s: {c: [] for c in self.categories.keys()} for s in self.samples
