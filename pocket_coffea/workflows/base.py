@@ -53,10 +53,10 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # The skim mask is applied on baseline nanoaod before any object is corrected
         self._skim_masks = PackedSelection()
         # The preselection mask is applied after the objects have been corrected
-        self._preselection_masks = PackedSelection()
+        #self._preselection_masks = PackedSelection()
         # After the preselections more cuts are defined and combined in categories.
         # These cuts are applied only for outputs, so they cohexists in the form of masks
-        self._cuts_masks = PackedSelection()
+        #self._cuts_masks = PackedSelection()
 
         # Subsamples configurations: special cuts to split a sample in subsamples
         self._subsamplesCfg = self.cfg.subsamples
@@ -210,6 +210,10 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''The function computes all the masks from the preselection cuts
         and filter out the events to speed up the later computations.
         N.B.: Preselection happens after the objects correction and cleaning.'''
+
+        # The preselection mask is applied after the objects have been corrected
+        self._preselection_masks = PackedSelection()
+
         for cut in self._preselections:
             # Apply the cut function and add it to the mask
             mask = cut.get_mask(
@@ -232,6 +236,11 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         Moreover it computes the cut masks defining the subsamples for the current
         chunks and store them in the `self.subsamples` attribute for later use.
         '''
+
+        # After the preselections more cuts are defined and combined in categories.
+        # These cuts are applied only for outputs, so they cohexists in the form of masks
+        self._cuts_masks = PackedSelection()
+
         # We make sure that for each category the list of cuts is unique in the Configurator validation
         for cut in self._cuts:
             mask = cut.get_mask(
@@ -522,6 +531,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
         Generator for shape variations.
         '''
+        if not self._isMC:
+            yield "nominal"
+            return
         # nominal is assumed to be the first 
         variations = ["nominal"] + self.cfg.available_shape_variations[self._sample]
         # TO be understood if a copy is needed
@@ -535,7 +547,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         if hasJES:
             #correct the jets only once
             jec_cache = cachetools.Cache(np.inf)
-            jets_with_JES = jet_correction(nominal_events, nominal_events.Jet, "AK4PFchs", self._year, jec_cache)
+            #jets_with_JES = jet_correction(nominal_events, nominal_events.Jet, "AK4PFchs", self._year, jec_cache)
+            fatjets_with_JES = jet_correction(nominal_events, nominal_events.FatJet, "AK8PFPuppi", self._year, jec_cache)
         
         for variation in variations:
             # Restore the nominal events record since for each variation
@@ -543,17 +556,20 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                             
             if variation == "nominal":
                 self.events = nominal_events
-                self.events["Jet"] = jets_with_JES
+                #self.events["Jet"] = jets_with_JES
+                self.events["FatJet"] = fatjets_with_JES
                 # Nominal is ASSUMED to be the first
                 yield "nominal"
             elif "JES" in variation:
                 # JES_jes is the total. JES_[type] is for different variations
                 self.events = nominal_events
-                self.events["Jet"] = jets_with_JES[variation].up
+                #self.events["Jet"] = jets_with_JES[variation].up
+                self.events["FatJet"] = fatjets_with_JES[variation].up
                 yield variation+ "Up"
                 #restore nominal before going to down
                 self.events = nominal_events
-                self.events["Jet"] = jets_with_JES[variation].down
+                #self.events["Jet"] = jets_with_JES[variation].down
+                self.events["FatJet"] = fatjets_with_JES[variation].down
                 yield variation+ "Down"
             
 
@@ -632,6 +648,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self.define_column_accumulators_extra()
 
         for variation in self.get_shape_variations():
+            print("shape variation:", variation)
             # Apply preselections
             self.apply_object_preselection(variation)
             self.count_objects(variation)
