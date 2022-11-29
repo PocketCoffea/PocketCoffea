@@ -10,6 +10,7 @@ import inspect
 import logging
 
 from ..lib.cut_definition import Cut
+from ..lib.cartesian_categories import CartesianSelection
 from ..parameters.cuts.preselection_cuts import passthrough
 from ..lib.weights_manager import WeightCustom
 from ..lib.hist_manager import Axis, HistConf
@@ -87,6 +88,8 @@ class Configurator:
                 "shape": {c: [] for c in self.categories.keys()}}
             for s in self.samples
         }
+        if "shape" not in self.cfg["variations"]:
+            self.cfg["variations"]["shape"] = {"common":{"inclusive": []}}
         self.load_variations_config(self.cfg["variations"]["weights"], variation_type="weights")
         self.load_variations_config(self.cfg["variations"]["shape"], variation_type="shape")
         self.available_weights_variations = { s : ["nominal"] for s in self.samples}
@@ -198,7 +201,7 @@ class Configurator:
             if len(self.cfg[cut_type]) == 0:
                 setattr(self, cut_type, [passthrough])
                 self.cfg[cut_type] = [passthrough]
-        if self.categories == {}:
+        if self.cfg["categories"] == {}:
             self.cfg["categories"]["baseline"] = [passthrough]
         # The cuts_dict is saved just for record
         for skim in self.cfg["skim"]:
@@ -212,19 +215,23 @@ class Configurator:
                 raise Exception("Wrong categories/cuts configuration")
             self.cuts_dict[presel.id] = presel
         # Now saving the categories and cuts
-        for cat, cuts in self.cfg["categories"].items():
-            self.categories[cat] = []
-            for cut in cuts:
-                if not isinstance(cut, Cut):
-                    print("Please define skim, preselections and cuts as Cut objects")
-                    raise Exception("Wrong categories/cuts configuration")
-                self.cut_functions.append(cut)
-                self.cuts_dict[cut.id] = cut
-                self.categories[cat].append(cut.id)
+        if isinstance(self.cfg["categories"], dict):
+            for cat, cuts in self.cfg["categories"].items():
+                self.categories[cat] = []
+                for cut in cuts:
+                    if not isinstance(cut, Cut):
+                        print("Please define skim, preselections and cuts as Cut objects")
+                        raise Exception("Wrong categories/cuts configuration")
+                    self.cut_functions.append(cut)
+                    self.cuts_dict[cut.id] = cut
+                    self.categories[cat].append(cut.id)
+            for cat, cuts in self.categories.items():
+                self.categories[cat] = set(cuts)
+
+        elif isinstance(self.cfg["categories"], CartesianSelection):
+            self.categories = self.cfg["categories"]
         # Unique set of cuts
         self.cut_functions = set(self.cut_functions)
-        for cat, cuts in self.categories.items():
-            self.categories[cat] = set(cuts)
         logging.info("Cuts:")
         logging.info(pformat(self.cuts_dict.keys(), compact=True, indent=2))
         logging.info("Categories:")
@@ -473,14 +480,21 @@ class Configurator:
             skim_dump.append(sk.serialize())
         for pre in ocfg["preselections"]:
             presel_dump.append(pre.serialize())
-        for cat, cuts in ocfg["categories"].items():
-            newcuts = []
-            for c in cuts:
-                newcuts.append(c.serialize())
-            cats_dump[cat] = newcuts
+
         ocfg["skim"] = skim_dump
         ocfg["preselections"] = presel_dump
-        ocfg["categories"] = cats_dump
+        
+        if not isinstance(self.categories, CartesianSelection):
+            for cat, cuts in ocfg["categories"].items():
+                newcuts = []
+                for c in cuts:
+                    newcuts.append(c.serialize())
+                cats_dump[cat] = newcuts
+
+            ocfg["categories"] = cats_dump
+        else:
+            ocfg["categories"] = str(self.categories)
+            
         ocfg["workflow"] = {
             "name": self.workflow.__name__,
             "srcfile": inspect.getsourcefile(self.workflow),

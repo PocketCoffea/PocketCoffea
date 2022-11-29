@@ -15,6 +15,7 @@ from ..lib.weights_manager import WeightsManager
 from ..lib.columns_manager import ColumnsManager
 from ..lib.hist_manager import HistManager
 from ..lib.jets import jet_correction
+from ..lib.cartesian_categories import CartesianSelection
 from ..parameters.event_flags import event_flags, event_flags_data
 from ..parameters.lumi import goldenJSON
 from ..parameters.btag import btag
@@ -98,6 +99,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 v: {} for v, vcfg in self.cfg.variables.items() if vcfg.metadata_hist
             },
         }
+
 
     @property
     def nevents(self):
@@ -233,11 +235,18 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         chunks and store them in the `self.subsamples` attribute for later use.
         '''
         # We make sure that for each category the list of cuts is unique in the Configurator validation
-        for cut in self._cuts:
-            mask = cut.get_mask(
-                self.events, year=self._year, sample=self._sample, isMC=self._isMC
-            )
-            self._cuts_masks.add(cut.id, mask)
+        if isinstance(self._categories, CartesianSelection):
+            self._categories.prepare(events=self.events,
+                                     year=self._year, sample=self._sample, isMC=self._isMC
+                                     )
+            # The cuts masks are the CartesianSelection them self
+            self._cuts_masks = self._categories
+        else:
+            for cut in self._cuts:
+                mask = cut.get_mask(
+                    self.events, year=self._year, sample=self._sample, isMC=self._isMC
+                )
+                self._cuts_masks.add(cut.id, mask)
 
         # Defining the subsamples cut if needed
         if self._hasSubsamples:
@@ -322,8 +331,15 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         also sum their nominal weights (for each sample, by chunk).
         Store the results in the `cutflow` and `sumw` outputs
         '''
-        for category, cuts in self._categories.items():
-            mask = self._cuts_masks.all(*cuts)
+
+        if isinstance(self._cuts_masks, PackedSelection):
+            # on the fly generator of the categories and cuts
+            categories_generator = ((cat, self._cuts_masks.all(*self._categories[category]))
+                                    for cat in self._categories.keys())
+        elif isinstance(self._cuts_masks, CartesianSelection):
+            categories_generator = self._cuts_masks.get_masks()
+        
+        for category, mask in categories_generator:
             self.output["cutflow"][category][self._sample] = ak.sum(mask)
             if self._isMC:
                 w = self.weights_manager.get_weight(category)
@@ -527,15 +543,15 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # TO be understood if a copy is needed
         nominal_events = self.events
         
-        hasJES = False
-        for v in variations:
-            if "JES" in v:
-                hasJES= True
+        # hasJES = False
+        # for v in variations:
+        #     if "JES" in v:
+        #         hasJES= True
 
-        if hasJES:
-            #correct the jets only once
-            jec_cache = cachetools.Cache(np.inf)
-            jets_with_JES = jet_correction(nominal_events, nominal_events.Jet, "AK4PFchs", self._year, jec_cache)
+        # if hasJES:              
+        #correct the jets only once
+        jec_cache = cachetools.Cache(np.inf)
+        jets_with_JES = jet_correction(nominal_events, nominal_events.Jet, "AK4PFchs", self._year, jec_cache)
         
         for variation in variations:
             # Restore the nominal events record since for each variation
@@ -665,8 +681,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             # Fill histograms
             self.fill_histograms(variation)
             self.fill_histograms_extra(variation)
-            self.fill_column_accumulators(variation)
-            self.fill_column_accumulators_extra(variation)
+            #self.fill_column_accumulators(variation)
+            #self.fill_column_accumulators_extra(variation)
 
             # Count events
             if variation == "nominal":

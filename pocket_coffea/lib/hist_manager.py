@@ -1,10 +1,11 @@
 import hist
 import awkward as ak
 from collections import defaultdict
+from coffea.analysis_tools import PackedSelection
 from typing import List, Tuple
 from dataclasses import dataclass, field
 from copy import deepcopy
-
+from .cartesian_categories import CartesianSelection
 
 @dataclass
 class Axis:
@@ -112,9 +113,14 @@ class HistManager:
     ):
         self.isMC = isMC
         self.histograms = {}
-        self.categories_config = categories_config
         self.variations_config = variations_config
-        self.available_categories = set(self.categories_config.keys())
+        self.categories_config = categories_config
+        # Check the type of the categories config
+        # It is a dictionary we have a standard config
+        if isinstance(self.categories_config, dict):
+            self.available_categories = set(self.categories_config.keys())
+        elif isinstance(self.categories_config, CartesianSelection):
+            self.available_categories = self.categories_config.categories
         self.available_weights_variations = ["nominal"]
         self.available_shape_variations = []
         if self.isMC:
@@ -238,9 +244,14 @@ class HistManager:
         Custom_fields is a dict of additional array. The expected lenght of the first dimension is the number of
         events. The categories mask will be applied.
         '''
-        for category in self.available_categories:
-            # Getting the cut mask
-            mask = cuts_masks.all(*self.categories_config[category])
+        if isinstance(cuts_masks, PackedSelection):
+            # on the fly generator of the categories and cuts
+            categories_generator = ((cat, cuts_masks.all(*self.categories_config[category]))
+                                  for cat in self.availale_categories)
+        elif isinstance(cuts_masks, CartesianSelection):
+            categories_generator = cuts_masks.get_masks()
+
+        for category, mask in categories_generator:
             if subsample_mask is not None:
                 mask = mask & subsample_mask
             masked_events = events[mask]
