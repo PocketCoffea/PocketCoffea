@@ -18,7 +18,7 @@ cfg =  {
         "filter" : {
             "samples": [
                 # "TTToSemiLeptonic",
-                "TTbbSemiLeptonic",
+                # "TTbbSemiLeptonic",
                 "ttHTobb",
                 # "DATA_SingleMu", "DATA_SingleEle"
             ],
@@ -60,7 +60,7 @@ cfg =  {
 
 
     "categories": CartesianSelection(
-        [
+        multicuts = [
             MultiCut(name="Njets",
                      cuts=[
                          get_nObj_eq(4, 15., "JetGood"),
@@ -73,9 +73,14 @@ cfg =  {
                          get_nObj_eq(3, 15., "BJetGood"),
                          get_nObj_eq(4, 15., "BJetGood"),
                          get_nObj_eq(5, 15., "BJetGood"),
+                         get_nObj_min(6, coll="BJetGood"),
                      ],
-                     cuts_names=["3b","4b","5b"])
-        ]
+                     cuts_names=["3b","4b","5b","6b"])
+        ],
+        common_cats = {
+            "inclusive": passthrough,
+            "4jets_40pt" : get_nObj_min(4, 40., "JetGood")
+        }
     ),
 
     
