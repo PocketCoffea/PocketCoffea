@@ -97,6 +97,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             "processing_metadata": {
                 v: {} for v, vcfg in self.cfg.variables.items() if vcfg.metadata_hist
             },
+            #"bugged_events" : {}
         }
 
     @property
@@ -336,6 +337,13 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self.output["cutflow"][category][self._sample] = ak.sum(mask)
             if self._isMC:
                 w = self.weights_manager.get_weight(category)
+                #if ak.any(w / ak.mean(w) > 10):
+                #    mask = (w / ak.mean(w) > 10)
+                #    print("*****************")
+                #    print(self._sample, "weight / mean(weight) > 10")
+                #    print(w / ak.mean(w))
+                #    print("bugged events:", self.events.event[mask])
+                #    self.output["bugged_events"][self._sample] = self.events.event[mask]
                 self.output["sumw"][category][self._sample] = ak.sum(w * mask)
 
             # If subsamples are defined we also save their metadata
@@ -549,6 +557,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             jec_cache = cachetools.Cache(np.inf)
             #jets_with_JES = jet_correction(nominal_events, nominal_events.Jet, "AK4PFchs", self._year, jec_cache)
             fatjets_with_JES = jet_correction(nominal_events, nominal_events.FatJet, "AK8PFPuppi", self._year, jec_cache)
+        else:
+            fatjets_with_JES = nominal_events.FatJet
         
         for variation in variations:
             # Restore the nominal events record since for each variation
