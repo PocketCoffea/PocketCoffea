@@ -681,8 +681,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             # Fill histograms
             self.fill_histograms(variation)
             self.fill_histograms_extra(variation)
-            #self.fill_column_accumulators(variation)
-            #self.fill_column_accumulators_extra(variation)
+            self.fill_column_accumulators(variation)
+            self.fill_column_accumulators_extra(variation)
 
             # Count events
             if variation == "nominal":

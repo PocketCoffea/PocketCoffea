@@ -17,20 +17,22 @@ from itertools import product
 
 class MultiCut:
     """Class for keeping track of a cut and its parameters."""
-    def __init__(self, name:str, cuts: List[Cut], cuts_names:List[str]=None):
+
+    def __init__(self, name: str, cuts: List[Cut], cuts_names: List[str] = None):
         self.name = name
         self.cuts = cuts
         if cuts_names:
             self.cuts_names = cuts_names
         else:
-            self.cuts_names = [c.name for c in self.cuts] 
+            self.cuts_names = [c.name for c in self.cuts]
 
     def prepare(self, events, year, sample, isMC):
         # Redo the selector every time to clean up between variations
         self.selector = PackedSelection()
         for cut in self.cuts:
-            self.selector.add(cut.id,
-                              cut.get_mask(events, year=year, sample=sample, isMC=isMC))
+            self.selector.add(
+                cut.id, cut.get_mask(events, year=year, sample=sample, isMC=isMC)
+            )
 
     @property
     def ncuts(self):
@@ -41,27 +43,37 @@ class MultiCut:
 
 
 class CartesianSelection:
-    def __init__(self, multicuts:List[MultiCut]):
+    def __init__(self, multicuts: List[MultiCut]):
         self.multicuts = multicuts
-        self.categories = ["_".join(p)
-                           for p in product(
-                                   *[mc.cuts_names for mc in self.multicuts])]
-        self.cat_multi_index = list(product(*[range(mc.ncuts) for mc in self.multicuts]))
-
+        self.categories = [
+            "_".join(p) for p in product(*[mc.cuts_names for mc in self.multicuts])
+        ]
+        self.cat_multi_index = list(
+            product(*[range(mc.ncuts) for mc in self.multicuts])
+        )
+        self.categories_dict = dict(zip(self.categories, self.cat_multi_index))
 
     def prepare(self, events, year, sample, isMC):
         for multicut in self.multicuts:
             multicut.prepare(events, year, sample, isMC)
 
+    def __getmask(self, multi_index):
+        masks = []
+        for multicut, index in zip(self.multicuts, multi_index):
+            masks.append(multicut.get_mask(index))
+        final_mask = (
+            ak.prod(ak.concatenate([m[:, None] for m in masks], axis=1), axis=1) == 1
+        )
+        return final_mask
+
     def get_masks(self):
         for category, multi_index in zip(self.categories, self.cat_multi_index):
-            masks = []
-            for multicut, index in zip(self.multicuts, multi_index):
-                masks.append(multicut.get_mask(index))
-                
-            final_mask = ak.prod(ak.concatenate([m[:,None] for m in masks], axis=1),
-                    axis=1)==1    
-            yield category, final_mask
+            yield category, self.__getmask(multi_index)
+
+    def get_mask(self, category):
+        if category not in self.categories_dict:
+            raise ValueError(f"Requested category ({category}) does not exists")
+        return self.__getmask(self.categories_dict[category])
 
     def keys(self):
         return self.categories
@@ -69,18 +81,11 @@ class CartesianSelection:
     def items(self):
         return zip(self.categories, self.cat_multi_index)
 
-
     def __str__(self):
         return f"CartesianSelection {[m.name for m in self.multicuts]}, ({len(self.categories)} categories)"
-            
+
     def __repr__(self):
         return f"CartesianSelection {[m.name for m in self.multicuts]}, ({len(self.categories)} categories)"
 
     def __iter__(self):
         return iter(self.categories)
-
-        
-            
-            
-        
-    
