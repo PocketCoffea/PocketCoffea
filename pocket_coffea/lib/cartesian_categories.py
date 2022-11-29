@@ -45,7 +45,8 @@ class MultiCut:
 
 
 class CartesianSelection:
-    def __init__(self, multicuts: List[MultiCut], common_cats: dict[str, Cut] = None):
+    #def __init__(self, multicuts: List[MultiCut], common_cats: dict[str, Cut] = None):
+    def __init__(self, multicuts: List[MultiCut], common_cats=None):
         self.multicuts = multicuts
         if common_cats:
             self.common_cats = common_cats
