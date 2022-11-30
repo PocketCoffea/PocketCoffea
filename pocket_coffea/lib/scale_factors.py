@@ -14,7 +14,7 @@ from ..parameters.lepton_scale_factors import (
 )
 from ..parameters.jet_scale_factors import btagSF, btagSF_calibration, jet_puId
 from ..parameters.object_preselection import object_preselection
-from config.fatjet_base.custom.parameters.pt_reweighting import pt_corrections
+from ..parameters.custom.pt_reweighting.pt_reweighting import pt_corrections
 
 def get_ele_sf(year, pt, eta, counts=None, type='', pt_region=None):
     '''
