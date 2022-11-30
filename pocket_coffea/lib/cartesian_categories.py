@@ -59,6 +59,8 @@ class CartesianSelection:
         )
         self.categories_dict = dict(zip(self.categories, self.cat_multi_index))
 
+        self.cache = {}
+
     def prepare(self, events, year, sample, isMC):
         # packed selection for common categories
         self.common_cats_masks = PackedSelection()
@@ -74,6 +76,8 @@ class CartesianSelection:
         if isinstance(multi_index, str):
             # this is a common category
             return self.common_cats_masks.all(multi_index)
+        if multi_index in self.cache:
+            return self.cache[multi_index]
         # If not we need to load the multicuts for the cartesian
         masks = []
         for multicut, index in zip(self.multicuts, multi_index):
@@ -81,6 +85,7 @@ class CartesianSelection:
         final_mask = (
             ak.prod(ak.concatenate([m[:, None] for m in masks], axis=1), axis=1) == 1
         )
+        self.cache[multi_index] = final_mask
         return final_mask
 
     def get_masks(self):

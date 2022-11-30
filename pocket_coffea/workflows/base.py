@@ -19,6 +19,7 @@ from ..lib.cartesian_categories import CartesianSelection
 from ..parameters.event_flags import event_flags, event_flags_data
 from ..parameters.lumi import goldenJSON
 from ..parameters.btag import btag
+from ..parameters.cuts.preselection_cuts import passthrough
 
 from ..utils.configurator import Configurator
 
@@ -92,7 +93,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             "variables": {
                 v: {}
                 for v, vcfg in self.cfg.variables.items()
-                if not vcfg.metadata_hist
+                if not vcfg.metadata_hist 
             },
             "columns": {},
             "processing_metadata": {
@@ -124,10 +125,17 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self._era = self.events.metadata["era"]
             self._goldenJSON = goldenJSON[self._year]
         # Loading metadata for subsamples
-        self._hasSubsamples = self._sample in self._subsamplesCfg
-        if self._hasSubsamples:
+        self._hasSubsamples_true = self._sample in self._subsamplesCfg
+        
+        if self._hasSubsamples_true:
             self._subsamples = self._subsamplesCfg[self._sample]
-            self._subsamples_names = self._subsamples.keys()
+            self._subsamples_names = list(self._subsamples.keys())
+        else:
+            self._subsamples = {self._sample: [passthrough]}
+            self._subsamples_names = [self._sample]
+
+        ## THIS is an HACK
+        self._hasSubsamples = True
 
     def load_metadata_extra(self):
         '''
@@ -378,22 +386,24 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         If subsamples are defined, an histmanager is created for each of them.
         '''
         # Check if subsamples are requested
-        self.hists_managers = {}
-        if self._hasSubsamples:
-            # in that case create a dictionary of histManagers
-            for subs in self._subsamples_names:
-                self.hists_managers[subs] = HistManager(
-                    self.cfg.variables,
-                    subs,
-                    self._categories,
-                    variations_config=self.cfg.variations_config[self._sample],
-                    custom_axes=self.custom_axes,
-                    isMC=self._isMC,
-                )
-        else:
-            self.hists_managers[self._sample] = HistManager(
+        # self.hists_managers = {} 
+        # if self._hasSubsamples:
+        #     # in that case create a dictionary of histManagers
+        #     for subs in self._subsamples_names:
+        #         self.hists_managers[subs] = HistManager(
+        #             self.cfg.variables,
+        #             subs,
+        #             self._categories,
+        #             variations_config=self.cfg.variations_config[self._sample],
+        #             custom_axes=self.custom_axes,
+        #             isMC=self._isMC,
+        #         )
+        # else:
+
+        self.hists_managers = HistManager(
                 self.cfg.variables,
                 self._sample,
+                self._subsamples_names,
                 self._categories,
                 variations_config=self.cfg.variations_config[self._sample],
                 custom_axes=self.custom_axes,
@@ -419,33 +429,37 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Filling the autofill=True histogram automatically
         if self._hasSubsamples:
             # call the filling for each
+            subs_masks = {}
             for subs in self._subsamples_names:
                 # Get the mask
-                subsam_mask = self._subsamples_masks.all(*self._subsamples_map[subs])
-                # Calling hist manager with a subsample mask
-                self.hists_managers[subs].fill_histograms(
-                    self.events,
-                    self.weights_manager,
-                    self._cuts_masks,
-                    subsample_mask=subsam_mask,
-                    shape_variation = variation,
-                    custom_fields=self.custom_histogram_fields,
-                )
-                # Saving the output for each subsample
-                for var, H in self.hists_managers[subs].get_histograms().items():
-                    self.output["variables"][var][subs] = H
-        else:
-            self.hists_managers[self._sample].fill_histograms(
+                subs_masks[subs] = self._subsamples_masks.all(*self._subsamples_map[subs])
+                
+            # Calling hist manager with a subsample mask
+            self.hists_managers.fill_histograms(
                 self.events,
                 self.weights_manager,
                 self._cuts_masks,
+                subsamples_masks= subs_masks,
                 shape_variation = variation,
                 custom_fields=self.custom_histogram_fields,
             )
 
-            # Saving in the output the filled histograms for the current sample
-            for var, H in self.hists_managers[self._sample].get_histograms().items():
-                self.output["variables"][var][self._sample] = H
+            for subs in self._subsamples_names:
+                # Saving the output for each subsample
+                for var, H in self.hists_managers.get_histograms(subs).items():
+                    self.output["variables"][var][subs] = H
+        # else:
+        #     self.hists_managers[self._sample].fill_histograms(
+        #         self.events,
+        #         self.weights_manager,
+        #         self._cuts_masks,
+        #         shape_variation = variation,
+        #         custom_fields=self.custom_histogram_fields,
+        #     )
+
+        #     # Saving in the output the filled histograms for the current sample
+        #     for var, H in self.hists_managers[self._sample].get_histograms().items():
+        #         self.output["variables"][var][self._sample] = H
 
     def fill_histograms_extra(self, variation):
         '''
