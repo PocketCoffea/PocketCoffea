@@ -30,7 +30,7 @@ class MultiCut:
 
     def prepare(self, events, year, sample, isMC):
         # Redo the selector every time to clean up between variations
-        self.selector = PackedSelection()
+        self.selector = PackedSelection(dtype='uint64')
         for cut in self.cuts:
             self.selector.add(
                 cut.id, cut.get_mask(events, year=year, sample=sample, isMC=isMC)
