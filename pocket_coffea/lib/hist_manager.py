@@ -6,6 +6,7 @@ from typing import List, Tuple
 from dataclasses import dataclass, field
 from copy import deepcopy
 from .cartesian_categories import CartesianSelection
+import logging
 
 @dataclass
 class Axis:
@@ -244,6 +245,7 @@ class HistManager:
         Custom_fields is a dict of additional array. The expected lenght of the first dimension is the number of
         events. The categories mask will be applied.
         '''
+        logging.info(f"Filling histograms: shape variation {shape_variation}")
         if isinstance(cuts_masks, PackedSelection):
             # on the fly generator of the categories and cuts
             categories_generator = ((cat, cuts_masks.all(*self.categories_config[category]))
@@ -252,6 +254,7 @@ class HistManager:
             categories_generator = cuts_masks.get_masks()
 
         for category, mask in categories_generator:
+            #logging.info(f"category: {category}")
             if subsample_mask is not None:
                 mask = mask & subsample_mask
             masked_events = events[mask]
@@ -276,6 +279,7 @@ class HistManager:
                         
 
             for name, histo in self.histograms.items():
+                #logging.info(f"histo: {name}")
                 if category not in histo.only_categories:
                     continue
                 if not histo.autofill:

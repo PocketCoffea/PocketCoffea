@@ -674,7 +674,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self.define_column_accumulators_extra()
 
         for variation in self.get_shape_variations():
-            print("shape variation:", variation)
             # Apply preselections
             self.apply_object_preselection(variation)
             self.count_objects(variation)
