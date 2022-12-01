@@ -175,11 +175,14 @@ def plot_systematic_uncertainty(
     )
 
 
-def plot_data_mc_hist1D(h, histname, config):
+def plot_data_mc_hist1D(h, histname, config=None, plot_dir="plots", save=True, only_cat=None, reweighting_function=None):
     '''This function plots 1D histograms in all the categories contained in the `cat` axis, for each data-taking year in the `year` axis.
     The data/MC ratio is also shown in the bottom subplot
     The MC systematic uncertainty is plotted on top of the MC stack in the histogram plot and around 1 in the ratio plot.
-    The uncertainty on data corresponds to the statistical uncertainty only.'''
+    The uncertainty on data corresponds to the statistical uncertainty only.
+    The plots are saved in `plot_dir` if no config argument is passed. If `save` is False, the plots are not saved but just shown.
+    The argument `only_cat` can be a string or a list of strings to plot only a subset of categories.
+    To reweight the histograms, one can additionally pass the `reweighting_function` argument which is a 1D function of the variable on the x-axis that modifies the histogram weights.'''
     for sample in h.keys():
         if dense_dim(h[sample]) != 1:
             raise Exception(
@@ -207,18 +210,33 @@ def plot_data_mc_hist1D(h, histname, config):
         totalLumi = femtobarn(lumi[year]['tot'], digits=1)
 
         for cat in categories:
-            slicing_mc = {'year': '2018', 'cat': cat}
-            slicing_mc_nominal = {'year': '2018', 'cat': cat, 'variation': 'nominal'}
+            if only_cat:
+                if isinstance(only_cat, list):
+                    if not cat in only_cat:
+                        continue
+                elif isinstance(only_cat, str):
+                    if cat != only_cat:
+                        continue
+                else:
+                    raise NotImplementedError
+            slicing_mc = {'year': year, 'cat': cat}
+            slicing_mc_nominal = {'year': year, 'cat': cat, 'variation': 'nominal'}
             dict_mc = {d: h[d][slicing_mc] for d in samples_mc}
             dict_mc_nominal = {d: h[d][slicing_mc_nominal] for d in samples_mc}
+            if reweighting_function:
+                for sample, val in dict_mc_nominal.items():
+                    histo_reweighted = hist.Hist(dict_mc_nominal[sample].axes[0])
+                    histo_reweighted.fill(dict_mc_nominal[sample].axes[0].centers, weight=dict_mc_nominal[sample].values()*reweighting_function(dict_mc_nominal[sample].axes[0].centers))
+                    dict_mc_nominal[sample] = histo_reweighted
             stack_mc = hist.Stack.from_dict(dict_mc)
             stack_mc_nominal = hist.Stack.from_dict(dict_mc_nominal)
+
             if not is_mc_only:
                 # Sum over eras if era axis exists in data histogram
                 if 'era' in h[samples_data[0]].axes.name:
-                    slicing_data = {'year': '2018', 'cat': cat, 'era': sum}
+                    slicing_data = {'year': year, 'cat': cat, 'era': sum}
                 else:
-                    slicing_data = {'year': '2018', 'cat': cat}
+                    slicing_data = {'year': year, 'cat': cat}
                 dict_data = {d: h[d][slicing_data] for d in samples_data}
                 stack_data = hist.Stack.from_dict(dict_data)
                 if len(stack_data) > 1:
@@ -262,21 +280,29 @@ def plot_data_mc_hist1D(h, histname, config):
             )
             ax.set_ylim((0, 1.20 * max(stack_sum(stack_mc_nominal).values())))
             rax.set_ylim((0.8, 1.2))
-            if config.variables[histname].axes[0].lim != (0, 0):
-                ax.set_xlim(*config.variables[histname].axes[0].lim)
-            else:
-                ax.set_xlim(
-                    config.variables[histname].axes[0].start,
-                    config.variables[histname].axes[0],
-                )
-
             xlabel = ax.get_xlabel()
             ax.set_xlabel("")
             rax.set_xlabel(xlabel)
             ax.legend()
-            filepath = os.path.join(config.plots, f"{histname}_{year}_{cat}.png")
-            print("Saving", filepath)
-            plt.savefig(filepath, dpi=300, format="png")
+            if config:
+                if histname in config.variables.keys():
+                    if config.variables[histname].axes[0].lim != (0, 0):
+                        ax.set_xlim(*config.variables[histname].axes[0].lim)
+                    else:
+                        ax.set_xlim(
+                            config.variables[histname].axes[0].start,
+                            config.variables[histname].axes[0].stop,
+                        )
+                plot_dir = config.plots
+            if not os.path.exists(plot_dir):
+                os.makedirs(plot_dir)
+            filepath = os.path.join(plot_dir, f"{histname}_{year}_{cat}.png")
+            
+            if save:
+                print("Saving", filepath)
+                plt.savefig(filepath, dpi=300, format="png")
+            else:
+                plt.show()
             plt.close(fig)
 
 
