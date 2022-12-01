@@ -268,8 +268,8 @@ class HistManager:
         def get_categories_generator():
             if isinstance(cuts_masks, PackedSelection):
                 # on the fly generator of the categories and cuts
-                return ((cat, cuts_masks.all(*self.categories_config[category]))
-                                        for cat in self.availale_categories)
+                return ((cat, cuts_masks.all(*self.categories_config[cat]))
+                                        for cat in self.available_categories)
             elif isinstance(cuts_masks, CartesianSelection):
                 return cuts_masks.get_masks()
 
