@@ -63,6 +63,8 @@ class CartesianSelection:
         self.cache = {}
 
     def prepare(self, events, year, sample, isMC):
+        # Clear the cache
+        self.cache.clear()
         # packed selection for common categories
         self.common_cats_masks = PackedSelection()
         for ccat, cut in self.common_cats.items():

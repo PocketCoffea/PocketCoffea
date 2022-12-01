@@ -263,7 +263,7 @@ class HistManager:
         Custom_fields is a dict of additional array. The expected lenght of the first dimension is the number of
         events. The categories mask will be applied.
         '''
-        logging.info(f"Filling histograms: shape variation {shape_variation}")
+        #logging.info(f"Filling histograms: shape variation {shape_variation}")
 
         def get_categories_generator():
             if isinstance(cuts_masks, PackedSelection):
@@ -287,7 +287,7 @@ class HistManager:
         # ASSUNTION, the histograms are the same for each subsample
         # we can take the configuration of the first subsample
         for name, histo in self.histograms[self.subsamples[0]].items():
-
+            #logging.info(f"\thisto: {name}")
             if not histo.autofill:
                 continue
             if histo.metadata_hist:
@@ -298,7 +298,6 @@ class HistManager:
             if shape_variation != "nominal" and shape_variation not in histo.hist_obj.axes["variation"]:
                 continue
 
->>>>>>> davide/better_fill_histo
             
             # Get the filling axes --> without any masking.
             # The flattening has to be applied as the last step since the categories and subsamples
@@ -369,6 +368,7 @@ class HistManager:
             for category, cat_mask in get_categories_generator():
                 #loop directly on subsamples
                 for subsample, subs_mask in subsamples_masks.items():
+                    #logging.info(f"\t\tcategory {category}, subsample {subsample}")
                     mask = cat_mask & subs_mask
                     # Skip empty categories and subsamples
                     if ak.sum(mask) == 0:
@@ -424,7 +424,7 @@ class HistManager:
                                     continue
                                 # Only weights variations, since we are working on nominal sample
                                 # Check if this variation exists for this category
-                                if variation not in weights:
+                                if variation not in weights[category]:
                                     # it means that the variation is in the axes only
                                     # because it is requested for another category
                                     # In this case we fill with the nominal variation
@@ -448,8 +448,8 @@ class HistManager:
                                         weight=weight_varied,
                                         **{**fill_categorical, **fill_numeric_masked},
                                     )
-                                except:
-                                    raise Exception(f"Cannot fill histogram: {name}, {histo}")
+                                except Exception as e:
+                                    raise Exception(f"Cannot fill histogram: {name}, {histo} {e}")
                         else:
                             # Working on shape variation! only nominal weights
                             # Check number of dimensione
@@ -466,8 +466,8 @@ class HistManager:
                                     weight=weights_nom,
                                     **{**fill_categorical, **fill_numeric_masked},
                                 )
-                            except:
-                                raise Exception(f"Cannot fill histogram: {name}, {histo}")
+                            except Exception as e:
+                                raise Exception(f"Cannot fill histogram: {name}, {histo} {e}")
 
                     elif (
                         histo.no_weights and self.isMC
@@ -478,18 +478,18 @@ class HistManager:
                                 variation="nominal",
                                 **{**fill_categorical, **fill_numeric_masked},
                             )
-                        except:
-                            raise Exception(f"Cannot fill histogram: {name}, {histo}")
+                        except Exception as e:
+                            raise Exception(f"Cannot fill histogram: {name}, {histo} {e}")
 
                     elif not self.isMC:
                         # Fill histograms for Data
                         try:
                             self.histograms[subsample][name].hist_obj.fill(
                                 cat=category,
-                                **{**fill_categorical, **fill_numeric},
+                                **{**fill_categorical, **fill_numeric_masked},
                             )
-                        except:
-                            raise Exception(f"Cannot fill histogram: {name}, {histo}")
+                        except Exception as e:
+                            raise Exception(f"Cannot fill histogram: {name}, {histo} {e}")
                     else:
                         raise Exception(
                             f"Cannot fill histogram: {name}, {histo}, not implemented combination of options"

@@ -236,7 +236,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self._preselection_masks.all(*self._preselection_masks.names)
         ]
         self.nEvents_after_presel = self.nevents
-        self.output['cutflow']['presel'][self._sample] += self.nEvents_after_presel
+        if variation == "nominal":
+            self.output['cutflow']['presel'][self._sample] += self.nEvents_after_presel
         self.has_events = self.nEvents_after_presel > 0
 
     def define_categories(self, variation):
@@ -450,7 +451,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             for subs in self._subsamples_names:
                 # Get the mask
                 subs_masks[subs] = self._subsamples_masks.all(*self._subsamples_map[subs])
-                
             # Calling hist manager with a subsample mask
             self.hists_managers.fill_histograms(
                 self.events,
