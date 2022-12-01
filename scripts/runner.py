@@ -103,6 +103,7 @@ if __name__ == '__main__':
             'source /etc/profile.d/conda.sh',
             f'export PATH={os.environ["CONDA_PREFIX"]}/bin:$PATH',
             f'conda activate {os.environ["CONDA_DEFAULT_ENV"]}',
+            'ulimit -u 32768'
         ]
     logging.debug(env_extra)
 

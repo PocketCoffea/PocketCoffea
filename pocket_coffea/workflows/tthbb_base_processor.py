@@ -118,39 +118,39 @@ class ttHbbBaseProcessor(BaseProcessorABC):
         events for chunk
         '''
 
-        # Filling the special histograms for events if they are present
-        if self._hasSubsamples:
-            for subs in self._subsamples_names:
-                if self._isMC & (
-                    "events_per_chunk" in self.hists_managers[subs].histograms
-                ):
-                    hepc = self.hists_managers[subs].get_histogram("events_per_chunk")
-                    hepc.hist_obj.fill(
-                        cat=hepc.only_categories[0],
-                        variation="nominal",
-                        year=self._year,
-                        nEvents_initial=self.nEvents_initial,
-                        nEvents_after_skim=self.nEvents_after_skim,
-                        nEvents_after_presel=self.nEvents_after_presel,
-                    )
-                    self.output["processing_metadata"]["events_per_chunk"][
-                        subs
-                    ] = hepc.hist_obj
-        else:
-            if self._isMC & (
-                "events_per_chunk" in self.hists_managers[self._sample].histograms
-            ):
-                hepc = self.hists_managers[self._sample].get_histogram(
-                    "events_per_chunk"
-                )
-                hepc.hist_obj.fill(
-                    cat=hepc.only_categories[0],
-                    variation="nominal",
-                    year=self._year,
-                    nEvents_initial=self.nEvents_initial,
-                    nEvents_after_skim=self.nEvents_after_skim,
-                    nEvents_after_presel=self.nEvents_after_presel,
-                )
-                self.output["processing_metadata"]["events_per_chunk"][
-                    self._sample
-                ] = hepc.hist_obj
+        # # Filling the special histograms for events if they are present
+        # if self._hasSubsamples:
+        #     for subs in self._subsamples_names:
+        #         if self._isMC & (
+        #             "events_per_chunk" in self.hists_managers[subs].histograms
+        #         ):
+        #             hepc = self.hists_managers[subs].get_histogram("events_per_chunk")
+        #             hepc.hist_obj.fill(
+        #                 cat=hepc.only_categories[0],
+        #                 variation="nominal",
+        #                 year=self._year,
+        #                 nEvents_initial=self.nEvents_initial,
+        #                 nEvents_after_skim=self.nEvents_after_skim,
+        #                 nEvents_after_presel=self.nEvents_after_presel,
+        #             )
+        #             self.output["processing_metadata"]["events_per_chunk"][
+        #                 subs
+        #             ] = hepc.hist_obj
+        # else:
+        #     if self._isMC & (
+        #         "events_per_chunk" in self.hists_managers[self._sample].histograms
+        #     ):
+        #         hepc = self.hists_managers[self._sample].get_histogram(
+        #             "events_per_chunk"
+        #         )
+        #         hepc.hist_obj.fill(
+        #             cat=hepc.only_categories[0],
+        #             variation="nominal",
+        #             year=self._year,
+        #             nEvents_initial=self.nEvents_initial,
+        #             nEvents_after_skim=self.nEvents_after_skim,
+        #             nEvents_after_presel=self.nEvents_after_presel,
+        #         )
+        #         self.output["processing_metadata"]["events_per_chunk"][
+        #             self._sample
+        #         ] = hepc.hist_obj
