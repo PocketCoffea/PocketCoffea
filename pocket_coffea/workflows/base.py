@@ -353,7 +353,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
         if isinstance(self._cuts_masks, PackedSelection):
             # on the fly generator of the categories and cuts
-            categories_generator = ((cat, self._cuts_masks.all(*self._categories[category]))
+            categories_generator = ((cat, self._cuts_masks.all(*self._categories[cat]))
                                     for cat in self._categories.keys())
         elif isinstance(self._cuts_masks, CartesianSelection):
             categories_generator = self._cuts_masks.get_masks()
