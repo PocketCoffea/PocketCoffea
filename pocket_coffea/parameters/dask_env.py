@@ -1,0 +1,15 @@
+
+def setup_dask(dask_config):
+    dask_config.set({"distributed.scheduler.allowed-failures": 10})
+    dask_config.set({"distributed.scheduler.work-stealing": False})
+    dask_config.set({"distributed.scheduler.default-task-durations.processor": "3s"})
+    dask_config.set({"distributed.scheduler.default-task-durations.reduce": "1s"})
+    dask_config.set({"distributed.worker.memory.target": 0.7})
+    dask_config.set({"distributed.worker.memory.spill": 0.9})
+    dask_config.set({"distributed.worker.memory.pause": 0.92})
+    dask_config.set({"distributed.worker.memory.terminate": 0})
+    dask_config.set({"distributed.worker.profile.interval": "1d"})
+    dask_config.set({"distributed.worker.profile.cycle": "2d"})
+    dask_config.set({"distributed.worker.profile.low-level": False})
+    dask_config.set({"distributed.diagnostics.nvml": False})
+
