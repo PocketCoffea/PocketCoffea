@@ -33,7 +33,7 @@ def uproot_writeable(events):
 
 
 
-def copy_file(fname: str, location: str,subdirs: Optional[List[str]] = None,):
+def copy_file(fname: str, localdir:str, location: str,subdirs: Optional[List[str]] = None,):
     subdirs = subdirs or []
     xrd_prefix = "root://"
     pfx_len = len(xrd_prefix)
@@ -49,9 +49,9 @@ def copy_file(fname: str, location: str,subdirs: Optional[List[str]] = None,):
                 "Install XRootD python bindings with: conda install -c conda-forge xroot"
             ) from err
     local_file = (
-        os.path.abspath(os.path.join(".", fname))
+        os.path.abspath(os.path.join(localdir, fname))
         if xrootd
-        else os.path.join(".", fname)
+        else os.path.join(localdir, fname)
     )
     merged_subdirs = "/".join(subdirs) if xrootd else os.path.sep.join(subdirs)
     destination = (

@@ -207,19 +207,21 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 self.events.metadata['fileuuid'],
                 str(self.events.metadata['entrystart']),
                 str(self.events.metadata['entrystop']),
-                ".root",
             ]
-        )
-        filename = f"/scratch/{os.environ['USER']}/{filename}"
-        with uproot.recreate(filename) as fout:
+        ) + ".root"
+        with uproot.recreate(f"/scratch/{filename}") as fout:
             fout["Events"] = uproot_writeable(self.events)
         # copy the file
-        copy_file(filename, self.cfg.save_skimmed_files, subdirs=[self._dataset])
+        copy_file(filename, "/scratch",
+                  self.cfg.save_skimmed_files, subdirs=[self._dataset])
         # save the new file location for the new dataset definition
         self.output["skimmed_files"] = {
             self._dataset: [
                 os.path.join(self.cfg.save_skimmed_files, self._dataset, filename)
             ]
+        }
+        self.output["nskimmed_files"] = {
+            self._dataset: [self.nEvents_after_skim]
         }
 
     @abstractmethod
