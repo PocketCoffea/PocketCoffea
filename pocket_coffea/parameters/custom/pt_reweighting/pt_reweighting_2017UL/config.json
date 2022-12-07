@@ -1,0 +1,2315 @@
+{
+  "dataset": {
+    "jsons": [
+      "datasets/skimmed_datasets_RunIISummer20UL17.json"
+    ],
+    "filter": {
+      "samples": [
+        "QCD_Pt-170to300",
+        "QCD_Pt-300to470",
+        "QCD_Pt-470to600",
+        "QCD_Pt-600to800",
+        "QCD_Pt-800to1000",
+        "QCD_Pt-1000toInf",
+        "DATA"
+      ],
+      "samples_exclude": [],
+      "year": [
+        "2017"
+      ]
+    },
+    "subsamples": {
+      "QCD_Pt-170to300": {
+        "QCD_Pt-170to300_l": [
+          {
+            "name": "l",
+            "params": {
+              "flavor": "l"
+            },
+            "function": {
+              "name": "flavor_mask",
+              "module": "config.fatjet_base.custom.functions",
+              "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+              "f_hash": 8782794498142
+            },
+            "id": "l__-2021282690432473786"
+          }
+        ],
+        "QCD_Pt-170to300_c": [
+          {
+            "name": "c",
+            "params": {
+              "flavor": "c"
+            },
+            "function": {
+              "name": "flavor_mask",
+              "module": "config.fatjet_base.custom.functions",
+              "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+              "f_hash": 8782794498142
+            },
+            "id": "c__6469467895432995880"
+          }
+        ],
+        "QCD_Pt-170to300_b": [
+          {
+            "name": "b",
+            "params": {
+              "flavor": "b"
+            },
+            "function": {
+              "name": "flavor_mask",
+              "module": "config.fatjet_base.custom.functions",
+              "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+              "f_hash": 8782794498142
+            },
+            "id": "b__-3355101866687820334"
+          }
+        ],
+        "QCD_Pt-170to300_cc": [
+          {
+            "name": "cc",
+            "params": {
+              "flavor": "cc"
+            },
+            "function": {
+              "name": "flavor_mask",
+              "module": "config.fatjet_base.custom.functions",
+              "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+              "f_hash": 8782794498142
+            },
+            "id": "cc__-5675635803324982853"
+          }
+        ],
+        "QCD_Pt-170to300_bb": [
+          {
+            "name": "bb",
+            "params": {
+              "flavor": "bb"
+            },
+            "function": {
+              "name": "flavor_mask",
+              "module": "config.fatjet_base.custom.functions",
+              "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+              "f_hash": 8782794498142
+            },
+            "id": "bb__8024140432253057750"
+          }
+        ]
+      },
+      "QCD_Pt-300to470": {
+        "QCD_Pt-300to470_l": [
+          {
+            "name": "l",
+            "params": {
+              "flavor": "l"
+            },
+            "function": {
+              "name": "flavor_mask",
+              "module": "config.fatjet_base.custom.functions",
+              "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+              "f_hash": 8782794498142
+            },
+            "id": "l__-2021282690432473786"
+          }
+        ],
+        "QCD_Pt-300to470_c": [
+          {
+            "name": "c",
+            "params": {
+              "flavor": "c"
+            },
+            "function": {
+              "name": "flavor_mask",
+              "module": "config.fatjet_base.custom.functions",
+              "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+              "f_hash": 8782794498142
+            },
+            "id": "c__6469467895432995880"
+          }
+        ],
+        "QCD_Pt-300to470_b": [
+          {
+            "name": "b",
+            "params": {
+              "flavor": "b"
+            },
+            "function": {
+              "name": "flavor_mask",
+              "module": "config.fatjet_base.custom.functions",
+              "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+              "f_hash": 8782794498142
+            },
+            "id": "b__-3355101866687820334"
+          }
+        ],
+        "QCD_Pt-300to470_cc": [
+          {
+            "name": "cc",
+            "params": {
+              "flavor": "cc"
+            },
+            "function": {
+              "name": "flavor_mask",
+              "module": "config.fatjet_base.custom.functions",
+              "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+              "f_hash": 8782794498142
+            },
+            "id": "cc__-5675635803324982853"
+          }
+        ],
+        "QCD_Pt-300to470_bb": [
+          {
+            "name": "bb",
+            "params": {
+              "flavor": "bb"
+            },
+            "function": {
+              "name": "flavor_mask",
+              "module": "config.fatjet_base.custom.functions",
+              "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+              "f_hash": 8782794498142
+            },
+            "id": "bb__8024140432253057750"
+          }
+        ]
+      },
+      "QCD_Pt-470to600": {
+        "QCD_Pt-470to600_l": [
+          {
+            "name": "l",
+            "params": {
+              "flavor": "l"
+            },
+            "function": {
+              "name": "flavor_mask",
+              "module": "config.fatjet_base.custom.functions",
+              "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+              "f_hash": 8782794498142
+            },
+            "id": "l__-2021282690432473786"
+          }
+        ],
+        "QCD_Pt-470to600_c": [
+          {
+            "name": "c",
+            "params": {
+              "flavor": "c"
+            },
+            "function": {
+              "name": "flavor_mask",
+              "module": "config.fatjet_base.custom.functions",
+              "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+              "f_hash": 8782794498142
+            },
+            "id": "c__6469467895432995880"
+          }
+        ],
+        "QCD_Pt-470to600_b": [
+          {
+            "name": "b",
+            "params": {
+              "flavor": "b"
+            },
+            "function": {
+              "name": "flavor_mask",
+              "module": "config.fatjet_base.custom.functions",
+              "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+              "f_hash": 8782794498142
+            },
+            "id": "b__-3355101866687820334"
+          }
+        ],
+        "QCD_Pt-470to600_cc": [
+          {
+            "name": "cc",
+            "params": {
+              "flavor": "cc"
+            },
+            "function": {
+              "name": "flavor_mask",
+              "module": "config.fatjet_base.custom.functions",
+              "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+              "f_hash": 8782794498142
+            },
+            "id": "cc__-5675635803324982853"
+          }
+        ],
+        "QCD_Pt-470to600_bb": [
+          {
+            "name": "bb",
+            "params": {
+              "flavor": "bb"
+            },
+            "function": {
+              "name": "flavor_mask",
+              "module": "config.fatjet_base.custom.functions",
+              "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+              "f_hash": 8782794498142
+            },
+            "id": "bb__8024140432253057750"
+          }
+        ]
+      },
+      "QCD_Pt-600to800": {
+        "QCD_Pt-600to800_l": [
+          {
+            "name": "l",
+            "params": {
+              "flavor": "l"
+            },
+            "function": {
+              "name": "flavor_mask",
+              "module": "config.fatjet_base.custom.functions",
+              "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+              "f_hash": 8782794498142
+            },
+            "id": "l__-2021282690432473786"
+          }
+        ],
+        "QCD_Pt-600to800_c": [
+          {
+            "name": "c",
+            "params": {
+              "flavor": "c"
+            },
+            "function": {
+              "name": "flavor_mask",
+              "module": "config.fatjet_base.custom.functions",
+              "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+              "f_hash": 8782794498142
+            },
+            "id": "c__6469467895432995880"
+          }
+        ],
+        "QCD_Pt-600to800_b": [
+          {
+            "name": "b",
+            "params": {
+              "flavor": "b"
+            },
+            "function": {
+              "name": "flavor_mask",
+              "module": "config.fatjet_base.custom.functions",
+              "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+              "f_hash": 8782794498142
+            },
+            "id": "b__-3355101866687820334"
+          }
+        ],
+        "QCD_Pt-600to800_cc": [
+          {
+            "name": "cc",
+            "params": {
+              "flavor": "cc"
+            },
+            "function": {
+              "name": "flavor_mask",
+              "module": "config.fatjet_base.custom.functions",
+              "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+              "f_hash": 8782794498142
+            },
+            "id": "cc__-5675635803324982853"
+          }
+        ],
+        "QCD_Pt-600to800_bb": [
+          {
+            "name": "bb",
+            "params": {
+              "flavor": "bb"
+            },
+            "function": {
+              "name": "flavor_mask",
+              "module": "config.fatjet_base.custom.functions",
+              "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+              "f_hash": 8782794498142
+            },
+            "id": "bb__8024140432253057750"
+          }
+        ]
+      },
+      "QCD_Pt-800to1000": {
+        "QCD_Pt-800to1000_l": [
+          {
+            "name": "l",
+            "params": {
+              "flavor": "l"
+            },
+            "function": {
+              "name": "flavor_mask",
+              "module": "config.fatjet_base.custom.functions",
+              "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+              "f_hash": 8782794498142
+            },
+            "id": "l__-2021282690432473786"
+          }
+        ],
+        "QCD_Pt-800to1000_c": [
+          {
+            "name": "c",
+            "params": {
+              "flavor": "c"
+            },
+            "function": {
+              "name": "flavor_mask",
+              "module": "config.fatjet_base.custom.functions",
+              "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+              "f_hash": 8782794498142
+            },
+            "id": "c__6469467895432995880"
+          }
+        ],
+        "QCD_Pt-800to1000_b": [
+          {
+            "name": "b",
+            "params": {
+              "flavor": "b"
+            },
+            "function": {
+              "name": "flavor_mask",
+              "module": "config.fatjet_base.custom.functions",
+              "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+              "f_hash": 8782794498142
+            },
+            "id": "b__-3355101866687820334"
+          }
+        ],
+        "QCD_Pt-800to1000_cc": [
+          {
+            "name": "cc",
+            "params": {
+              "flavor": "cc"
+            },
+            "function": {
+              "name": "flavor_mask",
+              "module": "config.fatjet_base.custom.functions",
+              "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+              "f_hash": 8782794498142
+            },
+            "id": "cc__-5675635803324982853"
+          }
+        ],
+        "QCD_Pt-800to1000_bb": [
+          {
+            "name": "bb",
+            "params": {
+              "flavor": "bb"
+            },
+            "function": {
+              "name": "flavor_mask",
+              "module": "config.fatjet_base.custom.functions",
+              "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+              "f_hash": 8782794498142
+            },
+            "id": "bb__8024140432253057750"
+          }
+        ]
+      },
+      "QCD_Pt-1000toInf": {
+        "QCD_Pt-1000toInf_l": [
+          {
+            "name": "l",
+            "params": {
+              "flavor": "l"
+            },
+            "function": {
+              "name": "flavor_mask",
+              "module": "config.fatjet_base.custom.functions",
+              "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+              "f_hash": 8782794498142
+            },
+            "id": "l__-2021282690432473786"
+          }
+        ],
+        "QCD_Pt-1000toInf_c": [
+          {
+            "name": "c",
+            "params": {
+              "flavor": "c"
+            },
+            "function": {
+              "name": "flavor_mask",
+              "module": "config.fatjet_base.custom.functions",
+              "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+              "f_hash": 8782794498142
+            },
+            "id": "c__6469467895432995880"
+          }
+        ],
+        "QCD_Pt-1000toInf_b": [
+          {
+            "name": "b",
+            "params": {
+              "flavor": "b"
+            },
+            "function": {
+              "name": "flavor_mask",
+              "module": "config.fatjet_base.custom.functions",
+              "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+              "f_hash": 8782794498142
+            },
+            "id": "b__-3355101866687820334"
+          }
+        ],
+        "QCD_Pt-1000toInf_cc": [
+          {
+            "name": "cc",
+            "params": {
+              "flavor": "cc"
+            },
+            "function": {
+              "name": "flavor_mask",
+              "module": "config.fatjet_base.custom.functions",
+              "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+              "f_hash": 8782794498142
+            },
+            "id": "cc__-5675635803324982853"
+          }
+        ],
+        "QCD_Pt-1000toInf_bb": [
+          {
+            "name": "bb",
+            "params": {
+              "flavor": "bb"
+            },
+            "function": {
+              "name": "flavor_mask",
+              "module": "config.fatjet_base.custom.functions",
+              "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+              "f_hash": 8782794498142
+            },
+            "id": "bb__8024140432253057750"
+          }
+        ]
+      }
+    }
+  },
+  "workflow": {
+    "name": "ptReweightProcessor",
+    "srcfile": "/work/mmarcheg/BTVNanoCommissioning/workflows/pt_reweighting.py"
+  },
+  "output": "output/pocket_coffea/pt_reweighting/pt_reweighting_2d_2017UL",
+  "workflow_options": {},
+  "run_options": {
+    "executor": "dask/slurm",
+    "workers": 1,
+    "scaleout": 200,
+    "queue": "short",
+    "walltime": "0:10:00",
+    "mem_per_worker": "2GB",
+    "exclusive": false,
+    "chunk": 50000,
+    "retries": 50,
+    "treereduction": 10,
+    "max": null,
+    "skipbadfiles": null,
+    "voms": null,
+    "limit": null,
+    "adapt": false
+  },
+  "finalstate": "mutag",
+  "skim": [
+    {
+      "name": "nFatJet_min1_pt200.0",
+      "params": {
+        "N": 1,
+        "coll": "FatJet",
+        "minpt": 200.0
+      },
+      "function": {
+        "name": "min_nObj_minPt",
+        "module": "pocket_coffea.lib.cut_functions",
+        "src_file": "/work/mmarcheg/PocketCoffea/pocket_coffea/lib/cut_functions.py",
+        "f_hash": 8782796449064
+      },
+      "id": "nFatJet_min1_pt200.0__1753396838493085657"
+    },
+    {
+      "name": "nFatJet_min1_msd30.0",
+      "params": {
+        "N": 1,
+        "coll": "FatJet",
+        "minmsd": 30.0
+      },
+      "function": {
+        "name": "min_nObj_minmsd",
+        "module": "config.fatjet_base.custom.functions",
+        "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+        "f_hash": 8782794498088
+      },
+      "id": "nFatJet_min1_msd30.0__980506746042706290"
+    },
+    {
+      "name": "nMuon_min2_pt3.0",
+      "params": {
+        "N": 2,
+        "coll": "Muon",
+        "minpt": 3.0
+      },
+      "function": {
+        "name": "min_nObj_minPt",
+        "module": "pocket_coffea.lib.cut_functions",
+        "src_file": "/work/mmarcheg/PocketCoffea/pocket_coffea/lib/cut_functions.py",
+        "f_hash": 8782796449064
+      },
+      "id": "nMuon_min2_pt3.0__7234640068844718675"
+    },
+    {
+      "name": "HLT_mutag",
+      "params": {
+        "key": "mutag",
+        "primaryDatasets": null,
+        "invert": false
+      },
+      "function": {
+        "name": "_get_trigger_mask_proxy",
+        "module": "config.fatjet_base.custom.functions",
+        "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+        "f_hash": 8782794498097
+      },
+      "id": "HLT_mutag__5130818751722807630"
+    }
+  ],
+  "save_skimmed_files": null,
+  "preselections": [
+    {
+      "name": "mutag",
+      "params": {
+        "nmusj1": 1,
+        "nmusj2": 1
+      },
+      "function": {
+        "name": "mutag",
+        "module": "config.fatjet_base.custom.functions",
+        "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+        "f_hash": 8782794697719
+      },
+      "id": "mutag__8276228930180974896"
+    }
+  ],
+  "categories": {
+    "inclusive": [
+      {
+        "name": "passthrough",
+        "params": {},
+        "function": {
+          "name": "passthrough",
+          "module": "pocket_coffea.lib.cut_functions",
+          "src_file": "/work/mmarcheg/PocketCoffea/pocket_coffea/lib/cut_functions.py",
+          "f_hash": 8782796479407
+        },
+        "id": "passthrough__-5928272307044301921"
+      }
+    ],
+    "pt350msd40": [
+      {
+        "name": "pt350.0msd40.0",
+        "params": {
+          "pt": 350.0,
+          "msd": 40.0
+        },
+        "function": {
+          "name": "ptmsd",
+          "module": "config.fatjet_base.custom.functions",
+          "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+          "f_hash": 8782794498061
+        },
+        "id": "pt350.0msd40.0__-5528512242383379884"
+      }
+    ],
+    "pt350msd60": [
+      {
+        "name": "pt350.0msd60.0",
+        "params": {
+          "pt": 350.0,
+          "msd": 60.0
+        },
+        "function": {
+          "name": "ptmsd",
+          "module": "config.fatjet_base.custom.functions",
+          "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+          "f_hash": 8782794498061
+        },
+        "id": "pt350.0msd60.0__-5175181141992758603"
+      }
+    ],
+    "pt350msd80": [
+      {
+        "name": "pt350.0msd80.0",
+        "params": {
+          "pt": 350.0,
+          "msd": 80.0
+        },
+        "function": {
+          "name": "ptmsd",
+          "module": "config.fatjet_base.custom.functions",
+          "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+          "f_hash": 8782794498061
+        },
+        "id": "pt350.0msd80.0__8743096070983099341"
+      }
+    ],
+    "pt350msd100": [
+      {
+        "name": "pt350.0msd100.0",
+        "params": {
+          "pt": 350.0,
+          "msd": 100.0
+        },
+        "function": {
+          "name": "ptmsd",
+          "module": "config.fatjet_base.custom.functions",
+          "src_file": "/work/mmarcheg/BTVNanoCommissioning/config/fatjet_base/custom/functions.py",
+          "f_hash": 8782794498061
+        },
+        "id": "pt350.0msd100.0__-2592903066170208496"
+      }
+    ]
+  },
+  "weights": {
+    "QCD_Pt-170to300": {
+      "bycategory": {
+        "inclusive": [],
+        "pt350msd40": [],
+        "pt350msd60": [],
+        "pt350msd80": [],
+        "pt350msd100": []
+      },
+      "inclusive": [
+        "genWeight",
+        "lumi",
+        "XS",
+        "pileup",
+        "sf_L1prefiring"
+      ]
+    },
+    "QCD_Pt-300to470": {
+      "bycategory": {
+        "inclusive": [],
+        "pt350msd40": [],
+        "pt350msd60": [],
+        "pt350msd80": [],
+        "pt350msd100": []
+      },
+      "inclusive": [
+        "genWeight",
+        "lumi",
+        "XS",
+        "pileup",
+        "sf_L1prefiring"
+      ]
+    },
+    "QCD_Pt-600to800": {
+      "bycategory": {
+        "inclusive": [],
+        "pt350msd40": [],
+        "pt350msd60": [],
+        "pt350msd80": [],
+        "pt350msd100": []
+      },
+      "inclusive": [
+        "genWeight",
+        "lumi",
+        "XS",
+        "pileup",
+        "sf_L1prefiring"
+      ]
+    },
+    "DATA": {
+      "bycategory": {
+        "inclusive": [],
+        "pt350msd40": [],
+        "pt350msd60": [],
+        "pt350msd80": [],
+        "pt350msd100": []
+      },
+      "inclusive": [
+        "genWeight",
+        "lumi",
+        "XS",
+        "pileup",
+        "sf_L1prefiring"
+      ]
+    },
+    "QCD_Pt-1000toInf": {
+      "bycategory": {
+        "inclusive": [],
+        "pt350msd40": [],
+        "pt350msd60": [],
+        "pt350msd80": [],
+        "pt350msd100": []
+      },
+      "inclusive": [
+        "genWeight",
+        "lumi",
+        "XS",
+        "pileup",
+        "sf_L1prefiring"
+      ]
+    },
+    "QCD_Pt-800to1000": {
+      "bycategory": {
+        "inclusive": [],
+        "pt350msd40": [],
+        "pt350msd60": [],
+        "pt350msd80": [],
+        "pt350msd100": []
+      },
+      "inclusive": [
+        "genWeight",
+        "lumi",
+        "XS",
+        "pileup",
+        "sf_L1prefiring"
+      ]
+    }
+  },
+  "variations": {
+    "QCD_Pt-170to300": {
+      "weights": {
+        "inclusive": [],
+        "pt350msd40": [],
+        "pt350msd60": [],
+        "pt350msd80": [],
+        "pt350msd100": []
+      },
+      "shape": {
+        "inclusive": [],
+        "pt350msd40": [],
+        "pt350msd60": [],
+        "pt350msd80": [],
+        "pt350msd100": []
+      }
+    },
+    "QCD_Pt-300to470": {
+      "weights": {
+        "inclusive": [],
+        "pt350msd40": [],
+        "pt350msd60": [],
+        "pt350msd80": [],
+        "pt350msd100": []
+      },
+      "shape": {
+        "inclusive": [],
+        "pt350msd40": [],
+        "pt350msd60": [],
+        "pt350msd80": [],
+        "pt350msd100": []
+      }
+    },
+    "QCD_Pt-600to800": {
+      "weights": {
+        "inclusive": [],
+        "pt350msd40": [],
+        "pt350msd60": [],
+        "pt350msd80": [],
+        "pt350msd100": []
+      },
+      "shape": {
+        "inclusive": [],
+        "pt350msd40": [],
+        "pt350msd60": [],
+        "pt350msd80": [],
+        "pt350msd100": []
+      }
+    },
+    "DATA": {
+      "weights": {
+        "inclusive": [],
+        "pt350msd40": [],
+        "pt350msd60": [],
+        "pt350msd80": [],
+        "pt350msd100": []
+      },
+      "shape": {
+        "inclusive": [],
+        "pt350msd40": [],
+        "pt350msd60": [],
+        "pt350msd80": [],
+        "pt350msd100": []
+      }
+    },
+    "QCD_Pt-1000toInf": {
+      "weights": {
+        "inclusive": [],
+        "pt350msd40": [],
+        "pt350msd60": [],
+        "pt350msd80": [],
+        "pt350msd100": []
+      },
+      "shape": {
+        "inclusive": [],
+        "pt350msd40": [],
+        "pt350msd60": [],
+        "pt350msd80": [],
+        "pt350msd100": []
+      }
+    },
+    "QCD_Pt-800to1000": {
+      "weights": {
+        "inclusive": [],
+        "pt350msd40": [],
+        "pt350msd60": [],
+        "pt350msd80": [],
+        "pt350msd100": []
+      },
+      "shape": {
+        "inclusive": [],
+        "pt350msd40": [],
+        "pt350msd60": [],
+        "pt350msd80": [],
+        "pt350msd100": []
+      }
+    }
+  },
+  "variables": {
+    "FatJetGood_eta": {
+      "axes": [
+        {
+          "field": "eta",
+          "label": "FatJet $\\eta$",
+          "bins": 80,
+          "start": -4,
+          "stop": 4,
+          "coll": "FatJetGood",
+          "name": null,
+          "pos": null,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            -4,
+            4
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "FatJetGood_pt": {
+      "axes": [
+        {
+          "field": "pt",
+          "label": "FatJet $p_{T}$ [GeV]",
+          "bins": 150,
+          "start": 0,
+          "stop": 1500,
+          "coll": "FatJetGood",
+          "name": null,
+          "pos": null,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            1000
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "FatJetGood_phi": {
+      "axes": [
+        {
+          "field": "phi",
+          "label": "FatJet $\\phi$",
+          "bins": 128,
+          "start": -3.141592653589793,
+          "stop": 3.141592653589793,
+          "coll": "FatJetGood",
+          "name": null,
+          "pos": null,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            -3.141592653589793,
+            3.141592653589793
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "FatJetGood_mass": {
+      "axes": [
+        {
+          "field": "mass",
+          "label": "FatJet mass [GeV]",
+          "bins": 150,
+          "start": 0,
+          "stop": 1500,
+          "coll": "FatJetGood",
+          "name": null,
+          "pos": null,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            1000
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "FatJetGood_msoftdrop": {
+      "axes": [
+        {
+          "field": "msoftdrop",
+          "label": "FatJet $m_{SD}$ [GeV]",
+          "bins": 150,
+          "start": 0,
+          "stop": 1500,
+          "coll": "FatJetGood",
+          "name": null,
+          "pos": null,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            1000
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "FatJetGood_tau21": {
+      "axes": [
+        {
+          "field": "tau21",
+          "label": "$\\tau_{21}$",
+          "bins": 80,
+          "start": 0,
+          "stop": 1,
+          "coll": "FatJetGood",
+          "name": null,
+          "pos": null,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            1
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "FatJetGood_btagDDBvLV2": {
+      "axes": [
+        {
+          "field": "btagDDBvLV2",
+          "label": "btagDDBvLV2",
+          "bins": 80,
+          "start": 0,
+          "stop": 1,
+          "coll": "FatJetGood",
+          "name": null,
+          "pos": null,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            1
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "FatJetGood_btagDDCvLV2": {
+      "axes": [
+        {
+          "field": "btagDDCvLV2",
+          "label": "btagDDCvLV2",
+          "bins": 80,
+          "start": 0,
+          "stop": 1,
+          "coll": "FatJetGood",
+          "name": null,
+          "pos": null,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            1
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "FatJetGood_btagDDCvBV2": {
+      "axes": [
+        {
+          "field": "btagDDCvBV2",
+          "label": "btagDDCvBV2",
+          "bins": 80,
+          "start": 0,
+          "stop": 1,
+          "coll": "FatJetGood",
+          "name": null,
+          "pos": null,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            1
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "FatJetGood_particleNetMD_Xbb_QCD": {
+      "axes": [
+        {
+          "field": "particleNetMD_Xbb_QCD",
+          "label": "particleNetMD Xbb/(Xbb + QCD)",
+          "bins": 80,
+          "start": 0,
+          "stop": 1,
+          "coll": "FatJetGood",
+          "name": null,
+          "pos": null,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            1
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "FatJetGood_particleNetMD_Xcc_QCD": {
+      "axes": [
+        {
+          "field": "particleNetMD_Xcc_QCD",
+          "label": "particleNetMD Xcc/(Xcc + QCD)",
+          "bins": 80,
+          "start": 0,
+          "stop": 1,
+          "coll": "FatJetGood",
+          "name": null,
+          "pos": null,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            1
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "FatJetGood_deepTagMD_ZHbbvsQCD": {
+      "axes": [
+        {
+          "field": "deepTagMD_ZHbbvsQCD",
+          "label": "deepTagMD_ZHbbvsQCD",
+          "bins": 80,
+          "start": 0,
+          "stop": 1,
+          "coll": "FatJetGood",
+          "name": null,
+          "pos": null,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            1
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "FatJetGood_deepTagMD_ZHccvsQCD": {
+      "axes": [
+        {
+          "field": "deepTagMD_ZHccvsQCD",
+          "label": "deepTagMD_ZHccvsQCD",
+          "bins": 80,
+          "start": 0,
+          "stop": 1,
+          "coll": "FatJetGood",
+          "name": null,
+          "pos": null,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            1
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "FatJetGood_btagHbb": {
+      "axes": [
+        {
+          "field": "btagHbb",
+          "label": "btagHbb",
+          "bins": 80,
+          "start": 0,
+          "stop": 1,
+          "coll": "FatJetGood",
+          "name": null,
+          "pos": null,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            1
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "FatJetGood_eta_1": {
+      "axes": [
+        {
+          "field": "eta",
+          "label": "FatJet $\\eta$",
+          "bins": 80,
+          "start": -4,
+          "stop": 4,
+          "coll": "FatJetGood",
+          "name": null,
+          "pos": 0,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            -4,
+            4
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "FatJetGood_pt_1": {
+      "axes": [
+        {
+          "field": "pt",
+          "label": "FatJet $p_{T}$ [GeV]",
+          "bins": 150,
+          "start": 0,
+          "stop": 1500,
+          "coll": "FatJetGood",
+          "name": null,
+          "pos": 0,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            1000
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "FatJetGood_phi_1": {
+      "axes": [
+        {
+          "field": "phi",
+          "label": "FatJet $\\phi$",
+          "bins": 128,
+          "start": -3.141592653589793,
+          "stop": 3.141592653589793,
+          "coll": "FatJetGood",
+          "name": null,
+          "pos": 0,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            -3.141592653589793,
+            3.141592653589793
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "FatJetGood_mass_1": {
+      "axes": [
+        {
+          "field": "mass",
+          "label": "FatJet mass [GeV]",
+          "bins": 150,
+          "start": 0,
+          "stop": 1500,
+          "coll": "FatJetGood",
+          "name": null,
+          "pos": 0,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            1000
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "FatJetGood_msoftdrop_1": {
+      "axes": [
+        {
+          "field": "msoftdrop",
+          "label": "FatJet $m_{SD}$ [GeV]",
+          "bins": 150,
+          "start": 0,
+          "stop": 1500,
+          "coll": "FatJetGood",
+          "name": null,
+          "pos": 0,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            1000
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "FatJetGood_tau21_1": {
+      "axes": [
+        {
+          "field": "tau21",
+          "label": "$\\tau_{21}$",
+          "bins": 80,
+          "start": 0,
+          "stop": 1,
+          "coll": "FatJetGood",
+          "name": null,
+          "pos": 0,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            1
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "FatJetGood_btagDDBvLV2_1": {
+      "axes": [
+        {
+          "field": "btagDDBvLV2",
+          "label": "btagDDBvLV2",
+          "bins": 80,
+          "start": 0,
+          "stop": 1,
+          "coll": "FatJetGood",
+          "name": null,
+          "pos": 0,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            1
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "FatJetGood_btagDDCvLV2_1": {
+      "axes": [
+        {
+          "field": "btagDDCvLV2",
+          "label": "btagDDCvLV2",
+          "bins": 80,
+          "start": 0,
+          "stop": 1,
+          "coll": "FatJetGood",
+          "name": null,
+          "pos": 0,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            1
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "FatJetGood_btagDDCvBV2_1": {
+      "axes": [
+        {
+          "field": "btagDDCvBV2",
+          "label": "btagDDCvBV2",
+          "bins": 80,
+          "start": 0,
+          "stop": 1,
+          "coll": "FatJetGood",
+          "name": null,
+          "pos": 0,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            1
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "FatJetGood_particleNetMD_Xbb_QCD_1": {
+      "axes": [
+        {
+          "field": "particleNetMD_Xbb_QCD",
+          "label": "particleNetMD Xbb/(Xbb + QCD)",
+          "bins": 80,
+          "start": 0,
+          "stop": 1,
+          "coll": "FatJetGood",
+          "name": null,
+          "pos": 0,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            1
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "FatJetGood_particleNetMD_Xcc_QCD_1": {
+      "axes": [
+        {
+          "field": "particleNetMD_Xcc_QCD",
+          "label": "particleNetMD Xcc/(Xcc + QCD)",
+          "bins": 80,
+          "start": 0,
+          "stop": 1,
+          "coll": "FatJetGood",
+          "name": null,
+          "pos": 0,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            1
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "FatJetGood_deepTagMD_ZHbbvsQCD_1": {
+      "axes": [
+        {
+          "field": "deepTagMD_ZHbbvsQCD",
+          "label": "deepTagMD_ZHbbvsQCD",
+          "bins": 80,
+          "start": 0,
+          "stop": 1,
+          "coll": "FatJetGood",
+          "name": null,
+          "pos": 0,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            1
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "FatJetGood_deepTagMD_ZHccvsQCD_1": {
+      "axes": [
+        {
+          "field": "deepTagMD_ZHccvsQCD",
+          "label": "deepTagMD_ZHccvsQCD",
+          "bins": 80,
+          "start": 0,
+          "stop": 1,
+          "coll": "FatJetGood",
+          "name": null,
+          "pos": 0,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            1
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "FatJetGood_btagHbb_1": {
+      "axes": [
+        {
+          "field": "btagHbb",
+          "label": "btagHbb",
+          "bins": 80,
+          "start": 0,
+          "stop": 1,
+          "coll": "FatJetGood",
+          "name": null,
+          "pos": 0,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            1
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "events_summass": {
+      "axes": [
+        {
+          "field": "summass",
+          "label": "$\\sum({m_{SV}})$ [GeV]",
+          "bins": 200,
+          "start": 0,
+          "stop": 1000,
+          "coll": "events",
+          "name": null,
+          "pos": null,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            500
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "events_logsummass": {
+      "axes": [
+        {
+          "field": "logsummass",
+          "label": "log($\\sum({m_{SV}})$)",
+          "bins": 60,
+          "start": -6,
+          "stop": 6,
+          "coll": "events",
+          "name": null,
+          "pos": null,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            -2.5,
+            6
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "events_sv1mass": {
+      "axes": [
+        {
+          "field": "sv1mass",
+          "label": "$m_{SV,1}$ [GeV]",
+          "bins": 200,
+          "start": 0,
+          "stop": 1000,
+          "coll": "events",
+          "name": null,
+          "pos": null,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            500
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "events_logsv1mass": {
+      "axes": [
+        {
+          "field": "logsv1mass",
+          "label": "log($m_{SV,1}$)",
+          "bins": 60,
+          "start": -6,
+          "stop": 6,
+          "coll": "events",
+          "name": null,
+          "pos": null,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            -2.5,
+            6
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "events_sumcorrmass": {
+      "axes": [
+        {
+          "field": "sumcorrmass",
+          "label": "$\\sum({m^{corr}_{SV}})$ [GeV]",
+          "bins": 200,
+          "start": 0,
+          "stop": 1000,
+          "coll": "events",
+          "name": null,
+          "pos": null,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            500
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "events_logsumcorrmass": {
+      "axes": [
+        {
+          "field": "logsumcorrmass",
+          "label": "log($\\sum({m^{corr}_{SV}})$)",
+          "bins": 60,
+          "start": -6,
+          "stop": 6,
+          "coll": "events",
+          "name": null,
+          "pos": null,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            -2.5,
+            6
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "events_summass_1": {
+      "axes": [
+        {
+          "field": "summass",
+          "label": "$\\sum({m_{SV}})$ [GeV]",
+          "bins": 200,
+          "start": 0,
+          "stop": 1000,
+          "coll": "events",
+          "name": null,
+          "pos": 0,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            500
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "events_logsummass_1": {
+      "axes": [
+        {
+          "field": "logsummass",
+          "label": "log($\\sum({m_{SV}})$)",
+          "bins": 60,
+          "start": -6,
+          "stop": 6,
+          "coll": "events",
+          "name": null,
+          "pos": 0,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            -2.5,
+            6
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "events_sv1mass_1": {
+      "axes": [
+        {
+          "field": "sv1mass",
+          "label": "$m_{SV,1}$ [GeV]",
+          "bins": 200,
+          "start": 0,
+          "stop": 1000,
+          "coll": "events",
+          "name": null,
+          "pos": 0,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            500
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "events_logsv1mass_1": {
+      "axes": [
+        {
+          "field": "logsv1mass",
+          "label": "log($m_{SV,1}$)",
+          "bins": 60,
+          "start": -6,
+          "stop": 6,
+          "coll": "events",
+          "name": null,
+          "pos": 0,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            -2.5,
+            6
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "events_sumcorrmass_1": {
+      "axes": [
+        {
+          "field": "sumcorrmass",
+          "label": "$\\sum({m^{corr}_{SV}})$ [GeV]",
+          "bins": 200,
+          "start": 0,
+          "stop": 1000,
+          "coll": "events",
+          "name": null,
+          "pos": 0,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            500
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "events_logsumcorrmass_1": {
+      "axes": [
+        {
+          "field": "logsumcorrmass",
+          "label": "log($\\sum({m^{corr}_{SV}})$)",
+          "bins": 60,
+          "start": -6,
+          "stop": 6,
+          "coll": "events",
+          "name": null,
+          "pos": 0,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            -2.5,
+            6
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "nFatJets": {
+      "axes": [
+        {
+          "field": "nFatJetGood",
+          "label": "$N_{FatJetGood}$",
+          "bins": 10,
+          "start": 0,
+          "stop": 10,
+          "coll": "events",
+          "name": null,
+          "pos": null,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            10
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "FatJetGood_pt_1_FatJetGood_pt_2": {
+      "axes": [
+        {
+          "field": "pt",
+          "label": "Leading FatJet $p_{T}$ [GeV]",
+          "bins": 150,
+          "start": 0,
+          "stop": 1500,
+          "coll": "FatJetGood",
+          "name": "FatJetGood_pt_1",
+          "pos": 0,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            0
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        },
+        {
+          "field": "pt",
+          "label": "Subleading FatJet $p_{T}$ [GeV]",
+          "bins": 75,
+          "start": 0,
+          "stop": 1500,
+          "coll": "FatJetGood",
+          "name": "FatJetGood_pt_2",
+          "pos": 1,
+          "type": "regular",
+          "transform": null,
+          "lim": [
+            0,
+            0
+          ],
+          "underflow": true,
+          "overflow": true,
+          "growth": false
+        }
+      ],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    }
+  },
+  "columns": {
+    "QCD_Pt-170to300": {
+      "inclusive": [],
+      "pt350msd40": [],
+      "pt350msd60": [],
+      "pt350msd80": [],
+      "pt350msd100": []
+    },
+    "QCD_Pt-300to470": {
+      "inclusive": [],
+      "pt350msd40": [],
+      "pt350msd60": [],
+      "pt350msd80": [],
+      "pt350msd100": []
+    },
+    "QCD_Pt-600to800": {
+      "inclusive": [],
+      "pt350msd40": [],
+      "pt350msd60": [],
+      "pt350msd80": [],
+      "pt350msd100": []
+    },
+    "DATA": {
+      "inclusive": [],
+      "pt350msd40": [],
+      "pt350msd60": [],
+      "pt350msd80": [],
+      "pt350msd100": []
+    },
+    "QCD_Pt-1000toInf": {
+      "inclusive": [],
+      "pt350msd40": [],
+      "pt350msd60": [],
+      "pt350msd80": [],
+      "pt350msd100": []
+    },
+    "QCD_Pt-800to1000": {
+      "inclusive": [],
+      "pt350msd40": [],
+      "pt350msd60": [],
+      "pt350msd80": [],
+      "pt350msd100": []
+    }
+  }
+}
