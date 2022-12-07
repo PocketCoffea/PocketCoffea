@@ -328,6 +328,13 @@ def sf_L1prefiring(events):
 
 def pt_reweighting(events, year):
     '''Reweighting scale factor based on the leading fatjet pT'''
-    pt_corr = load(pt_corrections[year])['pt350msd40']
+    cat = 'pt350msd40'
+    cset = correctionlib.CorrectionSet.from_file(pt_corrections[year])
+    pt_corr = cset[f'pt_corr_{year}']
 
-    return pt_corr(events.FatJetGood.pt[:,0])
+    '''In case the jet pt is higher than 1500 GeV, the pt is padded to 0
+    and a correction SF of 1 is returned.'''
+    pt = events.FatJetGood.pt[:,0]
+    pt = ak.where(pt < 1500, pt, 0)
+
+    return pt_corr.evaluate(cat, pt)
