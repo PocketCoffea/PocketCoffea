@@ -264,7 +264,7 @@ default_axis_settings = {
     },
     'sv_logsummass': {
         "field": "logsummass",
-        "bins": 60,
+        "bins": 120,
         "start": -6,
         'stop': 6,
         "lim": (-2.5, 6),
@@ -280,7 +280,7 @@ default_axis_settings = {
     },
     'sv_logprojmass': {
         "field": "logprojmass",
-        "bins": 60,
+        "bins": 120,
         "start": -6,
         'stop': 6,
         "lim": (-2.5, 6),
@@ -296,7 +296,7 @@ default_axis_settings = {
     },
     'sv_logsv1mass': {
         "field": "logsv1mass",
-        "bins": 60,
+        "bins": 120,
         "start": -6,
         'stop': 6,
         "lim": (-2.5, 6),
@@ -312,7 +312,7 @@ default_axis_settings = {
     },
     'sv_logsumcorrmass': {
         "field": "logsumcorrmass",
-        "bins": 60,
+        "bins": 120,
         "start": -6,
         'stop': 6,
         "lim": (-2.5, 6),
