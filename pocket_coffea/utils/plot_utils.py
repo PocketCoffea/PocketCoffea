@@ -34,6 +34,7 @@ opts_unc = {
     "zorder": 2,
 }
 
+flavors = ['l', 'c', 'b', 'cc', 'bb']
 
 def slice_accumulator(accumulator, entrystart, entrystop):
     '''Returns an accumulator containing only a reduced set of histograms, i.e. those between the positions `entrystart` and `entrystop`.'''
@@ -175,7 +176,7 @@ def plot_systematic_uncertainty(
     )
 
 
-def plot_data_mc_hist1D(h, histname, config=None, plot_dir="plots", save=True, only_cat=None, reweighting_function=None):
+def plot_data_mc_hist1D(h, histname, config=None, plot_dir="plots", save=True, only_cat=None, reweighting_function=None, flavorsplit=True):
     '''This function plots 1D histograms in all the categories contained in the `cat` axis, for each data-taking year in the `year` axis.
     The data/MC ratio is also shown in the bottom subplot
     The MC systematic uncertainty is plotted on top of the MC stack in the histogram plot and around 1 in the ratio plot.
@@ -185,9 +186,7 @@ def plot_data_mc_hist1D(h, histname, config=None, plot_dir="plots", save=True, o
     To reweight the histograms, one can additionally pass the `reweighting_function` argument which is a 1D function of the variable on the x-axis that modifies the histogram weights.'''
     for sample in h.keys():
         if dense_dim(h[sample]) != 1:
-            raise Exception(
-                f"Histograms with dense dimension {dense_dim(h[sample])} cannot be plotted. Only 1D histograms are supported."
-            )
+            print(f"Histograms with dense dimension {dense_dim(h[sample])} cannot be plotted. Only 1D histograms are supported.")
             return
     samples = h.keys()
     samples_data = list(filter(lambda d: 'DATA' in d, samples))
@@ -221,8 +220,12 @@ def plot_data_mc_hist1D(h, histname, config=None, plot_dir="plots", save=True, o
                     raise NotImplementedError
             slicing_mc = {'year': year, 'cat': cat}
             slicing_mc_nominal = {'year': year, 'cat': cat, 'variation': 'nominal'}
-            dict_mc = {d: h[d][slicing_mc] for d in samples_mc}
-            dict_mc_nominal = {d: h[d][slicing_mc_nominal] for d in samples_mc}
+            if flavorsplit:
+                dict_mc = {f: stack_sum(hist.Stack.from_iter([h[d][slicing_mc] for d in samples_mc if d.endswith(f'_{f}')])) for f in flavors}
+                dict_mc_nominal = {f: stack_sum(hist.Stack.from_iter([h[d][slicing_mc_nominal] for d in samples_mc if d.endswith(f'_{f}')])) for f in flavors}
+            else:
+                dict_mc = {d: h[d][slicing_mc] for d in samples_mc}
+                dict_mc_nominal = {d: h[d][slicing_mc_nominal] for d in samples_mc}
             if reweighting_function:
                 for sample, val in dict_mc_nominal.items():
                     histo_reweighted = hist.Hist(dict_mc_nominal[sample].axes[0])
