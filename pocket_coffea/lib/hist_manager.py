@@ -1,3 +1,4 @@
+import numpy as np
 import hist
 import awkward as ak
 from collections import defaultdict
@@ -101,6 +102,8 @@ def get_hist_axis_from_config(ax: Axis):
             ax.bins, name=ax.name, label=ax.label, growth=ax.growth
         )
 
+#def get_mcstat_weights(h, fields):
+
 
 class HistManager:
     def __init__(
@@ -112,8 +115,10 @@ class HistManager:
         variations_config,
         custom_axes=None,
         isMC=True,
+        stat=True,
     ):
         self.isMC = isMC
+        self.stat = stat
         self.subsamples = subsamples
         self.histograms = defaultdict(dict)
         self.variations_config = variations_config
@@ -178,6 +183,8 @@ class HistManager:
                     # Summing all the variations for all the categories
                     allvariat += self.variations_config["weights"][c]
                     allvariat += self.variations_config["shape"][c]
+                if self.stat:
+                    allvariat += ["stat"]
                 allvariat = set(allvariat)
                 if hcfg.only_variations != None:
                     # filtering the variation list with the available ones
@@ -418,6 +425,8 @@ class HistManager:
                         if shape_variation == "nominal":
                             # if we are working on nominal we fill all the weights variations
                             for variation in histo.hist_obj.axes["variation"]:
+                                if variation in ["statUp", "statDown"]:
+                                    continue
                                 if variation in self.available_shape_variations:
                                     # We ignore other shape variations when
                                     # we are already working on a shape variation
@@ -450,6 +459,49 @@ class HistManager:
                                     )
                                 except Exception as e:
                                     raise Exception(f"Cannot fill histogram: {name}, {histo} {e}")
+                            if self.stat:
+                                h_nom = self.histograms[subsample][name].hist_obj[{'cat' : category, 'variation' : 'nominal', **fill_categorical}]
+                                for variation in ["statUp", "statDown"]:
+                                    nom = h_nom.values()
+                                    statUnc = np.sqrt(h_nom.variances())
+                                    # Compute up/down variations of MC statistical uncertainty from the sum of weights
+                                    # For the down variation, a zero-weight is assigned when the down variation goes negative
+                                    # CHECK: In theory this should not happen if one uses the correct Poisson uncertainty definition
+                                    if variation == "statUp":
+                                        weight_varied = nom + statUnc
+                                    elif variation == "statDown":
+                                        weight_varied = nom - statUnc
+                                        weight_varied = ak.where(weight_varied < 0, 0, weight_varied)
+                                    # We flatten the weights. Each array entry corresponds to a N-dimensional bin.
+                                    # Here we order the bin centers arrays of the numeric axes
+                                    # To build a N-dimensional grid (where N is the number of numerical axes) we use np.meshgrid().
+                                    # Note that in order for the grid shape to match the shape of h_nom.values(), we need to reverse the list
+                                    axes_numeric = [ax.name for ax in h_nom.axes if ax.name in fill_numeric_masked.keys()]
+                                    n_numeric = len(axes_numeric)
+                                    centers = [h_nom.axes[ax_name].centers for ax_name in axes_numeric]
+                                    axes_numeric.reverse()
+                                    centers.reverse()
+                                    grid = np.meshgrid(*centers)
+                                    if n_numeric > 1:
+                                        weight_varied = ak.flatten(weight_varied)
+                                        grid = [ak.flatten(values) for values in grid]
+                                    # We save the flattened values of each dimension of the grid so that the shape matches that of `weight_varied`
+                                    #print("****************")
+                                    #print(axes_numeric)
+                                    #print(weight_varied)
+                                    #print(grid[0])
+                                    fill_numeric_grid = {field : values for field, values in zip(axes_numeric, grid)}
+                                    #breakpoint()
+                                    # Fill the histogram with the corresponding statistical variation
+                                    try:
+                                        self.histograms[subsample][name].hist_obj.fill(
+                                            cat=category,
+                                            variation=variation,
+                                            weight=weight_varied,
+                                            **{**fill_categorical, **fill_numeric_grid},
+                                        )
+                                    except Exception as e:
+                                        raise Exception(f"Cannot fill histogram: {name}, {histo} {e}")
                         else:
                             # Working on shape variation! only nominal weights
                             # Check number of dimensione
