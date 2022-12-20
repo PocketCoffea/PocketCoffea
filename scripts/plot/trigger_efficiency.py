@@ -60,6 +60,7 @@ parser = argparse.ArgumentParser(description='Plot histograms from coffea file')
 parser.add_argument('--cfg', default=os.getcwd() + "/config/test.json", help='Config file with parameters specific to the current run', required=False)
 parser.add_argument('-v', '--version', type=str, default=None, help='Version of output (e.g. `v01`, `v02`, etc.)')
 parser.add_argument('--save_plots', default=False, action='store_true', help='Save efficiency and SF plots')
+parser.add_argument('-j', '--workers', type=int, default=8, help='Number of parallel workers to use for plotting')
 
 args = parser.parse_args()
 config = Configurator(args.cfg, plot=True, plot_version=args.version)
