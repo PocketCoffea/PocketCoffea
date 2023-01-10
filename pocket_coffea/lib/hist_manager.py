@@ -145,14 +145,14 @@ class HistManager:
         # The variation config is organized as the weights one, by sample and by category
 
         for name, hcfg in deepcopy(hist_config).items():
-            # TODO THIS IS BROKEN
             # Check if the histogram is active for the current sample
-            # if hcfg.only_samples != None:
-            #     if cfg.only_samples not in self.subsamples:
-            #         continue
-            # elif hcfg.exclude_samples != None:
-            #     if hcfg.exclude_samples not in self.subsamples:
-            #         continue
+            # We only check for the parent sample, not for subsamples
+            if hcfg.only_samples != None:
+                if self.sample not in cfg.only_samples:
+                    continue
+            elif hcfg.exclude_samples != None:
+                if self.sample in hcfg.exclude_samples:
+                    continue
             # Now we handle the selection of the categories
             cats = []
             for c in self.available_categories:
@@ -209,7 +209,7 @@ class HistManager:
             # Then we add those axes to the full list
             for ax in hcfg.axes:
                 all_axes.append(get_hist_axis_from_config(ax))
-
+            # Creating an histogram object for each subsample
             for subsample in self.subsamples:
                 hcfg_subs = deepcopy(hcfg)
                 # Build the histogram object with the additional axes
