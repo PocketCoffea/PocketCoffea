@@ -36,6 +36,9 @@ class Sample:
         self.metadata["nevents"] = 0
         self.metadata["size"] = 0
         self.fileslist = []
+        print("*****************************************")
+        print(self.metadata)
+        print("*****************************************")
         self.get_filelist()
 
     # Function to get the dataset filelist from DAS

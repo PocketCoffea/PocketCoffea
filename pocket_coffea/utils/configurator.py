@@ -10,6 +10,7 @@ import inspect
 import logging
 
 from ..lib.cut_definition import Cut
+from ..lib.cartesian_categories import CartesianSelection
 from ..parameters.cuts.preselection_cuts import passthrough
 from ..lib.weights_manager import WeightCustom
 from ..lib.hist_manager import Axis, HistConf
@@ -83,10 +84,37 @@ class Configurator:
         # but the common and inclusive collections are fully flattened on a
         # sample:category structure
         self.variations_config = {
-            s: {"weights": {c: [] for c in self.categories.keys()}}
+            s: {
+                "weights": {c: [] for c in self.categories.keys()},
+                "shape": {c: [] for c in self.categories.keys()},
+            }
             for s in self.samples
         }
-        self.load_variations_config()
+        if "shape" not in self.cfg["variations"]:
+            self.cfg["variations"]["shape"] = {"common": {"inclusive": []}}
+        self.load_variations_config(
+            self.cfg["variations"]["weights"], variation_type="weights"
+        )
+        self.load_variations_config(
+            self.cfg["variations"]["shape"], variation_type="shape"
+        )
+        self.available_weights_variations = {s: ["nominal"] for s in self.samples}
+        self.available_shape_variations = {s: [] for s in self.samples}
+
+        for sample in self.samples:
+            # Weights variations
+            for cat, vars in self.variations_config[sample]["weights"].items():
+                self.available_weights_variations[sample] += vars
+            # Shape variations
+            for cat, vars in self.variations_config[sample]["shape"].items():
+                self.available_shape_variations[sample] += vars
+
+            self.available_weights_variations[sample] = list(
+                set(self.available_weights_variations[sample])
+            )
+            self.available_shape_variations[sample] = list(
+                set(self.available_shape_variations[sample])
+            )
 
         # Column accumulator config
         self.columns = {
@@ -120,8 +148,9 @@ class Configurator:
                 setattr(self, key, '')
         if self.plot:
             # If a specific version is specified, plot that version
-            if self.plot_version:
-                self.output = self.output + f'_{self.plot_version}'
+            if self.plot_version != None:
+                if self.plot_version != '':
+                    self.output = self.output + f'_{self.plot_version}'
                 if not os.path.exists(self.output):
                     sys.exit(f"The output folder {self.output} does not exist")
             # If no version is specified, plot the latest version of the output
@@ -186,7 +215,7 @@ class Configurator:
             if len(self.cfg[cut_type]) == 0:
                 setattr(self, cut_type, [passthrough])
                 self.cfg[cut_type] = [passthrough]
-        if self.categories == {}:
+        if self.cfg["categories"] == {}:
             self.cfg["categories"]["baseline"] = [passthrough]
         # The cuts_dict is saved just for record
         for skim in self.cfg["skim"]:
@@ -200,19 +229,25 @@ class Configurator:
                 raise Exception("Wrong categories/cuts configuration")
             self.cuts_dict[presel.id] = presel
         # Now saving the categories and cuts
-        for cat, cuts in self.cfg["categories"].items():
-            self.categories[cat] = []
-            for cut in cuts:
-                if not isinstance(cut, Cut):
-                    print("Please define skim, preselections and cuts as Cut objects")
-                    raise Exception("Wrong categories/cuts configuration")
-                self.cut_functions.append(cut)
-                self.cuts_dict[cut.id] = cut
-                self.categories[cat].append(cut.id)
+        if isinstance(self.cfg["categories"], dict):
+            for cat, cuts in self.cfg["categories"].items():
+                self.categories[cat] = []
+                for cut in cuts:
+                    if not isinstance(cut, Cut):
+                        print(
+                            "Please define skim, preselections and cuts as Cut objects"
+                        )
+                        raise Exception("Wrong categories/cuts configuration")
+                    self.cut_functions.append(cut)
+                    self.cuts_dict[cut.id] = cut
+                    self.categories[cat].append(cut.id)
+            for cat, cuts in self.categories.items():
+                self.categories[cat] = set(cuts)
+
+        elif isinstance(self.cfg["categories"], CartesianSelection):
+            self.categories = self.cfg["categories"]
         # Unique set of cuts
         self.cut_functions = set(self.cut_functions)
-        for cat, cuts in self.categories.items():
-            self.categories[cat] = set(cuts)
         logging.info("Cuts:")
         logging.info(pformat(self.cuts_dict.keys(), compact=True, indent=2))
         logging.info("Categories:")
@@ -292,13 +327,13 @@ class Configurator:
         logging.info("Weights configuration")
         logging.info(self.weights_config)
 
-    def load_variations_config(self):
+    def load_variations_config(self, wcfg, variation_type):
         '''This function loads the variations definition and prepares a list of
         weights to be applied for each sample and category'''
         # Get the list of statically available variations defined in the workflow
         available_variations = self.workflow.available_variations()
         # Read the config and save the list of variations names for each sample (and category if needed)
-        wcfg = self.cfg["variations"]["weights"]
+
         # TODO Add shape variations
         if "common" not in wcfg:
             print("Variation configuration error: missing 'common' weights key")
@@ -312,7 +347,7 @@ class Configurator:
             # do now check if the variations is not string but custom
             for wsample in self.variations_config.values():
                 # add the variation to all the categories and samples
-                for wcat in wsample["weights"].values():
+                for wcat in wsample[variation_type].values():
                     wcat.append(w)
 
         if "bycategory" in wcfg["common"]:
@@ -323,8 +358,8 @@ class Configurator:
                             print(f"Variation {w} not available in the workflow")
                             raise Exception("Wrong variation configuration")
                     for wsample in self.variations_config.values():
-                        if w not in wsample["weights"][cat]:
-                            wsample["weights"][cat].append(w)
+                        if w not in wsample[variation_type][cat]:
+                            wsample[variation_type][cat].append(w)
 
         # Now look at specific samples configurations
         if "bysample" in wcfg:
@@ -341,7 +376,9 @@ class Configurator:
                                 print(f"Variation {w} not available in the workflow")
                                 raise Exception("Wrong variation configuration")
                         # append only to the specific sample
-                        for wcat in self.variations_config[sample]["weights"].values():
+                        for wcat in self.variations_config[sample][
+                            variation_type
+                        ].values():
                             if w not in wcat:
                                 wcat.append(w)
 
@@ -354,10 +391,12 @@ class Configurator:
                                         f"Variation {w} not available in the workflow"
                                     )
                                     raise Exception("Wrong variation configuration")
-                            self.variations_config[sample]["weights"][cat].append(w)
+                            self.variations_config[sample][variation_type][cat].append(
+                                w
+                            )
 
     def load_columns_config(self):
-        wcfg = self.cfg["columns"]
+        wcfg = self.cfg.get("columns", {})
         # common/inclusive variations
         if "common" in wcfg:
             if "inclusive" in wcfg["common"]:
@@ -438,7 +477,7 @@ class Configurator:
                     raise NotImplemented
 
     def define_output(self):
-        self.outfile = os.path.join(self.output, "output.coffea")
+        self.outfile = os.path.join(self.output, "output_{dataset}.coffea")
 
     def load_workflow(self):
         self.processor_instance = self.workflow(cfg=self)
@@ -461,14 +500,21 @@ class Configurator:
             skim_dump.append(sk.serialize())
         for pre in ocfg["preselections"]:
             presel_dump.append(pre.serialize())
-        for cat, cuts in ocfg["categories"].items():
-            newcuts = []
-            for c in cuts:
-                newcuts.append(c.serialize())
-            cats_dump[cat] = newcuts
+
         ocfg["skim"] = skim_dump
         ocfg["preselections"] = presel_dump
-        ocfg["categories"] = cats_dump
+
+        if not isinstance(self.categories, CartesianSelection):
+            for cat, cuts in ocfg["categories"].items():
+                newcuts = []
+                for c in cuts:
+                    newcuts.append(c.serialize())
+                cats_dump[cat] = newcuts
+
+            ocfg["categories"] = cats_dump
+        else:
+            ocfg["categories"] = str(self.categories)
+
         ocfg["workflow"] = {
             "name": self.workflow.__name__,
             "srcfile": inspect.getsourcefile(self.workflow),

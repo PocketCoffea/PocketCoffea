@@ -42,6 +42,7 @@ if __name__ == '__main__':
                         help="Overwrite executor from config (to be used only with the --test options)" )
     parser.add_argument("-s","--scaleout", type=int, help="Overwrite scalout config" )
     parser.add_argument("-ll","--loglevel", type=str, help="Logging level", default="INFO" )
+    parser.add_argument("-f","--full", action="store_true", help="Process all datasets at the same time", default=False )
     args = parser.parse_args()
 
 
@@ -103,6 +104,8 @@ if __name__ == '__main__':
             'source /etc/profile.d/conda.sh',
             f'export PATH={os.environ["CONDA_PREFIX"]}/bin:$PATH',
             f'conda activate {os.environ["CONDA_DEFAULT_ENV"]}',
+            'ulimit -u 32768',
+            'export MALLOC_TRIM_THRESHOLD_=0'
         ]
     logging.debug(env_extra)
 
@@ -129,6 +132,9 @@ if __name__ == '__main__':
                                     chunksize=config.run_options['chunk'],
                                     maxchunks=config.run_options['max']
                                     )
+        save(output, config.outfile)
+        print(f"Saving output to {config.outfile}")
+
 
     elif 'parsl' in config.run_options['executor']:
         import parsl
@@ -175,6 +181,9 @@ if __name__ == '__main__':
                                         },
                                         chunksize=config.run_options['chunk'], maxchunks=config.run_options['max']
                                         )
+            save(output, config.outfile)
+            print(f"Saving output to {config.outfile}")
+    
         elif 'condor' in config.run_options['executor']:
             #xfer_files = [process_worker_pool, _x509_path]
             #print(xfer_files)
@@ -213,13 +222,19 @@ if __name__ == '__main__':
                                         },
                                         chunksize=config.run_options['chunk'], maxchunks=config.run_options['max']
                                         )
+            save(output, config.outfile)
+            print(f"Saving output to {config.outfile}")
+
 
     # DASK runners
     elif 'dask' in config.run_options['executor']:
+        import dask.config
+        from pocket_coffea.parameters.dask_env import setup_dask
         from dask_jobqueue import SLURMCluster, HTCondorCluster
         from distributed import Client
         from dask.distributed import performance_report
-
+        setup_dask(dask.config)
+        
         if 'slurm' in config.run_options['executor']:
             log_folder = "slurm_log"
             cluster = SLURMCluster(
@@ -287,7 +302,13 @@ if __name__ == '__main__':
         performance_report_path = os.path.join(config.output, f"{log_folder}/dask-report.html")
         print(f"Saving performance report to {performance_report_path}")
         with performance_report(filename=performance_report_path):
-            output = processor.run_uproot_job(config.fileset,
+
+            if args.full:
+                # Running separately on each dataset
+                fileset = config.fileset
+                logging.info(f"Working on samples: {list(fileset.keys())}")
+                
+                output = processor.run_uproot_job(fileset,
                                         treename='Events',
                                         processor_instance=config.processor_instance,
                                         executor=processor.dask_executor,
@@ -301,8 +322,31 @@ if __name__ == '__main__':
                                         chunksize=config.run_options['chunk'],
                                         maxchunks=config.run_options['max']
                             )
+                print(f"Saving output to {config.outfile}")
+                save(output,config.outfile.replace("{dataset}","all"))
+            else:
+                # Running separately on each dataset
+                for sample, files in config.fileset.items():
+                    logging.info(f"Working on sample: {sample}")
+                    fileset = {sample:files}
+                    
+                    output = processor.run_uproot_job(fileset,
+                                            treename='Events',
+                                            processor_instance=config.processor_instance,
+                                            executor=processor.dask_executor,
+                                            executor_args={
+                                                'client': client,
+                                                'skipbadfiles':config.run_options['skipbadfiles'],
+                                                'schema': processor.NanoAODSchema,
+                                                'retries' : config.run_options['retries'],
+                                                'treereduction' : config.run_options.get('treereduction', 20)
+                                            },
+                                            chunksize=config.run_options['chunk'],
+                                            maxchunks=config.run_options['max']
+                                )
+                    print(f"Saving output to {config.outfile.replace('{dataset}', sample)}")
+                    save(output, config.outfile.replace("{dataset}", sample))
+
     else:
         print(f"Executor {config.run_options['executor']} not defined!")
         exit(1)
-    save(output, config.outfile)
-    print(f"Saving output to {config.outfile}")

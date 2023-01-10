@@ -1,9 +1,9 @@
 pileupJSONfiles = {
-    '2016preVFP': {
+    '2016_PreVFP': {
         'file': "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2016preVFP_UL/puWeights.json.gz",
         'name': "Collisions16_UltraLegacy_goldenJSON",
     },
-    '2016postVFP': {
+    '2016_PostVFP': {
         'file': "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2016postVFP_UL/puWeights.json.gz",
         'name': "Collisions16_UltraLegacy_goldenJSON",
     },

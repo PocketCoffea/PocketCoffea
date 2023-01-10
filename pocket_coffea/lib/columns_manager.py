@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import List
 from coffea.processor.accumulator import column_accumulator
+from .cartesian_categories import CartesianSelection
 import awkward as ak
 
 
@@ -16,7 +17,7 @@ class ColOut:
 
 class ColumnsManager:
     def __init__(self, cfg, sample, categories_config):
-        self.cfg = cfg[sample]
+        self.cfg = cfg.get(sample, {})
         self.categories_config = categories_config
 
     def add_column(self, cfg: ColOut, categories=None):
@@ -30,7 +31,10 @@ class ColumnsManager:
         for category, outarrays in self.cfg.items():
             self.output[category] = {}
             # Computing mask
-            mask = cuts_masks.all(*self.categories_config[category])
+            if isinstance(self.categories_config, CartesianSelection):
+                mask = cuts_masks.get_mask(category)
+            else:
+                mask = cuts_masks.all(*self.categories_config[category])
             if subsample_mask is not None:
                 mask = mask & subsample_mask
             for outarray in outarrays:
