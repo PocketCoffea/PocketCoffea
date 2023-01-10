@@ -594,6 +594,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 'JES_EC2_2018',
                 'JES_RelativeSample_2018',
                 'JES_BBEC1_2018',
+                'JER',
             ]
         )
         return vars
@@ -612,7 +613,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
         hasJES = False
         for v in variations:
-            if "JES" in v:
+            if ("JES" in v) | ("JER" in v):
                 hasJES = True
 
         if hasJES:
@@ -639,7 +640,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 self.events["FatJet"] = fatjets_with_JES
                 # Nominal is ASSUMED to be the first
                 yield "nominal"
-            elif "JES" in variation:
+            elif ("JES" in variation) | ("JER" in variation):
                 # JES_jes is the total. JES_[type] is for different variations
                 self.events = nominal_events
                 # self.events["Jet"] = jets_with_JES[variation].up
