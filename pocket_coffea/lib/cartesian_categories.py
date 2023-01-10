@@ -58,10 +58,12 @@ class CartesianSelection:
             product(*[range(mc.ncuts) for mc in self.multicuts])
         )
         self.categories_dict = dict(zip(self.categories, self.cat_multi_index))
-
+        # Cache the multiindex categories for multiple use
         self.cache = {}
 
     def prepare(self, events, year, sample, isMC):
+        # clean the cache
+        self.cache.clear()
         # packed selection for common categories
         self.common_cats_masks = PackedSelection()
         for ccat, cut in self.common_cats.items():

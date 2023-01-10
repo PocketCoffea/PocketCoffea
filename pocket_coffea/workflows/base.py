@@ -231,7 +231,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self._preselection_masks.all(*self._preselection_masks.names)
         ]
         self.nEvents_after_presel = self.nevents
-        self.output['cutflow']['presel'][self._sample] += self.nEvents_after_presel
+        if variation=="nominal":
+            self.output['cutflow']['presel'][self._sample] += self.nEvents_after_presel
         self.has_events = self.nEvents_after_presel > 0
 
     def define_categories(self, variation):

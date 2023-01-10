@@ -457,7 +457,7 @@ class Configurator:
                     raise NotImplemented
 
     def define_output(self):
-        self.outfile = os.path.join(self.output, "output.coffea")
+        self.outfile = os.path.join(self.output, "output_{dataset} .coffea")
 
     def load_workflow(self):
         self.processor_instance = self.workflow(cfg=self)

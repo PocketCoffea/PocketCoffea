@@ -266,7 +266,7 @@ class HistManager:
             if isinstance(cuts_masks, PackedSelection):
                 # on the fly generator of the categories and cuts
                 return ((cat, cuts_masks.all(*self.categories_config[category]))
-                                        for cat in self.availale_categories)
+                                        for cat in self.available_categories)
             elif isinstance(cuts_masks, CartesianSelection):
                 return cuts_masks.get_masks()
 
@@ -419,7 +419,7 @@ class HistManager:
                                     continue
                                 # Only weights variations, since we are working on nominal sample
                                 # Check if this variation exists for this category
-                                if variation not in weights:
+                                if variation not in weights[category]:
                                     # it means that the variation is in the axes only
                                     # because it is requested for another category
                                     # In this case we fill with the nominal variation

@@ -287,7 +287,12 @@ if __name__ == '__main__':
         performance_report_path = os.path.join(config.output, f"{log_folder}/dask-report.html")
         print(f"Saving performance report to {performance_report_path}")
         with performance_report(filename=performance_report_path):
-            output = processor.run_uproot_job(config.fileset,
+
+            # Running separately on each dataset
+            for sample, files in config.fileset.items():
+                fileset = {sample:files}
+                
+                output = processor.run_uproot_job(fileset,
                                         treename='Events',
                                         processor_instance=config.processor_instance,
                                         executor=processor.dask_executor,
@@ -301,8 +306,10 @@ if __name__ == '__main__':
                                         chunksize=config.run_options['chunk'],
                                         maxchunks=config.run_options['max']
                             )
+                print(f"Saving output to {config.outfile.replace('{dataset}', sample)}")
+                save(output, config.outfile.replace("{dataset}", sample))
+
+
     else:
         print(f"Executor {config.run_options['executor']} not defined!")
         exit(1)
-    save(output, config.outfile)
-    print(f"Saving output to {config.outfile}")

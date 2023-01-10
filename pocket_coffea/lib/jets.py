@@ -9,7 +9,7 @@ import correctionlib
 
 from ..parameters.object_preselection import object_preselection
 from ..parameters.jec_config import JECjsonFiles
-from ..lib.deltaR_matching import get_matching_pairs_indices, object_matching
+from ..lib.deltaR_matchin4g import get_matching_pairs_indices, object_matching
 
 # Initialization of the jet factory
 with importlib.resources.path("pocket_coffea.parameters.jec", "jets_evaluator.pkl.gz") as path:
