@@ -9,10 +9,12 @@ import correctionlib
 
 from ..parameters.object_preselection import object_preselection
 from ..parameters.jec_config import JECjsonFiles
-from ..lib.deltaR_matchin4g import get_matching_pairs_indices, object_matching
+from ..lib.deltaR_matching import get_matching_pairs_indices, object_matching
 
 # Initialization of the jet factory
-with importlib.resources.path("pocket_coffea.parameters.jec", "jets_evaluator.pkl.gz") as path:
+with importlib.resources.path(
+    "pocket_coffea.parameters.jec", "jets_evaluator.pkl.gz"
+) as path:
     with gzip.open(path) as fin:
         jmestuff = cloudpickle.load(fin)
 
@@ -20,9 +22,10 @@ jet_factory = jmestuff["jet_factory"]
 fatjet_factory = jmestuff["fatjet_factory"]
 met_factory = jmestuff["met_factory"]
 
+
 def add_jec_variables(jets, event_rho):
-    jets["pt_raw"] = (1 - jets.rawFactor)*jets.pt
-    jets["mass_raw"] = (1 - jets.rawFactor)*jets.mass
+    jets["pt_raw"] = (1 - jets.rawFactor) * jets.pt
+    jets["mass_raw"] = (1 - jets.rawFactor) * jets.mass
     jets["pt_gen"] = ak.values_astype(ak.fill_none(jets.matched_gen.pt, 0), np.float32)
     jets["event_rho"] = ak.broadcast_arrays(event_rho, jets.pt)[0]
     return jets
@@ -32,13 +35,11 @@ def jet_correction(events, jets, jetType, year, cache, applyJER=True):
     name = year if applyJER else f"{year}_NOJER"
     if jetType == "AK4PFchs":
         return jet_factory[name].build(
-            add_jec_variables(jets, events.fixedGridRhoFastjetAll),
-            cache
+            add_jec_variables(jets, events.fixedGridRhoFastjetAll), cache
         )
     elif jetType == "AK8PFPuppi":
         return fatjet_factory[name].build(
-            add_jec_variables(jets, events.fixedGridRhoFastjetAll),
-            cache
+            add_jec_variables(jets, events.fixedGridRhoFastjetAll), cache
         )
 
 
@@ -120,16 +121,18 @@ def jet_correction_correctionlib(
         pt_min = (
             3 * ptResolution * jets_corrected['pt']
         )  # Match jets whose pt does not differ more than 3 sigmas from the gen-level pt
+        genJet = {'AK4PFchs': 'GenJet', 'AK8PFPuppi': 'GenJetAK8'}[typeJet]
+        genJetIdx = {'AK4PFchs': 'genJetIdx', 'AK8PFPuppi': 'genJetAK8Idx'}[typeJet]
 
         # They can be matched manually
         # matched_genjets, matched_jets, deltaR_matched = object_matching(genjets, jets_corrected, dr_min, pt_min)
         # Or the association in NanoAOD it can be used, removing the indices that are not found. That happens because
         # not all the genJet are saved in the NanoAODs.
-        genjets = events['GenJet']
+        genjets = events[genJet]
         Ngenjet = ak.num(genjets)
         matched_genjets_idx = ak.mask(
-            jets_corrected.genJetIdx,
-            (jets_corrected.genJetIdx < Ngenjet) & (jets_corrected.genJetIdx != -1),
+            jets_corrected[genJetIdx],
+            (jets_corrected[genJetIdx] < Ngenjet) & (jets_corrected[genJetIdx] != -1),
         )
         # this array of indices has already the dimension of the Jet collection
         # in NanoAOD nomatch == -1 --> convert to None with a mask
@@ -220,8 +223,9 @@ def jet_selection(events, Jet, finalstate):
         & (jets.jetId >= cuts["jetId"])
     )
     # Lepton cleaning
-    dR_jets_lep = jets.metric_table(leptons)
-    lepton_cleaning_mask = ak.prod(dR_jets_lep > cuts["dr"], axis=2) == 1
+    if "dr" in cuts.keys():
+        dR_jets_lep = jets.metric_table(leptons)
+        lepton_cleaning_mask = ak.prod(dR_jets_lep > cuts["dr"], axis=2) == 1
 
     if Jet == "Jet":
         jetpuid_mask = (jets.puId >= cuts["puId"]["value"]) | (
@@ -230,7 +234,7 @@ def jet_selection(events, Jet, finalstate):
         good_jets_mask = presel_mask & lepton_cleaning_mask & jetpuid_mask
 
     elif Jet == "FatJet":
-        raise NotImplementedError
+        raise NotImplementedError()
 
     return jets[good_jets_mask], good_jets_mask
 

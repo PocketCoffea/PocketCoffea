@@ -14,7 +14,7 @@ from .network import get_proxy_path
 
 
 class Sample:
-    def __init__(self, name, das_names, sample, metadata):
+    def __init__(self, name, das_names, sample, metadata, **kwargs):
         '''
         Class representing a single analysis sample.
         - The name is the unique key of the sample in the dataset file.
@@ -29,19 +29,28 @@ class Sample:
         self.das_names = das_names
         self.metadata = {}
         self.metadata["das_names"] = das_names
+        if "dbs_instance" in kwargs.keys():
+            self.metadata["dbs_instance"] = kwargs["dbs_instance"]
         self.metadata["sample"] = sample
         self.metadata.update(metadata)
         self.metadata["nevents"] = 0
         self.metadata["size"] = 0
         self.fileslist = []
+        print("*****************************************")
+        print(self.metadata)
+        print("*****************************************")
         self.get_filelist()
 
     # Function to get the dataset filelist from DAS
     def get_filelist(self):
         for das_name in self.metadata["das_names"]:
             proxy = get_proxy_path()
+            if "dbs_instance" in self.metadata.keys():
+                link = f"https://cmsweb.cern.ch:8443/dbs/{self.metadata['dbs_instance']}/DBSReader/files?dataset={das_name}&detail=True"
+            else:
+                link = f"https://cmsweb.cern.ch:8443/dbs/prod/global/DBSReader/files?dataset={das_name}&detail=True"
             r = requests.get(
-                f"https://cmsweb.cern.ch:8443/dbs/prod/global/DBSReader/files?dataset={das_name}&detail=True",
+                link,
                 cert=proxy,
                 verify=False,
             )
@@ -93,11 +102,16 @@ class Dataset:
             sname = f"{self.name}_{scfg['metadata']['year']}"
             if not scfg["metadata"]["isMC"]:
                 sname += f"_Era{scfg['metadata']['era']}"
+            if "dbs_instance" in scfg.keys():
+                kwargs = {"dbs_instance": scfg['dbs_instance']}
+            else:
+                kwargs = {}
             sample = Sample(
                 name=sname,
                 das_names=scfg["das_names"],
                 sample=self.sample,
                 metadata=scfg["metadata"],
+                **kwargs,
             )
             self.samples_obj.append(sample)
             # Get the default prefix and the the one
@@ -113,7 +127,7 @@ class Dataset:
                 previous.update(sample_dict)
                 sample_dict = previous
             else:
-                for k, v in sample_dict.values():
+                for k, v in sample_dict.items():
                     if k in previous:
                         raise Exception(
                             f"Sample {k} already present in file {outfile}, not overwriting!"

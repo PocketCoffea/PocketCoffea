@@ -26,11 +26,13 @@ class MultiCut:
         else:
             self.cuts_names = [c.name for c in self.cuts]
         if len(self.cuts) != len(self.cuts_names):
-            raise ValueError(f"Number of cuts and cuts_names in MultiCut {name} differ! Check you configuration file.")
+            raise ValueError(
+                f"Number of cuts and cuts_names in MultiCut {name} differ! Check you configuration file."
+            )
 
     def prepare(self, events, year, sample, isMC):
         # Redo the selector every time to clean up between variations
-        self.selector = PackedSelection()
+        self.selector = PackedSelection(dtype='uint64')
         for cut in self.cuts:
             self.selector.add(
                 cut.id, cut.get_mask(events, year=year, sample=sample, isMC=isMC)
@@ -45,7 +47,8 @@ class MultiCut:
 
 
 class CartesianSelection:
-    def __init__(self, multicuts: List[MultiCut], common_cats: dict[str, Cut] = None):
+    # def __init__(self, multicuts: List[MultiCut], common_cats: dict[str, Cut] = None):
+    def __init__(self, multicuts: List[MultiCut], common_cats=None):
         self.multicuts = multicuts
         if common_cats:
             self.common_cats = common_cats

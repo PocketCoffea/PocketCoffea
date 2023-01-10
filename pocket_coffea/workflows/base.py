@@ -1,10 +1,12 @@
 import numpy as np
 import awkward as ak
+import uproot
 from collections import defaultdict
 from abc import ABC, abstractmethod
 import cachetools
 
 import copy
+import os
 import logging
 
 from coffea import processor
@@ -16,6 +18,7 @@ from ..lib.columns_manager import ColumnsManager
 from ..lib.hist_manager import HistManager
 from ..lib.jets import jet_correction
 from ..lib.cartesian_categories import CartesianSelection
+from ..utils.skim import uproot_writeable, copy_file
 from ..parameters.event_flags import event_flags, event_flags_data
 from ..parameters.lumi import goldenJSON
 from ..parameters.btag import btag
@@ -55,10 +58,10 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # The skim mask is applied on baseline nanoaod before any object is corrected
         self._skim_masks = PackedSelection()
         # The preselection mask is applied after the objects have been corrected
-        self._preselection_masks = PackedSelection()
+        # self._preselection_masks = PackedSelection()
         # After the preselections more cuts are defined and combined in categories.
         # These cuts are applied only for outputs, so they cohexists in the form of masks
-        self._cuts_masks = PackedSelection()
+        # self._cuts_masks = PackedSelection()
 
         # Subsamples configurations: special cuts to split a sample in subsamples
         self._subsamplesCfg = self.cfg.subsamples
@@ -93,14 +96,14 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             "variables": {
                 v: {}
                 for v, vcfg in self.cfg.variables.items()
-                if not vcfg.metadata_hist 
+                if not vcfg.metadata_hist
             },
             "columns": {},
             "processing_metadata": {
                 v: {} for v, vcfg in self.cfg.variables.items() if vcfg.metadata_hist
             },
+            # "bugged_events" : {}
         }
-
 
     @property
     def nevents(self):
@@ -126,7 +129,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self._goldenJSON = goldenJSON[self._year]
         # Loading metadata for subsamples
         self._hasSubsamples_true = self._sample in self._subsamplesCfg
-        
+
         if self._hasSubsamples_true:
             self._subsamples = self._subsamplesCfg[self._sample]
             self._subsamples_names = list(self._subsamples.keys())
@@ -197,6 +200,32 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self.output['cutflow']['skim'][self._sample] += self.nEvents_after_skim
         self.has_events = self.nEvents_after_skim > 0
 
+    def export_skimmed_chunk(self):
+        filename = (
+            "__".join(
+                [
+                    self._dataset,
+                    self.events.metadata['fileuuid'],
+                    str(self.events.metadata['entrystart']),
+                    str(self.events.metadata['entrystop']),
+                ]
+            )
+            + ".root"
+        )
+        with uproot.recreate(f"/scratch/{filename}") as fout:
+            fout["Events"] = uproot_writeable(self.events)
+        # copy the file
+        copy_file(
+            filename, "/scratch", self.cfg.save_skimmed_files, subdirs=[self._dataset]
+        )
+        # save the new file location for the new dataset definition
+        self.output["skimmed_files"] = {
+            self._dataset: [
+                os.path.join(self.cfg.save_skimmed_files, self._dataset, filename)
+            ]
+        }
+        self.output["nskimmed_files"] = {self._dataset: [self.nEvents_after_skim]}
+
     @abstractmethod
     def apply_object_preselection(self, variation):
         '''
@@ -220,6 +249,10 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''The function computes all the masks from the preselection cuts
         and filter out the events to speed up the later computations.
         N.B.: Preselection happens after the objects correction and cleaning.'''
+
+        # The preselection mask is applied after the objects have been corrected
+        self._preselection_masks = PackedSelection()
+
         for cut in self._preselections:
             # Apply the cut function and add it to the mask
             mask = cut.get_mask(
@@ -231,7 +264,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self._preselection_masks.all(*self._preselection_masks.names)
         ]
         self.nEvents_after_presel = self.nevents
-        if variation=="nominal":
+        if variation == "nominal":
             self.output['cutflow']['presel'][self._sample] += self.nEvents_after_presel
         self.has_events = self.nEvents_after_presel > 0
 
@@ -243,11 +276,19 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         Moreover it computes the cut masks defining the subsamples for the current
         chunks and store them in the `self.subsamples` attribute for later use.
         '''
+
+        # After the preselections more cuts are defined and combined in categories.
+        # These cuts are applied only for outputs, so they cohexists in the form of masks
+        self._cuts_masks = PackedSelection()
+
         # We make sure that for each category the list of cuts is unique in the Configurator validation
         if isinstance(self._categories, CartesianSelection):
-            self._categories.prepare(events=self.events,
-                                     year=self._year, sample=self._sample, isMC=self._isMC
-                                     )
+            self._categories.prepare(
+                events=self.events,
+                year=self._year,
+                sample=self._sample,
+                isMC=self._isMC,
+            )
             # The cuts masks are the CartesianSelection them self
             self._cuts_masks = self._categories
         else:
@@ -319,7 +360,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 self.nEvents_after_presel,
                 self.events,  # to compute weights
                 storeIndividual=False,
-                shape_variation = variation,
+                shape_variation=variation,
                 metadata={
                     "year": self._year,
                     "sample": self._sample,
@@ -343,15 +384,24 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
         if isinstance(self._cuts_masks, PackedSelection):
             # on the fly generator of the categories and cuts
-            categories_generator = ((cat, self._cuts_masks.all(*self._categories[category]))
-                                    for cat in self._categories.keys())
+            categories_generator = (
+                (cat, self._cuts_masks.all(*self._categories[cat]))
+                for cat in self._categories.keys()
+            )
         elif isinstance(self._cuts_masks, CartesianSelection):
             categories_generator = self._cuts_masks.get_masks()
-        
+
         for category, mask in categories_generator:
             self.output["cutflow"][category][self._sample] = ak.sum(mask)
             if self._isMC:
                 w = self.weights_manager.get_weight(category)
+                # if ak.any(w / ak.mean(w) > 10):
+                #    mask = (w / ak.mean(w) > 10)
+                #    print("*****************")
+                #    print(self._sample, "weight / mean(weight) > 10")
+                #    print(w / ak.mean(w))
+                #    print("bugged events:", self.events.event[mask])
+                #    self.output["bugged_events"][self._sample] = self.events.event[mask]
                 self.output["sumw"][category][self._sample] = ak.sum(w * mask)
 
             # If subsamples are defined we also save their metadata
@@ -387,7 +437,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         If subsamples are defined, an histmanager is created for each of them.
         '''
         # Check if subsamples are requested
-        # self.hists_managers = {} 
+        # self.hists_managers = {}
         # if self._hasSubsamples:
         #     # in that case create a dictionary of histManagers
         #     for subs in self._subsamples_names:
@@ -402,14 +452,14 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # else:
 
         self.hists_managers = HistManager(
-                self.cfg.variables,
-                self._sample,
-                self._subsamples_names,
-                self._categories,
-                variations_config=self.cfg.variations_config[self._sample],
-                custom_axes=self.custom_axes,
-                isMC=self._isMC,
-            )
+            self.cfg.variables,
+            self._sample,
+            self._subsamples_names,
+            self._categories,
+            variations_config=self.cfg.variations_config[self._sample],
+            custom_axes=self.custom_axes,
+            isMC=self._isMC,
+        )
 
     def define_histograms_extra(self):
         '''
@@ -433,15 +483,16 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             subs_masks = {}
             for subs in self._subsamples_names:
                 # Get the mask
-                subs_masks[subs] = self._subsamples_masks.all(*self._subsamples_map[subs])
-                
+                subs_masks[subs] = self._subsamples_masks.all(
+                    *self._subsamples_map[subs]
+                )
             # Calling hist manager with a subsample mask
             self.hists_managers.fill_histograms(
                 self.events,
                 self.weights_manager,
                 self._cuts_masks,
-                subsamples_masks= subs_masks,
-                shape_variation = variation,
+                subsamples_masks=subs_masks,
+                shape_variation=variation,
                 custom_fields=self.custom_histogram_fields,
             )
 
@@ -524,69 +575,84 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
     def process_extra_after_presel(self, variation):
         pass
 
-
-
     @classmethod
     def available_variations(cls):
         '''
         Identifiers of the weights variabtions available thorugh this processor.
         By default they are all the weights defined in the WeightsManager
         '''
-        vars =  WeightsManager.available_variations()
-        vars.update([ "JES_Total",
-                      'JES_FlavorQCD',
-                      'JES_RelativeBal',
-                      'JES_HF',
-                      'JES_BBEC1',
-                      'JES_EC2',
-                      'JES_Absolute',
-                      'JES_Absolute_2018',
-                      'JES_HF_2018',
-                      'JES_EC2_2018',
-                      'JES_RelativeSample_2018',
-                      'JES_BBEC1_2018'])
+        vars = WeightsManager.available_variations()
+        vars.update(
+            [
+                "JES_Total",
+                'JES_FlavorQCD',
+                'JES_RelativeBal',
+                'JES_HF',
+                'JES_BBEC1',
+                'JES_EC2',
+                'JES_Absolute',
+                'JES_Absolute_2018',
+                'JES_HF_2018',
+                'JES_EC2_2018',
+                'JES_RelativeSample_2018',
+                'JES_BBEC1_2018',
+                'JER',
+            ]
+        )
         return vars
-
-
 
     def get_shape_variations(self):
         '''
         Generator for shape variations.
         '''
-        # nominal is assumed to be the first 
+        if not self._isMC:
+            yield "nominal"
+            return
+        # nominal is assumed to be the first
         variations = ["nominal"] + self.cfg.available_shape_variations[self._sample]
         # TO be understood if a copy is needed
         nominal_events = self.events
-        
-        # hasJES = False
-        # for v in variations:
-        #     if "JES" in v:
-        #         hasJES= True
 
-        # if hasJES:              
-        #correct the jets only once
-        jec_cache = cachetools.Cache(np.inf)
-        jets_with_JES = jet_correction(nominal_events, nominal_events.Jet, "AK4PFchs", self._year, jec_cache)
-        
+        hasJES = False
+        for v in variations:
+            if ("JES" in v) | ("JER" in v):
+                hasJES = True
+
+        if hasJES:
+            # correct the jets only once
+            jec_cache = cachetools.Cache(np.inf)
+            # jets_with_JES = jet_correction(nominal_events, nominal_events.Jet, "AK4PFchs", self._year, jec_cache)
+            fatjets_with_JES = jet_correction(
+                nominal_events,
+                nominal_events.FatJet,
+                "AK8PFPuppi",
+                self._year,
+                jec_cache,
+            )
+        else:
+            fatjets_with_JES = nominal_events.FatJet
+
         for variation in variations:
             # Restore the nominal events record since for each variation
             # the event preselections are applied
-                            
+
             if variation == "nominal":
                 self.events = nominal_events
-                self.events["Jet"] = jets_with_JES
+                # self.events["Jet"] = jets_with_JES
+                self.events["FatJet"] = fatjets_with_JES
                 # Nominal is ASSUMED to be the first
                 yield "nominal"
-            elif "JES" in variation:
+            elif ("JES" in variation) | ("JER" in variation):
                 # JES_jes is the total. JES_[type] is for different variations
                 self.events = nominal_events
-                self.events["Jet"] = jets_with_JES[variation].up
-                yield variation+ "Up"
-                #restore nominal before going to down
+                # self.events["Jet"] = jets_with_JES[variation].up
+                self.events["FatJet"] = fatjets_with_JES[variation].up
+                yield variation + "Up"
+                # restore nominal before going to down
                 self.events = nominal_events
-                self.events["Jet"] = jets_with_JES[variation].down
-                yield variation+ "Down"
-            
+                # self.events["Jet"] = jets_with_JES[variation].down
+                self.events["FatJet"] = fatjets_with_JES[variation].down
+                yield variation + "Down"
 
     def process(self, events: ak.Array):
         '''
@@ -649,11 +715,14 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         if not self.has_events:
             return self.output
 
+        if self.cfg.save_skimmed_files:
+            self.export_skimmed_chunk()
+            return self.output
+
         #########################
         # After the skimming we apply the object corrections and preselection
         # Doing so we avoid to compute them on the full NanoAOD dataset
         #########################
-
 
         # Create the HistManager and ColumnManager before systematic variations
         self.define_custom_axes_extra()
@@ -716,22 +785,27 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         but remember to include a super().postprocess() call.
         '''
         # Rescale MC histograms by the total sum of the genweights
-        scale_genweight = {}
-        for sample in self._totalSamplesSet:
-            scale_genweight[sample] = (
-                1
-                if sample.startswith('DATA')  # BEAWARE OF THIS HARDCODING
-                else 1.0 / accumulator['sum_genweights'][sample]
-            )
-            # correct also the sumw (sum of weighted events) accumulator
-            for cat in self._categories:
-                accumulator["sumw"][cat][sample] *= scale_genweight[sample]
+        try:
+            scale_genweight = {}
+            for sample in self._totalSamplesSet:
+                if sample not in accumulator["sum_genweights"]:
+                    continue
+                scale_genweight[sample] = (
+                    1
+                    if sample.startswith('DATA')  # BEAWARE OF THIS HARDCODING
+                    else 1.0 / accumulator['sum_genweights'][sample]
+                )
+                # correct also the sumw (sum of weighted events) accumulator
+                for cat in self._categories:
+                    accumulator["sumw"][cat][sample] *= scale_genweight[sample]
 
-        for var, hists in accumulator["variables"].items():
-            # Rescale only histogram without no_weights option
-            if self.cfg.variables[var].no_weights:
-                continue
-            for sample, h in hists.items():
-                h *= scale_genweight[sample]
-        accumulator["scale_genweight"] = scale_genweight
+            for var, hists in accumulator["variables"].items():
+                # Rescale only histogram without no_weights option
+                if self.cfg.variables[var].no_weights:
+                    continue
+                for sample, h in hists.items():
+                    h *= scale_genweight[sample]
+            accumulator["scale_genweight"] = scale_genweight
+        except Exception as e:
+            print(e)
         return accumulator

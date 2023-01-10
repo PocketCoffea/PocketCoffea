@@ -9,8 +9,8 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.offsetbox import AnchoredText
-
 matplotlib.use('Agg')
+
 
 import matplotlib.pyplot as plt
 import math
@@ -44,7 +44,7 @@ print(time.ctime())
 start = time.time()
 
 if os.path.isfile( config.outfile ): accumulator = load(config.outfile)
-else: sys.exit("Input file does not exist")
+else: sys.exit(f"Input file '{config.outfile}' does not exist")
 
 data_err_opts = {
     'linestyle': 'none',
@@ -59,7 +59,6 @@ mc_opts = {
     'edgecolor': 'black',
     #'linestyle': '-',
     'linewidth': 1,
-    'alpha': 1.0
 }
 
 signal_opts = {
@@ -113,11 +112,12 @@ if not os.path.exists(config.plots):
 def make_plots(entrystart, entrystop):
     _accumulator = slice_accumulator(accumulator, entrystart, entrystop)
     for (histname, h) in _accumulator['variables'].items():
-        plot_data_mc_hist1D(h, histname, config)
+        plot_data_mc_hist1D(h, histname, config, flavorsplit=None, mcstat=True, stat_only=False)
 
 # Filter dictionary of histograms with `args.only`
 accumulator['variables'] = { k : v for k,v in accumulator['variables'].items() if args.only in k }
 HistsToPlot = [k for k in accumulator['variables'].keys()]
+
 NtotHists = len(HistsToPlot)
 NHistsToPlot = len([key for key in HistsToPlot if args.only in key])
 print("# tot histograms = ", NtotHists)

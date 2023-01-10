@@ -84,24 +84,37 @@ class Configurator:
         # but the common and inclusive collections are fully flattened on a
         # sample:category structure
         self.variations_config = {
-            s: {"weights": {c: [] for c in self.categories.keys()},
-                "shape": {c: [] for c in self.categories.keys()}}
+            s: {
+                "weights": {c: [] for c in self.categories.keys()},
+                "shape": {c: [] for c in self.categories.keys()},
+            }
             for s in self.samples
         }
         if "shape" not in self.cfg["variations"]:
-            self.cfg["variations"]["shape"] = {"common":{"inclusive": []}}
-        self.load_variations_config(self.cfg["variations"]["weights"], variation_type="weights")
-        self.load_variations_config(self.cfg["variations"]["shape"], variation_type="shape")
-        self.available_weights_variations = { s : ["nominal"] for s in self.samples}
-        self.available_shape_variations = { s : [] for s in self.samples}
+            self.cfg["variations"]["shape"] = {"common": {"inclusive": []}}
+        self.load_variations_config(
+            self.cfg["variations"]["weights"], variation_type="weights"
+        )
+        self.load_variations_config(
+            self.cfg["variations"]["shape"], variation_type="shape"
+        )
+        self.available_weights_variations = {s: ["nominal"] for s in self.samples}
+        self.available_shape_variations = {s: [] for s in self.samples}
 
         for sample in self.samples:
             # Weights variations
             for cat, vars in self.variations_config[sample]["weights"].items():
                 self.available_weights_variations[sample] += vars
-            #Shape variations                     
+            # Shape variations
             for cat, vars in self.variations_config[sample]["shape"].items():
                 self.available_shape_variations[sample] += vars
+
+            self.available_weights_variations[sample] = list(
+                set(self.available_weights_variations[sample])
+            )
+            self.available_shape_variations[sample] = list(
+                set(self.available_shape_variations[sample])
+            )
 
         # Column accumulator config
         self.columns = {
@@ -135,8 +148,9 @@ class Configurator:
                 setattr(self, key, '')
         if self.plot:
             # If a specific version is specified, plot that version
-            if self.plot_version:
-                self.output = self.output + f'_{self.plot_version}'
+            if self.plot_version != None:
+                if self.plot_version != '':
+                    self.output = self.output + f'_{self.plot_version}'
                 if not os.path.exists(self.output):
                     sys.exit(f"The output folder {self.output} does not exist")
             # If no version is specified, plot the latest version of the output
@@ -220,7 +234,9 @@ class Configurator:
                 self.categories[cat] = []
                 for cut in cuts:
                     if not isinstance(cut, Cut):
-                        print("Please define skim, preselections and cuts as Cut objects")
+                        print(
+                            "Please define skim, preselections and cuts as Cut objects"
+                        )
                         raise Exception("Wrong categories/cuts configuration")
                     self.cut_functions.append(cut)
                     self.cuts_dict[cut.id] = cut
@@ -317,7 +333,7 @@ class Configurator:
         # Get the list of statically available variations defined in the workflow
         available_variations = self.workflow.available_variations()
         # Read the config and save the list of variations names for each sample (and category if needed)
-  
+
         # TODO Add shape variations
         if "common" not in wcfg:
             print("Variation configuration error: missing 'common' weights key")
@@ -360,7 +376,9 @@ class Configurator:
                                 print(f"Variation {w} not available in the workflow")
                                 raise Exception("Wrong variation configuration")
                         # append only to the specific sample
-                        for wcat in self.variations_config[sample][variation_type].values():
+                        for wcat in self.variations_config[sample][
+                            variation_type
+                        ].values():
                             if w not in wcat:
                                 wcat.append(w)
 
@@ -373,10 +391,12 @@ class Configurator:
                                         f"Variation {w} not available in the workflow"
                                     )
                                     raise Exception("Wrong variation configuration")
-                            self.variations_config[sample][variation_type][cat].append(w)
+                            self.variations_config[sample][variation_type][cat].append(
+                                w
+                            )
 
     def load_columns_config(self):
-        wcfg = self.cfg.get("columns",{})
+        wcfg = self.cfg.get("columns", {})
         # common/inclusive variations
         if "common" in wcfg:
             if "inclusive" in wcfg["common"]:
@@ -457,7 +477,7 @@ class Configurator:
                     raise NotImplemented
 
     def define_output(self):
-        self.outfile = os.path.join(self.output, "output_{dataset} .coffea")
+        self.outfile = os.path.join(self.output, "output_{dataset}.coffea")
 
     def load_workflow(self):
         self.processor_instance = self.workflow(cfg=self)
@@ -483,7 +503,7 @@ class Configurator:
 
         ocfg["skim"] = skim_dump
         ocfg["preselections"] = presel_dump
-        
+
         if not isinstance(self.categories, CartesianSelection):
             for cat, cuts in ocfg["categories"].items():
                 newcuts = []
@@ -494,7 +514,7 @@ class Configurator:
             ocfg["categories"] = cats_dump
         else:
             ocfg["categories"] = str(self.categories)
-            
+
         ocfg["workflow"] = {
             "name": self.workflow.__name__,
             "srcfile": inspect.getsourcefile(self.workflow),

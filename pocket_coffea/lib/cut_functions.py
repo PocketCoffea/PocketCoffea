@@ -164,6 +164,7 @@ def get_nObj_eq(N, minpt=None, coll="JetGood", name=None):
     else:
         return Cut(name=name, params={"N": N, "coll": coll}, function=eq_nObj)
 
+
 def get_nObj_less(N, coll="JetGood", name=None):
     '''
     Factory function which creates a cut for < number of objects.

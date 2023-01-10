@@ -6,6 +6,8 @@ from typing import List, Tuple
 from dataclasses import dataclass, field
 from copy import deepcopy
 from .cartesian_categories import CartesianSelection
+import logging
+
 
 @dataclass
 class Axis:
@@ -105,7 +107,7 @@ class HistManager:
     def __init__(
         self,
         hist_config,
-        sample,                 
+        sample,
         subsamples,
         categories_config,
         variations_config,
@@ -123,14 +125,14 @@ class HistManager:
         if self.isMC:
             self.available_weights_variations_bycat = defaultdict(list)
             self.available_shape_variations_bycat = defaultdict(list)
-            #weights variations
+            # weights variations
             for cat, vars in self.variations_config["weights"].items():
                 self.available_weights_variations_bycat[cat].append("nominal")
                 for var in vars:
                     vv = [f"{var}Up", f"{var}Down"]
                     self.available_weights_variations += vv
                     self.available_weights_variations_bycat[cat] += vv
-            #Shape variations                     
+            # Shape variations
             for cat, vars in self.variations_config["shape"].items():
                 for var in vars:
                     vv = [f"{var}Up", f"{var}Down"]
@@ -143,7 +145,7 @@ class HistManager:
         # The variation config is organized as the weights one, by sample and by category
 
         for name, hcfg in deepcopy(hist_config).items():
-            # TODO THIS IS BROKEN 
+            # TODO THIS IS BROKEN
             # Check if the histogram is active for the current sample
             # if hcfg.only_samples != None:
             #     if cfg.only_samples not in self.subsamples:
@@ -211,48 +213,53 @@ class HistManager:
             for subsample in self.subsamples:
                 hcfg_subs = deepcopy(hcfg)
                 # Build the histogram object with the additional axes
-                hcfg_subs.hist_obj = hist.Hist(*all_axes, storage=hcfg.storage, name="Counts")
+                hcfg_subs.hist_obj = hist.Hist(
+                    *all_axes, storage=hcfg.storage, name="Counts"
+                )
                 # Save the hist in the configuration and store the full config object
                 self.histograms[subsample][name] = hcfg_subs
-        
 
     def get_histograms(self, subsample):
         # Exclude by default metadata histo
         return {
-            key: h.hist_obj for key, h in self.histograms[subsample].items() if not h.metadata_hist
+            key: h.hist_obj
+            for key, h in self.histograms[subsample].items()
+            if not h.metadata_hist
         }
 
     def get_metadata_histograms(self, subsample):
         return {
-            key: h.hist_obj for key, h in self.histograms[subsample].items() if h.metadata_hist
+            key: h.hist_obj
+            for key, h in self.histograms[subsample].items()
+            if h.metadata_hist
         }
 
     def get_histogram(self, subsample, name):
         return self.histograms[subsample][name]
 
     def __prefetch_weights(self, weights_manager, category, shape_variation):
-            weights = {}
-            if shape_variation == "nominal":
-                for variation in self.available_weights_variations_bycat[category]:
-                    if variation == "nominal":
-                        weights["nominal"] = weights_manager.get_weight(category)
-                    else:
-                        # Check if the variation is available in this category
-                        weights[variation] = weights_manager.get_weight(
-                            category, modifier=variation
-                        )
-            else:
-                # Save only the nominal weights if a shape variation is being processed
-                weights["nominal"] = weights_manager.get_weight(category)
-            return weights
+        weights = {}
+        if shape_variation == "nominal":
+            for variation in self.available_weights_variations_bycat[category]:
+                if variation == "nominal":
+                    weights["nominal"] = weights_manager.get_weight(category)
+                else:
+                    # Check if the variation is available in this category
+                    weights[variation] = weights_manager.get_weight(
+                        category, modifier=variation
+                    )
+        else:
+            # Save only the nominal weights if a shape variation is being processed
+            weights["nominal"] = weights_manager.get_weight(category)
+        return weights
 
     def fill_histograms(
         self,
         events,
         weights_manager,
         cuts_masks,
-        shape_variation = "nominal",
-        subsamples_masks=None, # This is a dictionary with name:ak.Array(bool)
+        shape_variation="nominal",
+        subsamples_masks=None,  # This is a dictionary with name:ak.Array(bool)
         custom_fields=None,
     ):
         '''
@@ -262,21 +269,25 @@ class HistManager:
         Custom_fields is a dict of additional array. The expected lenght of the first dimension is the number of
         events. The categories mask will be applied.
         '''
+        # logging.info(f"Filling histograms: shape variation {shape_variation}")
+
         def get_categories_generator():
             if isinstance(cuts_masks, PackedSelection):
                 # on the fly generator of the categories and cuts
-                return ((cat, cuts_masks.all(*self.categories_config[category]))
-                                        for cat in self.available_categories)
+                return (
+                    (cat, cuts_masks.all(*self.categories_config[cat]))
+                    for cat in self.available_categories
+                )
             elif isinstance(cuts_masks, CartesianSelection):
                 return cuts_masks.get_masks()
-
 
         # Preloading weights
         if self.isMC:
             weights = {}
             for category in self.available_categories:
-                weights[category] = self.__prefetch_weights(weights_manager, category, shape_variation)
-
+                weights[category] = self.__prefetch_weights(
+                    weights_manager, category, shape_variation
+                )
 
         # Looping on the histograms to read the values only once
         # Then categories, subsamples and weights are applied and masked correctly
@@ -284,6 +295,7 @@ class HistManager:
         # ASSUNTION, the histograms are the same for each subsample
         # we can take the configuration of the first subsample
         for name, histo in self.histograms[self.subsamples[0]].items():
+            # logging.info(f"\thisto: {name}")
             if not histo.autofill:
                 continue
             if histo.metadata_hist:
@@ -291,10 +303,12 @@ class HistManager:
 
             # Check if a shape variation is under processing and
             # if the current histogram does not require that
-            if shape_variation != "nominal" and shape_variation not in histo.hist_obj.axes["variation"]:
+            if (
+                shape_variation != "nominal"
+                and shape_variation not in histo.hist_obj.axes["variation"]
+            ):
                 continue
 
-            
             # Get the filling axes --> without any masking.
             # The flattening has to be applied as the last step since the categories and subsamples
             # work at event level
@@ -302,7 +316,7 @@ class HistManager:
             fill_categorical = {}
             fill_numeric = {}
             ndim = None
-            
+
             for ax in histo.axes:
                 # Checkout the collection type
                 if ax.type in ["regular", "variable", "int"]:
@@ -341,10 +355,10 @@ class HistManager:
                         )
                     # If we have multidim data we need to flatten it
                     # but we will do it after the event masking of each category
-                    
+
                     # Filling the numerical axes
                     fill_numeric[ax.name] = data
-                    
+
                 #### --> end of numeric axes
                 # Categorical axes (not appling the mask)
                 else:
@@ -362,8 +376,9 @@ class HistManager:
             # We need now to iterate on categories and subsamples
             # Mask the events, the weights and then flatten and remove the None correctly
             for category, cat_mask in get_categories_generator():
-                #loop directly on subsamples
+                # loop directly on subsamples
                 for subsample, subs_mask in subsamples_masks.items():
+                    # logging.info(f"\t\tcategory {category}, subsample {subsample}")
                     mask = cat_mask & subs_mask
                     # Skip empty categories and subsamples
                     if ak.sum(mask) == 0:
@@ -397,14 +412,13 @@ class HistManager:
                         else:
                             all_axes_isnotnone = all_axes_isnotnone & (
                                 ~ak.is_none(masked_data)
-                            )    
+                            )
                         # Save the data for the filling
                         fill_numeric_masked[field] = masked_data
 
                     # Now apply the isnone mask to all the numeric fields already masked
                     for key, value in fill_numeric_masked.items():
                         fill_numeric_masked[key] = value[all_axes_isnotnone]
-
 
                     # Ok, now we have all the numerical axes with
                     # data that has been masked, flattened
@@ -432,7 +446,9 @@ class HistManager:
                                     weight_varied = weights[category][variation][mask]
                                 # Check number of dimensione
                                 if ndim > 1:
-                                    weight_varied = ak.flatten(data_structure * weight_varied)
+                                    weight_varied = ak.flatten(
+                                        data_structure * weight_varied
+                                    )
                                 # Then we apply the notnone mask
                                 weight_varied = weight_varied[all_axes_isnotnone]
                                 # Fill the histogram
@@ -443,8 +459,10 @@ class HistManager:
                                         weight=weight_varied,
                                         **{**fill_categorical, **fill_numeric_masked},
                                     )
-                                except:
-                                    raise Exception(f"Cannot fill histogram: {name}, {histo}")
+                                except Exception as e:
+                                    raise Exception(
+                                        f"Cannot fill histogram: {name}, {histo} {e}"
+                                    )
                         else:
                             # Working on shape variation! only nominal weights
                             # Check number of dimensione
@@ -461,8 +479,10 @@ class HistManager:
                                     weight=weights_nom,
                                     **{**fill_categorical, **fill_numeric_masked},
                                 )
-                            except:
-                                raise Exception(f"Cannot fill histogram: {name}, {histo}")
+                            except Exception as e:
+                                raise Exception(
+                                    f"Cannot fill histogram: {name}, {histo} {e}"
+                                )
 
                     elif (
                         histo.no_weights and self.isMC
@@ -473,20 +493,23 @@ class HistManager:
                                 variation="nominal",
                                 **{**fill_categorical, **fill_numeric_masked},
                             )
-                        except:
-                            raise Exception(f"Cannot fill histogram: {name}, {histo}")
+                        except Exception as e:
+                            raise Exception(
+                                f"Cannot fill histogram: {name}, {histo} {e}"
+                            )
 
                     elif not self.isMC:
                         # Fill histograms for Data
                         try:
                             self.histograms[subsample][name].hist_obj.fill(
                                 cat=category,
-                                **{**fill_categorical, **fill_numeric},
+                                **{**fill_categorical, **fill_numeric_masked},
                             )
-                        except:
-                            raise Exception(f"Cannot fill histogram: {name}, {histo}")
+                        except Exception as e:
+                            raise Exception(
+                                f"Cannot fill histogram: {name}, {histo} {e}"
+                            )
                     else:
                         raise Exception(
                             f"Cannot fill histogram: {name}, {histo}, not implemented combination of options"
                         )
-
