@@ -15,10 +15,65 @@ from coffea.analysis_tools import PackedSelection
 from itertools import product
 
 
-class MultiCut:
-    """Class for keeping track of a cut and its parameters."""
+class MasksStorage():
+    '''
+    
+    '''
 
-    def __init__(self, name: str, cuts: List[Cut], cuts_names: List[str] = None):
+    def __init__(size, dim=1, nelements=None):
+        self.size = size
+        self.dim = dim
+        if self.dim > 2:
+            raise NotImplementedError("MasksStorage with more than dim=2 is not implemented yet")
+        self.is_multidim = self.dim > 1
+        self.nelements = nelements
+        self.tot_elements = ak.sum(nelements) 
+        if self.is_multidim and self.nelements is None:
+            raise Exception("You need to provide the number of elements to unflatten the mask if dim>1")
+        self.cache = PackedSelection(dtype='uint64')
+
+    @property
+    def names(self):
+        return self.cache.names
+
+    def add(self, id, mask):
+        if mask.ndim != self.dim:
+            raise Exception(f"Mask {f} has the wrong number of dimensions")
+        if len(mask) != self.size:
+            raise Exception(f"Mask {f} has the wrong length")
+        if mask.ndim > 1:
+            # Flatten the mask and check the size
+            flat_mask = ak.flatten(mask)
+            if len(flat_mask) != self.tot_elements:
+                raise Exception(f"Mask {f} has the wrong number of total entries. Check your collections")
+            self.cache.add(id, flat_mask)
+        else:
+            self.cache.add(id, flat_mask)
+
+    def all(self, cut_ids, unflatten=True):
+        mask = self.cache.all(*cut_ids)
+        if self.is_multidim and unflatten:
+            return ak.unflatten(mask, self.nelements)
+        else:
+            return mask
+            
+
+class MultiCut:
+    """Class for keeping track of a list of cuts and their masks by index.
+    The class is built from a list of Cut objects and cuts names.
+
+    The `prepare()` methods instantiate a `PackedSelection` object
+    to keep track of the masks. If the cuts are more than 64 the current
+    implementation fails.
+
+    The single masks can be retrieved by their index in the list
+    with the function `get_mask()`.
+
+    This object is useful to build a 1D binning to be combined
+    with a CartesianSelection with other binnings.
+    """
+
+    def __init__(self, name: str, cuts: List[Cut], cuts_names: List[str] = None, collection=None):
         self.name = name
         self.cuts = cuts
         if cuts_names:
@@ -32,7 +87,7 @@ class MultiCut:
 
     def prepare(self, events, year, sample, isMC):
         # Redo the selector every time to clean up between variations
-        self.selector = PackedSelection(dtype='uint64')
+        self.masks = MasksStorage
         for cut in self.cuts:
             self.selector.add(
                 cut.id, cut.get_mask(events, year=year, sample=sample, isMC=isMC)
@@ -47,19 +102,36 @@ class MultiCut:
 
 
 class CartesianSelection:
-    # def __init__(self, multicuts: List[MultiCut], common_cats: dict[str, Cut] = None):
-    def __init__(self, multicuts: List[MultiCut], common_cats=None):
+    """
+    The CartesianSelection class is needed for a special type of categorization:
+    - you need to fully loop on the combination of different binnings.
+    - you can express each binning with a MultiCut object.
+
+    The cartesian product of a list of MultiCut object is build automatically:
+    the class provides a generator computing the and of the masks on the fly.
+    Computed masks are cached for multiple use between calls to `prepare()`.
+
+    A dictionary of common categories to be applied outside of the
+    cartesian product can be provided for convinience.
+    
+    """
+    def __init__(self, multicuts: List[MultiCut], common_cats: dict = None):
         self.multicuts = multicuts
         if common_cats:
             self.common_cats = common_cats
         else:
             self.common_cats = {}
+        #list of string identifiers
         self.categories = list(self.common_cats.keys()) + [
             "_".join(p) for p in product(*[mc.cuts_names for mc in self.multicuts])
         ]
+        # List of internal identifiers.
+        # - str for the common categories
+        # - list of indices for the cartesian product: e.g. (0,3,4)
         self.cat_multi_index = list(self.common_cats.keys()) + list(
             product(*[range(mc.ncuts) for mc in self.multicuts])
         )
+        # Dictionary from identifier to ID
         self.categories_dict = dict(zip(self.categories, self.cat_multi_index))
         # Cache the multiindex categories for multiple use
         self.cache = {}
