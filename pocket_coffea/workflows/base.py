@@ -64,14 +64,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # self._cuts_masks = PackedSelection()
 
         # Subsamples configurations: special cuts to split a sample in subsamples
-        self._subsamplesCfg = self.cfg.subsamples
-
-        # List of all samples names
-        self._totalSamplesSet = self.cfg.samples[:]
-        # Adding the subsamples to the samples list
-        for sample, subs in self._subsamplesCfg.items():
-            self._totalSamplesSet += list(subs.keys())
-        logging.debug(f"Total samples list: {self._totalSamplesSet}")
+        self._subsamplesCfg = self.cfg.subsamples_cuts
 
         # Weights configuration
         self.weights_config_allsamples = self.cfg.weights_config
@@ -93,7 +86,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 "presel": {s: 0 for s in self.cfg.samples},
                 **{cat: {s: 0.0 for s in self.cfg.samples} for cat in self._categories},
             },
-            "seed_chunk": defaultdict(str),
             "variables": {
                 v: {}
                 for v, vcfg in self.cfg.variables.items()
@@ -132,13 +124,12 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         if self._sample in self._subsamplesCfg:
             self._subsamples = self._subsamplesCfg[self._sample]
             self._subsamples_names = list(self._subsamples.keys())
-            self._hasSubSamples = True
+            self._hasSubsamples = True
         else:
-            #if there is no configured subsample, the full sample becomes its subsample
+            # if there is no configured subsample, the full sample becomes its subsample
             self._subsamples = {self._sample: [passthrough]}
             self._subsamples_names = [self._sample]
-            self._hasSubSamples = False
-
+            self._hasSubsamples = False
 
     def load_metadata_extra(self):
         '''
@@ -398,7 +389,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 self.output["sumw"][category][self._sample] = ak.sum(w * mask)
 
             # If subsamples are defined we also save their metadata
-            if self._hasSubSamples:
+            if self._hasSubsamples:
                 for subs in self._subsamples_names:
                     # Get the mask
                     subsam_mask = self._subsamples_masks.all(
@@ -459,9 +450,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         subs_masks = {}
         for subs in self._subsamples_names:
             # Get the mask
-            subs_masks[subs] = self._subsamples_masks.all(
-                *self._subsamples_map[subs]
-            )
+            subs_masks[subs] = self._subsamples_masks.all(*self._subsamples_map[subs])
         # Calling hist manager with the subsample masks
         self.hists_managers.fill_histograms(
             self.events,
@@ -489,10 +478,10 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         Define the ColumsManagers to handle the requested columns from the configuration.
         If Subsamples are defined a columnsmager is created for each of them.
         '''
-        self.columns_managers = {}
+        self.column_managers = {}
         for subs in self._subsamples_names:
-            self.columns_managers[subs] = ColumnsManager(
-                self.cfg.columns, subs, self._categories
+            self.column_managers[subs] = ColumnsManager(
+                self.cfg.columns[subs], subs, self._categories
             )
 
     def define_column_accumulators_extra(self):
@@ -502,6 +491,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
 
     def fill_column_accumulators(self, variation):
+        if variation != "nominal":
+            return
         # TODO Fill column accumulator for different variations
         if self._hasSubsamples:
             # call the filling for each
@@ -509,13 +500,13 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 # Get the mask
                 subsam_mask = self._subsamples_masks.all(*self._subsamples_map[subs])
                 # Calling hist manager with a subsample mask
-                self.output["columns"][subs] = self.columns_managers[subs].fill_columns(
+                self.output["columns"][subs] = self.column_managers[subs].fill_columns(
                     self.events,
                     self._cuts_masks,
                     subsample_mask=subsam_mask,
                 )
         else:
-            self.output["columns"][self._sample] = self.columns_managers[
+            self.output["columns"][self._sample] = self.column_managers[
                 self._sample
             ].fill_columns(
                 self.events,
@@ -580,14 +571,17 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
         if hasJES:
             # correct the jets only once
-            jec_cache = cachetools.Cache(np.inf)
-            # jets_with_JES = jet_correction(nominal_events, nominal_events.Jet, "AK4PFchs", self._year, jec_cache)
+            jec4_cache = cachetools.Cache(np.inf)
+            jec8_cache = cachetools.Cache(np.inf)
+            jets_with_JES = jet_correction(
+                nominal_events, nominal_events.Jet, "AK4PFchs", self._year, jec4_cache
+            )
             fatjets_with_JES = jet_correction(
                 nominal_events,
                 nominal_events.FatJet,
                 "AK8PFPuppi",
                 self._year,
-                jec_cache,
+                jec8_cache,
             )
         else:
             fatjets_with_JES = nominal_events.FatJet
@@ -598,19 +592,21 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
             if variation == "nominal":
                 self.events = nominal_events
-                # self.events["Jet"] = jets_with_JES
-                self.events["FatJet"] = fatjets_with_JES
+                if hasJES:
+                    # put nominal shape
+                    self.events["Jet"] = jets_with_JES
+                    self.events["FatJet"] = fatjets_with_JES
                 # Nominal is ASSUMED to be the first
                 yield "nominal"
             elif ("JES" in variation) | ("JER" in variation):
                 # JES_jes is the total. JES_[type] is for different variations
                 self.events = nominal_events
-                # self.events["Jet"] = jets_with_JES[variation].up
+                self.events["Jet"] = jets_with_JES[variation].up
                 self.events["FatJet"] = fatjets_with_JES[variation].up
                 yield variation + "Up"
                 # restore nominal before going to down
                 self.events = nominal_events
-                # self.events["Jet"] = jets_with_JES[variation].down
+                self.events["Jet"] = jets_with_JES[variation].down
                 self.events["FatJet"] = fatjets_with_JES[variation].down
                 yield variation + "Down"
 
@@ -748,7 +744,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Rescale MC histograms by the total sum of the genweights
         try:
             scale_genweight = {}
-            for sample in self._totalSamplesSet:
+            for sample in self.cfg.total_samples_list:
                 if sample not in accumulator["sum_genweights"]:
                     continue
                 scale_genweight[sample] = (
@@ -765,6 +761,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 if self.cfg.variables[var].no_weights:
                     continue
                 for sample, h in hists.items():
+                    if sample.startswith('DATA'):  # BEWARE of THIS HARDCODING
+                        continue
                     h *= scale_genweight[sample]
             accumulator["scale_genweight"] = scale_genweight
         except Exception as e:

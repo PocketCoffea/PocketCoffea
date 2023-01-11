@@ -29,36 +29,6 @@ class ttHbbBaseProcessor(BaseProcessorABC):
             )
         )
 
-    # def load_metadata_extra(self):
-    #     self._JECversion = JECversions[self._year]['MC' if self._isMC else 'Data']
-    #     self._JERversion = JERversions[self._year]['MC' if self._isMC else 'Data']
-
-    # def apply_JERC(self, JER=True, verbose=False):
-    #     if not self._isMC:
-    #         return
-    #     if int(self._year) > 2018:
-    #         sys.exit("Warning: Run 3 JEC are not implemented yet.")
-    #     if JER:
-    #         self.events.Jet, seed_dict = jet_correction(
-    #             self.events,
-    #             "Jet",
-    #             "AK4PFchs",
-    #             self._year,
-    #             self._JECversion,
-    #             self._JERversion,
-    #             verbose=verbose,
-    #         )
-    #         self.output['seed_chunk'].update(seed_dict)
-    #     else:
-    #         self.events.Jet = jet_correction(
-    #             self.events,
-    #             "Jet",
-    #             "AK4PFchs",
-    #             self._year,
-    #             self._JECversion,
-    #             verbose=verbose,
-    #         )
-
     def apply_object_preselection(self, variation):
         '''
         The ttHbb processor cleans
@@ -86,8 +56,6 @@ class ttHbbBaseProcessor(BaseProcessorABC):
         )
         self.events["LeptonGood"] = leptons[ak.argsort(leptons.pt, ascending=False)]
 
-        # Apply JEC + JER
-        # self.apply_JERC()
         self.events["JetGood"], self.jetGoodMask = jet_selection(
             self.events, "Jet", self.cfg.finalstate
         )
