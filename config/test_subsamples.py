@@ -1,7 +1,8 @@
 from pocket_coffea.parameters.cuts.preselection_cuts import *
 from pocket_coffea.workflows.tthbb_base_processor import ttHbbBaseProcessor
-from pocket_coffea.lib.cut_functions import get_nObj_min, get_nObj_eq, get_nBtag, get_HLTsel
+from pocket_coffea.lib.cut_functions import get_nObj_min, get_nObj_eq, get_nBtag, get_HLTsel, get_nObj_less
 from pocket_coffea.parameters.histograms import *
+from pocket_coffea.lib.columns_manager import ColOut
 from pocket_coffea.parameters.btag import btag_variations
 from pocket_coffea.lib.weights_manager import WeightCustom
 import numpy as np
@@ -18,8 +19,9 @@ cfg =  {
             "samples": [
                 # "TTToSemiLeptonic",
                 "TTbbSemiLeptonic",
-                # "ttHTobb",
-                # "DATA_SingleMu", "DATA_SingleEle"
+                "ttHTobb",
+                "DATA_SingleMu",
+                # "DATA_SingleEle"
             ],
             "samples_exclude" : [],
             "year": ['2018']
@@ -27,9 +29,14 @@ cfg =  {
         "subsamples": {
             "TTbbSemiLeptonic":
             {
+                "tt<3b": [get_nObj_less(3, coll="BJetGood")],
                 "tt+3b": [get_nObj_eq(3, coll="BJetGood")],
                 "tt+4b": [get_nObj_eq(4, coll="BJetGood")],
-                "tt+5b": [get_nObj_eq(5, coll="BJetGood")],
+                "tt>4b": [get_nObj_min(5, coll="BJetGood")],
+            },
+            "ttHTobb":{
+                "ttH<4b": [get_nObj_less(4, coll="BJetGood")],
+                "ttH+4b": [get_nObj_min(4, coll="BJetGood")],
             }
         }
     },
@@ -107,59 +114,20 @@ cfg =  {
 
         **ele_hists(coll="ElectronGood", pos=0),
         **muon_hists(coll="MuonGood", pos=0),
-        # **count_hist(name="nElectronGood", coll="ElectronGood",bins=3, start=0, stop=3),
-        # **count_hist(name="nMuonGood", coll="MuonGood",bins=3, start=0, stop=3),
-        # **count_hist(name="nJets", coll="JetGood",bins=10, start=4, stop=14),
-        # **count_hist(name="nBJets", coll="BJetGood",bins=12, start=2, stop=14),
-        # **jet_hists(coll="JetGood", pos=0),
-        # **jet_hists(coll="JetGood", pos=1),
-        # **jet_hists(coll="JetGood", pos=2),
-        # **jet_hists(coll="JetGood", pos=3),
-        # **jet_hists(coll="JetGood", pos=4),
-        # **jet_hists(name="bjet",coll="BJetGood", pos=0),
-        # **jet_hists(name="bjet",coll="BJetGood", pos=1),
-        # **jet_hists(name="bjet",coll="BJetGood", pos=2),
+    },
 
-    #     # 2D plots
-    #     "jet_eta_pt_leading": HistConf(
-    #         [
-    #             Axis(coll="JetGood", field="pt", pos=0, bins=40, start=0, stop=1000,
-    #                  label="Leading jet $p_T$"),
-    #             Axis(coll="JetGood", field="eta", pos=0, bins=40, start=-2.4, stop=2.4,
-    #                  label="Leading jet $\eta$"),
-    #         ]
-    #     ),
-    #     "jet_eta_pt_all": HistConf(
-    #         [
-    #             Axis(coll="JetGood", field="pt", bins=40, start=0, stop=1000,
-    #                  label="Leading jet $p_T$"),
-    #             Axis(coll="JetGood", field="eta", bins=40, start=-2.4, stop=2.4,
-    #                  label="Leading jet $\eta$")
-    #         ]
-    #     ),
-
-    #     # Metadata of the processing
-    #     "events_per_chunk" : HistConf(
-    #            axes=[
-    #                Axis(name='nEvents_initial', field=None,
-    #                     bins=100, start=0, stop=500000,                       
-    #                     label="Number of events in the chunk",
-    #                     ), 
-    #                Axis(name='nEvents_after_skim', field=None,
-    #                     bins=100, start=0, stop=500000,                       
-    #                     label="Number of events after skim per chunk",
-    #                     ), 
-    #                Axis(name='nEvents_after_presel',field=None,
-    #                     bins=100, start=0, stop=500000,
-    #                     label="Number of events after preselection per chunk",
-    #                     )
-    #            ],
-    #         storage="int64",
-    #         autofill=False,
-    #         metadata_hist = True,
-    #         no_weights=True,
-    #         only_categories=["baseline"],
-    #         variations=False,),
-    # }
+    "columns": {
+        "common": {
+            "inclusive": [ ColOut("JetGood", ["pt", "eta","phi"]),
+                           ColOut("ElectronGood", ["pt","eta","phi"])]
+        },
+        "bysample":{
+            "ttHTobb": {
+                "inclusive": [ColOut("MuonGood", ["pt", "eta", "phi"])]
+            },
+            "ttH+4b":{
+                "inclusive": [ColOut("BJetGood", ["pt", "eta", "phi"])]
+            }
         }
+    }
 }

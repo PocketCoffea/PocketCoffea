@@ -36,6 +36,9 @@ class Sample:
         self.metadata["nevents"] = 0
         self.metadata["size"] = 0
         self.fileslist = []
+        print("*****************************************")
+        print(self.metadata)
+        print("*****************************************")
         self.get_filelist()
 
     # Function to get the dataset filelist from DAS
@@ -100,7 +103,7 @@ class Dataset:
             if not scfg["metadata"]["isMC"]:
                 sname += f"_Era{scfg['metadata']['era']}"
             if "dbs_instance" in scfg.keys():
-                kwargs = {"dbs_instance" : scfg['dbs_instance']}
+                kwargs = {"dbs_instance": scfg['dbs_instance']}
             else:
                 kwards = {}
             sample = Sample(
@@ -108,7 +111,7 @@ class Dataset:
                 das_names=scfg["das_names"],
                 sample=self.sample,
                 metadata=scfg["metadata"],
-                **kwargs
+                **kwargs,
             )
             self.samples_obj.append(sample)
             # Get the default prefix and the the one

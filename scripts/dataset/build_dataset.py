@@ -9,8 +9,10 @@ print("""
 """)
 
 import os
+import sys
 import argparse
 import json
+
 from pocket_coffea.utils.dataset import Dataset
 
 parser = argparse.ArgumentParser(description='Build dataset fileset in json format')

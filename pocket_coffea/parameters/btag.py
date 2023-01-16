@@ -1,7 +1,20 @@
 # B-tagging algorithms and working points
 
 btag = {
-    "2016": {
+    # N.B: ALL THESE VALUES NEED TO BE CHECKED AND UPDATED
+    "2016_PreVFP": {
+        "btagging_algorithm": "btagDeepFlavB",  # "btagDeepB",
+        "btagging_WP": 0.3093,
+        "bbtagging_algorithm": "btagDDBvL",  # "deepTagMD_HbbvsQCD", #"deepTagMD_bbvsLight",
+        "bbtagging_WP": 0.86,
+        'bbtagSF_DDBvL_M1_loPt': 0.86,
+        'bbtagSF_DDBvL_M1_loPt_up': 0.97,
+        'bbtagSF_DDBvL_M1_loPt_down': 0.82,
+        'bbtagSF_DDBvL_M1_hiPt': 0.86,
+        'bbtagSF_DDBvL_M1_hiPt_up': 0.97,
+        'bbtagSF_DDBvL_M1_hiPt_down': 0.82,
+    },
+    "2016_PostVFP": {
         "btagging_algorithm": "btagDeepFlavB",  # "btagDeepB",
         "btagging_WP": 0.3093,
         "bbtagging_algorithm": "btagDDBvL",  # "deepTagMD_HbbvsQCD", #"deepTagMD_bbvsLight",
