@@ -2,6 +2,7 @@
 
 xsec = {
     "ttHTobb": 0.2953,
+    "TTbbSemiLeptonic": 365.4574,  # to be checked
     "TTToSemiLeptonic": 365.4574,
     "TTTo2L2Nu": 88.3419,
     "TTToHadronic": 377.9607,

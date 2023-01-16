@@ -34,11 +34,27 @@ class Configurator:
 
         # subsamples configuration
         # Dictionary with subsample_name:[list of Cut ids]
-        self.subsamples = {
+        self.subsamples_cuts = {
             key: subscfg
             for key, subscfg in self.dataset.get("subsamples", {}).items()
             if key in self.samples
         }
+        # Map of subsamples names
+        self.subsamples = {}
+        self.has_subsamples = {}
+        for sample in self.samples:
+            if sample in self.subsamples_cuts:
+                self.subsamples[sample] = list(self.subsamples_cuts[sample].keys())
+                self.has_subsamples[sample] = True
+            else:
+                self.subsamples[sample] = []
+                self.has_subsamples[sample] = False
+
+        # Complete list of samples and subsamples
+        self.subsamples_list = []
+        for sam in self.subsamples.values():
+            self.subsamples_list += sam
+        self.total_samples_list = list(set(self.samples + self.subsamples_list))
 
         # Check if output file exists, and in case add a `_v01` label, make directory
         if overwrite_output_dir:
@@ -117,10 +133,15 @@ class Configurator:
             )
 
         # Column accumulator config
-        self.columns = {
-            s: {c: [] for c in self.categories.keys()} for s in self.samples
-        }
+        self.columns = {}
+        for sample in self.samples:
+            if self.has_subsamples[sample]:
+                for sub in self.subsamples[sample]:
+                    self.columns[sub] = {c: [] for c in self.categories.keys()}
+            else:
+                self.columns[sample] = {c: [] for c in self.categories.keys()}
         self.load_columns_config()
+        breakpoint()
 
         # Load workflow
         self.load_workflow()
@@ -141,7 +162,7 @@ class Configurator:
                 continue
             setattr(self, key, item)
         # Define default values for optional parameters
-        for key in ['only']:
+        for key in ['only', 'save_skimmed_files']:
             try:
                 getattr(self, key)
             except:
@@ -417,22 +438,40 @@ class Configurator:
         # Now look at specific samples configurations
         if "bysample" in wcfg:
             for sample, s_wcfg in wcfg["bysample"].items():
-                if sample not in self.samples:
+                if sample not in self.total_samples_list:
                     print(
                         f"Requested missing sample {sample} in the columns configuration"
                     )
                     raise Exception("Wrong columns configuration")
                 if "inclusive" in s_wcfg:
                     for w in s_wcfg["inclusive"]:
-                        # append only to the specific sample
-                        for wcat in self.columns[sample].values():
-                            if w not in wcat:
-                                wcat.append(w)
+                        # append only to the specific subsample
+                        if sample in self.subsamples_list:
+                            for wcat in self.columns[sample].values():
+                                if w not in wcat:
+                                    wcat.append(w)
+                        elif self.has_subsamples[sample]:
+                            # If it was added to the general one: include only in subsamples
+                            for subs in self.subsamples[sample]:
+                                for wcat in self.columns[subs].values():
+                                    if w not in wcat:
+                                        wcat.append(w)
+                        else:
+                            # Add only to the general sample
+                            for wcat in self.columns[sample].values():
+                                if w not in wcat:
+                                    wcat.append(w)
 
                 if "bycategory" in s_wcfg:
                     for cat, columns in s_wcfg["bycategory"].items():
                         for w in columns:
-                            self.columns[sample][cat].append(w)
+                            if sample in self.subsamples_list:
+                                self.columns[sample][cat].append(w)
+                            elif self.has_subsamples[sample]:
+                                for subs in self.subsamples[sample].keys():
+                                    self.columns[subs][cat].append(w)
+                            else:
+                                self.columns[samples][cat].append(w)
 
     def overwrite_check(self):
         if self.plot:
@@ -542,7 +581,9 @@ class Configurator:
             key: val.serialize() for key, val in self.variables.items()
         }
 
-        ocfg["columns"] = {s: {c: [] for c in self.categories} for s in self.samples}
+        ocfg["columns"] = {
+            s: {c: [] for c in self.categories} for s in self.total_samples_list
+        }
         for sample, columns in self.columns.items():
             for cat, cols in columns.items():
                 for col in cols:
