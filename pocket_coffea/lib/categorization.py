@@ -9,51 +9,64 @@ The final subcategories are the cartesian product of the categories
 '''
 
 import awkward as ak
+import numpy as np
 from .cut_definition import Cut
 from typing import List
 from coffea.analysis_tools import PackedSelection
 from itertools import product
 
 
-class MasksStorage():
+class MaskStorage():
     '''
     
     '''
 
-    def __init__(size, dim=1, nelements=None):
+    def __init__(self, size, dim=1, counts=None):
         self.size = size
         self.dim = dim
         if self.dim > 2:
             raise NotImplementedError("MasksStorage with more than dim=2 is not implemented yet")
         self.is_multidim = self.dim > 1
-        self.nelements = nelements
-        self.tot_elements = ak.sum(nelements) 
-        if self.is_multidim and self.nelements is None:
-            raise Exception("You need to provide the number of elements to unflatten the mask if dim>1")
-        self.cache = PackedSelection(dtype='uint64')
+        self.counts = counts
+        if self.is_multidim:
+            if self.counts is None:
+                self.tot_elements = None
+                raise Exception("You need to provide the number of elements to unflatten the mask if dim>1")
+            else:
+                self.tot_elements = ak.sum(counts)
+                self.template_mask = ak.unflatten(ak.Array(np.ones(self.tot_elements)==1), self.counts)
+        else:
+            self.tot_elements = size
+
+        self.cache = PackedSelection()
 
     @property
     def names(self):
         return self.cache.names
 
     def add(self, id, mask):
-        if mask.ndim != self.dim:
-            raise Exception(f"Mask {f} has the wrong number of dimensions")
         if len(mask) != self.size:
-            raise Exception(f"Mask {f} has the wrong length")
-        if mask.ndim > 1:
-            # Flatten the mask and check the size
-            flat_mask = ak.flatten(mask)
-            if len(flat_mask) != self.tot_elements:
-                raise Exception(f"Mask {f} has the wrong number of total entries. Check your collections")
-            self.cache.add(id, flat_mask)
+            raise Exception(f"Mask {id} has the wrong length")
+        if mask.ndim == 1 and self.is_multidim:
+            # we need to broadcast the mask to the dim=2
+            flat_mask = ak.flatten( mask & self.template_mask )
+            self.cache.add(id, ak.to_numpy(flat_mask))
+        elif mask.ndim >1:
+            if not self.is_multidim:
+                raise Excpetion("You are trying to add a dim>1 mask to a dim=1 storage. Please create a dim=2 storage")
+            else:
+                # Flatten the mask and check the size
+                flat_mask = ak.flatten(mask)
+                if len(flat_mask) != self.tot_elements:
+                    raise Exception(f"Mask {f} has the wrong number of total entries. Check your collections")
+                self.cache.add(id, ak.to_numpy(flat_mask))
         else:
-            self.cache.add(id, flat_mask)
+            self.cache.add(id, ak.to_numpy(mask))
 
     def all(self, cut_ids, unflatten=True):
         mask = self.cache.all(*cut_ids)
         if self.is_multidim and unflatten:
-            return ak.unflatten(mask, self.nelements)
+            return ak.unflatten(mask, self.counts)
         else:
             return mask
             
