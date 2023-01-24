@@ -10,7 +10,7 @@ import inspect
 import logging
 
 from ..lib.cut_definition import Cut
-from ..lib.cartesian_categories import CartesianSelection
+from ..lib.categorization import StandardSelection, CartesianSelection
 from ..parameters.cuts.preselection_cuts import passthrough
 from ..lib.weights_manager import WeightCustom
 from ..lib.hist_manager import Axis, HistConf
@@ -73,15 +73,9 @@ class Configurator:
         # Load histogram settings
         # No manipulation is needed, maybe some check can be added
 
-        ## Load cuts and categories
-        # Cuts: set of Cut objects
-        # Categories: dict with a set of Cut ids for each category
-        self.cut_functions = []
-        self.categories = {}
-        # Saving also a dict of Cut objects to map their ids (name__hash)
-        # N.B. The preselections are just cuts that are applied before
-        # others. It is just a special category of cuts.
-        self.cuts_dict = {}
+        # Categories: object handling categorization
+        # - StandardSelection
+        # - CartesianSelection
         ## Call the function which transforms the dictionary in the cfg
         # in the objects needed in the processors
         self.load_cuts_and_categories()
@@ -141,7 +135,6 @@ class Configurator:
             else:
                 self.columns[sample] = {c: [] for c in self.categories.keys()}
         self.load_columns_config()
-        breakpoint()
 
         # Load workflow
         self.load_workflow()
@@ -238,41 +231,33 @@ class Configurator:
                 self.cfg[cut_type] = [passthrough]
         if self.cfg["categories"] == {}:
             self.cfg["categories"]["baseline"] = [passthrough]
+            
         # The cuts_dict is saved just for record
-        for skim in self.cfg["skim"]:
-            if not isinstance(skim, Cut):
+        self.skim = []
+        for sk in self.cfg["skim"]:
+            if not isinstance(sk, Cut):
                 print("Please define skim, preselections and cuts as Cut objects")
                 raise Exception("Wrong categories/cuts configuration")
-            self.cuts_dict[skim.id] = skim
-        for presel in self.cfg["preselections"]:
-            if not isinstance(presel, Cut):
-                print("Please define skim, preselections and cuts as Cut objects")
-                raise Exception("Wrong categories/cuts configuration")
-            self.cuts_dict[presel.id] = presel
-        # Now saving the categories and cuts
-        if isinstance(self.cfg["categories"], dict):
-            for cat, cuts in self.cfg["categories"].items():
-                self.categories[cat] = []
-                for cut in cuts:
-                    if not isinstance(cut, Cut):
-                        print(
-                            "Please define skim, preselections and cuts as Cut objects"
-                        )
-                        raise Exception("Wrong categories/cuts configuration")
-                    self.cut_functions.append(cut)
-                    self.cuts_dict[cut.id] = cut
-                    self.categories[cat].append(cut.id)
-            for cat, cuts in self.categories.items():
-                self.categories[cat] = set(cuts)
+            self.skim.append(sk)
 
+        self.preselections = []
+        for pres in self.cfg["preselections"]:
+            if not isinstance(pres, Cut):
+                print("Please define skim, preselections and cuts as Cut objects")
+                raise Exception("Wrong categories/cuts configuration")
+            self.preselections.append(pres)
+            
+        # Now saving the categories
+        if isinstance(self.cfg["categories"], dict):
+            # Convert it to StandardSelection
+            self.categories = StandardSelection(self.cfg["categories"])
+        elif isinstance(self.cfg["categories"], StandardSelection):
+            self.categories = self.cfg["categories"]
         elif isinstance(self.cfg["categories"], CartesianSelection):
             self.categories = self.cfg["categories"]
         # Unique set of cuts
-        self.cut_functions = set(self.cut_functions)
-        logging.info("Cuts:")
-        logging.info(pformat(self.cuts_dict.keys(), compact=True, indent=2))
         logging.info("Categories:")
-        logging.info(pformat(self.categories, compact=True, indent=2))
+        logging.info(self.categories)
 
     def load_weights_config(self):
         '''This function loads the weights definition and prepares a list of
@@ -543,16 +528,13 @@ class Configurator:
         ocfg["skim"] = skim_dump
         ocfg["preselections"] = presel_dump
 
-        if not isinstance(self.categories, CartesianSelection):
-            for cat, cuts in ocfg["categories"].items():
-                newcuts = []
-                for c in cuts:
-                    newcuts.append(c.serialize())
-                cats_dump[cat] = newcuts
-
+        # categories
+        for cat, cuts in ocfg["categories"].items():
+            newcuts = []
+            for c in cuts:
+                newcuts.append(c.serialize())
+            cats_dump[cat] = newcuts
             ocfg["categories"] = cats_dump
-        else:
-            ocfg["categories"] = str(self.categories)
 
         ocfg["workflow"] = {
             "name": self.workflow.__name__,

@@ -179,6 +179,8 @@ class StandardSelection:
         for k, cuts in categories.items():
             self.categories[k] = []
             for c in cuts:
+                if not isinstance(c, Cut):
+                    raise Exception(f"The cut is not defined as a Cut object: {cut}")
                 self.categories[k].append(c.id)
                 self.cut_functions.append(c)
 

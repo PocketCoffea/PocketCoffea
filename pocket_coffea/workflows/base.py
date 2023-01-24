@@ -52,19 +52,13 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # 3) A list of cut function is applied and the masks are kept in memory to defined later "categories"
         self._skim = self.cfg.skim
         self._preselections = self.cfg.preselections
-        self._cuts = self.cfg.cut_functions
         self._categories = self.cfg.categories
-        # Define PackedSelector to save per-event cuts and dictionary of selections
         # The skim mask is applied on baseline nanoaod before any object is corrected
         self._skim_masks = PackedSelection()
-        # The preselection mask is applied after the objects have been corrected
-        # self._preselection_masks = PackedSelection()
-        # After the preselections more cuts are defined and combined in categories.
-        # These cuts are applied only for outputs, so they cohexists in the form of masks
-        # self._cuts_masks = PackedSelection()
 
         # Subsamples configurations: special cuts to split a sample in subsamples
         self._subsamplesCfg = self.cfg.subsamples_cuts
+        self._subsamples_masks = PackedSelection()
 
         # Weights configuration
         self.weights_config_allsamples = self.cfg.weights_config
@@ -265,34 +259,23 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         The function saves all the cut masks internally, in order to use them later
         to define categories (groups of cuts.).
 
+        The categorization objects takes care of the details of the caching of the mask
+        and expose a common interface.
+
         Moreover it computes the cut masks defining the subsamples for the current
-        chunks and store them in the `self.subsamples` attribute for later use.
+        chunks and store them in the `self.subsamples` attribute for later use.        
         '''
-
-        # After the preselections more cuts are defined and combined in categories.
-        # These cuts are applied only for outputs, so they cohexists in the form of masks
-        self._cuts_masks = PackedSelection()
-
+        
         # We make sure that for each category the list of cuts is unique in the Configurator validation
-        if isinstance(self._categories, CartesianSelection):
-            self._categories.prepare(
+        self._categories.prepare(
                 events=self.events,
                 year=self._year,
                 sample=self._sample,
                 isMC=self._isMC,
             )
-            # The cuts masks are the CartesianSelection them self
-            self._cuts_masks = self._categories
-        else:
-            for cut in self._cuts:
-                mask = cut.get_mask(
-                    self.events, year=self._year, sample=self._sample, isMC=self._isMC
-                )
-                self._cuts_masks.add(cut.id, mask)
 
         # Defining the subsamples cut
         # saving all the cuts in a single selector
-        self._subsamples_masks = PackedSelection()
         self._subsamples_cuts_ids = []
         # saving the map of cut ids for each subsample
         self._subsamples_map = defaultdict(list)
@@ -372,15 +355,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         also sum their nominal weights (for each sample, by chunk).
         Store the results in the `cutflow` and `sumw` outputs
         '''
-
-        if isinstance(self._cuts_masks, PackedSelection):
-            # on the fly generator of the categories and cuts
-            categories_generator = (
-                (cat, self._cuts_masks.all(*self._categories[cat]))
-                for cat in self._categories.keys()
-            )
-        elif isinstance(self._cuts_masks, CartesianSelection):
-            categories_generator = self._cuts_masks.get_masks()
+        categories_generator = self._categories.get_masks()
 
         for category, mask in categories_generator:
             self.output["cutflow"][category][self._sample] = ak.sum(mask)
@@ -455,12 +430,12 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self.hists_managers.fill_histograms(
             self.events,
             self.weights_manager,
-            self._cuts_masks,
+            self._categories,
             subsamples_masks=subs_masks,
             shape_variation=variation,
             custom_fields=self.custom_histogram_fields,
         )
-
+        # Saving the output
         for subs in self._subsamples_names:
             # Saving the output for each subsample
             for var, H in self.hists_managers.get_histograms(subs).items():
@@ -502,7 +477,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 # Calling hist manager with a subsample mask
                 self.output["columns"][subs] = self.column_managers[subs].fill_columns(
                     self.events,
-                    self._cuts_masks,
+                    self._categories,
                     subsample_mask=subsam_mask,
                 )
         else:
@@ -510,7 +485,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 self._sample
             ].fill_columns(
                 self.events,
-                self._cuts_masks,
+                self._categories,
             )
 
     def fill_column_accumulators_extra(self, variation):
