@@ -117,6 +117,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self._isMC = self.events.metadata["isMC"] == "True"
         if self._isMC:
             self._era = "MC"
+            self._xsec = self.events.metadata["xsec"]
         else:
             self._era = self.events.metadata["era"]
             self._goldenJSON = goldenJSON[self._year]
@@ -355,6 +356,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 metadata={
                     "year": self._year,
                     "sample": self._sample,
+                    "xsec": self._xsec,
                     "finalstate": self.cfg.finalstate,
                 },
             )
