@@ -71,14 +71,14 @@ triggers = {
             "SingleEle": [
                 "Ele27_WPTight_Gsf",
             ],
-            "SingleMu": ["IsoMu24", "IsoTkMu24"],
+            "SingleMuon": ["IsoMu24", "IsoTkMu24"],
         },
         "2017": {
             "SingleEle": [
                 "Ele32_WPTight_Gsf_L1DoubleEG",
                 "Ele28_eta2p1_WPTight_Gsf_HT150",
             ],
-            "SingleMu": [
+            "SingleMuon": [
                 "IsoMu27",
             ],
         },
@@ -87,7 +87,7 @@ triggers = {
                 "Ele32_WPTight_Gsf",
                 "Ele28_eta2p1_WPTight_Gsf_HT150",
             ],
-            "SingleMu": [
+            "SingleMuon": [
                 "IsoMu24",
             ],
         },
