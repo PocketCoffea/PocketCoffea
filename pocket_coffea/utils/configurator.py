@@ -141,7 +141,6 @@ class Configurator:
             else:
                 self.columns[sample] = {c: [] for c in self.categories.keys()}
         self.load_columns_config()
-        breakpoint()
 
         # Load workflow
         self.load_workflow()

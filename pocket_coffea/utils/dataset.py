@@ -105,7 +105,7 @@ class Dataset:
             if "dbs_instance" in scfg.keys():
                 kwargs = {"dbs_instance": scfg['dbs_instance']}
             else:
-                kwards = {}
+                kwargs = {}
             sample = Sample(
                 name=sname,
                 das_names=scfg["das_names"],
