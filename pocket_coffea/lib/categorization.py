@@ -18,11 +18,14 @@ from itertools import product
 
 class MaskStorage():
     '''
-    
+    The MaskStorage class stores in a PackedSelection
+    multidimensional cuts: it does so by flattening the mask and keeping track of
+    the counts of elements for the unflattening.
+    Dim=1 and dim=2 cuts can be stored together if the storage is initialize with
+    dim=2.
     '''
 
-    def __init__(self, size, dim=1, counts=None):
-        self.size = size
+    def __init__(self, dim=1, counts=None):
         self.dim = dim
         if self.dim > 2:
             raise NotImplementedError("MasksStorage with more than dim=2 is not implemented yet")
@@ -30,35 +33,32 @@ class MaskStorage():
         self.counts = counts
         if self.is_multidim:
             if self.counts is None:
-                self.tot_elements = None
                 raise Exception("You need to provide the number of elements to unflatten the mask if dim>1")
             else:
                 self.tot_elements = ak.sum(counts)
                 self.template_mask = ak.unflatten(ak.Array(np.ones(self.tot_elements)==1), self.counts)
         else:
-            self.tot_elements = size
+            self.tot_elements = None
 
-        self.cache = PackedSelection()
+        self.cache = PackedSelection(dtype="uint64")
 
     @property
     def names(self):
         return self.cache.names
 
     def add(self, id, mask):
-        if len(mask) != self.size:
-            raise Exception(f"Mask {id} has the wrong length")
         if mask.ndim == 1 and self.is_multidim:
             # we need to broadcast the mask to the dim=2
             flat_mask = ak.flatten( mask & self.template_mask )
             self.cache.add(id, ak.to_numpy(flat_mask))
-        elif mask.ndim >1:
+        elif mask.ndim > 1:
             if not self.is_multidim:
-                raise Excpetion("You are trying to add a dim>1 mask to a dim=1 storage. Please create a dim=2 storage")
+                raise Exception("You are trying to add a dim>1 mask to a dim=1 storage. Please create a dim=2 storage")
             else:
                 # Flatten the mask and check the size
                 flat_mask = ak.flatten(mask)
                 if len(flat_mask) != self.tot_elements:
-                    raise Exception(f"Mask {f} has the wrong number of total entries. Check your collections")
+                    raise Exception(f"Mask {f} has the wrong number of total entries. Check the collection")
                 self.cache.add(id, ak.to_numpy(flat_mask))
         else:
             self.cache.add(id, ak.to_numpy(mask))
@@ -86,9 +86,17 @@ class MultiCut:
     with a CartesianSelection with other binnings.
     """
 
-    def __init__(self, name: str, cuts: List[Cut], cuts_names: List[str] = None, collection=None):
+    def __init__(self, name: str, cuts: List[Cut], cuts_names: List[str] = None, collection="events"):
         self.name = name
         self.cuts = cuts
+        self.collection = collection
+        # if the MultiCut works on a collection (e.g. Lepton, Jet) the dimension of the mask will be 2
+        if self.collections =="events":
+            self.dim = 1
+        else:
+            # Jets, Leptons etc will create a 2-d mask
+            self.dim = 2
+            
         if cuts_names:
             self.cuts_names = cuts_names
         else:
@@ -100,9 +108,18 @@ class MultiCut:
 
     def prepare(self, events, year, sample, isMC):
         # Redo the selector every time to clean up between variations
-        self.masks = MasksStorage
+        if self.dim == 2:
+            # count the objects in the collection
+            if f"n{self.collection}" in events.fields:
+                counts = events[f"n{self.collection}"]
+            else:
+                counts = ak.num(events[self.collection])
+        else:
+            counts = None
+        #Create the mask storage
+        self.masks = MasksStorage(dim=self.dim, counts)
         for cut in self.cuts:
-            self.selector.add(
+            self.masks.add(
                 cut.id, cut.get_mask(events, year=year, sample=sample, isMC=isMC)
             )
 
@@ -111,8 +128,84 @@ class MultiCut:
         return len(self.cuts)
 
     def get_mask(self, cut_index):
-        return self.selector.all(self.cuts[cut_index].id)
+        return self.masks.all(self.cuts[cut_index].id)
 
+
+######################################
+
+class StandardSelection:
+
+    def __init__(self, **kwargs):
+        # read the dictionary of categories
+        self.categories = {}
+        self.cut_functions = [] 
+        for k, cuts in kwargs:
+            self.categories[k] = []
+            for c in cuts:
+                self.categories[k].append(c.id)
+                self.cut_functions.append(c)
+
+        # Now make sure to have unique fucntions
+        self.cut_functions = set(self.cut_functions)
+        for cat in self.categories:
+            self.categories[cat] = set(self.categories[cat])
+
+        self.is_multidim = False
+        self.multidim_collection = None
+        for cut in self.cut_functions:
+            if cut.collection != "events":
+                # the cut is multidim
+                self.is_multidim = True
+                self.multidim_collection = cut.collection
+                break
+        # Check that all cut with dim=2 are on the same collection
+        for cut in self.cut_functions:
+            if cut.collection != "events" and cut.collection!=self.multidim_collection:
+                raise Exception(f"Building a StandardSelection with cuts on differenct collections: {cut.collection} and {self.multidim_collection}")
+        
+    def prepare(self,  events, year, sample, isMC):
+        # Creating the maskstorage for the categorization.
+        if self.is_multidim:
+            dim = 2
+            # count the objects in the collection
+            if f"n{self.multidim_collection}" in events.fields:
+                counts = events[f"n{self.multidim_collection}"]
+            else:
+                counts = ak.num(events[self.multidim_collection])
+        else:
+            counts = None
+            dim = 1
+
+        #Create the mask storage
+        self.masks = MasksStorage(dim=dim, counts)
+        for cut in self.cuts: 
+            self.masks.add(
+                cut.id, cut.get_mask(events, year=year, sample=sample, isMC=isMC)
+            )
+
+    def get_mask(self, category):
+        return self.masks.all(self.categories[category], unflatten=True)
+
+    def get_masks(self):
+        for category in self.categories.keys():
+            yield category, self.get_mask(category)
+
+    def keys(self):
+        return list(self.categories.kesy())
+
+    def items(self):
+        return self.categories.items()
+
+    def __str__(self):
+        return f"StandardSelection {[m.id for m in self.categories]}, ({len(self.categories)} categories)"
+
+    def __repr__(self):
+        return f"CartesianSelection {[m.id for m in self.categories]}, ({len(self.categories)} categories)"
+
+    def __iter__(self):
+        return iter(self.categories)
+
+###############################################################
 
 class CartesianSelection:
     """
@@ -148,11 +241,31 @@ class CartesianSelection:
         self.categories_dict = dict(zip(self.categories, self.cat_multi_index))
         # Cache the multiindex categories for multiple use
         self.cache = {}
-
+        # Check the dimension of the mask
+        self.is_multidim = False
+        self.multidim_collection = None
+        self.multidim_template = None
+        for multic in self.multicuts:
+            if multic.dim == 2:
+                self.is_multidim = True
+                self.multidim_collection = multic.collection
+                self.multidim_template = multic.template
+                break
+        # Check that all multidim are on the same collection
+        for multic in self.multicuts:
+            if multic.dim == 2:
+                if self.multidim_collection != multic.collection:
+                    raise Exception(f"Building a CartesianSelection with MultiCuts on differenct collections {multic.collection} and {self.multidim_collection}")
+            
+        
     def prepare(self, events, year, sample, isMC):
         # clean the cache
         self.cache.clear()
         # packed selection for common categories
+        # If we have a multidim cat we create a dim=2 common mask
+        # to make it compatible with the MultiCut mask
+        for ccat, cut in self.common_cats.items():
+            
         self.common_cats_masks = PackedSelection()
         for ccat, cut in self.common_cats.items():
             self.common_cats_masks.add(
@@ -161,6 +274,7 @@ class CartesianSelection:
         # Now preparing the multicut
         for multicut in self.multicuts:
             multicut.prepare(events, year, sample, isMC)
+            
 
     def __getmask(self, multi_index):
         if isinstance(multi_index, str):

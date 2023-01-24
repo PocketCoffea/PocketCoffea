@@ -12,6 +12,7 @@ class Cut:
     name: str
     params: dict
     function: Callable
+    collection: str = "events"
     _id: str = field(init=False, repr=True, hash=True, default=None)
 
     def get_mask(self, events, **kwargs):
@@ -45,6 +46,7 @@ class Cut:
         out = {
             "name": self.name,
             "params": self.params,
+            "collection": self.collection,
             "function": {
                 "name": self.function.__name__,
                 "module": self.function.__module__,
