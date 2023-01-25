@@ -31,10 +31,7 @@ class ColumnsManager:
         for category, outarrays in self.cfg.items():
             self.output[category] = {}
             # Computing mask
-            if isinstance(self.categories_config, CartesianSelection):
-                mask = cuts_masks.get_mask(category)
-            else:
-                mask = cuts_masks.all(*self.categories_config[category])
+            mask = cuts_masks.get_mask(category)
             if subsample_mask is not None:
                 mask = mask & subsample_mask
             for outarray in outarrays:
