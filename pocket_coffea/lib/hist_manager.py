@@ -271,15 +271,7 @@ class HistManager:
         '''
         # logging.info(f"Filling histograms: shape variation {shape_variation}")
 
-        def get_categories_generator():
-            if isinstance(cuts_masks, PackedSelection):
-                # on the fly generator of the categories and cuts
-                return (
-                    (cat, cuts_masks.all(*self.categories_config[cat]))
-                    for cat in self.available_categories
-                )
-            elif isinstance(cuts_masks, CartesianSelection):
-                return cuts_masks.get_masks()
+        categories_generator = cuts_masks.get_masks()
 
         # Preloading weights
         if self.isMC:
@@ -375,7 +367,7 @@ class HistManager:
             # Now the variables have been read for all the events
             # We need now to iterate on categories and subsamples
             # Mask the events, the weights and then flatten and remove the None correctly
-            for category, cat_mask in get_categories_generator():
+            for category, cat_mask in categories_generator:
                 # loop directly on subsamples
                 for subsample, subs_mask in subsamples_masks.items():
                     # logging.info(f"\t\tcategory {category}, subsample {subsample}")
