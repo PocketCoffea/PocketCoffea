@@ -17,7 +17,6 @@ from ..lib.weights_manager import WeightsManager
 from ..lib.columns_manager import ColumnsManager
 from ..lib.hist_manager import HistManager
 from ..lib.jets import jet_correction
-from ..lib.cartesian_categories import CartesianSelection
 from ..utils.skim import uproot_writeable, copy_file
 from ..parameters.event_flags import event_flags, event_flags_data
 from ..parameters.lumi import goldenJSON
@@ -355,13 +354,18 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         also sum their nominal weights (for each sample, by chunk).
         Store the results in the `cutflow` and `sumw` outputs
         '''
-        categories_generator = self._categories.get_masks()
-
-        for category, mask in categories_generator:
-            self.output["cutflow"][category][self._sample] = ak.sum(mask)
+        for category, mask in self._categories.get_masks():
+            if self._categories.is_multidim and mask.ndim > 1:
+                # The Selection object can be multidim but returning some mask 1-d
+                # For example the CartesianSelection may have a non multidim StandardSelection
+                mask_on_events = ak.any(mask, axis=1)
+            else:
+                mask_on_events = mask
+                
+            self.output["cutflow"][category][self._sample] = ak.sum(mask_on_events)
             if self._isMC:
                 w = self.weights_manager.get_weight(category)
-                self.output["sumw"][category][self._sample] = ak.sum(w * mask)
+                self.output["sumw"][category][self._sample] = ak.sum(w * mask_on_events)
 
             # If subsamples are defined we also save their metadata
             if self._hasSubsamples:
@@ -370,7 +374,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     subsam_mask = self._subsamples_masks.all(
                         *self._subsamples_map[subs]
                     )
-                    mask_withsub = mask & subsam_mask
+                    mask_withsub = mask_on_events & subsam_mask
                     self.output["cutflow"][category][subs] = ak.sum(mask_withsub)
                     if self._isMC:
                         self.output["sumw"][category][subs] = ak.sum(w * mask_withsub)
@@ -742,4 +746,5 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             accumulator["scale_genweight"] = scale_genweight
         except Exception as e:
             print(e)
+            print("N.B: The weights have NOT been scaled both in histograms and `sumw` output.")
         return accumulator

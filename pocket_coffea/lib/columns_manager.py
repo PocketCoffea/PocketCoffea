@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from typing import List
 from coffea.processor.accumulator import column_accumulator
-from .cartesian_categories import CartesianSelection
 import awkward as ak
 
 

@@ -134,6 +134,8 @@ class MultiCut:
             raise ValueError(
                 f"Number of cuts and cuts_names in MultiCut {name} differ! Check you configuration file."
             )
+        # Flag indicates the MultiCut has been prepared
+        self.ready = False
 
     def prepare(self, events, year, sample, isMC):
         # Redo the selector every time to clean up between variations
@@ -153,19 +155,32 @@ class MultiCut:
             self.storage.add(
                 cut.id, cut.get_mask(events, year=year, sample=sample, isMC=isMC)
             )
+        self.ready = True
 
     @property
     def ncuts(self):
         return len(self.cuts)
 
     def get_mask(self, cut_index):
+        if not self.ready:
+            raise Exception(
+                "Before using the selection, call the prepare method to fill the masks"
+            )
         return self.storage.all([self.cuts[cut_index].id])
 
     def __str__(self):
-        return f"MultiCut({len(self.storage.masks)} categories: {[m for m in self.storage.masks]})"
+        return f"MultiCut(multidim: {self.is_multidim}, {len(self.cuts)} categories: {[c.name for c in self.cuts]})"
 
     def __repr__(self):
-        return f"MultiCut({len(self.storage.masks)} categories: {[m for m in self.storage.masks]})"
+        return f"MultiCut(multidim: {self.is_multidim}, {len(self.cuts)} categories: {[c.name for c in self.cuts]})"
+
+    def serialize(self):
+        return {
+            "type": "multicut",
+            "cuts": [c.serialize() for c in self.cuts],
+            "is_multidim": self.is_multidim,
+            "multidim_collection": self.multidim_collection,
+        }
 
 
 ######################################
@@ -176,6 +191,7 @@ class StandardSelection:
         # read the dictionary of categories
         self.categories = {}
         self.cut_functions = []
+        self.cut_dict = {}
         for k, cuts in categories.items():
             self.categories[k] = []
             for c in cuts:
@@ -183,6 +199,7 @@ class StandardSelection:
                     raise Exception(f"The cut is not defined as a Cut object: {cut}")
                 self.categories[k].append(c.id)
                 self.cut_functions.append(c)
+                self.cut_dict[c.id] = c
 
         # The selection is ready after the prepare method has been called
         self.ready = False
@@ -242,6 +259,13 @@ class StandardSelection:
         for category in self.categories.keys():
             yield category, self.get_mask(category)
 
+    @property
+    def template_mask(self):
+        if self.ready and self.ismulti_dim:
+            return self.storage.template_mask
+        else:
+            return None
+
     def keys(self):
         return list(self.categories.keys())
 
@@ -256,6 +280,17 @@ class StandardSelection:
 
     def __iter__(self):
         return iter(self.categories)
+
+    def serialize(self):
+        serialized_cuts = {}
+        for k, cuts in self.categories.items():
+            serialized_cuts[k] = [self.cut_dict[c].serialize() for c in cuts]
+        return {
+            "type": "StandardSelection",
+            "categories": serialized_cuts,
+            "is_multidim": self.is_multidim,
+            "multidim_collection": self.multidim_collection,
+        }
 
 
 ###############################################################
@@ -281,12 +316,17 @@ class CartesianSelection:
     ):
         self.multicuts = multicuts
         if common_cats:
-            if type(common_cats) != StandardSelection:
+            if isinstance(common_cats, dict):
+                self.common_cats = StandardSelection(common_cats)
+                self.has_common_cats = True
+            elif isinstance(common_cats, StandardSelection):
+                self.common_cats = common_cats
+                self.has_common_cats = True
+            else:
                 raise Exception(
-                    "The common_cats of a CartesianSelection needs to be a StandardSelection object"
+                    "The common_cats of a CartesianSelection needs to be a dictionary or StandardSelection object"
                 )
-            self.common_cats = common_cats
-            self.has_common_cats = True
+
         else:
             self.common_cats = {}
             self.has_common_cats = False
@@ -304,6 +344,29 @@ class CartesianSelection:
         self.categories_dict = dict(zip(self.categories, self.cat_multi_index))
         # Cache the multiindex categories for multiple use
         self.cache = {}
+
+        # Check if it is multidim
+        self.is_multidim = False
+        self.multidim_collection = None
+        if self.has_common_cats:
+            if self.common_cats.is_multidim:
+                self.is_multidim = True
+                self.multidim_collection = self.common_cats.multidim_collection
+
+        for cut in self.multicuts:
+            if cut.is_multidim:
+                # the cut is multidim
+                self.is_multidim = True
+                if self.multidim_collection is None:
+                    self.multidim_collection = cut.multidim_collection
+                break
+
+        # check if they are multidim on the same collection
+        for cut in self.multicuts:
+            if cut.is_multidim and cut.multidim_collection != self.multidim_collection:
+                raise Exception(
+                    f"Building a CartesianSelection with cuts on differenct collections: {cut.multidim_collection} and {self.multidim_collection}"
+                )
 
     def prepare(self, events, year, sample, isMC):
         # clean the cache
@@ -373,6 +436,13 @@ class CartesianSelection:
             raise ValueError(f"Requested category ({category}) does not exists")
         return self.__getmask(self.categories_dict[category])
 
+    @property
+    def template_mask(self):
+        if self.ready and self.ismulti_dim:
+            return self.storage.template_mask
+        else:
+            return None
+
     def keys(self):
         return self.categories
 
@@ -387,3 +457,12 @@ class CartesianSelection:
 
     def __iter__(self):
         return iter(self.categories)
+
+    def serialize(self):
+        return {
+            "type": "CartesianSelection",
+            "common_categories": self.common_cats.serialize(),
+            "multicuts": [m.serialize() for m in self.multicuts],
+            "is_multidim": self.is_multidim,
+            "multidim_collection": self.multidim_collection,
+        }

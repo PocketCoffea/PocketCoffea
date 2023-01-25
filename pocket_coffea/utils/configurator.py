@@ -529,12 +529,7 @@ class Configurator:
         ocfg["preselections"] = presel_dump
 
         # categories
-        for cat, cuts in ocfg["categories"].items():
-            newcuts = []
-            for c in cuts:
-                newcuts.append(c.serialize())
-            cats_dump[cat] = newcuts
-            ocfg["categories"] = cats_dump
+        ocfg["categories"] = self.categories.serialize()
 
         ocfg["workflow"] = {
             "name": self.workflow.__name__,
