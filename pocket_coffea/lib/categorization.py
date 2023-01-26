@@ -1,11 +1,21 @@
 '''
-This module handles the definition of "categorical" cuts which are
-combined in a cartesian product to produce a large number of categories.
+This module defines several helper classes to handle Masks and Selections.
 
-The use must provided a list of MultiCut objects which splits the
-events in a defined number of subcategories.
+- The MaskStorage is a generalization of the PackedSelection utility to be able to store
+  effectively dim=2 masks.
 
-The final subcategories are the cartesian product of the categories
+- MultiCut objects which splits the events in a defined number of subcategories.
+
+- StandardSelection: handles the definition of categories from a dictionary of Cut objects.
+  All the cuts are handled by a single MaskStorage. The StandardSelection object stores which cuts
+  are applied in each category.
+
+- CartesianSelection: handles the definition of cartesian producton of categories. The class
+  keeps a list of MultiCut objects, each defining a set of subcategories. Then, it defines automatically
+  categories which are the cartesian products of the categories defined by each MultiCut.
+  A StandardSelection object can be embeeded in the CartesianSelection to defined categories not used in the
+  cartesian product.
+
 '''
 
 import awkward as ak
@@ -187,6 +197,22 @@ class MultiCut:
 
 
 class StandardSelection:
+    '''
+    The StandardSelection class defined the simplest categorization.
+
+    Each category is identified by a label string and has a list of Cut object:
+    the AND of the Cut objects defines the category mask.
+
+    The class stores all the Cut objects mask in a single MaskStorage to
+    reduce the memory overhead. Then, when a category mask is asked, the cut objects
+    associated to the category are used.
+
+    The object can handle a mixture of dim=1 and dim=2 Cut objects.
+    The MaskStorage is instantiated automatically with dim=2 if at least one
+    Cut is defined over a collection different from "events".
+
+    '''
+
     def __init__(self, categories):
         # read the dictionary of categories
         self.categories = {}
@@ -306,8 +332,8 @@ class CartesianSelection:
     the class provides a generator computing the and of the masks on the fly.
     Computed masks are cached for multiple use between calls to `prepare()`.
 
-    A dictionary of common categories to be applied outside of the
-    cartesian product can be provided for convinience.
+    Common categories to be applied outside of the
+    cartesian product can be defined with a StandardSelection object.
 
     """
 

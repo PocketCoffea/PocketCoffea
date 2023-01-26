@@ -31,30 +31,7 @@ class Configurator:
         self.years = []
         self.eras = []
         self.load_dataset()
-
-        # subsamples configuration
-        # Dictionary with subsample_name:[list of Cut ids]
-        self.subsamples_cuts = {
-            key: subscfg
-            for key, subscfg in self.dataset.get("subsamples", {}).items()
-            if key in self.samples
-        }
-        # Map of subsamples names
-        self.subsamples = {}
-        self.has_subsamples = {}
-        for sample in self.samples:
-            if sample in self.subsamples_cuts:
-                self.subsamples[sample] = list(self.subsamples_cuts[sample].keys())
-                self.has_subsamples[sample] = True
-            else:
-                self.subsamples[sample] = []
-                self.has_subsamples[sample] = False
-
-        # Complete list of samples and subsamples
-        self.subsamples_list = []
-        for sam in self.subsamples.values():
-            self.subsamples_list += sam
-        self.total_samples_list = list(set(self.samples + self.subsamples_list))
+        self.load_subsamples()
 
         # Check if output file exists, and in case add a `_v01` label, make directory
         if overwrite_output_dir:
@@ -80,14 +57,7 @@ class Configurator:
         # in the objects needed in the processors
         self.load_cuts_and_categories()
         ## Weights configuration
-        self.weights_config = {
-            s: {
-                "inclusive": [],
-                "bycategory": {c: [] for c in self.categories.keys()},
-                "is_split_bycat": False,
-            }
-            for s in self.samples
-        }
+
         self.load_weights_config()
         ## Variations configuration
         # The structure is very similar to the weights one,
@@ -102,6 +72,7 @@ class Configurator:
         }
         if "shape" not in self.cfg["variations"]:
             self.cfg["variations"]["shape"] = {"common": {"inclusive": []}}
+
         self.load_variations_config(
             self.cfg["variations"]["weights"], variation_type="weights"
         )
@@ -128,12 +99,7 @@ class Configurator:
 
         # Column accumulator config
         self.columns = {}
-        for sample in self.samples:
-            if self.has_subsamples[sample]:
-                for sub in self.subsamples[sample]:
-                    self.columns[sub] = {c: [] for c in self.categories.keys()}
-            else:
-                self.columns[sample] = {c: [] for c in self.categories.keys()}
+
         self.load_columns_config()
 
         # Load workflow
@@ -214,6 +180,31 @@ class Configurator:
                     if 'era' in m.keys():
                         self.eras.append(m["era"])
 
+    def load_subsamples(self):
+        # subsamples configuration
+        # Dictionary with subsample_name:[list of Cut ids]
+        self.subsamples_cuts = {
+            key: subscfg
+            for key, subscfg in self.dataset.get("subsamples", {}).items()
+            if key in self.samples
+        }
+        # Map of subsamples names
+        self.subsamples = {}
+        self.has_subsamples = {}
+        for sample in self.samples:
+            if sample in self.subsamples_cuts:
+                self.subsamples[sample] = list(self.subsamples_cuts[sample].keys())
+                self.has_subsamples[sample] = True
+            else:
+                self.subsamples[sample] = []
+                self.has_subsamples[sample] = False
+
+        # Complete list of samples and subsamples
+        self.subsamples_list = []
+        for sam in self.subsamples.values():
+            self.subsamples_list += sam
+        self.total_samples_list = list(set(self.samples + self.subsamples_list))
+
     def filter_dataset(self, nfiles):
         filtered_dataset = {}
         for sample, ds in self.fileset.items():
@@ -231,7 +222,7 @@ class Configurator:
                 self.cfg[cut_type] = [passthrough]
         if self.cfg["categories"] == {}:
             self.cfg["categories"]["baseline"] = [passthrough]
-            
+
         # The cuts_dict is saved just for record
         self.skim = []
         for sk in self.cfg["skim"]:
@@ -246,7 +237,7 @@ class Configurator:
                 print("Please define skim, preselections and cuts as Cut objects")
                 raise Exception("Wrong categories/cuts configuration")
             self.preselections.append(pres)
-            
+
         # Now saving the categories
         if isinstance(self.cfg["categories"], dict):
             # Convert it to StandardSelection
@@ -262,6 +253,14 @@ class Configurator:
     def load_weights_config(self):
         '''This function loads the weights definition and prepares a list of
         weights to be applied for each sample and category'''
+        self.weights_config = {
+            s: {
+                "inclusive": [],
+                "bycategory": {c: [] for c in self.categories.keys()},
+                "is_split_bycat": False,
+            }
+            for s in self.samples
+        }
         # Get the list of statically available weights defined in the workflow
         available_weights = self.workflow.available_weights()
         # Read the config and save the list of weights names for each sample (and category if needed)
@@ -402,6 +401,12 @@ class Configurator:
                             )
 
     def load_columns_config(self):
+        for sample in self.samples:
+            if self.has_subsamples[sample]:
+                for sub in self.subsamples[sample]:
+                    self.columns[sub] = {c: [] for c in self.categories.keys()}
+            else:
+                self.columns[sample] = {c: [] for c in self.categories.keys()}
         wcfg = self.cfg.get("columns", {})
         # common/inclusive variations
         if "common" in wcfg:
@@ -456,7 +461,7 @@ class Configurator:
                                 for subs in self.subsamples[sample].keys():
                                     self.columns[subs][cat].append(w)
                             else:
-                                self.columns[samples][cat].append(w)
+                                self.columns[sample][cat].append(w)
 
     def overwrite_check(self):
         if self.plot:

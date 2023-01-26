@@ -44,16 +44,14 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self.cfg = cfg
 
         # Cuts
-        # The definition of the cuts in the analysis is hierarchical.
         # 1) a list of *skim* functions is applied on bare NanoAOD, with no object preselection or correction.
         #   Triggers are also applied there.
         # 2) Objects are corrected and selected and a list of *preselection* cuts are applied to skim the dataset.
         # 3) A list of cut function is applied and the masks are kept in memory to defined later "categories"
         self._skim = self.cfg.skim
         self._preselections = self.cfg.preselections
+        # The categories objects handles a generator of categories and masks to be applied
         self._categories = self.cfg.categories
-        # The skim mask is applied on baseline nanoaod before any object is corrected
-        self._skim_masks = PackedSelection()
 
         # Subsamples configurations: special cuts to split a sample in subsamples
         self._subsamplesCfg = self.cfg.subsamples_cuts
@@ -88,7 +86,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             "processing_metadata": {
                 v: {} for v, vcfg in self.cfg.variables.items() if vcfg.metadata_hist
             },
-            # "bugged_events" : {}
         }
 
     @property
@@ -148,6 +145,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         Alternatively, if you need to apply the cut on preselected objects,
         defined the cut at the preselection level, not at skim level.
         '''
+        self._skim_masks = PackedSelection()
         mask_flags = np.ones(self.nEvents_initial, dtype=np.bool)
         flags = event_flags[self._year]
         if not self._isMC:
@@ -262,16 +260,16 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         and expose a common interface.
 
         Moreover it computes the cut masks defining the subsamples for the current
-        chunks and store them in the `self.subsamples` attribute for later use.        
+        chunks and store them in the `self.subsamples` attribute for later use.
         '''
-        
+
         # We make sure that for each category the list of cuts is unique in the Configurator validation
         self._categories.prepare(
-                events=self.events,
-                year=self._year,
-                sample=self._sample,
-                isMC=self._isMC,
-            )
+            events=self.events,
+            year=self._year,
+            sample=self._sample,
+            isMC=self._isMC,
+        )
 
         # Defining the subsamples cut
         # saving all the cuts in a single selector
@@ -361,7 +359,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 mask_on_events = ak.any(mask, axis=1)
             else:
                 mask_on_events = mask
-                
+
             self.output["cutflow"][category][self._sample] = ak.sum(mask_on_events)
             if self._isMC:
                 w = self.weights_manager.get_weight(category)
@@ -548,6 +546,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             if ("JES" in v) | ("JER" in v):
                 hasJES = True
 
+        # TODO Improve this selection
         if hasJES:
             # correct the jets only once
             jec4_cache = cachetools.Cache(np.inf)
@@ -746,5 +745,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             accumulator["scale_genweight"] = scale_genweight
         except Exception as e:
             print(e)
-            print("N.B: The weights have NOT been scaled both in histograms and `sumw` output.")
+            print(
+                "N.B: The weights have NOT been scaled both in histograms and `sumw` output."
+            )
         return accumulator

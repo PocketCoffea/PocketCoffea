@@ -254,18 +254,37 @@ class HistManager:
 
     def __mask_and_broadcast_weight(self, weight, mask, data_structure):
         '''
-        Data structure is the structure of data (1-array) after the mask.
+        The function mask the weights and broadcast them to the correct dimension.
+        The `data_structure` input is an array of 1-value with the structure of the data.
+        The data is already masked. We need instead to mask the weight value and broadcast it.
+
+        We need to handle different cases:
+        - Mask dimension=1 (mask on events):
+           If the data_structure.dim =2 it means that we want to plot a collection
+           - we mask the weights by events
+           - broadcast weight to the collection by multiplying to the datastructure (1-like array)
+           - flatten the final weight
+           If the data_structure.dim = 1:
+           - We just mask the weight by event
+
+        - Mask dimension=2 (mask on the collection)
+          It means that we are masking the collection, not the events.
+          - First we broadcast the weight to the structure of the mask
+          - Then we apply the mask
+          - Then we flatten the weight
+
         '''
-        if mask.ndim == 2:
-            # First we broadcast then we mask
-            # if the mask is ndim==2 also the data is ndim==2.
-            # The weights are broadcasted at collection level, then masked, then flattened.
-            return ak.flatten((ak.ones_like(mask) * weight)[mask])
-        elif mask.ndim == 1 and not data_structure is None and data_structure.ndim == 2:
+        if mask.ndim == 1 and not data_structure is None and data_structure.ndim == 2:
             # If the mask has dim =1 and the data dim =2
             # we need to mask the weight on dim=1, then to broadcast
             # on the data_structure -> then flatten
             return ak.flatten(data_structure * (weight[mask]))
+
+        elif mask.ndim == 2:
+            # First we broadcast then we mask
+            # if the mask is ndim==2 also the data is ndim==2.
+            # The weights are broadcasted at collection level, then masked, then flattened.
+            return ak.flatten((ak.ones_like(mask) * weight)[mask])
         else:
             return weight[mask]
 
