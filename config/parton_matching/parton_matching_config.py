@@ -9,17 +9,25 @@ from pocket_coffea.lib.cut_definition import Cut
 from pocket_coffea.lib.columns_manager import ColOut
 from pocket_coffea.workflows.parton_matching import PartonMatchingProcessor
 from pocket_coffea.parameters.histograms import *
-from config.parton_matching.functions import *
+
+import sys, os
+sys.path.append(os.path.dirname(__file__))
+from functions import *
 
 
 cfg = {
     "dataset": {
         "jsons": ["datasets/signal_ttHTobb_local.json"],
-        "filter": {"samples": ["ttHTobb"], "samples_exclude": [], "year": ["2018"]},
+        "filter": {
+            "samples": ["ttHTobb"],
+            "samples_exclude": [],
+            "year": ["2018"]
+        },
     },
     # Input and output files
     "workflow": PartonMatchingProcessor,
     "output": "output/parton_matching_dR03_training_dataset",
+    
     "workflow_extra_options": {"parton_jet_min_dR": 0.3},
     "run_options": {
         "executor": "dask/slurm",
@@ -45,7 +53,8 @@ cfg = {
         get_nBtag(3, 15.0, "Jet"),
     ],
     "preselections": [semileptonic_presel],
-    "categories": {"baseline": [passthrough], "semilep_LHE": [semilep_lhe]},
+    "categories": {"baseline": [passthrough],
+                   "semilep_LHE": [semilep_lhe]},
     "weights": {
         "common": {
             "inclusive": [
@@ -215,6 +224,9 @@ cfg = {
                                 "dRMatchedJet",
                             ],
                         ),
+                        ColOut("LeptonGood",
+                               ["pt","eta","phi"],
+                               pos_end=1)
                     ]
                 }
             }
