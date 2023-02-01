@@ -29,9 +29,9 @@ default_axis_settings = {
     },
     'electron_pt': {
         "field": "pt",
-        "bins": 200,
+        "bins": 60,
         "start": 0,
-        'stop': 1000,
+        'stop': 500,
         "lim": (0, 500),
         'label': "$p_{T}^{e}$ [GeV]",
     },

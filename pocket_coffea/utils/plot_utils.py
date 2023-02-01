@@ -246,6 +246,7 @@ def plot_systematic_uncertainty(
         **opts_unc,
         label="syst. unc.",
     )
+    ax.hlines(1.0, *ak.Array(h_mc_sum.axes[0].edges)[[0,-1]], colors='gray', linestyles='dashed')
 
 
 def plot_data_mc_hist1D(
@@ -359,10 +360,10 @@ def plot_data_mc_hist1D(
                 flavors = flavors_order['linear']
                 if config:
                     if hasattr(config, "plot_options"):
-                        if histname in config.plot_options.keys():
-                            if 'scale' in config.plot_options[histname].keys():
+                        if histname in config.plot_options["variables"].keys():
+                            if 'scale' in config.plot_options["variables"][histname].keys():
                                 flavors = flavors_order[
-                                    config.plot_options[histname]['scale']
+                                    config.plot_options["variables"][histname]['scale']
                                 ]
                 dict_mc = {
                     f: stack_sum(
@@ -419,22 +420,19 @@ def plot_data_mc_hist1D(
             rebinning = False
             if config:
                 if hasattr(config, "plot_options"):
-                    if histname in config.plot_options.keys():
-                        if 'binning' in config.plot_options[histname].keys():
+                    if histname in config.plot_options["variables"].keys():
+                        if 'binning' in config.plot_options["variables"][histname].keys():
                             rebinning = True
                             stack_data = rebin(
-                                stack_data, config.plot_options[histname]['binning']
+                                stack_data, config.plot_options["variables"][histname]['binning']
                             )
                             stack_mc_nominal = rebin(
                                 stack_mc_nominal,
-                                config.plot_options[histname]['binning'],
+                                config.plot_options["variables"][histname]['binning'],
                             )
 
             if not is_mc_only:
-                if len(stack_data) > 1:
-                    raise NotImplementedError
-                else:
-                    h_data = stack_data[0]
+                h_data = stack_sum(stack_data)
                 if flavorsplit == '5f':
                     nevents['Data'] = round(sum(h_data.values()))
 
@@ -469,7 +467,7 @@ def plot_data_mc_hist1D(
                     variations,
                     mcstat=mcstat,
                     stat_only=stat_only,
-                    edges=config.plot_options[histname]['binning'],
+                    edges=config.plot_options["variables"][histname]['binning'],
                 )
             else:
                 syst_err_up, syst_err_down = get_systematic_uncertainty(
@@ -481,13 +479,14 @@ def plot_data_mc_hist1D(
                 stack_mc_nominal, syst_err_up, syst_err_down, ax
             )
             if not is_mc_only:
+                print(cat, histname)
                 ratio, unc = get_data_mc_ratio(stack_data, stack_mc_nominal)
                 rax.errorbar(x, ratio, unc, **opts_data)
             plot_systematic_uncertainty(
                 stack_mc_nominal, syst_err_up, syst_err_down, rax, ratio=True
             )
             ax.set_ylim((0, 1.20 * max(stack_sum(stack_mc_nominal).values())))
-            rax.set_ylim((0.0, 2.0))
+            rax.set_ylim((0.5, 1.5))
             xlabel = ax.get_xlabel()
             ax.set_xlabel("")
             ax.set_ylabel("Counts", fontsize=fontsize)
@@ -510,7 +509,7 @@ def plot_data_mc_hist1D(
                 ax.legend(handles, labels, fontsize=fontsize, ncols=2)
             ax.tick_params(axis='x', labelsize=fontsize)
             ax.tick_params(axis='y', labelsize=fontsize)
-            rax.set_yticks((0, 0.5, 1, 1.5, 2), axis='y', labelsize=fontsize)
+            #rax.set_yticks((0, 0.5, 1, 1.5, 2), axis='y', labelsize=fontsize)
             rax.tick_params(axis='x', labelsize=fontsize)
             rax.tick_params(axis='y', labelsize=fontsize)
 
@@ -526,12 +525,25 @@ def plot_data_mc_hist1D(
                 #    ax.legend(loc="upper right", fontsize=fontsize, ncols=2)
             if config:
                 if hasattr(config, "plot_options"):
-                    if histname in config.plot_options.keys():
-                        if 'xlim' in config.plot_options[histname].keys():
-                            ax.set_xlim(*config.plot_options[histname]['xlim'])
-                        if 'scale' in config.plot_options[histname].keys():
-                            ax.set_yscale(config.plot_options[histname]['scale'])
-                            if config.plot_options[histname]['scale'] == 'log':
+                    if "labels" in config.plot_options:
+                        handles, labels = ax.get_legend_handles_labels()
+                        labels_new = []
+                        handles_new = []
+                        for i, l in enumerate(labels):
+                            if l in config.plot_options["labels"]:
+                                labels_new.append(f"{config.plot_options['labels'][l]}")
+                            else:
+                                labels_new.append(l)
+                            handles_new.append(handles[i])
+                        labels = labels_new
+                        handles = handles_new
+                        ax.legend(handles, labels, fontsize=fontsize, ncols=2)
+                    if ("variables" in config.plot_options) & (histname in config.plot_options["variables"].keys()):
+                        if 'xlim' in config.plot_options["variables"][histname].keys():
+                            ax.set_xlim(*config.plot_options["variables"][histname]['xlim'])
+                        if 'scale' in config.plot_options["variables"][histname].keys():
+                            ax.set_yscale(config.plot_options["variables"][histname]['scale'])
+                            if config.plot_options["variables"][histname]['scale'] == 'log':
                                 exp = math.floor(
                                     math.log(
                                         max(stack_sum(stack_mc_nominal).values()), 10
@@ -539,13 +551,13 @@ def plot_data_mc_hist1D(
                                 )
                                 ax.set_ylim((0.01, 10 ** (exp + 2)))
                                 # ax.legend(handles, labels, loc="upper right", fontsize=fontsize, ncols=2)
-                        if 'ylim' in config.plot_options[histname].keys():
-                            if isinstance(config.plot_options[histname]['ylim'], tuple):
-                                ax.set_ylim(*config.plot_options[histname]['ylim'])
+                        if 'ylim' in config.plot_options["variables"][histname].keys():
+                            if isinstance(config.plot_options["variables"][histname]['ylim'], tuple):
+                                ax.set_ylim(*config.plot_options["variables"][histname]['ylim'])
                             elif isinstance(
-                                config.plot_options[histname]['ylim'], float
-                            ) | isinstance(config.plot_options[histname]['ylim'], int):
-                                rescale = config.plot_options[histname]['ylim']
+                                config.plot_options["variables"][histname]['ylim'], float
+                            ) | isinstance(config.plot_options["variables"][histname]['ylim'], int):
+                                rescale = config.plot_options["variables"][histname]['ylim']
                                 ax.set_ylim(
                                     (
                                         0,

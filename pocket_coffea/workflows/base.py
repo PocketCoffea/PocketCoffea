@@ -567,16 +567,19 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         nominal_events = self.events
 
         hasJES = False
+        hasJER = False
         for v in variations:
-            if ("JES" in v) | ("JER" in v):
-                hasJES = True
+            if "JES" in v:
+                hasJES =True
+            if "JER" in v:
+                hasJER = True
 
-        if hasJES:
+        if hasJES | hasJER:
             # correct the jets only once
             jec4_cache = cachetools.Cache(np.inf)
             jec8_cache = cachetools.Cache(np.inf)
             jets_with_JES = jet_correction(
-                nominal_events, nominal_events.Jet, "AK4PFchs", self._year, jec4_cache
+                nominal_events, nominal_events.Jet, "AK4PFchs", self._year, jec4_cache, applyJER=hasJER, applyJES=hasJES
             )
             fatjets_with_JES = jet_correction(
                 nominal_events,
@@ -584,8 +587,11 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 "AK8PFPuppi",
                 self._year,
                 jec8_cache,
+                applyJER=hasJER,
+                applyJES=hasJES
             )
         else:
+            jets_with_JES = nominal_events.Jet
             fatjets_with_JES = nominal_events.FatJet
 
         for variation in variations:

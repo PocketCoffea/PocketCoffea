@@ -61,7 +61,7 @@ opts_mc = {
 opts_sf = {
     'nominal': {
         'linestyle': 'solid',
-        'linewidth': 0,
+        'linewidth': 1,
         'marker': '.',
         'markersize': 1.0,
         'color': 'red',
@@ -69,7 +69,7 @@ opts_sf = {
     },
     'Up': {
         'linestyle': 'dashed',
-        'linewidth': 0,
+        'linewidth': 1,
         'marker': '.',
         'markersize': 1.0,
         'color': 'red',
@@ -77,7 +77,7 @@ opts_sf = {
     },
     'Down': {
         'linestyle': 'dotted',
-        'linewidth': 0,
+        'linewidth': 1,
         'marker': '.',
         'markersize': 1.0,
         'color': 'red',
@@ -140,7 +140,7 @@ def plot_variation_correctionlib(file, axis_x, systematics, plot_dir, **kwargs):
     edges_x = axis_x.edges
     xlabel = axis_x.label
     ylabel = "Trigger SF"
-    variable = kwargs['histname'].split('hist_')[-1]
+    variable = kwargs['histname']
     totalLumi = femtobarn(lumi[kwargs['year']]['tot'], digits=1)
     systematics = ['nominal'] + [s.split('Up')[0] for s in systematics if 'Up' in s]
 
@@ -165,32 +165,31 @@ def plot_variation_correctionlib(file, axis_x, systematics, plot_dir, **kwargs):
         )
         binwidth_x = np.ediff1d(edges_x)
         x = edges_x[:-1] + 0.5 * binwidth_x
-        xerr = 0.5 * binwidth_x
+
         nominal = correction.evaluate("nominal", x)
         statDown = correction.evaluate("statDown", x)
         statUp = correction.evaluate("statUp", x)
+        xerr = 0.5 * binwidth_x
+
         yerr = np.array([abs(nominal - statDown), abs(statUp - nominal)])
         ax.errorbar(
-            x, nominal, yerr=yerr, xerr=xerr, label="SF nominal", **opts_sf['nominal']
+            x, nominal, yerr=yerr, xerr=xerr, label="SF nominal", **opts_sf['nominal'], fmt='none'
         )
         xlim = (edges_x[0], edges_x[-1])
         xticks = None
+
         if (
-            kwargs['histname']
-            in config.plot_options['scalefactor'][kwargs['year']][kwargs['cat']].keys()
+            kwargs['histname'].startswith(tuple(config.plot_options['scalefactor'][kwargs['year']][kwargs['cat']].keys()))
         ):
-            ylim = config.plot_options['scalefactor'][kwargs['year']][kwargs['cat']][
-                kwargs['histname']
-            ]['ylim']
+            key = [k for k in config.plot_options['scalefactor'][kwargs['year']][kwargs['cat']].keys() if k in kwargs['histname']][0]
+            ylim = config.plot_options['scalefactor'][kwargs['year']][kwargs['cat']][key]['ylim']
         else:
             ylim = (0.7, 1.3)
         if (
-            kwargs['histname']
-            in config.plot_options['ratio'][kwargs['year']][kwargs['cat']].keys()
+            kwargs['histname'].startswith(tuple(config.plot_options['ratio'][kwargs['year']][kwargs['cat']].keys()))
         ):
-            ylim_ratio = config.plot_options['ratio'][kwargs['year']][kwargs['cat']][
-                kwargs['histname']
-            ]['ylim']
+            key = [k for k in config.plot_options['ratio'][kwargs['year']][kwargs['cat']].keys() if k in kwargs['histname']][0]
+            ylim_ratio = config.plot_options['ratio'][kwargs['year']][kwargs['cat']][key]['ylim']
         else:
             ylim_ratio = (0.90, 1.10)
         if variable in config.plot_options['rebin'].keys():
@@ -218,14 +217,15 @@ def plot_variation_correctionlib(file, axis_x, systematics, plot_dir, **kwargs):
                 xerr=xerr,
                 label=f"SF {syst}Down",
                 **opts_sf['Down'],
+                fmt='none'
             )
             linesUp = ax.errorbar(
-                x, systUp, yerr=0, xerr=xerr, label=f"SF {syst}Up", **opts_sf['Up']
+                x, systUp, yerr=0, xerr=xerr, label=f"SF {syst}Up", **opts_sf['Up'], fmt='none'
             )
             rlinesDown = rax.errorbar(
-                x, ratioDown, yerr=0, xerr=xerr, **opts_sf['Down']
+                x, ratioDown, yerr=0, xerr=xerr, **opts_sf['Down'], fmt='none'
             )
-            rlinesUp = rax.errorbar(x, ratioUp, yerr=0, xerr=xerr, **opts_sf['Up'])
+            rlinesUp = rax.errorbar(x, ratioUp, yerr=0, xerr=xerr, **opts_sf['Up'], fmt='none')
             for lines, var in zip(
                 [linesDown, linesUp, rlinesDown, rlinesUp], ['Down', 'Up', 'Down', 'Up']
             ):
@@ -242,7 +242,7 @@ def plot_variation_correctionlib(file, axis_x, systematics, plot_dir, **kwargs):
             rax.set_xlabel(xlabel, fontsize=kwargs['fontsize'])
             rax.set_ylabel("SF var./nom.", fontsize=kwargs['fontsize'])
             rax.set_ylim(*ylim_ratio)
-            if variable == 'electron_pt':
+            if variable.startswith('ElectronGood_pt'):
                 rax.set_xscale('log')
             if xticks:
                 rax.set_xticks(xticks)
@@ -251,14 +251,17 @@ def plot_variation_correctionlib(file, axis_x, systematics, plot_dir, **kwargs):
             rax.legend()
         else:
             ax.set_xlabel(xlabel, fontsize=kwargs['fontsize'])
-            if variable == 'electron_pt':
+            if variable.startswith('ElectronGood_pt'):
                 ax.set_xscale('log')
+                loc = "lower right"
+            else:
+                loc = "upper right"
             if xticks:
                 ax.set_xticks(xticks)
             if ax.get_xaxis().get_scale() == 'log':
                 ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
 
-        ax.legend()
+        ax.legend(loc=loc)
         ax.set_ylabel(ylabel, fontsize=kwargs['fontsize'])
         ax.hlines(1.0, *xlim, linestyle='dashed', color='gray')
         ax.set_xlim(*xlim)

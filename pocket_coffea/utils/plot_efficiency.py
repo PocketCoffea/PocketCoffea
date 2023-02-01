@@ -416,11 +416,11 @@ def plot_variation(
     # plot.plot1d(eff[['mc','data']], ax=ax_eff, error_opts=opts_datamc);
     if data & (not sf) & (var == 'nominal'):
         if not 'era' in var:
-            ax.errorbar(x, y, yerr=yerr, xerr=xerr, **opts)
+            ax.errorbar(x, y, yerr=yerr, xerr=xerr, **opts, fmt='none')
             return
     elif data & (not ((var == 'nominal') | ('era' in var))):
         return
-    lines = ax.errorbar(x, y, yerr=yerr, xerr=xerr, **opts)
+    lines = ax.errorbar(x, y, yerr=yerr, xerr=xerr, **opts, fmt='none')
     handles, labels = ax.get_legend_handles_labels()
     if (
         kwargs['histname']
@@ -477,7 +477,7 @@ def plot_ratio(
 
     ratio = y / ynom
     unc_ratio = (yerrnom / ynom) * ratio
-    lines = ax.errorbar(x, ratio, yerr=0, xerr=xerr, **opts)
+    lines = ax.errorbar(x, ratio, yerr=0, xerr=xerr, **opts, fmt='none')
     lo = 1 - unc_ratio
     hi = 1 + unc_ratio
     unc_band = np.nan_to_num(np.array([lo, hi]), nan=1)
@@ -545,7 +545,7 @@ def plot_residue(
     residue = (y - ynom) / ynom
     ratio = y / ynom
     unc_residue = (yerrnom / ynom) * ratio
-    lines = ax.errorbar(x, residue, yerr=0, xerr=xerr, **opts)
+    lines = ax.errorbar(x, residue, yerr=0, xerr=xerr, **opts, fmt='none')
     lo = -unc_residue
     hi = unc_residue
     unc_band = np.nan_to_num(np.array([lo, hi]), nan=1)
@@ -1430,6 +1430,9 @@ def plot_efficiency_maps_spliteras(accumulator, config, save_plots=False):
                 )
                 efficiency_map.define_variations("spliteras")
                 efficiency_map.initialize_stack()
+
+                print("********************")
+                print(efficiency_map.eras)
 
                 for era in efficiency_map.eras:
                     efficiency_map.define_datamc(cat, "nominal", era)

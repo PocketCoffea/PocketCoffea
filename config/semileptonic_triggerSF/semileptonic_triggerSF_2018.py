@@ -1,9 +1,11 @@
+import sys, os
 from pocket_coffea.parameters.cuts.preselection_cuts import semileptonic_triggerSF_presel, passthrough
 from pocket_coffea.workflows.semileptonic_triggerSF import semileptonicTriggerProcessor
 from pocket_coffea.lib.cut_functions import get_nObj_min, get_HLTsel
 from pocket_coffea.parameters.histograms import *
-from config.semileptonic_triggerSF.functions import get_ht_above, get_ht_below
-from config.semileptonic_triggerSF.plot_options import efficiency, scalefactor_eras, ratio, residue
+sys.path.append(os.path.dirname(__file__))
+from functions import get_ht_above, get_ht_below
+from plot_options import efficiency, scalefactor, ratio, residue
 from math import pi
 
 cfg =  {
@@ -14,7 +16,7 @@ cfg =  {
         "filter" : {
             "samples": ["TTToSemiLeptonic",
                         "TTTo2L2Nu",
-                        "DATA_SingleMu"],
+                        "DATA_SingleMuon"],
             "samples_exclude" : [],
             "year": ["2018"]
         }
@@ -22,9 +24,9 @@ cfg =  {
 
     # Input and output files
     "workflow" : semileptonicTriggerProcessor,
-    "output"   : "output/sf_ele_trigger_semilep/semileptonic_triggerSF_2018_total",
+    "output"   : "output/test/sf_ele_trigger_semilep/semileptonic_triggerSF_2018_optimized_binning",
     "workflow_options" : {
-        "output_triggerSF" : "pocket_coffea/parameters/semileptonic_triggerSF/triggerSF_2018_Ele32_EleHT_newtriggerscheme"
+        "output_triggerSF" : "pocket_coffea/parameters/semileptonic_triggerSF/triggerSF_2018_optimized_binning"
     },
 
     # Executor parameters
@@ -49,7 +51,7 @@ cfg =  {
     # Cuts and plots settings
     "finalstate" : "semileptonic",
     "skim" : [ get_nObj_min(3, 15., "Jet"),
-               get_HLTsel("semileptonic", primaryDatasets=["SingleMu"]) ],
+               get_HLTsel("semileptonic", primaryDatasets=["SingleMuon"]) ],
     "preselections" : [semileptonic_triggerSF_presel],
     "categories": {
         "Ele32_EleHT_pass" : [
@@ -93,13 +95,18 @@ cfg =  {
     "variations": {
         "weights": {
             "common": {
-                "inclusive": [  "pileup"  ],
+                "inclusive": [ "pileup" ],
                 "bycategory" : {
                 }
             },
-            "bysample": {
-            }    
+        "bysample": {
+        }    
         },
+        "shape": {
+            "common":{
+                "inclusive": [ "JER" ]
+            }
+        }
     },
     
     "variables" : {
@@ -108,7 +115,7 @@ cfg =  {
         "ElectronGood_pt" : HistConf(
             [
                 Axis(coll="ElectronGood", field="pt", type="variable",
-                     bins=[30, 35, 40, 50, 60, 70, 80, 90, 100, 200, 500],
+                     bins=[30, 35, 40, 50, 60, 70, 80, 90, 100, 130, 200, 500],
                      label="Electron $p_{T}$ [GeV]",
                      lim=(0,500))
             ]
@@ -131,7 +138,7 @@ cfg =  {
         "ElectronGood_pt_1" : HistConf(
             [
                 Axis(coll="ElectronGood", field="pt", pos=0, type="variable",
-                     bins=[30, 35, 40, 50, 60, 70, 80, 90, 100, 200, 500],
+                     bins=[30, 35, 40, 50, 60, 70, 80, 90, 100, 130, 200, 500],
                      label="Electron $p_{T}$ [GeV]",
                      lim=(0,500))
             ]
@@ -152,20 +159,20 @@ cfg =  {
             ]
         ),
         **jet_hists(coll="JetGood"),
-        **count_hist(name="nMuons", coll="MuonGood",bins=10, start=0, stop=2),
-        **count_hist(name="nElectrons", coll="ElectronGood",bins=10, start=0, stop=2),
-        **count_hist(name="nLeptons", coll="LeptonGood",bins=10, start=0, stop=2),
-        **count_hist(name="nJets", coll="JetGood",bins=10, start=4, stop=10),
-        **count_hist(name="nBJets", coll="BJetGood",bins=10, start=4, stop=10),
+        **count_hist(name="nMuons", coll="MuonGood",bins=3, start=0, stop=3),
+        **count_hist(name="nElectrons", coll="ElectronGood",bins=3, start=0, stop=3),
+        **count_hist(name="nLeptons", coll="LeptonGood",bins=3, start=0, stop=3),
+        **count_hist(name="nJets", coll="JetGood",bins=6, start=4, stop=10),
+        **count_hist(name="nBJets", coll="BJetGood",bins=6, start=4, stop=10),
         "ht" : HistConf(
             [
-                Axis(coll="events", field="JetGood_Ht", bins=400, start=0, stop=4000, label="$H_T$", lim=(0,1000))
+                Axis(coll="events", field="JetGood_Ht", bins=40, start=0, stop=2000, label="$H_T$", lim=(0,2000))
             ]
         ),
         "electron_etaSC_pt_leading" : HistConf(
             [
                 Axis(coll="ElectronGood", field="pt", pos=0, type="variable",
-                     bins=[30, 35, 40, 50, 60, 70, 80, 90, 100, 200, 500],
+                     bins=[30, 35, 40, 50, 60, 70, 80, 90, 100, 130, 200, 500],
                      label="Electron $p_{T}$ [GeV]",
                      lim=(0,500)),
                 Axis(coll="ElectronGood", field="etaSC", pos=0, type="variable",
@@ -177,7 +184,7 @@ cfg =  {
         "electron_phi_pt_leading" : HistConf(
             [
                 Axis(coll="ElectronGood", field="pt", pos=0, type="variable",
-                     bins=[30, 35, 40, 50, 60, 70, 80, 90, 100, 200, 500],
+                     bins=[30, 35, 40, 50, 60, 70, 80, 90, 100, 130, 200, 500],
                      label="Electron $p_{T}$ [GeV]",
                      lim=(0,500)),
                 Axis(coll="ElectronGood", field="phi", pos=0,
@@ -199,7 +206,7 @@ cfg =  {
         "electron_etaSC_pt_all" : HistConf(
             [
                 Axis(coll="ElectronGood", field="pt", type="variable",
-                     bins=[30, 35, 40, 50, 60, 70, 80, 90, 100, 200, 500],
+                     bins=[30, 35, 40, 50, 60, 70, 80, 90, 100, 130, 200, 500],
                      label="Electron $p_{T}$ [GeV]",
                      lim=(0,500)),
                 Axis(coll="ElectronGood", field="etaSC", type="variable",
@@ -211,7 +218,7 @@ cfg =  {
         "electron_phi_pt_all" : HistConf(
             [
                 Axis(coll="ElectronGood", field="pt", type="variable",
-                     bins=[30, 35, 40, 50, 60, 70, 80, 90, 100, 200, 500],
+                     bins=[30, 35, 40, 50, 60, 70, 80, 90, 100, 130, 200, 500],
                      label="Electron $p_{T}$ [GeV]",
                      lim=(0,500)),
                 Axis(coll="ElectronGood", field="phi",
@@ -235,12 +242,31 @@ cfg =  {
         "only" : None,
         "workers" : 16,
         "scale" : "log",
-        "fontsize" : 18,
+        "fontsize" : 22,
         "fontsize_map" : 10,
         "dpi" : 150,
-        "rebin" : {},
+        "rebin" : {
+            "ElectronGood_pt" : {
+                "xticks" : [30, 35, 40, 50, 60, 70, 80, 90, 100, 130, 200, 500]
+            },
+            "ElectronGood_pt_1" : {
+                "xticks" : [30, 35, 40, 50, 60, 70, 80, 90, 100, 130, 200, 500]
+            },
+            "ElectronGood_eta" : {
+                "xticks" : [-2.5, -2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5]
+            },
+            "ElectronGood_eta_1" : {
+                "xticks" : [-2.5, -2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5]
+            },
+            "ElectronGood_etaSC" : {
+                "xticks" : [-2.5, -2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5]
+            },
+            "ElectronGood_etaSC_1" : {
+                "xticks" : [-2.5, -2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5]
+            },
+        },
         "efficiency" : efficiency,
-        "scalefactor" : scalefactor_eras,
+        "scalefactor" : scalefactor,
         "ratio" : ratio,
         "residue" : residue,
         #"rebin" : {}

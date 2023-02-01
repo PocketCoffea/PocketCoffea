@@ -75,7 +75,13 @@ start = time.time()
 if os.path.isfile( config.outfile ):
     print(f"Opening {config.outfile}")
     accumulator = load(config.outfile)
-else: sys.exit("Input file does not exist")
+else:
+    try:
+        outfile = config.outfile.replace(config.outfile.split('/')[-1], "output_all.coffea")
+        print(f"Opening {outfile}")
+        accumulator = load(outfile)
+    except:
+        sys.exit("Input file does not exist")
 
 plt.style.use([hep.style.ROOT, {'font.size': 16}])
 if not os.path.exists(config.plots):
