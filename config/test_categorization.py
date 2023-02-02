@@ -5,8 +5,11 @@ from pocket_coffea.parameters.histograms import *
 from pocket_coffea.parameters.btag import btag_variations
 from pocket_coffea.lib.weights_manager import WeightCustom
 from pocket_coffea.lib.categorization import StandardSelection, CartesianSelection, MultiCut
+from pocket_coffea.lib.cut_definition import Cut
 import numpy as np
 
+
+jet_eta_cut = lambda events, params, **kwargs: abs(events[params["coll"]].eta) <= params["eta_max"]
 
 cfg =  {
     "dataset" : {
@@ -17,10 +20,10 @@ cfg =  {
                   "datasets/DATA_SingleEle.json"],
         "filter" : {
             "samples": [
-                # "TTToSemiLeptonic",
+                 "TTToSemiLeptonic",
                 # "TTbbSemiLeptonic",
                 "ttHTobb",
-                # "DATA_SingleMu", "DATA_SingleEle"
+                #"DATA_SingleMu", "DATA_SingleEle"
             ],
             "samples_exclude" : [],
             "year": ['2018']
@@ -30,12 +33,12 @@ cfg =  {
 
     # Input and output files
     "workflow" : ttHbbBaseProcessor,
-    "output"   : "output/test_cartesian_categories",
+    "output"   : "output/test_categorization",
     "workflow_options" : {},
 
     "run_options" : {
-        "executor"       : "dask/slurm",
-        "workers"        : 1,
+        "executor"       : "futures",
+        "workers"        : 8,
         "scaleout"       : 100,
         "queue"          : "short",
         "walltime"       : "00:40:00",
@@ -47,7 +50,7 @@ cfg =  {
         "max"            : None,
         "skipbadfiles"   : None,
         "voms"           : None,
-        "limit"          : None,
+        "limit"          : 8,
         "adapt"          : False,
         "env"            : "conda"
     },
@@ -70,17 +73,16 @@ cfg =  {
                      cuts_names=["4j","5j","6j"]),
             MultiCut(name="Nbjet",
                     cuts=[
-                         get_nObj_eq(3, 15., "BJetGood"),
-                         get_nObj_eq(4, 15., "BJetGood"),
-                         get_nObj_eq(5, 15., "BJetGood"),
-                         get_nObj_min(6, coll="BJetGood"),
-                     ],
-                     cuts_names=["3b","4b","5b","6b"])
+                        Cut("jet_eta",{"coll":"JetGood", "eta_max":0.5}, jet_eta_cut, collection="JetGood"),
+                        Cut("jet_eta",{"coll":"JetGood", "eta_max":1}, jet_eta_cut, collection="JetGood"),
+                        Cut("jet_eta",{"coll":"JetGood", "eta_max":1.5}, jet_eta_cut, collection="JetGood")
+                    ],
+                     cuts_names=["jeta0.5", "jeta1","jeta1.5"])
         ],
-        common_cats = {
+        common_cats = StandardSelection({
             "inclusive": [passthrough],
             "4jets_40pt" : [get_nObj_min(4, 40., "JetGood")]
-        }
+        })
     ),
 
     
@@ -118,39 +120,10 @@ cfg =  {
    "variables":
     {
 
-        **ele_hists(coll="ElectronGood", pos=0),
-        **muon_hists(coll="MuonGood", pos=0),
-        **count_hist(name="nElectronGood", coll="ElectronGood",bins=3, start=0, stop=3),
-        **count_hist(name="nMuonGood", coll="MuonGood",bins=3, start=0, stop=3),
+        **jet_hists(coll="JetGood"),
+        **jet_hists(coll="JetGood", pos=0),
         **count_hist(name="nJets", coll="JetGood",bins=10, start=4, stop=14),
         **count_hist(name="nBJets", coll="BJetGood",bins=12, start=2, stop=14),
-        **jet_hists(coll="JetGood", pos=0),
-        **jet_hists(coll="JetGood", pos=1),
-        **jet_hists(coll="JetGood", pos=2),
-        **jet_hists(coll="JetGood", pos=3),
-        **jet_hists(coll="JetGood", pos=4),
-        **jet_hists(name="bjet",coll="BJetGood", pos=0),
-        **jet_hists(name="bjet",coll="BJetGood", pos=1),
-        **jet_hists(name="bjet",coll="BJetGood", pos=2),
-
-        # 2D plots
-        "jet_eta_pt_leading": HistConf(
-            [
-                Axis(coll="JetGood", field="pt", pos=0, bins=40, start=0, stop=1000,
-                     label="Leading jet $p_T$"),
-                Axis(coll="JetGood", field="eta", pos=0, bins=40, start=-2.4, stop=2.4,
-                     label="Leading jet $\eta$"),
-            ]
-        ),
-        "jet_eta_pt_all": HistConf(
-            [
-                Axis(coll="JetGood", field="pt", bins=40, start=0, stop=1000,
-                     label="Leading jet $p_T$"),
-                Axis(coll="JetGood", field="eta", bins=40, start=-2.4, stop=2.4,
-                     label="Leading jet $\eta$")
-            ]
-        ),
-
         
     }
 }

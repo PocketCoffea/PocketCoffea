@@ -4,7 +4,7 @@ from ..parameters.btag import btag
 from .triggers import get_trigger_mask
 
 
-def passthrough(events, **kargs):
+def passthrough_f(events, **kargs):
     '''
     Identity cut:  passthrough of all events.
     '''
