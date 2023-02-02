@@ -5,6 +5,7 @@
             "sample": "ST_s-channel_4f_leptonDecays",
             "year": "2018",
             "isMC": "True",
+            "xsec": "3.36",
             "nevents": "19365999",
             "size": "31359845271"
         },
@@ -36,6 +37,7 @@
             "sample": "ST_t-channel_top_4f_InclusiveDecays",
             "year": "2018",
             "isMC": "True",
+            "xsec": "136.02",
             "nevents": "178336000",
             "size": "301233146161"
         },
@@ -197,6 +199,7 @@
             "sample": "ST_t-channel_antitop_4f_InclusiveDecays",
             "year": "2018",
             "isMC": "True",
+            "xsec": "80.95",
             "nevents": "95627000",
             "size": "162127100330"
         },
@@ -339,6 +342,7 @@
             "sample": "ST_tW_top_5f_NoFullyHadronicDecays",
             "year": "2018",
             "isMC": "True",
+            "xsec": "35.85",
             "nevents": "11270430",
             "size": "22656112534"
         },
@@ -366,6 +370,7 @@
             "sample": "ST_tW_antitop_5f_NoFullyHadronicDecays",
             "year": "2018",
             "isMC": "True",
+            "xsec": "35.85",
             "nevents": "10949620",
             "size": "22028429438"
         },

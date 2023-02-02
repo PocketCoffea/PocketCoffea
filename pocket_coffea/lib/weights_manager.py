@@ -132,6 +132,7 @@ class WeightsManager:
         self._sample = metadata["sample"]
         self._year = metadata["year"]
         self._finalstate = metadata["finalstate"]
+        self._xsec = metadata["xsec"]
         self._shape_variation = shape_variation
         self.weightsConf = weightsConf
         self.storeIndividual = storeIndividual
@@ -172,7 +173,7 @@ class WeightsManager:
                         events, self.size, metadata, self._shape_variation
                     )
                 for we in _weightsCache[w.name]:
-                    print(we)
+                    #print(we)
                     weight_obj.add(*we)
                     if len(we) > 2:
                         # the weights has variations
@@ -227,7 +228,7 @@ class WeightsManager:
         elif weight_name == 'lumi':
             return [('lumi', ak.full_like(events.genWeight, lumi[self._year]["tot"]))]
         elif weight_name == 'XS':
-            return [('XS', ak.full_like(events.genWeight, xsec[self._sample]))]
+            return [('XS', ak.full_like(events.genWeight, self._xsec))]
         elif weight_name == 'pileup':
             # Pileup reweighting with nominal, up and down variations
             return [('pileup', *sf_pileup_reweight(events, self._year))]
