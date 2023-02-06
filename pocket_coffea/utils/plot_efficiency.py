@@ -1088,21 +1088,20 @@ class EfficiencyMap:
                     ax_map.set_title(var)
                     if self.varname_x == 'pt':
                         ax_map.set_xscale('log')
-                    ax_map.set_xlim(*self.config.variables[self.histname].axes[0].lim)
-                    ax_map.set_ylim(*self.config.variables[self.histname].axes[1].lim)
-                    # xticks = [20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500]
-                    # yticks = axis_y.edges()
+
                     xticks = self.axis_x.edges
                     yticks = self.axis_y.edges
                     ax_map.xaxis.label.set_size(fontsize)
                     ax_map.yaxis.label.set_size(fontsize)
                     ax_map.set_xticks(
-                        xticks, [str(round(t, 4)) for t in xticks], fontsize=fontsize
+                        #xticks, [str(round(t, 4)) for t in xticks], fontsize=fontsize
+                        xticks, [str(int(t)) for t in xticks], fontsize=fontsize
                     )
                     ax_map.set_yticks(
                         yticks, [str(round(t, 4)) for t in yticks], fontsize=fontsize
                     )
-                    # plt.yticks(yticks, [str(t) for t in yticks], fontsize=fontsize)
+                    ax_map.set_xlim(*self.config.variables[self.histname].axes[0].lim)
+                    ax_map.set_ylim(*self.config.variables[self.histname].axes[1].lim)
                     plt.vlines(
                         self.axis_x.edges,
                         self.axis_y.edges[-1],

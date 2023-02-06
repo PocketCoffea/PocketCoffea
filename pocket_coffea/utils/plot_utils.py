@@ -485,7 +485,9 @@ def plot_data_mc_hist1D(
             plot_systematic_uncertainty(
                 stack_mc_nominal, syst_err_up, syst_err_down, rax, ratio=True
             )
-            ax.set_ylim((0, 1.20 * max(stack_sum(stack_mc_nominal).values())))
+            maximum = max(stack_sum(stack_mc_nominal).values())
+            if not np.isnan(maximum):
+                ax.set_ylim((0, 1.20 * maximum))
             rax.set_ylim((0.5, 1.5))
             xlabel = ax.get_xlabel()
             ax.set_xlabel("")
