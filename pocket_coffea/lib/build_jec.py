@@ -103,7 +103,7 @@ jet_factory = {
             "RegroupedV2_Summer19UL18_V5_MC_UncertaintySources_AK4PFchs.junc.txt.gz",
         ]
     ),
-    "2018_NOJES": jet_factory_factory(
+    "2018_NOJESunc": jet_factory_factory(
         files=[
             "Summer19UL18_V5_MC_L1FastJet_AK4PFchs.jec.txt.gz",
             "Summer19UL18_V5_MC_L2Relative_AK4PFchs.jec.txt.gz",
@@ -182,7 +182,7 @@ fatjet_factory = {
             "Summer19UL18_V5_MC_Uncertainty_AK8PFPuppi.junc.txt.gz",
         ]
     ),
-    "2018_NOJES": jet_factory_factory(
+    "2018_NOJESunc": jet_factory_factory(
         files=[
             "Summer19UL18_V5_MC_L1FastJet_AK8PFPuppi.jec.txt.gz",
             "Summer19UL18_V5_MC_L2Relative_AK8PFPuppi.jec.txt.gz",

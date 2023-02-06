@@ -579,7 +579,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             jec4_cache = cachetools.Cache(np.inf)
             jec8_cache = cachetools.Cache(np.inf)
             jets_with_JES = jet_correction(
-                nominal_events, nominal_events.Jet, "AK4PFchs", self._year, jec4_cache, applyJER=hasJER, applyJES=hasJES
+                nominal_events, nominal_events.Jet, "AK4PFchs", self._year, jec4_cache, applyJER=hasJER, applyJESunc=hasJES
             )
             fatjets_with_JES = jet_correction(
                 nominal_events,
@@ -588,7 +588,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 self._year,
                 jec8_cache,
                 applyJER=hasJER,
-                applyJES=hasJES
+                applyJESunc=hasJES
             )
         else:
             jets_with_JES = nominal_events.Jet
