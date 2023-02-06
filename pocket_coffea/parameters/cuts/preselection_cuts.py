@@ -3,7 +3,7 @@ import awkward as ak
 import pocket_coffea.lib.cut_functions as cuts_f
 from pocket_coffea.lib.cut_definition import Cut
 
-passthrough = Cut(name="passthrough", params={}, function=cuts_f.passthrough)
+passthrough = Cut(name="passthrough", params={}, function=cuts_f.passthrough_f)
 
 dilepton_presel = Cut(
     name="dilepton",

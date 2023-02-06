@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from typing import List
 from coffea.processor.accumulator import column_accumulator
-from .cartesian_categories import CartesianSelection
 import awkward as ak
 
 
@@ -13,6 +12,9 @@ class ColOut:
     store_size: bool = True
     fill_none: bool = True
     fill_value: float = -999.0  # by default the None elements are filled
+    pos: int = (
+        None  # Position in the collection to export. If None export all the elements
+    )
 
 
 class ColumnsManager:
@@ -31,15 +33,28 @@ class ColumnsManager:
         for category, outarrays in self.cfg.items():
             self.output[category] = {}
             # Computing mask
-            if isinstance(self.categories_config, CartesianSelection):
-                mask = cuts_masks.get_mask(category)
-            else:
-                mask = cuts_masks.all(*self.categories_config[category])
+            mask = cuts_masks.get_mask(category)
             if subsample_mask is not None:
                 mask = mask & subsample_mask
+
             for outarray in outarrays:
+
+                # Check if the cut is multidimensional
+                # if so we need to check the collection
+                if mask.ndim > 1:
+                    if (
+                        outarray.collection
+                        != self.categories_config.multidim_collection
+                    ):
+                        raise Exception(
+                            f"Applying mask on collection {self.categories_config.multidim_collection}, \
+                            while exporting collection {outarray.collection}! Please check your categorization"
+                        )
+                # Applying mask after getting the collection
+                data = events[outarray.collection][mask]
+
                 if outarray.store_size:
-                    N = ak.num(events[mask][outarray.collection])
+                    N = ak.num(data)
                     self.output[category][
                         f"{outarray.collection}_N"
                     ] = column_accumulator(ak.to_numpy(N, allow_missing=False))
@@ -48,19 +63,19 @@ class ColumnsManager:
                     if outarray.flatten:
                         if outarray.fill_none:
                             out = ak.fill_none(
-                                ak.flatten(events[mask][outarray.collection][col]),
+                                ak.flatten(data[col]),
                                 outarray.fill_value,
                             )
                         else:
-                            out = ak.flatten(events[mask][outarray.collection][col])
+                            out = ak.flatten(data[col])
                     else:
                         if outarray.fill_none:
                             out = ak.fill_none(
-                                events[mask][outarray.collection][col],
+                                data[col],
                                 outarray.fill_value,
                             )
                         else:
-                            out = events[mask][outarray.collection][col]
+                            out = data[col]
 
                     self.output[category][
                         f"{outarray.collection}_{col}"
