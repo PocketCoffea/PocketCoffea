@@ -94,6 +94,7 @@ class WeightsManager:
                 'sf_ele_trigger',
                 'sf_mu_id',
                 'sf_mu_iso',
+                'sf_mu_trigger',
                 'sf_btag',
                 'sf_btag_calib',
                 'sf_jet_puId',
@@ -111,8 +112,10 @@ class WeightsManager:
             "pileup",
             "sf_ele_reco",
             "sf_ele_id",
+            "sf_ele_trigger",
             "sf_mu_id",
             "sf_mu_iso",
+            "sf_mu_trigger",
             "sf_jet_puId",
             "sf_L1prefiring",
         ]
@@ -244,6 +247,8 @@ class WeightsManager:
             return [('sf_mu_id', *sf_mu(events, self._year, 'id'))]
         elif weight_name == "sf_mu_iso":
             return [('sf_mu_iso', *sf_mu(events, self._year, 'iso'))]
+        elif weight_name == "sf_mu_trigger":
+            return [('sf_mu_trigger', *sf_mu(events, self._year, 'trigger'))]
         elif weight_name == 'sf_btag':
 
             # Get all the nominal and variation SF

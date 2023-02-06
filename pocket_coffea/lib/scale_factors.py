@@ -16,27 +16,27 @@ from ..parameters.jet_scale_factors import btagSF, btagSF_calibration, jet_puId
 from ..parameters.object_preselection import object_preselection
 
 
-def get_ele_sf(year, pt, eta, counts=None, type='', pt_region=None):
+def get_ele_sf(year, pt, eta, counts=None, key='', pt_region=None):
     '''
     This function computes the per-electron reco or id SF.
     If 'reco', the appropriate corrections are chosen by using the argument `pt_region`.
     '''
-    if type not in electronSF.keys():
-        sys.exit("SF type not included in the parameters.")
+    if key not in electronSF.keys():
+        sys.exit(f"SF key {key} not included in the parameters.")
 
-    if type == 'reco':
-        sfName = electronSF[type][pt_region]
+    if key == 'reco':
+        sfName = electronSF[key][pt_region]
         electronJSON = correctionlib.CorrectionSet.from_file(
             electronJSONfiles[year]['file_POG']
         )
         map_name = electronJSONfiles[year]['name']
-    elif type == 'id':
-        sfName = electronSF[type]
+    elif key == 'id':
+        sfName = electronSF[key]
         electronJSON = correctionlib.CorrectionSet.from_file(
             electronJSONfiles[year]['file_POG']
         )
         map_name = electronJSONfiles[year]['name']
-    elif type == 'trigger':
+    elif key == 'trigger':
         if counts != None:
             sys.exit(
                 "The `counts` array should not be passed since the trigger SF are computed for the semileptonic final state and the electron arrays are already flat."
@@ -44,9 +44,9 @@ def get_ele_sf(year, pt, eta, counts=None, type='', pt_region=None):
         electronJSON = correctionlib.CorrectionSet.from_file(
             electronJSONfiles[year]['file_triggerSF']
         )
-        map_name = electronSF[type][year]
+        map_name = electronSF[key][year]
 
-    if type in ['reco', 'id']:
+    if key in ['reco', 'id']:
         sf = electronJSON[map_name].evaluate(
             year, "sf", sfName, eta.to_numpy(), pt.to_numpy()
         )
@@ -63,24 +63,26 @@ def get_ele_sf(year, pt, eta, counts=None, type='', pt_region=None):
             ak.unflatten(sfdown, counts),
         )
     ### N.B.: In the current implementation, only the statistical uncertainty is included in the up/down variations of the trigger SF
-    elif type == 'trigger':
+    elif key == 'trigger':
         sf = electronJSON[map_name].evaluate("nominal", pt.to_numpy(), eta.to_numpy())
         sfup = electronJSON[map_name].evaluate("statUp", pt.to_numpy(), eta.to_numpy())
         sfdown = electronJSON[map_name].evaluate(
             "statDown", pt.to_numpy(), eta.to_numpy()
         )
+        if np.isnan(sf).any():
+            breakpoint()
         return sf, sfup, sfdown
 
 
-def get_mu_sf(year, pt, eta, counts, type=''):
+def get_mu_sf(year, pt, eta, counts, key=''):
     '''
     This function computes the per-muon id or iso SF.
     '''
-    if type not in muonSF.keys():
-        sys.exit("SF type not included in the parameters.")
+    if key not in muonSF[year].keys():
+        sys.exit(f"SF key '{key}' not included in the parameters.")
 
     muonJSON = correctionlib.CorrectionSet.from_file(muonJSONfiles[year]['file'])
-    sfName = muonSF[type]
+    sfName = muonSF[year][key]
 
     year = f"{year}_UL"  # N.B. This works for the UL SF in the current JSON scheme (25.05.2022)
     sf = muonJSON[sfName].evaluate(year, np.abs(eta.to_numpy()), pt.to_numpy(), "sf")
@@ -107,7 +109,7 @@ def sf_ele_reco(events, year):
     '''
 
     ele_pt = events.ElectronGood.pt
-    ele_eta = events.ElectronGood.eta
+    ele_eta = events.ElectronGood.etaSC
 
     Above20 = ele_pt >= 20
     Below20 = ele_pt < 20
@@ -150,7 +152,7 @@ def sf_ele_id(events, year):
     Additionally, also the up and down variations of the SF are returned.
     '''
     ele_pt = events.ElectronGood.pt
-    ele_eta = events.ElectronGood.eta
+    ele_eta = events.ElectronGood.etaSC
 
     ele_pt_flat, ele_eta_flat, ele_counts = (
         ak.flatten(ele_pt),
@@ -173,12 +175,12 @@ def sf_ele_trigger(events, year):
     '''
 
     ele_pt = ak.firsts(events.ElectronGood.pt)
-    ele_eta = ak.firsts(events.ElectronGood.eta)
+    ele_eta = ak.firsts(events.ElectronGood.etaSC)
 
-    return get_ele_sf(year, ele_pt, ele_eta, type='trigger')
+    return get_ele_sf(year, ele_pt, ele_eta, key='trigger')
 
 
-def sf_mu(events, year, type=''):
+def sf_mu(events, year, key=''):
     '''
     This function computes the per-muon id SF and returns the corresponding per-event SF, obtained by multiplying the per-muon SF in each event.
     Additionally, also the up and down variations of the SF are returned.
@@ -192,7 +194,7 @@ def sf_mu(events, year, type=''):
         ak.flatten(mu_eta),
         ak.num(mu_pt),
     )
-    sf, sfup, sfdown = get_mu_sf(year, mu_pt_flat, mu_eta_flat, mu_counts, type)
+    sf, sfup, sfdown = get_mu_sf(year, mu_pt_flat, mu_eta_flat, mu_counts, key)
 
     # The SF arrays corresponding to all the muons are multiplied along the muon axis in order to obtain a per-event scale factor.
     return ak.prod(sf, axis=1), ak.prod(sfup, axis=1), ak.prod(sfdown, axis=1)
