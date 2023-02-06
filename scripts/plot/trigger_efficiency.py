@@ -128,11 +128,12 @@ def save_corrections(corrections):
             print(variations_labels)
             stack = np.stack(ratio_stack)
             axis_variation = hist.axis.StrCategory(variations_labels, name="variation")
-            #print("stack", stack.shape)
             sfhist = hist.Hist(axis_variation, *axes, data=stack)
             sfhist.label = "out"
             sfhist.name = f"sf_{cat.split('_pass')[0]}"
-            clibcorr = correctionlib.convert.from_histogram(sfhist)
+
+            # The correction is built with the option flow='clamp' such that if the variable exceeds the range, the SF corresponding to the closest bin is applied
+            clibcorr = correctionlib.convert.from_histogram(sfhist, flow='clamp')
             clibcorr.description = "SF matching the semileptonic trigger efficiency in MC and data."
             cset = correctionlib.schemav2.CorrectionSet(
                 schema_version=2,
