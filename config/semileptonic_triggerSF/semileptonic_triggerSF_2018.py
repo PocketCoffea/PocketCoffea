@@ -3,9 +3,10 @@ from pocket_coffea.parameters.cuts.preselection_cuts import semileptonic_trigger
 from pocket_coffea.workflows.semileptonic_triggerSF import semileptonicTriggerProcessor
 from pocket_coffea.lib.cut_functions import get_nObj_min, get_HLTsel
 from pocket_coffea.parameters.histograms import *
-sys.path.append(os.path.dirname(__file__))
-from functions import get_ht_above, get_ht_below
-from plot_options import efficiency, scalefactor, ratio, residue
+#sys.path.append(os.path.dirname(__file__))
+from config.semileptonic_triggerSF.functions import get_ht_above, get_ht_below
+from config.semileptonic_triggerSF.plot_options import efficiency, scalefactor, ratio, residue
+from config.datamc.plots import cfg_plot
 from math import pi
 
 cfg =  {
@@ -24,9 +25,9 @@ cfg =  {
 
     # Input and output files
     "workflow" : semileptonicTriggerProcessor,
-    "output"   : "output/test/sf_ele_trigger_semilep/semileptonic_triggerSF_2018_optimized_binning",
+    "output"   : "output/sf_ele_trigger_semilep/semileptonic_triggerSF_2018_sfmutrigger",
     "workflow_options" : {
-        "output_triggerSF" : "pocket_coffea/parameters/semileptonic_triggerSF/triggerSF_2018_optimized_binning"
+        "output_triggerSF" : "pocket_coffea/parameters/semileptonic_triggerSF/triggerSF_2018_sfmutrigger"
     },
 
     # Executor parameters
@@ -84,7 +85,7 @@ cfg =  {
             "inclusive": ["genWeight","lumi","XS",
                           "pileup",
                           "sf_ele_reco", "sf_ele_id",
-                          "sf_mu_id","sf_mu_iso"],
+                          "sf_mu_id", "sf_mu_iso", "sf_mu_trigger"],
             "bycategory" : {
             }
         },
@@ -174,7 +175,7 @@ cfg =  {
                 Axis(coll="ElectronGood", field="pt", pos=0, type="variable",
                      bins=[30, 35, 40, 50, 60, 70, 80, 90, 100, 130, 200, 500],
                      label="Electron $p_{T}$ [GeV]",
-                     lim=(0,500)),
+                     lim=(30,500)),
                 Axis(coll="ElectronGood", field="etaSC", pos=0, type="variable",
                      bins=[-2.5, -2.0, -1.5660, -1.4442, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.5660, 2.0, 2.5],
                      label="Electron Supercluster $\eta$",
@@ -186,7 +187,7 @@ cfg =  {
                 Axis(coll="ElectronGood", field="pt", pos=0, type="variable",
                      bins=[30, 35, 40, 50, 60, 70, 80, 90, 100, 130, 200, 500],
                      label="Electron $p_{T}$ [GeV]",
-                     lim=(0,500)),
+                     lim=(30,500)),
                 Axis(coll="ElectronGood", field="phi", pos=0,
                      bins=12, start=-pi, stop=pi,
                      label="Electron $\phi$"),
@@ -208,7 +209,7 @@ cfg =  {
                 Axis(coll="ElectronGood", field="pt", type="variable",
                      bins=[30, 35, 40, 50, 60, 70, 80, 90, 100, 130, 200, 500],
                      label="Electron $p_{T}$ [GeV]",
-                     lim=(0,500)),
+                     lim=(30,500)),
                 Axis(coll="ElectronGood", field="etaSC", type="variable",
                      bins=[-2.5, -2.0, -1.5660, -1.4442, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.5660, 2.0, 2.5],
                      label="Electron Supercluster $\eta$",
@@ -220,7 +221,7 @@ cfg =  {
                 Axis(coll="ElectronGood", field="pt", type="variable",
                      bins=[30, 35, 40, 50, 60, 70, 80, 90, 100, 130, 200, 500],
                      label="Electron $p_{T}$ [GeV]",
-                     lim=(0,500)),
+                     lim=(30,500)),
                 Axis(coll="ElectronGood", field="phi",
                      bins=12, start=-pi, stop=pi,
                      label="Electron $\phi$"),
@@ -272,3 +273,5 @@ cfg =  {
         #"rebin" : {}
     }
 }
+
+cfg["plot_options"].update(cfg_plot)
