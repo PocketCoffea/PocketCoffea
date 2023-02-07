@@ -493,7 +493,7 @@ class HistManager:
                                     )
                         else:
                             # Working on shape variation! only nominal weights
-                            weight_nom = self.__mask_and_broadcast_weight(
+                            weights_nom = self.__mask_and_broadcast_weight(
                                 weights[category]["nominal"], mask, data_structure
                             )
                             # Then we apply the notnone mask
