@@ -3,6 +3,7 @@ from pocket_coffea.parameters.cuts.preselection_cuts import semileptonic_trigger
 from pocket_coffea.workflows.semileptonic_triggerSF import semileptonicTriggerProcessor
 from pocket_coffea.lib.cut_functions import get_nObj_min, get_HLTsel
 from pocket_coffea.parameters.histograms import *
+from pocket_coffea.parameters.lepton_scale_factors import sf_ele_trigger_variations
 #sys.path.append(os.path.dirname(__file__))
 from config.semileptonic_triggerSF.functions import get_ht_above, get_ht_below
 from config.semileptonic_triggerSF.plot_options import efficiency, scalefactor, ratio, residue
@@ -25,14 +26,14 @@ cfg =  {
 
     # Input and output files
     "workflow" : semileptonicTriggerProcessor,
-    "output"   : "output/test/sf_ele_trigger_semilep/semileptonic_triggerSF_2018_closuretest_sfmutrigger",
+    "output"   : "output/sf_ele_trigger_semilep/semileptonic_triggerSF_2018_closuretest_withvariations",
     "workflow_options" : {},
 
     # Executor parameters
     "run_options" : {
         "executor"       : "dask/slurm",
         "workers"        : 1,
-        "scaleout"       : 125,
+        "scaleout"       : 300,
         "queue"          : "standard",
         "walltime"       : "12:00:00",
         "mem_per_worker" : "4GB", # GB
@@ -117,7 +118,7 @@ cfg =  {
     "variations": {
         "weights": {
             "common": {
-                "inclusive": [ "pileup" ],
+                "inclusive": [  ],
                 "bycategory" : {
                 }
             },
@@ -126,7 +127,7 @@ cfg =  {
         },
         "shape": {
             "common":{
-                "inclusive": [ "JER" ]
+                "inclusive": [ ]
             }
         }
     },
@@ -297,8 +298,11 @@ cfg =  {
     }
 }
 
-weights_by_category = {cat : ['sf_ele_trigger'] for cat in cfg['categories'].keys() if cat.endswith('triggerSF')}
+weights_by_category = { cat : ['sf_ele_trigger'] for cat in cfg['categories'].keys() if cat.endswith('triggerSF') }
+variations_by_category = { cat : [f"sf_ele_trigger_{v}" for v in sf_ele_trigger_variations["2018"]]
+                           for cat in cfg['categories'].keys() if cat.endswith('triggerSF') }
 
 cfg["weights"]["common"]["bycategory"] = weights_by_category
+cfg["variations"]["weights"]["common"]["bycategory"] = variations_by_category
 
 cfg["plot_options"].update(cfg_plot)
