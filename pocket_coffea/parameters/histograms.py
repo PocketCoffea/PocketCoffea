@@ -13,10 +13,10 @@ default_axis_settings = {
     },
     'muon_eta': {
         "field": "eta",
-        "bins": 80,
-        "start": -4,
-        'stop': 4,
-        "lim": (-4, 4),
+        "bins": 50,
+        "start": -2.5,
+        'stop': 2.5,
+        "lim": (-2.5, 2.5),
         'label': "$\eta_{\mu}$",
     },
     'muon_phi': {
@@ -37,10 +37,10 @@ default_axis_settings = {
     },
     'electron_eta': {
         "field": "eta",
-        "bins": 80,
-        "start": -4,
-        'stop': 4,
-        "lim": (-4, 4),
+        "bins": 50,
+        "start": -2.5,
+        'stop': 2.5,
+        "lim": (-2.5, 2.5),
         'label': "$\eta_{e}$",
     },
     "electron_etaSC": {
@@ -96,10 +96,10 @@ default_axis_settings = {
     },
     'jet_eta': {
         "field": "eta",
-        "bins": 80,
-        "start": -4,
-        'stop': 4,
-        "lim": (-3, 3),
+        "bins": 50,
+        "start": -2.5,
+        'stop': 2.5,
+        "lim": (-2.5, 2.5),
         'label': "$\eta_{j}$",
     },
     'jet_phi': {
@@ -128,10 +128,10 @@ default_axis_settings = {
     },
     'fatjet_eta': {
         "field": "eta",
-        "bins": 80,
-        "start": -4,
-        'stop': 4,
-        "lim": (-4, 4),
+        "bins": 50,
+        "start": -2.5,
+        'stop': 2.5,
+        "lim": (-2.5, 2.5),
         'label': r"FatJet $\eta$",
     },
     'fatjet_phi': {
