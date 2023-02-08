@@ -22,7 +22,7 @@ electronJSONfiles = {
     },
     '2018': {
         'file_POG': "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2018_UL/electron.json.gz",
-        'file_triggerSF': "/work/mmarcheg/PocketCoffea/output/sf_ele_trigger_semilep/semileptonic_triggerSF_2018_sfmutrigger/semileptonic_triggerSF/triggerSF_2018_sfmutrigger/sf_trigger_electron_etaSC_pt_leading_2018_Ele32_EleHT_pass.json",
+        'file_triggerSF': "/work/mmarcheg/PocketCoffea/output/sf_ele_trigger_semilep/semileptonic_triggerSF_2018_sfmutrigger/semileptonic_triggerSF/triggerSF_2018_sfmutrigger/sf_trigger_electron_etaSC_pt_leading_2018_Ele32_EleHT_pass_v06.json",
         'name': "UL-Electron-ID-SF",
     },
 }
@@ -63,4 +63,31 @@ muonJSONfiles = {
     '2018': {
         'file': "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2018_UL/muon_Z.json.gz",
     },
+}
+
+sf_ele_trigger_variations = {
+    "2016_PreVFP": [
+        "stat",
+        "pileup",
+        "era",
+        "ht",
+    ],
+    "2016_PostVFP": [
+        "stat",
+        "pileup",
+        "era",
+        "ht",
+    ],
+    "2017": [
+        "stat",
+        "pileup",
+        "era",
+        "ht",
+    ],
+    "2018": [
+        "stat",
+        "pileup",
+        "era",
+        "ht",
+    ],
 }

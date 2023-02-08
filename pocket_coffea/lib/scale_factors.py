@@ -16,7 +16,7 @@ from ..parameters.jet_scale_factors import btagSF, btagSF_calibration, jet_puId
 from ..parameters.object_preselection import object_preselection
 
 
-def get_ele_sf(year, pt, eta, counts=None, key='', pt_region=None):
+def get_ele_sf(year, pt, eta, counts=None, key='', pt_region=None, variations=["nominal"]):
     '''
     This function computes the per-electron reco or id SF.
     If 'reco', the appropriate corrections are chosen by using the argument `pt_region`.
@@ -64,14 +64,23 @@ def get_ele_sf(year, pt, eta, counts=None, key='', pt_region=None):
         )
     ### N.B.: In the current implementation, only the statistical uncertainty is included in the up/down variations of the trigger SF
     elif key == 'trigger':
-        sf = electronJSON[map_name].evaluate("nominal", pt.to_numpy(), eta.to_numpy())
-        sfup = electronJSON[map_name].evaluate("statUp", pt.to_numpy(), eta.to_numpy())
-        sfdown = electronJSON[map_name].evaluate(
-            "statDown", pt.to_numpy(), eta.to_numpy()
-        )
-        if np.isnan(sf).any():
-            breakpoint()
-        return sf, sfup, sfdown
+        output = {}
+        for variation in variations:
+            if variation == "nominal":
+                output[variation] = [
+                    electronJSON[map_name].evaluate(variation, pt.to_numpy(), eta.to_numpy())
+                ]
+            else:
+                # Nominal sf==1
+                nominal = np.ones_like(pt.to_numpy())
+                # Systematic variations
+                output[variation] = [
+                    nominal,
+                    electronJSON[map_name].evaluate(f"{variation}Up", pt.to_numpy(), eta.to_numpy()),
+                    electronJSON[map_name].evaluate(f"{variation}Down", pt.to_numpy(), eta.to_numpy())
+                ]
+
+        return output
 
 
 def get_mu_sf(year, pt, eta, counts, key=''):
@@ -167,7 +176,7 @@ def sf_ele_id(events, year):
     return ak.prod(sf_id, axis=1), ak.prod(sfup_id, axis=1), ak.prod(sfdown_id, axis=1)
 
 
-def sf_ele_trigger(events, year):
+def sf_ele_trigger(events, year, variations=["nominal"]):
     '''
     This function computes the semileptonic electron trigger SF by considering the leading electron in the event.
     This computation is valid only in the case of the semileptonic final state.
@@ -177,7 +186,7 @@ def sf_ele_trigger(events, year):
     ele_pt = ak.firsts(events.ElectronGood.pt)
     ele_eta = ak.firsts(events.ElectronGood.etaSC)
 
-    return get_ele_sf(year, ele_pt, ele_eta, key='trigger')
+    return get_ele_sf(year, ele_pt, ele_eta, key='trigger', variations=variations)
 
 
 def sf_mu(events, year, key=''):
