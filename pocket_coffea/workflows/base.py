@@ -55,7 +55,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
         # Subsamples configurations: special cuts to split a sample in subsamples
         self._subsamplesCfg = self.cfg.subsamples_cuts
-        self._subsamples_masks = PackedSelection()
 
         # Weights configuration
         self.weights_config_allsamples = self.cfg.weights_config
@@ -274,6 +273,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
         # Defining the subsamples cut
         # saving all the cuts in a single selector
+        self._subsamples_masks = PackedSelection()
         self._subsamples_cuts_ids = []
         # saving the map of cut ids for each subsample
         self._subsamples_map = defaultdict(list)
@@ -544,7 +544,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         nominal_events = self.events
 
         hasJES = False
-        hasJER = False
+        # HACK: hasJER is set to True even if the JER is not included in the variations.
+        # In the future, it is desirable to include a dedicated option in the config file to switch the nominal JER and JES on and off.
+        hasJER = True
         for v in variations:
             if "JES" in v:
                 hasJES =True
@@ -577,7 +579,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
             if variation == "nominal":
                 self.events = nominal_events
-                if hasJES:
+                if hasJES | hasJER:
                     # put nominal shape
                     self.events["Jet"] = jets_with_JES
                     self.events["FatJet"] = fatjets_with_JES
