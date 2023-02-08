@@ -947,17 +947,18 @@ class EfficiencyMap:
                     if self.mode in ["splitHT", "spliteras"]:
                         return
                     ratio = self.eff_nominal[{'map': 'sf'}].values()
-                    ratio = np.where(ratio != 0, ratio, np.nan)
+                    # In the bins in which the SF is 0, which are those where the trigger efficiency on data is 0,
+                    # the SF is set to 1 so that MC is not rescaled in that bin.
+                    ratio = np.where(ratio != 0, ratio, 1.0)
                     unc = np.array(self.unc_eff_nominal[{'map': 'unc_sf'}].values())
-                    print("************************")
-                    print(ratio)
-                    print(unc)
                     ratios = [ratio, ratio - unc, ratio + unc]
                     labels = ["nominal", "statDown", "statUp"]
                     # print(ratios[0])
                 elif syst != "nominal":
                     eff_map = self.eff[{'map': 'sf'}].values()
-                    ratios = [np.where(eff_map != 0, eff_map, np.nan)]
+                    # In the bins in which the SF is 0, which are those where the trigger efficiency on data is 0,
+                    # the SF is set to 1 so that MC is not rescaled in that bin.
+                    ratios = [np.where(eff_map != 0, eff_map, 1.0)]
                     if self.mode == "standard":
                         labels = [var]
                     elif self.mode == "splitHT":
@@ -1011,14 +1012,12 @@ class EfficiencyMap:
                         lumiweights[era] = self.lumi_fractions[era] * np.ones_like(
                             self.ratio_stack[i]
                         )
-                    print("*******************************")
-                    print(self.lumi_fractions)
-                    sf_lumiweighted = np.average(
+                    sf_lumiweighed = np.average(
                         list(sf_eras.values()),
                         axis=0,
                         weights=list(lumiweights.values()),
                     )
-                    unc = abs(sf_lumiweighted - ratio)
+                    unc = abs(sf_lumiweighed - ratio)
                     ratios = [ratio - unc, ratio + unc]
                     labels = ["eraDown", "eraUp"]
                     self.ratio_stack = ratios
@@ -1219,14 +1218,17 @@ class EfficiencyMap:
                         if self.mode in ["splitHT", "spliteras"]:
                             return
                         ratio = self.eff_nominal[{'map': 'sf'}].values()
-                        # ratio = self.eff_nominal["sf"].sum('cat').values()[()]
-                        ratio = np.where(ratio != 0, ratio, np.nan)
+                        # In the bins in which the SF is 0, which are those where the trigger efficiency on data is 0,
+                        # the SF is set to 1 so that MC is not rescaled in that bin.
+                        ratio = np.where(ratio != 0, ratio, 1.0)
                         unc = np.array(eff_map)
                         ratios = [ratio - unc, ratio + unc]
                         labels = ["statDown", "statUp"]
                         # print(ratios[0])
                     elif label == "sf":
-                        ratios = [np.where(eff_map != 0, eff_map, np.nan)]
+                        # In the bins in which the SF is 0, which are those where the trigger efficiency on data is 0,
+                        # the SF is set to 1 so that MC is not rescaled in that bin.
+                        ratios = [np.where(eff_map != 0, eff_map, 1.0)]
                         if self.mode == "standard":
                             labels = [var]
                         elif self.mode == "splitHT":
@@ -1282,12 +1284,12 @@ class EfficiencyMap:
                             lumiweights[era] = self.lumi_fractions[era] * np.ones_like(
                                 self.ratio_stack[i]
                             )
-                        sf_lumiweighted = np.average(
+                        sf_lumiweighed = np.average(
                             list(sf_eras.values()),
                             axis=0,
                             weights=list(lumiweights.values()),
                         )
-                        unc = abs(sf_lumiweighted - ratio)
+                        unc = abs(sf_lumiweighed - ratio)
                         ratios = [ratio - unc, ratio + unc]
                         labels = ["eraDown", "eraUp"]
                         self.ratio_stack = ratios
