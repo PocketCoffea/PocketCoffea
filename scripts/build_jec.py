@@ -63,29 +63,31 @@ jet_factory = {
             "RegroupedV2_Summer19UL16APV_V7_MC_UncertaintySources_AK4PFchs.junc.txt.gz",
         ]
     ),
-    # "2017mc": jet_factory_factory(
-    #     files=[
-    #         # https://github.com/cms-jet/JECDatabase/raw/master/textFiles/Fall17_17Nov2017_V32_MC/Fall17_17Nov2017_V32_MC_L1FastJet_AK4PFchs.txt
-    #         "Fall17_17Nov2017_V32_MC_L1FastJet_AK4PFchs.jec.txt.gz",
-    #         # https://github.com/cms-jet/JECDatabase/raw/master/textFiles/Fall17_17Nov2017_V32_MC/Fall17_17Nov2017_V32_MC_L2Relative_AK4PFchs.txt
-    #         "Fall17_17Nov2017_V32_MC_L2Relative_AK4PFchs.jec.txt.gz",
-    #         # https://raw.githubusercontent.com/cms-jet/JECDatabase/master/textFiles/Fall17_17Nov2017_V32_MC/RegroupedV2_Fall17_17Nov2017_V32_MC_UncertaintySources_AK4PFchs.txt
-    #         "RegroupedV2_Fall17_17Nov2017_V32_MC_UncertaintySources_AK4PFchs.junc.txt.gz",
-    #         # https://github.com/cms-jet/JECDatabase/raw/master/textFiles/Fall17_17Nov2017_V32_MC/Fall17_17Nov2017_V32_MC_Uncertainty_AK4PFchs.txt
-    #         "Fall17_17Nov2017_V32_MC_Uncertainty_AK4PFchs.junc.txt.gz",
-    #         # https://github.com/cms-jet/JRDatabase/raw/master/textFiles/Fall17_V3b_MC/Fall17_V3b_MC_PtResolution_AK4PFchs.txt
-    #         "Fall17_V3b_MC_PtResolution_AK4PFchs.jr.txt.gz",
-    #         # https://github.com/cms-jet/JRDatabase/raw/master/textFiles/Fall17_V3b_MC/Fall17_V3b_MC_SF_AK4PFchs.txt
-    #         "Fall17_V3b_MC_SF_AK4PFchs.jersf.txt.gz",
-    #     ]
-    # ),
-    # "2017mcNOJER": jet_factory_factory(
-    #     files=[
-    #         "Fall17_17Nov2017_V32_MC_L1FastJet_AK4PFchs.jec.txt.gz",
-    #         "Fall17_17Nov2017_V32_MC_L2Relative_AK4PFchs.jec.txt.gz",
-    #         "Fall17_17Nov2017_V32_MC_Uncertainty_AK4PFchs.junc.txt.gz",
-    #     ]
-    # ),
+    "2017": jet_factory_factory(
+        files=[
+            "Summer19UL17_V5_MC_L1FastJet_AK4PFchs.jec.txt.gz",
+            "Summer19UL17_V5_MC_L2Relative_AK4PFchs.jec.txt.gz",
+            "RegroupedV2_Summer19UL17_V5_MC_UncertaintySources_AK4PFchs.junc.txt.gz",
+            "Summer19UL17_V5_MC_Uncertainty_AK4PFchs.junc.txt.gz",
+            "Summer19UL17_JRV3_MC_PtResolution_AK4PFchs.jr.txt.gz",
+            "Summer19UL17_JRV3_MC_SF_AK4PFchs.jersf.txt.gz",
+        ]
+    ),
+    "2017_NOJER": jet_factory_factory(
+        files=[
+            "Summer19UL17_V5_MC_L1FastJet_AK4PFchs.jec.txt.gz",
+            "Summer19UL17_V5_MC_L2Relative_AK4PFchs.jec.txt.gz",
+            "RegroupedV2_Summer19UL17_V5_MC_UncertaintySources_AK4PFchs.junc.txt.gz",
+        ]
+    ),
+    "2017_NOJESunc": jet_factory_factory(
+        files=[
+            "Summer19UL17_V5_MC_L1FastJet_AK4PFchs.jec.txt.gz",
+            "Summer19UL17_V5_MC_L2Relative_AK4PFchs.jec.txt.gz",
+            "Summer19UL17_JRV3_MC_PtResolution_AK4PFchs.jr.txt.gz",
+            "Summer19UL17_JRV3_MC_SF_AK4PFchs.jersf.txt.gz",
+        ]
+    ),
     "2018": jet_factory_factory(
         files=[
             "Summer19UL18_V5_MC_L1FastJet_AK4PFchs.jec.txt.gz",
@@ -165,6 +167,14 @@ fatjet_factory = {
             "Summer19UL17_V5_MC_Uncertainty_AK8PFPuppi.junc.txt.gz",
         ]
     ),
+    "2017_NOJESunc": jet_factory_factory(
+        files=[
+            "Summer19UL17_V5_MC_L1FastJet_AK8PFPuppi.jec.txt.gz",
+            "Summer19UL17_V5_MC_L2Relative_AK8PFPuppi.jec.txt.gz",
+            "Summer19UL17_JRV3_MC_PtResolution_AK8PFPuppi.jr.txt.gz",
+            "Summer19UL17_JRV3_MC_SF_AK8PFPuppi.jersf.txt.gz",
+        ]
+    ),
     "2018": jet_factory_factory(
         files=[
             "Summer19UL18_V5_MC_L1FastJet_AK8PFPuppi.jec.txt.gz",
@@ -200,6 +210,9 @@ if __name__ == "__main__":
 
     # jme stuff not pickleable in coffea
     import cloudpickle
+
+    if len(sys.argv) < 2:
+        raise Exception("The script requires at least one argument for the output file.")
 
     with gzip.open(sys.argv[-1], "wb") as fout:
         cloudpickle.dump(
