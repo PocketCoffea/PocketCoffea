@@ -53,6 +53,11 @@ colors_5f = {
     'bb': (0.51, 0.91, 0.51),  # green
 }
 
+colors_tthbb = {
+    'TTTo2L2Nu': (0.51, 0.79, 1.0),  # blue
+    'TTToSemiLeptonic': (1.0, 0.71, 0.24),  # orange
+}
+
 
 def slice_accumulator(accumulator, entrystart, entrystop):
     '''Returns an accumulator containing only a reduced set of histograms, i.e. those between the positions `entrystart` and `entrystop`.'''
@@ -396,6 +401,13 @@ def plot_data_mc_hist1D(
             else:
                 dict_mc = {d: h[d][slicing_mc] for d in samples_mc}
                 dict_mc_nominal = {d: h[d][slicing_mc_nominal] for d in samples_mc}
+                nevents = {
+                    d: round(sum(dict_mc_nominal[d].values()), 1) for d in samples_mc
+                }
+                nevents = dict( sorted(nevents.items(), key=lambda x:x[1], reverse=True) )
+                dict_mc = {d: dict_mc[d] for d in nevents.keys()}
+                dict_mc_nominal = {d: dict_mc_nominal[d] for d in nevents.keys()}
+                colors = [colors_tthbb[d] for d in nevents.keys()]
             if reweighting_function:
                 for sample, val in dict_mc_nominal.items():
                     histo_reweighted = hist.Hist(dict_mc_nominal[sample].axes[0])
@@ -451,10 +463,7 @@ def plot_data_mc_hist1D(
                 fontsize=fontsize,
                 ax=ax,
             )
-            if flavorsplit:
-                stack_mc_nominal.plot(stack=True, histtype='fill', ax=ax, color=colors)
-            else:
-                stack_mc_nominal.plot(stack=True, histtype='fill', ax=ax)
+            stack_mc_nominal.plot(stack=True, histtype='fill', ax=ax, color=colors)
             if not is_mc_only:
                 x = dense_axes(stack_mc_nominal)[0].centers
                 ax.errorbar(
@@ -485,7 +494,10 @@ def plot_data_mc_hist1D(
             plot_systematic_uncertainty(
                 stack_mc_nominal, syst_err_up, syst_err_down, rax, ratio=True
             )
-            maximum = max(stack_sum(stack_mc_nominal).values())
+            if is_mc_only:
+                maximum = max(stack_sum(stack_mc_nominal).values())
+            else:
+                maximum = max(stack_sum(stack_data).values())
             if not np.isnan(maximum):
                 ax.set_ylim((0, 1.50 * maximum))
             rax.set_ylim((0.5, 1.5))

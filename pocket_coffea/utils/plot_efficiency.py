@@ -2,6 +2,7 @@ import os
 import sys
 
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 
 import mplhep as hep
@@ -333,6 +334,16 @@ opts_unc = {
     "facecolor": (0, 0, 0, 0.0),
     "linewidth": 0,
     "hatch": '/' * hatch_density,
+    "zorder": 2,
+}
+
+opts_gap = {
+    "step": "post",
+    #"color": (0, 0, 0, 0.4),
+    "color": "white",
+    "facecolor": "white",
+    #"linewidth": 0,
+    "hatch": '/' * 100,
     "zorder": 2,
 }
 
@@ -949,7 +960,7 @@ class EfficiencyMap:
                     ratio = self.eff_nominal[{'map': 'sf'}].values()
                     # In the bins in which the SF is 0, which are those where the trigger efficiency on data is 0,
                     # the SF is set to 1 so that MC is not rescaled in that bin.
-                    ratio = np.where(ratio != 0, ratio, 1.0)
+                    #ratio = np.where(ratio != 0, ratio, 1.0)
                     unc = np.array(self.unc_eff_nominal[{'map': 'unc_sf'}].values())
                     ratios = [ratio, ratio - unc, ratio + unc]
                     labels = ["nominal", "statDown", "statUp"]
@@ -958,7 +969,8 @@ class EfficiencyMap:
                     eff_map = self.eff[{'map': 'sf'}].values()
                     # In the bins in which the SF is 0, which are those where the trigger efficiency on data is 0,
                     # the SF is set to 1 so that MC is not rescaled in that bin.
-                    ratios = [np.where(eff_map != 0, eff_map, 1.0)]
+                    #ratios = [np.where(eff_map != 0, eff_map, 1.0)]
+                    ratios = [eff_map]
                     if self.mode == "standard":
                         labels = [var]
                     elif self.mode == "splitHT":
@@ -1032,6 +1044,7 @@ class EfficiencyMap:
         To save the output plots, the flag `save_plots` has to be set to `True`.
         If the computation has to be performed for a specific data-taking era, also the argument `era` has to be specified.'''
         fontsize = self.config.plot_options["fontsize"]
+        fontsize_map = self.config.plot_options["fontsize_map"]
         if self.dim == 2:
             if (syst != 'nominal') and (var == 'nominal'):
                 pass
@@ -1064,17 +1077,21 @@ class EfficiencyMap:
                 if (var == 'nominal') and (label == "ratio_sf"):
                     continue
                 self.map2d = histo[{'map': label}]
+                if (label == "sf"):
+                    self.map2d.values()[np.where(self.map2d.values() == 0)] = 1.0
 
                 if save_plots:
                     fig_map, ax_map = plt.subplots(1, 1, figsize=[16, 10])
                     if label == "sf":
                         self.map2d.label = "Trigger SF"
+                        self.map2d.plot2d(ax=ax_map, vmin=0.8, vmax=1.1)
                     elif label == "unc_sf":
                         self.map2d.label = "Trigger SF unc."
+                        self.map2d.plot2d(ax=ax_map)
                     elif label == "ratio_sf":
                         self.map2d.label = "SF var./nom."
+                        self.map2d.plot2d(ax=ax_map)
 
-                    self.map2d.plot2d(ax=ax_map)
                     # self.map2d.plot2d(ax=ax_map, xaxis=self.axis_x, patch_opts=patch_opts[label])
                     hep.cms.text("Preliminary", loc=0, ax=ax_map)
                     hep.cms.lumitext(
@@ -1085,20 +1102,33 @@ class EfficiencyMap:
                         ax=ax_map,
                     )
                     ax_map.set_title(var)
-                    if self.varname_x == 'pt':
+                    if self.varname_x == 'ElectronGood.pt':
                         ax_map.set_xscale('log')
+                        #ax_map.set_xlim(0.1,500)
 
                     xticks = self.axis_x.edges
                     yticks = self.axis_y.edges
                     ax_map.xaxis.label.set_size(fontsize)
                     ax_map.yaxis.label.set_size(fontsize)
                     ax_map.set_xticks(
-                        #xticks, [str(round(t, 4)) for t in xticks], fontsize=fontsize
                         xticks, [str(int(t)) for t in xticks], fontsize=fontsize
                     )
+                    ax_map.tick_params(
+                        axis='x',          # changes apply to the x-axis
+                        which='minor',      # both major and minor ticks are affected
+                        bottom=False,      # ticks along the bottom edge are off
+                        top=False,         # ticks along the top edge are off
+                        labelbottom=True)  # labels along the bottom edge are off
+
                     ax_map.set_yticks(
                         yticks, [str(round(t, 4)) for t in yticks], fontsize=fontsize
                     )
+                    ax_map.tick_params(
+                        axis='y',          # changes apply to the y-axis
+                        which='minor',      # both major and minor ticks are affected
+                        bottom=False,      # ticks along the bottom edge are off
+                        top=False,         # ticks along the top edge are off
+                        labelbottom=True)  # labels along the bottom edge are off
                     ax_map.set_xlim(*self.config.variables[self.histname].axes[0].lim)
                     ax_map.set_ylim(*self.config.variables[self.histname].axes[1].lim)
                     plt.vlines(
@@ -1115,6 +1145,15 @@ class EfficiencyMap:
                         linestyle='--',
                         color='gray',
                     )
+                    if self.varname_y == 'ElectronGood.etaSC':
+                        for gap in [(-1.5660, -1.4442), (1.4442, 1.5660)]:
+                            ax_map.fill_between(
+                                [xticks[0], xticks[-1]],
+                                gap[0],
+                                gap[1],
+                                **opts_gap,
+                                #label="ECAL gap",
+                            )
 
                     for (i, x) in enumerate(self.bincenter_x):
                         if (x < ax_map.get_xlim()[0]) | (x > ax_map.get_xlim()[1]):
@@ -1127,17 +1166,20 @@ class EfficiencyMap:
                                 else "k"
                             )
                             # color = "w"
-                            if self.histname == "hist2d_electron_etaSC_vs_electron_pt":
-                                ax_map.text(
-                                    x,
-                                    y,
-                                    f"{round(self.map2d.values()[()][i][j], round_opts[label]['round'])}",
-                                    color=color,
-                                    ha="center",
-                                    va="center",
-                                    fontsize=fontsize,
-                                    fontweight="bold",
-                                )
+                            if self.varname_y == "ElectronGood.etaSC":
+                                if (abs(y) > 1.4442) & (abs(y) < 1.5660):
+                                    continue
+                                else:
+                                    ax_map.text(
+                                        x,
+                                        y,
+                                        f"{round(self.map2d.values()[()][i][j], round_opts[label]['round'])}",
+                                        color=color,
+                                        ha="center",
+                                        va="center",
+                                        fontsize=fontsize_map,
+                                        fontweight="bold",
+                                    )
                             else:
                                 ax_map.text(
                                     x,
@@ -1146,9 +1188,13 @@ class EfficiencyMap:
                                     color=color,
                                     ha="center",
                                     va="center",
-                                    fontsize=fontsize,
+                                    fontsize=fontsize_map,
                                     fontweight="bold",
                                 )
+                    #im = ax_map.images
+                    #cb = im[-1].colorbar
+                    print("******************")
+                    print(ax_map.artists)
                 self.save2d(cat, syst, var, label, save_plots, era)
         elif self.dim == 1:
             pass
@@ -1220,7 +1266,7 @@ class EfficiencyMap:
                         ratio = self.eff_nominal[{'map': 'sf'}].values()
                         # In the bins in which the SF is 0, which are those where the trigger efficiency on data is 0,
                         # the SF is set to 1 so that MC is not rescaled in that bin.
-                        ratio = np.where(ratio != 0, ratio, 1.0)
+                        #ratio = np.where(ratio != 0, ratio, 1.0)
                         unc = np.array(eff_map)
                         ratios = [ratio - unc, ratio + unc]
                         labels = ["statDown", "statUp"]
@@ -1228,7 +1274,7 @@ class EfficiencyMap:
                     elif label == "sf":
                         # In the bins in which the SF is 0, which are those where the trigger efficiency on data is 0,
                         # the SF is set to 1 so that MC is not rescaled in that bin.
-                        ratios = [np.where(eff_map != 0, eff_map, 1.0)]
+                        ratios = [eff_map]
                         if self.mode == "standard":
                             labels = [var]
                         elif self.mode == "splitHT":
