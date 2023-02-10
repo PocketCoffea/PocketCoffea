@@ -6,6 +6,7 @@ from pocket_coffea.parameters.histograms import *
 #sys.path.append(os.path.dirname(__file__))
 from config.semileptonic_triggerSF.functions import get_ht_above, get_ht_below
 from config.semileptonic_triggerSF.plot_options import efficiency, scalefactor, ratio, residue
+from config.semileptonic_triggerSF.parameters import eras
 from config.datamc.plots import cfg_plot
 from math import pi
 
@@ -15,20 +16,20 @@ cfg =  {
         "jsons": ["datasets/backgrounds_MC_ttbar_local.json",
                   "datasets/DATA_SingleMuon_local.json"],
         "filter" : {
-            "samples": ["TTToSemiLeptonic",
-                        "TTTo2L2Nu",
+            "samples": [#"TTToSemiLeptonic",
+                        #"TTTo2L2Nu",
                         "DATA_SingleMuon"],
             "samples_exclude" : [],
-            "year": ["2018"]
+            "year": ["2017"]
         }
     },
 
     # Input and output files
     "workflow" : semileptonicTriggerProcessor,
-    "output"   : "output/sf_ele_trigger_semilep/semileptonic_triggerSF_2018_sfmutrigger",
+    "output"   : "output/sf_ele_trigger_semilep/semileptonic_triggerSF_2017_SingleMuon",
     "workflow_options" : {
-        "output_triggerSF" : "pocket_coffea/parameters/semileptonic_triggerSF/triggerSF_2018_sfmutrigger",
-        "eras" : eras["2018"],
+        "output_triggerSF" : "pocket_coffea/parameters/semileptonic_triggerSF/triggerSF_2017_SingleMuon",
+        "eras" : eras["2017"],
     },
 
     # Executor parameters
@@ -241,11 +242,11 @@ cfg =  {
         ),
     },
     "plot_options" : {
-        "only" : "electron_etaSC_pt_leading",
+        "only" : None,
         "workers" : 16,
         "scale" : "log",
-        "fontsize" : 20,
-        "fontsize_map" : 18,
+        "fontsize" : 22,
+        "fontsize_map" : 10,
         "dpi" : 150,
         "rebin" : {
             "ElectronGood_pt" : {

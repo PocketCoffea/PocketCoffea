@@ -168,7 +168,7 @@ cfg =  {
         "ElectronGood_etaSC_1_finebinning" : HistConf(
             [
                 Axis(coll="ElectronGood", field="etaSC", pos=0,
-                     bins=80, start=-4, stop=4,
+                     bins=50, start=-2.5, stop=2.5,
                      label="Electron Supercluster $\eta$",
                      lim=(-2.5,2.5))
             ]
