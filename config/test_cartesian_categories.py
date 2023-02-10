@@ -4,7 +4,7 @@ from pocket_coffea.lib.cut_functions import get_nObj_min, get_nObj_eq, get_nBtag
 from pocket_coffea.parameters.histograms import *
 from pocket_coffea.parameters.btag import btag_variations
 from pocket_coffea.lib.weights_manager import WeightCustom
-from pocket_coffea.lib.cartesian_categories import CartesianSelection, MultiCut
+from pocket_coffea.lib.categorization import StandardSelection, CartesianSelection, MultiCut
 import numpy as np
 
 
@@ -78,8 +78,8 @@ cfg =  {
                      cuts_names=["3b","4b","5b","6b"])
         ],
         common_cats = {
-            "inclusive": passthrough,
-            "4jets_40pt" : get_nObj_min(4, 40., "JetGood")
+            "inclusive": [passthrough],
+            "4jets_40pt" : [get_nObj_min(4, 40., "JetGood")]
         }
     ),
 

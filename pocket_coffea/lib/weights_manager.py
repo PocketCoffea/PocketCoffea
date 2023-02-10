@@ -16,8 +16,6 @@ from .scale_factors import (
     sf_btag_calib,
     sf_jet_puId,
     sf_L1prefiring,
-    pt_reweighting,
-    pteta_reweighting,
 )
 from ..lib.pileup import sf_pileup_reweight
 
@@ -100,8 +98,6 @@ class WeightsManager:
                 'sf_btag_calib',
                 'sf_jet_puId',
                 'sf_L1prefiring',
-                'pt_reweighting',
-                'pteta_reweighting',
             ]
         )
 
@@ -118,16 +114,25 @@ class WeightsManager:
             "sf_mu_id",
             "sf_mu_iso",
             "sf_jet_puId",
-            "sf_L1prefiring"
+            "sf_L1prefiring",
         ]
         for year, bvars in btag_variations.items():
             out += [f"sf_btag_{var}" for var in bvars]
         return set(out)
 
-    def __init__(self, weightsConf, size, events, shape_variation, metadata, storeIndividual=False):
+    def __init__(
+        self,
+        weightsConf,
+        size,
+        events,
+        shape_variation,
+        metadata,
+        storeIndividual=False,
+    ):
         self._sample = metadata["sample"]
         self._year = metadata["year"]
         self._finalstate = metadata["finalstate"]
+        self._xsec = metadata["xsec"]
         self._shape_variation = shape_variation
         self.weightsConf = weightsConf
         self.storeIndividual = storeIndividual
@@ -153,7 +158,9 @@ class WeightsManager:
                     # DO nothing
                     return
                 if w not in _weightsCache:
-                    _weightsCache[w] = self._compute_weight(w, events, self._shape_variation)
+                    _weightsCache[w] = self._compute_weight(
+                        w, events, self._shape_variation
+                    )
                 for we in _weightsCache[w]:
                     weight_obj.add(*we)
                     if len(we) > 2:
@@ -162,9 +169,11 @@ class WeightsManager:
             # If the Weight is a Custom weight just run the function
             elif isinstance(w, WeightCustom):
                 if w.name not in _weightsCache:
-                    _weightsCache[w.name] = w.function(events, self.size, metadata,self._shape_variation)
+                    _weightsCache[w.name] = w.function(
+                        events, self.size, metadata, self._shape_variation
+                    )
                 for we in _weightsCache[w.name]:
-                    print(we)
+                    #print(we)
                     weight_obj.add(*we)
                     if len(we) > 2:
                         # the weights has variations
@@ -219,7 +228,7 @@ class WeightsManager:
         elif weight_name == 'lumi':
             return [('lumi', ak.full_like(events.genWeight, lumi[self._year]["tot"]))]
         elif weight_name == 'XS':
-            return [('XS', ak.full_like(events.genWeight, xsec[self._sample]))]
+            return [('XS', ak.full_like(events.genWeight, self._xsec))]
         elif weight_name == 'pileup':
             # Pileup reweighting with nominal, up and down variations
             return [('pileup', *sf_pileup_reweight(events, self._year))]
@@ -236,7 +245,7 @@ class WeightsManager:
         elif weight_name == "sf_mu_iso":
             return [('sf_mu_iso', *sf_mu(events, self._year, 'iso'))]
         elif weight_name == 'sf_btag':
-            
+
             # Get all the nominal and variation SF
             if shape_variation == "nominal":
                 btag_vars = btag_variations[self._year]
@@ -256,12 +265,12 @@ class WeightsManager:
                     btagsf[var][2] = btagsf[var][2] / btagsf["central"][0]
             else:
                 # Only the nominal if there is a shape variation
-                #TODO Implement the varied btag for the JES variations
-                 btagsf = sf_btag(
+                # TODO Implement the varied btag for the JES variations
+                btagsf = sf_btag(
                     events.JetGood,
                     btag[self._year]['btagging_algorithm'],
                     self._year,
-                    variations=["central"], 
+                    variations=["central"],
                     njets=events.nJetGood,
                 )
 
@@ -292,10 +301,6 @@ class WeightsManager:
             ]
         elif weight_name == 'sf_L1prefiring':
             return [('sf_L1prefiring', *sf_L1prefiring(events))]
-        elif weight_name == 'pt_reweighting':
-            return [('pt_reweighting', pt_reweighting(events, self._year))]
-        elif weight_name == 'pteta_reweighting':
-            return [('pteta_reweighting', pteta_reweighting(events, self._year))]
 
     def add_weight(self, name, nominal, up=None, down=None, category=None):
         '''

@@ -386,15 +386,34 @@ default_axis_settings = {
 
 collection_fields = {
     'jet': ["eta", "pt", "phi", "btagDeepFlavB"],
-    'fatjet': ["eta", "pt", "phi", "mass", "msoftdrop", "tau21",
-               "btagDDBvLV2", "btagDDCvLV2", "btagDDCvBV2",
-               #"particleNetMD_Xbb", "particleNetMD_Xcc",
-               "particleNetMD_Xbb_QCD", "particleNetMD_Xcc_QCD",
-               "deepTagMD_ZHbbvsQCD", "deepTagMD_ZHccvsQCD", "btagHbb"],
+    'fatjet': [
+        "eta",
+        "pt",
+        "phi",
+        "mass",
+        "msoftdrop",
+        "tau21",
+        "btagDDBvLV2",
+        "btagDDCvLV2",
+        "btagDDCvBV2",
+        # "particleNetMD_Xbb", "particleNetMD_Xcc",
+        "particleNetMD_Xbb_QCD",
+        "particleNetMD_Xcc_QCD",
+        "deepTagMD_ZHbbvsQCD",
+        "deepTagMD_ZHccvsQCD",
+        "btagHbb",
+    ],
     'parton': ["eta", "pt", "phi", "dRMatchedJet", "pdgId"],
     'electron': ["eta", "pt", "phi", "etaSC"],
     'muon': ["eta", "pt", "phi"],
-    'sv': ["summass", "logsummass", "sv1mass", "logsv1mass", "sumcorrmass", "logsumcorrmass"]
+    'sv': [
+        "summass",
+        "logsummass",
+        "sv1mass",
+        "logsv1mass",
+        "sumcorrmass",
+        "logsumcorrmass",
+    ]
     #'sv': ["summass", "logsummass", "projmass", "logprojmass", "sv1mass", "logsv1mass", "sumcorrmass", "logsumcorrmass"]
 }
 

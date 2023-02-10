@@ -4,7 +4,7 @@ from ..parameters.btag import btag
 from .triggers import get_trigger_mask
 
 
-def passthrough(events, **kargs):
+def passthrough_f(events, **kargs):
     '''
     Identity cut:  passthrough of all events.
     '''
@@ -164,6 +164,7 @@ def get_nObj_eq(N, minpt=None, coll="JetGood", name=None):
     else:
         return Cut(name=name, params={"N": N, "coll": coll}, function=eq_nObj)
 
+
 def get_nObj_less(N, coll="JetGood", name=None):
     '''
     Factory function which creates a cut for < number of objects.
@@ -221,11 +222,38 @@ def nBtag(events, params, year, **kwargs):
                 >= params["N"]
             )
 
+def nElectron(events, params, year, **kwargs):
+    '''Mask for min N electrons with minpt.'''
+    if params["coll"] == "ElectronGood":
+        return events.nElectronGood >= params["N"]
+    elif params["coll"] == "Electron":
+        return events.nElectron >= params["N"]
+    else:
+        raise Exception(f"The collection '{params['coll']}' does not exist.")
+
+def nMuon(events, params, year, **kwargs):
+    '''Mask for min N electrons with minpt.'''
+    if params["coll"] == "MuonGood":
+        return events.nMuonGood >= params["N"]
+    elif params["coll"] == "Muon":
+        return events.nMuon >= params["N"]
+    else:
+        raise Exception(f"The collection '{params['coll']}' does not exist.")
 
 def get_nBtag(N, minpt=0, coll="BJetGood", name=None):
     if name == None:
         name = f"n{coll}_btag_{N}_pt{minpt}"
     return Cut(name=name, params={"N": N, "coll": coll, "minpt": minpt}, function=nBtag)
+
+def get_nElectron(N, minpt=0, coll="ElectronGood", name=None):
+    if name == None:
+        name = f"n{coll}_{N}_pt{minpt}"
+    return Cut(name=name, params={"N": N, "coll": coll, "minpt": minpt}, function=nElectron)
+
+def get_nMuon(N, minpt=0, coll="MuonGood", name=None):
+    if name == None:
+        name = f"n{coll}_{N}_pt{minpt}"
+    return Cut(name=name, params={"N": N, "coll": coll, "minpt": minpt}, function=nMuon)
 
 
 ##################

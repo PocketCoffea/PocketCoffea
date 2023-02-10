@@ -5,6 +5,7 @@
             "sample": "ttHTobb",
             "year": "2018",
             "isMC": "True",
+            "xsec": "0.2953",
             "nevents": "9668000",
             "size": "27889361259"
         },

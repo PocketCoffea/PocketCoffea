@@ -132,8 +132,9 @@ if __name__ == '__main__':
                                     chunksize=config.run_options['chunk'],
                                     maxchunks=config.run_options['max']
                                     )
-        save(output, config.outfile)
-        print(f"Saving output to {config.outfile}")
+        outfile = config.outfile.replace("{dataset}","all")
+        save(output, outfile )
+        print(f"Saving output to {outfile}")
 
 
     elif 'parsl' in config.run_options['executor']:
@@ -181,8 +182,10 @@ if __name__ == '__main__':
                                         },
                                         chunksize=config.run_options['chunk'], maxchunks=config.run_options['max']
                                         )
-            save(output, config.outfile)
-            print(f"Saving output to {config.outfile}")
+
+            outfile = config.outfile.replace("{dataset}","all")
+            save(output, outfile )
+            print(f"Saving output to {outfile}")
     
         elif 'condor' in config.run_options['executor']:
             #xfer_files = [process_worker_pool, _x509_path]
@@ -322,8 +325,9 @@ if __name__ == '__main__':
                                         chunksize=config.run_options['chunk'],
                                         maxchunks=config.run_options['max']
                             )
-                print(f"Saving output to {config.outfile}")
-                save(output, config.outfile)
+                outfile = config.outfile.replace("{dataset}","all")
+                save(output, outfile )
+                print(f"Saving output to {outfile}")
             else:
                 # Running separately on each dataset
                 for sample, files in config.fileset.items():
@@ -350,4 +354,3 @@ if __name__ == '__main__':
     else:
         print(f"Executor {config.run_options['executor']} not defined!")
         exit(1)
-    

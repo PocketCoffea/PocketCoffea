@@ -4,13 +4,16 @@ import shutil
 import awkward as ak
 from typing import Any, Dict, List, Optional
 
+
 def is_rootcompat(a):
     """Is it a flat or 1-d jagged array?"""
     t = ak.type(a)
     if isinstance(t, ak._ext.ArrayType):
         if isinstance(t.type, ak._ext.PrimitiveType):
             return True
-        if isinstance(t.type, ak._ext.ListType) and isinstance(t.type.type, ak._ext.PrimitiveType):
+        if isinstance(t.type, ak._ext.ListType) and isinstance(
+            t.type.type, ak._ext.PrimitiveType
+        ):
             return True
     return False
 
@@ -32,8 +35,12 @@ def uproot_writeable(events):
     return out
 
 
-
-def copy_file(fname: str, localdir:str, location: str,subdirs: Optional[List[str]] = None,):
+def copy_file(
+    fname: str,
+    localdir: str,
+    location: str,
+    subdirs: Optional[List[str]] = None,
+):
     subdirs = subdirs or []
     xrd_prefix = "root://"
     pfx_len = len(xrd_prefix)

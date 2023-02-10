@@ -71,14 +71,14 @@ triggers = {
             "SingleEle": [
                 "Ele27_WPTight_Gsf",
             ],
-            "SingleMu": ["IsoMu24", "IsoTkMu24"],
+            "SingleMuon": ["IsoMu24", "IsoTkMu24"],
         },
         "2017": {
             "SingleEle": [
                 "Ele32_WPTight_Gsf_L1DoubleEG",
                 "Ele28_eta2p1_WPTight_Gsf_HT150",
             ],
-            "SingleMu": [
+            "SingleMuon": [
                 "IsoMu27",
             ],
         },
@@ -87,42 +87,42 @@ triggers = {
                 "Ele32_WPTight_Gsf",
                 "Ele28_eta2p1_WPTight_Gsf_HT150",
             ],
-            "SingleMu": [
+            "SingleMuon": [
                 "IsoMu24",
             ],
         },
     },
-    "mutag" : {
-        "2016" : {
+    "mutag": {
+        "2016": {
             "BTagMu_AK8Jet300_Mu5",
             "BTagMu_AK4Jet300_Mu5",
         },
-        "2017" : {
+        "2017": {
             "BTagMu_AK8Jet300_Mu5",
             "BTagMu_AK4Jet300_Mu5",
         },
-        "2018" : {
+        "2018": {
             "BTagMu_AK8Jet300_Mu5",
             "BTagMu_AK4Jet300_Mu5",
             "BTagMu_AK8Jet300_Mu5_noalgo",
             "BTagMu_AK4Jet300_Mu5_noalgo",
         },
-    }
+    },
 }
 
 triggers_EOY = {
-    "mutag" : {
-        "2016" : {
+    "mutag": {
+        "2016": {
             "BTagMu_AK8Jet300_Mu5",
             "BTagMu_AK4Jet300_Mu5",
             "BTagMu_Jet300_Mu5",
         },
-        "2017" : {
+        "2017": {
             "BTagMu_AK8Jet300_Mu5",
             "BTagMu_AK4Jet300_Mu5",
             "BTagMu_Jet300_Mu5",
         },
-        "2018" : {
+        "2018": {
             "BTagMu_AK8Jet300_Mu5",
             "BTagMu_AK4Jet300_Mu5",
             "BTagMu_AK8Jet300_Mu5_noalgo",

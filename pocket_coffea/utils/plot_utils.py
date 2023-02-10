@@ -39,19 +39,20 @@ opts_unc = {
 
 # Flavor ordering by stats, dependent on plot scale
 flavors_order = {
-    'linear' : ['l', 'bb', 'cc', 'b', 'c'],
-    'log'    : ['c', 'b', 'cc', 'bb', 'l']
+    'linear': ['l', 'bb', 'cc', 'b', 'c'],
+    'log': ['c', 'b', 'cc', 'bb', 'l'],
 }
 # Color scheme for l, c+cc, b+bb
 colors_bb = ['blue', 'magenta', 'cyan']
 colors_cc = ['blue', 'cyan', 'magenta']
 colors_5f = {
-    'l' : (0.51, 0.79, 1.0),    # blue
-    'c' : (1.0, 0.4, 0.4),      # red
-    'b' : (1.0, 0.71, 0.24),    # orange
-    'cc' : (0.96, 0.88, 0.40),  # yellow
-    'bb' : (0.51, 0.91, 0.51),  # green
+    'l': (0.51, 0.79, 1.0),  # blue
+    'c': (1.0, 0.4, 0.4),  # red
+    'b': (1.0, 0.71, 0.24),  # orange
+    'cc': (0.96, 0.88, 0.40),  # yellow
+    'bb': (0.51, 0.91, 0.51),  # green
 }
+
 
 def slice_accumulator(accumulator, entrystart, entrystop):
     '''Returns an accumulator containing only a reduced set of histograms, i.e. those between the positions `entrystart` and `entrystop`.'''
@@ -101,6 +102,7 @@ def get_axis_items(h, axis_name):
     axis = h.axes[axis_name]
     return list(axis.value(range(axis.size)))
 
+
 def get_index(h, edges):
     indices = []
 
@@ -108,22 +110,29 @@ def get_index(h, edges):
         indices.append(np.where(np.isclose(h.axes[-1].edges, edge, atol=0.01))[0][0])
     return indices
 
+
 def rebin_histogram(h, index):
-    values = [np.sum(h.values()[start:stop]) for start, stop in zip(index[:-1], index[1:])]
-    variances = [np.sum(h.variances()[start:stop]) for start, stop in zip(index[:-1], index[1:])]
+    values = [
+        np.sum(h.values()[start:stop]) for start, stop in zip(index[:-1], index[1:])
+    ]
+    variances = [
+        np.sum(h.variances()[start:stop]) for start, stop in zip(index[:-1], index[1:])
+    ]
     edges = [h.axes[-1].edges[i] for i in index]
     nh = hist.new.Var(edges, name=h.axes[-1].name, label=h.axes[-1].label).Weight()
     nh[...] = np.stack([values, variances], axis=-1)
 
     return nh
 
+
 def rebin_stack(stack, index):
     histos_rebinned = {}
     for i, h in enumerate(stack):
-        #print(type(rebin(h, index)))
+        # print(type(rebin(h, index)))
         histos_rebinned[h.name] = rebin_histogram(h, index)
 
     return hist.Stack.from_dict(histos_rebinned)
+
 
 def rebin(h, edges):
     index = get_index(h, edges)
@@ -131,6 +140,7 @@ def rebin(h, edges):
         return rebin_stack(h, index)
     elif type(h) == hist.hist.Hist:
         return rebin_histogram(h, index)
+
 
 def get_data_mc_ratio(h1, h2):
     if type(h1) == hist.Stack:
@@ -147,7 +157,10 @@ def get_data_mc_ratio(h1, h2):
 
     return ratio, unc
 
-def get_systematic_uncertainty(stack_mc, variations, mcstat=True, stat_only=False, edges=None):
+
+def get_systematic_uncertainty(
+    stack_mc, variations, mcstat=True, stat_only=False, edges=None
+):
     '''This function computes the total systematic uncertainty on the MC stack, by summing in quadrature the systematic uncertainties of the single MC samples.
     For each MC sample, the systematic uncertainty is computed by summing in quadrature all the systematic uncertainties.
     The asymmetric error band is constructed by summing in quadrature uncertainties that are moving the nominal value in the same direction, i.e. the total "up" uncertainty is obtained by summing in quadrature all the systematic effects that are pulling the nominal value up.'''
@@ -204,6 +217,7 @@ def get_systematic_uncertainty(stack_mc, variations, mcstat=True, stat_only=Fals
 
     return np.sqrt(syst_err2_tot_up), np.sqrt(syst_err2_tot_down)
 
+
 def plot_systematic_uncertainty(
     stack_mc_nominal, syst_err_up, syst_err_down, ax, ratio=False
 ):
@@ -233,7 +247,20 @@ def plot_systematic_uncertainty(
         label="syst. unc.",
     )
 
-def plot_data_mc_hist1D(h, histname, config=None, plot_dir="plots", save=True, only_cat=None, mcstat=True, stat_only=False, reweighting_function=None, flavorsplit=None, log=False):
+
+def plot_data_mc_hist1D(
+    h,
+    histname,
+    config=None,
+    plot_dir="plots",
+    save=True,
+    only_cat=None,
+    mcstat=True,
+    stat_only=False,
+    reweighting_function=None,
+    flavorsplit=None,
+    log=False,
+):
     '''This function plots 1D histograms in all the categories contained in the `cat` axis, for each data-taking year in the `year` axis.
     The data/MC ratio is also shown in the bottom subplot
     The MC systematic uncertainty is plotted on top of the MC stack in the histogram plot and around 1 in the ratio plot.
@@ -243,7 +270,9 @@ def plot_data_mc_hist1D(h, histname, config=None, plot_dir="plots", save=True, o
     To reweight the histograms, one can additionally pass the `reweighting_function` argument which is a 1D function of the variable on the x-axis that modifies the histogram weights.'''
     for sample in h.keys():
         if dense_dim(h[sample]) != 1:
-            print(f"Histograms with dense dimension {dense_dim(h[sample])} cannot be plotted. Only 1D histograms are supported.")
+            print(
+                f"Histograms with dense dimension {dense_dim(h[sample])} cannot be plotted. Only 1D histograms are supported."
+            )
             return
     samples = h.keys()
     samples_data = list(filter(lambda d: 'DATA' in d, samples))
@@ -276,12 +305,53 @@ def plot_data_mc_hist1D(h, histname, config=None, plot_dir="plots", save=True, o
             slicing_mc_nominal = {'year': year, 'cat': cat, 'variation': 'nominal'}
             if flavorsplit == '3f':
                 flavors = flavors_order['linear']
-                dict_mc = {f: stack_sum(hist.Stack.from_iter([h[d][slicing_mc] for d in samples_mc if d.endswith(f'_{f}')])) for f in flavors}
-                dict_mc_nominal = {f: stack_sum(hist.Stack.from_iter([h[d][slicing_mc_nominal] for d in samples_mc if d.endswith(f'_{f}')])) for f in flavors}
-                dict_mc = {'l' : dict_mc['l'], 'c+cc' : dict_mc['c'] + dict_mc['cc'], 'b+bb' : dict_mc['b'] + dict_mc['bb']}
-                dict_mc_nominal = {'l' : dict_mc_nominal['l'], 'c+cc' : dict_mc_nominal['c'] + dict_mc_nominal['cc'], 'b+bb' : dict_mc_nominal['b'] + dict_mc_nominal['bb']}
-                if any(cc in histname for cc in ['btagDDCvLV2', 'particleNetMD_Xcc_QCD', 'deepTagMD_ZHccvsQCD']):
-                    dict_mc = {'l' : dict_mc['l'], 'b+bb' : dict_mc['b+bb'], 'c+cc' : dict_mc['c+cc']}
+                dict_mc = {
+                    f: stack_sum(
+                        hist.Stack.from_iter(
+                            [
+                                h[d][slicing_mc]
+                                for d in samples_mc
+                                if d.endswith(f'_{f}')
+                            ]
+                        )
+                    )
+                    for f in flavors
+                }
+                dict_mc_nominal = {
+                    f: stack_sum(
+                        hist.Stack.from_iter(
+                            [
+                                h[d][slicing_mc_nominal]
+                                for d in samples_mc
+                                if d.endswith(f'_{f}')
+                            ]
+                        )
+                    )
+                    for f in flavors
+                }
+                dict_mc = {
+                    'l': dict_mc['l'],
+                    'c+cc': dict_mc['c'] + dict_mc['cc'],
+                    'b+bb': dict_mc['b'] + dict_mc['bb'],
+                }
+                dict_mc_nominal = {
+                    'l': dict_mc_nominal['l'],
+                    'c+cc': dict_mc_nominal['c'] + dict_mc_nominal['cc'],
+                    'b+bb': dict_mc_nominal['b'] + dict_mc_nominal['bb'],
+                }
+                if any(
+                    cc in histname
+                    for cc in [
+                        'btagDDCvLV2',
+                        'particleNetMD_Xcc_QCD',
+                        'deepTagMD_ZHccvsQCD',
+                    ]
+                ):
+                    dict_mc = {
+                        'l': dict_mc['l'],
+                        'b+bb': dict_mc['b+bb'],
+                        'c+cc': dict_mc['c+cc'],
+                    }
                     colors = colors_cc
                 else:
                     colors = colors_bb
@@ -289,20 +359,50 @@ def plot_data_mc_hist1D(h, histname, config=None, plot_dir="plots", save=True, o
                 flavors = flavors_order['linear']
                 if config:
                     if hasattr(config, "plot_options"):
-                        if (histname in config.plot_options.keys()):
-                            if ('scale' in config.plot_options[histname].keys()):
-                                flavors = flavors_order[config.plot_options[histname]['scale']]
-                dict_mc = {f: stack_sum(hist.Stack.from_iter([h[d][slicing_mc] for d in samples_mc if d.endswith(f'_{f}')])) for f in flavors}
-                dict_mc_nominal = {f: stack_sum(hist.Stack.from_iter([h[d][slicing_mc_nominal] for d in samples_mc if d.endswith(f'_{f}')])) for f in flavors}
+                        if histname in config.plot_options.keys():
+                            if 'scale' in config.plot_options[histname].keys():
+                                flavors = flavors_order[
+                                    config.plot_options[histname]['scale']
+                                ]
+                dict_mc = {
+                    f: stack_sum(
+                        hist.Stack.from_iter(
+                            [
+                                h[d][slicing_mc]
+                                for d in samples_mc
+                                if d.endswith(f'_{f}')
+                            ]
+                        )
+                    )
+                    for f in flavors
+                }
+                dict_mc_nominal = {
+                    f: stack_sum(
+                        hist.Stack.from_iter(
+                            [
+                                h[d][slicing_mc_nominal]
+                                for d in samples_mc
+                                if d.endswith(f'_{f}')
+                            ]
+                        )
+                    )
+                    for f in flavors
+                }
                 colors = [colors_5f[f] for f in flavors]
-                nevents = {f : round(sum(dict_mc_nominal[f].values()), 1) for f in flavors}
+                nevents = {
+                    f: round(sum(dict_mc_nominal[f].values()), 1) for f in flavors
+                }
             else:
                 dict_mc = {d: h[d][slicing_mc] for d in samples_mc}
                 dict_mc_nominal = {d: h[d][slicing_mc_nominal] for d in samples_mc}
             if reweighting_function:
                 for sample, val in dict_mc_nominal.items():
                     histo_reweighted = hist.Hist(dict_mc_nominal[sample].axes[0])
-                    histo_reweighted.fill(dict_mc_nominal[sample].axes[0].centers, weight=dict_mc_nominal[sample].values()*reweighting_function(dict_mc_nominal[sample].axes[0].centers))
+                    histo_reweighted.fill(
+                        dict_mc_nominal[sample].axes[0].centers,
+                        weight=dict_mc_nominal[sample].values()
+                        * reweighting_function(dict_mc_nominal[sample].axes[0].centers),
+                    )
                     dict_mc_nominal[sample] = histo_reweighted
             stack_mc = hist.Stack.from_dict(dict_mc)
             stack_mc_nominal = hist.Stack.from_dict(dict_mc_nominal)
@@ -319,11 +419,16 @@ def plot_data_mc_hist1D(h, histname, config=None, plot_dir="plots", save=True, o
             rebinning = False
             if config:
                 if hasattr(config, "plot_options"):
-                    if (histname in config.plot_options.keys()):
-                        if ('binning' in config.plot_options[histname].keys()):
+                    if histname in config.plot_options.keys():
+                        if 'binning' in config.plot_options[histname].keys():
                             rebinning = True
-                            stack_data = rebin(stack_data, config.plot_options[histname]['binning'])
-                            stack_mc_nominal = rebin(stack_mc_nominal, config.plot_options[histname]['binning'])
+                            stack_data = rebin(
+                                stack_data, config.plot_options[histname]['binning']
+                            )
+                            stack_mc_nominal = rebin(
+                                stack_mc_nominal,
+                                config.plot_options[histname]['binning'],
+                            )
 
             if not is_mc_only:
                 if len(stack_data) > 1:
@@ -360,7 +465,11 @@ def plot_data_mc_hist1D(h, histname, config=None, plot_dir="plots", save=True, o
                 # stack_data.plot(stack=True, color='black', ax=ax)
             if rebinning:
                 syst_err_up, syst_err_down = get_systematic_uncertainty(
-                    stack_mc, variations, mcstat=mcstat, stat_only=stat_only, edges=config.plot_options[histname]['binning']
+                    stack_mc,
+                    variations,
+                    mcstat=mcstat,
+                    stat_only=stat_only,
+                    edges=config.plot_options[histname]['binning'],
                 )
             else:
                 syst_err_up, syst_err_down = get_systematic_uncertainty(
@@ -390,7 +499,7 @@ def plot_data_mc_hist1D(h, histname, config=None, plot_dir="plots", save=True, o
                 handles, labels = ax.get_legend_handles_labels()
                 labels_new = []
                 handles_new = []
-                for i,f in enumerate(labels):
+                for i, f in enumerate(labels):
                     if f in nevents:
                         labels_new.append(f"{f} [{nevents[f]}]")
                     else:
@@ -406,12 +515,14 @@ def plot_data_mc_hist1D(h, histname, config=None, plot_dir="plots", save=True, o
             rax.tick_params(axis='y', labelsize=fontsize)
 
             if log:
-                ax.set_xlim(0,1)
-                exp = math.floor( math.log( max(stack_sum(stack_mc_nominal).values()), 10 ) )
-                ax.set_ylim((0.01, 10**(exp+2)))
-                #if flavorsplit == '5f':
+                ax.set_xlim(0, 1)
+                exp = math.floor(
+                    math.log(max(stack_sum(stack_mc_nominal).values()), 10)
+                )
+                ax.set_ylim((0.01, 10 ** (exp + 2)))
+                # if flavorsplit == '5f':
                 #    ax.legend(handles, labels, loc="upper right", fontsize=fontsize, ncols=2)
-                #else:
+                # else:
                 #    ax.legend(loc="upper right", fontsize=fontsize, ncols=2)
             if config:
                 if hasattr(config, "plot_options"):
@@ -421,16 +532,27 @@ def plot_data_mc_hist1D(h, histname, config=None, plot_dir="plots", save=True, o
                         if 'scale' in config.plot_options[histname].keys():
                             ax.set_yscale(config.plot_options[histname]['scale'])
                             if config.plot_options[histname]['scale'] == 'log':
-                                exp = math.floor( math.log( max(stack_sum(stack_mc_nominal).values()), 10 ) )
-                                ax.set_ylim((0.01, 10**(exp+2)))
-                                #ax.legend(handles, labels, loc="upper right", fontsize=fontsize, ncols=2)
+                                exp = math.floor(
+                                    math.log(
+                                        max(stack_sum(stack_mc_nominal).values()), 10
+                                    )
+                                )
+                                ax.set_ylim((0.01, 10 ** (exp + 2)))
+                                # ax.legend(handles, labels, loc="upper right", fontsize=fontsize, ncols=2)
                         if 'ylim' in config.plot_options[histname].keys():
                             if isinstance(config.plot_options[histname]['ylim'], tuple):
                                 ax.set_ylim(*config.plot_options[histname]['ylim'])
-                            elif (isinstance(config.plot_options[histname]['ylim'], float) |
-                                  isinstance(config.plot_options[histname]['ylim'], int)):
+                            elif isinstance(
+                                config.plot_options[histname]['ylim'], float
+                            ) | isinstance(config.plot_options[histname]['ylim'], int):
                                 rescale = config.plot_options[histname]['ylim']
-                                ax.set_ylim((0, rescale * max(stack_sum(stack_mc_nominal).values())))
+                                ax.set_ylim(
+                                    (
+                                        0,
+                                        rescale
+                                        * max(stack_sum(stack_mc_nominal).values()),
+                                    )
+                                )
                 else:
                     if histname in config.variables.keys():
                         if config.variables[histname].axes[0].lim != (0, 0):
@@ -444,7 +566,7 @@ def plot_data_mc_hist1D(h, histname, config=None, plot_dir="plots", save=True, o
             if not os.path.exists(plot_dir):
                 os.makedirs(plot_dir)
             filepath = os.path.join(plot_dir, f"{histname}_{year}_{cat}.png")
-            
+
             if save:
                 print("Saving", filepath)
                 plt.savefig(filepath, dpi=150, format="png")

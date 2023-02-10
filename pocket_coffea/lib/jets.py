@@ -10,10 +10,11 @@ import correctionlib
 from ..parameters.object_preselection import object_preselection
 from ..parameters.jec_config import JECjsonFiles
 from ..lib.deltaR_matching import get_matching_pairs_indices, object_matching
-from lib.sv import get_nmu_in_subjet
 
 # Initialization of the jet factory
-with importlib.resources.path("pocket_coffea.parameters.jec", "jets_evaluator.pkl.gz") as path:
+with importlib.resources.path(
+    "pocket_coffea.parameters.jec", "jets_evaluator.pkl.gz"
+) as path:
     with gzip.open(path) as fin:
         jmestuff = cloudpickle.load(fin)
 
@@ -21,9 +22,10 @@ jet_factory = jmestuff["jet_factory"]
 fatjet_factory = jmestuff["fatjet_factory"]
 met_factory = jmestuff["met_factory"]
 
+
 def add_jec_variables(jets, event_rho):
-    jets["pt_raw"] = (1 - jets.rawFactor)*jets.pt
-    jets["mass_raw"] = (1 - jets.rawFactor)*jets.mass
+    jets["pt_raw"] = (1 - jets.rawFactor) * jets.pt
+    jets["mass_raw"] = (1 - jets.rawFactor) * jets.mass
     jets["pt_gen"] = ak.values_astype(ak.fill_none(jets.matched_gen.pt, 0), np.float32)
     jets["event_rho"] = ak.broadcast_arrays(event_rho, jets.pt)[0]
     return jets
@@ -33,13 +35,11 @@ def jet_correction(events, jets, jetType, year, cache, applyJER=True):
     name = year if applyJER else f"{year}_NOJER"
     if jetType == "AK4PFchs":
         return jet_factory[name].build(
-            add_jec_variables(jets, events.fixedGridRhoFastjetAll),
-            cache
+            add_jec_variables(jets, events.fixedGridRhoFastjetAll), cache
         )
     elif jetType == "AK8PFPuppi":
         return fatjet_factory[name].build(
-            add_jec_variables(jets, events.fixedGridRhoFastjetAll),
-            cache
+            add_jec_variables(jets, events.fixedGridRhoFastjetAll), cache
         )
 
 
@@ -121,7 +121,7 @@ def jet_correction_correctionlib(
         pt_min = (
             3 * ptResolution * jets_corrected['pt']
         )  # Match jets whose pt does not differ more than 3 sigmas from the gen-level pt
-        genJet    = {'AK4PFchs': 'GenJet', 'AK8PFPuppi': 'GenJetAK8'}[typeJet]
+        genJet = {'AK4PFchs': 'GenJet', 'AK8PFPuppi': 'GenJetAK8'}[typeJet]
         genJetIdx = {'AK4PFchs': 'genJetIdx', 'AK8PFPuppi': 'genJetAK8Idx'}[typeJet]
 
         # They can be matched manually
@@ -234,24 +234,7 @@ def jet_selection(events, Jet, finalstate):
         good_jets_mask = presel_mask & lepton_cleaning_mask & jetpuid_mask
 
     elif Jet == "FatJet":
-        njet_max = ak.max(ak.count(jets.pt, axis=1))
-        # Select jets with a minimum number of subjets
-        nsubjet_mask = (ak.count(jets.subjets.pt, axis=2) >= cuts["nsubjet"])
-        # Select jets with a minimum number of mu-tagged subjets
-        nmusj_fatjet1 = get_nmu_in_subjet(events.FatJet, events.MuonGood, pos=0)
-        nmusj_fatjet2 = get_nmu_in_subjet(events.FatJet, events.MuonGood, pos=1)
-        nmusj = ak.concatenate( (ak.unflatten(nmusj_fatjet1, counts=1), ak.unflatten(nmusj_fatjet2, counts=1)), axis=1 )
-        events["nmusj_fatjet1"] = nmusj_fatjet1
-        events["nmusj_fatjet2"] = nmusj_fatjet2
-        events["nmusj"] = nmusj
-        nmusj_mask = (nmusj >= cuts["nmusj"])
-        # Apply di-muon pT ratio cut on FatJets
-        ptratio_mask = (events.dimuon.pt / events.FatJet.pt < cuts["dimuon_pt_ratio"])
-        ptratio_mask = ak.where( ak.is_none(ptratio_mask), ak.zeros_like(events.FatJet.pt, dtype=bool), ptratio_mask )
-        good_jets_mask = ak.ones_like(ak.fill_none(ak.pad_none(jets.pt, njet_max), 1), dtype=bool)
-        for mask in [presel_mask, nsubjet_mask, nmusj_mask, ptratio_mask]:
-            good_jets_mask = good_jets_mask & ak.pad_none(mask, njet_max)
-        good_jets_mask = mask[~ak.is_none(mask, axis=1)]
+        raise NotImplementedError()
 
     return jets[good_jets_mask], good_jets_mask
 

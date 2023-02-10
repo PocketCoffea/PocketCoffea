@@ -103,7 +103,7 @@ class Dataset:
             if not scfg["metadata"]["isMC"]:
                 sname += f"_Era{scfg['metadata']['era']}"
             if "dbs_instance" in scfg.keys():
-                kwargs = {"dbs_instance" : scfg['dbs_instance']}
+                kwargs = {"dbs_instance": scfg['dbs_instance']}
             else:
                 kwargs = {}
             sample = Sample(
@@ -111,7 +111,7 @@ class Dataset:
                 das_names=scfg["das_names"],
                 sample=self.sample,
                 metadata=scfg["metadata"],
-                **kwargs
+                **kwargs,
             )
             self.samples_obj.append(sample)
             # Get the default prefix and the the one

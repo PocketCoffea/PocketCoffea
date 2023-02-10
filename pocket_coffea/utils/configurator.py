@@ -10,7 +10,7 @@ import inspect
 import logging
 
 from ..lib.cut_definition import Cut
-from ..lib.cartesian_categories import CartesianSelection
+from ..lib.categorization import StandardSelection, CartesianSelection
 from ..parameters.cuts.preselection_cuts import passthrough
 from ..lib.weights_manager import WeightCustom
 from ..lib.hist_manager import Axis, HistConf
@@ -31,14 +31,7 @@ class Configurator:
         self.years = []
         self.eras = []
         self.load_dataset()
-
-        # subsamples configuration
-        # Dictionary with subsample_name:[list of Cut ids]
-        self.subsamples = {
-            key: subscfg
-            for key, subscfg in self.dataset.get("subsamples", {}).items()
-            if key in self.samples
-        }
+        self.load_subsamples()
 
         # Check if output file exists, and in case add a `_v01` label, make directory
         if overwrite_output_dir:
@@ -57,59 +50,56 @@ class Configurator:
         # Load histogram settings
         # No manipulation is needed, maybe some check can be added
 
-        ## Load cuts and categories
-        # Cuts: set of Cut objects
-        # Categories: dict with a set of Cut ids for each category
-        self.cut_functions = []
-        self.categories = {}
-        # Saving also a dict of Cut objects to map their ids (name__hash)
-        # N.B. The preselections are just cuts that are applied before
-        # others. It is just a special category of cuts.
-        self.cuts_dict = {}
+        # Categories: object handling categorization
+        # - StandardSelection
+        # - CartesianSelection
         ## Call the function which transforms the dictionary in the cfg
         # in the objects needed in the processors
         self.load_cuts_and_categories()
         ## Weights configuration
-        self.weights_config = {
-            s: {
-                "inclusive": [],
-                "bycategory": {c: [] for c in self.categories.keys()},
-                "is_split_bycat": False,
-            }
-            for s in self.samples
-        }
+
         self.load_weights_config()
         ## Variations configuration
         # The structure is very similar to the weights one,
         # but the common and inclusive collections are fully flattened on a
         # sample:category structure
         self.variations_config = {
-            s: {"weights": {c: [] for c in self.categories.keys()},
-                "shape": {c: [] for c in self.categories.keys()}}
+            s: {
+                "weights": {c: [] for c in self.categories.keys()},
+                "shape": {c: [] for c in self.categories.keys()},
+            }
             for s in self.samples
         }
         if "shape" not in self.cfg["variations"]:
-            self.cfg["variations"]["shape"] = {"common":{"inclusive": []}}
-        self.load_variations_config(self.cfg["variations"]["weights"], variation_type="weights")
-        self.load_variations_config(self.cfg["variations"]["shape"], variation_type="shape")
-        self.available_weights_variations = { s : ["nominal"] for s in self.samples}
-        self.available_shape_variations = { s : [] for s in self.samples}
+            self.cfg["variations"]["shape"] = {"common": {"inclusive": []}}
+
+        self.load_variations_config(
+            self.cfg["variations"]["weights"], variation_type="weights"
+        )
+        self.load_variations_config(
+            self.cfg["variations"]["shape"], variation_type="shape"
+        )
+        self.available_weights_variations = {s: ["nominal"] for s in self.samples}
+        self.available_shape_variations = {s: [] for s in self.samples}
 
         for sample in self.samples:
             # Weights variations
             for cat, vars in self.variations_config[sample]["weights"].items():
                 self.available_weights_variations[sample] += vars
-            #Shape variations                     
+            # Shape variations
             for cat, vars in self.variations_config[sample]["shape"].items():
                 self.available_shape_variations[sample] += vars
 
-            self.available_weights_variations[sample] = list(set(self.available_weights_variations[sample]))
-            self.available_shape_variations[sample] = list(set(self.available_shape_variations[sample]))
+            self.available_weights_variations[sample] = list(
+                set(self.available_weights_variations[sample])
+            )
+            self.available_shape_variations[sample] = list(
+                set(self.available_shape_variations[sample])
+            )
 
         # Column accumulator config
-        self.columns = {
-            s: {c: [] for c in self.categories.keys()} for s in self.samples
-        }
+        self.columns = {}
+
         self.load_columns_config()
 
         # Load workflow
@@ -131,7 +121,7 @@ class Configurator:
                 continue
             setattr(self, key, item)
         # Define default values for optional parameters
-        for key in ['only']:
+        for key in ['only', 'save_skimmed_files']:
             try:
                 getattr(self, key)
             except:
@@ -190,6 +180,31 @@ class Configurator:
                     if 'era' in m.keys():
                         self.eras.append(m["era"])
 
+    def load_subsamples(self):
+        # subsamples configuration
+        # Dictionary with subsample_name:[list of Cut ids]
+        self.subsamples_cuts = {
+            key: subscfg
+            for key, subscfg in self.dataset.get("subsamples", {}).items()
+            if key in self.samples
+        }
+        # Map of subsamples names
+        self.subsamples = {}
+        self.has_subsamples = {}
+        for sample in self.samples:
+            if sample in self.subsamples_cuts:
+                self.subsamples[sample] = list(self.subsamples_cuts[sample].keys())
+                self.has_subsamples[sample] = True
+            else:
+                self.subsamples[sample] = []
+                self.has_subsamples[sample] = False
+
+        # Complete list of samples and subsamples
+        self.subsamples_list = []
+        for sam in self.subsamples.values():
+            self.subsamples_list += sam
+        self.total_samples_list = list(set(self.samples + self.subsamples_list))
+
     def filter_dataset(self, nfiles):
         filtered_dataset = {}
         for sample, ds in self.fileset.items():
@@ -207,43 +222,45 @@ class Configurator:
                 self.cfg[cut_type] = [passthrough]
         if self.cfg["categories"] == {}:
             self.cfg["categories"]["baseline"] = [passthrough]
-        # The cuts_dict is saved just for record
-        for skim in self.cfg["skim"]:
-            if not isinstance(skim, Cut):
-                print("Please define skim, preselections and cuts as Cut objects")
-                raise Exception("Wrong categories/cuts configuration")
-            self.cuts_dict[skim.id] = skim
-        for presel in self.cfg["preselections"]:
-            if not isinstance(presel, Cut):
-                print("Please define skim, preselections and cuts as Cut objects")
-                raise Exception("Wrong categories/cuts configuration")
-            self.cuts_dict[presel.id] = presel
-        # Now saving the categories and cuts
-        if isinstance(self.cfg["categories"], dict):
-            for cat, cuts in self.cfg["categories"].items():
-                self.categories[cat] = []
-                for cut in cuts:
-                    if not isinstance(cut, Cut):
-                        print("Please define skim, preselections and cuts as Cut objects")
-                        raise Exception("Wrong categories/cuts configuration")
-                    self.cut_functions.append(cut)
-                    self.cuts_dict[cut.id] = cut
-                    self.categories[cat].append(cut.id)
-            for cat, cuts in self.categories.items():
-                self.categories[cat] = set(cuts)
 
+        # The cuts_dict is saved just for record
+        self.skim = []
+        for sk in self.cfg["skim"]:
+            if not isinstance(sk, Cut):
+                print("Please define skim, preselections and cuts as Cut objects")
+                raise Exception("Wrong categories/cuts configuration")
+            self.skim.append(sk)
+
+        self.preselections = []
+        for pres in self.cfg["preselections"]:
+            if not isinstance(pres, Cut):
+                print("Please define skim, preselections and cuts as Cut objects")
+                raise Exception("Wrong categories/cuts configuration")
+            self.preselections.append(pres)
+
+        # Now saving the categories
+        if isinstance(self.cfg["categories"], dict):
+            # Convert it to StandardSelection
+            self.categories = StandardSelection(self.cfg["categories"])
+        elif isinstance(self.cfg["categories"], StandardSelection):
+            self.categories = self.cfg["categories"]
         elif isinstance(self.cfg["categories"], CartesianSelection):
             self.categories = self.cfg["categories"]
         # Unique set of cuts
-        self.cut_functions = set(self.cut_functions)
-        logging.info("Cuts:")
-        logging.info(pformat(self.cuts_dict.keys(), compact=True, indent=2))
         logging.info("Categories:")
-        logging.info(pformat(self.categories, compact=True, indent=2))
+        logging.info(self.categories)
 
     def load_weights_config(self):
         '''This function loads the weights definition and prepares a list of
         weights to be applied for each sample and category'''
+        self.weights_config = {
+            s: {
+                "inclusive": [],
+                "bycategory": {c: [] for c in self.categories.keys()},
+                "is_split_bycat": False,
+            }
+            for s in self.samples
+        }
         # Get the list of statically available weights defined in the workflow
         available_weights = self.workflow.available_weights()
         # Read the config and save the list of weights names for each sample (and category if needed)
@@ -321,7 +338,7 @@ class Configurator:
         # Get the list of statically available variations defined in the workflow
         available_variations = self.workflow.available_variations()
         # Read the config and save the list of variations names for each sample (and category if needed)
-  
+
         # TODO Add shape variations
         if "common" not in wcfg:
             print("Variation configuration error: missing 'common' weights key")
@@ -364,7 +381,9 @@ class Configurator:
                                 print(f"Variation {w} not available in the workflow")
                                 raise Exception("Wrong variation configuration")
                         # append only to the specific sample
-                        for wcat in self.variations_config[sample][variation_type].values():
+                        for wcat in self.variations_config[sample][
+                            variation_type
+                        ].values():
                             if w not in wcat:
                                 wcat.append(w)
 
@@ -377,10 +396,18 @@ class Configurator:
                                         f"Variation {w} not available in the workflow"
                                     )
                                     raise Exception("Wrong variation configuration")
-                            self.variations_config[sample][variation_type][cat].append(w)
+                            self.variations_config[sample][variation_type][cat].append(
+                                w
+                            )
 
     def load_columns_config(self):
-        wcfg = self.cfg.get("columns",{})
+        for sample in self.samples:
+            if self.has_subsamples[sample]:
+                for sub in self.subsamples[sample]:
+                    self.columns[sub] = {c: [] for c in self.categories.keys()}
+            else:
+                self.columns[sample] = {c: [] for c in self.categories.keys()}
+        wcfg = self.cfg.get("columns", {})
         # common/inclusive variations
         if "common" in wcfg:
             if "inclusive" in wcfg["common"]:
@@ -401,22 +428,40 @@ class Configurator:
         # Now look at specific samples configurations
         if "bysample" in wcfg:
             for sample, s_wcfg in wcfg["bysample"].items():
-                if sample not in self.samples:
+                if sample not in self.total_samples_list:
                     print(
                         f"Requested missing sample {sample} in the columns configuration"
                     )
                     raise Exception("Wrong columns configuration")
                 if "inclusive" in s_wcfg:
                     for w in s_wcfg["inclusive"]:
-                        # append only to the specific sample
-                        for wcat in self.columns[sample].values():
-                            if w not in wcat:
-                                wcat.append(w)
+                        # append only to the specific subsample
+                        if sample in self.subsamples_list:
+                            for wcat in self.columns[sample].values():
+                                if w not in wcat:
+                                    wcat.append(w)
+                        elif self.has_subsamples[sample]:
+                            # If it was added to the general one: include only in subsamples
+                            for subs in self.subsamples[sample]:
+                                for wcat in self.columns[subs].values():
+                                    if w not in wcat:
+                                        wcat.append(w)
+                        else:
+                            # Add only to the general sample
+                            for wcat in self.columns[sample].values():
+                                if w not in wcat:
+                                    wcat.append(w)
 
                 if "bycategory" in s_wcfg:
                     for cat, columns in s_wcfg["bycategory"].items():
                         for w in columns:
-                            self.columns[sample][cat].append(w)
+                            if sample in self.subsamples_list:
+                                self.columns[sample][cat].append(w)
+                            elif self.has_subsamples[sample]:
+                                for subs in self.subsamples[sample].keys():
+                                    self.columns[subs][cat].append(w)
+                            else:
+                                self.columns[sample][cat].append(w)
 
     def overwrite_check(self):
         if self.plot:
@@ -487,18 +532,10 @@ class Configurator:
 
         ocfg["skim"] = skim_dump
         ocfg["preselections"] = presel_dump
-        
-        if not isinstance(self.categories, CartesianSelection):
-            for cat, cuts in ocfg["categories"].items():
-                newcuts = []
-                for c in cuts:
-                    newcuts.append(c.serialize())
-                cats_dump[cat] = newcuts
 
-            ocfg["categories"] = cats_dump
-        else:
-            ocfg["categories"] = str(self.categories)
-            
+        # categories
+        ocfg["categories"] = self.categories.serialize()
+
         ocfg["workflow"] = {
             "name": self.workflow.__name__,
             "srcfile": inspect.getsourcefile(self.workflow),
@@ -526,7 +563,9 @@ class Configurator:
             key: val.serialize() for key, val in self.variables.items()
         }
 
-        ocfg["columns"] = {s: {c: [] for c in self.categories} for s in self.samples}
+        ocfg["columns"] = {
+            s: {c: [] for c in self.categories} for s in self.total_samples_list
+        }
         for sample, columns in self.columns.items():
             for cat, cols in columns.items():
                 for col in cols:

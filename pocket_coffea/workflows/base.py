@@ -17,7 +17,6 @@ from ..lib.weights_manager import WeightsManager
 from ..lib.columns_manager import ColumnsManager
 from ..lib.hist_manager import HistManager
 from ..lib.jets import jet_correction
-from ..lib.cartesian_categories import CartesianSelection
 from ..utils.skim import uproot_writeable, copy_file
 from ..parameters.event_flags import event_flags, event_flags_data
 from ..parameters.lumi import goldenJSON
@@ -45,32 +44,18 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self.cfg = cfg
 
         # Cuts
-        # The definition of the cuts in the analysis is hierarchical.
         # 1) a list of *skim* functions is applied on bare NanoAOD, with no object preselection or correction.
         #   Triggers are also applied there.
         # 2) Objects are corrected and selected and a list of *preselection* cuts are applied to skim the dataset.
         # 3) A list of cut function is applied and the masks are kept in memory to defined later "categories"
         self._skim = self.cfg.skim
         self._preselections = self.cfg.preselections
-        self._cuts = self.cfg.cut_functions
+        # The categories objects handles a generator of categories and masks to be applied
         self._categories = self.cfg.categories
-        # Define PackedSelector to save per-event cuts and dictionary of selections
-        # The skim mask is applied on baseline nanoaod before any object is corrected
-        self._skim_masks = PackedSelection()
-        # The preselection mask is applied after the objects have been corrected
-        # self._preselection_masks = PackedSelection()
-        # After the preselections more cuts are defined and combined in categories.
-        # These cuts are applied only for outputs, so they cohexists in the form of masks
-        # self._cuts_masks = PackedSelection()
 
         # Subsamples configurations: special cuts to split a sample in subsamples
-        self._subsamplesCfg = self.cfg.subsamples
-
-        # List of all samples names
-        self._totalSamplesSet = self.cfg.samples[:]
-        for sample, subs in self._subsamplesCfg.items():
-            self._totalSamplesSet += list(subs.keys())
-        logging.debug(f"Total samples list: {self._totalSamplesSet}")
+        self._subsamplesCfg = self.cfg.subsamples_cuts
+        self._subsamples_masks = PackedSelection()
 
         # Weights configuration
         self.weights_config_allsamples = self.cfg.weights_config
@@ -92,7 +77,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 "presel": {s: 0 for s in self.cfg.samples},
                 **{cat: {s: 0.0 for s in self.cfg.samples} for cat in self._categories},
             },
-            "seed_chunk": defaultdict(str),
             "variables": {
                 v: {}
                 for v, vcfg in self.cfg.variables.items()
@@ -102,7 +86,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             "processing_metadata": {
                 v: {} for v, vcfg in self.cfg.variables.items() if vcfg.metadata_hist
             },
-            # "bugged_events" : {}
         }
 
     @property
@@ -124,21 +107,20 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self._isMC = self.events.metadata["isMC"] == "True"
         if self._isMC:
             self._era = "MC"
+            self._xsec = self.events.metadata["xsec"]
         else:
             self._era = self.events.metadata["era"]
             self._goldenJSON = goldenJSON[self._year]
         # Loading metadata for subsamples
-        self._hasSubsamples_true = self._sample in self._subsamplesCfg
-
-        if self._hasSubsamples_true:
+        if self._sample in self._subsamplesCfg:
             self._subsamples = self._subsamplesCfg[self._sample]
             self._subsamples_names = list(self._subsamples.keys())
+            self._hasSubsamples = True
         else:
+            # if there is no configured subsample, the full sample becomes its subsample
             self._subsamples = {self._sample: [passthrough]}
             self._subsamples_names = [self._sample]
-
-        ## THIS is an HACK
-        self._hasSubsamples = True
+            self._hasSubsamples = False
 
     def load_metadata_extra(self):
         '''
@@ -164,6 +146,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         Alternatively, if you need to apply the cut on preselected objects,
         defined the cut at the preselection level, not at skim level.
         '''
+        self._skim_masks = PackedSelection()
         mask_flags = np.ones(self.nEvents_initial, dtype=np.bool)
         flags = event_flags[self._year]
         if not self._isMC:
@@ -201,28 +184,31 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self.has_events = self.nEvents_after_skim > 0
 
     def export_skimmed_chunk(self):
-        filename = "__".join(
-            [
-                self._dataset,
-                self.events.metadata['fileuuid'],
-                str(self.events.metadata['entrystart']),
-                str(self.events.metadata['entrystop']),
-            ]
-        ) + ".root"
+        filename = (
+            "__".join(
+                [
+                    self._dataset,
+                    self.events.metadata['fileuuid'],
+                    str(self.events.metadata['entrystart']),
+                    str(self.events.metadata['entrystop']),
+                ]
+            )
+            + ".root"
+        )
+        # TODO Generalize skimming output temporary location
         with uproot.recreate(f"/scratch/{filename}") as fout:
             fout["Events"] = uproot_writeable(self.events)
         # copy the file
-        copy_file(filename, "/scratch",
-                  self.cfg.save_skimmed_files, subdirs=[self._dataset])
+        copy_file(
+            filename, "/scratch", self.cfg.save_skimmed_files, subdirs=[self._dataset]
+        )
         # save the new file location for the new dataset definition
         self.output["skimmed_files"] = {
             self._dataset: [
                 os.path.join(self.cfg.save_skimmed_files, self._dataset, filename)
             ]
         }
-        self.output["nskimmed_files"] = {
-            self._dataset: [self.nEvents_after_skim]
-        }
+        self.output["nskimmed_files"] = {self._dataset: [self.nEvents_after_skim]}
 
     @abstractmethod
     def apply_object_preselection(self, variation):
@@ -271,52 +257,40 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         The function saves all the cut masks internally, in order to use them later
         to define categories (groups of cuts.).
 
+        The categorization objects takes care of the details of the caching of the mask
+        and expose a common interface.
+
         Moreover it computes the cut masks defining the subsamples for the current
         chunks and store them in the `self.subsamples` attribute for later use.
         '''
 
-        # After the preselections more cuts are defined and combined in categories.
-        # These cuts are applied only for outputs, so they cohexists in the form of masks
-        self._cuts_masks = PackedSelection()
-
         # We make sure that for each category the list of cuts is unique in the Configurator validation
-        if isinstance(self._categories, CartesianSelection):
-            self._categories.prepare(
-                events=self.events,
-                year=self._year,
-                sample=self._sample,
-                isMC=self._isMC,
-            )
-            # The cuts masks are the CartesianSelection them self
-            self._cuts_masks = self._categories
-        else:
-            for cut in self._cuts:
-                mask = cut.get_mask(
-                    self.events, year=self._year, sample=self._sample, isMC=self._isMC
-                )
-                self._cuts_masks.add(cut.id, mask)
+        self._categories.prepare(
+            events=self.events,
+            year=self._year,
+            sample=self._sample,
+            isMC=self._isMC,
+        )
 
-        # Defining the subsamples cut if needed
-        if self._hasSubsamples:
-            # saving all the cuts in a single selector
-            self._subsamples_masks = PackedSelection()
-            self._subsamples_cuts_ids = []
-            # saving the map of cut ids for each subsample
-            self._subsamples_map = defaultdict(list)
-            for subs, cuts in self._subsamples.items():
-                for cut in cuts:
-                    if cut.id not in self._subsamples_cuts_ids:
-                        self._subsamples_masks.add(
-                            cut.id,
-                            cut.get_mask(
-                                self.events,
-                                year=self._year,
-                                sample=self._sample,
-                                isMC=self._isMC,
-                            ),
-                        )
-                        self._subsamples_cuts_ids.append(cut.id)
-                    self._subsamples_map[subs].append(cut.id)
+        # Defining the subsamples cut
+        # saving all the cuts in a single selector
+        self._subsamples_cuts_ids = []
+        # saving the map of cut ids for each subsample
+        self._subsamples_map = defaultdict(list)
+        for subs, cuts in self._subsamples.items():
+            for cut in cuts:
+                if cut.id not in self._subsamples_cuts_ids:
+                    self._subsamples_masks.add(
+                        cut.id,
+                        cut.get_mask(
+                            self.events,
+                            year=self._year,
+                            sample=self._sample,
+                            isMC=self._isMC,
+                        ),
+                    )
+                    self._subsamples_cuts_ids.append(cut.id)
+                self._subsamples_map[subs].append(cut.id)
 
     def define_common_variables_before_presel(self, variation):
         '''
@@ -362,6 +336,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 metadata={
                     "year": self._year,
                     "sample": self._sample,
+                    "xsec": self._xsec,
                     "finalstate": self.cfg.finalstate,
                 },
             )
@@ -379,28 +354,18 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         also sum their nominal weights (for each sample, by chunk).
         Store the results in the `cutflow` and `sumw` outputs
         '''
+        for category, mask in self._categories.get_masks():
+            if self._categories.is_multidim and mask.ndim > 1:
+                # The Selection object can be multidim but returning some mask 1-d
+                # For example the CartesianSelection may have a non multidim StandardSelection
+                mask_on_events = ak.any(mask, axis=1)
+            else:
+                mask_on_events = mask
 
-        if isinstance(self._cuts_masks, PackedSelection):
-            # on the fly generator of the categories and cuts
-            categories_generator = (
-                (cat, self._cuts_masks.all(*self._categories[cat]))
-                for cat in self._categories.keys()
-            )
-        elif isinstance(self._cuts_masks, CartesianSelection):
-            categories_generator = self._cuts_masks.get_masks()
-
-        for category, mask in categories_generator:
-            self.output["cutflow"][category][self._sample] = ak.sum(mask)
+            self.output["cutflow"][category][self._sample] = ak.sum(mask_on_events)
             if self._isMC:
                 w = self.weights_manager.get_weight(category)
-                # if ak.any(w / ak.mean(w) > 10):
-                #    mask = (w / ak.mean(w) > 10)
-                #    print("*****************")
-                #    print(self._sample, "weight / mean(weight) > 10")
-                #    print(w / ak.mean(w))
-                #    print("bugged events:", self.events.event[mask])
-                #    self.output["bugged_events"][self._sample] = self.events.event[mask]
-                self.output["sumw"][category][self._sample] = ak.sum(w * mask)
+                self.output["sumw"][category][self._sample] = ak.sum(w * mask_on_events)
 
             # If subsamples are defined we also save their metadata
             if self._hasSubsamples:
@@ -409,7 +374,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     subsam_mask = self._subsamples_masks.all(
                         *self._subsamples_map[subs]
                     )
-                    mask_withsub = mask & subsam_mask
+                    mask_withsub = mask_on_events & subsam_mask
                     self.output["cutflow"][category][subs] = ak.sum(mask_withsub)
                     if self._isMC:
                         self.output["sumw"][category][subs] = ak.sum(w * mask_withsub)
@@ -431,24 +396,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
         Initialize the HistManager.
         Redefine to customize completely the creation of the histManager.
-
-        If subsamples are defined, an histmanager is created for each of them.
+        Only one HistManager is created for all the subsamples.
+        The subsamples masks are passed to `fill_histogram` and used internally.
         '''
-        # Check if subsamples are requested
-        # self.hists_managers = {}
-        # if self._hasSubsamples:
-        #     # in that case create a dictionary of histManagers
-        #     for subs in self._subsamples_names:
-        #         self.hists_managers[subs] = HistManager(
-        #             self.cfg.variables,
-        #             subs,
-        #             self._categories,
-        #             variations_config=self.cfg.variations_config[self._sample],
-        #             custom_axes=self.custom_axes,
-        #             isMC=self._isMC,
-        #         )
-        # else:
-
         self.hists_managers = HistManager(
             self.cfg.variables,
             self._sample,
@@ -476,40 +426,24 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         throught the HistManager.
         '''
         # Filling the autofill=True histogram automatically
-        if self._hasSubsamples:
-            # call the filling for each
-            subs_masks = {}
-            for subs in self._subsamples_names:
-                # Get the mask
-                subs_masks[subs] = self._subsamples_masks.all(
-                    *self._subsamples_map[subs]
-                )
-            # Calling hist manager with a subsample mask
-            self.hists_managers.fill_histograms(
-                self.events,
-                self.weights_manager,
-                self._cuts_masks,
-                subsamples_masks=subs_masks,
-                shape_variation=variation,
-                custom_fields=self.custom_histogram_fields,
-            )
-
-            for subs in self._subsamples_names:
-                # Saving the output for each subsample
-                for var, H in self.hists_managers.get_histograms(subs).items():
-                    self.output["variables"][var][subs] = H
-        # else:
-        #     self.hists_managers[self._sample].fill_histograms(
-        #         self.events,
-        #         self.weights_manager,
-        #         self._cuts_masks,
-        #         shape_variation = variation,
-        #         custom_fields=self.custom_histogram_fields,
-        #     )
-
-        #     # Saving in the output the filled histograms for the current sample
-        #     for var, H in self.hists_managers[self._sample].get_histograms().items():
-        #         self.output["variables"][var][self._sample] = H
+        subs_masks = {}
+        for subs in self._subsamples_names:
+            # Get the mask
+            subs_masks[subs] = self._subsamples_masks.all(*self._subsamples_map[subs])
+        # Calling hist manager with the subsample masks
+        self.hists_managers.fill_histograms(
+            self.events,
+            self.weights_manager,
+            self._categories,
+            subsamples_masks=subs_masks,
+            shape_variation=variation,
+            custom_fields=self.custom_histogram_fields,
+        )
+        # Saving the output
+        for subs in self._subsamples_names:
+            # Saving the output for each subsample
+            for var, H in self.hists_managers.get_histograms(subs).items():
+                self.output["variables"][var][subs] = H
 
     def fill_histograms_extra(self, variation):
         '''
@@ -523,15 +457,10 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         Define the ColumsManagers to handle the requested columns from the configuration.
         If Subsamples are defined a columnsmager is created for each of them.
         '''
-        self.columns_managers = {}
-        if self._hasSubsamples:
-            for subs in self._subsamples_names:
-                self.columns_managers[subs] = ColumnsManager(
-                    self.cfg.columns, subs, self._categories
-                )
-        else:
-            self.columns_managers[self._sample] = ColumnsManager(
-                self.cfg.columns, self._sample, self._categories
+        self.column_managers = {}
+        for subs in self._subsamples_names:
+            self.column_managers[subs] = ColumnsManager(
+                self.cfg.columns[subs], subs, self._categories
             )
 
     def define_column_accumulators_extra(self):
@@ -541,6 +470,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
 
     def fill_column_accumulators(self, variation):
+        if variation != "nominal":
+            return
         # TODO Fill column accumulator for different variations
         if self._hasSubsamples:
             # call the filling for each
@@ -548,17 +479,17 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 # Get the mask
                 subsam_mask = self._subsamples_masks.all(*self._subsamples_map[subs])
                 # Calling hist manager with a subsample mask
-                self.output["columns"][subs] = self.columns_managers[subs].fill_columns(
+                self.output["columns"][subs] = self.column_managers[subs].fill_columns(
                     self.events,
-                    self._cuts_masks,
+                    self._categories,
                     subsample_mask=subsam_mask,
                 )
         else:
-            self.output["columns"][self._sample] = self.columns_managers[
+            self.output["columns"][self._sample] = self.column_managers[
                 self._sample
             ].fill_columns(
                 self.events,
-                self._cuts_masks,
+                self._categories,
             )
 
     def fill_column_accumulators_extra(self, variation):
@@ -609,6 +540,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # nominal is assumed to be the first
         variations = ["nominal"] + self.cfg.available_shape_variations[self._sample]
         # TO be understood if a copy is needed
+        # This is probably very wrong
         nominal_events = self.events
 
         hasJES = False
@@ -616,16 +548,20 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             if ("JES" in v) | ("JER" in v):
                 hasJES = True
 
+        # TODO Improve this selection
         if hasJES:
             # correct the jets only once
-            jec_cache = cachetools.Cache(np.inf)
-            # jets_with_JES = jet_correction(nominal_events, nominal_events.Jet, "AK4PFchs", self._year, jec_cache)
+            jec4_cache = cachetools.Cache(np.inf)
+            jec8_cache = cachetools.Cache(np.inf)
+            jets_with_JES = jet_correction(
+                nominal_events, nominal_events.Jet, "AK4PFchs", self._year, jec4_cache
+            )
             fatjets_with_JES = jet_correction(
                 nominal_events,
                 nominal_events.FatJet,
                 "AK8PFPuppi",
                 self._year,
-                jec_cache,
+                jec8_cache,
             )
         else:
             fatjets_with_JES = nominal_events.FatJet
@@ -636,19 +572,21 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
             if variation == "nominal":
                 self.events = nominal_events
-                # self.events["Jet"] = jets_with_JES
-                self.events["FatJet"] = fatjets_with_JES
+                if hasJES:
+                    # put nominal shape
+                    self.events["Jet"] = jets_with_JES
+                    self.events["FatJet"] = fatjets_with_JES
                 # Nominal is ASSUMED to be the first
                 yield "nominal"
             elif ("JES" in variation) | ("JER" in variation):
                 # JES_jes is the total. JES_[type] is for different variations
                 self.events = nominal_events
-                # self.events["Jet"] = jets_with_JES[variation].up
+                self.events["Jet"] = jets_with_JES[variation].up
                 self.events["FatJet"] = fatjets_with_JES[variation].up
                 yield variation + "Up"
                 # restore nominal before going to down
                 self.events = nominal_events
-                # self.events["Jet"] = jets_with_JES[variation].down
+                self.events["Jet"] = jets_with_JES[variation].down
                 self.events["FatJet"] = fatjets_with_JES[variation].down
                 yield variation + "Down"
 
@@ -738,7 +676,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             # Customization point for derived workflows after preselection cuts
             self.process_extra_before_presel(variation)
 
-            # This will remove all the events not passing preselection from further processing
+            # This will remove all the events not passing preselection
+            # from further processing
             self.apply_preselections(variation)
 
             # If not events remains after the preselection we skip the chunk
@@ -746,7 +685,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 continue
 
             ##########################
-            # After the preselection cuts has been applied more processing is performwend
+            # After the preselection cuts has been applied more processing is performend
             ##########################
             # Customization point for derived workflows after preselection cuts
             self.define_common_variables_after_presel(variation)
@@ -785,7 +724,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Rescale MC histograms by the total sum of the genweights
         try:
             scale_genweight = {}
-            for sample in self._totalSamplesSet:
+            for sample in self.cfg.total_samples_list:
                 if sample not in accumulator["sum_genweights"]:
                     continue
                 scale_genweight[sample] = (
@@ -802,8 +741,13 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 if self.cfg.variables[var].no_weights:
                     continue
                 for sample, h in hists.items():
+                    if sample.startswith('DATA'):  # BEWARE of THIS HARDCODING
+                        continue
                     h *= scale_genweight[sample]
             accumulator["scale_genweight"] = scale_genweight
         except Exception as e:
             print(e)
+            print(
+                "N.B: The weights have NOT been scaled both in histograms and `sumw` output."
+            )
         return accumulator

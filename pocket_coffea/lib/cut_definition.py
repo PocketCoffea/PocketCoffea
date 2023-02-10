@@ -7,11 +7,20 @@ import inspect
 
 @dataclass
 class Cut:
-    """Class for keeping track of a cut and its parameters."""
+    '''Class for keeping track of a cut function and its parameters.
+
+    :param name: name of the cut
+    :param params: dictionary of parameters passed to the cut function.
+    :param coll: collection that the cut is applied on.
+                 If "events" the mask will be 1-D. If "Jet", e.g., the mask will be
+                 dim=2 to be applied on the Jet collection.
+    :param function:  function defining the cut code. Signature fn(events, params, **kwargs)
+    '''
 
     name: str
     params: dict
     function: Callable
+    collection: str = "events"
     _id: str = field(init=False, repr=True, hash=True, default=None)
 
     def get_mask(self, events, **kwargs):
@@ -45,6 +54,7 @@ class Cut:
         out = {
             "name": self.name,
             "params": self.params,
+            "collection": self.collection,
             "function": {
                 "name": self.function.__name__,
                 "module": self.function.__module__,

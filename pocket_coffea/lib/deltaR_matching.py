@@ -100,8 +100,8 @@ def object_matching(obj, obj2, dr_min, dpt_max=None, return_indices=False):
     # Now get only the matching indices by looping over the pairs in order of deltaR.
     # The result contains the list of pairs that are considered valid
     _idx_matched_pairs, _idx_missed_pairs = get_matching_pairs_indices(
-        ak.Array(idx_obj, behavior={}),
-        ak.Array(idx_obj2, behavior={}),
+        ak.without_parameters(idx_obj, behavior={}),
+        ak.without_parameters(idx_obj2, behavior={}),
         ak.ArrayBuilder(),
         ak.ArrayBuilder(),
     )
@@ -141,10 +141,10 @@ def object_matching(obj, obj2, dr_min, dpt_max=None, return_indices=False):
         _idx_obj2_padnone,
         _deltaR_padnone,
     ) = get_matching_objects_indices_padnone(
-        ak.Array(idx_obj_masked, behavior={}),
-        ak.Array(idx_obj2_masked, behavior={}),
-        ak.Array(ak.num(obj2), behavior={}),
-        ak.Array(deltaR_masked, behavior={}),
+        ak.without_parameters(idx_obj_masked, behavior={}),
+        ak.without_parameters(idx_obj2_masked, behavior={}),
+        ak.without_parameters(ak.num(obj2), behavior={}),
+        ak.without_parameters(deltaR_masked, behavior={}),
         ak.ArrayBuilder(),
         ak.ArrayBuilder(),
         ak.ArrayBuilder(),
