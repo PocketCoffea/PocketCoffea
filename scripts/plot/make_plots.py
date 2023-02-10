@@ -112,7 +112,9 @@ if not os.path.exists(config.plots):
 def make_plots(entrystart, entrystop):
     _accumulator = slice_accumulator(accumulator, entrystart, entrystop)
     for (histname, h) in _accumulator['variables'].items():
-        plot_data_mc_hist1D(h, histname, config, flavorsplit=None, mcstat=True, stat_only=False)
+        #if ('FatJetGood_DDX' in histname) | ('FatJetGood_particleNetMD_Xqq' in histname) | ('FatJetGood_particleNet_H4qvsQCD' in histname):
+        #    continue
+        plot_data_mc_hist1D(h, histname, config, flavorsplit='5f', mcstat=True, stat_only=False, log=True)
 
 # Filter dictionary of histograms with `args.only`
 accumulator['variables'] = { k : v for k,v in accumulator['variables'].items() if args.only in k }

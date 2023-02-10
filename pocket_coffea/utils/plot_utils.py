@@ -277,6 +277,9 @@ def plot_data_mc_hist1D(
     samples = h.keys()
     samples_data = list(filter(lambda d: 'DATA' in d, samples))
     samples_mc = list(filter(lambda d: 'DATA' not in d, samples))
+    
+    print("********************")
+    print(samples_mc)
 
     h_mc = h[samples_mc[0]]
 
@@ -292,6 +295,8 @@ def plot_data_mc_hist1D(
     for year in years:
 
         for cat in categories:
+            if 'noreweight' in cat:
+                continue
             if only_cat:
                 if isinstance(only_cat, list):
                     if not cat in only_cat:
@@ -370,7 +375,7 @@ def plot_data_mc_hist1D(
                             [
                                 h[d][slicing_mc]
                                 for d in samples_mc
-                                if d.endswith(f'_{f}')
+                                if (d.endswith(f'_{f}') & ('GluGluH' not in d))
                             ]
                         )
                     )
@@ -382,7 +387,7 @@ def plot_data_mc_hist1D(
                             [
                                 h[d][slicing_mc_nominal]
                                 for d in samples_mc
-                                if d.endswith(f'_{f}')
+                                if (d.endswith(f'_{f}') & ('GluGluH' not in d))
                             ]
                         )
                     )
@@ -391,6 +396,57 @@ def plot_data_mc_hist1D(
                 colors = [colors_5f[f] for f in flavors]
                 nevents = {
                     f: round(sum(dict_mc_nominal[f].values()), 1) for f in flavors
+                }
+                print("************")
+                print(histname)
+                print(samples_mc)
+                dict_gghbb = {
+                    f: stack_sum(
+                        hist.Stack.from_iter(
+                            [
+                                h[d][slicing_mc]
+                                for d in samples_mc
+                                if (d.endswith(f'_{f}') & ('GluGluHToBB' in d))
+                            ]
+                        )
+                    )
+                    for f in flavors
+                }
+                dict_gghbb_nominal = {
+                    f: stack_sum(
+                        hist.Stack.from_iter(
+                            [
+                                h[d][slicing_mc_nominal]
+                                for d in samples_mc
+                                if (d.endswith(f'_{f}') & ('GluGluHToBB' in d))
+                            ]
+                        )
+                    )
+                    for f in flavors
+                }
+                dict_gghcc = {
+                    f: stack_sum(
+                        hist.Stack.from_iter(
+                            [
+                                h[d][slicing_mc]
+                                for d in samples_mc
+                                if (d.endswith(f'_{f}') & ('GluGluHToCC' in d))
+                            ]
+                        )
+                    )
+                    for f in flavors
+                }
+                dict_gghcc_nominal = {
+                    f: stack_sum(
+                        hist.Stack.from_iter(
+                            [
+                                h[d][slicing_mc_nominal]
+                                for d in samples_mc
+                                if (d.endswith(f'_{f}') & ('GluGluHToCC' in d))
+                            ]
+                        )
+                    )
+                    for f in flavors
                 }
             else:
                 dict_mc = {d: h[d][slicing_mc] for d in samples_mc}
@@ -406,6 +462,15 @@ def plot_data_mc_hist1D(
                     dict_mc_nominal[sample] = histo_reweighted
             stack_mc = hist.Stack.from_dict(dict_mc)
             stack_mc_nominal = hist.Stack.from_dict(dict_mc_nominal)
+            if flavorsplit == '5f':
+                stack_gghbb = hist.Stack.from_dict(dict_gghbb)
+                stack_gghbb_nominal = hist.Stack.from_dict(dict_gghbb_nominal)
+                stack_gghcc = hist.Stack.from_dict(dict_gghcc)
+                stack_gghcc_nominal = hist.Stack.from_dict(dict_gghcc_nominal)
+                hist_gghbb = stack_sum(stack_gghbb)
+                hist_gghbb_nominal = stack_sum(stack_gghbb_nominal)
+                hist_gghcc = stack_sum(stack_gghcc)
+                hist_gghcc_nominal = stack_sum(stack_gghcc_nominal)
 
             if not is_mc_only:
                 # Sum over eras if era axis exists in data histogram
@@ -463,6 +528,12 @@ def plot_data_mc_hist1D(
                     x, h_data.values(), yerr=np.sqrt(h_data.values()), **opts_data
                 )
                 # stack_data.plot(stack=True, color='black', ax=ax)
+            if flavorsplit == '5f':
+                sf = 100
+                hist_gghbb_nominal = sf * hist_gghbb_nominal
+                hist_gghcc_nominal = sf * hist_gghcc_nominal
+                hist_gghbb_nominal.plot(stack=False, histtype='step', ax=ax, color='red', label=f'ggHbb x {sf}')
+                hist_gghcc_nominal.plot(stack=False, histtype='step', ax=ax, color='green', label=f'ggHcc x {sf}')
             if rebinning:
                 syst_err_up, syst_err_down = get_systematic_uncertainty(
                     stack_mc,
@@ -515,6 +586,7 @@ def plot_data_mc_hist1D(
             rax.tick_params(axis='y', labelsize=fontsize)
 
             if log:
+                ax.set_yscale("log")
                 ax.set_xlim(0, 1)
                 exp = math.floor(
                     math.log(max(stack_sum(stack_mc_nominal).values()), 10)
@@ -529,6 +601,7 @@ def plot_data_mc_hist1D(
                     if histname in config.plot_options.keys():
                         if 'xlim' in config.plot_options[histname].keys():
                             ax.set_xlim(*config.plot_options[histname]['xlim'])
+                        """
                         if 'scale' in config.plot_options[histname].keys():
                             ax.set_yscale(config.plot_options[histname]['scale'])
                             if config.plot_options[histname]['scale'] == 'log':
@@ -539,6 +612,7 @@ def plot_data_mc_hist1D(
                                 )
                                 ax.set_ylim((0.01, 10 ** (exp + 2)))
                                 # ax.legend(handles, labels, loc="upper right", fontsize=fontsize, ncols=2)
+                        """
                         if 'ylim' in config.plot_options[histname].keys():
                             if isinstance(config.plot_options[histname]['ylim'], tuple):
                                 ax.set_ylim(*config.plot_options[histname]['ylim'])
