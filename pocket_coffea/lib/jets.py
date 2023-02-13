@@ -47,6 +47,10 @@ def jet_correction(events, jets, jetType, year, cache, applyJER=True, applyJES=T
             add_jec_variables(jets, events.fixedGridRhoFastjetAll), cache
         )
 
+def met_correction(MET, jets):
+    return met_factory.build(
+        MET, jets, {}
+    )
 
 def jet_correction_correctionlib(
     events, Jet, typeJet, year, JECversion, JERversion=None, verbose=False
