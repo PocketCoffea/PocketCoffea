@@ -1091,6 +1091,11 @@ class EfficiencyMap:
                     elif label == "ratio_sf":
                         self.map2d.label = "SF var./nom."
                         self.map2d.plot2d(ax=ax_map)
+                    elif label == "unc_rel_sf":
+                        self.map2d.label = "Trigger SF rel. unc."
+                        self.map2d.plot2d(ax=ax_map, vmin=0.0, vmax=0.10)
+                    else:
+                        self.map2d.plot2d(ax=ax_map)
 
                     # self.map2d.plot2d(ax=ax_map, xaxis=self.axis_x, patch_opts=patch_opts[label])
                     hep.cms.text("Preliminary", loc=0, ax=ax_map)
