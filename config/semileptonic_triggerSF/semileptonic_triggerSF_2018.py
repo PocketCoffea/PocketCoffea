@@ -4,6 +4,7 @@ from pocket_coffea.workflows.semileptonic_triggerSF import semileptonicTriggerPr
 from pocket_coffea.lib.cut_functions import get_nObj_min, get_HLTsel
 from pocket_coffea.parameters.histograms import *
 #sys.path.append(os.path.dirname(__file__))
+from config.semileptonic_triggerSF.parameters import eras
 from config.semileptonic_triggerSF.functions import get_ht_above, get_ht_below
 from config.semileptonic_triggerSF.plot_options import efficiency, scalefactor, ratio, residue
 from config.datamc.plots import cfg_plot

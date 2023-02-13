@@ -1,17 +1,26 @@
 from pocket_coffea.parameters.cuts.preselection_cuts import semileptonic_presel_nobtag, passthrough
 from config.parton_matching.functions import *
 from pocket_coffea.lib.cut_definition import Cut
-from pocket_coffea.lib.cut_functions import get_nObj, get_nBtag
+from pocket_coffea.lib.cut_functions import get_nObj_min, get_nBtag
 from pocket_coffea.workflows.tthbb_base_processor import ttHbbBaseProcessor
 from pocket_coffea.parameters.histograms import *
 
 cfg =  {
 
     "dataset" : {
-        "jsons": ["datasets/signal_ttHTobb_2018_local.json",
-                  "datasets/backgrounds_MC_2018_local.json"],
+        "jsons": ["datasets/signal_ttHTobb_local.json",
+                  "datasets/backgrounds_MC_ttbar_local.json",
+                  "datasets/backgrounds_MC_local.json"],
         "filter" : {
-            "samples": ["TTToSemiLeptonic","ttHTobb"],
+            "samples": ["ttHTobb",
+                        "TTToSemiLeptonic",
+                        "TTTo2L2Nu",
+                        "ST_s-channel_4f_leptonDecays",
+                        "ST_t-channel_top_4f_InclusiveDecays",
+                        "ST_t-channel_antitop_4f_InclusiveDecays",
+                        "ST_tW_top_5f_NoFullyHadronicDecays",
+                        "ST_tW_antitop_5f_NoFullyHadronicDecays"
+                        ],
             "samples_exclude" : [],
             "year": ["2018"]
         }
@@ -25,24 +34,25 @@ cfg =  {
     "run_options" : {
         "executor"       : "dask/slurm",
         "workers"        : 1,
-        "scaleout"       : 60,
-        "partition"      : "standard",
-        "walltime"       : "01:00:00",
+        "scaleout"       : 125,
+        "queue"          : "standard",
+        "walltime"       : "06:00:00",
         "mem_per_worker" : "6GB", # GB
         "exclusive"      : False,
-        "chunk"          : 450000,
+        "chunk"          : 400000,
         "retries"        : 30,
         "treereduction"  : 20,
         "max"            : None,
         "skipbadfiles"   : None,
         "voms"           : None,
         "limit"          : None,
+        "adapt"          : False,
     },
 
 
     # Cuts and plots settings
     "finalstate" : "semileptonic",
-    "skim": [ get_nObj(4, 15., "Jet")],
+    "skim": [ get_nObj_min(4, 15., "Jet")],
     "preselections" : [semileptonic_presel_nobtag],
 
     "categories": {
@@ -53,8 +63,8 @@ cfg =  {
     "weights": {
         "common": {
             "inclusive": ["genWeight","lumi","XS", "pileup",
-                          "sf_ele_id", "sf_ele_reco",
-                          "sf_mu_id", "sf_mu_iso"],
+                          "sf_ele_id", "sf_ele_reco", "sf_ele_trigger",
+                          "sf_mu_id", "sf_mu_iso", "sf_mu_trigger"],
              "bycategory" : {
                 "btagSF" : ["sf_btag"],
             }
