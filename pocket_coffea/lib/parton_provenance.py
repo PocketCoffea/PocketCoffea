@@ -3,6 +3,13 @@ from numba import njit
 
 @njit
 def get_partons_provenance_ttHbb(pdgIds, array_builder):
+    """
+        1=higgs,
+        2=hadronic top bquark,
+        3=leptonic top bquark,
+        4=additional radiation
+        5=hadronic W (from top) decay quarks
+        """
     for ids in pdgIds:
         from_part = [-1] * len(ids)
         if len(ids) == 7:
@@ -12,8 +19,12 @@ def get_partons_provenance_ttHbb(pdgIds, array_builder):
         else:
             offset = 0
         # From part ==
-        # 1=higgs, 2=hadronic top, 3=leptonic top, 4=additional radiation
-
+        """
+        1=higgs,
+        2=hadronic top bquark,
+        3=leptonic top b,
+        4=additional radiation
+        """
         if len(ids) in [6, 7]:
             top = []
             antitop = []
@@ -52,15 +63,17 @@ def get_partons_provenance_ttHbb(pdgIds, array_builder):
                 hadr_top = 1
 
             if hadr_top == -1:
-                for i in antitop:
-                    from_part[i] = 2
-                for i in top:
-                    from_part[i] = 3
+                # The antitop has decayed hadronically
+                from_part[antitop[0]] = 2
+                from_part[antitop[1]] = 5
+                from_part[antitop[2]] = 5
+                from_part[top[0]] = 3
             if hadr_top == 1:
-                for i in antitop:
-                    from_part[i] = 3
-                for i in top:
-                    from_part[i] = 2
+                # The top has decayed hadronically
+                from_part[top[0]] = 2
+                from_part[top[1]] = 5
+                from_part[top[2]] = 5
+                from_part[antitop[0]] = 3
 
             # The higgs is at the bottom
             from_part[4 + offset] = 1

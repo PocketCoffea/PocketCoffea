@@ -55,7 +55,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
         # Subsamples configurations: special cuts to split a sample in subsamples
         self._subsamplesCfg = self.cfg.subsamples_cuts
-        self._subsamples_masks = PackedSelection()
 
         # Weights configuration
         self.weights_config_allsamples = self.cfg.weights_config
@@ -277,6 +276,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self._subsamples_cuts_ids = []
         # saving the map of cut ids for each subsample
         self._subsamples_map = defaultdict(list)
+        self._subsamples_masks = PackedSelection()
+
         for subs, cuts in self._subsamples.items():
             for cut in cuts:
                 if cut.id not in self._subsamples_cuts_ids:
