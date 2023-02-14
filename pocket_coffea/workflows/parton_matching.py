@@ -64,6 +64,7 @@ class PartonMatchingProcessor(ttHbbBaseProcessor):
         )
         self.matched_partons_mask = ~ak.is_none(self.events.JetGoodMatched, axis=1)
 
+
     def count_partons(self):
         self.events["nParton"] = ak.num(self.events.Parton, axis=1)
         self.events["nPartonMatched"] = ak.count(
@@ -74,4 +75,9 @@ class PartonMatchingProcessor(ttHbbBaseProcessor):
         self.do_parton_matching()
         self.count_partons()
 
+        # Saving leptons and neutrino parton level
+        self.events["LeptonParton"] = self.events.LHEPart[
+            (self.events.LHEPart.status==1)&
+            (abs(self.events.LHEPart.pdgId)>10)&
+            (abs(self.events.LHEPart.pdgId)<15)]
         
