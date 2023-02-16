@@ -243,12 +243,12 @@ def plot_systematic_uncertainty(
         up = up / nom
         down = down / nom
 
-    # unc_band = np.array([down, up])
+    #unc_band = np.array([down, up])
     unc_band = np.nan_to_num(np.array([down, up]), nan=1)
 
-    # print("up", up)
-    # print("nom", nom)
-    # print("down", down)
+    #print("up", up)
+    #print("nom", nom)
+    #print("down", down)
 
     ax.fill_between(
         h_mc_sum.axes[0].edges,
@@ -257,7 +257,8 @@ def plot_systematic_uncertainty(
         **opts_unc,
         label="syst. unc.",
     )
-    ax.hlines(1.0, *ak.Array(h_mc_sum.axes[0].edges)[[0,-1]], colors='gray', linestyles='dashed')
+    if ratio:
+        ax.hlines(1.0, *ak.Array(h_mc_sum.axes[0].edges)[[0,-1]], colors='gray', linestyles='dashed')
 
 
 def plot_data_mc_hist1D(
