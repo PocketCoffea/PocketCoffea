@@ -37,10 +37,6 @@ def get_ele_sf(year, pt, eta, counts=None, key='', pt_region=None, variations=["
         )
         map_name = electronJSONfiles[year]['name']
     elif key == 'trigger':
-        if counts != None:
-            sys.exit(
-                "The `counts` array should not be passed since the trigger SF are computed for the semileptonic final state and the electron arrays are already flat."
-            )
         electronJSON = correctionlib.CorrectionSet.from_file(
             electronJSONfiles[year]['file_triggerSF']
         )
@@ -79,6 +75,8 @@ def get_ele_sf(year, pt, eta, counts=None, key='', pt_region=None, variations=["
                     electronJSON[map_name].evaluate(f"{variation}Up", pt.to_numpy(), eta.to_numpy()),
                     electronJSON[map_name].evaluate(f"{variation}Down", pt.to_numpy(), eta.to_numpy())
                 ]
+            for i, sf in enumerate(output[variation]):
+                output[variation][i] = ak.unflatten(sf, counts)
 
         return output
 
@@ -180,13 +178,26 @@ def sf_ele_trigger(events, year, variations=["nominal"]):
     '''
     This function computes the semileptonic electron trigger SF by considering the leading electron in the event.
     This computation is valid only in the case of the semileptonic final state.
-    Additionally, also the up and down variations of the SF are returned.
+    Additionally, also the up and down variations of the SF for a set of systematic uncertainties are returned.
     '''
 
-    ele_pt = ak.firsts(events.ElectronGood.pt)
-    ele_eta = ak.firsts(events.ElectronGood.etaSC)
+    ele_pt = events.ElectronGood.pt
+    ele_eta = events.ElectronGood.etaSC
 
-    return get_ele_sf(year, ele_pt, ele_eta, key='trigger', variations=variations)
+    ele_pt_flat, ele_eta_flat, ele_counts = (
+        ak.flatten(ele_pt),
+        ak.flatten(ele_eta),
+        ak.num(ele_pt),
+    )
+    sf_dict = get_ele_sf(
+        year, ele_pt_flat, ele_eta_flat, ele_counts, 'trigger', variations=variations
+    )
+
+    for variation in sf_dict.keys():
+        for i, sf in enumerate(sf_dict[variation]):
+            sf_dict[variation][i] = ak.prod(sf, axis=1)
+
+    return sf_dict
 
 
 def sf_mu(events, year, key=''):
