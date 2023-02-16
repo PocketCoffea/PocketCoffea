@@ -86,6 +86,38 @@ default_axis_settings = {
         "lim": (-math.pi, math.pi),
         'label': "$\phi_{e}$",
     },
+    'lepton_pt': {
+        "field": "pt",
+        "bins": 50,
+        "start": 0,
+        'stop': 500,
+        "lim": (0, 500),
+        'label': "$p_{T}^{\ell}$ [GeV]",
+    },
+    'lepton_eta': {
+        "field": "eta",
+        "bins": 50,
+        "start": -2.5,
+        'stop': 2.5,
+        "lim": (-2.5, 2.5),
+        'label': "$\eta_{\ell}$",
+    },
+    'lepton_phi': {
+        "field": "phi",
+        "bins": 64,
+        "start": -math.pi,
+        'stop': math.pi,
+        "lim": (-math.pi, math.pi),
+        'label': "$\phi_{\ell}$",
+    },
+    'lepton_pdgId': {
+        "field": "pdgId",
+        "bins": 32,
+        "start": -16,
+        'stop': 16,
+        "lim": (-16, 16),
+        'label': "Lepton pdgId",
+    },
     'jet_pt': {
         "field": "pt",
         "bins": 100,
@@ -406,6 +438,7 @@ collection_fields = {
     'parton': ["eta", "pt", "phi", "dRMatchedJet", "pdgId"],
     'electron': ["eta", "pt", "phi", "etaSC"],
     'muon': ["eta", "pt", "phi"],
+    'lepton': ["eta", "pt", "phi", "pdgId"],
     'sv': [
         "summass",
         "logsummass",
@@ -466,6 +499,11 @@ def muon_hists(coll="MuonGood", pos=None, fields=None, name=None):
     if name == None:
         name = coll
     return _get_default_hist(name, "muon", coll, pos, fields)
+
+def lepton_hists(coll="LeptonGood", pos=None, fields=None, name=None):
+    if name == None:
+        name = coll
+    return _get_default_hist(name, "lepton", coll, pos, fields)
 
 
 def sv_hists(coll="SV", pos=None, fields=None, name=None):
