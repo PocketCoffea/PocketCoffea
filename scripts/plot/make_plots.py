@@ -31,6 +31,7 @@ parser.add_argument('-v', '--version', type=str, default=None, help='Version of 
 parser.add_argument('--test', default=False, action='store_true', help='Test mode')
 parser.add_argument('-j', '--workers', type=int, default=8, help='Number of parallel workers to use for plotting')
 parser.add_argument('-o', '--only', type=str, default='', help='Filter histograms name with string')
+parser.add_argument('-oc', '--only_cat', type=str, default='', help='Filter categories with string')
 
 args = parser.parse_args()
 config = Configurator(args.cfg, plot=True, plot_version=args.version)
@@ -112,7 +113,7 @@ if not os.path.exists(config.plots):
 def make_plots(entrystart, entrystop):
     _accumulator = slice_accumulator(accumulator, entrystart, entrystop)
     for (histname, h) in _accumulator['variables'].items():
-        plot_data_mc_hist1D(h, histname, config, flavorsplit=None, mcstat=True, stat_only=False)
+        plot_data_mc_hist1D(h, histname, config, flavorsplit=None, only_cat=args.only_cat, mcstat=True, stat_only=False)
 
 # Filter dictionary of histograms with `args.only`
 accumulator['variables'] = { k : v for k,v in accumulator['variables'].items() if args.only in k }
