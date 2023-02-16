@@ -1,3 +1,5 @@
+from os import path
+
 electronSF = {
     'reco': {'pt>20': "RecoAbove20", 'pt<20': "RecoBelow20"},
     'id': "wp80iso",
