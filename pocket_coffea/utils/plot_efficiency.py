@@ -2,7 +2,6 @@ import os
 import sys
 
 import numpy as np
-import matplotlib
 import matplotlib.pyplot as plt
 
 import mplhep as hep
@@ -1196,10 +1195,6 @@ class EfficiencyMap:
                                     fontsize=fontsize_map,
                                     fontweight="bold",
                                 )
-                    #im = ax_map.images
-                    #cb = im[-1].colorbar
-                    print("******************")
-                    print(ax_map.artists)
                 self.save2d(cat, syst, var, label, save_plots, era)
         elif self.dim == 1:
             pass
