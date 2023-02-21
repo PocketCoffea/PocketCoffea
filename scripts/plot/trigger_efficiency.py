@@ -156,13 +156,13 @@ def save_corrections(corrections):
             )
             rich.print(cset)
             filename = f'sf_trigger_{map_name}_{year}_{cat}.json'
-            for outdir in [config.workflow_options["output_triggerSF"], local_folder]:
-                outfile_triggersf = os.path.join(outdir, filename)
-                outfile_triggersf = overwrite_check(outfile_triggersf)
-                print(f"Saving semileptonic trigger scale factors in {outfile_triggersf}")
-                with open(outfile_triggersf, "w") as fout:
-                    fout.write(cset.json(exclude_unset=True))
-                fout.close()
+            outdir = local_folder
+            outfile_triggersf = os.path.join(outdir, filename)
+            outfile_triggersf = overwrite_check(outfile_triggersf)
+            print(f"Saving semileptonic trigger scale factors in {outfile_triggersf}")
+            with open(outfile_triggersf, "w") as fout:
+                fout.write(cset.json(exclude_unset=True))
+            fout.close()
             if 'hist_axis_y' not in correction['nominal'].keys():
                 extra_args = {'histname' : histname, 'year' : year, 'config' : config, 'cat' : cat, 'fontsize' : fontsize}
                 plot_variation_correctionlib(outfile_triggersf, hist_axis_x, variations_labels, plot_dir_sf, **extra_args)
