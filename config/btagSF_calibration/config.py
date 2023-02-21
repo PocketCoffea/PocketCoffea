@@ -28,7 +28,7 @@ cfg =  {
 
     # Input and output files
     "workflow" : ttHbbBaseProcessor,
-    "output"   : "output/btagSF_calibration_hist",
+    "output"   : "output/sf_btag_calib/btagSF_calibration_hist",
     "workflow_extra_options": {},
 
     "run_options" : {

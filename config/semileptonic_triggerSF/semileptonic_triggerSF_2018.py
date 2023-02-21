@@ -192,14 +192,16 @@ cfg =  {
                      lim=(30,500)),
                 Axis(coll="ElectronGood", field="phi", pos=0,
                      bins=12, start=-pi, stop=pi,
-                     label="Electron $\phi$"),
+                     label="Electron $\phi$",
+                     lim=(-pi,pi)),
             ]
         ),
         "electron_etaSC_phi_leading" : HistConf(
             [
                 Axis(coll="ElectronGood", field="phi", pos=0,
                      bins=12, start=-pi, stop=pi,
-                     label="Electron $\phi$"),
+                     label="Electron $\phi$",
+                     lim=(-pi,pi)),
                 Axis(coll="ElectronGood", field="etaSC", pos=0, type="variable",
                      bins=[-2.5, -2.0, -1.5660, -1.4442, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.5660, 2.0, 2.5],
                      label="Electron Supercluster $\eta$",
@@ -226,14 +228,16 @@ cfg =  {
                      lim=(30,500)),
                 Axis(coll="ElectronGood", field="phi",
                      bins=12, start=-pi, stop=pi,
-                     label="Electron $\phi$"),
+                     label="Electron $\phi$",
+                     lim=(-pi,pi)),
             ]
         ),
         "electron_etaSC_phi_all" : HistConf(
             [
                 Axis(coll="ElectronGood", field="phi",
                      bins=12, start=-pi, stop=pi,
-                     label="Electron $\phi$"),
+                     label="Electron $\phi$",
+                     lim=(-pi,pi)),
                 Axis(coll="ElectronGood", field="etaSC", type="variable",
                      bins=[-2.5, -2.0, -1.5660, -1.4442, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.5660, 2.0, 2.5],
                      label="Electron Supercluster $\eta$",
@@ -242,7 +246,7 @@ cfg =  {
         ),
     },
     "plot_options" : {
-        "only" : "electron_etaSC_pt_leading",
+        "only" : None,
         "workers" : 16,
         "scale" : "log",
         "fontsize" : 20,

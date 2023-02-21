@@ -39,13 +39,13 @@ cfg =  {
 
     # Input and output files
     "workflow" : ttHbbBaseProcessor,
-    "output"   : "output/datamc/ttHbb_ttbar_ST_datamc_btagcalibrated",
+    "output"   : "output/datamc/ttHbb_ttbar_ST_datamc_btagcalibrated_SingleMuon_bugfix",
     "worflow_options" : {},
 
     "run_options" : {
         "executor"       : "dask/slurm",
         "workers"        : 1,
-        "scaleout"       : 300,
+        "scaleout"       : 150,
         "queue"          : "standard",
         "walltime"       : "12:00:00",
         "mem_per_worker" : "4GB", # GB

@@ -20,7 +20,8 @@ def dilepton(events, params, year, sample, **kwargs):
     mask = (
         (events.nLeptonGood == 2) &
         has_one_electron &
-        ( has_one_muon & (ak.firsts(events.MuonGood.pt) > params["pt_leading_muon"]) ) &
+        has_one_muon &
+        #( has_one_muon & (ak.firsts(events.MuonGood.pt) > params["pt_leading_muon"]) ) &
         (events.nJetGood >= params["njet"])
     )
 
@@ -33,8 +34,8 @@ cfg =  {
         "jsons": ["datasets/backgrounds_MC_ttbar_local.json",
                   "datasets/DATA_SingleMuon_local.json"],
         "filter" : {
-            "samples": [#"TTToSemiLeptonic",
-                        #"TTTo2L2Nu",
+            "samples": ["TTToSemiLeptonic",
+                        "TTTo2L2Nu",
                         "DATA_SingleMuon"],
             "samples_exclude" : [],
             "year": ["2018"]
@@ -51,9 +52,9 @@ cfg =  {
 
     # Executor parameters
     "run_options" : {
-        "executor"       : "futures",
+        "executor"       : "dask/slurm",
         "workers"        : 1,
-        "scaleout"       : 16,
+        "scaleout"       : 125,
         "queue"          : "standard",
         "walltime"       : "12:00:00",
         "mem_per_worker" : "4GB", # GB
@@ -102,7 +103,7 @@ cfg =  {
             "inclusive": ["genWeight","lumi","XS",
                           "pileup",
                           "sf_ele_reco", "sf_ele_id",
-                          "sf_mu_id", "sf_mu_iso", "sf_mu_trigger"],
+                          "sf_mu_id", "sf_mu_iso"],#, "sf_mu_trigger"],
             "bycategory" : {
             }
         },
@@ -209,14 +210,16 @@ cfg =  {
                      lim=(30,500)),
                 Axis(coll="ElectronGood", field="phi", pos=0,
                      bins=12, start=-pi, stop=pi,
-                     label="Electron $\phi$"),
+                     label="Electron $\phi$",
+                     lim=(-pi,pi)),
             ]
         ),
         "electron_etaSC_phi_leading" : HistConf(
             [
                 Axis(coll="ElectronGood", field="phi", pos=0,
                      bins=12, start=-pi, stop=pi,
-                     label="Electron $\phi$"),
+                     label="Electron $\phi$",
+                     lim=(-pi,pi)),
                 Axis(coll="ElectronGood", field="etaSC", pos=0, type="variable",
                      bins=[-2.5, -2.0, -1.5660, -1.4442, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.5660, 2.0, 2.5],
                      label="Electron Supercluster $\eta$",
@@ -243,14 +246,16 @@ cfg =  {
                      lim=(30,500)),
                 Axis(coll="ElectronGood", field="phi",
                      bins=12, start=-pi, stop=pi,
-                     label="Electron $\phi$"),
+                     label="Electron $\phi$",
+                     lim=(-pi,pi)),
             ]
         ),
         "electron_etaSC_phi_all" : HistConf(
             [
                 Axis(coll="ElectronGood", field="phi",
                      bins=12, start=-pi, stop=pi,
-                     label="Electron $\phi$"),
+                     label="Electron $\phi$",
+                     lim=(-pi,pi)),
                 Axis(coll="ElectronGood", field="etaSC", type="variable",
                      bins=[-2.5, -2.0, -1.5660, -1.4442, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4442, 1.5660, 2.0, 2.5],
                      label="Electron Supercluster $\eta$",
