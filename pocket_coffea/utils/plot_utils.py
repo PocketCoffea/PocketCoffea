@@ -14,6 +14,7 @@ import mplhep as hep
 from ..parameters.lumi import lumi, femtobarn
 
 fontsize = 22
+fontsize_legend_ratio = 12
 plt.style.use([hep.style.ROOT, {'font.size': fontsize}])
 plt.rcParams.update({'font.size': fontsize})
 
@@ -52,6 +53,25 @@ opts_unc = {
         'markersize': 1.0,
         #'color': 'red',
         'elinewidth': 1,
+    },
+}
+
+opts_unc_total = {
+    'Up': {
+        'linestyle': 'dashed',
+        'linewidth': 1,
+        'marker': '.',
+        'markersize': 1.0,
+        #'color': 'red',
+        'elinewidth': 2,
+    },
+    'Down': {
+        'linestyle': 'dotted',
+        'linewidth': 1,
+        'marker': '.',
+        'markersize': 1.0,
+        #'color': 'red',
+        'elinewidth': 2,
     },
 }
 
@@ -284,10 +304,6 @@ def get_systematic_uncertainty(
                 syst_err2_up_combined = np.where(is_onesided, syst_err2_up_onesided, syst_err2_up_twosided)
                 syst_err2_down_combined = np.where(is_onesided, syst_err2_down_onesided, syst_err2_down_twosided)
 
-                #syst_err2_up_single = np.where(up_is_up, errUp**2, errDown**2)
-                #syst_err2_down_single = np.where(up_is_up, errDown**2, errUp**2)
-                #syst_err2_up += syst_err2_up_single
-                #syst_err2_down += syst_err2_down_single
                 syst_err2_up_dict[syst] += syst_err2_up_combined
                 syst_err2_down_dict[syst] += syst_err2_down_combined
 
@@ -309,6 +325,7 @@ def get_systematic_uncertainty(
 
 def plot_uncertainty_band(h_mc_sum, syst_err2_up, syst_err2_down, ax, ratio=False):
     nom = h_mc_sum.values()
+    # Sum in quadrature of the systematic uncertainties for each variation
     up = nom + np.sqrt(sum(syst_err2_up.values()))
     down = nom - np.sqrt(sum(syst_err2_down.values()))
 
@@ -343,10 +360,9 @@ def plot_systematic_uncertainty(
         syst_err2_up_filtered = { syst : unc for syst, unc in syst_err2_up.items() if any(key in syst for key in only_syst)}
         syst_err2_down_filtered = { syst : unc for syst, unc in syst_err2_down.items() if any(key in syst for key in only_syst)}
 
-    if partial_unc_band:
-        plot_uncertainty_band(h_mc_sum, syst_err2_up_filtered, syst_err2_down_filtered, ax, ratio)
-    else:
+    if not split_systematics:
         plot_uncertainty_band(h_mc_sum, syst_err2_up, syst_err2_down, ax, ratio)
+
 
     if split_systematics:
         if syst_err2_up_filtered.keys() != syst_err2_down_filtered.keys():
@@ -357,6 +373,28 @@ def plot_systematic_uncertainty(
         binwidth_x = np.ediff1d(edges_x)
         x = edges_x[:-1] + 0.5 * binwidth_x
         xerr = 0.5 * binwidth_x
+
+        if partial_unc_band:
+            # Sum in quadrature of the systematic uncertainties for each variation
+            up_tot = nom + np.sqrt(sum(syst_err2_up_filtered.values()))
+            down_tot = nom - np.sqrt(sum(syst_err2_down_filtered.values()))
+            label = "partial"
+        else:
+            # Sum in quadrature of the systematic uncertainties for each variation
+            up_tot = nom + np.sqrt(sum(syst_err2_up.values()))
+            down_tot = nom - np.sqrt(sum(syst_err2_down.values()))
+            label = "total"
+        if ratio:
+            up_tot = up_tot / nom
+            down_tot = down_tot / nom
+        linesUp_tot = ax.errorbar(x, up_tot, yerr=0, xerr=xerr, label=f"{label}Up", **opts_unc_total['Up'], fmt='none', color='gray')
+        linesDown_tot = ax.errorbar(x, down_tot, yerr=0, xerr=xerr, label=f"{label}Down", **opts_unc_total['Down'], fmt='none', color='gray')
+        for lines, var in zip([linesDown_tot, linesUp_tot], ['Down', 'Up']):
+            errorbar_x = lines[-1][0]
+            errorbar_y = lines[-1][1]
+            errorbar_x.set_linestyle(opts_errorbar[var]['linestyle'])
+            errorbar_y.set_linewidth(0)
+
         color = iter(cm.gist_rainbow(np.linspace(0, 1, len(syst_err2_up_filtered.keys()))))
         for i, syst in enumerate(syst_err2_up_filtered.keys()):
             up = nom + np.sqrt(syst_err2_up_filtered[syst])
@@ -367,14 +405,16 @@ def plot_systematic_uncertainty(
             c = next(color)
             linesUp = ax.errorbar(x, up, yerr=0, xerr=xerr, label=f"{syst}Up", **opts_unc['Up'], fmt='none', color=c)
             linesDown = ax.errorbar(x, down, yerr=0, xerr=xerr, label=f"{syst}Down", **opts_unc['Down'], fmt='none', color=c)
-            #linesDown = ax.errorbar(x, down, yerr=0, xerr=xerr, label=f"{syst}Down", **opts_unc['Down'], fmt='none', color=linesUp[0].get_color())
 
             for lines, var in zip([linesDown, linesUp], ['Down', 'Up']):
                 errorbar_x = lines[-1][0]
                 errorbar_y = lines[-1][1]
                 errorbar_x.set_linestyle(opts_errorbar[var]['linestyle'])
                 errorbar_y.set_linewidth(0)
-        ax.legend(fontsize=fontsize, ncols=2)
+        if ratio:
+            ax.legend(fontsize=fontsize_legend_ratio, ncols=2)
+        else:
+            ax.legend(fontsize=fontsize, ncols=2)
 
 
 def plot_data_mc_hist1D(
