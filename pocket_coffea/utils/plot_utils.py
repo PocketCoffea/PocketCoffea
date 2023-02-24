@@ -18,6 +18,19 @@ fontsize_legend_ratio = 12
 plt.style.use([hep.style.ROOT, {'font.size': fontsize}])
 plt.rcParams.update({'font.size': fontsize})
 
+opts_figure = {
+    "total" : {
+        'figsize' : (12,12),
+        'gridspec_kw' : {"height_ratios": (3, 1)},
+        'sharex' : True,
+    },
+    "partial" : {
+        'figsize' : (12,15),
+        'gridspec_kw' : {"height_ratios": (3, 1)},
+        'sharex' : True,
+    },
+}
+
 opts_data = {
     'linestyle': 'solid',
     'linewidth': 0,
@@ -62,7 +75,7 @@ opts_unc_total = {
         'linewidth': 1,
         'marker': '.',
         'markersize': 1.0,
-        #'color': 'red',
+        'color': 'gray',
         'elinewidth': 2,
     },
     'Down': {
@@ -70,7 +83,7 @@ opts_unc_total = {
         'linewidth': 1,
         'marker': '.',
         'markersize': 1.0,
-        #'color': 'red',
+        'color': 'gray',
         'elinewidth': 2,
     },
 }
@@ -387,8 +400,8 @@ def plot_systematic_uncertainty(
         if ratio:
             up_tot = up_tot / nom
             down_tot = down_tot / nom
-        linesUp_tot = ax.errorbar(x, up_tot, yerr=0, xerr=xerr, label=f"{label}Up", **opts_unc_total['Up'], fmt='none', color='gray')
-        linesDown_tot = ax.errorbar(x, down_tot, yerr=0, xerr=xerr, label=f"{label}Down", **opts_unc_total['Down'], fmt='none', color='gray')
+        linesUp_tot = ax.errorbar(x, up_tot, yerr=0, xerr=xerr, label=f"{label}Up", **opts_unc_total['Up'], fmt='none')
+        linesDown_tot = ax.errorbar(x, down_tot, yerr=0, xerr=xerr, label=f"{label}Down", **opts_unc_total['Down'], fmt='none')
         for lines, var in zip([linesDown_tot, linesUp_tot], ['Down', 'Up']):
             errorbar_x = lines[-1][0]
             errorbar_y = lines[-1][1]
@@ -615,13 +628,11 @@ def plot_data_mc_hist1D(
                     nevents['Data'] = round(sum(h_data.values()))
 
             totalLumi = femtobarn(lumi[year]['tot'], digits=1)
-            fig, (ax, rax) = plt.subplots(
-                2,
-                1,
-                figsize=(12, 12),
-                gridspec_kw={"height_ratios": (3, 1)},
-                sharex=True,
-            )
+            if partial_unc_band:
+                opts_fig = opts_figure['partial']
+            else:
+                opts_fig = opts_figure['total']
+            fig, (ax, rax) = plt.subplots(2, 1, **opts_fig)
             fig.subplots_adjust(hspace=0.06)
             hep.cms.text("Preliminary", fontsize=fontsize, loc=0, ax=ax)
             hep.cms.lumitext(
