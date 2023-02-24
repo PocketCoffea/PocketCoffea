@@ -8,7 +8,7 @@ import hist
 from coffea.util import load
 
 import matplotlib.pyplot as plt
-from matplotlib.colors import LogNorm
+from matplotlib.pyplot import cm
 import mplhep as hep
 
 from ..parameters.lumi import lumi, femtobarn
@@ -29,12 +29,63 @@ opts_data = {
 
 hatch_density = 4
 opts_unc = {
-    "step": "post",
-    "color": (0, 0, 0, 0.4),
-    "facecolor": (0, 0, 0, 0.0),
-    "linewidth": 0,
-    "hatch": '/' * hatch_density,
-    "zorder": 2,
+    "total" : {
+        "step": "post",
+        "color": (0, 0, 0, 0.4),
+        "facecolor": (0, 0, 0, 0.0),
+        "linewidth": 0,
+        "hatch": '/' * hatch_density,
+        "zorder": 2,
+    },
+    'Up': {
+        'linestyle': 'dashed',
+        'linewidth': 1,
+        'marker': '.',
+        'markersize': 1.0,
+        #'color': 'red',
+        'elinewidth': 1,
+    },
+    'Down': {
+        'linestyle': 'dotted',
+        'linewidth': 1,
+        'marker': '.',
+        'markersize': 1.0,
+        #'color': 'red',
+        'elinewidth': 1,
+    },
+}
+
+opts_sf = {
+    'nominal': {
+        'linestyle': 'solid',
+        'linewidth': 1,
+        'marker': '.',
+        'markersize': 1.0,
+        'color': 'red',
+        'elinewidth': 1,
+    },
+    'Up': {
+        'linestyle': 'dashed',
+        'linewidth': 1,
+        'marker': '.',
+        'markersize': 1.0,
+        'color': 'red',
+        'elinewidth': 1,
+    },
+    'Down': {
+        'linestyle': 'dotted',
+        'linewidth': 1,
+        'marker': '.',
+        'markersize': 1.0,
+        'color': 'red',
+        'elinewidth': 1,
+    },
+}
+
+opts_errorbar = {
+    'nominal': {'linestyle': 'solid'},
+    'Up': {'linestyle': 'dashed'},
+    'Down': {'linestyle': 'dotted'},
 }
 
 # Flavor ordering by stats, dependent on plot scale
@@ -161,10 +212,10 @@ def get_data_mc_ratio(h1, h2):
     num = h1.values()
     den = h2.values()
     ratio = num / den
-    ratio[ratio == 0] = np.nan
-    ratio[np.isinf(ratio)] = np.nan
+    #ratio[ratio == 0] = np.nan
+    #ratio[np.isinf(ratio)] = np.nan
     unc = np.sqrt(num) / den
-    unc[np.isnan(ratio)] = np.nan
+    unc[np.isnan(unc)] = np.inf
 
     return ratio, unc
 
@@ -176,7 +227,7 @@ def get_systematic_uncertainty(
     For each MC sample, the systematic uncertainty is computed by summing in quadrature all the systematic uncertainties.
     The asymmetric error band is constructed by summing in quadrature uncertainties that are moving the nominal value in the same direction, i.e. the total "up" uncertainty is obtained by summing in quadrature all the systematic effects that are pulling the nominal value up.'''
     if stack_mc[0].ndim != 2:
-        sys.exit(
+        raise Exception(
             "Only histograms with a dense axis and the variation axis are allowed as input."
         )
     if type(variations) == str:
@@ -188,8 +239,14 @@ def get_systematic_uncertainty(
     if edges:
         nom_template = rebin(nom_template, edges)
 
-    syst_err2_tot_up = np.zeros_like(nom_template.values())
-    syst_err2_tot_down = np.zeros_like(nom_template.values())
+    if not stat_only:
+        syst_err2_up_dict = {syst : 0.0 for syst in systematics}
+        syst_err2_down_dict = {syst : 0.0 for syst in systematics}
+        #syst_err2_tot_up = np.zeros_like(nom_template.values())
+        #syst_err2_tot_down = np.zeros_like(nom_template.values())
+    if mcstat:
+        syst_err2_up_dict.update({"mcstat" : 0.0})
+        syst_err2_down_dict.update({"mcstat" : 0.0})
     for h in stack_mc:
         sample = h.name
         nom = h[{'variation': 'nominal'}]
@@ -211,67 +268,129 @@ def get_systematic_uncertainty(
                 errUp = varUp.values() - nom.values()
                 errDown = varDown.values() - nom.values()
 
+                # Compute the flags to check which of the two variations (up and down) are pushing the nominal value up and down
                 up_is_up = errUp > 0
+                down_is_down = errDown < 0
+                # Compute the flag to check if the uncertainty is one-sided, i.e. when both variations are up or down
+                is_onesided = (up_is_up ^ down_is_down)
 
                 # Sum in quadrature of the systematic uncertainties
-                syst_err2_up += np.where(up_is_up, errUp**2, errDown**2)
-                syst_err2_down += np.where(up_is_up, errDown**2, errUp**2)
+                # N.B.: valid only for double sided uncertainties
+                syst_err2_up_twosided = np.where(up_is_up, errUp**2, errDown**2)
+                syst_err2_down_twosided = np.where(up_is_up, errDown**2, errUp**2)
+                syst_err2_max = np.maximum(syst_err2_up_twosided, syst_err2_down_twosided)
+                syst_err2_up_onesided = np.where(is_onesided & up_is_up, syst_err2_max, 0)
+                syst_err2_down_onesided = np.where(is_onesided & down_is_down, syst_err2_max, 0)
+                syst_err2_up_combined = np.where(is_onesided, syst_err2_up_onesided, syst_err2_up_twosided)
+                syst_err2_down_combined = np.where(is_onesided, syst_err2_down_onesided, syst_err2_down_twosided)
+
+                #syst_err2_up_single = np.where(up_is_up, errUp**2, errDown**2)
+                #syst_err2_down_single = np.where(up_is_up, errDown**2, errUp**2)
+                #syst_err2_up += syst_err2_up_single
+                #syst_err2_down += syst_err2_down_single
+                syst_err2_up_dict[syst] += syst_err2_up_combined
+                syst_err2_down_dict[syst] += syst_err2_down_combined
 
         # Add in quadrature the MC statistical uncertainty
         if mcstat:
-            syst_err2_up += nom.variances()
-            syst_err2_down += nom.variances()
+            mcstat_err2 = nom.variances()
+            #syst_err2_up += mcstat_err2
+            #syst_err2_down += mcstat_err2
+            syst_err2_up_dict["mcstat"] += mcstat_err2
+            syst_err2_down_dict["mcstat"] += mcstat_err2
 
         # Sum in quadrature of the systematic uncertainties for each MC sample
-        syst_err2_tot_up += syst_err2_up
-        syst_err2_tot_down += syst_err2_down
+        #syst_err2_tot_up += syst_err2_up
+        #syst_err2_tot_down += syst_err2_down
 
-    return np.sqrt(syst_err2_tot_up), np.sqrt(syst_err2_tot_down)
+    #return np.sqrt(syst_err2_tot_up), np.sqrt(syst_err2_tot_down)
+    return syst_err2_up_dict,  syst_err2_down_dict
 
 
-def plot_systematic_uncertainty(
-    stack_mc_nominal, syst_err_up, syst_err_down, ax, ratio=False
-):
-    '''This function plots the asymmetric systematic uncertainty band on top of the MC stack, if `ratio` is set to False.
-    To plot the systematic uncertainty in a ratio plot, `ratio` has to be set to True and the uncertainty band will be plotted around 1 in the ratio plot.'''
-    h_mc_sum = stack_sum(stack_mc_nominal)
+def plot_uncertainty_band(h_mc_sum, syst_err2_up, syst_err2_down, ax, ratio=False):
     nom = h_mc_sum.values()
-    up = nom + syst_err_up
-    down = nom - syst_err_down
+    up = nom + np.sqrt(sum(syst_err2_up.values()))
+    down = nom - np.sqrt(sum(syst_err2_down.values()))
 
     if ratio:
         up = up / nom
         down = down / nom
 
-    #unc_band = np.array([down, up])
-    unc_band = np.nan_to_num(np.array([down, up]), nan=1)
-
-    #print("up", up)
-    #print("nom", nom)
-    #print("down", down)
+    unc_band = np.array([down, up])
 
     ax.fill_between(
         h_mc_sum.axes[0].edges,
         np.r_[unc_band[0], unc_band[0, -1]],
         np.r_[unc_band[1], unc_band[1, -1]],
-        **opts_unc,
+        **opts_unc['total'],
         label="syst. unc.",
     )
     if ratio:
         ax.hlines(1.0, *ak.Array(h_mc_sum.axes[0].edges)[[0,-1]], colors='gray', linestyles='dashed')
+
+def plot_systematic_uncertainty(
+    stack_mc_nominal, syst_err2_up, syst_err2_down, ax, ratio=False, split_systematics=False, only_syst=[], partial_unc_band=False,
+):
+    '''This function plots the asymmetric systematic uncertainty band on top of the MC stack, if `ratio` is set to False.
+    To plot the systematic uncertainty in a ratio plot, `ratio` has to be set to True and the uncertainty band will be plotted around 1 in the ratio plot.'''
+    if (not type(syst_err2_up) == dict) or (not type(syst_err2_down) == dict):
+        raise Exception("`syst_err2_up` and `syst_err2_down` must be dictionaries")
+
+    h_mc_sum = stack_sum(stack_mc_nominal)
+    nom = h_mc_sum.values()
+
+    if split_systematics and only_syst:
+        syst_err2_up_filtered = { syst : unc for syst, unc in syst_err2_up.items() if any(key in syst for key in only_syst)}
+        syst_err2_down_filtered = { syst : unc for syst, unc in syst_err2_down.items() if any(key in syst for key in only_syst)}
+
+    if partial_unc_band:
+        plot_uncertainty_band(h_mc_sum, syst_err2_up_filtered, syst_err2_down_filtered, ax, ratio)
+    else:
+        plot_uncertainty_band(h_mc_sum, syst_err2_up, syst_err2_down, ax, ratio)
+
+    if split_systematics:
+        if syst_err2_up_filtered.keys() != syst_err2_down_filtered.keys():
+            raise Exception("The up and down uncertainties comes from different systematics. `syst_err2_up_filtered` and `syst_err2_down_filtered` must have the same keys.")
+
+        axis_x = h_mc_sum.axes[0]
+        edges_x = axis_x.edges
+        binwidth_x = np.ediff1d(edges_x)
+        x = edges_x[:-1] + 0.5 * binwidth_x
+        xerr = 0.5 * binwidth_x
+        color = iter(cm.gist_rainbow(np.linspace(0, 1, len(syst_err2_up_filtered.keys()))))
+        for i, syst in enumerate(syst_err2_up_filtered.keys()):
+            up = nom + np.sqrt(syst_err2_up_filtered[syst])
+            down = nom - np.sqrt(syst_err2_down_filtered[syst])
+            if ratio:
+                up = up / nom
+                down = down / nom
+            c = next(color)
+            linesUp = ax.errorbar(x, up, yerr=0, xerr=xerr, label=f"{syst}Up", **opts_unc['Up'], fmt='none', color=c)
+            linesDown = ax.errorbar(x, down, yerr=0, xerr=xerr, label=f"{syst}Down", **opts_unc['Down'], fmt='none', color=c)
+            #linesDown = ax.errorbar(x, down, yerr=0, xerr=xerr, label=f"{syst}Down", **opts_unc['Down'], fmt='none', color=linesUp[0].get_color())
+
+            for lines, var in zip([linesDown, linesUp], ['Down', 'Up']):
+                errorbar_x = lines[-1][0]
+                errorbar_y = lines[-1][1]
+                errorbar_x.set_linestyle(opts_errorbar[var]['linestyle'])
+                errorbar_y.set_linewidth(0)
+        ax.legend(fontsize=fontsize, ncols=2)
 
 
 def plot_data_mc_hist1D(
     h,
     histname,
     config=None,
-    plot_dir="plots",
+    plot_dir=None,
     save=True,
     only_cat=None,
     mcstat=True,
     stat_only=False,
     reweighting_function=None,
     flavorsplit=None,
+    split_systematics=False,
+    only_syst=False,
+    partial_unc_band=False,
     log=False,
 ):
     '''This function plots 1D histograms in all the categories contained in the `cat` axis, for each data-taking year in the `year` axis.
@@ -478,7 +597,7 @@ def plot_data_mc_hist1D(
                 )
                 # stack_data.plot(stack=True, color='black', ax=ax)
             if rebinning:
-                syst_err_up, syst_err_down = get_systematic_uncertainty(
+                syst_err2_up, syst_err2_down = get_systematic_uncertainty(
                     stack_mc,
                     variations,
                     mcstat=mcstat,
@@ -486,27 +605,27 @@ def plot_data_mc_hist1D(
                     edges=config.plot_options["variables"][histname]['binning'],
                 )
             else:
-                syst_err_up, syst_err_down = get_systematic_uncertainty(
+                syst_err2_up, syst_err2_down = get_systematic_uncertainty(
                     stack_mc, variations, mcstat=mcstat, stat_only=stat_only
                 )
-            # print("syst_err_up", syst_err_up)
-            # print("syst_err_down", syst_err_down)
+            # print("syst_err2_up", syst_err2_up)
+            # print("syst_err2_down", syst_err2_down)
             plot_systematic_uncertainty(
-                stack_mc_nominal, syst_err_up, syst_err_down, ax
+                stack_mc_nominal, syst_err2_up, syst_err2_down, ax
             )
             if not is_mc_only:
                 print(cat, histname)
                 ratio, unc = get_data_mc_ratio(stack_data, stack_mc_nominal)
                 rax.errorbar(x, ratio, unc, **opts_data)
             plot_systematic_uncertainty(
-                stack_mc_nominal, syst_err_up, syst_err_down, rax, ratio=True
+                stack_mc_nominal, syst_err2_up, syst_err2_down, rax, ratio=True, split_systematics=split_systematics, only_syst=only_syst, partial_unc_band=partial_unc_band
             )
             if is_mc_only:
                 maximum = max(stack_sum(stack_mc_nominal).values())
             else:
                 maximum = max(stack_sum(stack_data).values())
             if not np.isnan(maximum):
-                ax.set_ylim((0, 1.50 * maximum))
+                ax.set_ylim((0, 2.0 * maximum))
             rax.set_ylim((0.5, 1.5))
             xlabel = ax.get_xlabel()
             ax.set_xlabel("")
@@ -514,7 +633,7 @@ def plot_data_mc_hist1D(
             rax.set_xlabel(xlabel, fontsize=fontsize)
             rax.set_ylabel("Data / MC", fontsize=fontsize)
             rax.yaxis.set_label_coords(-0.075, 1)
-            ax.legend(fontsize=fontsize, ncols=2)
+            ax.legend(fontsize=fontsize, ncols=2, loc="upper right")
             if flavorsplit == '5f':
                 handles, labels = ax.get_legend_handles_labels()
                 labels_new = []
@@ -527,7 +646,7 @@ def plot_data_mc_hist1D(
                     handles_new.append(handles[i])
                 labels = labels_new
                 handles = handles_new
-                ax.legend(handles, labels, fontsize=fontsize, ncols=2)
+                ax.legend(handles, labels, fontsize=fontsize, ncols=2, loc="upper right")
             ax.tick_params(axis='x', labelsize=fontsize)
             ax.tick_params(axis='y', labelsize=fontsize)
             #rax.set_yticks((0, 0.5, 1, 1.5, 2), axis='y', labelsize=fontsize)
