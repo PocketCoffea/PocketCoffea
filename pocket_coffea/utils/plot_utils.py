@@ -272,6 +272,8 @@ def get_systematic_uncertainty(
     if edges:
         nom_template = rebin(nom_template, edges)
 
+    syst_err2_up_dict = {}
+    syst_err2_down_dict = {}
     if not stat_only:
         syst_err2_up_dict = {syst : 0.0 for syst in systematics}
         syst_err2_down_dict = {syst : 0.0 for syst in systematics}
@@ -337,6 +339,8 @@ def get_systematic_uncertainty(
 
 
 def plot_uncertainty_band(h_mc_sum, syst_err2_up, syst_err2_down, ax, ratio=False):
+    '''This function computes and plots the uncertainty band as a hashed gray area.
+    To plot the systematic uncertainty in a ratio plot, `ratio` has to be set to True and the uncertainty band will be plotted around 1 in the ratio plot.'''
     nom = h_mc_sum.values()
     # Sum in quadrature of the systematic uncertainties for each variation
     up = nom + np.sqrt(sum(syst_err2_up.values()))
@@ -369,15 +373,16 @@ def plot_systematic_uncertainty(
     h_mc_sum = stack_sum(stack_mc_nominal)
     nom = h_mc_sum.values()
 
-    if split_systematics and only_syst:
+    if only_syst:
         syst_err2_up_filtered = { syst : unc for syst, unc in syst_err2_up.items() if any(key in syst for key in only_syst)}
         syst_err2_down_filtered = { syst : unc for syst, unc in syst_err2_down.items() if any(key in syst for key in only_syst)}
+    else:
+        syst_err2_up_filtered = syst_err2_up
+        syst_err2_down_filtered = syst_err2_down
 
     if not split_systematics:
-        plot_uncertainty_band(h_mc_sum, syst_err2_up, syst_err2_down, ax, ratio)
-
-
-    if split_systematics:
+        plot_uncertainty_band(h_mc_sum, syst_err2_up_filtered, syst_err2_down_filtered, ax, ratio)
+    else:
         if syst_err2_up_filtered.keys() != syst_err2_down_filtered.keys():
             raise Exception("The up and down uncertainties comes from different systematics. `syst_err2_up_filtered` and `syst_err2_down_filtered` must have the same keys.")
 
@@ -425,6 +430,7 @@ def plot_systematic_uncertainty(
                 errorbar_x.set_linestyle(opts_errorbar[var]['linestyle'])
                 errorbar_y.set_linewidth(0)
         if ratio:
+            ax.hlines(1.0, *ak.Array(edges_x)[[0,-1]], colors='gray', linestyles='dashed')
             ax.legend(fontsize=fontsize_legend_ratio, ncols=2)
         else:
             ax.legend(fontsize=fontsize, ncols=2)
