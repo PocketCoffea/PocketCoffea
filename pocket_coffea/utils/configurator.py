@@ -177,7 +177,8 @@ class Configurator:
                 if (m["sample"]) not in self.samples:
                     self.samples.append(m["sample"])
                     self.years.append(m["year"])
-                    if 'era' in m.keys():
+                if 'era' in m.keys():
+                    if (m["era"]) not in self.eras:
                         self.eras.append(m["era"])
 
     def load_subsamples(self):

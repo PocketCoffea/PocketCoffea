@@ -273,6 +273,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
         # Defining the subsamples cut
         # saving all the cuts in a single selector
+        self._subsamples_masks = PackedSelection()
         self._subsamples_cuts_ids = []
         # saving the map of cut ids for each subsample
         self._subsamples_map = defaultdict(list)
@@ -545,17 +546,21 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         nominal_events = self.events
 
         hasJES = False
+        # HACK: hasJER is set to True even if the JER is not included in the variations.
+        # In the future, it is desirable to include a dedicated option in the config file to switch the nominal JER and JES on and off.
+        hasJER = True
         for v in variations:
-            if ("JES" in v) | ("JER" in v):
-                hasJES = True
+            if "JES" in v:
+                hasJES =True
+            if "JER" in v:
+                hasJER = True
 
-        # TODO Improve this selection
-        if hasJES:
+        if hasJES | hasJER:
             # correct the jets only once
             jec4_cache = cachetools.Cache(np.inf)
             jec8_cache = cachetools.Cache(np.inf)
             jets_with_JES = jet_correction(
-                nominal_events, nominal_events.Jet, "AK4PFchs", self._year, jec4_cache
+                nominal_events, nominal_events.Jet, "AK4PFchs", self._year, jec4_cache, applyJER=hasJER, applyJESunc=hasJES
             )
             fatjets_with_JES = jet_correction(
                 nominal_events,
@@ -563,8 +568,11 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 "AK8PFPuppi",
                 self._year,
                 jec8_cache,
+                applyJER=hasJER,
+                applyJESunc=hasJES
             )
         else:
+            jets_with_JES = nominal_events.Jet
             fatjets_with_JES = nominal_events.FatJet
 
         for variation in variations:
@@ -573,7 +581,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
             if variation == "nominal":
                 self.events = nominal_events
-                if hasJES:
+                if hasJES | hasJER:
                     # put nominal shape
                     self.events["Jet"] = jets_with_JES
                     self.events["FatJet"] = fatjets_with_JES
