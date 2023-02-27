@@ -19,7 +19,7 @@ class semileptonicTriggerProcessor(ttHbbBaseProcessor):
                     coll="metadata",
                     field="era",
                     name="era",
-                    bins=set(sorted(self.cfg.eras)),
+                    bins=sorted(set(self.cfg.workflow_options["eras"])),
                     type="strcat",
                     growth=False,
                     label="Era",

@@ -70,6 +70,8 @@ class PartonMatchingProcessor(ttHbbBaseProcessor):
             self.events.PartonMatched.pt, axis=1
         )  # use count since we have None
 
-    def process_extra_after_presel(self) -> ak.Array:
+    def process_extra_after_presel(self, variation) -> ak.Array:
         self.do_parton_matching()
         self.count_partons()
+
+        

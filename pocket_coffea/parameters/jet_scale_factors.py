@@ -16,7 +16,7 @@ btagSF_calibration = {
     '2018': path.join(
         path.dirname(__file__),
         "btag_SF_calibration",
-        "btagSF_calibration_allyears_v3_btagSF-12-09-2022.json",
+        "btagSF_calibrationSF_2018UL.json",
     ),
 }
 

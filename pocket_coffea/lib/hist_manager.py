@@ -5,7 +5,6 @@ from coffea.analysis_tools import PackedSelection
 from typing import List, Tuple
 from dataclasses import dataclass, field
 from copy import deepcopy
-from .cartesian_categories import CartesianSelection
 import logging
 
 
@@ -253,11 +252,47 @@ class HistManager:
             weights["nominal"] = weights_manager.get_weight(category)
         return weights
 
+    def __mask_and_broadcast_weight(self, weight, mask, data_structure):
+        '''
+        The function mask the weights and broadcast them to the correct dimension.
+        The `data_structure` input is an array of 1-value with the structure of the data.
+        The data is already masked. We need instead to mask the weight value and broadcast it.
+
+        We need to handle different cases:
+        - Mask dimension=1 (mask on events):
+           If the data_structure.dim =2 it means that we want to plot a collection
+           - we mask the weights by events
+           - broadcast weight to the collection by multiplying to the datastructure (1-like array)
+           - flatten the final weight
+           If the data_structure.dim = 1:
+           - We just mask the weight by event
+
+        - Mask dimension=2 (mask on the collection)
+          It means that we are masking the collection, not the events.
+          - First we broadcast the weight to the structure of the mask
+          - Then we apply the mask
+          - Then we flatten the weight
+
+        '''
+        if mask.ndim == 1 and not data_structure is None and data_structure.ndim == 2:
+            # If the mask has dim =1 and the data dim =2
+            # we need to mask the weight on dim=1, then to broadcast
+            # on the data_structure -> then flatten
+            return ak.flatten(data_structure * (weight[mask]))
+
+        elif mask.ndim == 2:
+            # First we broadcast then we mask
+            # if the mask is ndim==2 also the data is ndim==2.
+            # The weights are broadcasted at collection level, then masked, then flattened.
+            return ak.flatten((ak.ones_like(mask) * weight)[mask])
+        else:
+            return weight[mask]
+
     def fill_histograms(
         self,
         events,
         weights_manager,
-        cuts_masks,
+        categories,
         shape_variation="nominal",
         subsamples_masks=None,  # This is a dictionary with name:ak.Array(bool)
         custom_fields=None,
@@ -269,17 +304,6 @@ class HistManager:
         Custom_fields is a dict of additional array. The expected lenght of the first dimension is the number of
         events. The categories mask will be applied.
         '''
-        # logging.info(f"Filling histograms: shape variation {shape_variation}")
-
-        def get_categories_generator():
-            if isinstance(cuts_masks, PackedSelection):
-                # on the fly generator of the categories and cuts
-                return (
-                    (cat, cuts_masks.all(*self.categories_config[cat]))
-                    for cat in self.available_categories
-                )
-            elif isinstance(cuts_masks, CartesianSelection):
-                return cuts_masks.get_masks()
 
         # Preloading weights
         if self.isMC:
@@ -328,7 +352,7 @@ class HistManager:
                     elif ax.coll == "custom":
                         # taking the data from the custom_fields argument
                         # IT MUST be a per-event number, so we expect an array to mask
-                        data = custom_fields[ax.field][mask]
+                        data = custom_fields[ax.field]
                     else:
                         if ax.coll not in events.fields:
                             raise ValueError(
@@ -375,7 +399,7 @@ class HistManager:
             # Now the variables have been read for all the events
             # We need now to iterate on categories and subsamples
             # Mask the events, the weights and then flatten and remove the None correctly
-            for category, cat_mask in get_categories_generator():
+            for category, cat_mask in categories.get_masks():
                 # loop directly on subsamples
                 for subsample, subs_mask in subsamples_masks.items():
                     # logging.info(f"\t\tcategory {category}, subsample {subsample}")
@@ -383,6 +407,13 @@ class HistManager:
                     # Skip empty categories and subsamples
                     if ak.sum(mask) == 0:
                         continue
+
+                    # Check if the required data is dim=1, per event,
+                    # and the mask is by collection.
+                    # In this case the mask is reduced to per-event mask
+                    # doing a logical OR.
+                    if ndim == 1 and mask.ndim > 1:
+                        mask = ak.any(mask, axis=1)
 
                     # Mask the variables and flatten them
                     #  save the isnotnone and datastructure
@@ -438,17 +469,14 @@ class HistManager:
                                     # because it is requested for another category
                                     # In this case we fill with the nominal variation
                                     # We get the weights for the current category
-                                    # and we also mask it
-                                    weight_varied = weights[category]["nominal"][mask]
+                                    weight_varied = weights[category]["nominal"]
                                 else:
                                     # We get the weights for the current category
-                                    # and we also mask it
-                                    weight_varied = weights[category][variation][mask]
-                                # Check number of dimensione
-                                if ndim > 1:
-                                    weight_varied = ak.flatten(
-                                        data_structure * weight_varied
-                                    )
+                                    weight_varied = weights[category][variation]
+                                # Broadcast and mask the weight
+                                weight_varied = self.__mask_and_broadcast_weight(
+                                    weight_varied, mask, data_structure
+                                )
                                 # Then we apply the notnone mask
                                 weight_varied = weight_varied[all_axes_isnotnone]
                                 # Fill the histogram
@@ -465,10 +493,9 @@ class HistManager:
                                     )
                         else:
                             # Working on shape variation! only nominal weights
-                            # Check number of dimensione
-                            weights_nom = weights[category]["nominal"][mask]
-                            if ndim > 1:
-                                weights_nom = ak.flatten(data_structure * weights_nom)
+                            weights_nom = self.__mask_and_broadcast_weight(
+                                weights[category]["nominal"], mask, data_structure
+                            )
                             # Then we apply the notnone mask
                             weights_nom = weights_nom[all_axes_isnotnone]
                             # Fill the histogram
