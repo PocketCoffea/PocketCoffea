@@ -59,6 +59,7 @@ def update_recursive(dict1, dict2):
 
 parser = argparse.ArgumentParser(description='Plot histograms from coffea file')
 parser.add_argument('--cfg', default=os.getcwd() + "/config/test.json", help='Config file with parameters specific to the current run', required=False)
+parser.add_argument("-i", "--inputfile", required=True, type=str, help="Input file")
 parser.add_argument('-v', '--version', type=str, default=None, help='Version of output (e.g. `v01`, `v02`, etc.)')
 parser.add_argument('--save_plots', default=False, action='store_true', help='Save efficiency and SF plots')
 parser.add_argument('-j', '--workers', type=int, default=8, help='Number of parallel workers to use for plotting')
@@ -73,16 +74,14 @@ print("Starting ", end='')
 print(time.ctime())
 start = time.time()
 
-if os.path.isfile( config.outfile ):
-    print(f"Opening {config.outfile}")
-    accumulator = load(config.outfile)
+if os.path.isfile( args.inputfile ):
+    print(f"Opening {args.inputfile}")
+    accumulator = load(args.inputfile)
 else:
-    try:
-        outfile = config.outfile.replace(config.outfile.split('/')[-1], "output_all.coffea")
-        print(f"Opening {outfile}")
-        accumulator = load(outfile)
-    except:
-        sys.exit("Input file does not exist")
+    raise Exception("Input file does not exist")
+
+if not os.path.abspath(config.workflow_options["output_triggerSF"]).startswith(config.output):
+    raise Exception("The output folder of the trigger SF results is not contained in the histogram output folder. Please choose a folder that has the output folder as parent folder.")
 
 plt.style.use([hep.style.ROOT, {'font.size': 16}])
 if not os.path.exists(config.plots):
@@ -123,9 +122,9 @@ def _plot_efficiency_maps_spliteras(entrystart, entrystop):
 def save_corrections(corrections):
     if not os.path.exists(config.workflow_options["output_triggerSF"]):
         os.makedirs(config.workflow_options["output_triggerSF"])
-    local_folder = os.path.join(config.output, *config.workflow_options["output_triggerSF"].split('/')[-2:])
-    if not os.path.exists(local_folder):
-        os.makedirs(local_folder)
+    folder_sf = config.workflow_options["output_triggerSF"]
+    if not os.path.exists(folder_sf):
+        os.makedirs(folder_sf)
     for histname, d in corrections.items():
         for cat, correction in d.items():
             year = correction['nominal']['year']
@@ -156,7 +155,7 @@ def save_corrections(corrections):
             )
             rich.print(cset)
             filename = f'sf_trigger_{map_name}_{year}_{cat}.json'
-            outdir = local_folder
+            outdir = folder_sf
             outfile_triggersf = os.path.join(outdir, filename)
             outfile_triggersf = overwrite_check(outfile_triggersf)
             print(f"Saving semileptonic trigger scale factors in {outfile_triggersf}")
