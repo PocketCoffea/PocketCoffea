@@ -54,11 +54,11 @@ class ColumnsManager:
 
                 # Filtering the position in the collection if needed
                 if outarray.pos_start and outarray.pos_end:
-                    data = data[:,outarray.pos_start:outarray.pos_end]
+                    data = data[:, outarray.pos_start : outarray.pos_end]
                 elif outarray.pos_start and not outarray.pos_end:
-                    data = data[:,outarray.pos_start:]
+                    data = data[:, outarray.pos_start :]
                 elif not outarray.pos_start and outarray.pos_end:
-                    data = data[:,:outarray.pos_end]
+                    data = data[:, : outarray.pos_end]
 
                 if outarray.store_size and data.ndim > 1:
                     N = ak.num(data)

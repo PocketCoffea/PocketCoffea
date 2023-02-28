@@ -4,12 +4,12 @@ from numba import njit
 @njit
 def get_partons_provenance_ttHbb(pdgIds, array_builder):
     """
-        1=higgs,
-        2=hadronic top bquark,
-        3=leptonic top bquark,
-        4=additional radiation
-        5=hadronic W (from top) decay quarks
-        """
+    1=higgs,
+    2=hadronic top bquark,
+    3=leptonic top bquark,
+    4=additional radiation
+    5=hadronic W (from top) decay quarks
+    """
     for ids in pdgIds:
         from_part = [-1] * len(ids)
         if len(ids) == 7:

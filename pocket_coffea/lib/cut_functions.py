@@ -222,6 +222,7 @@ def nBtag(events, params, year, **kwargs):
                 >= params["N"]
             )
 
+
 def nElectron(events, params, year, **kwargs):
     '''Mask for min N electrons with minpt.'''
     if params["coll"] == "ElectronGood":
@@ -230,6 +231,7 @@ def nElectron(events, params, year, **kwargs):
         return events.nElectron >= params["N"]
     else:
         raise Exception(f"The collection '{params['coll']}' does not exist.")
+
 
 def nMuon(events, params, year, **kwargs):
     '''Mask for min N electrons with minpt.'''
@@ -240,15 +242,20 @@ def nMuon(events, params, year, **kwargs):
     else:
         raise Exception(f"The collection '{params['coll']}' does not exist.")
 
+
 def get_nBtag(N, minpt=0, coll="BJetGood", name=None):
     if name == None:
         name = f"n{coll}_btag_{N}_pt{minpt}"
     return Cut(name=name, params={"N": N, "coll": coll, "minpt": minpt}, function=nBtag)
 
+
 def get_nElectron(N, minpt=0, coll="ElectronGood", name=None):
     if name == None:
         name = f"n{coll}_{N}_pt{minpt}"
-    return Cut(name=name, params={"N": N, "coll": coll, "minpt": minpt}, function=nElectron)
+    return Cut(
+        name=name, params={"N": N, "coll": coll, "minpt": minpt}, function=nElectron
+    )
+
 
 def get_nMuon(N, minpt=0, coll="MuonGood", name=None):
     if name == None:
