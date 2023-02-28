@@ -212,7 +212,9 @@ if __name__ == "__main__":
     import cloudpickle
 
     if len(sys.argv) < 2:
-        raise Exception("The script requires at least one argument for the output file.")
+        raise Exception(
+            "The script requires at least one argument for the output file."
+        )
 
     with gzip.open(sys.argv[-1], "wb") as fout:
         cloudpickle.dump(

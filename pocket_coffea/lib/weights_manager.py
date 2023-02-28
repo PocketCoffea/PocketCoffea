@@ -179,7 +179,7 @@ class WeightsManager:
                         events, self.size, metadata, self._shape_variation
                     )
                 for we in _weightsCache[w.name]:
-                    #print(we)
+                    # print(we)
                     weight_obj.add(*we)
                     if len(we) > 2:
                         # the weights has variations
@@ -277,7 +277,10 @@ class WeightsManager:
                 )
 
             # return the nominal and everything
-            return [(f"sf_ele_trigger_{var}", *weights) for var, weights in triggersf.items()]
+            return [
+                (f"sf_ele_trigger_{var}", *weights)
+                for var, weights in triggersf.items()
+            ]
 
         elif weight_name == 'sf_btag':
 

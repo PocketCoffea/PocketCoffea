@@ -26,19 +26,19 @@ class semileptonicTriggerProcessor(ttHbbBaseProcessor):
                 )
             ]
 
-    #def postprocess(self, accumulator):
+    # def postprocess(self, accumulator):
     #    super().postprocess(accumulator=accumulator)
 
-        #den_mc = sum(accumulator["sumw"]["inclusive"].values())
-        #den_data = accumulator["cutflow"]["inclusive"]["DATA_SingleMuon"]
-        #for category, cuts in self._categories.items():
-            #num_mc = sum(accumulator["sumw"][category].values())
-            #num_data = accumulator["cutflow"][category]["DATA_SingleMuon"]
-            #eff_mc = num_mc / den_mc
-            #eff_data = num_data / den_data
-            #accumulator["trigger_efficiency"][category] = {}
-            #accumulator["trigger_efficiency"][category]["mc"] = eff_mc
-            #accumulator["trigger_efficiency"][category]["data"] = eff_data
-            #accumulator["trigger_efficiency"][category]["sf"] = eff_data / eff_mc
+    # den_mc = sum(accumulator["sumw"]["inclusive"].values())
+    # den_data = accumulator["cutflow"]["inclusive"]["DATA_SingleMuon"]
+    # for category, cuts in self._categories.items():
+    # num_mc = sum(accumulator["sumw"][category].values())
+    # num_data = accumulator["cutflow"][category]["DATA_SingleMuon"]
+    # eff_mc = num_mc / den_mc
+    # eff_data = num_data / den_data
+    # accumulator["trigger_efficiency"][category] = {}
+    # accumulator["trigger_efficiency"][category]["mc"] = eff_mc
+    # accumulator["trigger_efficiency"][category]["data"] = eff_data
+    # accumulator["trigger_efficiency"][category]["sf"] = eff_data / eff_mc
 
-        #return accumulator
+    # return accumulator

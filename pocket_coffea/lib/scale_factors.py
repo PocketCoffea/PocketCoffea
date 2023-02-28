@@ -16,7 +16,9 @@ from ..parameters.jet_scale_factors import btagSF, btagSF_calibration, jet_puId
 from ..parameters.object_preselection import object_preselection
 
 
-def get_ele_sf(year, pt, eta, counts=None, key='', pt_region=None, variations=["nominal"]):
+def get_ele_sf(
+    year, pt, eta, counts=None, key='', pt_region=None, variations=["nominal"]
+):
     '''
     This function computes the per-electron reco or id SF.
     If 'reco', the appropriate corrections are chosen by using the argument `pt_region`.
@@ -64,7 +66,9 @@ def get_ele_sf(year, pt, eta, counts=None, key='', pt_region=None, variations=["
         for variation in variations:
             if variation == "nominal":
                 output[variation] = [
-                    electronJSON[map_name].evaluate(variation, pt.to_numpy(), eta.to_numpy())
+                    electronJSON[map_name].evaluate(
+                        variation, pt.to_numpy(), eta.to_numpy()
+                    )
                 ]
             else:
                 # Nominal sf==1
@@ -72,8 +76,12 @@ def get_ele_sf(year, pt, eta, counts=None, key='', pt_region=None, variations=["
                 # Systematic variations
                 output[variation] = [
                     nominal,
-                    electronJSON[map_name].evaluate(f"{variation}Up", pt.to_numpy(), eta.to_numpy()),
-                    electronJSON[map_name].evaluate(f"{variation}Down", pt.to_numpy(), eta.to_numpy())
+                    electronJSON[map_name].evaluate(
+                        f"{variation}Up", pt.to_numpy(), eta.to_numpy()
+                    ),
+                    electronJSON[map_name].evaluate(
+                        f"{variation}Down", pt.to_numpy(), eta.to_numpy()
+                    ),
                 ]
             for i, sf in enumerate(output[variation]):
                 output[variation][i] = ak.unflatten(sf, counts)
