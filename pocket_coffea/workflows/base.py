@@ -568,15 +568,15 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 applyJER=hasJER,
                 applyJESunc=hasJES,
             )
-            fatjets_with_JES = jet_correction(
-                nominal_events,
-                nominal_events.FatJet,
-                "AK8PFPuppi",
-                self._year,
-                jec8_cache,
-                applyJER=hasJER,
-                applyJESunc=hasJES,
-            )
+            # fatjets_with_JES = jet_correction(
+            #     nominal_events,
+            #     nominal_events.FatJet,
+            #     "AK8PFPuppi",
+            #     self._year,
+            #     jec8_cache,
+            #     applyJER=hasJER,
+            #     applyJESunc=hasJES,
+            # )
         else:
             jets_with_JES = nominal_events.Jet
             fatjets_with_JES = nominal_events.FatJet
@@ -590,19 +590,19 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 if hasJES | hasJER:
                     # put nominal shape
                     self.events["Jet"] = jets_with_JES
-                    self.events["FatJet"] = fatjets_with_JES
+                    # self.events["FatJet"] = fatjets_with_JES
                 # Nominal is ASSUMED to be the first
                 yield "nominal"
             elif ("JES" in variation) | ("JER" in variation):
                 # JES_jes is the total. JES_[type] is for different variations
                 self.events = nominal_events
                 self.events["Jet"] = jets_with_JES[variation].up
-                self.events["FatJet"] = fatjets_with_JES[variation].up
+                # self.events["FatJet"] = fatjets_with_JES[variation].up
                 yield variation + "Up"
                 # restore nominal before going to down
                 self.events = nominal_events
                 self.events["Jet"] = jets_with_JES[variation].down
-                self.events["FatJet"] = fatjets_with_JES[variation].down
+                # self.events["FatJet"] = fatjets_with_JES[variation].down
                 yield variation + "Down"
 
     def process(self, events: ak.Array):
