@@ -27,6 +27,7 @@ from pocket_coffea.utils.plot_utils import slice_accumulator, plot_data_mc_hist1
 
 parser = argparse.ArgumentParser(description='Plot histograms from coffea file')
 parser.add_argument('--cfg', default=os.getcwd() + "/config/test.json", help='Config file with parameters specific to the current run', required=False)
+parser.add_argument("-i", "--inputfile", required=True, type=str, help="Input file")
 parser.add_argument('--plot_dir', default=None, help='Sub-directory inside the plots folder to save plots', required=False)
 parser.add_argument('-v', '--version', type=str, default=None, help='Version of output (e.g. `v01`, `v02`, etc.)')
 parser.add_argument('--test', default=False, action='store_true', help='Test mode')
@@ -49,8 +50,8 @@ print("Starting ", end='')
 print(time.ctime())
 start = time.time()
 
-if os.path.isfile( config.outfile ): accumulator = load(config.outfile)
-else: sys.exit(f"Input file '{config.outfile}' does not exist")
+if os.path.isfile( args.inputfile ): accumulator = load(args.inputfile)
+else: sys.exit(f"Input file '{args.inputfile}' does not exist")
 
 if args.plot_dir:
     plot_dir_parent = os.path.dirname(config.plots)

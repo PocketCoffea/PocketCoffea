@@ -16,7 +16,8 @@ from coffea.analysis_tools import PackedSelection
 from ..lib.weights_manager import WeightsManager
 from ..lib.columns_manager import ColumnsManager
 from ..lib.hist_manager import HistManager
-from ..lib.jets import jet_correction
+from ..lib.jets import jet_correction, met_correction
+from ..lib.categorization import CartesianSelection
 from ..utils.skim import uproot_writeable, copy_file
 from ..parameters.event_flags import event_flags, event_flags_data
 from ..parameters.lumi import goldenJSON
@@ -577,9 +578,14 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             #     applyJER=hasJER,
             #     applyJESunc=hasJES,
             # )
+            #met_with_JES = met_correction(
+            #    nominal_events.MET,
+            #    jets_with_JES
+            #)
         else:
             jets_with_JES = nominal_events.Jet
             fatjets_with_JES = nominal_events.FatJet
+            #met_with_JES = nominal_events.MET
 
         for variation in variations:
             # Restore the nominal events record since for each variation
@@ -591,6 +597,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     # put nominal shape
                     self.events["Jet"] = jets_with_JES
                     # self.events["FatJet"] = fatjets_with_JES
+                    #self.events["MET"] = met_with_JES
                 # Nominal is ASSUMED to be the first
                 yield "nominal"
             elif ("JES" in variation) | ("JER" in variation):

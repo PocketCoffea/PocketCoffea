@@ -4,9 +4,9 @@ from pocket_coffea.workflows.semileptonic_triggerSF import semileptonicTriggerPr
 from pocket_coffea.lib.cut_functions import get_nObj_min, get_HLTsel
 from pocket_coffea.parameters.histograms import *
 #sys.path.append(os.path.dirname(__file__))
+from config.semileptonic_triggerSF.parameters import eras
 from config.semileptonic_triggerSF.functions import get_ht_above, get_ht_below
 from config.semileptonic_triggerSF.plot_options import efficiency, scalefactor, ratio, residue
-from config.semileptonic_triggerSF.parameters import eras
 from config.datamc.plots import cfg_plot
 from math import pi
 
@@ -16,8 +16,8 @@ cfg =  {
         "jsons": ["datasets/backgrounds_MC_ttbar_local.json",
                   "datasets/DATA_SingleMuon_local.json"],
         "filter" : {
-            "samples": [#"TTToSemiLeptonic",
-                        #"TTTo2L2Nu",
+            "samples": ["TTToSemiLeptonic",
+                        "TTTo2L2Nu",
                         "DATA_SingleMuon"],
             "samples_exclude" : [],
             "year": ["2017"]
@@ -26,9 +26,9 @@ cfg =  {
 
     # Input and output files
     "workflow" : semileptonicTriggerProcessor,
-    "output"   : "output/sf_ele_trigger_semilep/semileptonic_triggerSF_2017_SingleMuon",
+    "output"   : "output/sf_ele_trigger_semilep/semileptonic_triggerSF_2017",
     "workflow_options" : {
-        "output_triggerSF" : "pocket_coffea/parameters/semileptonic_triggerSF/triggerSF_2017_SingleMuon",
+        "output_triggerSF" : "output/sf_ele_trigger_semilep/semileptonic_triggerSF_2017/semileptonic_triggerSF",
         "eras" : eras["2017"],
     },
 
