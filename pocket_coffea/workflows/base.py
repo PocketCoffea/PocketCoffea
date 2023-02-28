@@ -17,7 +17,7 @@ from ..lib.weights_manager import WeightsManager
 from ..lib.columns_manager import ColumnsManager
 from ..lib.hist_manager import HistManager
 from ..lib.jets import jet_correction, met_correction
-from ..lib.cartesian_categories import CartesianSelection
+from ..lib.categorization import CartesianSelection
 from ..utils.skim import uproot_writeable, copy_file
 from ..parameters.event_flags import event_flags, event_flags_data
 from ..parameters.lumi import goldenJSON
