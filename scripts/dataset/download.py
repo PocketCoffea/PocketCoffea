@@ -9,14 +9,18 @@ from parsl.config import Config
 from parsl.executors.threads import ThreadPoolExecutor
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Download files specificed in a dataset.json')
+    parser = argparse.ArgumentParser(
+        description='Download files specificed in a dataset.json'
+    )
     parser.add_argument('-i', '--input', default=r'metadata/dataset.json', help='')
     parser.add_argument('-d', '--dir', help='Storage directory', required=True)
-    parser.add_argument('-o', '--output', default=r'metadata/dataset_local.json', help='')
+    parser.add_argument(
+        '-o', '--output', default=r'metadata/dataset_local.json', help=''
+    )
     parser.add_argument('--download', help='Bool', action='store_true')
-    
+
     args = parser.parse_args()
-    
+
     # load dataset
     with open(args.input) as f:
         sample_dict = json.load(f)
@@ -37,18 +41,20 @@ if __name__ == '__main__':
     parsl.load(config)
 
     # Write futures
-    out_dict = {} # Output filename list
-    run_futures = [] # Future list
+    out_dict = {}  # Output filename list
+    run_futures = []  # Future list
     for key in sorted(sample_dict.keys()):
-        new_list = [] 
-        #print(key)
+        new_list = []
+        # print(key)
         for i, fname in enumerate(sample_dict[key]):
-            if i%5 == 0: 
+            if i % 5 == 0:
                 # print some progress info
                 ith = f'{key}: {i}/{len(sample_dict[key])}'
             else:
                 ith = None
-            out = os.path.join(os.path.abspath(args.dir), fname.split("//")[-1].lstrip("/"))
+            out = os.path.join(
+                os.path.abspath(args.dir), fname.split("//")[-1].lstrip("/")
+            )
             new_list.append(out)
             if args.download:
                 if os.path.isfile(out):
@@ -64,4 +70,3 @@ if __name__ == '__main__':
     print("Writing files to {}".format(args.output))
     with open(args.output, 'w') as fp:
         json.dump(out_dict, fp, indent=4)
-        

@@ -55,6 +55,14 @@ def get_dataset_files(
         if whitelist_sites:
             for site in whitelist_sites:
                 if site in rses:
+                    # Check actual availability
+                    meta = filedata["pfns"][rses[site][0]]
+                    if (
+                        meta["type"] != "DISK"
+                        or meta["volatile"] == True
+                        or filedata["states"][site] != "AVAILABLE"
+                    ):
+                        continue
                     outfile.append(rses[site][0])
                     outsite.append(site)
                     found = True
@@ -74,17 +82,33 @@ def get_dataset_files(
                 raise Exception(f"No SITE available for file {filedata['name']}")
 
             # now check for regex
-            if regex_sites:
-                for site in possible_sites:
+            for site in possible_sites:
+                if regex_sites:
                     if re.match(regex_sites, site):
+                        # Check actual availability
+                        meta = filedata["pfns"][rses[site][0]]
+                        if (
+                            meta["type"] != "DISK"
+                            or meta["volatile"] == True
+                            or filedata["states"][site] != "AVAILABLE"
+                        ):
+                            continue
                         outfile.append(rses[site][0])
                         outsite.append(site)
                         found = True
-            else:
-                # Just take the first one
-                outfile.append(rses[possible_sites[0]][0])
-                outsite.append(possible_sites[0])
-                found = True
+                else:
+                    # Just take the first one
+                    # Check actual availability
+                    meta = filedata["pfns"][rses[site][0]]
+                    if (
+                        meta["type"] != "DISK"
+                        or meta["volatile"] == True
+                        or filedata["states"][site] != "AVAILABLE"
+                    ):
+                        continue
+                    outfile.append(rses[site][0])
+                    outsite.append(site)
+                    found = True
 
         if not found:
             raise Exception(f"No SITE available for file {filedata['name']}")

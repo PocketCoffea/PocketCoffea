@@ -11,19 +11,21 @@ from parsl.config import Config
 from parsl.executors.threads import ThreadPoolExecutor
 
 from .network import get_proxy_path
+from . import rucio
 
 
 class Sample:
-    def __init__(self, name, das_names, sample, metadata, **kwargs):
+    def __init__(self, name, das_names, sample, metadata, sites_cfg, **kwargs):
         '''
         Class representing a single analysis sample.
         - The name is the unique key of the sample in the dataset file.
         - The DAS name is the unique identifier of the sample in CMS
-        - The sample represent the category: DATA/Wjets/ttHbb/ttBB. It is used to group the same type of events
+        - The sample represent the type of events: DATA/Wjets/ttHbb/ttBB. It is used to group the same type of events
         - metadata contains various keys necessary for the analysis --> the dict passed around in the coffea processor
-        -- year
-        -- isMC: true/false
-        -- era: A/B/C/D (only for data)
+         -- year
+         -- isMC: true/false
+         -- era: A/B/C/D (only for data)
+        - sites_cfg is a dictionary contaning whitelist, blacklist and regex to filter the SITES
         '''
         self.name = name
         self.das_names = das_names
@@ -35,15 +37,22 @@ class Sample:
         self.metadata.update(metadata)
         self.metadata["nevents"] = 0
         self.metadata["size"] = 0
-        self.fileslist = []
-        print("*****************************************")
-        print(self.metadata)
-        print("*****************************************")
+        self.fileslist_redirector = []
+        self.fileslist_concrete = []
+        self.sites_cfg = sites_cfg
+
+        print(
+            f">> Query for sample: {self.metadata['sample']},  das_name: {self.metadata['das_names']}"
+        )
         self.get_filelist()
 
-    # Function to get the dataset filelist from DAS
     def get_filelist(self):
-        for das_name in self.metadata["das_names"]:
+        '''Function to get the dataset filelist from DAS and from Rucio.
+        From DAS we get the general info about the dataset (event count, file size),
+        whereas from rucio we get the specific path at the sites without the redictor
+        (it helps with xrootd access in coffea).
+        '''
+        for das_name in self.das_names:
             proxy = get_proxy_path()
             if "dbs_instance" in self.metadata.keys():
                 link = f"https://cmsweb.cern.ch:8443/dbs/{self.metadata['dbs_instance']}/DBSReader/files?dataset={das_name}&detail=True"
@@ -59,20 +68,34 @@ class Sample:
                 if fj["is_file_valid"] == 0:
                     print(f"ERROR: File not valid on DAS: {f['name']}")
                 else:
-                    self.fileslist.append(fj['logical_file_name'])
+                    self.fileslist_redirector.append(fj['logical_file_name'])
                     self.metadata["nevents"] += fj['event_count']
                     self.metadata["size"] += fj['file_size']
-            if len(self.fileslist) == 0:
+            if len(self.fileslist_redirector) == 0:
                 raise Exception(f"Found 0 files for sample {self}!")
 
+            # Now query rucio to get the concrete dataset passing the sites filtering options
+            files_rucio, sites = rucio.get_dataset_files(
+                das_name, **self.sites_cfg, output="first"
+            )
+            self.fileslist_concrete = files_rucio
+
     # Function to build the sample dictionary
-    def get_sample_dict(self, prefix="root://xrootd-cms.infn.it//"):
-        out = {
-            self.name: {
-                'metadata': {k: str(v) for k, v in self.metadata.items()},
-                'files': [prefix + f for f in self.fileslist],
+    def get_sample_dict(self, redirector=True, prefix="root://xrootd-cms.infn.it//"):
+        if redirector:
+            out = {
+                self.name: {
+                    'metadata': {k: str(v) for k, v in self.metadata.items()},
+                    'files': [prefix + f for f in self.fileslist_redirector],
+                }
             }
-        }
+        else:  # rucio
+            out = {
+                self.name: {
+                    'metadata': {k: str(v) for k, v in self.metadata.items()},
+                    'files': [f for f in self.fileslist_concrete],
+                }
+            }
         return out
 
     def check_files(self, prefix):
@@ -86,14 +109,25 @@ class Sample:
 
 
 class Dataset:
-    def __init__(self, name, cfg):
-        self.prefix = cfg["storage_prefix"]
+    def __init__(
+        self,
+        name,
+        cfg,
+        sites_cfg=None,
+    ):
+        self.prefix = cfg.get("storage_prefix", None)
         self.name = name
         self.outfile = cfg["json_output"]
         self.sample = cfg["sample"]
-        self.sample_dict = {}
+        self.sample_dict_redirector = {}
+        self.sample_dict_concrete = {}
         self.sample_dict_local = {}
         self.samples_obj = []
+        self.sites_cfg = sites_cfg if sites_cfg else {
+            "whitelist_sites": None,
+            "blacklist_sites": None,
+            "regex_sites": None,
+        }
         self.get_samples(cfg["files"])
 
     # Function to build the dataset dictionary
@@ -111,12 +145,21 @@ class Dataset:
                 das_names=scfg["das_names"],
                 sample=self.sample,
                 metadata=scfg["metadata"],
+                sites_cfg=self.sites_cfg,
                 **kwargs,
             )
             self.samples_obj.append(sample)
-            # Get the default prefix and the the one
-            self.sample_dict.update(sample.get_sample_dict())
-            self.sample_dict_local.update(sample.get_sample_dict(prefix=self.prefix))
+
+            # Save redirector
+            self.sample_dict_redirector.update(sample.get_sample_dict(redirector=True))
+            # Save concrete
+            self.sample_dict_concrete.update(sample.get_sample_dict(redirector=False))
+
+            if self.prefix:
+                #  If a storage prefix is specified, save also a local storage file
+                self.sample_dict_local.update(
+                    sample.get_sample_dict(redirector=True, prefix=self.prefix)
+                )
 
     def _write_dataset(self, outfile, sample_dict, append=True, overwrite=False):
         print(f"Saving datasets {self.name} to {outfile}")
@@ -141,34 +184,35 @@ class Dataset:
 
     # Function to save the dataset dictionary with xrootd and local prefixes
     def save(self, append=True, overwrite=False, split=False):
-        if not split:
-            for outfile, sample_dict in zip(
-                [self.outfile, self.outfile.replace('.json', '_local.json')],
-                [self.sample_dict, self.sample_dict_local],
-            ):
+        for outfile, sample_dict in zip(
+            [
+                self.outfile,
+                self.outfile.replace('.json', '_redirector.json'),
+                self.outfile.replace('.json', '_local.json'),
+            ],
+            [
+                self.sample_dict_concrete,
+                self.sample_dict_redirector,
+                self.sample_dict_local,
+            ],
+        ):
+            if not sample_dict:
+                continue  # it is empty
+            if not split:
                 self._write_dataset(outfile, sample_dict, append, overwrite)
-        else:
-            samples_byyear = defaultdict(dict)
-            samples_local_byyear = defaultdict(dict)
-            for k, v in self.sample_dict.items():
-                samples_byyear[v["metadata"]["year"]][k] = v
-            for k, v in self.sample_dict_local.items():
-                samples_local_byyear[v["metadata"]["year"]][k] = v
+            else:
 
-            for year, sample_dict in samples_byyear.items():
-                self._write_dataset(
-                    self.outfile.replace(".json", f"_{year}.json"),
-                    sample_dict,
-                    append,
-                    overwrite,
-                )
-            for year, sample_dict in samples_local_byyear.items():
-                self._write_dataset(
-                    self.outfile.replace(".json", f"_{year}_local.json"),
-                    sample_dict,
-                    append,
-                    overwrite,
-                )
+                samples_byyear = defaultdict(dict)
+                for k, v in sample_dict.items():
+                    samples_byyear[v["metadata"]["year"]][k] = v
+
+                for year, sd in samples_byyear.items():
+                    self._write_dataset(
+                        outfile.replace(".json", f"_{year}.json"),
+                        sd,
+                        append,
+                        overwrite,
+                    )
 
     def check_samples(self):
         for sample in self.samples_obj:
