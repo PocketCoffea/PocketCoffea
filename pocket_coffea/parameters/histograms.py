@@ -500,6 +500,7 @@ def muon_hists(coll="MuonGood", pos=None, fields=None, name=None):
         name = coll
     return _get_default_hist(name, "muon", coll, pos, fields)
 
+
 def lepton_hists(coll="LeptonGood", pos=None, fields=None, name=None):
     if name == None:
         name = coll

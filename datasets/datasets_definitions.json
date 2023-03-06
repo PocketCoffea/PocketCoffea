@@ -2,7 +2,6 @@
     "DATA_DoubleMuon":{
         "sample": "DATA_DoubleMu",
         "json_output"     : "datasets/DATA_DoubleMuon.json",
-        "storage_prefix" : "/pnfs/psi.ch/cms/trivcat/",
         "files":[
             { "das_names": ["/DoubleMuon/Run2017B-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD"],
               "metadata": {
@@ -46,7 +45,6 @@
     "DATA_SingleMuon":{
         "sample": "DATA_SingleMuon",
         "json_output"     : "datasets/DATA_SingleMuon.json",
-        "storage_prefix" : "/pnfs/psi.ch/cms/trivcat/",
         "files":[
             { "das_names": ["/SingleMuon/Run2018A-UL2018_MiniAODv2_NanoAODv9-v2/NANOAOD"],
               "metadata": {
@@ -108,7 +106,6 @@
       "DATA_SingleEle":{
         "sample": "DATA_SingleEle",
         "json_output"     : "datasets/DATA_SingleEle.json",
-        "storage_prefix" : "/pnfs/psi.ch/cms/trivcat/",
         "files":[
             { "das_names": ["/EGamma/Run2018A-UL2018_MiniAODv2_NanoAODv9_GT36-v1/NANOAOD"],
               "metadata": {
@@ -140,7 +137,6 @@
     "ttHTobb": {
         "sample": "ttHTobb",
         "json_output" : "datasets/signal_ttHTobb.json",
-        "storage_prefix": "/pnfs/psi.ch/cms/trivcat/",
         "files": [
             { "das_names": ["/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM"],
               "metadata":{
@@ -155,7 +151,6 @@
      "TTbbSemiLeptonic_Powheg": {
         "sample": "TTbbSemiLeptonic",
         "json_output" : "datasets/backgrounds_MC_TTbb.json",
-        "storage_prefix": "/pnfs/psi.ch/cms/trivcat/",
         "files": [
             { "das_names": ["/TTbb_4f_TTToSemiLeptonic_TuneCP5-Powheg-Openloops-Pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"],
               "metadata":{
@@ -187,7 +182,6 @@
     "TTToSemiLeptonic": {
         "sample": "TTToSemiLeptonic",
         "json_output" : "datasets/backgrounds_MC_ttbar.json",
-        "storage_prefix": "/pnfs/psi.ch/cms/trivcat/",
         "files": [
             { "das_names": ["/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"],
               "metadata":{
@@ -209,7 +203,6 @@
     "TTTo2L2Nu": {
         "sample": "TTTo2L2Nu",
         "json_output" : "datasets/backgrounds_MC_ttbar.json",
-        "storage_prefix": "/pnfs/psi.ch/cms/trivcat/",
         "files": [
             { "das_names": ["/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"],
               "metadata":{
@@ -232,7 +225,6 @@
     "ST_s-channel_4f_leptonDecays": {
         "sample": "ST_s-channel_4f_leptonDecays",
         "json_output" : "datasets/backgrounds_MC.json",
-        "storage_prefix": "/pnfs/psi.ch/cms/trivcat/",
         "files": [
             { "das_names": ["/ST_s-channel_4f_leptonDecays_TuneCP5_13TeV-amcatnlo-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"],
               "metadata":{
@@ -248,7 +240,6 @@
     "ST_t-channel_top_4f_InclusiveDecays": {
         "sample": "ST_t-channel_top_4f_InclusiveDecays",
         "json_output" : "datasets/backgrounds_MC.json",
-        "storage_prefix": "/pnfs/psi.ch/cms/trivcat/",
         "files": [
             { "das_names": ["/ST_t-channel_top_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"],
               "metadata":{
@@ -264,7 +255,6 @@
     "ST_t-channel_antitop_4f_InclusiveDecays": {
         "sample": "ST_t-channel_antitop_4f_InclusiveDecays",
         "json_output" : "datasets/backgrounds_MC.json",
-        "storage_prefix": "/pnfs/psi.ch/cms/trivcat/",
         "files": [
             { "das_names": ["/ST_t-channel_antitop_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"],
               "metadata":{
@@ -279,7 +269,6 @@
     "ST_tW_top_5f_NoFullyHadronicDecays": {
         "sample": "ST_tW_top_5f_NoFullyHadronicDecays",
         "json_output" : "datasets/backgrounds_MC.json",
-        "storage_prefix": "/pnfs/psi.ch/cms/trivcat/",
         "files": [
             { "das_names": ["/ST_tW_top_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"],
               "metadata":{
@@ -294,7 +283,6 @@
     "ST_tW_antitop_5f_NoFullyHadronicDecays": {
         "sample": "ST_tW_antitop_5f_NoFullyHadronicDecays",
         "json_output" : "datasets/backgrounds_MC.json",
-        "storage_prefix": "/pnfs/psi.ch/cms/trivcat/",
         "files": [
             { "das_names": ["/ST_tW_antitop_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"],
               "metadata":{

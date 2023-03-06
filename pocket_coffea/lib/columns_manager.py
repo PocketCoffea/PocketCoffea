@@ -54,20 +54,20 @@ class ColumnsManager:
 
                 # Filtering the position in the collection if needed
                 if outarray.pos_start and outarray.pos_end:
-                    data = data[:,outarray.pos_start:outarray.pos_end]
+                    data = data[:, outarray.pos_start : outarray.pos_end]
                 elif outarray.pos_start and not outarray.pos_end:
-                    data = data[:,outarray.pos_start:]
+                    data = data[:, outarray.pos_start :]
                 elif not outarray.pos_start and outarray.pos_end:
-                    data = data[:,:outarray.pos_end]
+                    data = data[:, : outarray.pos_end]
 
-                if outarray.store_size:
+                if outarray.store_size and data.ndim > 1:
                     N = ak.num(data)
                     self.output[category][
                         f"{outarray.collection}_N"
                     ] = column_accumulator(ak.to_numpy(N, allow_missing=False))
                 # looping on the columns
                 for col in outarray.columns:
-                    if outarray.flatten:
+                    if outarray.flatten and data.ndim > 1:
                         if outarray.fill_none:
                             out = ak.fill_none(
                                 ak.flatten(data[col]),
