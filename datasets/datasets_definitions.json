@@ -223,14 +223,15 @@
 
     
     "ST_s-channel_4f_leptonDecays": {
-        "sample": "ST_s-channel_4f_leptonDecays",
+        "sample": "ST",
         "json_output" : "datasets/backgrounds_MC.json",
         "files": [
             { "das_names": ["/ST_s-channel_4f_leptonDecays_TuneCP5_13TeV-amcatnlo-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"],
               "metadata":{
                   "year": "2018",
                   "isMC": true,
-                  "xsec": 3.36
+                  "xsec": 3.36,
+                  "part": "s-channel_4f_leptonDecays"
               }
             }
         ]
@@ -238,14 +239,15 @@
 
     
     "ST_t-channel_top_4f_InclusiveDecays": {
-        "sample": "ST_t-channel_top_4f_InclusiveDecays",
+        "sample": "ST",
         "json_output" : "datasets/backgrounds_MC.json",
         "files": [
             { "das_names": ["/ST_t-channel_top_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"],
               "metadata":{
                   "year": "2018",
                   "isMC": true,
-                  "xsec": 136.02
+                  "xsec": 136.02,
+                  "part": "t-channel_top_4f_InclusiveDecays"
               }
             }
         ]
@@ -253,42 +255,45 @@
 
     
     "ST_t-channel_antitop_4f_InclusiveDecays": {
-        "sample": "ST_t-channel_antitop_4f_InclusiveDecays",
+        "sample": "ST",
         "json_output" : "datasets/backgrounds_MC.json",
         "files": [
             { "das_names": ["/ST_t-channel_antitop_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"],
               "metadata":{
                   "year": "2018",
                   "isMC": true,
-                  "xsec": 80.95
+                  "xsec": 80.95,
+                  "part": "t-channel_antitop_4f_InclusiveDecays"
               }
             }
         ]
     },
 
     "ST_tW_top_5f_NoFullyHadronicDecays": {
-        "sample": "ST_tW_top_5f_NoFullyHadronicDecays",
+        "sample": "ST",
         "json_output" : "datasets/backgrounds_MC.json",
         "files": [
             { "das_names": ["/ST_tW_top_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"],
               "metadata":{
                   "year": "2018",
                   "isMC": true,
-                  "xsec": 35.85
+                  "xsec": 35.85,
+                  "part": "tW_top_5f_NoFullyHadronicDecays"
               }
             }
         ]
     },
 
     "ST_tW_antitop_5f_NoFullyHadronicDecays": {
-        "sample": "ST_tW_antitop_5f_NoFullyHadronicDecays",
+        "sample": "ST",
         "json_output" : "datasets/backgrounds_MC.json",
         "files": [
             { "das_names": ["/ST_tW_antitop_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"],
               "metadata":{
                   "year": "2018",
                   "isMC": true,
-                  "xsec": 35.85
+                  "xsec": 35.85,
+                  "part": "tW_antitop_5f_NoFullyHadronicDecays"
               }
             }
         ]
@@ -297,7 +302,6 @@
     "WJetsToLNu_HT-70To100": {
         "sample": "WJetsToLNu_HT",
         "json_output" : "datasets/backgrounds_MC.json",
-        "storage_prefix": "/pnfs/psi.ch/cms/trivcat/",
         "description": "Cross-section taken from https://cms-gen-dev.cern.ch/xsdb/?columns=67108863&currentPage=0&pageSize=10&searchQuery=process_name%3DWJetsToLNu_HT-70To100_TuneCP5_13TeV-madgraphMLM-pythia8",
         "files": [
             { "das_names": ["/WJetsToLNu_HT-70To100_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"],
@@ -314,7 +318,6 @@
     "WJetsToLNu_HT-100To200": {
         "sample": "WJetsToLNu_HT",
         "json_output" : "datasets/backgrounds_MC.json",
-        "storage_prefix": "/pnfs/psi.ch/cms/trivcat/",
         "description": "Cross-section taken from AN2019-094_v14",
         "files": [
             { "das_names": ["/WJetsToLNu_HT-100To200_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"],
@@ -331,7 +334,6 @@
     "WJetsToLNu_HT-200To400": {
         "sample": "WJetsToLNu_HT",
         "json_output" : "datasets/backgrounds_MC.json",
-        "storage_prefix": "/pnfs/psi.ch/cms/trivcat/",
         "description": "Cross-section taken from AN2019-094_v14",
         "files": [
             { "das_names": ["/WJetsToLNu_HT-200To400_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"],
@@ -348,7 +350,6 @@
     "WJetsToLNu_HT-400To600": {
         "sample": "WJetsToLNu_HT",
         "json_output" : "datasets/backgrounds_MC.json",
-        "storage_prefix": "/pnfs/psi.ch/cms/trivcat/",
         "description": "Cross-section taken from AN2019-094_v14",
         "files": [
             { "das_names": ["/WJetsToLNu_HT-400To600_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"],
@@ -365,7 +366,6 @@
     "WJetsToLNu_HT-600To800": {
         "sample": "WJetsToLNu_HT",
         "json_output" : "datasets/backgrounds_MC.json",
-        "storage_prefix": "/pnfs/psi.ch/cms/trivcat/",
         "description": "Cross-section taken from AN2019-094_v14",
         "files": [
             { "das_names": ["/WJetsToLNu_HT-600To800_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"],
@@ -382,7 +382,6 @@
     "WJetsToLNu_HT-800To1200": {
         "sample": "WJetsToLNu_HT",
         "json_output" : "datasets/backgrounds_MC.json",
-        "storage_prefix": "/pnfs/psi.ch/cms/trivcat/",
         "description": "Cross-section taken from AN2019-094_v14",
         "files": [
             { "das_names": ["/WJetsToLNu_HT-800To1200_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"],
@@ -399,7 +398,6 @@
     "WJetsToLNu_HT-1200To2500": {
         "sample": "WJetsToLNu_HT",
         "json_output" : "datasets/backgrounds_MC.json",
-        "storage_prefix": "/pnfs/psi.ch/cms/trivcat/",
         "description": "Cross-section taken from https://cms-gen-dev.cern.ch/xsdb/?columns=67108863&currentPage=0&pageSize=10&searchQuery=process_name%3DWJetsToLNu_HT-1200To2500_TuneCP5_13TeV-madgraphMLM-pythia8",
         "files": [
             { "das_names": ["/WJetsToLNu_HT-1200To2500_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"],
@@ -416,7 +414,6 @@
     "WJetsToLNu_HT-2500ToInf": {
         "sample": "WJetsToLNu_HT",
         "json_output" : "datasets/backgrounds_MC.json",
-        "storage_prefix": "/pnfs/psi.ch/cms/trivcat/",
         "description": "Cross-section taken from https://cms-gen-dev.cern.ch/xsdb/?columns=67108863&currentPage=0&pageSize=10&searchQuery=process_name%3DWJetsToLNu_HT-2500ToInf_TuneCP5_13TeV-madgraphMLM-pythia8",
         "files": [
             { "das_names": ["/WJetsToLNu_HT-2500ToInf_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM"],
