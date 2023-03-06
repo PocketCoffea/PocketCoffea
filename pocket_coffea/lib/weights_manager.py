@@ -202,7 +202,6 @@ class WeightsManager:
                     continue
                 self._weightsByCat[cat] = Weights(size, storeIndividual)
                 for w in ws:
-                    # print(f"Adding weight {w} in category {cat}")
                     modifiers = __add_weight(w, self._weightsByCat[cat])
                     self._available_modifiers_bycat[cat] += modifiers
 
@@ -269,7 +268,6 @@ class WeightsManager:
                     triggersf[var][2] = triggersf[var][2] / triggersf["nominal"][0]
             else:
                 # Only the nominal if there is a shape variation
-                # TODO Implement the varied btag for the JES variations
                 triggersf = sf_ele_trigger(
                     events,
                     self._year,
@@ -301,6 +299,18 @@ class WeightsManager:
                     # as separate entries in the Weights object.
                     btagsf[var][1] = btagsf[var][1] / btagsf["central"][0]
                     btagsf[var][2] = btagsf[var][2] / btagsf["central"][0]
+
+            elif "JES_" in shape_variation:
+                # Compute the special version of the btagSF for JES variation
+                # The name conversion is done inside the btag sf function.
+                btagsf = sf_btag(
+                    events.JetGood,
+                    btag[self._year]['btagging_algorithm'],
+                    self._year,
+                    variations=[shape_variation],
+                    njets=events.nJetGood,
+                )
+                
             else:
                 # Only the nominal if there is a shape variation
                 # TODO Implement the varied btag for the JES variations

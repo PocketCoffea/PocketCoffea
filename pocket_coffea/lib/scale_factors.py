@@ -230,7 +230,8 @@ def sf_mu(events, year, key=''):
 
 def sf_btag(jets, btag_discriminator, year, njets, variations=["central"]):
     '''
-    DeepJet AK4 btagging SF. See https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/BTV_btagging_Run2_UL/BTV_btagging_2018_UL.html
+    DeepJet AK4 btagging SF.
+    See https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/summaries/BTV_2018_UL_btagging.html
     The scale factors have 8 default uncertainty
     sources (hf,lf,hfstats1/2,lfstats1/2,cferr1/2) (all of this up_*var*, and down_*var*).
     All except the cferr1/2 uncertainties are to be
@@ -250,27 +251,21 @@ def sf_btag(jets, btag_discriminator, year, njets, variations=["central"]):
     pt = ak.to_numpy(ak.flatten(jets.pt))
     discr = ak.to_numpy(ak.flatten(jets[btag_discriminator]))
 
-    def _getsfwithmask(variation, mask):
+    central_SF_byjet =  corr.evaluate("central", flavour, abseta, pt, discr)
+                   
+    def _get_sf_variation_with_mask(variation, mask):
         index = (np.indices(discr.shape)).flatten()[mask]
-        sf = np.ones_like(discr, dtype=float)
+        # Copying the central SF
+        sf = np.copy(central_SF_byjet)
         w = corr.evaluate(variation, flavour[mask], abseta[mask], pt[mask], discr[mask])
         sf[index] = w
-        # TODO this can be improved: we do not need to keep the order
-        # since we are doing the product --> we can simplify this
         sf_out = ak.prod(ak.unflatten(sf, njets), axis=1)
         return sf_out
 
     output = {}
     for variation in variations:
         if variation == "central":
-            output[variation] = [
-                ak.prod(
-                    ak.unflatten(
-                        corr.evaluate(variation, flavour, abseta, pt, discr), njets
-                    ),
-                    axis=1,
-                ),
-            ]
+            output[variation] = [ak.prod(ak.unflatten(central_SF_byjet, njets), axis=1) ]
         else:
             # Nominal sf==1
             nominal = np.ones(ak.num(njets, axis=0))
@@ -280,22 +275,38 @@ def sf_btag(jets, btag_discriminator, year, njets, variations=["central"]):
                 c_mask = flavour == 4
                 output[variation] = [
                     nominal,
-                    _getsfwithmask(f"up_{variation}", c_mask),
-                    _getsfwithmask(f"down_{variation}", c_mask),
+                    _get_sf_variation_with_mask(f"up_{variation}", c_mask),
+                    _get_sf_variation_with_mask(f"down_{variation}", c_mask),
                 ]
 
-            elif "jes" in variation:
+            elif "JES" in variation:
+                # We need to convert the name of the variation
+                # from JES_VariationUp to  up_jesVariation
+                if variation == "JES_TotalUp":
+                    btag_jes_var = "up_jes"
+                elif variation == "JES_TotalDown":
+                    btag_jes_var = "down_jes"
+                else:
+                    if variation[-2:] == "Up":
+                        btag_jes_var =  f"up_jes{variation[4:-2]}"
+                    elif variation[-4:] == "Down":
+                        btag_jes_var =  f"down_jes{variation[4:-4]}"
+                        
                 # This is a special case where a dedicate btagSF is computed for up and down Jes shape variations.
                 # This is not an up/down variation, but a single modified SF.
-                notc_mask = flavour != 4
-                output[variation] = _getsfwithmask(variation, notcmask)
+                # N.B: It is a central SF
+                # notc_mask = flavour != 4
+                # output["central"] = [_get_sf_variation_with_mask(btag_jes_var, notc_mask)]
+                output["central"] =  [ak.prod(
+                                            ak.unflatten(  corr.evaluate("central", flavour, abseta, pt, discr), njets),
+                                     axis=1)]
             else:
                 # Computing the scale factor only NON c-flavour jets
                 notc_mask = flavour != 4
                 output[variation] = [
                     nominal,
-                    _getsfwithmask(f"up_{variation}", notc_mask),
-                    _getsfwithmask(f"down_{variation}", notc_mask),
+                    _get_sf_variation_with_mask(f"up_{variation}", notc_mask),
+                    _get_sf_variation_with_mask(f"down_{variation}", notc_mask),
                 ]
 
     return output
