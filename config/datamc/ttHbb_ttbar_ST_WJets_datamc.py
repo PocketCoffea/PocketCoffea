@@ -1,6 +1,6 @@
 from pocket_coffea.parameters.cuts.preselection_cuts import *
 from pocket_coffea.workflows.tthbb_base_processor import ttHbbBaseProcessor
-from pocket_coffea.lib.cut_functions import get_nObj_min, get_nObj_eq, get_HLTsel, get_nBtag, get_nElectron, get_nMuon
+from pocket_coffea.lib.cut_functions import get_nObj_min, get_nObj_eq, get_HLTsel, get_nBtagMin, get_nElectron, get_nMuon
 from pocket_coffea.parameters.histograms import *
 from pocket_coffea.parameters.btag import btag_variations
 from pocket_coffea.parameters.lepton_scale_factors import sf_ele_trigger_variations
@@ -9,19 +9,8 @@ from config.datamc.plots import cfg_plot
 samples = ["ttHTobb",
            "TTToSemiLeptonic",
            "TTTo2L2Nu",
-           "ST_s-channel_4f_leptonDecays",
-           "ST_t-channel_top_4f_InclusiveDecays",
-           "ST_t-channel_antitop_4f_InclusiveDecays",
-           "ST_tW_top_5f_NoFullyHadronicDecays",
-           "ST_tW_antitop_5f_NoFullyHadronicDecays",
-           "WJetsToLNu_HT-70To100",
-           "WJetsToLNu_HT-100To200",
-           "WJetsToLNu_HT-200To400",
-           "WJetsToLNu_HT-400To600",
-           "WJetsToLNu_HT-600To800",
-           "WJetsToLNu_HT-800To1200",
-           "WJetsToLNu_HT-1200To2500",
-           "WJetsToLNu_HT-2500ToInf",
+           "ST",
+           "WJetsToLNu_HT",
            "DATA_SingleEle",
            "DATA_SingleMuon"]
 
@@ -47,7 +36,7 @@ cfg =  {
 
     # Input and output files
     "workflow" : ttHbbBaseProcessor,
-    "output"   : "output/test/datamc/ttHbb_ttbar_ST_WJets_datamc",
+    "output"   : "output/datamc/ttHbb_ttbar_ST_WJets_datamc",
     "worflow_options" : {},
 
     "run_options" : {
@@ -75,22 +64,22 @@ cfg =  {
     "preselections" : [semileptonic_presel_nobtag],
     "categories": {
         "baseline": [passthrough],
-        "SingleEle_1b" : [ get_nElectron(1, coll="ElectronGood"), get_nBtag(1, coll="BJetGood") ],
-        "SingleEle_2b" : [ get_nElectron(1, coll="ElectronGood"), get_nBtag(2, coll="BJetGood") ],
-        "SingleEle_3b" : [ get_nElectron(1, coll="ElectronGood"), get_nBtag(3, coll="BJetGood") ],
-        "SingleEle_4b" : [ get_nElectron(1, coll="ElectronGood"), get_nBtag(4, coll="BJetGood") ],
-        "SingleMuon_1b" : [ get_nMuon(1, coll="MuonGood"), get_nBtag(1, coll="BJetGood") ],
-        "SingleMuon_2b" : [ get_nMuon(1, coll="MuonGood"), get_nBtag(2, coll="BJetGood") ],
-        "SingleMuon_3b" : [ get_nMuon(1, coll="MuonGood"), get_nBtag(3, coll="BJetGood") ],
-        "SingleMuon_4b" : [ get_nMuon(1, coll="MuonGood"), get_nBtag(4, coll="BJetGood") ],
-        "SingleEle_1b_btagcalibrated" : [ get_nElectron(1, coll="ElectronGood"), get_nBtag(1, coll="BJetGood") ],
-        "SingleEle_2b_btagcalibrated" : [ get_nElectron(1, coll="ElectronGood"), get_nBtag(2, coll="BJetGood") ],
-        "SingleEle_3b_btagcalibrated" : [ get_nElectron(1, coll="ElectronGood"), get_nBtag(3, coll="BJetGood") ],
-        "SingleEle_4b_btagcalibrated" : [ get_nElectron(1, coll="ElectronGood"), get_nBtag(4, coll="BJetGood") ],
-        "SingleMuon_1b_btagcalibrated" : [ get_nMuon(1, coll="MuonGood"), get_nBtag(1, coll="BJetGood") ],
-        "SingleMuon_2b_btagcalibrated" : [ get_nMuon(1, coll="MuonGood"), get_nBtag(2, coll="BJetGood") ],
-        "SingleMuon_3b_btagcalibrated" : [ get_nMuon(1, coll="MuonGood"), get_nBtag(3, coll="BJetGood") ],
-        "SingleMuon_4b_btagcalibrated" : [ get_nMuon(1, coll="MuonGood"), get_nBtag(4, coll="BJetGood") ]
+        "SingleEle_1b" : [ get_nElectron(1, coll="ElectronGood"), get_nBtagMin(1, coll="BJetGood") ],
+        "SingleEle_2b" : [ get_nElectron(1, coll="ElectronGood"), get_nBtagMin(2, coll="BJetGood") ],
+        "SingleEle_3b" : [ get_nElectron(1, coll="ElectronGood"), get_nBtagMin(3, coll="BJetGood") ],
+        "SingleEle_4b" : [ get_nElectron(1, coll="ElectronGood"), get_nBtagMin(4, coll="BJetGood") ],
+        "SingleMuon_1b" : [ get_nMuon(1, coll="MuonGood"), get_nBtagMin(1, coll="BJetGood") ],
+        "SingleMuon_2b" : [ get_nMuon(1, coll="MuonGood"), get_nBtagMin(2, coll="BJetGood") ],
+        "SingleMuon_3b" : [ get_nMuon(1, coll="MuonGood"), get_nBtagMin(3, coll="BJetGood") ],
+        "SingleMuon_4b" : [ get_nMuon(1, coll="MuonGood"), get_nBtagMin(4, coll="BJetGood") ],
+        "SingleEle_1b_btagcalibrated" : [ get_nElectron(1, coll="ElectronGood"), get_nBtagMin(1, coll="BJetGood") ],
+        "SingleEle_2b_btagcalibrated" : [ get_nElectron(1, coll="ElectronGood"), get_nBtagMin(2, coll="BJetGood") ],
+        "SingleEle_3b_btagcalibrated" : [ get_nElectron(1, coll="ElectronGood"), get_nBtagMin(3, coll="BJetGood") ],
+        "SingleEle_4b_btagcalibrated" : [ get_nElectron(1, coll="ElectronGood"), get_nBtagMin(4, coll="BJetGood") ],
+        "SingleMuon_1b_btagcalibrated" : [ get_nMuon(1, coll="MuonGood"), get_nBtagMin(1, coll="BJetGood") ],
+        "SingleMuon_2b_btagcalibrated" : [ get_nMuon(1, coll="MuonGood"), get_nBtagMin(2, coll="BJetGood") ],
+        "SingleMuon_3b_btagcalibrated" : [ get_nMuon(1, coll="MuonGood"), get_nBtagMin(3, coll="BJetGood") ],
+        "SingleMuon_4b_btagcalibrated" : [ get_nMuon(1, coll="MuonGood"), get_nBtagMin(4, coll="BJetGood") ]
     },
 
     
