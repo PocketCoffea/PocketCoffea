@@ -340,7 +340,7 @@
         ]
     },
     "ST_s-channel_4f_leptonDecays": {
-        "sample": "ST",
+        "sample": "SingleTop",
         "json_output": "datasets/backgrounds_MC.json",
         "files": [
             {
@@ -358,7 +358,7 @@
         ]
     },
     "ST_t-channel_top_4f_InclusiveDecays": {
-        "sample": "ST",
+        "sample": "SingleTop",
         "json_output": "datasets/backgrounds_MC.json",
         "files": [
             {
@@ -376,7 +376,7 @@
         ]
     },
     "ST_t-channel_antitop_4f_InclusiveDecays": {
-        "sample": "ST",
+        "sample": "SingleTop",
         "json_output": "datasets/backgrounds_MC.json",
         "files": [
             {
@@ -394,7 +394,7 @@
         ]
     },
     "ST_tW_top_5f_NoFullyHadronicDecays": {
-        "sample": "ST",
+        "sample": "SingleTop",
         "json_output": "datasets/backgrounds_MC.json",
         "files": [
             {
@@ -412,7 +412,7 @@
         ]
     },
     "ST_tW_antitop_5f_NoFullyHadronicDecays": {
-        "sample": "ST",
+        "sample": "SingleTop",
         "json_output": "datasets/backgrounds_MC.json",
         "files": [
             {
