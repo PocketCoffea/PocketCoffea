@@ -79,6 +79,8 @@ class ttHbbBaseProcessor(BaseProcessorABC):
     # Function that defines common variables employed in analyses and save them as attributes of `events`
     def define_common_variables_before_presel(self, variation):
         self.events["JetGood_Ht"] = ak.sum(abs(self.events.JetGood.pt), axis=1)
+        self.events["nJetGoodCFlavour"] = ak.sum(self.events.JetGood.hadronFlavour==4, axis=1)
+        self.events["nJetGoodBFlavour"] = ak.sum(self.events.JetGood.hadronFlavour==5, axis=1)
 
     def fill_histograms_extra(self, variation):
         '''

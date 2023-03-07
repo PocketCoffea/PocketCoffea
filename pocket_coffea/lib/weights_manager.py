@@ -310,7 +310,7 @@ class WeightsManager:
                     variations=[shape_variation],
                     njets=events.nJetGood,
                 )
-                
+
             else:
                 # Only the nominal if there is a shape variation
                 # TODO Implement the varied btag for the JES variations
