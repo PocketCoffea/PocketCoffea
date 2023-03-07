@@ -10,24 +10,9 @@ class genWeightsProcessor(BaseProcessorABC):
         super().__init__(cfg)
         self.output_format = {
             "sum_genweights": {},
-            "sumw": {
-                cat: {} for cat in self._categories
-            },
             "cutflow": {
-                "initial": {},
-                "skim": {},
-                "presel": {},
-                **{cat: {} for cat in self._categories},
-            },
-            "variables": {
-                v: {}
-                for v, vcfg in self.cfg.variables.items()
-                if not vcfg.metadata_hist
-            },
-            "columns": {},
-            "processing_metadata": {
-                v: {} for v, vcfg in self.cfg.variables.items() if vcfg.metadata_hist
-            },
+                "initial": {}
+            }
         }
 
     def apply_object_preselection(self, variation):
@@ -47,7 +32,6 @@ class genWeightsProcessor(BaseProcessorABC):
         if self._isMC:
             self.output['sum_genweights'][self._dataset] = ak.sum(self.events.genWeight)
             if self._hasSubsamples:
-                for subs in self._subsamples_names:
-                    self.output['sum_genweights'][subs] = self.output['sum_genweights'][self._sample]
+                raise Exception("This processor cannot compute the sum of genweights of subsamples.")
 
         return self.output
