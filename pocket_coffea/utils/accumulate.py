@@ -20,10 +20,6 @@ def join_accumulator(accumulator, joint_dataset):
         for k, d in accumulator[key].items():
             accumulator[key][k] = {joint_dataset : sum(d.values())}
 
-    for key in ['sum_genweights']:
-        for k, d in accumulator[key].items():
-            accumulator[key] = {joint_dataset : sum(accumulator[key].values())}
-
     return accumulator
 
 def get_joint_accumulator(files, joint_dataset):
