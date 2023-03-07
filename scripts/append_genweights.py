@@ -6,17 +6,15 @@ from coffea.util import load
 
 from pocket_coffea.utils.dataset import Dataset
 
-parser = argparse.ArgumentParser(description='Build dataset fileset in json format')
+parser = argparse.ArgumentParser(description='Append the sum_genweights attribute to the datasets definitions')
 parser.add_argument(
     '--cfg',
-    default=os.getcwd() + "/datasets/datasets_definitions.json",
     help='Config file with datasets parameters',
-    required=False,
+    required=True,
 )
 parser.add_argument(
     '-i', '--inputfile',
-    default=os.getcwd() + "/datasets/datasets_definitions.json",
-    help='Input file with sum_genweights',
+    help='Coffea input file with sum_genweights',
     required=True,
 )
 parser.add_argument(
