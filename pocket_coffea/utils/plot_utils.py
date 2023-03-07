@@ -141,11 +141,9 @@ colors_tthbb = {
     'ttHTobb': 'pink',
     'TTTo2L2Nu': (0.51, 0.79, 1.0),  # blue
     'TTToSemiLeptonic': (1.0, 0.71, 0.24),  # orange
-    'ST_t-channel_top_4f_InclusiveDecays' : (0.51, 0.91, 0.51),  # green
-    'ST_t-channel_antitop_4f_InclusiveDecays' : 'cyan',
-    'ST_s-channel_4f_leptonDecays' : (0.96, 0.88, 0.40),  # yellow
-    'ST_tW_top_5f_NoFullyHadronicDecays' : 'brown',
-    'ST_tW_antitop_5f_NoFullyHadronicDecays' : (1.0, 0.4, 0.4) #red,
+    'SingleTop' : (1.0, 0.4, 0.4), #red
+    'ST' : (1.0, 0.4, 0.4), #red
+    'WJetsToLNu_HT' : '#cc99ff', #violet
 }
 
 

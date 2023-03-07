@@ -19,16 +19,32 @@ cfg =  {
                         "ST_t-channel_top_4f_InclusiveDecays",
                         "ST_t-channel_antitop_4f_InclusiveDecays",
                         "ST_tW_top_5f_NoFullyHadronicDecays",
-                        "ST_tW_antitop_5f_NoFullyHadronicDecays"
+                        "ST_tW_antitop_5f_NoFullyHadronicDecays",
+                        "WJetsToLNu_HT-70To100",
+                        "WJetsToLNu_HT-100To200",
+                        "WJetsToLNu_HT-200To400",
+                        "WJetsToLNu_HT-400To600",
+                        "WJetsToLNu_HT-600To800",
+                        "WJetsToLNu_HT-800To1200",
+                        "WJetsToLNu_HT-1200To2500",
+                        "WJetsToLNu_HT-2500ToInf"
                         ],
-            "samples_exclude" : [],
+            "samples_exclude" : ["ttHTobb",
+                                 "TTToSemiLeptonic",
+                                 "TTTo2L2Nu",
+                                 "ST_s-channel_4f_leptonDecays",
+                                 "ST_t-channel_top_4f_InclusiveDecays",
+                                 "ST_t-channel_antitop_4f_InclusiveDecays",
+                                 "ST_tW_top_5f_NoFullyHadronicDecays",
+                                 "ST_tW_antitop_5f_NoFullyHadronicDecays"
+                                 ],
             "year": ["2018"]
         }
     },
 
     # Input and output files
     "workflow" : ttHbbBaseProcessor,
-    "output"   : "output/sf_btag_calib/btagSF_calibration_hist",
+    "output"   : "output/sf_btag_calib/btagSF_calibration_WJets",
     "workflow_extra_options": {},
 
     "run_options" : {

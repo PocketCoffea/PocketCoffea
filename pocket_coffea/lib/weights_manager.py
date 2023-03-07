@@ -139,6 +139,7 @@ class WeightsManager:
         self._year = metadata["year"]
         self._finalstate = metadata["finalstate"]
         self._xsec = metadata["xsec"]
+        self._sum_genweights = float(metadata["sum_genweights"])
         self._shape_variation = shape_variation
         self.weightsConf = weightsConf
         self.storeIndividual = storeIndividual
@@ -229,7 +230,7 @@ class WeightsManager:
         in the constructor.
         '''
         if weight_name == "genWeight":
-            return [('genWeight', events.genWeight)]
+            return [('genWeight', events.genWeight / self._sum_genweights)]
         elif weight_name == 'lumi':
             return [('lumi', ak.full_like(events.genWeight, lumi[self._year]["tot"]))]
         elif weight_name == 'XS':
