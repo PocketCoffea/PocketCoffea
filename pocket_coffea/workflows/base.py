@@ -108,6 +108,10 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         if self._isMC:
             self._era = "MC"
             self._xsec = self.events.metadata["xsec"]
+            if "sum_genweights" in self.events.metadata:
+                self._sum_genweights = self.events.metadata["sum_genweights"]
+            else:
+                raise Exception(f"The metadata dict of {self._dataset} has no key named `sum_genweights`.")
         else:
             self._era = self.events.metadata["era"]
             self._goldenJSON = goldenJSON[self._year]
@@ -340,6 +344,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     "year": self._year,
                     "sample": self._sample,
                     "xsec": self._xsec,
+                    "sum_genweights": self._sum_genweights,
                     "finalstate": self.cfg.finalstate,
                 },
             )
@@ -746,6 +751,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Rescale MC histograms by the total sum of the genweights
         try:
             scale_genweight = {}
+            """
             for sample in self.cfg.total_samples_list:
                 if sample not in accumulator["sum_genweights"]:
                     continue
@@ -767,6 +773,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                         continue
                     h *= scale_genweight[sample]
             accumulator["scale_genweight"] = scale_genweight
+            """
         except Exception as e:
             print(e)
             print(
