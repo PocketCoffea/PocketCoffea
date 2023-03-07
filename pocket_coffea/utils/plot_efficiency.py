@@ -347,15 +347,15 @@ opts_gap = {
 }
 
 patch_opts = {
-    'data': {'vmin': 0.4, 'vmax': 1.0},
-    'mc': {'vmin': 0.4, 'vmax': 1.0},
-    'sf': {'vmin': 0.75, 'vmax': 1.2, 'label': "Trigger SF"},
-    'unc_data': {'vmax': 0.05},
-    'unc_mc': {'vmax': 0.05},
-    'unc_sf': {'vmax': 0.05, 'label': "Trigger SF unc."},
-    'unc_rel_data': {'vmax': 0.05},
-    'unc_rel_mc': {'vmax': 0.05},
-    'unc_rel_sf': {'vmax': 0.05, 'label': "Trigger SF unc."},
+    'data': {'vmin': 0.4, 'vmax': 1.0, 'label': "Data efficiency"},
+    'mc': {'vmin': 0.4, 'vmax': 1.0, 'label': "MC efficiency"},
+    'sf': {'vmin': 0.8, 'vmax': 1.1, 'label': "Trigger SF"},
+    'unc_data': {'vmin': 0.0, 'vmax': 0.10, 'label': "Data eff. unc."},
+    'unc_mc': {'vmin': 0.0, 'vmax': 0.03, 'label': "MC eff. unc."},
+    'unc_sf': {'vmin': 0.0, 'vmax': 0.10, 'label': "Trigger SF unc."},
+    'unc_rel_data': {'vmin': 0.0, 'vmax': 0.10, 'label': "Data eff. unc."},
+    'unc_rel_mc': {'vmin': 0.0, 'vmax': 0.03, 'label': "MC eff. unc."},
+    'unc_rel_sf': {'vmin': 0.0, 'vmax': 0.10, 'label': "Trigger SF unc."},
     'ratio_sf': {'vmin': 0.95, 'vmax': 1.05, 'label': "ratio SF var./nom."},
 }
 
@@ -1081,22 +1081,9 @@ class EfficiencyMap:
 
                 if save_plots:
                     fig_map, ax_map = plt.subplots(1, 1, figsize=[16, 10])
-                    if label == "sf":
-                        self.map2d.label = "Trigger SF"
-                        self.map2d.plot2d(ax=ax_map, vmin=0.8, vmax=1.1)
-                    elif label == "unc_sf":
-                        self.map2d.label = "Trigger SF unc."
-                        self.map2d.plot2d(ax=ax_map)
-                    elif label == "ratio_sf":
-                        self.map2d.label = "SF var./nom."
-                        self.map2d.plot2d(ax=ax_map)
-                    elif label == "unc_rel_sf":
-                        self.map2d.label = "Trigger SF rel. unc."
-                        self.map2d.plot2d(ax=ax_map, vmin=0.0, vmax=0.10)
-                    else:
-                        self.map2d.plot2d(ax=ax_map)
+                    self.map2d.label = patch_opts[label]['label']
+                    self.map2d.plot2d(ax=ax_map, vmin=patch_opts[label]['vmin'], vmax=patch_opts[label]['vmax'])
 
-                    # self.map2d.plot2d(ax=ax_map, xaxis=self.axis_x, patch_opts=patch_opts[label])
                     hep.cms.text("Preliminary", loc=0, ax=ax_map)
                     hep.cms.lumitext(
                         text=f'{self.totalLumi}'
@@ -1108,7 +1095,6 @@ class EfficiencyMap:
                     ax_map.set_title(var)
                     if self.varname_x == 'ElectronGood.pt':
                         ax_map.set_xscale('log')
-                        #ax_map.set_xlim(0.1,500)
 
                     xticks = self.axis_x.edges
                     yticks = self.axis_y.edges
