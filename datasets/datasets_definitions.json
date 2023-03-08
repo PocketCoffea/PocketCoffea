@@ -303,7 +303,8 @@
                 "metadata": {
                     "year": "2017",
                     "isMC": true,
-                    "xsec": 0.2953
+                    "xsec": 0.2953,
+                    "sum_genweights": 3919781.0
                 }
             }
         ]
@@ -372,7 +373,8 @@
                 "metadata": {
                     "year": "2017",
                     "isMC": true,
-                    "xsec": 365.4574
+                    "xsec": 365.4574,
+                    "sum_genweights": 104129945600.0
                 }
             }
         ]
@@ -399,7 +401,8 @@
                 "metadata": {
                     "year": "2017",
                     "isMC": true,
-                    "xsec": 88.3419
+                    "xsec": 88.3419,
+                    "sum_genweights": 7695841280.0
                 }
             }
         ]
@@ -428,7 +431,8 @@
                     "year": "2017",
                     "isMC": true,
                     "xsec": 3.36,
-                    "part": "s-channel_4f_leptonDecays"
+                    "part": "s-channel_4f_leptonDecays",
+                    "sum_genweights": 48361408.0
                 }
             }
         ]
@@ -457,7 +461,8 @@
                     "year": "2017",
                     "isMC": true,
                     "xsec": 136.02,
-                    "part": "t-channel_top_4f_InclusiveDecays"
+                    "part": "t-channel_top_4f_InclusiveDecays",
+                    "sum_genweights": 13807998976.0
                 }
             }
         ]
@@ -486,7 +491,8 @@
                     "year": "2017",
                     "isMC": true,
                     "xsec": 80.95,
-                    "part": "t-channel_antitop_4f_InclusiveDecays"
+                    "part": "t-channel_antitop_4f_InclusiveDecays",
+                    "sum_genweights": 4462870016.0
                 }
             }
         ]
@@ -515,7 +521,8 @@
                     "year": "2017",
                     "isMC": true,
                     "xsec": 35.85,
-                    "part": "tW_top_5f_NoFullyHadronicDecays"
+                    "part": "tW_top_5f_NoFullyHadronicDecays",
+                    "sum_genweights": 276021536.0
                 }
             }
         ]
@@ -544,7 +551,8 @@
                     "year": "2017",
                     "isMC": true,
                     "xsec": 35.85,
-                    "part": "tW_antitop_5f_NoFullyHadronicDecays"
+                    "part": "tW_antitop_5f_NoFullyHadronicDecays",
+                    "sum_genweights": 274168320.0
                 }
             }
         ]
@@ -574,7 +582,8 @@
                     "year": "2017",
                     "isMC": true,
                     "xsec": 1292.0,
-                    "part": "70To100"
+                    "part": "70To100",
+                    "sum_genweights": 44576512.0
                 }
             }
         ]
@@ -604,7 +613,8 @@
                     "year": "2017",
                     "isMC": true,
                     "xsec": 1345.0,
-                    "part": "100To200"
+                    "part": "100To200",
+                    "sum_genweights": 47424464.0
                 }
             }
         ]
@@ -634,7 +644,8 @@
                     "year": "2017",
                     "isMC": true,
                     "xsec": 359.7,
-                    "part": "200To400"
+                    "part": "200To400",
+                    "sum_genweights": 42281976.0
                 }
             }
         ]
@@ -664,7 +675,8 @@
                     "year": "2017",
                     "isMC": true,
                     "xsec": 48.91,
-                    "part": "400To600"
+                    "part": "400To600",
+                    "sum_genweights": 5468473.0
                 }
             }
         ]
@@ -694,7 +706,8 @@
                     "year": "2017",
                     "isMC": true,
                     "xsec": 12.05,
-                    "part": "600To800"
+                    "part": "600To800",
+                    "sum_genweights": 5545298.0
                 }
             }
         ]
@@ -724,7 +737,8 @@
                     "year": "2017",
                     "isMC": true,
                     "xsec": 5.501,
-                    "part": "800To1200"
+                    "part": "800To1200",
+                    "sum_genweights": 5088483.0
                 }
             }
         ]
@@ -754,7 +768,8 @@
                     "year": "2017",
                     "isMC": true,
                     "xsec": 1.152,
-                    "part": "1200To2500"
+                    "part": "1200To2500",
+                    "sum_genweights": 4752118.0
                 }
             }
         ]
@@ -784,7 +799,8 @@
                     "year": "2017",
                     "isMC": true,
                     "xsec": 0.02646,
-                    "part": "2500ToInf"
+                    "part": "2500ToInf",
+                    "sum_genweights": 1185699.0
                 }
             }
         ]
