@@ -39,6 +39,7 @@ class Sample:
         self.metadata["size"] = 0
         self.fileslist_redirector = []
         self.fileslist_concrete = []
+        self.parentslist = []
         self.sites_cfg = sites_cfg
 
         print(
@@ -49,7 +50,7 @@ class Sample:
     def get_filelist(self):
         '''Function to get the dataset filelist from DAS and from Rucio.
         From DAS we get the general info about the dataset (event count, file size),
-        whereas from rucio we get the specific path at the sites without the redictor
+        whereas from rucio we get the specific path at the sites without the redirector
         (it helps with xrootd access in coffea).
         '''
         for das_name in self.das_names:
@@ -98,6 +99,24 @@ class Sample:
             }
         return out
 
+    def get_parentlist(self, inplace=False):
+        '''Function to get the parent dataset filelist from DAS.
+        The parent list is included as an additional metadata in the sample's dict.
+        '''
+        for das_name in self.das_names:
+            command = f'dasgoclient -json -query="parent dataset={das_name}"'
+            records = json.load(os.popen(command))
+            for record in records:
+                parent = record['parent']
+                assert len(parent) == 1, f"The dataset {das_name} has none or more than one parent ({len(parent)})."
+                parent_name = parent[0]['name']
+                parent_format = "MINIAODSIM" if self.metadata["isMC"] else "MINIAOD"
+                if parent_name.endswith(parent_format):
+                    self.parentslist.append(parent_name)
+            assert len(self.parentslist) == 1, f"The dataset {das_name} has none or more than one parent ({len(self.parentslist)})."
+            self.metadata["parents"] = self.parentslist
+        return self.parentslist
+
     def check_files(self, prefix):
         for f in self.fileslist:
             ff = prefix + f
@@ -114,7 +133,9 @@ class Dataset:
         name,
         cfg,
         sites_cfg=None,
+        append_parents=False
     ):
+        self.cfg = cfg
         self.prefix = cfg.get("storage_prefix", None)
         self.name = name
         self.outfile = cfg["json_output"]
@@ -128,7 +149,8 @@ class Dataset:
             "blacklist_sites": None,
             "regex_sites": None,
         }
-        self.get_samples(cfg["files"])
+        self.append_parents = append_parents
+        self.get_samples(self.cfg["files"])
 
     # Function to build the dataset dictionary
     def get_samples(self, files):
@@ -160,6 +182,10 @@ class Dataset:
                 self.sample_dict_local.update(
                     sample.get_sample_dict(redirector=True, prefix=self.prefix)
                 )
+
+            if self.append_parents:
+                parents_names = sample.get_parentlist()
+                scfg["das_parents_names"] = parents_names
 
     def _write_dataset(self, outfile, sample_dict, append=True, overwrite=False):
         print(f"Saving datasets {self.name} to {outfile}")
