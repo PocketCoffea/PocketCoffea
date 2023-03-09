@@ -760,6 +760,10 @@ def plot_data_mc_hist1D(
                                         * max(stack_sum(stack_mc_nominal).values()),
                                     )
                                 )
+                        if 'xlabel' in config.plot_options["variables"][histname].keys():
+                            rax.set_xlabel(config.plot_options["variables"][histname]['xlabel'])
+                        if 'ylabel' in config.plot_options["variables"][histname].keys():
+                            rax.set_ylabel(config.plot_options["variables"][histname]['ylabel'])
                 else:
                     if histname in config.variables.keys():
                         if config.variables[histname].axes[0].lim != (0, 0):
