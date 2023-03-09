@@ -933,6 +933,7 @@
             "isMC": "True",
             "xsec": "3.36",
             "part": "s-channel_4f_leptonDecays",
+            "sum_genweights": "48361408.0",
             "nevents": "13620000",
             "size": "22561990396"
         },
@@ -963,6 +964,7 @@
             "isMC": "True",
             "xsec": "136.02",
             "part": "t-channel_top_4f_InclusiveDecays",
+            "sum_genweights": "13807998976.0",
             "nevents": "129903000",
             "size": "224757312185"
         },
@@ -1174,6 +1176,7 @@
             "isMC": "True",
             "xsec": "80.95",
             "part": "t-channel_antitop_4f_InclusiveDecays",
+            "sum_genweights": "4462870016.0",
             "nevents": "69793000",
             "size": "120886632668"
         },
@@ -1248,6 +1251,7 @@
             "isMC": "True",
             "xsec": "35.85",
             "part": "tW_top_5f_NoFullyHadronicDecays",
+            "sum_genweights": "276021536.0",
             "nevents": "8507203",
             "size": "17510300954"
         },
@@ -1282,6 +1286,7 @@
             "isMC": "True",
             "xsec": "35.85",
             "part": "tW_antitop_5f_NoFullyHadronicDecays",
+            "sum_genweights": "274168320.0",
             "nevents": "8433998",
             "size": "17327778559"
         },
@@ -1305,6 +1310,7 @@
             "isMC": "True",
             "xsec": "1292.0",
             "part": "70To100",
+            "sum_genweights": "44576512.0",
             "nevents": "44576510",
             "size": "59513216757"
         },
@@ -1355,6 +1361,7 @@
             "isMC": "True",
             "xsec": "1345.0",
             "part": "100To200",
+            "sum_genweights": "47424464.0",
             "nevents": "47424468",
             "size": "70672732005"
         },
@@ -1404,6 +1411,7 @@
             "isMC": "True",
             "xsec": "359.7",
             "part": "200To400",
+            "sum_genweights": "42281976.0",
             "nevents": "42281979",
             "size": "77482096816"
         },
@@ -1450,6 +1458,7 @@
             "isMC": "True",
             "xsec": "48.91",
             "part": "400To600",
+            "sum_genweights": "5468473.0",
             "nevents": "5468473",
             "size": "12463373477"
         },
@@ -1511,6 +1520,7 @@
             "isMC": "True",
             "xsec": "12.05",
             "part": "600To800",
+            "sum_genweights": "5545298.0",
             "nevents": "5545298",
             "size": "13695189593"
         },
@@ -1542,6 +1552,7 @@
             "isMC": "True",
             "xsec": "5.501",
             "part": "800To1200",
+            "sum_genweights": "5088483.0",
             "nevents": "5088483",
             "size": "13349118708"
         },
@@ -1583,6 +1594,7 @@
             "isMC": "True",
             "xsec": "1.152",
             "part": "1200To2500",
+            "sum_genweights": "4752118.0",
             "nevents": "4752118",
             "size": "13337002278"
         },
@@ -1629,6 +1641,7 @@
             "isMC": "True",
             "xsec": "0.02646",
             "part": "2500ToInf",
+            "sum_genweights": "1185699.0",
             "nevents": "1185699",
             "size": "3713269138"
         },
