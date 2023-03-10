@@ -392,19 +392,19 @@ default_axis_settings = {
     },
     'met_pt': {
         "field": "pt",
-        "bins": 200,
-        "start": 0,
-        'stop': 2000,
-        "lim": (0, 500),
-        'label': "$p_{T}^{MET}$ [GeV]",
+        "bins": 28,
+        "start": 20,
+        'stop': 300,
+        "lim": (20, 300),
+        'label': "MET [GeV]",
     },
     'met_phi': {
         "field": "phi",
-        "bins": 128,
+        "bins": 64,
         "start": -math.pi,
         'stop': math.pi,
         "lim": (-math.pi, math.pi),
-        'label': "$\phi_{MET}$",
+        'label': "MET $\phi$",
     },
     'mll': {
         "field": "mll",
@@ -439,6 +439,7 @@ collection_fields = {
     'electron': ["eta", "pt", "phi", "etaSC"],
     'muon': ["eta", "pt", "phi"],
     'lepton': ["eta", "pt", "phi", "pdgId"],
+    'met': ["pt", "phi"],
     'sv': [
         "summass",
         "logsummass",
@@ -451,7 +452,7 @@ collection_fields = {
 }
 
 
-def _get_default_hist(name, type, coll, pos=None, fields=None):
+def _get_default_hist(name, type, coll, pos=None, fields=None, **kwargs):
     out = {}
     for field in collection_fields[type]:
         if fields == None or field in fields:
@@ -466,7 +467,8 @@ def _get_default_hist(name, type, coll, pos=None, fields=None):
                 hist_name += f"_{pos+1}"
 
             out[hist_name] = HistConf(
-                axes=[Axis(**setting)],
+                axes=[Axis(**setting),],
+                **kwargs
             )
     return out
 
@@ -489,22 +491,28 @@ def parton_hists(coll="PartonMatched", pos=None, fields=None, name=None):
     return _get_default_hist(name, "parton", coll, pos, fields)
 
 
-def ele_hists(coll="ElectronGood", pos=None, fields=None, name=None):
+def ele_hists(coll="ElectronGood", pos=None, fields=None, name=None, **kwargs):
     if name == None:
         name = coll
-    return _get_default_hist(name, "electron", coll, pos, fields)
+    return _get_default_hist(name, "electron", coll, pos, fields, **kwargs)
 
 
-def muon_hists(coll="MuonGood", pos=None, fields=None, name=None):
+def muon_hists(coll="MuonGood", pos=None, fields=None, name=None, **kwargs):
     if name == None:
         name = coll
-    return _get_default_hist(name, "muon", coll, pos, fields)
+    return _get_default_hist(name, "muon", coll, pos, fields, **kwargs)
 
 
 def lepton_hists(coll="LeptonGood", pos=None, fields=None, name=None):
     if name == None:
         name = coll
     return _get_default_hist(name, "lepton", coll, pos, fields)
+
+
+def met_hists(coll="MET", pos=None, fields=None, name=None):
+    if name == None:
+        name = coll
+    return _get_default_hist(name, "met", coll, pos, fields)
 
 
 def sv_hists(coll="SV", pos=None, fields=None, name=None):
