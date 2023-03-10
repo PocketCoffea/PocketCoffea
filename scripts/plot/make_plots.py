@@ -61,66 +61,6 @@ if not args.overwrite:
     if os.path.exists(config.plots):
         raise Exception(f"The output folder '{config.plots}' already exists. Please choose another output folder or run with the option `--overwrite`.")
 
-data_err_opts = {
-    'linestyle': 'none',
-    'marker': '.',
-    'markersize': 10.,
-    'color': 'k',
-    'elinewidth': 1,
-}
-
-mc_opts = {
-    #'facecolor': 'None',
-    'edgecolor': 'black',
-    #'linestyle': '-',
-    'linewidth': 1,
-}
-
-signal_opts = {
-    'facecolor': 'None',
-    'edgecolor': ['green', 'red'],
-    'linestyle': ['--', '-'],
-    'linewidth': 2,
-    'alpha': 0.7
-}
-
-ggH_opts = {
-    'bb' : {
-        'facecolor': 'None',
-        'edgecolor': 'green',
-        'linestyle': '--',
-        'linewidth': 2,
-        'alpha': 0.7
-    },
-    'cc': {
-        'facecolor': 'None',
-        'edgecolor': 'red',
-        'linestyle': '--',
-        'linewidth': 2,
-        'alpha': 0.7
-    }
-}
-
-selection = {
-    'trigger'  : (r'Trigger'),
-    'dilepton_SR' : (r'Trigger'+'\n'+
-                     r'Dilepton cuts'+'\n'+
-                     r'SR'),
-    'dilepton_CR' : (r'Trigger'+'\n'+
-                     r'Dilepton cuts'+'\n'+
-                     r'CR'),
-    'semileptonic_SR' : (r'Trigger'+'\n'+
-                     r'Semileptonic cuts'+'\n'+
-                     r'SR'),
-    'semileptonic_CR' : (r'Trigger'+'\n'+
-                     r'Semileptonic cuts'+'\n'+
-                     r'CR'),
-    'semileptonic_triggerSF_Ele32_EleHT_fail' : 'Trigger fail',
-    'semileptonic_triggerSF_Ele32_EleHT_pass' : 'Trigger pass',
-    'semileptonic_triggerSF_inclusive' : 'Inclusive',
-}
-
-plt.style.use([hep.style.ROOT, {'font.size': 16}])
 if not os.path.exists(config.plots):
     os.makedirs(config.plots)
 
