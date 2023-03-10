@@ -9,7 +9,7 @@ from config.datamc.plots import cfg_plot
 samples = ["ttHTobb",
            "TTToSemiLeptonic",
            "TTTo2L2Nu",
-           "ST",
+           "SingleTop",
            "WJetsToLNu_HT",
            "DATA_SingleEle",
            "DATA_SingleMuon"]
@@ -36,13 +36,13 @@ cfg =  {
 
     # Input and output files
     "workflow" : ttHbbBaseProcessor,
-    "output"   : "output/datamc/ttHbb_ttbar_ST_WJets_datamc",
+    "output"   : "output/datamc/ttHbb_ttbar_ST_WJets_datamc_2018_withJES",
     "worflow_options" : {},
 
     "run_options" : {
         "executor"       : "dask/slurm",
         "workers"        : 1,
-        "scaleout"       : 150,
+        "scaleout"       : 300,
         "queue"          : "standard",
         "walltime"       : "12:00:00",
         "mem_per_worker" : "4GB", # GB
@@ -71,15 +71,7 @@ cfg =  {
         "SingleMuon_1b" : [ get_nMuon(1, coll="MuonGood"), get_nBtagMin(1, coll="BJetGood") ],
         "SingleMuon_2b" : [ get_nMuon(1, coll="MuonGood"), get_nBtagMin(2, coll="BJetGood") ],
         "SingleMuon_3b" : [ get_nMuon(1, coll="MuonGood"), get_nBtagMin(3, coll="BJetGood") ],
-        "SingleMuon_4b" : [ get_nMuon(1, coll="MuonGood"), get_nBtagMin(4, coll="BJetGood") ],
-        "SingleEle_1b_btagcalibrated" : [ get_nElectron(1, coll="ElectronGood"), get_nBtagMin(1, coll="BJetGood") ],
-        "SingleEle_2b_btagcalibrated" : [ get_nElectron(1, coll="ElectronGood"), get_nBtagMin(2, coll="BJetGood") ],
-        "SingleEle_3b_btagcalibrated" : [ get_nElectron(1, coll="ElectronGood"), get_nBtagMin(3, coll="BJetGood") ],
-        "SingleEle_4b_btagcalibrated" : [ get_nElectron(1, coll="ElectronGood"), get_nBtagMin(4, coll="BJetGood") ],
-        "SingleMuon_1b_btagcalibrated" : [ get_nMuon(1, coll="MuonGood"), get_nBtagMin(1, coll="BJetGood") ],
-        "SingleMuon_2b_btagcalibrated" : [ get_nMuon(1, coll="MuonGood"), get_nBtagMin(2, coll="BJetGood") ],
-        "SingleMuon_3b_btagcalibrated" : [ get_nMuon(1, coll="MuonGood"), get_nBtagMin(3, coll="BJetGood") ],
-        "SingleMuon_4b_btagcalibrated" : [ get_nMuon(1, coll="MuonGood"), get_nBtagMin(4, coll="BJetGood") ]
+        "SingleMuon_4b" : [ get_nMuon(1, coll="MuonGood"), get_nBtagMin(4, coll="BJetGood") ]
     },
 
     
@@ -90,18 +82,10 @@ cfg =  {
                           "pileup",
                           "sf_ele_reco", "sf_ele_id", "sf_ele_trigger",
                           "sf_mu_id","sf_mu_iso", "sf_mu_trigger",
-                          "sf_btag",
+                          "sf_btag", "sf_btag_calib",
                           "sf_jet_puId"
                           ],
             "bycategory" : {
-                "SingleEle_1b_btagcalibrated" : ["sf_btag_calib"],
-                "SingleEle_2b_btagcalibrated" : ["sf_btag_calib"],
-                "SingleEle_3b_btagcalibrated" : ["sf_btag_calib"],
-                "SingleEle_4b_btagcalibrated" : ["sf_btag_calib"],
-                "SingleMuon_1b_btagcalibrated" : ["sf_btag_calib"],
-                "SingleMuon_2b_btagcalibrated" : ["sf_btag_calib"],
-                "SingleMuon_3b_btagcalibrated" : ["sf_btag_calib"],
-                "SingleMuon_4b_btagcalibrated" : ["sf_btag_calib"],
             }
         },
         "bysample": {
@@ -121,19 +105,24 @@ cfg =  {
 
                 }
             },
-        "bysample": {
-        }    
+            "bysample": {
+            }    
         },
-        
+        "shape": {
+            "common":{
+                "inclusive": ["JES_Total", "JER"]
+            },
+            "bysample": {
+            }
+        }
     },
 
    "variables":
     {
-            
-        **ele_hists(coll="ElectronGood", pos=0),
-        **ele_hists(coll="ElectronGood", pos=1),
-        **muon_hists(coll="MuonGood", pos=0),
-        **muon_hists(coll="MuonGood", pos=1),
+        **ele_hists(coll="ElectronGood", pos=0, exclude_categories=["SingleMuon_1b", "SingleMuon_2b", "SingleMuon_3b", "SingleMuon_4b"]),
+        **ele_hists(coll="ElectronGood", pos=1, exclude_categories=["SingleMuon_1b", "SingleMuon_2b", "SingleMuon_3b", "SingleMuon_4b"]),
+        **muon_hists(coll="MuonGood", pos=0, exclude_categories=["SingleEle_1b", "SingleEle_2b", "SingleEle_3b", "SingleEle_4b"]),
+        **muon_hists(coll="MuonGood", pos=1, exclude_categories=["SingleEle_1b", "SingleEle_2b", "SingleEle_3b", "SingleEle_4b"]),
         **count_hist(name="nLepton", coll="JetGood",bins=10, start=4, stop=14),
         **count_hist(name="nJets", coll="JetGood",bins=10, start=4, stop=14),
         **count_hist(name="nBJets", coll="BJetGood",bins=12, start=2, stop=14),
@@ -147,6 +136,11 @@ cfg =  {
         **jet_hists(name="bjet",coll="BJetGood", pos=2),
         **jet_hists(name="bjet",coll="BJetGood", pos=3),
         **jet_hists(name="bjet",coll="BJetGood", pos=4),
+        **met_hists(coll="MET"),
+        "jets_Ht" : HistConf(
+          [Axis(coll="events", field="JetGood_Ht", bins=100, start=0, stop=2500,
+                label="Jets $H_T$ [GeV]")]  
+        ),
     },
 
     "plot_options": cfg_plot
