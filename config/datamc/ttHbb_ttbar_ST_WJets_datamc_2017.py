@@ -120,12 +120,10 @@ cfg =  {
    "variables":
     {
         **ele_hists(coll="ElectronGood", pos=0, exclude_categories=["SingleMuon_1b", "SingleMuon_2b", "SingleMuon_3b", "SingleMuon_4b"]),
-        **ele_hists(coll="ElectronGood", pos=1, exclude_categories=["SingleMuon_1b", "SingleMuon_2b", "SingleMuon_3b", "SingleMuon_4b"]),
         **muon_hists(coll="MuonGood", pos=0, exclude_categories=["SingleEle_1b", "SingleEle_2b", "SingleEle_3b", "SingleEle_4b"]),
-        **muon_hists(coll="MuonGood", pos=1, exclude_categories=["SingleEle_1b", "SingleEle_2b", "SingleEle_3b", "SingleEle_4b"]),
-        **count_hist(name="nLepton", coll="JetGood",bins=10, start=4, stop=14),
+        **count_hist(name="nLepton", coll="LeptonGood",bins=3, start=0, stop=3),
         **count_hist(name="nJets", coll="JetGood",bins=10, start=4, stop=14),
-        **count_hist(name="nBJets", coll="BJetGood",bins=12, start=2, stop=14),
+        **count_hist(name="nBJets", coll="BJetGood",bins=14, start=0, stop=14),
         **jet_hists(coll="JetGood", pos=0),
         **jet_hists(coll="JetGood", pos=1),
         **jet_hists(coll="JetGood", pos=2),
