@@ -82,6 +82,7 @@ object_preselection = {
         "FatJet": {
             "pt": 350,
             "eta": 2.4,
+            "msd": 40,
             "jetId": 2,
             "nsubjet": 2,
             "nmusj": 1,
