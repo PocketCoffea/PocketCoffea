@@ -587,7 +587,11 @@ def plot_data_mc_hist1D(
                 nevents = {
                     d: round(sum(dict_mc_nominal[d].values()), 1) for d in samples_mc
                 }
-                nevents = dict( sorted(nevents.items(), key=lambda x:x[1], reverse=True) )
+                reverse=True
+                if ("variables" in config.plot_options) & (histname in config.plot_options["variables"].keys()):
+                    if 'scale' in config.plot_options["variables"][histname].keys():
+                        reverse=False
+                nevents = dict( sorted(nevents.items(), key=lambda x:x[1], reverse=reverse) )
                 dict_mc = {d: dict_mc[d] for d in nevents.keys()}
                 dict_mc_nominal = {d: dict_mc_nominal[d] for d in nevents.keys()}
                 colors = [colors_tthbb[d] for d in nevents.keys()]
