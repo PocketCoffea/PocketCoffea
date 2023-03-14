@@ -38,6 +38,7 @@ parser.add_argument('-os', '--only_syst', type=str, nargs="+", default='', help=
 parser.add_argument('--split_systematics', action='store_true', help='Split systematic uncertainties in the ratio plot')
 parser.add_argument('--partial_unc_band', action='store_true', help='Plot only the partial uncertainty band corresponding to the systematics specified as the argument `only_syst`')
 parser.add_argument('--overwrite', action='store_true', help='Overwrite plots in output folder')
+parser.add_argument('--log', action='store_true', help='Set y-axis scale to log')
 
 args = parser.parse_args()
 config = Configurator(args.cfg, plot=True, plot_version=args.version)
@@ -78,7 +79,8 @@ def make_plots(entrystart, entrystop):
             stat_only=False,
             split_systematics=args.split_systematics,
             only_syst=args.only_syst,
-            partial_unc_band=args.partial_unc_band)
+            partial_unc_band=args.partial_unc_band,
+            log=args.log)
 
 # Filter dictionary of histograms with `args.only`
 accumulator['variables'] = { k : v for k,v in accumulator['variables'].items() if args.only in k }
