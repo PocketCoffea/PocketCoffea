@@ -36,7 +36,7 @@ cfg =  {
 
     # Input and output files
     "workflow" : ttHbbBaseProcessor,
-    "output"   : "output/datamc/ttHbb_ttbar_ST_WJets_datamc_2017_withJES",
+    "output"   : "output/datamc/ttHbb_ttbar_ST_WJets_datamc_2017_MuonIsoTight_bugfix",
     "worflow_options" : {},
 
     "run_options" : {

@@ -36,7 +36,7 @@ cfg =  {
 
     # Input and output files
     "workflow" : ttHbbBaseProcessor,
-    "output"   : "output/datamc/ttHbb_ttbar_ST_WJets_datamc_2018_withJES",
+    "output"   : "output/datamc/ttHbb_ttbar_ST_WJets_datamc_2018_MuonIsoTight_bugfix",
     "worflow_options" : {},
 
     "run_options" : {
@@ -45,7 +45,7 @@ cfg =  {
         "scaleout"       : 300,
         "queue"          : "standard",
         "walltime"       : "12:00:00",
-        "mem_per_worker" : "4GB", # GB
+        "mem_per_worker" : "6GB", # GB
         "exclusive"      : False,
         "chunk"          : 400000,
         "retries"        : 50,
