@@ -4,8 +4,6 @@ import json
 import numpy as np
 from coffea.util import load
 
-from pocket_coffea.utils.dataset import Dataset
-
 parser = argparse.ArgumentParser(description='Append the sum_genweights attribute to the datasets definitions')
 parser.add_argument(
     '--cfg',

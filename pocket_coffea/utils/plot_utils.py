@@ -9,6 +9,7 @@ from coffea.util import load
 
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
+from matplotlib.ticker import MultipleLocator, AutoMinorLocator
 import mplhep as hep
 
 from ..parameters.lumi import lumi, femtobarn
@@ -345,8 +346,9 @@ def plot_uncertainty_band(h_mc_sum, syst_err2_up, syst_err2_down, ax, ratio=Fals
     down = nom - np.sqrt(sum(syst_err2_down.values()))
 
     if ratio:
-        up = up / nom
-        down = down / nom
+        # In order to get a consistent uncertainty band, the up/down variations of the ratio are set to 1 where the nominal value is 0
+        up = np.where(nom != 0, up / nom, 1)
+        down = np.where(nom!=0, down / nom, 1)
 
     unc_band = np.array([down, up])
 
@@ -473,6 +475,10 @@ def plot_data_mc_hist1D(
     categories = get_axis_items(h_mc, 'cat')
     variations = get_axis_items(h_mc, 'variation')
 
+    axis_x = dense_axes(h_mc)[0]
+    edges_x = axis_x.edges
+    binwidth_x = np.ediff1d(edges_x)
+
     if len(samples_data) == 0:
         is_mc_only = True
     else:
@@ -549,9 +555,10 @@ def plot_data_mc_hist1D(
                 if config:
                     if hasattr(config, "plot_options"):
                         if histname in config.plot_options["variables"].keys():
-                            if 'scale' in config.plot_options["variables"][histname].keys():
+                            cfg_plot = config.plot_options["variables"][histname]
+                            if 'scale' in cfg_plot.keys():
                                 flavors = flavors_order[
-                                    config.plot_options["variables"][histname]['scale']
+                                    cfg_plot['scale']
                                 ]
                 dict_mc = {
                     f: stack_sum(
@@ -587,7 +594,14 @@ def plot_data_mc_hist1D(
                 nevents = {
                     d: round(sum(dict_mc_nominal[d].values()), 1) for d in samples_mc
                 }
-                nevents = dict( sorted(nevents.items(), key=lambda x:x[1], reverse=True) )
+                reverse=True
+                if ("variables" in config.plot_options) & (histname in config.plot_options["variables"].keys()):
+                    cfg_plot = config.plot_options["variables"][histname]
+                    if 'scale' in cfg_plot.keys():
+                        reverse = False
+                if log:
+                    reverse = False
+                nevents = dict( sorted(nevents.items(), key=lambda x:x[1], reverse=reverse) )
                 dict_mc = {d: dict_mc[d] for d in nevents.keys()}
                 dict_mc_nominal = {d: dict_mc_nominal[d] for d in nevents.keys()}
                 colors = [colors_tthbb[d] for d in nevents.keys()]
@@ -616,14 +630,15 @@ def plot_data_mc_hist1D(
             if config:
                 if hasattr(config, "plot_options"):
                     if histname in config.plot_options["variables"].keys():
-                        if 'binning' in config.plot_options["variables"][histname].keys():
+                        cfg_plot = config.plot_options["variables"][histname]
+                        if 'binning' in cfg_plot.keys():
                             rebinning = True
                             stack_data = rebin(
-                                stack_data, config.plot_options["variables"][histname]['binning']
+                                stack_data, cfg_plot['binning']
                             )
                             stack_mc_nominal = rebin(
                                 stack_mc_nominal,
-                                config.plot_options["variables"][histname]['binning'],
+                                cfg_plot['binning'],
                             )
 
             if not is_mc_only:
@@ -657,7 +672,7 @@ def plot_data_mc_hist1D(
                     variations,
                     mcstat=mcstat,
                     stat_only=stat_only,
-                    edges=config.plot_options["variables"][histname]['binning'],
+                    edges=cfg_plot['binning'],
                 )
             else:
                 syst_err2_up, syst_err2_down = get_systematic_uncertainty(
@@ -709,7 +724,7 @@ def plot_data_mc_hist1D(
             rax.tick_params(axis='y', labelsize=fontsize)
 
             if log:
-                ax.set_xlim(0, 1)
+                ax.set_yscale("log")
                 exp = math.floor(
                     math.log(max(stack_sum(stack_mc_nominal).values()), 10)
                 )
@@ -734,11 +749,12 @@ def plot_data_mc_hist1D(
                         handles = handles_new
                         ax.legend(handles, labels, fontsize=fontsize, ncols=2)
                     if ("variables" in config.plot_options) & (histname in config.plot_options["variables"].keys()):
-                        if 'xlim' in config.plot_options["variables"][histname].keys():
-                            ax.set_xlim(*config.plot_options["variables"][histname]['xlim'])
-                        if 'scale' in config.plot_options["variables"][histname].keys():
-                            ax.set_yscale(config.plot_options["variables"][histname]['scale'])
-                            if config.plot_options["variables"][histname]['scale'] == 'log':
+                        cfg_plot = config.plot_options["variables"][histname]
+                        if 'xlim' in cfg_plot.keys():
+                            ax.set_xlim(*cfg_plot['xlim'])
+                        if 'scale' in cfg_plot.keys():
+                            ax.set_yscale(cfg_plot['scale'])
+                            if cfg_plot['scale'] == 'log':
                                 exp = math.floor(
                                     math.log(
                                         max(stack_sum(stack_mc_nominal).values()), 10
@@ -746,13 +762,13 @@ def plot_data_mc_hist1D(
                                 )
                                 ax.set_ylim((0.01, 10 ** (exp + 2)))
                                 # ax.legend(handles, labels, loc="upper right", fontsize=fontsize, ncols=2)
-                        if 'ylim' in config.plot_options["variables"][histname].keys():
-                            if isinstance(config.plot_options["variables"][histname]['ylim'], tuple):
-                                ax.set_ylim(*config.plot_options["variables"][histname]['ylim'])
+                        if 'ylim' in cfg_plot.keys():
+                            if isinstance(cfg_plot['ylim'], tuple):
+                                ax.set_ylim(*cfg_plot['ylim'])
                             elif isinstance(
-                                config.plot_options["variables"][histname]['ylim'], float
-                            ) | isinstance(config.plot_options["variables"][histname]['ylim'], int):
-                                rescale = config.plot_options["variables"][histname]['ylim']
+                                cfg_plot['ylim'], float
+                            ) | isinstance(cfg_plot['ylim'], int):
+                                rescale = cfg_plot['ylim']
                                 ax.set_ylim(
                                     (
                                         0,
@@ -760,6 +776,13 @@ def plot_data_mc_hist1D(
                                         * max(stack_sum(stack_mc_nominal).values()),
                                     )
                                 )
+                        if 'xlabel' in cfg_plot.keys():
+                            rax.set_xlabel(cfg_plot['xlabel'])
+                        if 'ylabel' in cfg_plot.keys():
+                            rax.set_ylabel(cfg_plot['ylabel'])
+                        if 'xticks' in cfg_plot.keys():
+                            rax.set_xticks(cfg_plot['xticks'])
+                            rax.xaxis.set_minor_locator(MultipleLocator(binwidth_x[0]))
                 else:
                     if histname in config.variables.keys():
                         if config.variables[histname].axes[0].lim != (0, 0):
@@ -770,6 +793,8 @@ def plot_data_mc_hist1D(
                                 config.variables[histname].axes[0].stop,
                             )
                 plot_dir = os.path.join(config.plots, cat)
+            if log:
+                plot_dir = os.path.join(plot_dir, "log")
             if not os.path.exists(plot_dir):
                 os.makedirs(plot_dir)
             filepath = os.path.join(plot_dir, f"{histname}_{year}_{cat}.png")

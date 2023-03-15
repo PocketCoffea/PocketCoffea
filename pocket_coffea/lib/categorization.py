@@ -77,7 +77,7 @@ class MaskStorage:
                 flat_mask = ak.flatten(mask)
                 if len(flat_mask) != self.tot_elements:
                     raise Exception(
-                        f"Mask {f} has the wrong number of total entries. Check the collection"
+                        f"Mask {id} has the wrong number of total entries. Check the collection"
                     )
                 self.cache.add(id, ak.to_numpy(flat_mask))
         else:
