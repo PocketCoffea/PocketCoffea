@@ -52,7 +52,12 @@ os.makedirs(args.output, exist_ok=True)
 output = load(args.input)["variables"]
 
 variables_to_plot = [
-    'jets_Ht',"jet_pt","jet_eta","nJets", "nBJets", "jet_btagDeepFlavB"
+    #'jets_Ht',"jet_pt","jet_eta","nJets", "nBJets", "jet_btagDeepFlavB"
+    'jets_Ht', "nJets", "nBJets",
+    "jet_pt_1", "jet_eta_1", "jet_btagDeepFlavB_1",
+    "jet_pt_2", "jet_eta_2", "jet_btagDeepFlavB_2",
+    "jet_pt_3", "jet_eta_3", "jet_btagDeepFlavB_3",
+    "jet_pt_4", "jet_eta_4", "jet_btagDeepFlavB_4",
 ]
 
 samples = list(output["nJets"].keys())

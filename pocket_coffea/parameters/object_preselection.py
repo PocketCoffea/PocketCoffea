@@ -5,7 +5,7 @@ object_preselection = {
         "Muon": {
             "pt": 15,
             "eta": 2.4,
-            "iso": 0.25,
+            "iso": 0.25, #PFIsoLoose
             "id": "tightId",
         },
         "Electron": {
@@ -26,7 +26,7 @@ object_preselection = {
         "Muon": {
             "pt": 15,
             "eta": 2.4,
-            "iso": 0.25,
+            "iso": 0.15, #PFIsoTight
             "id": "tightId",
         },
         "Electron": {
@@ -47,7 +47,7 @@ object_preselection = {
         "Muon": {
             "pt": 15,
             "eta": 2.4,
-            "iso": 0.25,
+            "iso": 0.15, #PFIsoTight
             "id": "tightId",
         },
         "Electron": {
@@ -65,7 +65,12 @@ object_preselection = {
         },
     },
     "mutag": {
-        "Muon": {"pt": 5, "eta": 2.4, "iso": 0.15, "id": "tightId"},
+        "Muon": {
+            "pt": 5,
+            "eta": 2.4,
+            "iso": 0.15,
+            "id": "tightId"
+        },
         "Electron": {
             "pt": 15,
             "eta": 2.4,
@@ -82,6 +87,7 @@ object_preselection = {
         "FatJet": {
             "pt": 350,
             "eta": 2.4,
+            "msd": 40,
             "jetId": 2,
             "nsubjet": 2,
             "nmusj": 1,

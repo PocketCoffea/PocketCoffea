@@ -15,26 +15,23 @@ cfg =  {
             "samples": ["ttHTobb",
                         "TTToSemiLeptonic",
                         "TTTo2L2Nu",
-                        "ST_s-channel_4f_leptonDecays",
-                        "ST_t-channel_top_4f_InclusiveDecays",
-                        "ST_t-channel_antitop_4f_InclusiveDecays",
-                        "ST_tW_top_5f_NoFullyHadronicDecays",
-                        "ST_tW_antitop_5f_NoFullyHadronicDecays"
+                        "SingleTop",
+                        "WJetsToLNu_HT",
                         ],
             "samples_exclude" : [],
-            "year": ["2018"]
+            "year": ["2017"]
         }
     },
 
     # Input and output files
     "workflow" : ttHbbBaseProcessor,
-    "output"   : "output/sf_btag_calib/btagSF_calibration_hist",
+    "output"   : "output/sf_btag_calib/btagSF_calibrated_2017",
     "workflow_extra_options": {},
 
     "run_options" : {
         "executor"       : "dask/slurm",
         "workers"        : 1,
-        "scaleout"       : 125,
+        "scaleout"       : 300,
         "queue"          : "standard",
         "walltime"       : "06:00:00",
         "mem_per_worker" : "6GB", # GB
@@ -58,6 +55,7 @@ cfg =  {
     "categories": {
         "no_btagSF" : [passthrough],
         "btagSF" : [passthrough],
+        "btagSF_calib" : [passthrough],
     },
 
     "weights": {
@@ -67,6 +65,7 @@ cfg =  {
                           "sf_mu_id", "sf_mu_iso", "sf_mu_trigger"],
              "bycategory" : {
                 "btagSF" : ["sf_btag"],
+                "btagSF_calib": ["sf_btag","sf_btag_calib"]
             }
         },
     },

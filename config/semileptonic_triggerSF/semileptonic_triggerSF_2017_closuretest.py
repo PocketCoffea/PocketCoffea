@@ -21,22 +21,22 @@ cfg =  {
                         "TTTo2L2Nu",
                         "DATA_SingleMuon"],
             "samples_exclude" : [],
-            "year": ["2018"]
+            "year": ["2017"]
         }
     },
 
     # Input and output files
     "workflow" : semileptonicTriggerProcessor,
-    "output"   : "output/sf_ele_trigger_semilep/semileptonic_triggerSF_2018_closuretest_withvariations",
+    "output"   : "output/sf_ele_trigger_semilep/semileptonic_triggerSF_2017_closuretest",
     "workflow_options" : {
-        "eras" : eras["2018"],
+        "eras" : eras["2017"],
     },
 
     # Executor parameters
     "run_options" : {
         "executor"       : "dask/slurm",
         "workers"        : 1,
-        "scaleout"       : 300,
+        "scaleout"       : 125,
         "queue"          : "standard",
         "walltime"       : "12:00:00",
         "mem_per_worker" : "4GB", # GB
@@ -302,7 +302,7 @@ cfg =  {
 }
 
 weights_by_category = { cat : ['sf_ele_trigger'] for cat in cfg['categories'].keys() if cat.endswith('triggerSF') }
-variations_by_category = { cat : [f"sf_ele_trigger_{v}" for v in sf_ele_trigger_variations["2018"]]
+variations_by_category = { cat : [f"sf_ele_trigger_{v}" for v in sf_ele_trigger_variations["2017"]]
                            for cat in cfg['categories'].keys() if cat.endswith('triggerSF') }
 
 cfg["weights"]["common"]["bycategory"] = weights_by_category

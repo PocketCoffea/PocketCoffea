@@ -27,6 +27,7 @@ class Configurator:
 
         # Load dataset
         self.fileset = {}
+        self.datasets = []
         self.samples = []
         self.years = []
         self.eras = []
@@ -174,6 +175,8 @@ class Configurator:
         else:
             for name, d in self.fileset.items():
                 m = d["metadata"]
+                if name not in self.datasets:
+                    self.datasets.append(name)
                 if (m["sample"]) not in self.samples:
                     self.samples.append(m["sample"])
                     self.years.append(m["year"])

@@ -3,7 +3,7 @@ from os import path
 electronSF = {
     'reco': {'pt>20': "RecoAbove20", 'pt<20': "RecoBelow20"},
     'id': "wp80iso",
-    'trigger': {'2018': "sf_Ele32_EleHT"},
+    'trigger': {'2017': "sf_Ele32_EleHT", '2018': "sf_Ele32_EleHT"},
 }
 
 electronJSONfiles = {
@@ -19,7 +19,11 @@ electronJSONfiles = {
     },
     '2017': {
         'file_POG': "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2017_UL/electron.json.gz",
-        'file_triggerSF': "",
+        'file_triggerSF': path.join(
+        path.dirname(__file__),
+            "semileptonic_triggerSF/triggerSF_2017",
+            "sf_trigger_electron_etaSC_pt_leading_2017_Ele32_EleHT_pass.json",
+        ),
         'name': "UL-Electron-ID-SF",
     },
     '2018': {

@@ -10,7 +10,7 @@ dilepton_presel = Cut(
     params={
         "METbranch": {
             '2016': "MET",
-            '2017': "METFixEE2017",
+            '2017': "MET",
             '2018': "MET",
         },
         "njet": 2,
@@ -28,7 +28,7 @@ semileptonic_presel = Cut(
     params={
         "METbranch": {
             '2016': "MET",
-            '2017': "METFixEE2017",
+            '2017': "MET",
             '2018': "MET",
         },
         "njet": 4,
@@ -56,7 +56,7 @@ semileptonic_presel_nobtag = Cut(
     params={
         "METbranch": {
             '2016': "MET",
-            '2017': "METFixEE2017",
+            '2017': "MET",
             '2018': "MET",
         },
         "njet": 4,
