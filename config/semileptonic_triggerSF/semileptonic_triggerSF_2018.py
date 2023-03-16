@@ -13,8 +13,8 @@ from math import pi
 cfg =  {
 
     "dataset" : {
-        "jsons": ["datasets/backgrounds_MC_ttbar_local.json",
-                  "datasets/DATA_SingleMuon_local.json"],
+        "jsons": ["datasets/backgrounds_MC_ttbar_2018.json",
+                  "datasets/DATA_SingleMuon_2018.json"],
         "filter" : {
             "samples": ["TTToSemiLeptonic",
                         "TTTo2L2Nu",
