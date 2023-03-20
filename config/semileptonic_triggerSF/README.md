@@ -10,6 +10,51 @@ The first step is to build the json files containing the list of files of the UL
 
 A step-by-step detailed guide on the creation of the dataset file can be found at this [link](https://pocketcoffea.readthedocs.io/en/latest/examples.html).
 
+## Compute the sum of genweights
+
+After building the json datasets, the sum of genweights of MC datasets needs to be computed. A simple processor `genWeightsProcessor` has been [implemented](https://github.com/PocketCoffea/PocketCoffea/blob/main/pocket_coffea/workflows/genweights.py) for this purpose.
+
+The structure of the workflow is simple: it just opens all the files, compute the sum of genweights for each dataset and save them in a dictionary in the output accumulator.
+
+### Write config file
+
+All the parameters specific to the analysis need to be specified in a config file that is passed as an input to the `runner.py` script.
+
+Two examples of config files can be found in `config/genwewights/genweights_2017.py` and `config/genweights/genweights_2018.py`. The config files for the `2016_PreVFP` and `2016_PostVFP` datasets can be written using these config files as a template and modifying the era-specific fields to `2016_PreVFP` and `2016_PostVFP`, where needed.
+
+Naming scheme for 2016 config files:
+
+- `config/genweights/genweights_2016_PreVFP.py`
+- `config/genweights/genweights_2016_PostVFP.py`
+
+### Run genWeightsProcessor
+
+In order to run the workflow to produce the sum of MC genweights, run the following command:
+
+```
+cd /path/to/PocketCoffea
+runner.py --cfg config/genweights/genweights_2016_PreVFP.py --full
+runner.py --cfg config/genweights/genweights_2016_PostVFP.py --full
+```
+
+N.B.: the argument `--full` will process all the datasets together at once and save the output in a single output file, `output_all.coffea`. Otherwise, the datasets are processed separately and an output file is saved for each dataset.
+
+### Append sum of genweights to datasets definitions
+
+In order to update the `datasets_definitions.json` and include the `sum_genweights` metadata in the datasets definitions, a dedicated script needs to be run with the following command:
+
+```
+cd /path/to/PocketCoffea
+scripts/dataset/append_genweights.py --cfg dataset/dataset_definitions.json -i output/genweights/genweights_2016_PreVFP/output_all.coffea --overwrite
+scripts/dataset/append_genweights.py --cfg dataset/dataset_definitions.json -i output/genweights/genweights_2016_PostVFP/output_all.coffea --overwrite
+```
+
+N.B.: the argument `-i output/genweights/genweights_201*/output_all.coffea` should be the path to the Coffea output file where the genweights are stored. The option `--overwrite` automatically updates the config file passed as `--cfg` argument with the genweights, in this case `dataset/dataset_definitions.json`.
+
+### Build dataset with sum of genweights
+
+Now the steps of the [Build dataset](#build-dataset) section need to be repeated to generate the json datasets with the additional metadata `sum_genweights`.
+
 ## Include era-dependent parameters
 
 Since the `2016_PreVFP` and `2016_PostVFP` UL datasets have not been processed yet with this framework, a series of era-specific parameters needs to be specified in the framework:
@@ -27,7 +72,7 @@ Since the `2016_PreVFP` and `2016_PostVFP` UL datasets have not been processed y
 
 All the parameters specific to the analysis need to be specified in a config file that is passed as an input to the `runner.py` script.
 
-Two examples of config files can be found in `config/semileptonic_triggerSF/semileptonic_triggerSF_2017.py` and `config/semileptonic_triggerSF/semileptonic_triggerSF_2018.py`. The config files for the 2016 datasets can be written using these config files as a template and modifying the era-specific fields to 2016, where needed.
+Two examples of config files can be found in `config/semileptonic_triggerSF/semileptonic_triggerSF_2017.py` and `config/semileptonic_triggerSF/semileptonic_triggerSF_2018.py`. The config files for the 2016 datasets can be written using these config files as a template and modifying the era-specific fields to `2016_PreVFP` and `2016_PostVFP`, where needed.
 
 Naming scheme for 2016 config files:
 
@@ -40,11 +85,15 @@ In order to run the analysis workflow and produce the output histograms, run the
 
 ```
 cd /path/to/PocketCoffea
-runner.py --cfg config/semileptonic_triggerSF/semileptonic_triggerSF_2016_PreVFP.py
-runner.py --cfg config/semileptonic_triggerSF/semileptonic_triggerSF_2016_PostVFP.py
+runner.py --cfg config/semileptonic_triggerSF/semileptonic_triggerSF_2016_PreVFP.py --full
+runner.py --cfg config/semileptonic_triggerSF/semileptonic_triggerSF_2016_PostVFP.py --full
 ```
 
+N.B.: the argument `--full` will process all the datasets together at once and save the output in a single output file, `output_all.coffea`. Otherwise, the datasets are processed separately and an output file is saved for each dataset.
+
 ## Accumulate output files
+
+If the output of the [previous step](#run-the-analysis) has been produced without the argument `--full`, the output files need to be merged in a single output file `output_all.coffea`. If the output has been produced with the argument `--full` and the output file `output_all.coffea` is already existing, skip this step and continue with the [next one](#produce-datamc-plots).
 
 Once the Coffea output files are produced, one needs to merge the files into a single file by using the script `accumulate_files.py` by running this command:
 
