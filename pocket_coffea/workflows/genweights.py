@@ -48,4 +48,13 @@ class genWeightsProcessor(BaseProcessorABC):
             if self._hasSubsamples:
                 raise Exception("This processor cannot compute the sum of genweights of subsamples.")
 
+        self.process_extra_before_skim()
+        self.skim_events()
+        if not self.has_events:
+            return self.output
+
+        if self.cfg.save_skimmed_files:
+            self.export_skimmed_chunk()
+            return self.output
+
         return self.output
