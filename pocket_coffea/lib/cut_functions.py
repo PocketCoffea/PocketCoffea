@@ -183,7 +183,7 @@ def get_nObj_less(N, coll="JetGood", name=None):
 # Min b-tagged jets with custom collection
 
 
-def nBtag(events, params, year, **kwargs):
+def nBtagMin(events, params, year, **kwargs):
     '''Mask for min N jets with minpt and passing btagging.
     The btag params will come from the processor, not from the parameters
     '''
@@ -222,6 +222,46 @@ def nBtag(events, params, year, **kwargs):
                 >= params["N"]
             )
 
+def nBtagEq(events, params, year, **kwargs):
+    '''Mask for == N jets with minpt and passing btagging.
+    The btag params will come from the processor, not from the parameters
+    '''
+    if params["coll"] == "BJetGood":
+        # No need to apply the btaggin on the jet
+        # Assume that the collection of clean bjets has been created
+        if params["minpt"] > 0.0:
+            return (
+                ak.sum((events.BJetGood.pt >= params["minpt"]), axis=1) == params["N"]
+            )
+        else:
+            return events.nBJetGood == params["N"]
+    else:
+        btagparam = btag[year]
+        if params["minpt"] > 0.0:
+            return (
+                ak.sum(
+                    (
+                        events[params["coll"]][btagparam["btagging_algorithm"]]
+                        > btagparam["btagging_WP"]
+                    )
+                    & (events[params["coll"]].pt >= params["minpt"]),
+                    axis=1,
+                )
+                == params["N"]
+            )
+        else:
+            return (
+                ak.sum(
+                    (
+                        events[params["coll"]][btagparam["btagging_algorithm"]]
+                        > btagparam["btagging_WP"]
+                    ),
+                    axis=1,
+                )
+                == params["N"]
+            )
+
+
 def nElectron(events, params, year, **kwargs):
     '''Mask for min N electrons with minpt.'''
     if params["coll"] == "ElectronGood":
@@ -230,6 +270,7 @@ def nElectron(events, params, year, **kwargs):
         return events.nElectron >= params["N"]
     else:
         raise Exception(f"The collection '{params['coll']}' does not exist.")
+
 
 def nMuon(events, params, year, **kwargs):
     '''Mask for min N electrons with minpt.'''
@@ -240,15 +281,32 @@ def nMuon(events, params, year, **kwargs):
     else:
         raise Exception(f"The collection '{params['coll']}' does not exist.")
 
-def get_nBtag(N, minpt=0, coll="BJetGood", name=None):
+
+##########################33
+## Factory methods
+
+def get_nBtagMin(N, minpt=0, coll="BJetGood", name=None):
     if name == None:
-        name = f"n{coll}_btag_{N}_pt{minpt}"
-    return Cut(name=name, params={"N": N, "coll": coll, "minpt": minpt}, function=nBtag)
+        name = f"n{coll}_btagMin{N}_pt{minpt}"
+    return Cut(name=name, params={"N": N, "coll": coll, "minpt": minpt}, function=nBtagMin)
+
+
+def get_nBtagEq(N, minpt=0, coll="BJetGood", name=None):
+    if name == None:
+        name = f"n{coll}_btagEq{N}_pt{minpt}"
+    return Cut(name=name, params={"N": N, "coll": coll, "minpt": minpt}, function=nBtagEq)
+
+def get_nBtag(*args, **kwargs):
+    raise Exception("This cut function factory is deprecated!! Use get_nBtagMin or get_nBtagEq instead.")
+
 
 def get_nElectron(N, minpt=0, coll="ElectronGood", name=None):
     if name == None:
         name = f"n{coll}_{N}_pt{minpt}"
-    return Cut(name=name, params={"N": N, "coll": coll, "minpt": minpt}, function=nElectron)
+    return Cut(
+        name=name, params={"N": N, "coll": coll, "minpt": minpt}, function=nElectron
+    )
+
 
 def get_nMuon(N, minpt=0, coll="MuonGood", name=None):
     if name == None:

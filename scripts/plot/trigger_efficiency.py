@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+from copy import deepcopy
 import json
 import argparse
 import itertools
@@ -58,6 +59,7 @@ def update_recursive(dict1, dict2):
 
 parser = argparse.ArgumentParser(description='Plot histograms from coffea file')
 parser.add_argument('--cfg', default=os.getcwd() + "/config/test.json", help='Config file with parameters specific to the current run', required=False)
+parser.add_argument("-i", "--inputfile", required=True, type=str, help="Input file")
 parser.add_argument('-v', '--version', type=str, default=None, help='Version of output (e.g. `v01`, `v02`, etc.)')
 parser.add_argument('--save_plots', default=False, action='store_true', help='Save efficiency and SF plots')
 parser.add_argument('-j', '--workers', type=int, default=8, help='Number of parallel workers to use for plotting')
@@ -72,10 +74,14 @@ print("Starting ", end='')
 print(time.ctime())
 start = time.time()
 
-if os.path.isfile( config.outfile ):
-    print(f"Opening {config.outfile}")
-    accumulator = load(config.outfile)
-else: sys.exit("Input file does not exist")
+if os.path.isfile( args.inputfile ):
+    print(f"Opening {args.inputfile}")
+    accumulator = load(args.inputfile)
+else:
+    raise Exception("Input file does not exist")
+
+if not os.path.abspath(config.workflow_options["output_triggerSF"]).startswith(config.output):
+    raise Exception("The output folder of the trigger SF results is not contained in the histogram output folder. Please choose a folder that has the output folder as parent folder.")
 
 plt.style.use([hep.style.ROOT, {'font.size': 16}])
 if not os.path.exists(config.plots):
@@ -87,6 +93,19 @@ for directory in [plot_dir, plot_dir_sf]:
         os.makedirs(directory)
 
 print(accumulator.keys())
+if config.plot_options['only'] != None:
+    accumulator_temp = deepcopy(accumulator)
+    for k, v in accumulator['variables'].items():
+        if not config.plot_options['only'] in k:
+            accumulator_temp['variables'].pop(k)
+    accumulator = accumulator_temp
+
+HistsToPlot = [k for k in accumulator['variables'].keys()]
+NtotHists   = len(HistsToPlot)
+print("# tot histograms = ", NtotHists)
+print("histograms to plot:", HistsToPlot)
+delimiters = np.linspace(0, NtotHists, config.plot_options['workers'] + 1).astype(int)
+chunks     = [(delimiters[i], delimiters[i+1]) for i in range(len(delimiters[:-1]))]
 
 def _plot_efficiency_maps(entrystart, entrystop):
     _accumulator = slice_accumulator(accumulator, entrystart, entrystop)
@@ -103,9 +122,9 @@ def _plot_efficiency_maps_spliteras(entrystart, entrystop):
 def save_corrections(corrections):
     if not os.path.exists(config.workflow_options["output_triggerSF"]):
         os.makedirs(config.workflow_options["output_triggerSF"])
-    local_folder = os.path.join(config.output, *config.workflow_options["output_triggerSF"].split('/')[-2:])
-    if not os.path.exists(local_folder):
-        os.makedirs(local_folder)
+    folder_sf = config.workflow_options["output_triggerSF"]
+    if not os.path.exists(folder_sf):
+        os.makedirs(folder_sf)
     for histname, d in corrections.items():
         for cat, correction in d.items():
             year = correction['nominal']['year']
@@ -122,11 +141,12 @@ def save_corrections(corrections):
             print(variations_labels)
             stack = np.stack(ratio_stack)
             axis_variation = hist.axis.StrCategory(variations_labels, name="variation")
-            #print("stack", stack.shape)
             sfhist = hist.Hist(axis_variation, *axes, data=stack)
             sfhist.label = "out"
             sfhist.name = f"sf_{cat.split('_pass')[0]}"
-            clibcorr = correctionlib.convert.from_histogram(sfhist)
+
+            # The correction is built with the option flow='clamp' such that if the variable exceeds the range, the SF corresponding to the closest bin is applied
+            clibcorr = correctionlib.convert.from_histogram(sfhist, flow='clamp')
             clibcorr.description = "SF matching the semileptonic trigger efficiency in MC and data."
             cset = correctionlib.schemav2.CorrectionSet(
                 schema_version=2,
@@ -135,25 +155,16 @@ def save_corrections(corrections):
             )
             rich.print(cset)
             filename = f'sf_trigger_{map_name}_{year}_{cat}.json'
-            for outdir in [config.workflow_options["output_triggerSF"], local_folder]:
-                outfile_triggersf = os.path.join(outdir, filename)
-                outfile_triggersf = overwrite_check(outfile_triggersf)
-                print(f"Saving semileptonic trigger scale factors in {outfile_triggersf}")
-                with open(outfile_triggersf, "w") as fout:
-                    fout.write(cset.json(exclude_unset=True))
-                fout.close()
+            outdir = folder_sf
+            outfile_triggersf = os.path.join(outdir, filename)
+            outfile_triggersf = overwrite_check(outfile_triggersf)
+            print(f"Saving semileptonic trigger scale factors in {outfile_triggersf}")
+            with open(outfile_triggersf, "w") as fout:
+                fout.write(cset.json(exclude_unset=True))
+            fout.close()
             if 'hist_axis_y' not in correction['nominal'].keys():
                 extra_args = {'histname' : histname, 'year' : year, 'config' : config, 'cat' : cat, 'fontsize' : fontsize}
                 plot_variation_correctionlib(outfile_triggersf, hist_axis_x, variations_labels, plot_dir_sf, **extra_args)
-
-HistsToPlot   = [k for k in accumulator['variables'].keys()]
-NtotHists   = len(HistsToPlot)
-NHistsToPlot   = len([key for key in HistsToPlot if config.only in key])
-print("# tot histograms = ", NtotHists)
-print("# histograms to plot = ", NHistsToPlot)
-print("histograms to plot:", HistsToPlot)
-delimiters = np.linspace(0, NtotHists, config.plot_options['workers'] + 1).astype(int)
-chunks     = [(delimiters[i], delimiters[i+1]) for i in range(len(delimiters[:-1]))]
 
 results = {}
 for function in [_plot_efficiency_maps, _plot_efficiency_maps_spliteras, _plot_efficiency_maps_splitHT]:

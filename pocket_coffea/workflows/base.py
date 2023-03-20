@@ -16,7 +16,8 @@ from coffea.analysis_tools import PackedSelection
 from ..lib.weights_manager import WeightsManager
 from ..lib.columns_manager import ColumnsManager
 from ..lib.hist_manager import HistManager
-from ..lib.jets import jet_correction
+from ..lib.jets import jet_correction, met_correction
+from ..lib.categorization import CartesianSelection
 from ..utils.skim import uproot_writeable, copy_file
 from ..parameters.event_flags import event_flags, event_flags_data
 from ..parameters.lumi import goldenJSON
@@ -55,7 +56,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
         # Subsamples configurations: special cuts to split a sample in subsamples
         self._subsamplesCfg = self.cfg.subsamples_cuts
-        self._subsamples_masks = PackedSelection()
 
         # Weights configuration
         self.weights_config_allsamples = self.cfg.weights_config
@@ -108,6 +108,10 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         if self._isMC:
             self._era = "MC"
             self._xsec = self.events.metadata["xsec"]
+            if "sum_genweights" in self.events.metadata:
+                self._sum_genweights = self.events.metadata["sum_genweights"]
+            else:
+                raise Exception(f"The metadata dict of {self._dataset} has no key named `sum_genweights`.")
         else:
             self._era = self.events.metadata["era"]
             self._goldenJSON = goldenJSON[self._year]
@@ -274,9 +278,12 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
         # Defining the subsamples cut
         # saving all the cuts in a single selector
+        self._subsamples_masks = PackedSelection()
         self._subsamples_cuts_ids = []
         # saving the map of cut ids for each subsample
         self._subsamples_map = defaultdict(list)
+        self._subsamples_masks = PackedSelection()
+
         for subs, cuts in self._subsamples.items():
             for cut in cuts:
                 if cut.id not in self._subsamples_cuts_ids:
@@ -337,6 +344,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     "year": self._year,
                     "sample": self._sample,
                     "xsec": self._xsec,
+                    "sum_genweights": self._sum_genweights,
                     "finalstate": self.cfg.finalstate,
                 },
             )
@@ -544,27 +552,45 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         nominal_events = self.events
 
         hasJES = False
+        # HACK: hasJER is set to True even if the JER is not included in the variations.
+        # In the future, it is desirable to include a dedicated option in the config file to switch the nominal JER and JES on and off.
+        hasJER = True
         for v in variations:
-            if ("JES" in v) | ("JER" in v):
+            if "JES" in v:
                 hasJES = True
+            if "JER" in v:
+                hasJER = True
 
-        # TODO Improve this selection
-        if hasJES:
+        if hasJES | hasJER:
             # correct the jets only once
             jec4_cache = cachetools.Cache(np.inf)
             jec8_cache = cachetools.Cache(np.inf)
             jets_with_JES = jet_correction(
-                nominal_events, nominal_events.Jet, "AK4PFchs", self._year, jec4_cache
-            )
-            fatjets_with_JES = jet_correction(
                 nominal_events,
-                nominal_events.FatJet,
-                "AK8PFPuppi",
+                nominal_events.Jet,
+                "AK4PFchs",
                 self._year,
-                jec8_cache,
+                jec4_cache,
+                applyJER=hasJER,
+                applyJESunc=hasJES,
             )
+            # fatjets_with_JES = jet_correction(
+            #     nominal_events,
+            #     nominal_events.FatJet,
+            #     "AK8PFPuppi",
+            #     self._year,
+            #     jec8_cache,
+            #     applyJER=hasJER,
+            #     applyJESunc=hasJES,
+            # )
+            #met_with_JES = met_correction(
+            #    nominal_events.MET,
+            #    jets_with_JES
+            #)
         else:
+            jets_with_JES = nominal_events.Jet
             fatjets_with_JES = nominal_events.FatJet
+            #met_with_JES = nominal_events.MET
 
         for variation in variations:
             # Restore the nominal events record since for each variation
@@ -572,22 +598,23 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
             if variation == "nominal":
                 self.events = nominal_events
-                if hasJES:
+                if hasJES | hasJER:
                     # put nominal shape
                     self.events["Jet"] = jets_with_JES
-                    self.events["FatJet"] = fatjets_with_JES
+                    # self.events["FatJet"] = fatjets_with_JES
+                    #self.events["MET"] = met_with_JES
                 # Nominal is ASSUMED to be the first
                 yield "nominal"
             elif ("JES" in variation) | ("JER" in variation):
                 # JES_jes is the total. JES_[type] is for different variations
                 self.events = nominal_events
                 self.events["Jet"] = jets_with_JES[variation].up
-                self.events["FatJet"] = fatjets_with_JES[variation].up
+                # self.events["FatJet"] = fatjets_with_JES[variation].up
                 yield variation + "Up"
                 # restore nominal before going to down
                 self.events = nominal_events
                 self.events["Jet"] = jets_with_JES[variation].down
-                self.events["FatJet"] = fatjets_with_JES[variation].down
+                # self.events["FatJet"] = fatjets_with_JES[variation].down
                 yield variation + "Down"
 
     def process(self, events: ak.Array):
@@ -714,40 +741,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
     def postprocess(self, accumulator):
         '''
         The function is called by coffea at the end of the processing.
-        The total sum of the genweights is computed for the MC samples
-        and the histogram is rescaled by 1/sum_genweights.
-        The `sumw` output is corrected accordingly.
 
         To add additional customatizaion redefine the `postprocessing` function,
         but remember to include a super().postprocess() call.
         '''
-        # Rescale MC histograms by the total sum of the genweights
-        try:
-            scale_genweight = {}
-            for sample in self.cfg.total_samples_list:
-                if sample not in accumulator["sum_genweights"]:
-                    continue
-                scale_genweight[sample] = (
-                    1
-                    if sample.startswith('DATA')  # BEAWARE OF THIS HARDCODING
-                    else 1.0 / accumulator['sum_genweights'][sample]
-                )
-                # correct also the sumw (sum of weighted events) accumulator
-                for cat in self._categories:
-                    accumulator["sumw"][cat][sample] *= scale_genweight[sample]
 
-            for var, hists in accumulator["variables"].items():
-                # Rescale only histogram without no_weights option
-                if self.cfg.variables[var].no_weights:
-                    continue
-                for sample, h in hists.items():
-                    if sample.startswith('DATA'):  # BEWARE of THIS HARDCODING
-                        continue
-                    h *= scale_genweight[sample]
-            accumulator["scale_genweight"] = scale_genweight
-        except Exception as e:
-            print(e)
-            print(
-                "N.B: The weights have NOT been scaled both in histograms and `sumw` output."
-            )
         return accumulator

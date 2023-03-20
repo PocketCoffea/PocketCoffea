@@ -27,10 +27,18 @@ from pocket_coffea.utils.plot_utils import slice_accumulator, plot_data_mc_hist1
 
 parser = argparse.ArgumentParser(description='Plot histograms from coffea file')
 parser.add_argument('--cfg', default=os.getcwd() + "/config/test.json", help='Config file with parameters specific to the current run', required=False)
+parser.add_argument("-i", "--inputfile", required=True, type=str, help="Input file")
+parser.add_argument('--plot_dir', default=None, help='Sub-directory inside the plots folder to save plots', required=False)
 parser.add_argument('-v', '--version', type=str, default=None, help='Version of output (e.g. `v01`, `v02`, etc.)')
 parser.add_argument('--test', default=False, action='store_true', help='Test mode')
 parser.add_argument('-j', '--workers', type=int, default=8, help='Number of parallel workers to use for plotting')
-parser.add_argument('-o', '--only', type=str, default='', help='Filter histograms name with string')
+parser.add_argument('-o', '--only', type=str, default='', help='Filter histograms name with string', required=False)
+parser.add_argument('-oc', '--only_cat', type=str, default='', help='Filter categories with string', required=False)
+parser.add_argument('-os', '--only_syst', type=str, nargs="+", default='', help='Filter systematics with a list of strings', required=False)
+parser.add_argument('--split_systematics', action='store_true', help='Split systematic uncertainties in the ratio plot')
+parser.add_argument('--partial_unc_band', action='store_true', help='Plot only the partial uncertainty band corresponding to the systematics specified as the argument `only_syst`')
+parser.add_argument('--overwrite', action='store_true', help='Overwrite plots in output folder')
+parser.add_argument('--log', action='store_true', help='Set y-axis scale to log')
 
 args = parser.parse_args()
 config = Configurator(args.cfg, plot=True, plot_version=args.version)
@@ -43,78 +51,36 @@ print("Starting ", end='')
 print(time.ctime())
 start = time.time()
 
-if os.path.isfile( config.outfile ): accumulator = load(config.outfile)
-else: sys.exit(f"Input file '{config.outfile}' does not exist")
+if os.path.isfile( args.inputfile ): accumulator = load(args.inputfile)
+else: sys.exit(f"Input file '{args.inputfile}' does not exist")
 
-data_err_opts = {
-    'linestyle': 'none',
-    'marker': '.',
-    'markersize': 10.,
-    'color': 'k',
-    'elinewidth': 1,
-}
+if args.plot_dir:
+    plot_dir_parent = os.path.dirname(config.plots)
+    config.plots = os.path.join(plot_dir_parent, args.plot_dir)
 
-mc_opts = {
-    #'facecolor': 'None',
-    'edgecolor': 'black',
-    #'linestyle': '-',
-    'linewidth': 1,
-}
+if not args.overwrite:
+    if os.path.exists(config.plots):
+        raise Exception(f"The output folder '{config.plots}' already exists. Please choose another output folder or run with the option `--overwrite`.")
 
-signal_opts = {
-    'facecolor': 'None',
-    'edgecolor': ['green', 'red'],
-    'linestyle': ['--', '-'],
-    'linewidth': 2,
-    'alpha': 0.7
-}
-
-ggH_opts = {
-    'bb' : {
-        'facecolor': 'None',
-        'edgecolor': 'green',
-        'linestyle': '--',
-        'linewidth': 2,
-        'alpha': 0.7
-    },
-    'cc': {
-        'facecolor': 'None',
-        'edgecolor': 'red',
-        'linestyle': '--',
-        'linewidth': 2,
-        'alpha': 0.7
-    }
-}
-
-selection = {
-    'trigger'  : (r'Trigger'),
-    'dilepton_SR' : (r'Trigger'+'\n'+
-                     r'Dilepton cuts'+'\n'+
-                     r'SR'),
-    'dilepton_CR' : (r'Trigger'+'\n'+
-                     r'Dilepton cuts'+'\n'+
-                     r'CR'),
-    'semileptonic_SR' : (r'Trigger'+'\n'+
-                     r'Semileptonic cuts'+'\n'+
-                     r'SR'),
-    'semileptonic_CR' : (r'Trigger'+'\n'+
-                     r'Semileptonic cuts'+'\n'+
-                     r'CR'),
-    'semileptonic_triggerSF_Ele32_EleHT_fail' : 'Trigger fail',
-    'semileptonic_triggerSF_Ele32_EleHT_pass' : 'Trigger pass',
-    'semileptonic_triggerSF_inclusive' : 'Inclusive',
-}
-
-plt.style.use([hep.style.ROOT, {'font.size': 16}])
 if not os.path.exists(config.plots):
     os.makedirs(config.plots)
 
 def make_plots(entrystart, entrystop):
     _accumulator = slice_accumulator(accumulator, entrystart, entrystop)
     for (histname, h) in _accumulator['variables'].items():
-        #if ('FatJetGood_DDX' in histname) | ('FatJetGood_particleNetMD_Xqq' in histname) | ('FatJetGood_particleNet_H4qvsQCD' in histname):
-        #    continue
-        plot_data_mc_hist1D(h, histname, config, flavorsplit='5f', mcstat=True, stat_only=False, log=True)
+        plot_data_mc_hist1D(
+            h,
+            histname,
+            config,
+            plot_dir=args.plot_dir,
+            flavorsplit=None,
+            only_cat=args.only_cat,
+            mcstat=True,
+            stat_only=False,
+            split_systematics=args.split_systematics,
+            only_syst=args.only_syst,
+            partial_unc_band=args.partial_unc_band,
+            log=args.log)
 
 # Filter dictionary of histograms with `args.only`
 accumulator['variables'] = { k : v for k,v in accumulator['variables'].items() if args.only in k }

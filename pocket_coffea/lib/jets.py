@@ -31,8 +31,13 @@ def add_jec_variables(jets, event_rho):
     return jets
 
 
-def jet_correction(events, jets, jetType, year, cache, applyJER=True):
-    name = year if applyJER else f"{year}_NOJER"
+def jet_correction(events, jets, jetType, year, cache, applyJER=True, applyJESunc=True):
+    if applyJER & applyJESunc:
+        name = year
+    elif not applyJER:
+        name = f"{year}_NOJER"
+    elif not applyJESunc:
+        name = f"{year}_NOJESunc"
     if jetType == "AK4PFchs":
         return jet_factory[name].build(
             add_jec_variables(jets, events.fixedGridRhoFastjetAll), cache
@@ -42,6 +47,10 @@ def jet_correction(events, jets, jetType, year, cache, applyJER=True):
             add_jec_variables(jets, events.fixedGridRhoFastjetAll), cache
         )
 
+def met_correction(MET, jets):
+    return met_factory.build(
+        MET, jets, {}
+    )
 
 def jet_correction_correctionlib(
     events, Jet, typeJet, year, JECversion, JERversion=None, verbose=False

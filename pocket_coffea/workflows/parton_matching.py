@@ -70,6 +70,13 @@ class PartonMatchingProcessor(ttHbbBaseProcessor):
             self.events.PartonMatched.pt, axis=1
         )  # use count since we have None
 
-    def process_extra_after_presel(self) -> ak.Array:
+    def process_extra_after_presel(self, variation) -> ak.Array:
         self.do_parton_matching()
         self.count_partons()
+
+        # Saving leptons and neutrino parton level
+        self.events["LeptonParton"] = self.events.LHEPart[
+            (self.events.LHEPart.status == 1)
+            & (abs(self.events.LHEPart.pdgId) > 10)
+            & (abs(self.events.LHEPart.pdgId) < 15)
+        ]

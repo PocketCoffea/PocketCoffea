@@ -1,7 +1,9 @@
+from os import path
+
 electronSF = {
     'reco': {'pt>20': "RecoAbove20", 'pt<20': "RecoBelow20"},
     'id': "wp80iso",
-    'trigger': {'2018': "sf_Ele32_EleHT"},
+    'trigger': {'2017': "sf_Ele32_EleHT", '2018': "sf_Ele32_EleHT"},
 }
 
 electronJSONfiles = {
@@ -17,19 +19,45 @@ electronJSONfiles = {
     },
     '2017': {
         'file_POG': "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2017_UL/electron.json.gz",
-        'file_triggerSF': "",
+        'file_triggerSF': path.join(
+        path.dirname(__file__),
+            "semileptonic_triggerSF/triggerSF_2017",
+            "sf_trigger_electron_etaSC_pt_leading_2017_Ele32_EleHT_pass.json",
+        ),
         'name': "UL-Electron-ID-SF",
     },
     '2018': {
         'file_POG': "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2018_UL/electron.json.gz",
-        'file_triggerSF': "/work/mmarcheg/PocketCoffea/PocketCoffea/parameters/semileptonic_triggerSF/triggerSF_2018_Ele32_EleHT_allsystematics/sf_trigger_electron_etaSC_vs_electron_pt_2018_Ele32_EleHT_pass_v08.json",
+        'file_triggerSF': path.join(
+        path.dirname(__file__),
+            "semileptonic_triggerSF/triggerSF_2018_sfmutrigger",
+            "sf_trigger_electron_etaSC_pt_leading_2018_Ele32_EleHT_pass_v06.json",
+        ),
         'name': "UL-Electron-ID-SF",
     },
 }
 
 muonSF = {
-    'id': "NUM_TightID_DEN_TrackerMuons",
-    'iso': "NUM_LooseRelIso_DEN_TightIDandIPCut",
+    '2016_PreVFP': {
+        'id': "NUM_TightID_DEN_TrackerMuons",
+        'iso': "NUM_LooseRelIso_DEN_TightIDandIPCut",
+        'trigger': "NUM_IsoMu24_or_IsoTkMu24_DEN_CutBasedIdTight_and_PFIsoTight",
+    },
+    '2016_PostVFP': {
+        'id': "NUM_TightID_DEN_TrackerMuons",
+        'iso': "NUM_LooseRelIso_DEN_TightIDandIPCut",
+        'trigger': "NUM_IsoMu24_or_IsoTkMu24_DEN_CutBasedIdTight_and_PFIsoTight",
+    },
+    '2017': {
+        'id': "NUM_TightID_DEN_TrackerMuons",
+        'iso': "NUM_LooseRelIso_DEN_TightIDandIPCut",
+        'trigger': "NUM_IsoMu27_DEN_CutBasedIdTight_and_PFIsoTight",
+    },
+    '2018': {
+        'id': "NUM_TightID_DEN_TrackerMuons",
+        'iso': "NUM_LooseRelIso_DEN_TightIDandIPCut",
+        'trigger': "NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight",
+    },
 }
 
 muonJSONfiles = {
@@ -45,4 +73,31 @@ muonJSONfiles = {
     '2018': {
         'file': "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2018_UL/muon_Z.json.gz",
     },
+}
+
+sf_ele_trigger_variations = {
+    "2016_PreVFP": [
+        "stat",
+        "pileup",
+        "era",
+        "ht",
+    ],
+    "2016_PostVFP": [
+        "stat",
+        "pileup",
+        "era",
+        "ht",
+    ],
+    "2017": [
+        "stat",
+        "pileup",
+        "era",
+        "ht",
+    ],
+    "2018": [
+        "stat",
+        "pileup",
+        "era",
+        "ht",
+    ],
 }

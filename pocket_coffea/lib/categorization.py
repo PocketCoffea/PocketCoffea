@@ -77,7 +77,7 @@ class MaskStorage:
                 flat_mask = ak.flatten(mask)
                 if len(flat_mask) != self.tot_elements:
                     raise Exception(
-                        f"Mask {f} has the wrong number of total entries. Check the collection"
+                        f"Mask {id} has the wrong number of total entries. Check the collection"
                     )
                 self.cache.add(id, ak.to_numpy(flat_mask))
         else:
@@ -335,6 +335,9 @@ class CartesianSelection:
     Common categories to be applied outside of the
     cartesian product can be defined with a StandardSelection object.
 
+    The Cuts can be on events or on collections (dim=2).
+    The StandardSelection is independent from the MultiCut cartesian product.
+    If one of the multicut is dim=2, all the cartesian product will be multidimensional.
     """
 
     def __init__(

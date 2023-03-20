@@ -16,37 +16,35 @@ from ..parameters.jet_scale_factors import btagSF, btagSF_calibration, jet_puId
 from ..parameters.object_preselection import object_preselection
 
 
-def get_ele_sf(year, pt, eta, counts=None, type='', pt_region=None):
+def get_ele_sf(
+    year, pt, eta, counts=None, key='', pt_region=None, variations=["nominal"]
+):
     '''
     This function computes the per-electron reco or id SF.
     If 'reco', the appropriate corrections are chosen by using the argument `pt_region`.
     '''
-    if type not in electronSF.keys():
-        sys.exit("SF type not included in the parameters.")
+    if key not in electronSF.keys():
+        sys.exit(f"SF key {key} not included in the parameters.")
 
-    if type == 'reco':
-        sfName = electronSF[type][pt_region]
+    if key == 'reco':
+        sfName = electronSF[key][pt_region]
         electronJSON = correctionlib.CorrectionSet.from_file(
             electronJSONfiles[year]['file_POG']
         )
         map_name = electronJSONfiles[year]['name']
-    elif type == 'id':
-        sfName = electronSF[type]
+    elif key == 'id':
+        sfName = electronSF[key]
         electronJSON = correctionlib.CorrectionSet.from_file(
             electronJSONfiles[year]['file_POG']
         )
         map_name = electronJSONfiles[year]['name']
-    elif type == 'trigger':
-        if counts != None:
-            sys.exit(
-                "The `counts` array should not be passed since the trigger SF are computed for the semileptonic final state and the electron arrays are already flat."
-            )
+    elif key == 'trigger':
         electronJSON = correctionlib.CorrectionSet.from_file(
             electronJSONfiles[year]['file_triggerSF']
         )
-        map_name = electronSF[type][year]
+        map_name = electronSF[key][year]
 
-    if type in ['reco', 'id']:
+    if key in ['reco', 'id']:
         sf = electronJSON[map_name].evaluate(
             year, "sf", sfName, eta.to_numpy(), pt.to_numpy()
         )
@@ -63,24 +61,43 @@ def get_ele_sf(year, pt, eta, counts=None, type='', pt_region=None):
             ak.unflatten(sfdown, counts),
         )
     ### N.B.: In the current implementation, only the statistical uncertainty is included in the up/down variations of the trigger SF
-    elif type == 'trigger':
-        sf = electronJSON[map_name].evaluate("nominal", pt.to_numpy(), eta.to_numpy())
-        sfup = electronJSON[map_name].evaluate("statUp", pt.to_numpy(), eta.to_numpy())
-        sfdown = electronJSON[map_name].evaluate(
-            "statDown", pt.to_numpy(), eta.to_numpy()
-        )
-        return sf, sfup, sfdown
+    elif key == 'trigger':
+        output = {}
+        for variation in variations:
+            if variation == "nominal":
+                output[variation] = [
+                    electronJSON[map_name].evaluate(
+                        variation, pt.to_numpy(), eta.to_numpy()
+                    )
+                ]
+            else:
+                # Nominal sf==1
+                nominal = np.ones_like(pt.to_numpy())
+                # Systematic variations
+                output[variation] = [
+                    nominal,
+                    electronJSON[map_name].evaluate(
+                        f"{variation}Up", pt.to_numpy(), eta.to_numpy()
+                    ),
+                    electronJSON[map_name].evaluate(
+                        f"{variation}Down", pt.to_numpy(), eta.to_numpy()
+                    ),
+                ]
+            for i, sf in enumerate(output[variation]):
+                output[variation][i] = ak.unflatten(sf, counts)
+
+        return output
 
 
-def get_mu_sf(year, pt, eta, counts, type=''):
+def get_mu_sf(year, pt, eta, counts, key=''):
     '''
     This function computes the per-muon id or iso SF.
     '''
-    if type not in muonSF.keys():
-        sys.exit("SF type not included in the parameters.")
+    if key not in muonSF[year].keys():
+        sys.exit(f"SF key '{key}' not included in the parameters.")
 
     muonJSON = correctionlib.CorrectionSet.from_file(muonJSONfiles[year]['file'])
-    sfName = muonSF[type]
+    sfName = muonSF[year][key]
 
     year = f"{year}_UL"  # N.B. This works for the UL SF in the current JSON scheme (25.05.2022)
     sf = muonJSON[sfName].evaluate(year, np.abs(eta.to_numpy()), pt.to_numpy(), "sf")
@@ -107,7 +124,7 @@ def sf_ele_reco(events, year):
     '''
 
     ele_pt = events.ElectronGood.pt
-    ele_eta = events.ElectronGood.eta
+    ele_eta = events.ElectronGood.etaSC
 
     Above20 = ele_pt >= 20
     Below20 = ele_pt < 20
@@ -150,7 +167,7 @@ def sf_ele_id(events, year):
     Additionally, also the up and down variations of the SF are returned.
     '''
     ele_pt = events.ElectronGood.pt
-    ele_eta = events.ElectronGood.eta
+    ele_eta = events.ElectronGood.etaSC
 
     ele_pt_flat, ele_eta_flat, ele_counts = (
         ak.flatten(ele_pt),
@@ -165,20 +182,33 @@ def sf_ele_id(events, year):
     return ak.prod(sf_id, axis=1), ak.prod(sfup_id, axis=1), ak.prod(sfdown_id, axis=1)
 
 
-def sf_ele_trigger(events, year):
+def sf_ele_trigger(events, year, variations=["nominal"]):
     '''
     This function computes the semileptonic electron trigger SF by considering the leading electron in the event.
     This computation is valid only in the case of the semileptonic final state.
-    Additionally, also the up and down variations of the SF are returned.
+    Additionally, also the up and down variations of the SF for a set of systematic uncertainties are returned.
     '''
 
-    ele_pt = ak.firsts(events.ElectronGood.pt)
-    ele_eta = ak.firsts(events.ElectronGood.eta)
+    ele_pt = events.ElectronGood.pt
+    ele_eta = events.ElectronGood.etaSC
 
-    return get_ele_sf(year, ele_pt, ele_eta, type='trigger')
+    ele_pt_flat, ele_eta_flat, ele_counts = (
+        ak.flatten(ele_pt),
+        ak.flatten(ele_eta),
+        ak.num(ele_pt),
+    )
+    sf_dict = get_ele_sf(
+        year, ele_pt_flat, ele_eta_flat, ele_counts, 'trigger', variations=variations
+    )
+
+    for variation in sf_dict.keys():
+        for i, sf in enumerate(sf_dict[variation]):
+            sf_dict[variation][i] = ak.prod(sf, axis=1)
+
+    return sf_dict
 
 
-def sf_mu(events, year, type=''):
+def sf_mu(events, year, key=''):
     '''
     This function computes the per-muon id SF and returns the corresponding per-event SF, obtained by multiplying the per-muon SF in each event.
     Additionally, also the up and down variations of the SF are returned.
@@ -192,7 +222,7 @@ def sf_mu(events, year, type=''):
         ak.flatten(mu_eta),
         ak.num(mu_pt),
     )
-    sf, sfup, sfdown = get_mu_sf(year, mu_pt_flat, mu_eta_flat, mu_counts, type)
+    sf, sfup, sfdown = get_mu_sf(year, mu_pt_flat, mu_eta_flat, mu_counts, key)
 
     # The SF arrays corresponding to all the muons are multiplied along the muon axis in order to obtain a per-event scale factor.
     return ak.prod(sf, axis=1), ak.prod(sfup, axis=1), ak.prod(sfdown, axis=1)
@@ -200,7 +230,8 @@ def sf_mu(events, year, type=''):
 
 def sf_btag(jets, btag_discriminator, year, njets, variations=["central"]):
     '''
-    DeepJet AK4 btagging SF. See https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/BTV_btagging_Run2_UL/BTV_btagging_2018_UL.html
+    DeepJet AK4 btagging SF.
+    See https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/summaries/BTV_2018_UL_btagging.html
     The scale factors have 8 default uncertainty
     sources (hf,lf,hfstats1/2,lfstats1/2,cferr1/2) (all of this up_*var*, and down_*var*).
     All except the cferr1/2 uncertainties are to be
@@ -220,27 +251,21 @@ def sf_btag(jets, btag_discriminator, year, njets, variations=["central"]):
     pt = ak.to_numpy(ak.flatten(jets.pt))
     discr = ak.to_numpy(ak.flatten(jets[btag_discriminator]))
 
-    def _getsfwithmask(variation, mask):
+    central_SF_byjet =  corr.evaluate("central", flavour, abseta, pt, discr)
+                   
+    def _get_sf_variation_with_mask(variation, mask):
         index = (np.indices(discr.shape)).flatten()[mask]
-        sf = np.ones_like(discr, dtype=float)
+        # Copying the central SF
+        sf = np.copy(central_SF_byjet)
         w = corr.evaluate(variation, flavour[mask], abseta[mask], pt[mask], discr[mask])
         sf[index] = w
-        # TODO this can be improved: we do not need to keep the order
-        # since we are doing the product --> we can simplify this
         sf_out = ak.prod(ak.unflatten(sf, njets), axis=1)
         return sf_out
 
     output = {}
     for variation in variations:
         if variation == "central":
-            output[variation] = [
-                ak.prod(
-                    ak.unflatten(
-                        corr.evaluate(variation, flavour, abseta, pt, discr), njets
-                    ),
-                    axis=1,
-                ),
-            ]
+            output[variation] = [ak.prod(ak.unflatten(central_SF_byjet, njets), axis=1) ]
         else:
             # Nominal sf==1
             nominal = np.ones(ak.num(njets, axis=0))
@@ -250,22 +275,38 @@ def sf_btag(jets, btag_discriminator, year, njets, variations=["central"]):
                 c_mask = flavour == 4
                 output[variation] = [
                     nominal,
-                    _getsfwithmask(f"up_{variation}", c_mask),
-                    _getsfwithmask(f"down_{variation}", c_mask),
+                    _get_sf_variation_with_mask(f"up_{variation}", c_mask),
+                    _get_sf_variation_with_mask(f"down_{variation}", c_mask),
                 ]
 
-            elif "jes" in variation:
+            elif "JES" in variation:
+                # We need to convert the name of the variation
+                # from JES_VariationUp to  up_jesVariation
+                if variation == "JES_TotalUp":
+                    btag_jes_var = "up_jes"
+                elif variation == "JES_TotalDown":
+                    btag_jes_var = "down_jes"
+                else:
+                    if variation[-2:] == "Up":
+                        btag_jes_var =  f"up_jes{variation[4:-2]}"
+                    elif variation[-4:] == "Down":
+                        btag_jes_var =  f"down_jes{variation[4:-4]}"
+                        
                 # This is a special case where a dedicate btagSF is computed for up and down Jes shape variations.
                 # This is not an up/down variation, but a single modified SF.
-                notc_mask = flavour != 4
-                output[variation] = _getsfwithmask(variation, notcmask)
+                # N.B: It is a central SF
+                # notc_mask = flavour != 4
+                # output["central"] = [_get_sf_variation_with_mask(btag_jes_var, notc_mask)]
+                output["central"] =  [ak.prod(
+                                            ak.unflatten(  corr.evaluate("central", flavour, abseta, pt, discr), njets),
+                                     axis=1)]
             else:
                 # Computing the scale factor only NON c-flavour jets
                 notc_mask = flavour != 4
                 output[variation] = [
                     nominal,
-                    _getsfwithmask(f"up_{variation}", notc_mask),
-                    _getsfwithmask(f"down_{variation}", notc_mask),
+                    _get_sf_variation_with_mask(f"up_{variation}", notc_mask),
+                    _get_sf_variation_with_mask(f"down_{variation}", notc_mask),
                 ]
 
     return output

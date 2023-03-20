@@ -5,23 +5,23 @@ import math
 default_axis_settings = {
     'muon_pt': {
         "field": "pt",
-        "bins": 200,
+        "bins": 50,
         "start": 0,
-        'stop': 1000,
+        'stop': 500,
         "lim": (0, 500),
         'label': "$p_{T}^{\mu}$ [GeV]",
     },
     'muon_eta': {
         "field": "eta",
-        "bins": 80,
-        "start": -4,
-        'stop': 4,
-        "lim": (-4, 4),
+        "bins": 50,
+        "start": -2.5,
+        'stop': 2.5,
+        "lim": (-2.5, 2.5),
         'label': "$\eta_{\mu}$",
     },
     'muon_phi': {
         "field": "phi",
-        "bins": 128,
+        "bins": 64,
         "start": -math.pi,
         'stop': math.pi,
         "lim": (-math.pi, math.pi),
@@ -29,18 +29,18 @@ default_axis_settings = {
     },
     'electron_pt': {
         "field": "pt",
-        "bins": 200,
+        "bins": 50,
         "start": 0,
-        'stop': 1000,
+        'stop': 500,
         "lim": (0, 500),
         'label': "$p_{T}^{e}$ [GeV]",
     },
     'electron_eta': {
         "field": "eta",
-        "bins": 80,
-        "start": -4,
-        'stop': 4,
-        "lim": (-4, 4),
+        "bins": 50,
+        "start": -2.5,
+        'stop': 2.5,
+        "lim": (-2.5, 2.5),
         'label': "$\eta_{e}$",
     },
     "electron_etaSC": {
@@ -80,31 +80,63 @@ default_axis_settings = {
     },
     'electron_phi': {
         "field": "phi",
-        "bins": 128,
+        "bins": 64,
         "start": -math.pi,
         'stop': math.pi,
         "lim": (-math.pi, math.pi),
         'label': "$\phi_{e}$",
     },
+    'lepton_pt': {
+        "field": "pt",
+        "bins": 50,
+        "start": 0,
+        'stop': 500,
+        "lim": (0, 500),
+        'label': "$p_{T}^{\ell}$ [GeV]",
+    },
+    'lepton_eta': {
+        "field": "eta",
+        "bins": 50,
+        "start": -2.5,
+        'stop': 2.5,
+        "lim": (-2.5, 2.5),
+        'label': "$\eta_{\ell}$",
+    },
+    'lepton_phi': {
+        "field": "phi",
+        "bins": 64,
+        "start": -math.pi,
+        'stop': math.pi,
+        "lim": (-math.pi, math.pi),
+        'label': "$\phi_{\ell}$",
+    },
+    'lepton_pdgId': {
+        "field": "pdgId",
+        "bins": 32,
+        "start": -16,
+        'stop': 16,
+        "lim": (-16, 16),
+        'label': "Lepton pdgId",
+    },
     'jet_pt': {
         "field": "pt",
-        "bins": 150,
+        "bins": 100,
         "start": 0,
-        'stop': 1500,
+        'stop': 1000,
         "lim": (0, 500),
         'label': "$p_{T}^{j}$ [GeV]",
     },
     'jet_eta': {
         "field": "eta",
-        "bins": 100,
-        "start": -3,
-        'stop': 3,
-        "lim": (-3, 3),
+        "bins": 50,
+        "start": -2.5,
+        'stop': 2.5,
+        "lim": (-2.5, 2.5),
         'label': "$\eta_{j}$",
     },
     'jet_phi': {
         "field": "phi",
-        "bins": 128,
+        "bins": 64,
         "start": -math.pi,
         'stop': math.pi,
         "lim": (-math.pi, math.pi),
@@ -120,23 +152,23 @@ default_axis_settings = {
     },
     'fatjet_pt': {
         "field": "pt",
-        "bins": 150,
+        "bins": 100,
         "start": 0,
-        'stop': 1500,
+        'stop': 1000,
         "lim": (0, 1000),
         'label': r"FatJet $p_{T}$ [GeV]",
     },
     'fatjet_eta': {
         "field": "eta",
-        "bins": 80,
-        "start": -4,
-        'stop': 4,
-        "lim": (-4, 4),
+        "bins": 50,
+        "start": -2.5,
+        'stop': 2.5,
+        "lim": (-2.5, 2.5),
         'label': r"FatJet $\eta$",
     },
     'fatjet_phi': {
         "field": "phi",
-        "bins": 128,
+        "bins": 64,
         "start": -math.pi,
         'stop': math.pi,
         "lim": (-math.pi, math.pi),
@@ -144,17 +176,17 @@ default_axis_settings = {
     },
     'fatjet_mass': {
         "field": "mass",
-        "bins": 150,
+        "bins": 100,
         "start": 0,
-        'stop': 1500,
+        'stop': 1000,
         "lim": (0, 1000),
         'label': "FatJet mass [GeV]",
     },
     'fatjet_msoftdrop': {
         "field": "msoftdrop",
-        "bins": 150,
+        "bins": 100,
         "start": 0,
-        'stop': 1500,
+        'stop': 1000,
         "lim": (0, 1000),
         'label': r"FatJet $m_{SD}$ [GeV]",
     },
@@ -360,19 +392,19 @@ default_axis_settings = {
     },
     'met_pt': {
         "field": "pt",
-        "bins": 200,
-        "start": 0,
-        'stop': 2000,
-        "lim": (0, 500),
-        'label': "$p_{T}^{MET}$ [GeV]",
+        "bins": 28,
+        "start": 20,
+        'stop': 300,
+        "lim": (20, 300),
+        'label': "MET [GeV]",
     },
     'met_phi': {
         "field": "phi",
-        "bins": 128,
+        "bins": 64,
         "start": -math.pi,
         'stop': math.pi,
         "lim": (-math.pi, math.pi),
-        'label': "$\phi_{MET}$",
+        'label': "MET $\phi$",
     },
     'mll': {
         "field": "mll",
@@ -406,6 +438,8 @@ collection_fields = {
     'parton': ["eta", "pt", "phi", "dRMatchedJet", "pdgId"],
     'electron': ["eta", "pt", "phi", "etaSC"],
     'muon': ["eta", "pt", "phi"],
+    'lepton': ["eta", "pt", "phi", "pdgId"],
+    'met': ["pt", "phi"],
     'sv': [
         "summass",
         "logsummass",
@@ -418,7 +452,7 @@ collection_fields = {
 }
 
 
-def _get_default_hist(name, type, coll, pos=None, fields=None):
+def _get_default_hist(name, type, coll, pos=None, fields=None, **kwargs):
     out = {}
     for field in collection_fields[type]:
         if fields == None or field in fields:
@@ -433,7 +467,8 @@ def _get_default_hist(name, type, coll, pos=None, fields=None):
                 hist_name += f"_{pos+1}"
 
             out[hist_name] = HistConf(
-                axes=[Axis(**setting)],
+                axes=[Axis(**setting),],
+                **kwargs
             )
     return out
 
@@ -456,16 +491,28 @@ def parton_hists(coll="PartonMatched", pos=None, fields=None, name=None):
     return _get_default_hist(name, "parton", coll, pos, fields)
 
 
-def ele_hists(coll="ElectronGood", pos=None, fields=None, name=None):
+def ele_hists(coll="ElectronGood", pos=None, fields=None, name=None, **kwargs):
     if name == None:
         name = coll
-    return _get_default_hist(name, "electron", coll, pos, fields)
+    return _get_default_hist(name, "electron", coll, pos, fields, **kwargs)
 
 
-def muon_hists(coll="MuonGood", pos=None, fields=None, name=None):
+def muon_hists(coll="MuonGood", pos=None, fields=None, name=None, **kwargs):
     if name == None:
         name = coll
-    return _get_default_hist(name, "muon", coll, pos, fields)
+    return _get_default_hist(name, "muon", coll, pos, fields, **kwargs)
+
+
+def lepton_hists(coll="LeptonGood", pos=None, fields=None, name=None):
+    if name == None:
+        name = coll
+    return _get_default_hist(name, "lepton", coll, pos, fields)
+
+
+def met_hists(coll="MET", pos=None, fields=None, name=None):
+    if name == None:
+        name = coll
+    return _get_default_hist(name, "met", coll, pos, fields)
 
 
 def sv_hists(coll="SV", pos=None, fields=None, name=None):

@@ -336,16 +336,26 @@ opts_unc = {
     "zorder": 2,
 }
 
+opts_gap = {
+    "step": "post",
+    #"color": (0, 0, 0, 0.4),
+    "color": "white",
+    "facecolor": "white",
+    #"linewidth": 0,
+    "hatch": '/' * 100,
+    "zorder": 2,
+}
+
 patch_opts = {
-    'data': {'vmin': 0.4, 'vmax': 1.0},
-    'mc': {'vmin': 0.4, 'vmax': 1.0},
-    'sf': {'vmin': 0.75, 'vmax': 1.2, 'label': "Trigger SF"},
-    'unc_data': {'vmax': 0.05},
-    'unc_mc': {'vmax': 0.05},
-    'unc_sf': {'vmax': 0.05, 'label': "Trigger SF unc."},
-    'unc_rel_data': {'vmax': 0.05},
-    'unc_rel_mc': {'vmax': 0.05},
-    'unc_rel_sf': {'vmax': 0.05, 'label': "Trigger SF unc."},
+    'data': {'vmin': 0.4, 'vmax': 1.0, 'label': "Data efficiency"},
+    'mc': {'vmin': 0.4, 'vmax': 1.0, 'label': "MC efficiency"},
+    'sf': {'vmin': 0.8, 'vmax': 1.1, 'label': "Trigger SF"},
+    'unc_data': {'vmin': 0.0, 'vmax': 0.10, 'label': "Data eff. unc."},
+    'unc_mc': {'vmin': 0.0, 'vmax': 0.03, 'label': "MC eff. unc."},
+    'unc_sf': {'vmin': 0.0, 'vmax': 0.10, 'label': "Trigger SF unc."},
+    'unc_rel_data': {'vmin': 0.0, 'vmax': 0.10, 'label': "Data eff. unc."},
+    'unc_rel_mc': {'vmin': 0.0, 'vmax': 0.03, 'label': "MC eff. unc."},
+    'unc_rel_sf': {'vmin': 0.0, 'vmax': 0.10, 'label': "Trigger SF unc."},
     'ratio_sf': {'vmin': 0.95, 'vmax': 1.05, 'label': "ratio SF var./nom."},
 }
 
@@ -416,11 +426,11 @@ def plot_variation(
     # plot.plot1d(eff[['mc','data']], ax=ax_eff, error_opts=opts_datamc);
     if data & (not sf) & (var == 'nominal'):
         if not 'era' in var:
-            ax.errorbar(x, y, yerr=yerr, xerr=xerr, **opts)
+            ax.errorbar(x, y, yerr=yerr, xerr=xerr, **opts, fmt='none')
             return
     elif data & (not ((var == 'nominal') | ('era' in var))):
         return
-    lines = ax.errorbar(x, y, yerr=yerr, xerr=xerr, **opts)
+    lines = ax.errorbar(x, y, yerr=yerr, xerr=xerr, **opts, fmt='none')
     handles, labels = ax.get_legend_handles_labels()
     if (
         kwargs['histname']
@@ -477,7 +487,7 @@ def plot_ratio(
 
     ratio = y / ynom
     unc_ratio = (yerrnom / ynom) * ratio
-    lines = ax.errorbar(x, ratio, yerr=0, xerr=xerr, **opts)
+    lines = ax.errorbar(x, ratio, yerr=0, xerr=xerr, **opts, fmt='none')
     lo = 1 - unc_ratio
     hi = 1 + unc_ratio
     unc_band = np.nan_to_num(np.array([lo, hi]), nan=1)
@@ -545,7 +555,7 @@ def plot_residue(
     residue = (y - ynom) / ynom
     ratio = y / ynom
     unc_residue = (yerrnom / ynom) * ratio
-    lines = ax.errorbar(x, residue, yerr=0, xerr=xerr, **opts)
+    lines = ax.errorbar(x, residue, yerr=0, xerr=xerr, **opts, fmt='none')
     lo = -unc_residue
     hi = unc_residue
     unc_band = np.nan_to_num(np.array([lo, hi]), nan=1)
@@ -947,17 +957,19 @@ class EfficiencyMap:
                     if self.mode in ["splitHT", "spliteras"]:
                         return
                     ratio = self.eff_nominal[{'map': 'sf'}].values()
-                    ratio = np.where(ratio != 0, ratio, np.nan)
+                    # In the bins in which the SF is 0, which are those where the trigger efficiency on data is 0,
+                    # the SF is set to 1 so that MC is not rescaled in that bin.
+                    #ratio = np.where(ratio != 0, ratio, 1.0)
                     unc = np.array(self.unc_eff_nominal[{'map': 'unc_sf'}].values())
-                    print("************************")
-                    print(ratio)
-                    print(unc)
                     ratios = [ratio, ratio - unc, ratio + unc]
                     labels = ["nominal", "statDown", "statUp"]
                     # print(ratios[0])
                 elif syst != "nominal":
                     eff_map = self.eff[{'map': 'sf'}].values()
-                    ratios = [np.where(eff_map != 0, eff_map, np.nan)]
+                    # In the bins in which the SF is 0, which are those where the trigger efficiency on data is 0,
+                    # the SF is set to 1 so that MC is not rescaled in that bin.
+                    #ratios = [np.where(eff_map != 0, eff_map, 1.0)]
+                    ratios = [eff_map]
                     if self.mode == "standard":
                         labels = [var]
                     elif self.mode == "splitHT":
@@ -1011,14 +1023,12 @@ class EfficiencyMap:
                         lumiweights[era] = self.lumi_fractions[era] * np.ones_like(
                             self.ratio_stack[i]
                         )
-                    print("*******************************")
-                    print(self.lumi_fractions)
-                    sf_lumiweighted = np.average(
+                    sf_lumiweighed = np.average(
                         list(sf_eras.values()),
                         axis=0,
                         weights=list(lumiweights.values()),
                     )
-                    unc = abs(sf_lumiweighted - ratio)
+                    unc = abs(sf_lumiweighed - ratio)
                     ratios = [ratio - unc, ratio + unc]
                     labels = ["eraDown", "eraUp"]
                     self.ratio_stack = ratios
@@ -1033,6 +1043,7 @@ class EfficiencyMap:
         To save the output plots, the flag `save_plots` has to be set to `True`.
         If the computation has to be performed for a specific data-taking era, also the argument `era` has to be specified.'''
         fontsize = self.config.plot_options["fontsize"]
+        fontsize_map = self.config.plot_options["fontsize_map"]
         if self.dim == 2:
             if (syst != 'nominal') and (var == 'nominal'):
                 pass
@@ -1065,18 +1076,14 @@ class EfficiencyMap:
                 if (var == 'nominal') and (label == "ratio_sf"):
                     continue
                 self.map2d = histo[{'map': label}]
+                if (label == "sf"):
+                    self.map2d.values()[np.where(self.map2d.values() == 0)] = 1.0
 
                 if save_plots:
                     fig_map, ax_map = plt.subplots(1, 1, figsize=[16, 10])
-                    if label == "sf":
-                        self.map2d.label = "Trigger SF"
-                    elif label == "unc_sf":
-                        self.map2d.label = "Trigger SF unc."
-                    elif label == "ratio_sf":
-                        self.map2d.label = "SF var./nom."
+                    self.map2d.label = patch_opts[label]['label']
+                    self.map2d.plot2d(ax=ax_map, vmin=patch_opts[label]['vmin'], vmax=patch_opts[label]['vmax'])
 
-                    self.map2d.plot2d(ax=ax_map)
-                    # self.map2d.plot2d(ax=ax_map, xaxis=self.axis_x, patch_opts=patch_opts[label])
                     hep.cms.text("Preliminary", loc=0, ax=ax_map)
                     hep.cms.lumitext(
                         text=f'{self.totalLumi}'
@@ -1086,23 +1093,34 @@ class EfficiencyMap:
                         ax=ax_map,
                     )
                     ax_map.set_title(var)
-                    if self.varname_x == 'pt':
+                    if self.varname_x == 'ElectronGood.pt':
                         ax_map.set_xscale('log')
-                    ax_map.set_xlim(*self.config.variables[self.histname].axes[0].lim)
-                    ax_map.set_ylim(*self.config.variables[self.histname].axes[1].lim)
-                    # xticks = [20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500]
-                    # yticks = axis_y.edges()
+
                     xticks = self.axis_x.edges
                     yticks = self.axis_y.edges
                     ax_map.xaxis.label.set_size(fontsize)
                     ax_map.yaxis.label.set_size(fontsize)
                     ax_map.set_xticks(
-                        xticks, [str(round(t, 4)) for t in xticks], fontsize=fontsize
+                        xticks, [str(int(t)) for t in xticks], fontsize=fontsize
                     )
+                    ax_map.tick_params(
+                        axis='x',          # changes apply to the x-axis
+                        which='minor',      # both major and minor ticks are affected
+                        bottom=False,      # ticks along the bottom edge are off
+                        top=False,         # ticks along the top edge are off
+                        labelbottom=True)  # labels along the bottom edge are off
+
                     ax_map.set_yticks(
                         yticks, [str(round(t, 4)) for t in yticks], fontsize=fontsize
                     )
-                    # plt.yticks(yticks, [str(t) for t in yticks], fontsize=fontsize)
+                    ax_map.tick_params(
+                        axis='y',          # changes apply to the y-axis
+                        which='minor',      # both major and minor ticks are affected
+                        bottom=False,      # ticks along the bottom edge are off
+                        top=False,         # ticks along the top edge are off
+                        labelbottom=True)  # labels along the bottom edge are off
+                    ax_map.set_xlim(*self.config.variables[self.histname].axes[0].lim)
+                    ax_map.set_ylim(*self.config.variables[self.histname].axes[1].lim)
                     plt.vlines(
                         self.axis_x.edges,
                         self.axis_y.edges[-1],
@@ -1117,6 +1135,15 @@ class EfficiencyMap:
                         linestyle='--',
                         color='gray',
                     )
+                    if self.varname_y == 'ElectronGood.etaSC':
+                        for gap in [(-1.5660, -1.4442), (1.4442, 1.5660)]:
+                            ax_map.fill_between(
+                                [xticks[0], xticks[-1]],
+                                gap[0],
+                                gap[1],
+                                **opts_gap,
+                                #label="ECAL gap",
+                            )
 
                     for (i, x) in enumerate(self.bincenter_x):
                         if (x < ax_map.get_xlim()[0]) | (x > ax_map.get_xlim()[1]):
@@ -1129,17 +1156,20 @@ class EfficiencyMap:
                                 else "k"
                             )
                             # color = "w"
-                            if self.histname == "hist2d_electron_etaSC_vs_electron_pt":
-                                ax_map.text(
-                                    x,
-                                    y,
-                                    f"{round(self.map2d.values()[()][i][j], round_opts[label]['round'])}",
-                                    color=color,
-                                    ha="center",
-                                    va="center",
-                                    fontsize=fontsize,
-                                    fontweight="bold",
-                                )
+                            if self.varname_y == "ElectronGood.etaSC":
+                                if (abs(y) > 1.4442) & (abs(y) < 1.5660):
+                                    continue
+                                else:
+                                    ax_map.text(
+                                        x,
+                                        y,
+                                        f"{round(self.map2d.values()[()][i][j], round_opts[label]['round'])}",
+                                        color=color,
+                                        ha="center",
+                                        va="center",
+                                        fontsize=fontsize_map,
+                                        fontweight="bold",
+                                    )
                             else:
                                 ax_map.text(
                                     x,
@@ -1148,7 +1178,7 @@ class EfficiencyMap:
                                     color=color,
                                     ha="center",
                                     va="center",
-                                    fontsize=fontsize,
+                                    fontsize=fontsize_map,
                                     fontweight="bold",
                                 )
                 self.save2d(cat, syst, var, label, save_plots, era)
@@ -1220,14 +1250,17 @@ class EfficiencyMap:
                         if self.mode in ["splitHT", "spliteras"]:
                             return
                         ratio = self.eff_nominal[{'map': 'sf'}].values()
-                        # ratio = self.eff_nominal["sf"].sum('cat').values()[()]
-                        ratio = np.where(ratio != 0, ratio, np.nan)
+                        # In the bins in which the SF is 0, which are those where the trigger efficiency on data is 0,
+                        # the SF is set to 1 so that MC is not rescaled in that bin.
+                        #ratio = np.where(ratio != 0, ratio, 1.0)
                         unc = np.array(eff_map)
                         ratios = [ratio - unc, ratio + unc]
                         labels = ["statDown", "statUp"]
                         # print(ratios[0])
                     elif label == "sf":
-                        ratios = [np.where(eff_map != 0, eff_map, np.nan)]
+                        # In the bins in which the SF is 0, which are those where the trigger efficiency on data is 0,
+                        # the SF is set to 1 so that MC is not rescaled in that bin.
+                        ratios = [eff_map]
                         if self.mode == "standard":
                             labels = [var]
                         elif self.mode == "splitHT":
@@ -1283,12 +1316,12 @@ class EfficiencyMap:
                             lumiweights[era] = self.lumi_fractions[era] * np.ones_like(
                                 self.ratio_stack[i]
                             )
-                        sf_lumiweighted = np.average(
+                        sf_lumiweighed = np.average(
                             list(sf_eras.values()),
                             axis=0,
                             weights=list(lumiweights.values()),
                         )
-                        unc = abs(sf_lumiweighted - ratio)
+                        unc = abs(sf_lumiweighed - ratio)
                         ratios = [ratio - unc, ratio + unc]
                         labels = ["eraDown", "eraUp"]
                         self.ratio_stack = ratios
@@ -1430,6 +1463,9 @@ def plot_efficiency_maps_spliteras(accumulator, config, save_plots=False):
                 )
                 efficiency_map.define_variations("spliteras")
                 efficiency_map.initialize_stack()
+
+                print("********************")
+                print(efficiency_map.eras)
 
                 for era in efficiency_map.eras:
                     efficiency_map.define_datamc(cat, "nominal", era)

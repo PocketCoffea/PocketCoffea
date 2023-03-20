@@ -23,6 +23,7 @@ from ..lib.pileup import sf_pileup_reweight
 from ..parameters.lumi import lumi, goldenJSON
 from ..parameters.xsec import xsec
 from ..parameters.btag import btag, btag_variations
+from ..parameters.lepton_scale_factors import sf_ele_trigger_variations
 
 
 @dataclass
@@ -94,6 +95,7 @@ class WeightsManager:
                 'sf_ele_trigger',
                 'sf_mu_id',
                 'sf_mu_iso',
+                'sf_mu_trigger',
                 'sf_btag',
                 'sf_btag_calib',
                 'sf_jet_puId',
@@ -111,13 +113,17 @@ class WeightsManager:
             "pileup",
             "sf_ele_reco",
             "sf_ele_id",
+            "sf_ele_trigger",
             "sf_mu_id",
             "sf_mu_iso",
+            "sf_mu_trigger",
             "sf_jet_puId",
             "sf_L1prefiring",
         ]
         for year, bvars in btag_variations.items():
             out += [f"sf_btag_{var}" for var in bvars]
+        for year, sfvars in sf_ele_trigger_variations.items():
+            out += [f"sf_ele_trigger_{var}" for var in sfvars]
         return set(out)
 
     def __init__(
@@ -133,6 +139,7 @@ class WeightsManager:
         self._year = metadata["year"]
         self._finalstate = metadata["finalstate"]
         self._xsec = metadata["xsec"]
+        self._sum_genweights = float(metadata["sum_genweights"])
         self._shape_variation = shape_variation
         self.weightsConf = weightsConf
         self.storeIndividual = storeIndividual
@@ -173,7 +180,7 @@ class WeightsManager:
                         events, self.size, metadata, self._shape_variation
                     )
                 for we in _weightsCache[w.name]:
-                    #print(we)
+                    # print(we)
                     weight_obj.add(*we)
                     if len(we) > 2:
                         # the weights has variations
@@ -196,7 +203,6 @@ class WeightsManager:
                     continue
                 self._weightsByCat[cat] = Weights(size, storeIndividual)
                 for w in ws:
-                    # print(f"Adding weight {w} in category {cat}")
                     modifiers = __add_weight(w, self._weightsByCat[cat])
                     self._available_modifiers_bycat[cat] += modifiers
 
@@ -224,7 +230,7 @@ class WeightsManager:
         in the constructor.
         '''
         if weight_name == "genWeight":
-            return [('genWeight', events.genWeight)]
+            return [('genWeight', events.genWeight / self._sum_genweights)]
         elif weight_name == 'lumi':
             return [('lumi', ak.full_like(events.genWeight, lumi[self._year]["tot"]))]
         elif weight_name == 'XS':
@@ -237,13 +243,44 @@ class WeightsManager:
             return [('sf_ele_reco', *sf_ele_reco(events, self._year))]
         elif weight_name == "sf_ele_id":
             return [('sf_ele_id', *sf_ele_id(events, self._year))]
-        elif weight_name == "sf_ele_trigger":
-            return [('sf_ele_trigger', *sf_ele_trigger(events, self._year))]
         elif weight_name == 'sf_mu_id':
             # Muon id and iso SF with nominal, up and down variations
             return [('sf_mu_id', *sf_mu(events, self._year, 'id'))]
         elif weight_name == "sf_mu_iso":
             return [('sf_mu_iso', *sf_mu(events, self._year, 'iso'))]
+        elif weight_name == "sf_mu_trigger":
+            return [('sf_mu_trigger', *sf_mu(events, self._year, 'trigger'))]
+        elif weight_name == "sf_ele_trigger":
+
+            # Get all the nominal and variation SF
+            if shape_variation == "nominal":
+                sf_ele_trigger_vars = sf_ele_trigger_variations[self._year]
+                triggersf = sf_ele_trigger(
+                    events,
+                    self._year,
+                    variations=["nominal"] + sf_ele_trigger_vars,
+                )
+                # BE AWARE --> COFFEA HACK FOR MULTIPLE VARIATIONS
+                for var in sf_ele_trigger_vars:
+                    # Rescale the up and down variation by the nominal one to
+                    # avoid double counting of the central SF when adding the weights
+                    # as separate entries in the Weights object.
+                    triggersf[var][1] = triggersf[var][1] / triggersf["nominal"][0]
+                    triggersf[var][2] = triggersf[var][2] / triggersf["nominal"][0]
+            else:
+                # Only the nominal if there is a shape variation
+                triggersf = sf_ele_trigger(
+                    events,
+                    self._year,
+                    variations=["nominal"],
+                )
+
+            # return the nominal and everything
+            return [
+                (f"sf_ele_trigger_{var}", *weights)
+                for var, weights in triggersf.items()
+            ]
+
         elif weight_name == 'sf_btag':
 
             # Get all the nominal and variation SF
@@ -263,6 +300,18 @@ class WeightsManager:
                     # as separate entries in the Weights object.
                     btagsf[var][1] = btagsf[var][1] / btagsf["central"][0]
                     btagsf[var][2] = btagsf[var][2] / btagsf["central"][0]
+
+            elif "JES_" in shape_variation:
+                # Compute the special version of the btagSF for JES variation
+                # The name conversion is done inside the btag sf function.
+                btagsf = sf_btag(
+                    events.JetGood,
+                    btag[self._year]['btagging_algorithm'],
+                    self._year,
+                    variations=[shape_variation],
+                    njets=events.nJetGood,
+                )
+
             else:
                 # Only the nominal if there is a shape variation
                 # TODO Implement the varied btag for the JES variations
