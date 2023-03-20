@@ -2,6 +2,7 @@ from pocket_coffea.utils.network import get_proxy_path
 import os
 import getpass
 import re
+import json
 from rucio.client import Client
 
 os.environ["RUCIO_HOME"] = "/cvmfs/cms.cern.ch/rucio/x86_64/rhel7/py3/current"
@@ -23,6 +24,38 @@ def get_rucio_client():
         raise e
 
 
+def get_xrootd_sites_map():
+    sites_xrootd_access = {}
+    if not os.path.exists(".sites_map.json"):
+        print("Loading SITECONF info")
+        sites = [ (s, "/cvmfs/cms.cern.ch/SITECONF/"+s+"/storage.json")
+                  for s in os.listdir("/cvmfs/cms.cern.ch/SITECONF/") if s.startswith("T")]
+        for site_name, conf in sites:
+            if not os.path.exists(conf): continue
+            try:
+                data = json.load(open(conf))
+            except:
+                continue
+            for site in data:
+                if site["type"] != "DISK": continue
+                if site["rse"] == None: continue
+                for proc in site["protocols"]:
+                    if proc["protocol"] == "XRootD":
+                        if proc["access"] not in ["global-ro", "global-rw"]:
+                            continue
+                        if "prefix" not in proc:
+                            if "rules" in proc:
+                                for rule in proc["rules"]:
+                                    if rule["lfn"] not in ["/+(.*)", "/+store/(.*)"]:
+                                        continue
+                                    sites_xrootd_access[site["rse"]] = rule["pfn"].replace("$1", "")
+                        else:
+                            sites_xrootd_access[site["rse"]] = proc["prefix"]
+        json.dump(sites_xrootd_access, open(".sites_map.json","w"))
+   
+    return json.load(open(".sites_map.json"))
+                            
+
 def get_dataset_files(
     dataset,
     whitelist_sites=None,
@@ -42,11 +75,12 @@ def get_dataset_files(
     The function can return all the possible sites for each file (`output="all"`)
     or the first site found for each file (`output="first"`, by default)
     '''
+    sites_xrootd_prefix = get_xrootd_sites_map()
     client = get_rucio_client()
     outsites = []
     outfiles = []
     for filedata in client.list_replicas(
-        [{"scope": "cms", "name": dataset}], schemes=["root"]
+        [{"scope": "cms", "name": dataset}]
     ):
         outfile = []
         outsite = []
@@ -61,9 +95,10 @@ def get_dataset_files(
                         meta["type"] != "DISK"
                         or meta["volatile"] == True
                         or filedata["states"][site] != "AVAILABLE"
+                        or site not in sites_xrootd_prefix
                     ):
                         continue
-                    outfile.append(rses[site][0])
+                    outfile.append(sites_xrootd_prefix[site] + filedata["name"])
                     outsite.append(site)
                     found = True
 
@@ -91,9 +126,10 @@ def get_dataset_files(
                             meta["type"] != "DISK"
                             or meta["volatile"] == True
                             or filedata["states"][site] != "AVAILABLE"
+                            or site not in sites_xrootd_prefix
                         ):
                             continue
-                        outfile.append(rses[site][0])
+                        outfile.append(sites_xrootd_prefix[site] + filedata["name"])
                         outsite.append(site)
                         found = True
                 else:
@@ -104,9 +140,10 @@ def get_dataset_files(
                         meta["type"] != "DISK"
                         or meta["volatile"] == True
                         or filedata["states"][site] != "AVAILABLE"
+                        or site not in sites_xrootd_prefix
                     ):
                         continue
-                    outfile.append(rses[site][0])
+                    outfile.append(sites_xrootd_prefix[site] + filedata["name"])
                     outsite.append(site)
                     found = True
 
