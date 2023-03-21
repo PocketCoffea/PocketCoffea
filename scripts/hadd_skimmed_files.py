@@ -18,7 +18,7 @@ parser.add_argument(
 )
 parser.add_argument("-o", "--outputdir", required=False, type=str, help="Output folder")
 parser.add_argument(
-    "--only-datasets", nargs="+", type=str, help="Restring list of datasets"
+    "--only-datasets", nargs="+", type=str, help="Restricting list of datasets"
 )
 parser.add_argument("-f", "--files", type=int, help="Limit number of files")
 parser.add_argument("-e", "--events", type=int, help="Limit number of files")
@@ -43,6 +43,9 @@ groups_metadata = {}
 for dataset in df["skimmed_files"].keys():
     if args.only_datasets and dataset not in args.only_datasets:
         continue
+    outputdir_dataset = os.path.join(args.outputdir, dataset)
+    if not os.path.exists(outputdir_dataset):
+        os.makedirs(outputdir_dataset)
     groups_metadata[dataset] = defaultdict(dict)
     nevents_tot = 0
     nfiles = 0
@@ -54,7 +57,7 @@ for dataset in df["skimmed_files"].keys():
         if (args.files and (nfiles + 1) > args.files) or (
             args.events and (nevents_tot + nevents) > args.events
         ):
-            outfile = f"{args.outputdir}/{dataset}/{dataset}_{ngroup}.root"
+            outfile = os.path.join(outputdir_dataset, f"{dataset}_{ngroup}.root")
             workload.append((outfile, group[:]))
             groups_metadata[dataset]["files"][outfile] = group[:]
             group.clear()
@@ -68,7 +71,7 @@ for dataset in df["skimmed_files"].keys():
 
     # add last group
     if len(group):
-        outfile = f"{args.outputdir}/{dataset}/{dataset}_{ngroup}.root"
+        outfile = os.path.join(outputdir_dataset, f"{dataset}_{ngroup}.root")
         workload.append((outfile, group[:]))
         groups_metadata[dataset]["files"][outfile] = group[:]
 
