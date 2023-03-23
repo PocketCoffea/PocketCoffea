@@ -1,24 +1,18 @@
 import os
-import sys
 import time
 from copy import deepcopy
-import json
 import argparse
-import itertools
 from multiprocessing import Pool
 
 import numpy as np
 
 import matplotlib
 import matplotlib.pyplot as plt
-from matplotlib.offsetbox import AnchoredText
 
 matplotlib.use('Agg')
 
-import math
 import mplhep as hep
 from coffea.util import load
-from coffea.hist import plot
 import hist
 
 import correctionlib, rich
