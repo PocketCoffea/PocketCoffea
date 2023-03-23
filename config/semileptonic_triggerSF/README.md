@@ -68,6 +68,18 @@ Since the `2016_PreVFP` and `2016_PostVFP` UL datasets have not been processed y
 	- Lepton scale factors: `pocket_coffea/parameters/lepton_scale_factors.py`
 	- JEC/JER: Check the dictionary `jet_factory` in the script `scripts/build_jec.py`, which is complete for 2017 and 2018 but not for 2016 datasets
 
+### Build JEC evaluator
+
+After updating the dictionary `jet_factory` in the script `scripts/build_jec.py` with the 2016 entries, run the script with the following command:
+
+```
+cd /path/to/PocketCoffea
+python scripts/build_jec.py
+```
+
+This will create a file `jets_evaluator.pkl.gz` in the working directory.
+Replace the file `pocket_coffea/parameters/jec/jets_evaluator.pkl.gz` with this updated jets evaluator file.
+
 ## Write config file
 
 All the parameters specific to the analysis need to be specified in a config file that is passed as an input to the `runner.py` script.
@@ -114,11 +126,14 @@ make_plots.py --cfg config/semileptonic_triggerSF/semileptonic_triggerSF_2016_Po
 
 ## Run trigger SF script
 
+In the config files `config/semileptonic_triggerSF/semileptonic_triggerSF_2016_*.py`, specify the folder to save the output SF in `cfg["workflow_options"]["output_triggerSF"]` and make sure it is contained in `cfg["output"]`, otherwise an Exception will be raised.
+
 To run the script that computes the single electron trigger SF and produces the validation plots, run:
 
 ```
 cd /path/to/PocketCoffea
-python scripts/plot/trigger_efficiency.py --cfg config/semileptonic_triggerSF/semileptonic_triggerSF_2017.py --save_plots
+python scripts/plot/trigger_efficiency.py --cfg config/semileptonic_triggerSF/semileptonic_triggerSF_2016_PreVFP.py -i /path/to/output/output_all.coffea --save_plots
+python scripts/plot/trigger_efficiency.py --cfg config/semileptonic_triggerSF/semileptonic_triggerSF_2016_PostVFP.py -i /path/to/output/output_all.coffea --save_plots
 ```
 
 If the additional argument `--save_plots` is not specified, only the scale factor maps are saved without saving the plots.
