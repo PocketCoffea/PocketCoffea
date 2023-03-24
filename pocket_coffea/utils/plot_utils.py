@@ -728,7 +728,7 @@ def plot_data_mc_hist1D(
                 exp = math.floor(
                     math.log(max(stack_sum(stack_mc_nominal).values()), 10)
                 )
-                ax.set_ylim((0.01, 10 ** (exp + 3)))
+                ax.set_ylim((0.01, 10 ** (exp + 2)))
                 # if flavorsplit == '5f':
                 #    ax.legend(handles, labels, loc="upper right", fontsize=fontsize, ncols=2)
                 # else:
@@ -747,7 +747,7 @@ def plot_data_mc_hist1D(
                             handles_new.append(handles[i])
                         labels = labels_new
                         handles = handles_new
-                        ax.legend(handles, labels, fontsize=fontsize, ncols=2, loc="upper right")
+                        ax.legend(handles, labels, fontsize=fontsize, ncols=2)
                     if ("variables" in config.plot_options) & (histname in config.plot_options["variables"].keys()):
                         cfg_plot = config.plot_options["variables"][histname]
                         if 'xlim' in cfg_plot.keys():
@@ -760,7 +760,7 @@ def plot_data_mc_hist1D(
                                         max(stack_sum(stack_mc_nominal).values()), 10
                                     )
                                 )
-                                ax.set_ylim((0.01, 10 ** (exp + 3)))
+                                ax.set_ylim((0.01, 10 ** (exp + 2)))
                                 # ax.legend(handles, labels, loc="upper right", fontsize=fontsize, ncols=2)
                         if 'ylim' in cfg_plot.keys():
                             if isinstance(cfg_plot['ylim'], tuple):

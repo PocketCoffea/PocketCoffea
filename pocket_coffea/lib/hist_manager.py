@@ -258,7 +258,7 @@ class HistManager:
         weights_manager,
         categories,
         shape_variation="nominal",
-        subsamples_masks=None,  # This is a dictionary with name:ak.Array(bool)
+        subsamples=None,  # This is a dictionary with name:ak.Array(bool)
         custom_fields=None,
     ):
         '''
@@ -367,7 +367,7 @@ class HistManager:
             # Mask the events, the weights and then flatten and remove the None correctly
             for category, cat_mask in categories.get_masks():
                 # loop directly on subsamples
-                for subsample, subs_mask in subsamples_masks.items():
+                for subsample, subs_mask in subsamples.get_masks():
                     # logging.info(f"\t\tcategory {category}, subsample {subsample}")
                     mask = cat_mask & subs_mask
                     # Skip empty categories and subsamples
