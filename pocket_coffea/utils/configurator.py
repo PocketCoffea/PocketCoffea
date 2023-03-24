@@ -186,37 +186,38 @@ class Configurator:
 
     def load_subsamples(self):
         # subsamples configuration
-        # Dictionary with subsample_name:[list of Cut ids]
-        self.subsamples_cuts = {
-            key: subscfg
-            for key, subscfg in self.dataset.get("subsamples", {}).items()
-            if key in self.samples
-        }
-        # Map of subsamples names
+        subsamples_dict = self.dataset.get("subsamples", {})
         self.subsamples = {}
+        self.subsamples_names = {}
         self.has_subsamples = {}
+        # Save list of subsamples for each sample
         for sample in self.samples:
-            if sample in self.subsamples_cuts:
-                self.subsamples[sample] = list(self.subsamples_cuts[sample].keys())
+            if sample in subsamples_dict.keys():
+                self.subsamples_names[sample] = list(subsamples_dict[sample].keys())
                 self.has_subsamples[sample] = True
             else:
-                self.subsamples[sample] = []
                 self.has_subsamples[sample] = False
 
         # Complete list of samples and subsamples
         self.subsamples_list = []
-        for sam in self.subsamples.values():
+        for sam in self.subsamples_names.values():
             self.subsamples_list += sam
         self.total_samples_list = list(set(self.samples + self.subsamples_list))
 
-        for key, subscfg in self.subsamples_cuts.items():
-            if isinstance(subscfg, dict):
-                # Convert it to StandardSelection
-                self.subsamples[key] = StandardSelection(subscfg)
-            elif isinstance(subscfg, StandardSelection):
-                self.subsamples[key] = subscfg
-            elif isinstance(subscfg, CartesianSelection):
-                self.subsamples[key] = subscfg
+        # Now saving the subsamples
+        for sample in self.samples:
+            if sample in subsamples_dict:
+                subscfg = subsamples_dict[sample]
+                if isinstance(subscfg, dict):
+                    # Convert it to StandardSelection
+                    self.subsamples[sample] = StandardSelection(subscfg)
+                elif isinstance(subscfg, StandardSelection):
+                    self.subsamples[sample] = subscfg
+                elif isinstance(subscfg, CartesianSelection):
+                    self.subsamples[sample] = subscfg
+            else:
+                # if there is no configured subsample, the full sample becomes its subsample
+                self.subsamples[sample] = StandardSelection({sample: [passthrough]})
         # Unique set of cuts
         logging.info("Subsamples:")
         logging.info(self.subsamples)
