@@ -160,8 +160,28 @@ class DataMC:
             ax.errorbar(
                 self.xcenters, self.stack_sum_data.values(), yerr=np.sqrt(self.stack_sum_data.values()), **opts_data
             )
-            """
-            syst_err2_up, syst_err2_down = get_systematic_uncertainty(
-                stack_mc, variations, mcstat=mcstat, stat_only=stat_only
-            )
-            """
+            self.h_dict_data = {d: self.h_dict[d][slicing_data] for d in self.samples_data}
+            self.stack_data = hist.Stack.from_dict(self.h_dict_data)
+
+    def define_figure(self, year, ratio=True):
+        plt.style.use([hep.style.ROOT, {'font.size': fontsize}])
+        plt.rcParams.update({'font.size': fontsize})
+        if ratio:
+            fig, (self.ax, self.rax) = plt.subplots(2, 1, **opts_figure["total"])
+            fig.subplots_adjust(hspace=0.06)
+        else:
+            fig, self.ax  = plt.subplots(1, 1, **opts_figure["total"])
+        hep.cms.text("Preliminary", fontsize=fontsize, loc=0, ax=self.ax)
+        hep.cms.lumitext(text=f'{self.lumi[year]}' + r' fb$^{-1}$, 13 TeV,' + f' {year}', fontsize=fontsize, ax=self.ax)
+
+    def plot_mc(self):
+        self.stack_mc_nominal.plot(stack=True, histtype='fill', ax=self.ax)#, color=colors)
+
+    def plot_data(self):
+        self.ax.errorbar(self.xcenters, self.stack_sum_data.values(), yerr=np.sqrt(self.stack_sum_data.values()), **opts_data)
+
+    def plot_datamc(self, year, cat):
+        self.define_figure(year)
+        self.plot_mc()
+        if not self.is_mc_only:
+            self.plot_data()
