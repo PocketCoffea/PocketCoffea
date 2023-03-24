@@ -226,7 +226,7 @@ def jet_selection(events, Jet, finalstate):
     # Only jets that are more distant than dr to ALL leptons are tagged as good jets
     leptons = events["LeptonGood"]
     # Mask for  jets not passing the preselection
-    presel_mask = (
+    mask_presel = (
         (jets.pt > cuts["pt"])
         & (np.abs(jets.eta) < cuts["eta"])
         & (jets.jetId >= cuts["jetId"])
@@ -234,18 +234,20 @@ def jet_selection(events, Jet, finalstate):
     # Lepton cleaning
     if "dr" in cuts.keys():
         dR_jets_lep = jets.metric_table(leptons)
-        lepton_cleaning_mask = ak.prod(dR_jets_lep > cuts["dr"], axis=2) == 1
+        mask_lepton_cleaning = ak.prod(dR_jets_lep > cuts["dr"], axis=2) == 1
 
     if Jet == "Jet":
-        jetpuid_mask = (jets.puId >= cuts["puId"]["value"]) | (
+        mask_jetpuid = (jets.puId >= cuts["puId"]["value"]) | (
             jets.pt >= cuts["puId"]["maxpt"]
         )
-        good_jets_mask = presel_mask & lepton_cleaning_mask & jetpuid_mask
+        mask_good_jets = mask_presel & mask_lepton_cleaning & mask_jetpuid
 
     elif Jet == "FatJet":
-        raise NotImplementedError()
+        # Apply the msd and preselection cuts
+        mask_msd = (events.FatJet.msoftdrop > cuts["msd"])
+        mask_good_jets = mask_presel & mask_msd
 
-    return jets[good_jets_mask], good_jets_mask
+    return jets[mask_good_jets], mask_good_jets
 
 
 def btagging(Jet, btag):
