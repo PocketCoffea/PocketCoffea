@@ -15,13 +15,25 @@ import mplhep as hep
 from ..parameters.lumi import lumi, femtobarn
 from ..parameters.plotting import *
 
+
+class PlotManager:
+    '''This class manages multiple DataMC objects and their plotting.'''
+    def __init__(self, hist_cfg, data_key="DATA"):
+        self.datamc_objects = {}
+        for name, h_dict in hist_cfg.items():
+            self.datamc_objects[name] = DataMC(h_dict, name, data_key=data_key)
+
+    def plot_datamc_all(self):
+        for name, datamc in self.datamc_objects.items():
+            datamc.plot_datamc_all(self)
+
+
 class DataMC:
     '''This class handles the plotting of 1D data/MC histograms.'''
-    def __init__(self, h_dict, name, data_key="DATA", spliteras=False):
+    def __init__(self, h_dict, name, data_key="DATA"):
         self.h_dict = h_dict
         self.name = name
         self.data_key = data_key
-        self.spliteras = spliteras
         assert type(h_dict) == dict, "The DataMC object receives a dictionary of hist.Hist objects as argument."
         self.define_samples()
         assert self.dense_dim == 1, f"Histograms with dense dimension {self.dense_dim} cannot be plotted. Only 1D histograms are supported."
@@ -117,10 +129,11 @@ class DataMC:
         self.xedges = self.xaxis.edges
         self.xbinwidth = np.ediff1d(self.xedges)
         self.is_mc_only = True if len(self.samples_data) == 0 else False
-        if not self.is_mc_only:
+        self.is_data_only = True if len(self.samples_mc) == 0 else False
+        if self.is_data_only | (not self.is_mc_only):
             self.lumi = {year : femtobarn(lumi[year]['tot'], digits=1) for year in self.years}
 
-    def build_stacks(self, year, cat):
+    def build_stacks(self, year, cat, spliteras=False):
         slicing_mc = {'year': year, 'cat': cat}
         slicing_mc_nominal = {'year': year, 'cat': cat, 'variation': 'nominal'}
         self.h_dict_mc = {d: self.h_dict[d][slicing_mc] for d in self.samples_mc}
@@ -136,41 +149,34 @@ class DataMC:
         if not self.is_mc_only:
             # Sum over eras if specified as extra argument
             if 'era' in self.categorical_axes_data:
-                if self.spliteras:
+                if spliteras:
                     slicing_data = {'year': year, 'cat': cat}
                 else:
                     slicing_data = {'year': year, 'cat': cat, 'era': sum}
             else:
-                if self.spliteras:
+                if spliteras:
                     raise Exception("No axis 'era' found. Impossible to split data by era.")
                 else:
                     slicing_data = {'year': year, 'cat': cat}
             self.h_dict_data = {d: self.h_dict[d][slicing_data] for d in self.samples_data}
             self.stack_data = hist.Stack.from_dict(self.h_dict_data)
 
-    def plot_datamc(self, year, cat):
-        plt.style.use([hep.style.ROOT, {'font.size': fontsize}])
-        plt.rcParams.update({'font.size': fontsize})
-        fig, (ax, rax) = plt.subplots(2, 1, **opts_figure["total"])
-        fig.subplots_adjust(hspace=0.06)
-        hep.cms.text("Preliminary", fontsize=fontsize, loc=0, ax=ax)
-        hep.cms.lumitext(text=f'{self.lumi[year]}' + r' fb$^{-1}$, 13 TeV,' + f' {year}', fontsize=fontsize, ax=ax)
-        self.stack_mc_nominal.plot(stack=True, histtype='fill', ax=ax)#, color=colors)
-        if not self.is_mc_only:
-            ax.errorbar(
-                self.xcenters, self.stack_sum_data.values(), yerr=np.sqrt(self.stack_sum_data.values()), **opts_data
-            )
-            self.h_dict_data = {d: self.h_dict[d][slicing_data] for d in self.samples_data}
-            self.stack_data = hist.Stack.from_dict(self.h_dict_data)
+    def get_datamc_ratio(self):
+        '''Computes the data/MC ratio and the corresponding uncertainty.'''
+        num = self.stack_sum_data.values()
+        den = self.stack_sum_mc_nominal.values()
+        self.ratio = num / den
+        self.ratio_unc = np.sqrt(num) / den
+        self.ratio_unc[np.isnan(self.ratio_unc)] = np.inf
 
     def define_figure(self, year, ratio=True):
         plt.style.use([hep.style.ROOT, {'font.size': fontsize}])
         plt.rcParams.update({'font.size': fontsize})
         if ratio:
-            fig, (self.ax, self.rax) = plt.subplots(2, 1, **opts_figure["total"])
-            fig.subplots_adjust(hspace=0.06)
+            self.fig, (self.ax, self.rax) = plt.subplots(2, 1, **opts_figure["datamc_ratio"])
+            self.fig.subplots_adjust(hspace=0.06)
         else:
-            fig, self.ax  = plt.subplots(1, 1, **opts_figure["total"])
+            self.fig, self.ax  = plt.subplots(1, 1, **opts_figure["datamc"])
         hep.cms.text("Preliminary", fontsize=fontsize, loc=0, ax=self.ax)
         hep.cms.lumitext(text=f'{self.lumi[year]}' + r' fb$^{-1}$, 13 TeV,' + f' {year}', fontsize=fontsize, ax=self.ax)
 
@@ -180,8 +186,42 @@ class DataMC:
     def plot_data(self):
         self.ax.errorbar(self.xcenters, self.stack_sum_data.values(), yerr=np.sqrt(self.stack_sum_data.values()), **opts_data)
 
-    def plot_datamc(self, year, cat):
-        self.define_figure(year)
-        self.plot_mc()
-        if not self.is_mc_only:
+    def plot_datamc_ratio(self):
+        self.get_datamc_ratio()
+        self.rax.errorbar(self.xcenters, self.ratio, yerr=self.ratio_unc, **opts_data)
+
+    def plot_datamc(self, year=None, ratio=True):
+        if ratio:
+            if self.is_mc_only:
+                raise Exception("The Data/MC ratio cannot be plotted if the histogram is MC only.")
+            if self.is_data_only:
+                raise Exception("The Data/MC ratio cannot be plotted if the histogram is Data only.")
+
+        if not 'fig' in dir(self):
+            self.define_figure(year, ratio=ratio)
+        if (not self.is_mc_only) & (not self.is_data_only):
+            self.plot_mc()
             self.plot_data()
+        elif self.is_mc_only:
+            self.plot_mc()
+        elif self.is_mc_only:
+            self.plot_data()
+
+        if ratio:
+            self.plot_datamc_ratio()
+
+        plt.show(self.fig)
+        plt.close(self.fig)
+
+    def plot_datamc_all(self, ratio=True, spliteras=False):
+        for year in self.years:
+            for cat in self.categories:
+                self.define_figure(year, ratio)
+                self.build_stacks(year, cat, spliteras)
+                self.plot_datamc(year, ratio)
+
+class SystUnc:
+    '''This class handles the systematic uncertainties of 1D MC histograms.'''
+    def __init__(self, stack_mc, name):
+        self.stack_mc = stack_mc
+        self.name = name
