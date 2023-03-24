@@ -209,6 +209,18 @@ class Configurator:
             self.subsamples_list += sam
         self.total_samples_list = list(set(self.samples + self.subsamples_list))
 
+        for key, subscfg in self.subsamples_cuts.items():
+            if isinstance(subscfg, dict):
+                # Convert it to StandardSelection
+                self.subsamples[key] = StandardSelection(subscfg)
+            elif isinstance(subscfg, StandardSelection):
+                self.subsamples[key] = subscfg
+            elif isinstance(subscfg, CartesianSelection):
+                self.subsamples[key] = subscfg
+        # Unique set of cuts
+        logging.info("Subsamples:")
+        logging.info(self.subsamples)
+
     def filter_dataset(self, nfiles):
         filtered_dataset = {}
         for sample, ds in self.fileset.items():
