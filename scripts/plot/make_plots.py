@@ -14,6 +14,7 @@ from multiprocessing import Pool
 
 from pocket_coffea.utils.configurator import Configurator
 from pocket_coffea.utils.plot_utils import PlotManager
+from pocket_coffea.parameters.plotting import style_cfg
 
 def slice_accumulator(accumulator, entrystart, entrystop):
     '''Returns an accumulator containing only a reduced set of histograms, i.e. those between the positions `entrystart` and `entrystop`.'''
@@ -65,7 +66,15 @@ if not os.path.exists(config.plots):
 def make_plots(entrystart, entrystop):
     '''Function that instantiates multiple PlotManager objects each managing a different subset of histograms.'''
     _accumulator = slice_accumulator(accumulator, entrystart, entrystop)
-    plotter = PlotManager(hist_cfg=_accumulator['variables'], plot_dir=config.plots, only_cat=args.only_cat, data_key=args.data_key, log=args.log, save=True)
+    plotter = PlotManager(
+        hist_cfg=_accumulator['variables'],
+        plot_dir=config.plots,
+        style_cfg=style_cfg,
+        only_cat=args.only_cat,
+        data_key=args.data_key,
+        log=args.log,
+        save=True
+    )
     plotter.plot_datamc_all(ratio=True, syst=True, spliteras=False)
 
 # Filter dictionary of histograms with `args.only`
