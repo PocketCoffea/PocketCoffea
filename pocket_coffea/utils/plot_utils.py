@@ -15,22 +15,32 @@ import mplhep as hep
 from ..parameters.lumi import lumi, femtobarn
 from ..parameters.plotting import style_cfg
 
+
 class Style:
     '''This class manages all the style options for Data/MC plots.'''
     def __init__(self, style_cfg=style_cfg) -> None:
         for key, item in style_cfg.items():
             setattr(self, key, item)
+        if "labels" in style_cfg:
+            self.has_labels = True
+
 
 class PlotManager:
     '''This class manages multiple DataMC objects and their plotting.'''
-    def __init__(self, hist_cfg, data_key="DATA") -> None:
+    def __init__(self, hist_cfg, plot_dir, only_cat=[], data_key="DATA", log=False, save=True) -> None:
         self.datamc_objects = {}
+        self.plot_dir = plot_dir
+        self.only_cat = only_cat
+        self.data_key = data_key
+        self.log = log
+        self.save = save
         for name, h_dict in hist_cfg.items():
-            self.datamc_objects[name] = DataMC(h_dict, name, data_key=data_key)
+            self.datamc_objects[name] = DataMC(h_dict, name, plot_dir, only_cat, data_key=self.data_key, log=self.log)
 
-    def plot_datamc_all(self):
+    def plot_datamc_all(self, ratio=True, syst=True, spliteras=False):
+        '''Plots all the histograms containted in the dictionary, for all years and categories.'''
         for name, datamc in self.datamc_objects.items():
-            datamc.plot_datamc_all(self)
+            datamc.plot_datamc_all(ratio, syst, spliteras, save=self.save)
 
 
 class DataMC:
@@ -40,11 +50,14 @@ class DataMC:
     - name: name that identifies the DataMC object.
     - style_cfg: dictionary with style and plotting options.
     - data_key: prefix for data samples (e.g. default in PocketCoffea: "DATA_SingleEle")'''
-    def __init__(self, h_dict, name, style_cfg=style_cfg, data_key="DATA") -> None:
+    def __init__(self, h_dict, name, plot_dir, only_cat=[], style_cfg=style_cfg, data_key="DATA", log=False) -> None:
         self.h_dict = h_dict
         self.name = name
+        self.plot_dir = plot_dir
+        self.only_cat = only_cat
         self.style = Style(style_cfg)
         self.data_key = data_key
+        self.log = log
         assert type(h_dict) == dict, "The DataMC object receives a dictionary of hist.Hist objects as argument."
         self.define_samples()
         assert self.dense_dim == 1, f"Histograms with dense dimension {self.dense_dim} cannot be plotted. Only 1D histograms are supported."
@@ -143,6 +156,7 @@ class DataMC:
         for ax in self.categorical_axes_mc:
             setattr(self, {'year': 'years', 'cat': 'categories', 'variation': 'variations'}[ax.name], self.get_axis_items(ax.name))
         self.xaxis = self.dense_axes[0]
+        self.xlabel = self.xaxis.label
         self.xcenters = self.xaxis.centers
         self.xedges = self.xaxis.edges
         self.xbinwidth = np.ediff1d(self.xedges)
@@ -222,21 +236,41 @@ class DataMC:
         self.ax.tick_params(axis='x', labelsize=self.style.fontsize)
         self.ax.tick_params(axis='y', labelsize=self.style.fontsize)
         self.ax.set_xlim(self.xedges[0], self.xedges[-1])
-        if self.is_mc_only:
-            maximum = max(self.stack_sum_mc_nominal.values())
+        if self.log:
+            self.ax.set_yscale("log")
+            if self.is_mc_only:
+                exp = math.floor(math.log(max(self.stack_sum_mc_nominal.values()), 10))
+            else:
+                exp = math.floor(math.log(max(self.stack_sum_data.values()), 10))
+            self.ax.set_ylim((0.01, 10 ** (exp + 3)))
         else:
-            maximum = max(self.stack_sum_data.values())
-        if not np.isnan(maximum):
-            self.ax.set_ylim((0, 2.0 * maximum))
+            if self.is_mc_only:
+                maximum = max(self.stack_sum_mc_nominal.values())
+            else:
+                maximum = max(self.stack_sum_data.values())
+            if not np.isnan(maximum):
+                self.ax.set_ylim((0, 2.0 * maximum))
         if ratio:
-            xlabel = self.ax.get_xlabel()
             self.ax.set_xlabel("")
-            self.rax.set_xlabel(xlabel, fontsize=self.style.fontsize)
+            self.rax.set_xlabel(self.xlabel, fontsize=self.style.fontsize)
             self.rax.set_ylabel("Data / MC", fontsize=self.style.fontsize)
             self.rax.yaxis.set_label_coords(-0.075, 1)
             self.rax.tick_params(axis='x', labelsize=self.style.fontsize)
             self.rax.tick_params(axis='y', labelsize=self.style.fontsize)
             self.rax.set_ylim((0.5, 1.5))
+        if self.style.has_labels:
+            handles, labels = self.ax.get_legend_handles_labels()
+            labels_new = []
+            handles_new = []
+            for i, l in enumerate(labels):
+                if l in self.style.labels:
+                    labels_new.append(f"{self.style.labels[l]}")
+                else:
+                    labels_new.append(l)
+                handles_new.append(handles[i])
+            labels = labels_new
+            handles = handles_new
+            self.ax.legend(handles, labels, fontsize=self.style.fontsize, ncols=2, loc="upper right")
 
     def plot_mc(self):
         '''Plots the MC histograms as a stacked plot.'''
@@ -304,18 +338,31 @@ class DataMC:
                 self.plot_systematic_uncertainty(ratio)
 
         self.format_figure(ratio)
-        plt.show(self.fig)
-        plt.close(self.fig)
 
-    def plot_datamc_all(self, ratio=True, syst=True, spliteras=False):
+    def plot_datamc_all(self, ratio=True, syst=True, spliteras=False, save=True):
         '''Plots the data and MC histograms for each year and category contained in the histograms.
         If ratio is True, also the Data/MC ratio plot is plotted.
         If syst is True, also the total systematic uncertainty is plotted.'''
         for year in self.years:
             for cat in self.categories:
+                if not any([c in cat for c in self.only_cat]):
+                    continue
                 self.define_figure(year, ratio)
                 self.build_stacks(year, cat, spliteras)
+                self.get_systematic_uncertainty()
                 self.plot_datamc(year, ratio, syst)
+                if save:
+                    plot_dir = os.path.join(self.plot_dir, cat)
+                    if self.log:
+                        plot_dir = os.path.join(plot_dir, "log")
+                    if not os.path.exists(plot_dir):
+                        os.makedirs(plot_dir)
+                    filepath = os.path.join(plot_dir, f"{self.name}_{year}_{cat}.png")
+                    print("Saving", filepath)
+                    plt.savefig(filepath, dpi=150, format="png")
+                else:
+                    plt.show(self.fig)
+                plt.close(self.fig)
 
 class SystUnc:
     '''This class stores the information of a single systematic uncertainty of a 1D MC histogram.
@@ -341,6 +388,7 @@ class SystUnc:
             # Full nominal MC including all MC samples
             self.h_mc_nominal = self.datamc.stack_sum_mc_nominal
             self.nominal = self.h_mc_nominal.values()
+            self.xlabel = self.datamc.xlabel
             self.xcenters = self.datamc.xcenters
             self.xedges = self.datamc.xedges
             self.xbinwidth = self.datamc.xbinwidth
@@ -392,6 +440,7 @@ class SystUnc:
         are summed in quadrature to define a new SystUnc object.'''
         index_non_empty = [i for i, s in enumerate(self.syst_list) if not s._is_empty][0]
         self.nominal = self.syst_list[index_non_empty].nominal
+        self.xlabel = self.syst_list[index_non_empty].xlabel
         self.xcenters = self.syst_list[index_non_empty].xcenters
         self.xedges = self.syst_list[index_non_empty].xedges
         self.xbinwidth = self.syst_list[index_non_empty].xbinwidth
@@ -450,12 +499,14 @@ class SystUnc:
         else:
             self.ax = ax
             self.fig = self.ax.get_figure
-        hep.cms.text("Preliminary", fontsize=self.style.fontsize, loc=0, ax=self.ax)
+        hep.cms.text("Simulation Preliminary", fontsize=self.style.fontsize, loc=0, ax=self.ax)
         #hep.cms.lumitext(text=f'{self.lumi[year]}' + r' fb$^{-1}$, 13 TeV,' + f' {year}', fontsize=self.style.fontsize, ax=self.ax)
-        plt.plot(self.xcenters, self.nominal, label="nominal")
-        plt.plot(self.xcenters, self.up, label=f"{self.name} up")
-        plt.plot(self.xcenters, self.down, label=f"{self.name} down")
-        plt.legend()
+        self.ax.hist(self.xcenters, weights=self.nominal, histtype="step", label="nominal", **self.style.opts_syst["nominal"])
+        self.ax.hist(self.xcenters, weights=self.up, histtype="step", label=f"{self.name} up", **self.style.opts_syst["up"])
+        self.ax.hist(self.xcenters, weights=self.down, histtype="step", label=f"{self.name} down", **self.style.opts_syst["down"])
+        self.ax.set_xlabel(self.xlabel)
+        self.ax.set_ylabel("Counts")
+        self.ax.legend()
         #plt.show()
         #plt.close()
         return self.fig, self.ax
