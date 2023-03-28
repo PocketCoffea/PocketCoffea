@@ -1,4 +1,5 @@
 import os
+from copy import deepcopy
 
 import math
 import numpy as np
@@ -48,16 +49,17 @@ class Shape:
     - name: name that identifies the Shape object.
     - style_cfg: dictionary with style and plotting options.
     - data_key: prefix for data samples (e.g. default in PocketCoffea: "DATA_SingleEle")'''
-    def __init__(self, h_dict, name, plot_dir, only_cat=[], style_cfg=style_cfg, data_key="DATA", log=False) -> None:
+    def __init__(self, h_dict, name, plot_dir, only_cat=[], samples_map={}, style_cfg=style_cfg, data_key="DATA", log=False) -> None:
         self.h_dict = h_dict
         self.name = name
         self.plot_dir = plot_dir
         self.only_cat = only_cat
+        self.samples_map = samples_map
         self.style = Style(style_cfg)
         self.data_key = data_key
         self.log = log
         assert type(h_dict) == dict, "The Shape object receives a dictionary of hist.Hist objects as argument."
-        self.define_samples()
+        self.group_samples()
         assert self.dense_dim == 1, f"Histograms with dense dimension {self.dense_dim} cannot be plotted. Only 1D histograms are supported."
         self.load_attributes()
 
@@ -118,12 +120,13 @@ class Shape:
             axis = [ax for ax in self.categorical_axes_data if ax.name == axis_name][0]
         return list(axis.value(range(axis.size)))
 
-    def stack_sum(self, mc):
+    def _stack_sum(self, mc=None, stack=None):
         '''Returns the sum histogram of a stack (`hist.stack.Stack`) of histograms.'''
-        if mc:
-            stack = self.stack_mc_nominal
-        else:
-            stack = self.stack_data
+        if not stack:
+            if mc:
+                stack = self.stack_mc_nominal
+            else:
+                stack = self.stack_data
         if len(stack) == 1:
             return stack[0]
         else:
@@ -135,18 +138,38 @@ class Shape:
     @property
     def stack_sum_data(self):
         '''Returns the sum histogram of a stack (`hist.stack.Stack`) of data histograms.'''
-        return self.stack_sum(mc=False)
+        return self._stack_sum(mc=False)
 
     @property
     def stack_sum_mc_nominal(self):
         '''Returns the sum histogram of a stack (`hist.stack.Stack`) of MC histograms.'''
-        return self.stack_sum(mc=True)
+        return self._stack_sum(mc=True)
 
-    def define_samples(self):
-        '''Defines the data and MC samples.'''
-        self.samples = self.h_dict.keys()
-        self.samples_data = list(filter(lambda d : self.data_key in d, self.samples))
-        self.samples_mc = list(filter(lambda d : self.data_key not in d, self.samples))
+    @property
+    def samples(self):
+        return list(self.h_dict.keys())
+
+    @property
+    def samples_data(self):
+        return list(filter(lambda d : self.data_key in d, self.samples))
+
+    @property
+    def samples_mc(self):
+        return list(filter(lambda d : self.data_key not in d, self.samples))
+
+    def group_samples(self):
+        '''Groups samples according to the dictionary self.samples_map'''
+        h_dict_grouped = {}
+        if self.samples_map == {}:
+            return
+        samples_in_map = []
+        for sample_new, samples_list in self.samples_map.items():
+            h_dict_grouped[sample_new] = self._stack_sum(stack=hist.Stack.from_dict({s : h for s, h in self.h_dict.items() if s in samples_list}))
+            samples_in_map += samples_list
+        for s, h in self.h_dict.items():
+            if s not in samples_in_map:
+                h_dict_grouped[s] = h
+        self.h_dict = deepcopy(h_dict_grouped)
 
     def load_attributes(self):
         '''Loads the attributes from the dictionary of histograms.'''
@@ -177,7 +200,15 @@ class Shape:
         # Order the events dictionary by decreasing number of events if linear scale, increasing if log scale
         # N.B.: Here implement if log: reverse=False
         self.nevents = dict( sorted(self.nevents.items(), key=lambda x:x[1], reverse=reverse) )
-        self.colors = [self.style.colors[d] for d in self.nevents.keys()]
+        color = iter(cm.gist_rainbow(np.linspace(0, 1, len(self.nevents.keys()))))
+        # Assign random colors to each sample
+        self.colors = [next(color) for d in self.nevents.keys()]
+        if hasattr(self.style, "colors"):
+            # Initialize random colors
+            for i, d in enumerate(self.nevents.keys()):
+                # If the color for a corresponding sample exists in the dictionary, assign the color to the sample
+                if d in self.style.colors:
+                    self.colors[i] = self.style.colors[d]
         # Order the MC dictionary by number of events
         self.h_dict_mc = {d: self.h_dict_mc[d] for d in self.nevents.keys()}
         self.h_dict_mc_nominal = {d: self.h_dict_mc_nominal[d] for d in self.nevents.keys()}
@@ -270,18 +301,27 @@ class Shape:
             handles = handles_new
             self.ax.legend(handles, labels, fontsize=self.style.fontsize, ncols=2, loc="upper right")
 
-    def plot_mc(self):
+    def plot_mc(self, year):
         '''Plots the MC histograms as a stacked plot.'''
+        if not 'fig' in dir(self):
+            self.define_figure(year, ratio=False)
         self.stack_mc_nominal.plot(stack=True, histtype='fill', ax=self.ax, color=self.colors)
+        self.format_figure(ratio=False)
 
-    def plot_data(self):
+    def plot_data(self, year):
         '''Plots the data histogram as an errorbar plot.'''
+        if not 'fig' in dir(self):
+            self.define_figure(year, ratio=False)
         self.ax.errorbar(self.xcenters, self.stack_sum_data.values(), yerr=np.sqrt(self.stack_sum_data.values()), **self.style.opts_data)
+        self.format_figure(ratio=False)
 
-    def plot_datamc_ratio(self):
+    def plot_datamc_ratio(self, year):
         '''Plots the Data/MC ratio as an errorbar plot.'''
         self.get_datamc_ratio()
+        if not 'fig' in dir(self):
+            self.define_figure(year, ratio=True)
         self.rax.errorbar(self.xcenters, self.ratio, yerr=self.ratio_unc, **self.style.opts_data)
+        self.format_figure(ratio=True)
 
     def plot_systematic_uncertainty(self, ratio=False):
         '''Plots the asymmetric systematic uncertainty band on top of the MC stack, if `ratio` is set to False.
