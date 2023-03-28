@@ -1,11 +1,9 @@
 import os
-import sys
 
 import math
 import numpy as np
 import awkward as ak
 import hist
-from coffea.util import load
 
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
@@ -26,7 +24,7 @@ class Style:
 
 
 class PlotManager:
-    '''This class manages multiple DataMC objects and their plotting.'''
+    '''This class manages multiple Shape objects and their plotting.'''
     def __init__(self, hist_cfg, plot_dir, only_cat=[], style_cfg=style_cfg, data_key="DATA", log=False, save=True) -> None:
         self.datamc_objects = {}
         self.plot_dir = plot_dir
@@ -35,7 +33,7 @@ class PlotManager:
         self.log = log
         self.save = save
         for name, h_dict in hist_cfg.items():
-            self.datamc_objects[name] = DataMC(h_dict, name, plot_dir, only_cat=self.only_cat, style_cfg=style_cfg, data_key=self.data_key, log=self.log)
+            self.datamc_objects[name] = Shape(h_dict, name, plot_dir, only_cat=self.only_cat, style_cfg=style_cfg, data_key=self.data_key, log=self.log)
 
     def plot_datamc_all(self, ratio=True, syst=True, spliteras=False):
         '''Plots all the histograms contained in the dictionary, for all years and categories.'''
@@ -43,11 +41,11 @@ class PlotManager:
             datamc.plot_datamc_all(ratio, syst, spliteras, save=self.save)
 
 
-class DataMC:
+class Shape:
     '''This class handles the plotting of 1D data/MC histograms.
     The constructor requires as arguments:
     - h_dict: dictionary of histograms, with each entry corresponding to a different MC sample.
-    - name: name that identifies the DataMC object.
+    - name: name that identifies the Shape object.
     - style_cfg: dictionary with style and plotting options.
     - data_key: prefix for data samples (e.g. default in PocketCoffea: "DATA_SingleEle")'''
     def __init__(self, h_dict, name, plot_dir, only_cat=[], style_cfg=style_cfg, data_key="DATA", log=False) -> None:
@@ -58,7 +56,7 @@ class DataMC:
         self.style = Style(style_cfg)
         self.data_key = data_key
         self.log = log
-        assert type(h_dict) == dict, "The DataMC object receives a dictionary of hist.Hist objects as argument."
+        assert type(h_dict) == dict, "The Shape object receives a dictionary of hist.Hist objects as argument."
         self.define_samples()
         assert self.dense_dim == 1, f"Histograms with dense dimension {self.dense_dim} cannot be plotted. Only 1D histograms are supported."
         self.load_attributes()
@@ -367,7 +365,7 @@ class DataMC:
 
 class SystManager:
     '''This class handles the systematic uncertainties of 1D MC histograms.'''
-    def __init__(self, datamc : DataMC, has_mcstat=True) -> None:
+    def __init__(self, datamc : Shape, has_mcstat=True) -> None:
         self.datamc = datamc
         assert all([(var == "nominal") | var.endswith(("Up", "Down")) for var in self.datamc.variations]), "All the variations names that are not 'nominal' must end in 'Up' or 'Down'."
         self.variations_up = [var for var in self.datamc.variations if var.endswith("Up")]
@@ -400,7 +398,7 @@ class SystUnc:
     '''This class stores the information of a single systematic uncertainty of a 1D MC histogram.
     The built-in __add__() method implements the sum in quadrature of two systematic uncertainties,
     returning a `SystUnc` instance corresponding to their sum in quadrature.'''
-    def __init__(self, datamc : DataMC = None, name : str = None, syst_list : list = None) -> None:
+    def __init__(self, datamc : Shape = None, name : str = None, syst_list : list = None) -> None:
         self.datamc = datamc
         self.name = name
         self.is_mcstat = self.name == "mcstat"
@@ -415,7 +413,7 @@ class SystUnc:
             else:
                 self.syst_list = [self]
             self._get_err2()
-            # Inherit style from DataMC object
+            # Inherit style from Shape object
             self.style = self.datamc.style
             # Full nominal MC including all MC samples
             self.h_mc_nominal = self.datamc.stack_sum_mc_nominal
@@ -485,7 +483,7 @@ class SystUnc:
 
     def _get_err2(self):
         '''Method used in the constructor to instanstiate a SystUnc object from
-        a DataMC object. The corresponding up/down squared uncertainties are stored and take
+        a Shape object. The corresponding up/down squared uncertainties are stored and take
         into account the possibility for the uncertainty to be one-sided.'''
         # Loop over all the MC samples and sum the systematic uncertainty in quadrature
         for h in self.datamc.stack_mc:
