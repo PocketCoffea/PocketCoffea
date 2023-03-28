@@ -43,8 +43,10 @@ class PartonMatchingProcessor(ttHbbBaseProcessor):
             prov = get_partons_provenance_ttHbb(
                 ak.Array(quarks.pdgId, behavior={}), ak.ArrayBuilder()
             ).snapshot()
+            self.events["HiggsParton"]  = self.events.LHEPart[self.events.LHEPart.pdgId == 25]          
         else:
             prov = -1 * ak.ones_like(quarks)
+
         # Adding the provenance to the quark object
         quarks = ak.with_field(quarks, prov, "provenance")
 
@@ -54,6 +56,14 @@ class PartonMatchingProcessor(ttHbbBaseProcessor):
         matched_quarks, matched_jets, deltaR_matched = object_matching(
             quarks, self.events.JetGood, dr_min=self.dr_min
         )
+
+        
+        # Saving leptons and neutrino parton level
+        self.events["LeptonParton"] = self.events.LHEPart[
+            (self.events.LHEPart.status == 1)
+            & (abs(self.events.LHEPart.pdgId) > 10)
+            & (abs(self.events.LHEPart.pdgId) < 15)
+        ]
 
         self.events["Parton"] = quarks
         self.events["PartonMatched"] = ak.with_field(
@@ -73,10 +83,3 @@ class PartonMatchingProcessor(ttHbbBaseProcessor):
     def process_extra_after_presel(self, variation) -> ak.Array:
         self.do_parton_matching()
         self.count_partons()
-
-        # Saving leptons and neutrino parton level
-        self.events["LeptonParton"] = self.events.LHEPart[
-            (self.events.LHEPart.status == 1)
-            & (abs(self.events.LHEPart.pdgId) > 10)
-            & (abs(self.events.LHEPart.pdgId) < 15)
-        ]

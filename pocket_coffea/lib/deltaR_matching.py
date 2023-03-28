@@ -164,8 +164,8 @@ def object_matching(obj, obj2, dr_min, dpt_max=None, return_indices=False):
             matched_obj,
             matched_obj2,
             deltaR_padnone,
-            idx_obj_masked,
-            idx_obj2_masked,
+            idx_obj_padnone,
+            idx_obj2_padnone,
             deltaR_masked,
         )
     else:

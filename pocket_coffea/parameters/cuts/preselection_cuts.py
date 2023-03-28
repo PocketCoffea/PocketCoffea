@@ -9,7 +9,8 @@ dilepton_presel = Cut(
     name="dilepton",
     params={
         "METbranch": {
-            '2016': "MET",
+            '2016_PreVFP': "MET",
+            '2016_PostVFP': "MET",
             '2017': "MET",
             '2018': "MET",
         },
@@ -27,19 +28,22 @@ semileptonic_presel = Cut(
     name="semileptonic",
     params={
         "METbranch": {
-            '2016': "MET",
+            '2016_PreVFP': "MET",
+            '2016_PostVFP': "MET",
             '2017': "MET",
             '2018': "MET",
         },
         "njet": 4,
         "nbjet": 3,
         "pt_leading_electron": {
-            '2016': 29,
+            '2016_PreVFP': 29,
+            '2016_PostVFP': 29,
             '2017': 30,
             '2018': 30,
         },
         "pt_leading_muon": {
-            '2016': 26,
+            '2016_PreVFP': 26,
+            '2016_PostVFP': 26,
             '2017': 29,
             '2018': 26,
         },
@@ -55,19 +59,22 @@ semileptonic_presel_nobtag = Cut(
     name="semileptonic_nobtag",
     params={
         "METbranch": {
-            '2016': "MET",
+            '2016_PreVFP': "MET",
+            '2016_PostVFP': "MET",
             '2017': "MET",
             '2018': "MET",
         },
         "njet": 4,
         "nbjet": 0,
         "pt_leading_electron": {
-            '2016': 29,
+            '2016_PreVFP': 29,
+            '2016_PostVFP': 29,
             '2017': 30,
             '2018': 30,
         },
         "pt_leading_muon": {
-            '2016': 26,
+            '2016_PreVFP': 26,
+            '2016_PostVFP': 26,
             '2017': 29,
             '2018': 26,
         },
@@ -81,12 +88,14 @@ semileptonic_triggerSF_presel = Cut(
     params={
         "njet": 4,
         "pt_leading_electron": {
-            '2016': 29,
+             '2016_PreVFP': 29,
+            '2016_PostVFP': 29,
             '2017': 30,
             '2018': 30,
         },
         "pt_leading_muon": {
-            '2016': 26,
+            '2016_PreVFP': 26,
+            '2016_PostVFP': 26,
             '2017': 29,
             '2018': 26,
         },

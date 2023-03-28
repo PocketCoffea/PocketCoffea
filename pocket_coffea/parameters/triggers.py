@@ -67,7 +67,13 @@ triggers = {
         },
     },
     "semileptonic": {
-        "2016": {
+        "2016_PreVFP": {
+            "SingleEle": [
+                "Ele27_WPTight_Gsf",
+            ],
+            "SingleMuon": ["IsoMu24", "IsoTkMu24"],
+        },
+        "2016_PostVFP": {
             "SingleEle": [
                 "Ele27_WPTight_Gsf",
             ],
