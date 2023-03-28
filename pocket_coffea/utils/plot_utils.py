@@ -245,7 +245,7 @@ class Shape:
         '''Instantiates the `SystUnc` objects and stores them in a dictionary with one entry for each systematic uncertainty.'''
         self.syst_manager = SystManager(self)
 
-    def define_figure(self, year, ratio=True):
+    def define_figure(self, year=None, ratio=True):
         '''Defines the figure for the Data/MC plot.
         If ratio is True, a subplot is defined to include the Data/MC ratio plot.'''
         plt.style.use([hep.style.ROOT, {'font.size': self.style.fontsize}])
@@ -256,7 +256,8 @@ class Shape:
         else:
             self.fig, self.ax  = plt.subplots(1, 1, **self.style.opts_figure["datamc"])
         hep.cms.text("Preliminary", fontsize=self.style.fontsize, loc=0, ax=self.ax)
-        hep.cms.lumitext(text=f'{self.lumi[year]}' + r' fb$^{-1}$, 13 TeV,' + f' {year}', fontsize=self.style.fontsize, ax=self.ax)
+        if year:
+            hep.cms.lumitext(text=f'{self.lumi[year]}' + r' fb$^{-1}$, 13 TeV,' + f' {year}', fontsize=self.style.fontsize, ax=self.ax)
 
     def format_figure(self, ratio=True):
         '''Formats the figure's axes, labels, ticks, xlim and ylim.'''
@@ -301,10 +302,10 @@ class Shape:
             handles = handles_new
             self.ax.legend(handles, labels, fontsize=self.style.fontsize, ncols=2, loc="upper right")
 
-    def plot_mc(self, year):
+    def plot_mc(self):
         '''Plots the MC histograms as a stacked plot.'''
         if not 'fig' in dir(self):
-            self.define_figure(year, ratio=False)
+            self.define_figure(ratio=False)
         self.stack_mc_nominal.plot(stack=True, histtype='fill', ax=self.ax, color=self.colors)
         self.format_figure(ratio=False)
 
