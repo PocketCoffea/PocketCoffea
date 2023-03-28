@@ -27,7 +27,7 @@ class Style:
 
 class PlotManager:
     '''This class manages multiple DataMC objects and their plotting.'''
-    def __init__(self, hist_cfg, plot_dir, only_cat=[], data_key="DATA", log=False, save=True) -> None:
+    def __init__(self, hist_cfg, plot_dir, only_cat=[], style_cfg=style_cfg, data_key="DATA", log=False, save=True) -> None:
         self.datamc_objects = {}
         self.plot_dir = plot_dir
         self.only_cat = only_cat
@@ -35,10 +35,10 @@ class PlotManager:
         self.log = log
         self.save = save
         for name, h_dict in hist_cfg.items():
-            self.datamc_objects[name] = DataMC(h_dict, name, plot_dir, only_cat, data_key=self.data_key, log=self.log)
+            self.datamc_objects[name] = DataMC(h_dict, name, plot_dir, only_cat=self.only_cat, style_cfg=style_cfg, data_key=self.data_key, log=self.log)
 
     def plot_datamc_all(self, ratio=True, syst=True, spliteras=False):
-        '''Plots all the histograms containted in the dictionary, for all years and categories.'''
+        '''Plots all the histograms contained in the dictionary, for all years and categories.'''
         for name, datamc in self.datamc_objects.items():
             datamc.plot_datamc_all(ratio, syst, spliteras, save=self.save)
 
@@ -364,6 +364,38 @@ class DataMC:
                     plt.show(self.fig)
                 plt.close(self.fig)
 
+
+class SystManager:
+    '''This class handles the systematic uncertainties of 1D MC histograms.'''
+    def __init__(self, datamc : DataMC, has_mcstat=True) -> None:
+        self.datamc = datamc
+        assert all([(var == "nominal") | var.endswith(("Up", "Down")) for var in self.datamc.variations]), "All the variations names that are not 'nominal' must end in 'Up' or 'Down'."
+        self.variations_up = [var for var in self.datamc.variations if var.endswith("Up")]
+        self.variations_down = [var for var in self.datamc.variations if var.endswith("Down")]
+        assert len(self.variations_up) == len(self.variations_down), "The number of up and down variations is mismatching."
+        self.systematics = [s.split("Up")[0] for s in self.variations_up]
+        if has_mcstat:
+            self.systematics.append("mcstat")
+        self.syst_dict = {}
+
+        for syst_name in self.systematics:
+            self.syst_dict[syst_name] = SystUnc(self.datamc, syst_name)
+
+    @property
+    def total(self):
+        total = SystUnc(name="total", syst_list=list(self.syst_dict.values()))
+        return total
+
+    @property
+    def mcstat(self):
+        return self.syst_dict["mcstat"]
+
+    def get_syst(self, syst_name : str):
+        '''Returns the SystUnc object corresponding to a given systematic uncertainty,
+        passed as the argument `syst_name`.'''
+        return self.syst_dict[syst_name]
+
+
 class SystUnc:
     '''This class stores the information of a single systematic uncertainty of a 1D MC histogram.
     The built-in __add__() method implements the sum in quadrature of two systematic uncertainties,
@@ -510,33 +542,3 @@ class SystUnc:
         #plt.show()
         #plt.close()
         return self.fig, self.ax
-
-class SystManager:
-    '''This class handles the systematic uncertainties of 1D MC histograms.'''
-    def __init__(self, datamc : DataMC, has_mcstat=True) -> None:
-        self.datamc = datamc
-        assert all([(var == "nominal") | var.endswith(("Up", "Down")) for var in self.datamc.variations]), "All the variations names that are not 'nominal' must end in 'Up' or 'Down'."
-        self.variations_up = [var for var in self.datamc.variations if var.endswith("Up")]
-        self.variations_down = [var for var in self.datamc.variations if var.endswith("Down")]
-        assert len(self.variations_up) == len(self.variations_down), "The number of up and down variations is mismatching."
-        self.systematics = [s.split("Up")[0] for s in self.variations_up]
-        if has_mcstat:
-            self.systematics.append("mcstat")
-        self.syst_dict = {}
-
-        for syst_name in self.systematics:
-            self.syst_dict[syst_name] = SystUnc(self.datamc, syst_name)
-
-    @property
-    def total(self):
-        total = SystUnc(name="total", syst_list=list(self.syst_dict.values()))
-        return total
-
-    @property
-    def mcstat(self):
-        return self.syst_dict["mcstat"]
-
-    def get_syst(self, syst_name : str):
-        '''Returns the SystUnc object corresponding to a given systematic uncertainty,
-        passed as the argument `syst_name`.'''
-        return self.syst_dict[syst_name]
