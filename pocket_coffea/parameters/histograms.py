@@ -1,6 +1,6 @@
+from copy import deepcopy
 from ..lib.hist_manager import Axis, HistConf
 import math
-
 
 default_axis_settings = {
     'muon_pt': {
@@ -457,7 +457,7 @@ def _get_default_hist(name, type, coll, pos=None, fields=None, **kwargs):
     for field in collection_fields[type]:
         if fields == None or field in fields:
             hist_name = f"{name}_{field}"
-            setting = default_axis_settings[f"{type}_{field}"]
+            setting = deepcopy(default_axis_settings[f"{type}_{field}"])
             setting["coll"] = coll
             # If the position argument is given the histogram is
             # created for the specific position

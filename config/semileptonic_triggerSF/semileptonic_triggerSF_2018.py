@@ -28,7 +28,7 @@ cfg =  {
     "workflow" : semileptonicTriggerProcessor,
     "output"   : "output/sf_ele_trigger_semilep/semileptonic_triggerSF_2018_sfmutrigger",
     "workflow_options" : {
-        "output_triggerSF" : "pocket_coffea/parameters/semileptonic_triggerSF/triggerSF_2018_sfmutrigger",
+        "output_triggerSF" : "output/sf_ele_trigger_semilep/semileptonic_triggerSF_2018_sfmutrigger/semileptonic_triggerSF",
         "eras" : eras["2018"],
     },
 
