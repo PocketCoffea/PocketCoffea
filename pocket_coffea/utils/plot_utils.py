@@ -13,12 +13,17 @@ from matplotlib.ticker import MultipleLocator, AutoMinorLocator
 import mplhep as hep
 
 from ..parameters.lumi import lumi, femtobarn
-from ..parameters.plotting import *
+from ..parameters.plotting import style_cfg
 
+class Style:
+    '''This class manages all the style options for Data/MC plots.'''
+    def __init__(self, style_cfg=style_cfg) -> None:
+        for key, item in style_cfg.items():
+            setattr(self, key, item)
 
 class PlotManager:
     '''This class manages multiple DataMC objects and their plotting.'''
-    def __init__(self, hist_cfg, data_key="DATA"):
+    def __init__(self, hist_cfg, data_key="DATA") -> None:
         self.datamc_objects = {}
         for name, h_dict in hist_cfg.items():
             self.datamc_objects[name] = DataMC(h_dict, name, data_key=data_key)
@@ -29,10 +34,16 @@ class PlotManager:
 
 
 class DataMC:
-    '''This class handles the plotting of 1D data/MC histograms.'''
-    def __init__(self, h_dict, name, data_key="DATA"):
+    '''This class handles the plotting of 1D data/MC histograms.
+    The constructor requires as arguments:
+    - h_dict: dictionary of histograms, with each entry corresponding to a different MC sample.
+    - name: name that identifies the DataMC object.
+    - style_cfg: dictionary with style and plotting options.
+    - data_key: prefix for data samples (e.g. default in PocketCoffea: "DATA_SingleEle")'''
+    def __init__(self, h_dict, name, style_cfg=style_cfg, data_key="DATA") -> None:
         self.h_dict = h_dict
         self.name = name
+        self.style = Style(style_cfg)
         self.data_key = data_key
         assert type(h_dict) == dict, "The DataMC object receives a dictionary of hist.Hist objects as argument."
         self.define_samples()
@@ -41,7 +52,7 @@ class DataMC:
 
     @property
     def dense_axes(self):
-        '''Returns the list of dense axes of a histogram.'''
+        '''Returns the list of dense axes of a histogram, defined as the axes that are not categorical axes.'''
         dense_axes_dict = {s : [] for s in self.h_dict.keys()}
 
         for s, h in self.h_dict.items():
@@ -75,10 +86,12 @@ class DataMC:
 
     @property
     def categorical_axes_mc(self):
+        '''Returns the list of categorical axes of a MC histogram.'''
         return self._categorical_axes(mc=True)
 
     @property
     def categorical_axes_data(self):
+        '''Returns the list of categorical axes of a data histogram.'''
         return self._categorical_axes(mc=False)
 
     @property
@@ -87,6 +100,7 @@ class DataMC:
         return len(self.dense_axes)
     
     def get_axis_items(self, axis_name, mc=True):
+        '''Returns the list of values contained in a Hist axis.'''
         if mc:
             axis = [ax for ax in self.categorical_axes_mc if ax.name == axis_name][0]
         else:
@@ -109,18 +123,22 @@ class DataMC:
 
     @property
     def stack_sum_data(self):
+        '''Returns the sum histogram of a stack (`hist.stack.Stack`) of data histograms.'''
         return self.stack_sum(mc=False)
 
     @property
     def stack_sum_mc_nominal(self):
+        '''Returns the sum histogram of a stack (`hist.stack.Stack`) of MC histograms.'''
         return self.stack_sum(mc=True)
 
     def define_samples(self):
+        '''Defines the data and MC samples.'''
         self.samples = self.h_dict.keys()
         self.samples_data = list(filter(lambda d : self.data_key in d, self.samples))
         self.samples_mc = list(filter(lambda d : self.data_key not in d, self.samples))
 
     def load_attributes(self):
+        '''Loads the attributes from the dictionary of histograms.'''
         assert len(set([self.h_dict[s].ndim for s in self.samples_mc])), "Not all the MC histograms have the same dimension."
         for ax in self.categorical_axes_mc:
             setattr(self, {'year': 'years', 'cat': 'categories', 'variation': 'variations'}[ax.name], self.get_axis_items(ax.name))
@@ -134,14 +152,23 @@ class DataMC:
             self.lumi = {year : femtobarn(lumi[year]['tot'], digits=1) for year in self.years}
 
     def build_stacks(self, year, cat, spliteras=False):
+        '''Builds the data and MC stacks, applying a slicing by year and category.
+        If spliteras is True, the extra axis "era" is kept in the data stack to
+        distinguish between data samples from different data-taking eras.'''
         slicing_mc = {'year': year, 'cat': cat}
         slicing_mc_nominal = {'year': year, 'cat': cat, 'variation': 'nominal'}
         self.h_dict_mc = {d: self.h_dict[d][slicing_mc] for d in self.samples_mc}
         self.h_dict_mc_nominal = {d: self.h_dict[d][slicing_mc_nominal] for d in self.samples_mc}
+        # Store number of weighted MC events
         self.nevents = {d: round(sum(self.h_dict_mc_nominal[d].values()), 1) for d in self.samples_mc}
         reverse=True
-        # Here implement if log: reverse=False
+        # Order the events dictionary by decreasing number of events if linear scale, increasing if log scale
+        # N.B.: Here implement if log: reverse=False
         self.nevents = dict( sorted(self.nevents.items(), key=lambda x:x[1], reverse=reverse) )
+        self.colors = [self.style.colors[d] for d in self.nevents.keys()]
+        # Order the MC dictionary by number of events
+        self.h_dict_mc = {d: self.h_dict_mc[d] for d in self.nevents.keys()}
+        self.h_dict_mc_nominal = {d: self.h_dict_mc_nominal[d] for d in self.nevents.keys()}
         # Build MC stack with variations and nominal MC stack
         self.stack_mc = hist.Stack.from_dict(self.h_dict_mc)
         self.stack_mc_nominal = hist.Stack.from_dict(self.h_dict_mc_nominal)
@@ -166,31 +193,91 @@ class DataMC:
         num = self.stack_sum_data.values()
         den = self.stack_sum_mc_nominal.values()
         self.ratio = num / den
+        # TO DO: Implement Poisson interval valid also for num~0
+        # np.sqrt(num) is just an approximation of the uncertainty valid at large num
         self.ratio_unc = np.sqrt(num) / den
         self.ratio_unc[np.isnan(self.ratio_unc)] = np.inf
 
+    def get_systematic_uncertainty(self):
+        '''Instantiates the `SystUnc` objects and stores them in a dictionary with one entry for each systematic uncertainty.'''
+        self.syst_manager = SystManager(self)
+
     def define_figure(self, year, ratio=True):
-        plt.style.use([hep.style.ROOT, {'font.size': fontsize}])
-        plt.rcParams.update({'font.size': fontsize})
+        '''Defines the figure for the Data/MC plot.
+        If ratio is True, a subplot is defined to include the Data/MC ratio plot.'''
+        plt.style.use([hep.style.ROOT, {'font.size': self.style.fontsize}])
+        plt.rcParams.update({'font.size': self.style.fontsize})
         if ratio:
-            self.fig, (self.ax, self.rax) = plt.subplots(2, 1, **opts_figure["datamc_ratio"])
+            self.fig, (self.ax, self.rax) = plt.subplots(2, 1, **self.style.opts_figure["datamc_ratio"])
             self.fig.subplots_adjust(hspace=0.06)
         else:
-            self.fig, self.ax  = plt.subplots(1, 1, **opts_figure["datamc"])
-        hep.cms.text("Preliminary", fontsize=fontsize, loc=0, ax=self.ax)
-        hep.cms.lumitext(text=f'{self.lumi[year]}' + r' fb$^{-1}$, 13 TeV,' + f' {year}', fontsize=fontsize, ax=self.ax)
+            self.fig, self.ax  = plt.subplots(1, 1, **self.style.opts_figure["datamc"])
+        hep.cms.text("Preliminary", fontsize=self.style.fontsize, loc=0, ax=self.ax)
+        hep.cms.lumitext(text=f'{self.lumi[year]}' + r' fb$^{-1}$, 13 TeV,' + f' {year}', fontsize=self.style.fontsize, ax=self.ax)
+
+    def format_figure(self, ratio=True):
+        '''Formats the figure's axes, labels, ticks, xlim and ylim.'''
+        self.ax.set_ylabel("Counts", fontsize=self.style.fontsize)
+        self.ax.legend(fontsize=self.style.fontsize, ncols=2, loc="upper right")
+        self.ax.tick_params(axis='x', labelsize=self.style.fontsize)
+        self.ax.tick_params(axis='y', labelsize=self.style.fontsize)
+        self.ax.set_xlim(self.xedges[0], self.xedges[-1])
+        if self.is_mc_only:
+            maximum = max(self.stack_sum_mc_nominal.values())
+        else:
+            maximum = max(self.stack_sum_data.values())
+        if not np.isnan(maximum):
+            self.ax.set_ylim((0, 2.0 * maximum))
+        if ratio:
+            xlabel = self.ax.get_xlabel()
+            self.ax.set_xlabel("")
+            self.rax.set_xlabel(xlabel, fontsize=self.style.fontsize)
+            self.rax.set_ylabel("Data / MC", fontsize=self.style.fontsize)
+            self.rax.yaxis.set_label_coords(-0.075, 1)
+            self.rax.tick_params(axis='x', labelsize=self.style.fontsize)
+            self.rax.tick_params(axis='y', labelsize=self.style.fontsize)
+            self.rax.set_ylim((0.5, 1.5))
 
     def plot_mc(self):
-        self.stack_mc_nominal.plot(stack=True, histtype='fill', ax=self.ax)#, color=colors)
+        '''Plots the MC histograms as a stacked plot.'''
+        self.stack_mc_nominal.plot(stack=True, histtype='fill', ax=self.ax, color=self.colors)
 
     def plot_data(self):
-        self.ax.errorbar(self.xcenters, self.stack_sum_data.values(), yerr=np.sqrt(self.stack_sum_data.values()), **opts_data)
+        '''Plots the data histogram as an errorbar plot.'''
+        self.ax.errorbar(self.xcenters, self.stack_sum_data.values(), yerr=np.sqrt(self.stack_sum_data.values()), **self.style.opts_data)
 
     def plot_datamc_ratio(self):
+        '''Plots the Data/MC ratio as an errorbar plot.'''
         self.get_datamc_ratio()
-        self.rax.errorbar(self.xcenters, self.ratio, yerr=self.ratio_unc, **opts_data)
+        self.rax.errorbar(self.xcenters, self.ratio, yerr=self.ratio_unc, **self.style.opts_data)
 
-    def plot_datamc(self, year=None, ratio=True):
+    def plot_systematic_uncertainty(self, ratio=False):
+        '''Plots the asymmetric systematic uncertainty band on top of the MC stack, if `ratio` is set to False.
+        To plot the systematic uncertainty in a ratio plot, `ratio` has to be set to True and the uncertainty band will be plotted around 1 in the ratio plot.'''
+        ax = self.ax
+        up = self.syst_manager.total.up
+        down = self.syst_manager.total.down
+        if ratio:
+            # In order to get a consistent uncertainty band, the up/down variations of the ratio are set to 1 where the nominal value is 0
+            ax = self.rax
+            up = self.syst_manager.total.ratio_up
+            down = self.syst_manager.total.ratio_down
+
+        unc_band = np.array([down, up])
+        ax.fill_between(
+            self.xedges,
+            np.r_[unc_band[0], unc_band[0, -1]],
+            np.r_[unc_band[1], unc_band[1, -1]],
+            **self.style.opts_unc['total'],
+            label="syst. unc.",
+        )
+        if ratio:
+            ax.hlines(1.0, *ak.Array(self.xedges)[[0,-1]], colors='gray', linestyles='dashed')
+
+    def plot_datamc(self, year=None, ratio=True, syst=True):
+        '''Plots the data histogram as an errorbar plot on top of the MC stacked histograms.
+        If ratio is True, also the Data/MC ratio plot is plotted.
+        If syst is True, also the total systematic uncertainty is plotted.'''
         if ratio:
             if self.is_mc_only:
                 raise Exception("The Data/MC ratio cannot be plotted if the histogram is MC only.")
@@ -202,26 +289,203 @@ class DataMC:
         if (not self.is_mc_only) & (not self.is_data_only):
             self.plot_mc()
             self.plot_data()
+            if syst:
+                self.plot_systematic_uncertainty()
         elif self.is_mc_only:
             self.plot_mc()
-        elif self.is_mc_only:
+            if syst:
+                self.plot_systematic_uncertainty()
+        elif self.is_data_only:
             self.plot_data()
 
         if ratio:
             self.plot_datamc_ratio()
+            if syst:
+                self.plot_systematic_uncertainty(ratio)
 
+        self.format_figure(ratio)
         plt.show(self.fig)
         plt.close(self.fig)
 
-    def plot_datamc_all(self, ratio=True, spliteras=False):
+    def plot_datamc_all(self, ratio=True, syst=True, spliteras=False):
+        '''Plots the data and MC histograms for each year and category contained in the histograms.
+        If ratio is True, also the Data/MC ratio plot is plotted.
+        If syst is True, also the total systematic uncertainty is plotted.'''
         for year in self.years:
             for cat in self.categories:
                 self.define_figure(year, ratio)
                 self.build_stacks(year, cat, spliteras)
-                self.plot_datamc(year, ratio)
+                self.plot_datamc(year, ratio, syst)
 
 class SystUnc:
-    '''This class handles the systematic uncertainties of 1D MC histograms.'''
-    def __init__(self, stack_mc, name):
-        self.stack_mc = stack_mc
+    '''This class stores the information of a single systematic uncertainty of a 1D MC histogram.
+    The built-in __add__() method implements the sum in quadrature of two systematic uncertainties,
+    returning a `SystUnc` instance corresponding to their sum in quadrature.'''
+    def __init__(self, datamc : DataMC = None, name : str = None, syst_list : list = None) -> None:
+        self.datamc = datamc
         self.name = name
+        self.is_mcstat = self.name == "mcstat"
+
+        # Initialize the arrays of the nominal yield and squared errors as 0
+        self.nominal = 0.0
+        self.err2_up = 0.0
+        self.err2_down = 0.0
+        if datamc:
+            if syst_list:
+                raise Exception("The initialization of the instance is ambiguous. Either a `DataMC` object or a list of `SystUnc` objects should be passed to the constructor.")
+            else:
+                self.syst_list = [self]
+            self._get_err2()
+            # Inherit style from DataMC object
+            self.style = self.datamc.style
+            # Full nominal MC including all MC samples
+            self.h_mc_nominal = self.datamc.stack_sum_mc_nominal
+            self.nominal = self.h_mc_nominal.values()
+            self.xcenters = self.datamc.xcenters
+            self.xedges = self.datamc.xedges
+            self.xbinwidth = self.datamc.xbinwidth
+        elif syst_list:
+            self.syst_list = syst_list
+            assert self.nsyst > 0, "Attempting to initialize a `SystUnc` instance with an empty list of systematic uncertainties."
+            assert not ((self._n_empty == 1) & (self.nsyst == 1)), "Attempting to intialize a `SystUnc` instance with an empty systematic uncertainty."
+            self._get_err2_from_syst()
+            # Get default style
+            self.style = Style()
+
+    def __add__(self, other):
+        '''Sum in quadrature of two systematic uncertainties.
+        In case multiple objects are summed, the information on the systematic uncertainties that
+        have been summed is stored in self.syst_list.'''
+        return SystUnc(name=f"{self.name}_{other.name}", syst_list=[self, other])
+
+    @property
+    def up(self):
+        return self.nominal + np.sqrt(self.err2_up)
+
+    @property
+    def down(self):
+        return self.nominal - np.sqrt(self.err2_down)
+
+    @property
+    def ratio_up(self):
+        return np.where(self.nominal != 0, self.up / self.nominal, 1)
+
+    @property
+    def ratio_down(self):
+        return np.where(self.nominal != 0, self.down / self.nominal, 1)
+
+    @property
+    def nsyst(self):
+        return len(self.syst_list)
+
+    @property
+    def _is_empty(self):
+        return np.sum(self.nominal) == 0
+
+    @property
+    def _n_empty(self):
+        return len([s for s in self.syst_list if s._is_empty])
+
+    def _get_err2_from_syst(self):
+        '''Method used in the constructor to instanstiate a SystUnc object from
+        a list of SystUnc objects. The sytematic uncertainties in self.syst_list,
+        are summed in quadrature to define a new SystUnc object.'''
+        index_non_empty = [i for i, s in enumerate(self.syst_list) if not s._is_empty][0]
+        self.nominal = self.syst_list[index_non_empty].nominal
+        self.xcenters = self.syst_list[index_non_empty].xcenters
+        self.xedges = self.syst_list[index_non_empty].xedges
+        self.xbinwidth = self.syst_list[index_non_empty].xbinwidth
+        for syst in self.syst_list:
+            if not ((self._is_empty) | (syst._is_empty)):
+                assert all(np.equal(self.nominal, syst.nominal)), "Attempting to sum systematic uncertainties with different nominal MC."
+                assert all(np.equal(self.xcenters, syst.xcenters)), "Attempting to sum systematic uncertainties with different bin centers."
+            self.err2_up += syst.err2_up
+            self.err2_down += syst.err2_up
+
+    def _get_err2(self):
+        '''Method used in the constructor to instanstiate a SystUnc object from
+        a DataMC object. The corresponding up/down squared uncertainties are stored and take
+        into account the possibility for the uncertainty to be one-sided.'''
+        # Loop over all the MC samples and sum the systematic uncertainty in quadrature
+        for h in self.datamc.stack_mc:
+            # Nominal variation for a single MC sample
+            h_nom = h[{'variation': 'nominal'}]
+            nom = h_nom.values()
+            # Sum in quadrature of mcstat
+            if self.is_mcstat:
+                mcstat_err2 = h_nom.variances()
+                self.err2_up += mcstat_err2
+                self.err2_down += mcstat_err2
+                continue
+            # Up/down variations for a single MC sample
+            var_up = h[{'variation': f'{self.name}Up'}].values()
+            var_down = h[{'variation': f'{self.name}Down'}].values()
+            # Compute the uncertainties corresponding to the up/down variations
+            err_up = var_up - nom
+            err_down = var_down - nom
+            # Compute the flags to check which of the two variations (up and down) are pushing the nominal value up and down
+            up_is_up = err_up > 0
+            down_is_down = err_down < 0
+            # Compute the flag to check if the uncertainty is one-sided, i.e. when both variations are up or down
+            is_onesided = (up_is_up ^ down_is_down)
+
+            # Sum in quadrature of the systematic uncertainties taking into account if the uncertainty is one- or double-sided
+            err2_up_twosided = np.where(up_is_up, err_up**2, err_down**2)
+            err2_down_twosided = np.where(up_is_up, err_down**2, err_up**2)
+            err2_max = np.maximum(err2_up_twosided, err2_down_twosided)
+            err2_up_onesided = np.where(is_onesided & up_is_up, err2_max, 0)
+            err2_down_onesided = np.where(is_onesided & down_is_down, err2_max, 0)
+            err2_up_combined = np.where(is_onesided, err2_up_onesided, err2_up_twosided)
+            err2_down_combined = np.where(is_onesided, err2_down_onesided, err2_down_twosided)
+            # Sum in quadrature of the systematic uncertainty corresponding to a MC sample
+            self.err2_up += err2_up_combined
+            self.err2_down += err2_down_combined
+
+    def plot(self, ax=None):
+        '''Plots the nominal, up and down systematic variations on the same plot.'''
+        plt.style.use([hep.style.ROOT, {'font.size': self.style.fontsize}])
+        plt.rcParams.update({'font.size': self.style.fontsize})
+        if not ax:
+            self.fig, self.ax  = plt.subplots(1, 1, **self.style.opts_figure["datamc"])
+        else:
+            self.ax = ax
+            self.fig = self.ax.get_figure
+        hep.cms.text("Preliminary", fontsize=self.style.fontsize, loc=0, ax=self.ax)
+        #hep.cms.lumitext(text=f'{self.lumi[year]}' + r' fb$^{-1}$, 13 TeV,' + f' {year}', fontsize=self.style.fontsize, ax=self.ax)
+        plt.plot(self.xcenters, self.nominal, label="nominal")
+        plt.plot(self.xcenters, self.up, label=f"{self.name} up")
+        plt.plot(self.xcenters, self.down, label=f"{self.name} down")
+        plt.legend()
+        #plt.show()
+        #plt.close()
+        return self.fig, self.ax
+
+class SystManager:
+    '''This class handles the systematic uncertainties of 1D MC histograms.'''
+    def __init__(self, datamc : DataMC, has_mcstat=True) -> None:
+        self.datamc = datamc
+        assert all([(var == "nominal") | var.endswith(("Up", "Down")) for var in self.datamc.variations]), "All the variations names that are not 'nominal' must end in 'Up' or 'Down'."
+        self.variations_up = [var for var in self.datamc.variations if var.endswith("Up")]
+        self.variations_down = [var for var in self.datamc.variations if var.endswith("Down")]
+        assert len(self.variations_up) == len(self.variations_down), "The number of up and down variations is mismatching."
+        self.systematics = [s.split("Up")[0] for s in self.variations_up]
+        if has_mcstat:
+            self.systematics.append("mcstat")
+        self.syst_dict = {}
+
+        for syst_name in self.systematics:
+            self.syst_dict[syst_name] = SystUnc(self.datamc, syst_name)
+
+    @property
+    def total(self):
+        total = SystUnc(name="total", syst_list=list(self.syst_dict.values()))
+        return total
+
+    @property
+    def mcstat(self):
+        return self.syst_dict["mcstat"]
+
+    def get_syst(self, syst_name : str):
+        '''Returns the SystUnc object corresponding to a given systematic uncertainty,
+        passed as the argument `syst_name`.'''
+        return self.syst_dict[syst_name]
