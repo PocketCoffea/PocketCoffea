@@ -26,7 +26,7 @@ class Style:
 
 class PlotManager:
     '''This class manages multiple Shape objects and their plotting.'''
-    def __init__(self, hist_cfg, plot_dir, only_cat=[], style_cfg=style_cfg, data_key="DATA", log=False, save=True) -> None:
+    def __init__(self, hist_cfg, plot_dir, only_cat=[], samples_map={}, style_cfg=style_cfg, data_key="DATA", log=False, save=True) -> None:
         self.datamc_objects = {}
         self.plot_dir = plot_dir
         self.only_cat = only_cat
@@ -34,7 +34,7 @@ class PlotManager:
         self.log = log
         self.save = save
         for name, h_dict in hist_cfg.items():
-            self.datamc_objects[name] = Shape(h_dict, name, plot_dir, only_cat=self.only_cat, style_cfg=style_cfg, data_key=self.data_key, log=self.log)
+            self.datamc_objects[name] = Shape(h_dict, name, plot_dir, only_cat=self.only_cat, samples_map=samples_map, style_cfg=style_cfg, data_key=self.data_key, log=self.log)
 
     def plot_datamc_all(self, ratio=True, syst=True, spliteras=False):
         '''Plots all the histograms contained in the dictionary, for all years and categories.'''
