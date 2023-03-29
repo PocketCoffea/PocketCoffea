@@ -272,7 +272,10 @@ class Shape:
             self.fig, self.ax  = plt.subplots(1, 1, **self.style.opts_figure["datamc"])
         hep.cms.text("Preliminary", fontsize=self.style.fontsize, loc=0, ax=self.ax)
         if year:
-            hep.cms.lumitext(text=f'{self.lumi[year]}' + r' fb$^{-1}$, 13 TeV,' + f' {year}', fontsize=self.style.fontsize, ax=self.ax)
+            if not self.is_mc_only:
+                hep.cms.lumitext(text=f'{self.lumi[year]}' + r' fb$^{-1}$, 13 TeV,' + f' {year}', fontsize=self.style.fontsize, ax=self.ax)
+            else:
+                hep.cms.lumitext(text=f'{year}', fontsize=self.style.fontsize, ax=self.ax)
 
     def format_figure(self, ratio=True):
         '''Formats the figure's axes, labels, ticks, xlim and ylim.'''
@@ -329,7 +332,7 @@ class Shape:
         self.stack_mc_nominal.plot(ax=self.ax, color=self.colors, density=self.density, **self.style.opts_mc)
         self.format_figure(ratio=False)
 
-    def plot_data(self, year=None, ax=None):
+    def plot_data(self, ax=None):
         '''Plots the data histogram as an errorbar plot.'''
         if ax:
             self.ax = ax
@@ -342,7 +345,7 @@ class Shape:
         self.ax.errorbar(self.xcenters, y, yerr=yerr, **self.style.opts_data)
         self.format_figure(ratio=False)
 
-    def plot_datamc_ratio(self, year=None, ax=None):
+    def plot_datamc_ratio(self, ax=None):
         '''Plots the Data/MC ratio as an errorbar plot.'''
         self.get_datamc_ratio()
         if ax:
