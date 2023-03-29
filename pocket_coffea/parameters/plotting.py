@@ -18,6 +18,10 @@ style_cfg = {
             'sharex' : True,
         },
     },
+    "opts_mc" : {
+        'histtype': 'fill',
+        'stack' : True
+    },
     "opts_data" : {
         'linestyle': 'solid',
         'linewidth': 0,
@@ -70,6 +74,7 @@ style_cfg = {
             'color': 'blue',
         },
     },
+    "samples_map": {},
     "labels": {
         "ttHTobb": "$t\\bar{t}H\\rightarrow b\\bar{b}$",
         "TTToSemiLeptonic": "$t\\bar{t}$ semilep.",
