@@ -322,17 +322,17 @@ class Shape:
             handles = handles_new
             self.ax.legend(handles, labels, fontsize=self.style.fontsize, ncols=2, loc="upper right")
 
-    def plot_mc(self):
+    def plot_mc(self, ax=None):
         '''Plots the MC histograms as a stacked plot.'''
-        if not 'fig' in dir(self):
-            self.define_figure(ratio=False)
+        if ax:
+            self.ax = ax
         self.stack_mc_nominal.plot(ax=self.ax, color=self.colors, density=self.density, **self.style.opts_mc)
         self.format_figure(ratio=False)
 
-    def plot_data(self, year):
+    def plot_data(self, year=None, ax=None):
         '''Plots the data histogram as an errorbar plot.'''
-        if not 'fig' in dir(self):
-            self.define_figure(year, ratio=False)
+        if ax:
+            self.ax = ax
         y = self.stack_sum_data.values()
         yerr = np.sqrt(y)
         integral = (sum(y) * self.xbinwidth)
@@ -342,15 +342,15 @@ class Shape:
         self.ax.errorbar(self.xcenters, y, yerr=yerr, **self.style.opts_data)
         self.format_figure(ratio=False)
 
-    def plot_datamc_ratio(self, year):
+    def plot_datamc_ratio(self, year=None, ax=None):
         '''Plots the Data/MC ratio as an errorbar plot.'''
         self.get_datamc_ratio()
-        if not 'fig' in dir(self):
-            self.define_figure(year, ratio=True)
+        if ax:
+            self.rax = rax
         self.rax.errorbar(self.xcenters, self.ratio, yerr=self.ratio_unc, **self.style.opts_data)
         self.format_figure(ratio=True)
 
-    def plot_systematic_uncertainty(self, ratio=False):
+    def plot_systematic_uncertainty(self, ratio=False, ax=None):
         '''Plots the asymmetric systematic uncertainty band on top of the MC stack, if `ratio` is set to False.
         To plot the systematic uncertainty in a ratio plot, `ratio` has to be set to True and the uncertainty band will be plotted around 1 in the ratio plot.'''
         ax = self.ax
@@ -373,7 +373,7 @@ class Shape:
         if ratio:
             ax.hlines(1.0, *ak.Array(self.xedges)[[0,-1]], colors='gray', linestyles='dashed')
 
-    def plot_datamc(self, year=None, ratio=True, syst=True):
+    def plot_datamc(self, year=None, ratio=True, syst=True, ax=None, rax=None):
         '''Plots the data histogram as an errorbar plot on top of the MC stacked histograms.
         If ratio is True, also the Data/MC ratio plot is plotted.
         If syst is True, also the total systematic uncertainty is plotted.'''
@@ -383,11 +383,13 @@ class Shape:
             if self.is_data_only:
                 raise Exception("The Data/MC ratio cannot be plotted if the histogram is Data only.")
 
-        if not 'fig' in dir(self):
-            self.define_figure(year, ratio=ratio)
+        if ax:
+            self.ax = ax
+        if rax:
+            self.rax = rax
         if (not self.is_mc_only) & (not self.is_data_only):
             self.plot_mc()
-            self.plot_data()
+            self.plot_data(year)
             if syst:
                 self.plot_systematic_uncertainty()
         elif self.is_mc_only:
@@ -395,10 +397,10 @@ class Shape:
             if syst:
                 self.plot_systematic_uncertainty()
         elif self.is_data_only:
-            self.plot_data()
+            self.plot_data(year)
 
         if ratio:
-            self.plot_datamc_ratio()
+            self.plot_datamc_ratio(year)
             if syst:
                 self.plot_systematic_uncertainty(ratio)
 
@@ -604,6 +606,4 @@ class SystUnc:
         self.ax.set_xlabel(self.xlabel)
         self.ax.set_ylabel("Counts")
         self.ax.legend()
-        #plt.show()
-        #plt.close()
         return self.fig, self.ax
