@@ -270,7 +270,8 @@ class Shape:
             self.fig.subplots_adjust(hspace=0.06)
         else:
             self.fig, self.ax  = plt.subplots(1, 1, **self.style.opts_figure["datamc"])
-        hep.cms.text("Preliminary", fontsize=self.style.fontsize, loc=0, ax=self.ax)
+        if self.is_mc_only:
+            hep.cms.text("Simulation Preliminary", fontsize=self.style.fontsize, loc=0, ax=self.ax)
         if year:
             if not self.is_mc_only:
                 hep.cms.lumitext(text=f'{self.lumi[year]}' + r' fb$^{-1}$, 13 TeV,' + f' {year}', fontsize=self.style.fontsize, ax=self.ax)
