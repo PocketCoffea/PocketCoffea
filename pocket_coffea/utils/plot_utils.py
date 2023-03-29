@@ -75,7 +75,7 @@ class Shape:
         self.density = density
         assert type(h_dict) == dict, "The Shape object receives a dictionary of hist.Hist objects as argument."
         self.group_samples()
-        assert self.dense_dim == 1, f"Histograms with dense dimension {self.dense_dim} cannot be plotted. Only 1D histograms are supported."
+        assert self.dense_dim == 1, f"The dimension of the histogram '{self.name}' is {self.dense_dim}. Only 1D histograms are supported."
         self.load_attributes()
 
     @property
