@@ -39,6 +39,7 @@ parser.add_argument('--split_systematics', action='store_true', help='Split syst
 parser.add_argument('--partial_unc_band', action='store_true', help='Plot only the partial uncertainty band corresponding to the systematics specified as the argument `only_syst`')
 parser.add_argument('--overwrite', action='store_true', help='Overwrite plots in output folder')
 parser.add_argument('--log', action='store_true', help='Set y-axis scale to log')
+parser.add_argument('--density', action='store_true', help='Set density parameter to have a normalized plot')
 parser.add_argument('-d', '--data_key', type=str, default='DATA', help='Prefix for data samples', required=False)
 
 args = parser.parse_args()
@@ -73,6 +74,7 @@ def make_plots(entrystart, entrystop):
         only_cat=args.only_cat,
         data_key=args.data_key,
         log=args.log,
+        density=args.density,
         save=True
     )
     plotter.plot_datamc_all(ratio=True, syst=True, spliteras=False)
