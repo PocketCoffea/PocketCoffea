@@ -18,15 +18,29 @@ from ..parameters.plotting import style_cfg
 class Style:
     '''This class manages all the style options for Data/MC plots.'''
     def __init__(self, style_cfg=style_cfg) -> None:
+        required_keys = ["opts_figure", "opts_mc", "opts_data", "opts_unc"]
+        for key in required_keys:
+            assert key in style_cfg, f"The key `{key}` is not defined in the style dictionary."
         for key, item in style_cfg.items():
             setattr(self, key, item)
+        self.has_labels = False
+        self.has_samples_map = False
         if "labels" in style_cfg:
             self.has_labels = True
+        if "samples_map" in style_cfg:
+            self.has_samples_map = True
+        self.set_defaults()
+
+    def set_defaults(self):
+        if not "stack" in self.opts_mc:
+            self.opts_mc["stack"] = True
+        if not hasattr(self, "fontsize"):
+            self.fontsize = 22
 
 
 class PlotManager:
     '''This class manages multiple Shape objects and their plotting.'''
-    def __init__(self, hist_cfg, plot_dir, only_cat=[], samples_map={}, style_cfg=style_cfg, data_key="DATA", log=False, save=True) -> None:
+    def __init__(self, hist_cfg, plot_dir, only_cat=[], style_cfg=style_cfg, data_key="DATA", log=False, density=False, save=True) -> None:
         self.datamc_objects = {}
         self.plot_dir = plot_dir
         self.only_cat = only_cat
@@ -34,7 +48,7 @@ class PlotManager:
         self.log = log
         self.save = save
         for name, h_dict in hist_cfg.items():
-            self.datamc_objects[name] = Shape(h_dict, name, plot_dir, only_cat=self.only_cat, samples_map=samples_map, style_cfg=style_cfg, data_key=self.data_key, log=self.log)
+            self.datamc_objects[name] = Shape(h_dict, name, plot_dir, only_cat=self.only_cat, style_cfg=style_cfg, data_key=self.data_key, log=self.log, density=False)
 
     def plot_datamc_all(self, ratio=True, syst=True, spliteras=False):
         '''Plots all the histograms contained in the dictionary, for all years and categories.'''
@@ -49,15 +63,15 @@ class Shape:
     - name: name that identifies the Shape object.
     - style_cfg: dictionary with style and plotting options.
     - data_key: prefix for data samples (e.g. default in PocketCoffea: "DATA_SingleEle")'''
-    def __init__(self, h_dict, name, plot_dir, only_cat=[], samples_map={}, style_cfg=style_cfg, data_key="DATA", log=False) -> None:
+    def __init__(self, h_dict, name, plot_dir, only_cat=[], style_cfg=style_cfg, data_key="DATA", log=False, density=False) -> None:
         self.h_dict = h_dict
         self.name = name
         self.plot_dir = plot_dir
         self.only_cat = only_cat
-        self.samples_map = samples_map
         self.style = Style(style_cfg)
         self.data_key = data_key
         self.log = log
+        self.density = density
         assert type(h_dict) == dict, "The Shape object receives a dictionary of hist.Hist objects as argument."
         self.group_samples()
         assert self.dense_dim == 1, f"Histograms with dense dimension {self.dense_dim} cannot be plotted. Only 1D histograms are supported."
@@ -158,12 +172,12 @@ class Shape:
         return list(filter(lambda d : self.data_key not in d, self.samples))
 
     def group_samples(self):
-        '''Groups samples according to the dictionary self.samples_map'''
-        h_dict_grouped = {}
-        if self.samples_map == {}:
+        '''Groups samples according to the dictionary self.style.samples_map'''
+        if not self.style.has_samples_map:
             return
+        h_dict_grouped = {}
         samples_in_map = []
-        for sample_new, samples_list in self.samples_map.items():
+        for sample_new, samples_list in self.style.samples_map.items():
             h_dict_grouped[sample_new] = self._stack_sum(stack=hist.Stack.from_dict({s : h for s, h in self.h_dict.items() if s in samples_list}))
             samples_in_map += samples_list
         for s, h in self.h_dict.items():
@@ -261,7 +275,8 @@ class Shape:
 
     def format_figure(self, ratio=True):
         '''Formats the figure's axes, labels, ticks, xlim and ylim.'''
-        self.ax.set_ylabel("Counts", fontsize=self.style.fontsize)
+        ylabel = "Counts" if not self.density else "A.U."
+        self.ax.set_ylabel(ylabel, fontsize=self.style.fontsize)
         self.ax.legend(fontsize=self.style.fontsize, ncols=2, loc="upper right")
         self.ax.tick_params(axis='x', labelsize=self.style.fontsize)
         self.ax.tick_params(axis='y', labelsize=self.style.fontsize)
@@ -275,11 +290,15 @@ class Shape:
             self.ax.set_ylim((0.01, 10 ** (exp + 3)))
         else:
             if self.is_mc_only:
-                maximum = max(self.stack_sum_mc_nominal.values())
+                reference_shape = self.stack_sum_mc_nominal.values()
             else:
-                maximum = max(self.stack_sum_data.values())
-            if not np.isnan(maximum):
-                self.ax.set_ylim((0, 2.0 * maximum))
+                reference_shape = self.stack_sum_data.values()
+            if self.density:
+                integral = sum(reference_shape) * self.xbinwidth
+                reference_shape = reference_shape / integral
+            ymax = max(reference_shape)
+            if not np.isnan(ymax):
+                self.ax.set_ylim((0, 2.0 * ymax))
         if ratio:
             self.ax.set_xlabel("")
             self.rax.set_xlabel(self.xlabel, fontsize=self.style.fontsize)
@@ -306,14 +325,20 @@ class Shape:
         '''Plots the MC histograms as a stacked plot.'''
         if not 'fig' in dir(self):
             self.define_figure(ratio=False)
-        self.stack_mc_nominal.plot(stack=True, histtype='fill', ax=self.ax, color=self.colors)
+        self.stack_mc_nominal.plot(ax=self.ax, color=self.colors, density=self.density, **self.style.opts_mc)
         self.format_figure(ratio=False)
 
     def plot_data(self, year):
         '''Plots the data histogram as an errorbar plot.'''
         if not 'fig' in dir(self):
             self.define_figure(year, ratio=False)
-        self.ax.errorbar(self.xcenters, self.stack_sum_data.values(), yerr=np.sqrt(self.stack_sum_data.values()), **self.style.opts_data)
+        y = self.stack_sum_data.values()
+        yerr = np.sqrt(y)
+        integral = (sum(y) * self.xbinwidth)
+        if self.density:
+            y = y / integral
+            yerr = yerr / integral
+        self.ax.errorbar(self.xcenters, y, yerr=yerr, **self.style.opts_data)
         self.format_figure(ratio=False)
 
     def plot_datamc_ratio(self, year):
