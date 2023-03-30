@@ -101,13 +101,14 @@ def get_mu_sf(year, pt, eta, counts, key=''):
     muonJSON = correctionlib.CorrectionSet.from_file(muonJSONfiles[year]['file'])
     sfName = muonSF[year][key]
 
-    year = f"{year}_UL"  # N.B. This works for the UL SF in the current JSON scheme (25.05.2022)
-    sf = muonJSON[sfName].evaluate(year, np.abs(eta.to_numpy()), pt.to_numpy(), "sf")
+    year_dict = {"2016_PreVFP" : "2016preVFP_UL", "2016_PostVFP" : "2016postVFP_UL", "2017" : "2017_UL", "2018" : "2018_UL"}
+    year_pog = year_dict[year]
+    sf = muonJSON[sfName].evaluate(year_pog, np.abs(eta.to_numpy()), pt.to_numpy(), "sf")
     sfup = muonJSON[sfName].evaluate(
-        year, np.abs(eta.to_numpy()), pt.to_numpy(), "systup"
+        year_pog, np.abs(eta.to_numpy()), pt.to_numpy(), "systup"
     )
     sfdown = muonJSON[sfName].evaluate(
-        year, np.abs(eta.to_numpy()), pt.to_numpy(), "systdown"
+        year_pog, np.abs(eta.to_numpy()), pt.to_numpy(), "systdown"
     )
 
     # The unflattened arrays are returned in order to have one row per event.
