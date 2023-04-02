@@ -33,8 +33,9 @@ parser.add_argument('--plot_dir', default=None, help='Sub-directory inside the p
 parser.add_argument('-v', '--version', type=str, default=None, help='Version of output (e.g. `v01`, `v02`, etc.)')
 parser.add_argument('-j', '--workers', type=int, default=8, help='Number of parallel workers to use for plotting')
 parser.add_argument('-o', '--only', type=str, default='', help='Filter histograms name with string', required=False)
-parser.add_argument('-oc', '--only_cat', type=str, nargs="+", help='Filter categories with string', required=False)
+parser.add_argument('-oc', '--only_cat', type=str, default=[''], nargs="+", help='Filter categories with string', required=False)
 parser.add_argument('-os', '--only_syst', type=str, nargs="+", default='', help='Filter systematics with a list of strings', required=False)
+parser.add_argument('-e', '--exclude', type=str, default='', help='Exclude categories with string', required=False)
 parser.add_argument('--split_systematics', action='store_true', help='Split systematic uncertainties in the ratio plot')
 parser.add_argument('--partial_unc_band', action='store_true', help='Plot only the partial uncertainty band corresponding to the systematics specified as the argument `only_syst`')
 parser.add_argument('--overwrite', action='store_true', help='Overwrite plots in output folder')
@@ -81,7 +82,8 @@ def make_plots(entrystart, entrystop):
 
 # Filter dictionary of histograms with `args.only`
 accumulator['variables'] = { k : v for k,v in accumulator['variables'].items() if args.only in k }
-HistsToPlot = [k for k in accumulator['variables'].keys()]
+accumulator['variables'] = { k : v for k,v in accumulator['variables'].items() if not args.exclude in k }
+HistsToPlot = list(accumulator['variables'].keys())
 
 NtotHists = len(HistsToPlot)
 NHistsToPlot = len([key for key in HistsToPlot if args.only in key])

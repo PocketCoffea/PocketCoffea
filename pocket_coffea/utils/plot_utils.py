@@ -40,7 +40,7 @@ class Style:
 
 class PlotManager:
     '''This class manages multiple Shape objects and their plotting.'''
-    def __init__(self, hist_cfg, plot_dir, only_cat=[], style_cfg=style_cfg, data_key="DATA", log=False, density=False, save=True) -> None:
+    def __init__(self, hist_cfg, plot_dir, only_cat=[''], style_cfg=style_cfg, data_key="DATA", log=False, density=False, save=True) -> None:
         self.shape_objects = {}
         self.plot_dir = plot_dir
         self.only_cat = only_cat
@@ -64,7 +64,7 @@ class Shape:
     - name: name that identifies the Shape object.
     - style_cfg: dictionary with style and plotting options.
     - data_key: prefix for data samples (e.g. default in PocketCoffea: "DATA_SingleEle")'''
-    def __init__(self, h_dict, name, plot_dir, only_cat=[], style_cfg=style_cfg, data_key="DATA", log=False, density=False) -> None:
+    def __init__(self, h_dict, name, plot_dir, only_cat=[''], style_cfg=style_cfg, data_key="DATA", log=False, density=False) -> None:
         self.h_dict = h_dict
         self.name = name
         self.plot_dir = plot_dir
@@ -393,7 +393,7 @@ class Shape:
             self.rax = rax
         if (not self.is_mc_only) & (not self.is_data_only):
             self.plot_mc()
-            self.plot_data(year)
+            self.plot_data()
             if syst:
                 self.plot_systematic_uncertainty()
         elif self.is_mc_only:
@@ -401,10 +401,10 @@ class Shape:
             if syst:
                 self.plot_systematic_uncertainty()
         elif self.is_data_only:
-            self.plot_data(year)
+            self.plot_data()
 
         if ratio:
-            self.plot_datamc_ratio(year)
+            self.plot_datamc_ratio()
             if syst:
                 self.plot_systematic_uncertainty(ratio)
 
