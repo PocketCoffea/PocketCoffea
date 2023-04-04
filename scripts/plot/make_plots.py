@@ -33,7 +33,7 @@ parser.add_argument('--plot_dir', default=None, help='Sub-directory inside the p
 parser.add_argument('-v', '--version', type=str, default=None, help='Version of output (e.g. `v01`, `v02`, etc.)')
 parser.add_argument('-j', '--workers', type=int, default=8, help='Number of parallel workers to use for plotting')
 parser.add_argument('-o', '--only', type=str, default='', help='Filter histograms name with string', required=False)
-parser.add_argument('-oc', '--only_cat', type=str, nargs="+", help='Filter categories with string', required=False)
+parser.add_argument('-oc', '--only_cat', type=str, default=[''], nargs="+", help='Filter categories with string', required=False)
 parser.add_argument('-os', '--only_syst', type=str, nargs="+", default='', help='Filter systematics with a list of strings', required=False)
 parser.add_argument('--split_systematics', action='store_true', help='Split systematic uncertainties in the ratio plot')
 parser.add_argument('--partial_unc_band', action='store_true', help='Plot only the partial uncertainty band corresponding to the systematics specified as the argument `only_syst`')
@@ -77,7 +77,7 @@ def make_plots(entrystart, entrystop):
         density=args.density,
         save=True
     )
-    plotter.plot_datamc_all(ratio=True, syst=True, spliteras=False)
+    plotter.plot_datamc_all(syst=True, spliteras=False)
 
 # Filter dictionary of histograms with `args.only`
 accumulator['variables'] = { k : v for k,v in accumulator['variables'].items() if args.only in k }
