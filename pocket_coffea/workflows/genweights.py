@@ -24,10 +24,10 @@ class genWeightsProcessor(BaseProcessorABC):
             self._xsec = self.events.metadata["xsec"]
 
         # Check if the user specified any subsamples without performing any operation
-        if self._sample in self._subsamplesCfg:
-            self._hasSubsamples = True
-        else:
-            self._hasSubsamples = False
+        #if self._sample in self._subsamples:
+        #    self._hasSubsamples = True
+        #else:
+        #    self._hasSubsamples = False
 
     def apply_object_preselection(self, variation):
         pass
@@ -45,7 +45,7 @@ class genWeightsProcessor(BaseProcessorABC):
         self.output['cutflow']['initial'][self._dataset] += self.nEvents_initial
         if self._isMC:
             self.output['sum_genweights'][self._dataset] = ak.sum(self.events.genWeight)
-            if self._hasSubsamples:
-                raise Exception("This processor cannot compute the sum of genweights of subsamples.")
+            #if self._hasSubsamples:
+            #    raise Exception("This processor cannot compute the sum of genweights of subsamples.")
 
         return self.output
