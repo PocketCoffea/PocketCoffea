@@ -10,18 +10,13 @@ print("""
 
 import os
 import sys
-import json
 import argparse
-import time
 import pickle
 import socket
-import logging 
+import logging
 
-import uproot
-from coffea.nanoevents import NanoEventsFactory
-from coffea.util import load, save
+from coffea.util import save
 from coffea import processor
-from pprint import pprint
 
 from pocket_coffea.utils.configurator import Configurator
 from pocket_coffea.utils.network import get_proxy_path
@@ -52,7 +47,7 @@ if __name__ == '__main__':
                         log_line_template="%(color_on)s[%(levelname)-8s] %(message)s%(color_off)s")):
         print("Failed to setup logging, aborting.")
         exit(1) 
-    
+
     if args.cfg[-3:] == ".py":
         config = Configurator(args.cfg, overwrite_output_dir=args.outputdir)
     elif args.cfg[-4:] == ".pkl":
@@ -90,12 +85,15 @@ if __name__ == '__main__':
         os.system(f'cp {_x509_localpath} {_x509_path}')
         
     if (run_env:=config.run_options.get("env", "singularity")) == "singularity":
+        _configs_path = config.run_options["configs_path"]
         env_extra = [
             'export XRD_RUNFORKHANDLER=1',
             f'export X509_USER_PROXY={_x509_path}',
             # f'export X509_CERT_DIR={os.environ["X509_CERT_DIR"]}',
             f'source {sys.prefix}/bin/activate',
         ]
+        if "configs_path" in config.run_options:
+            env_extra += f'export PYTHONPATH={_configs_path}'
     elif run_env == "conda":
         env_extra = [
             'export XRD_RUNFORKHANDLER=1',
@@ -225,8 +223,9 @@ if __name__ == '__main__':
                                         },
                                         chunksize=config.run_options['chunk'], maxchunks=config.run_options['max']
                                         )
-            save(output, config.outfile)
-            print(f"Saving output to {config.outfile}")
+            outfile = config.outfile.replace("{dataset}","all")
+            save(output, outfile )
+            print(f"Saving output to {outfile}")
 
 
     # DASK runners
@@ -274,7 +273,7 @@ if __name__ == '__main__':
             cluster = CernCluster(
                 cores=1,
                 memory=config.run_options['mem_per_worker'],
-                disk=config.run_options.get('disk_per_worker', "20GB"),
+                disk=config.run_options.get('disk_per_worker', "1GB"),
                 image_type="singularity",
                 worker_image="/cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/batch-team/dask-lxplus/lxdask-cc7:latest",
                 death_timeout="3600",
