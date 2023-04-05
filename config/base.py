@@ -9,7 +9,7 @@ import numpy as np
 
 cfg =  {
     "dataset" : {
-        "jsons": ["datasets/backgrounds_MC_ttbar_2018.json",
+        "jsons": ["datasets/backgrounds_MC_ttbar.json",
                     ],
         "filter" : {
             "samples": ["TTToSemiLeptonic"],
@@ -27,14 +27,15 @@ cfg =  {
     "run_options" : {
         "executor"       : "dask/lxplus",
         "workers"        : 1,
-        "scaleout"       : 120,
+        "scaleout"       : 20,
         "queue"          : "microcentury",
         "walltime"       : "00:40:00",
         "mem_per_worker" : "4GB", # GB
+        "disk_per_worker" : "1GB", # GB
         "exclusive"      : False,
         "chunk"          : 200000,
         "retries"        : 50,
-        "treereduction"  : None,
+        "treereduction"  : 20,
         "max"            : None,
         "skipbadfiles"   : None,
         "voms"           : None,
