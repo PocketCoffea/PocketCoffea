@@ -25,10 +25,13 @@ class Style:
             setattr(self, key, item)
         self.has_labels = False
         self.has_samples_map = False
+        self.has_lumi = False
         if "labels" in style_cfg:
             self.has_labels = True
         if "samples_map" in style_cfg:
             self.has_samples_map = True
+        if "lumi_processed" in style_cfg:
+            self.has_lumi = True
         self.set_defaults()
 
     def set_defaults(self):
@@ -74,6 +77,8 @@ class Shape:
         self.plot_dir = plot_dir
         self.only_cat = only_cat
         self.style = Style(style_cfg)
+        if self.style.has_lumi:
+            self.lumi_fraction = {year : l / lumi[year]['tot'] for year, l in self.style.lumi_processed.items()}
         self.data_key = data_key
         self.log = log
         self.density = density
