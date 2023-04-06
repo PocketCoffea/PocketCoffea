@@ -45,14 +45,17 @@ def get_ele_sf(
         map_name = electronSF[key][year]
 
     if key in ['reco', 'id']:
+        # Dictionary to translate the `year` key into the corresponding key in the correction file provided by the EGM-POG
+        year_dict = {"2016_PreVFP" : "2016preVFP", "2016_PostVFP" : "2016postVFP", "2017" : "2017", "2018" : "2018"}
+        year_pog = year_dict[year]
         sf = electronJSON[map_name].evaluate(
-            year, "sf", sfName, eta.to_numpy(), pt.to_numpy()
+            year_pog, "sf", sfName, eta.to_numpy(), pt.to_numpy()
         )
         sfup = electronJSON[map_name].evaluate(
-            year, "sfup", sfName, eta.to_numpy(), pt.to_numpy()
+            year_pog, "sfup", sfName, eta.to_numpy(), pt.to_numpy()
         )
         sfdown = electronJSON[map_name].evaluate(
-            year, "sfdown", sfName, eta.to_numpy(), pt.to_numpy()
+            year_pog, "sfdown", sfName, eta.to_numpy(), pt.to_numpy()
         )
         # The unflattened arrays are returned in order to have one row per event.
         return (
@@ -60,7 +63,6 @@ def get_ele_sf(
             ak.unflatten(sfup, counts),
             ak.unflatten(sfdown, counts),
         )
-    ### N.B.: In the current implementation, only the statistical uncertainty is included in the up/down variations of the trigger SF
     elif key == 'trigger':
         output = {}
         for variation in variations:
@@ -99,13 +101,14 @@ def get_mu_sf(year, pt, eta, counts, key=''):
     muonJSON = correctionlib.CorrectionSet.from_file(muonJSONfiles[year]['file'])
     sfName = muonSF[year][key]
 
-    year = f"{year}_UL"  # N.B. This works for the UL SF in the current JSON scheme (25.05.2022)
-    sf = muonJSON[sfName].evaluate(year, np.abs(eta.to_numpy()), pt.to_numpy(), "sf")
+    year_dict = {"2016_PreVFP" : "2016preVFP_UL", "2016_PostVFP" : "2016postVFP_UL", "2017" : "2017_UL", "2018" : "2018_UL"}
+    year_pog = year_dict[year]
+    sf = muonJSON[sfName].evaluate(year_pog, np.abs(eta.to_numpy()), pt.to_numpy(), "sf")
     sfup = muonJSON[sfName].evaluate(
-        year, np.abs(eta.to_numpy()), pt.to_numpy(), "systup"
+        year_pog, np.abs(eta.to_numpy()), pt.to_numpy(), "systup"
     )
     sfdown = muonJSON[sfName].evaluate(
-        year, np.abs(eta.to_numpy()), pt.to_numpy(), "systdown"
+        year_pog, np.abs(eta.to_numpy()), pt.to_numpy(), "systdown"
     )
 
     # The unflattened arrays are returned in order to have one row per event.
