@@ -2,7 +2,7 @@ Full analysis example
 ########################
 
 A full example of all the steps needed to run a full analysis with PocketCoffea is reported, starting from the creation of the datasets list, the customization of parameters and the production of the final shapes and plots.
-As an example, a simplified version of the Drell-Yan analysis targeting the Z->mumu channel is implemented.
+As an example, a toy example version of the Drell-Yan analysis targeting the Z->mumu channel is implemented.
 The main steps that need to be performed are the following:
 
 * Build the json datasets
@@ -136,7 +136,7 @@ Compute the sum of genweights
 The sum of the genweights of Monte Carlo datasets needs to be computed in order to properly normalize Monte Carlo datasets.
 To compute the sum of genweights, we need to run a dedicated Coffea processor, ``genWeightsProcessor``, that just opens all the files, reads the genweight of each event and stores their sum in a dictionary in the output file.
 
-1) Copy the config and workflows file for the genweights from PocketCoffea and modify the ``samples`` in the ``dataset`` dictionary:
+1) Copy the config and workflows file for the genweights from PocketCoffea and modify the ``samples`` in the ``dataset`` dictionary with the names of our samples:
 
 .. code-block:: bash
 
@@ -165,9 +165,11 @@ Define selections
 ================
 
 The selections are performed at two levels:
+
 * Object preselection: selecting the "good" objects that will be used in the final analysis (e.g. `JetGood`, `MuonGood`, `ElectronGood`...).
 * Event selection: selections on the events that enter the final analysis, done in three steps:
-   1. Skim: loose cut on the events. The following steps of the analysis are performed only on the events passing the skim selection, while the others are discarded from the branch ``events``.
+
+   1. Skim and trigger: loose cut on the events and trigger requirements.
    2. Preselection: baseline event selection for the analysis.
    3. Categorization: selection to split the events passing the event preselection into different categories (e.g. signal region, control region).
 
@@ -177,7 +179,7 @@ Object preselection
 To select the objects entering the final analysis, we need to specify a series of cut parameters for the leptons and jets in the file ``PocketCoffea/pocket_coffea/parameters/object_preselection.py``. These selections include the pT, eta acceptance cuts, the object identification working points, the muon isolation, the b-tagging working point, etc.
 For the Z->mumu analysis, we just use the standard definitions for the muon, electron and jet objects, that we include as a dictionary under the key ``dimuon``:
 
-.. code-block:: json
+.. code-block:: python
 
    object_preselection = {
       "dimuon": {
@@ -202,11 +204,120 @@ For the Z->mumu analysis, we just use the standard definitions for the muon, ele
          },
    ...
 
+The ``finalstate`` label has to be changed to ``dimuon`` such that the processor can query the corresponding parameters for the object preselection defined above:
+
+.. code-block:: python
+
+   cfg = {
+    ...
+    "finalstate" : "dimuon",
+    ...
+   }
+
+
 Event selection
 ----------------
 
-The skim selection is defined as a
+In PocketCoffea, the event selections are implemented with a dedicated `Cut` object, that stores both the information of the cutting function and its input parameters.
+Several factory ``Cut`` objects are available in ``pocket_coffea.lib.cut_functions``, otherwise the user can define its custom ``Cut`` objects.
 
+
+Skim
+~~~~~~~~~~~~~~~~~~~~~
+
+The skim selection of the events is performed "on the fly" to reduce the number of processed events. At this stage we also apply the HLT trigger requirements required by the analysis.
+The following steps of the analysis are performed only on the events passing the skim selection, while the others are discarded from the branch ``events``, therefore reducing the computational load on the processor.
+In the config file, we specify two skim cuts: one is selecting events with at least one 15 GeV muon and the second is requiring the HLT ``SingleMuon`` path.
+In the preamble of ``config.py``, we define our custom trigger dictionary, which we pass as an argument to the factory function ``get_HLTsel()``:
+
+.. code-block:: python
+
+   trigger_dict = {
+      "2018": {
+         "SingleEle": [
+               "Ele32_WPTight_Gsf",
+               "Ele28_eta2p1_WPTight_Gsf_HT150",
+         ],
+         "SingleMuon": [
+               "IsoMu24",
+         ],
+      },
+   }
+
+   cfg = {
+    ...
+    "skim": [get_nObj_min(1, 15., "Muon"),
+             get_HLTsel("dimuon", trigger_dict, primaryDatasets=["SingleMuon"])],
+    ...
+   }
+
+
+Event preselection
+~~~~~~~~~~~~~~~~~~~~~
+
+In the Z->mumu analysis, we want to select events with exactly two muons with opposite charge. In addition, we require a cut on the leading muon pT and on the dilepton invariant mass, to select the Z boson mass window.
+The parameters are directly passed to the constructor of the ``Cut`` object as the dictionary ``params``. We can define the function ``dimuon`` and the ``Cut`` object ``dimuon_presel`` in the preamble of config:
+
+.. code-block:: python
+
+   def dimuon(events, params, year, sample, **kwargs):
+
+      # Masks for same-flavor (SF) and opposite-sign (OS)
+      SF = ((events.nMuonGood == 2) & (events.nElectronGood == 0))
+      OS = events.ll.charge == 0
+
+      mask = (
+         (events.nLeptonGood == 2)
+         & (ak.firsts(events.MuonGood.pt) > params["pt_leading_muon"])
+         & OS & SF
+         & (events.ll.mass > params["mll"]["low"])
+         & (events.ll.mass < params["mll"]["high"])
+      )
+
+      # Pad None values with False
+      return ak.where(ak.is_none(mask), False, mask)
+
+   dimuon_presel = Cut(
+      name="dilepton",
+      params={
+         "pt_leading_muon": 25,
+         "mll": {'low': 25, 'high': 2000},
+      },
+      function=dimuon,
+   )
+
+In a scenario of an analysis requiring several different cuts, a dedicated library of cuts and functions can be defined in a separate file and imported in the config file.
+The ``preselections`` field in the config file is updated accordingly:
+
+.. code-block:: python
+
+
+   cfg = {
+      ...
+      "preselections" : [dimuon_presel],
+      ...
+   }
+
+
+Categorization
+~~~~~~~~~~~~~~~~~~~~~
+
+In the toy Z->mumu analysis, no further categorization of the events is performed. Only a ``baseline`` category is defined with the ``passthrough`` factory cut that is just passing the events through without any further selection:
+
+.. code-block:: python
+
+   cfg = {
+      ...
+      # Cuts and plots settings
+      "finalstate" : "dimuon",
+      "skim": [get_nObj_min(1, 15., "Muon"),
+               get_HLTsel("dimuon", trigger_dict, primaryDatasets=["SingleMuon"])],
+      "preselections" : [dimuon_presel],
+      "categories": {
+         "baseline": [passthrough],
+      },
+      ...
+   }
 
 Define weights and variations
 ================
@@ -214,6 +325,7 @@ Define weights and variations
 
 Define histograms
 ================
+
 Wrapped in the ``variable`` dictionary under ``config.py``.
 
 - Create custom histogram with ``key:$HistConf_obj`` , create `Axis` in a list (1 element for 1D-hist, 2 elements for 2D-hist)
