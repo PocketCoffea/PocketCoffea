@@ -418,17 +418,17 @@ Wrapped in the ``variable`` dictionary under ``config.py``.
 	
 Run the processor
 ================
-Run the coffea processor to get ``.coffea`` files! The ``coffea`` executor can be run locally with ``iterative, futures`` and scaleout to clusters. We now test the setup on ``lxplus, naf-desy`` more sites can also be added later.
+Run the coffea processor to get ``.coffea`` output files. The ``coffea`` processor can be run locally with ``iterative`` or ``futures`` executors or scaleout to clusters. We now test the setup on ``lxplus``, ``naf-desy`` but more sites can also be included later.
 
 .. code-block:: python
 
 	# read all information from the config file
-	runner.py --cfg configs/zmumu/config.py 
-	# iteractive run is also possible
+	runner.py --cfg configs/zmumu/config.py --full
+	# iterative run is also possible
 	## run --test for iterative processor with ``--limit-chunks/-lc``(default:2) and ``--limit-files/-lf``(default:1)
-	runner.py --cfg configs/zmumu/config.py --test --lf 1 --lc  2
+	runner.py --cfg configs/zmumu/config.py  --full --test --lf 1 --lc  2
 	## change the --executor and numbers of jobs with -s/--scaleout
-	runner.py --cfg configs/zmumu/config.py --executor futures -s 10
+	runner.py --cfg configs/zmumu/config.py  --full --executor futures -s 10
 	
 The scaleout configurations really depends on cluster and schedulers with different sites(lxplus, LPC, naf-desy).
 
@@ -456,5 +456,7 @@ The scaleout configurations really depends on cluster and schedulers with differ
 Produce plots
 ================
 
-``python ../PocketCoffea/scripts/plot/make_plots.py --cfg configs/zmumu/config.py -i output/test_zmumu_v01/output_all.coffea``
+.. code-block:: bash
+
+   python ../PocketCoffea/scripts/plot/make_plots.py --cfg configs/zmumu/config.py -i output/test_zmumu/output_all.coffea
 
