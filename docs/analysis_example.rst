@@ -60,8 +60,8 @@ The datasets include a Drell-Yan Monte Carlo dataset and a ``SingleMuon`` datase
 
 The list of datasets has to be written in a structured dictionary together with the corresponding metadata in a json file. This json file is then read by the ``build_dataset.py`` script to produce the actual json datasets that are passed as input to the Coffea processor. The steps are the following:
 
-1) Create a json file that contains the required datasets, ``dataset_definitions.json``.
-Each entry of the dictionary corresponds to a dataset. Datasets include a list of DAS keys, the output json dataset path and the metadata. In addition a label ``sample`` is specified to group datasets under the same sample (e.g. group QCD datasets from different HT bins in a single sample).
+1) Create a json file that contains the required datasets, ``dataset_definitions.json``. Each entry of the dictionary corresponds to a dataset. Datasets include a list of DAS keys, the output json dataset path and the metadata. In addition a label ``sample`` is specified to group datasets under the same sample (e.g. group QCD datasets from different HT bins in a single sample).
+
 The general idea is the following:
 
 * The **dataset** key uniquely identifies a dataset.
@@ -135,42 +135,77 @@ Compute the sum of genweights
 
 The sum of the genweights of Monte Carlo datasets needs to be computed in order to properly normalize Monte Carlo datasets.
 To compute the sum of genweights, we need to run a dedicated Coffea processor, ``genWeightsProcessor``, that just opens all the files, reads the genweight of each event and stores their sum in a dictionary in the output file.
-Copy the config and workflows file for the genweights from PocketCoffea, run the ``genWeightsProcessor`` and append the 
 
-#. Copy the config and workflows file for the genweights from PocketCoffea and modify the ``samples`` in the ``dataset`` dictionary:
+1) Copy the config and workflows file for the genweights from PocketCoffea and modify the ``samples`` in the ``dataset`` dictionary:
 
 .. code-block:: bash
 
    cp PocketCoffea/config/genweights/genweights_2018.py zmumu/genweights_2018.py
 
-#. Run the ``genWeightsProcessor`` to get the coffea output containing the sum of genweights:
+2) Run the ``genWeightsProcessor`` to get the coffea output containing the sum of genweights:
 
 .. code-block:: bash
 
    runner.py --cfg zmumu/genweights.py --full
 
-#. Append the ``sum_genweights`` metadata to ``datasets_definitions.json`` using the ``append_genweights.py`` script:
+3) Append the ``sum_genweights`` metadata to ``datasets_definitions.json`` using the ``append_genweights.py`` script:
 
 .. code-block:: python
 
 	python ../PocketCoffea/scripts/dataset/append_genweights.py --cfg configs/zmumu/datasets/datasets_definitions.json -i output/genweights/genweights_2018/output_all.coffea --overwrite
 
-#. Run the ``build_dataset.py`` script again to produced the new json datasets updated with the ``sum_genweights`` metadata:
+4) Run the ``build_dataset.py`` script again to produced the new json datasets updated with the ``sum_genweights`` metadata:
 
-.. code-block:: python
+.. code-block:: python build_dataset.py --cfg datasets_definitions.json --overwrite
 
-   build_dataset.py --cfg datasets_definitions.json --overwrite
+Now the json datasets contain all the necessary information to run the full analysis.
 
 
 Define selections
 ================
 
 The selections are performed at two levels:
-* Object preselection: selecting the "good" objects that will be used in the final analysis (e.g. `JetGood`, `MuonGood`, `ElectronGood`...). These selections include the detector acceptance cuts, the object identification working points, the muon isolation, the b-tagging working point, etc.
+* Object preselection: selecting the "good" objects that will be used in the final analysis (e.g. `JetGood`, `MuonGood`, `ElectronGood`...).
 * Event selection: selections on the events that enter the final analysis, done in three steps:
-   * Skim: loose cut on the events. The following steps of the analysis are performed only on the events passing the skim selection.
-   * Preselection: baseline selection for the analysis.
-   * Categorization: selection to split the events passing the event preselection into different categories.
+   1. Skim: loose cut on the events. The following steps of the analysis are performed only on the events passing the skim selection, while the others are discarded from the branch ``events``.
+   2. Preselection: baseline event selection for the analysis.
+   3. Categorization: selection to split the events passing the event preselection into different categories (e.g. signal region, control region).
+
+Object preselection
+----------------
+
+To select the objects entering the final analysis, we need to specify a series of cut parameters for the leptons and jets in the file ``PocketCoffea/pocket_coffea/parameters/object_preselection.py``. These selections include the pT, eta acceptance cuts, the object identification working points, the muon isolation, the b-tagging working point, etc.
+For the Z->mumu analysis, we just use the standard definitions for the muon, electron and jet objects, that we include as a dictionary under the key ``dimuon``:
+
+.. code-block:: json
+
+   object_preselection = {
+      "dimuon": {
+         "Muon": {
+               "pt": 15,
+               "eta": 2.4,
+               "iso": 0.25, #PFIsoLoose
+               "id": "tightId",
+         },
+         "Electron": {
+               "pt": 15,
+               "eta": 2.4,
+               "iso": 0.06,
+               "id": "mvaFall17V2Iso_WP80",
+         },
+         "Jet": {
+               "dr": 0.4,
+               "pt": 30,
+               "eta": 2.4,
+               "jetId": 2,
+               "puId": {"wp": "L", "value": 4, "maxpt": 50.0},
+         },
+   ...
+
+Event selection
+----------------
+
+The skim selection is defined as a
 
 
 Define weights and variations
