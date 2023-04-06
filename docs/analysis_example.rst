@@ -60,7 +60,7 @@ The datasets include a Drell-Yan Monte Carlo dataset and a ``SingleMuon`` datase
 
 The list of datasets has to be written in a structured dictionary together with the corresponding metadata in a json file. This json file is then read by the ``build_dataset.py`` script to produce the actual json datasets that are passed as input to the Coffea processor. The steps are the following:
 
-1. Create a json file that contains the required datasets, ``dataset_definitions.json``.
+1) Create a json file that contains the required datasets, ``dataset_definitions.json``.
 Each entry of the dictionary corresponds to a dataset. Datasets include a list of DAS keys, the output json dataset path and the metadata. In addition a label ``sample`` is specified to group datasets under the same sample (e.g. group QCD datasets from different HT bins in a single sample).
 The general idea is the following:
 
@@ -96,7 +96,7 @@ The structure of the ``datasets_definitions.json`` file after filling in the dic
         "sample": "DATA_SingleMuonC",
         "json_output": "datasets/DATA_SingleMuonC.json",
         "files": [
-            
+
             {
                 "das_names": [
                     "/SingleMuon/Run2018C-UL2018_MiniAODv2_NanoAODv9-v2/NANOAOD"
@@ -113,8 +113,8 @@ The structure of the ``datasets_definitions.json`` file after filling in the dic
             }
         ]
     }
-    
-2. To produce the json files containing the file lists, run the following command:
+
+2) To produce the json files containing the file lists, run the following command:
 
 .. code-block:: bash
 
@@ -133,18 +133,33 @@ If one has to rebuild the dataset to include more datasets, the extra argument `
 Compute the sum of genweights
 ================
 
-The sum of the genweights of Monte Carlo samples needs to be computed in order to properly normalize Monte Carlo datasets.
-To compute the sum of genweights, we need to run a dedicated Coffea processor, ``genWeightsProcessor``, that just opens all the files, reads the genweight.
+The sum of the genweights of Monte Carlo datasets needs to be computed in order to properly normalize Monte Carlo datasets.
+To compute the sum of genweights, we need to run a dedicated Coffea processor, ``genWeightsProcessor``, that just opens all the files, reads the genweight of each event and stores their sum in a dictionary in the output file.
+Copy the config and workflows file for the genweights from PocketCoffea, run the ``genWeightsProcessor`` and append the 
 
-1. Take the `genWeight.py` configuration file, modify the ``samples`` in ``dataset`` dict
-2. Run ``runner.py --cfg configs/$dir/genweights.py`` to get the coffea file contains genweight info. 
-3. Embed the ``sum_genweight`` info to ``sample_defintion.json``  
+#. Copy the config and workflows file for the genweights from PocketCoffea and modify the ``samples`` in the ``dataset`` dictionary:
+
+.. code-block:: bash
+
+   cp PocketCoffea/config/genweights/genweights_2018.py zmumu/genweights_2018.py
+
+#. Run the ``genWeightsProcessor`` to get the coffea output containing the sum of genweights:
+
+.. code-block:: bash
+
+   runner.py --cfg zmumu/genweights.py --full
+
+#. Append the ``sum_genweights`` metadata to ``datasets_definitions.json`` using the ``append_genweights.py`` script:
 
 .. code-block:: python
 
-	python ../PocketCoffea/scripts/dataset/append_genweights.py --cfg configs/zmumu/datasets/datasets_definitions_zmm.json -i output/genweights/genweights_2018/output_all.coffea  --overwrite
+	python ../PocketCoffea/scripts/dataset/append_genweights.py --cfg configs/zmumu/datasets/datasets_definitions.json -i output/genweights/genweights_2018/output_all.coffea --overwrite
 
-4. Run ``build_dataset.py --cfg dataset_definitions.json`` again to embed the info
+#. Run the ``build_dataset.py`` script again to produced the new json datasets updated with the ``sum_genweights`` metadata:
+
+.. code-block:: python
+
+   build_dataset.py --cfg dataset_definitions.json
 
 
 Define selections
