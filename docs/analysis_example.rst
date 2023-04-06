@@ -159,7 +159,7 @@ Copy the config and workflows file for the genweights from PocketCoffea, run the
 
 .. code-block:: python
 
-   build_dataset.py --cfg dataset_definitions.json
+   build_dataset.py --cfg datasets_definitions.json --overwrite
 
 
 Define selections
