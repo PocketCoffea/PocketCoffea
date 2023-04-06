@@ -3,6 +3,7 @@ Full analysis example
 
 A full example of all the steps needed to run a full analysis with PocketCoffea is reported, starting from the creation of the datasets list, the customization of parameters and the production of the final shapes and plots.
 As an example, a toy example version of the Drell-Yan analysis targeting the Z->mumu channel is implemented.
+
 The main steps that need to be performed are the following:
 
 * Build the json datasets
@@ -28,6 +29,7 @@ Configuration file
 ================
 
 The parameters specific to the analysis have to be specified in the configuration file. This file contains a pure python dictionary named ``cfg`` that is read and manipulated by the ``Configurator`` module.
+
 A dedicated `repository <https://github.com/PocketCoffea/AnalysisConfigs>`_ is setup to collect the config files from different analysis. Clone the repository and install it as an editable package in the ``pocket-coffea`` environment:
 
 .. code-block:: bash
@@ -36,6 +38,7 @@ A dedicated `repository <https://github.com/PocketCoffea/AnalysisConfigs>`_ is s
 	pip install -e .
 
 The repository contains a pre-existing config file ``configs/base.py`` that can be used as a template to write the custom config file for our analysis.
+
 Create a dedicated folder ``zmumu`` under the ``configs`` folder. This folder will contain all the config files, the datasets definition json file, the workflows files and possibly extra files with parameters that are needed for the analysis:
 
 .. code-block:: bash
@@ -75,6 +78,7 @@ The general idea is the following:
 
 When the json datasets are built, the metadata parameters are linked to the files list, defining a unique dataset entry with the corresponding files.
 The `primaryDataset` key for Data datasets is needed in order to apply a trigger selection only to the corresponding dataset (e.g. apply the `SingleMuon` trigger only to datasets having `primaryDataset=SingleMuon`).
+
 The structure of the ``datasets_definitions.json`` file after filling in the dictionary with the parameters relevant to our Drell-Yan and SingleMuon datasets should be the following:
 
 .. code-block:: json
@@ -177,6 +181,7 @@ Object preselection
 ----------------
 
 To select the objects entering the final analysis, we need to specify a series of cut parameters for the leptons and jets in the file ``PocketCoffea/pocket_coffea/parameters/object_preselection.py``. These selections include the pT, eta acceptance cuts, the object identification working points, the muon isolation, the b-tagging working point, etc.
+
 For the Z->mumu analysis, we just use the standard definitions for the muon, electron and jet objects, that we include as a dictionary under the key ``dimuon``:
 
 .. code-block:: python
@@ -228,6 +233,7 @@ Skim
 The skim selection of the events is performed "on the fly" to reduce the number of processed events. At this stage we also apply the HLT trigger requirements required by the analysis.
 The following steps of the analysis are performed only on the events passing the skim selection, while the others are discarded from the branch ``events``, therefore reducing the computational load on the processor.
 In the config file, we specify two skim cuts: one is selecting events with at least one 15 GeV muon and the second is requiring the HLT ``SingleMuon`` path.
+
 In the preamble of ``config.py``, we define our custom trigger dictionary, which we pass as an argument to the factory function ``get_HLTsel()``:
 
 .. code-block:: python
@@ -287,6 +293,7 @@ The parameters are directly passed to the constructor of the ``Cut`` object as t
    )
 
 In a scenario of an analysis requiring several different cuts, a dedicated library of cuts and functions can be defined in a separate file and imported in the config file.
+
 The ``preselections`` field in the config file is updated accordingly:
 
 .. code-block:: python
@@ -347,6 +354,7 @@ The application of the nominal value of scale factors and weights is switched on
 
 In our case, we are applying the nominal scaling of Monte Carlo by ``lumi * XS / genWeight`` together with the pileup reweighting and the muon ID and isolation scale factors.
 The reweighting of the events is managed internally by the module ``WeightsManager``.
+
 To store also the up and down systematic variations corresponding to a given weight, one can specify it in the ``variations`` dictionary:
 
 .. code-block:: python
