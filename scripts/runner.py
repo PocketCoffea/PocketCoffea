@@ -102,6 +102,12 @@ if __name__ == '__main__':
             'ulimit -u 32768',
             'export MALLOC_TRIM_THRESHOLD_=0'
         ]
+    condor_extra = [
+        f"cd {os.getcwd()}",
+        f'source {os.environ["HOME"]}/.bashrc',
+        f"source {os.getcwd()}/CondaSetup.sh",
+        f'conda activate {os.environ["CONDA_PREFIX"]}',
+    ]
     logging.debug(env_extra)
 
 
@@ -123,6 +129,7 @@ if __name__ == '__main__':
                                     executor_args={
                                         'skipbadfiles':config.run_options['skipbadfiles'],
                                         'schema': processor.NanoAODSchema,
+                                        'xrootdtimeout': config.run_options.get('xrootdtimeout', 600),
                                         'workers': config.run_options['scaleout']},
                                     chunksize=config.run_options['chunk'],
                                     maxchunks=config.run_options['max']
@@ -139,7 +146,7 @@ if __name__ == '__main__':
         from parsl.config import Config
         from parsl.executors import HighThroughputExecutor
         from parsl.launchers import SrunLauncher, SingleNodeLauncher
-        from parsl.addresses import address_by_hostname
+        from parsl.addresses import address_by_hostname, address_by_query
 
         if 'slurm' in config.run_options['executor']:
             slurm_htex = Config(
@@ -185,7 +192,6 @@ if __name__ == '__main__':
         elif 'condor' in config.run_options['executor']:
             #xfer_files = [process_worker_pool, _x509_path]
             #print(xfer_files)
-
             condor_htex = Config(
                 executors=[
                     HighThroughputExecutor(
@@ -205,8 +211,30 @@ if __name__ == '__main__':
                         ),
                     )
                 ],
-                #retries=20,
+                retries=config.run_options["retries"],
             )
+            ## Site config for naf-desy
+            if "naf-desy" in config.run_options['executor']:
+                condor_htex = Config(
+                    executors=[
+                        HighThroughputExecutor(
+                            label="coffea_parsl_condor",
+                            address=address_by_query(),
+                            max_workers=1,
+                            worker_debug=True,
+                            provider=CondorProvider(
+                                nodes_per_block=1,
+                                cores_per_slot=config.run_options["workers"],
+                                mem_per_slot=config.run_options["mem_per_worker"],
+                                init_blocks=config.run_options["scaleout"],
+                                max_blocks=(config.run_options["scaleout"]) + 10,
+                                worker_init="\n".join(env_extra + condor_extra),
+                                walltime=config.run_options["walltime"],
+                            ),
+                        )
+                    ],
+                    retries=config.run_options["retries"],
+                )
             dfk = parsl.load(condor_htex)
 
             output = processor.run_uproot_job(config.fileset,
@@ -248,10 +276,10 @@ if __name__ == '__main__':
         elif 'condor' in config.run_options['executor']:
             log_folder = "condor_log"
             cluster = HTCondorCluster(
-                 cores=1,
+                 cores=config.run_options['workers'],
                  memory=config.run_options['mem_per_worker'],
                  disk=config.run_options.get('disk_per_worker', "20GB"),
-                 env_extra=env_extra,
+                 job_script_prologue=env_extra,
             )
         elif 'lxplus' in config.run_options["executor"]:
             log_folder = "condor_log"
