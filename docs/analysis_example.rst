@@ -169,9 +169,9 @@ The selections are performed at two levels:
 * Object preselection: selecting the "good" objects that will be used in the final analysis (e.g. `JetGood`, `MuonGood`, `ElectronGood`...).
 * Event selection: selections on the events that enter the final analysis, done in three steps:
 
-   1. Skim and trigger: loose cut on the events and trigger requirements.
-   2. Preselection: baseline event selection for the analysis.
-   3. Categorization: selection to split the events passing the event preselection into different categories (e.g. signal region, control region).
+   1) Skim and trigger: loose cut on the events and trigger requirements.
+   2) Preselection: baseline event selection for the analysis.
+   3) Categorization: selection to split the events passing the event preselection into different categories (e.g. signal region, control region).
 
 Object preselection
 ----------------
@@ -219,7 +219,7 @@ Event selection
 ----------------
 
 In PocketCoffea, the event selections are implemented with a dedicated `Cut` object, that stores both the information of the cutting function and its input parameters.
-Several factory ``Cut`` objects are available in ``pocket_coffea.lib.cut_functions``, otherwise the user can define its custom ``Cut`` objects.
+Several factory ``Cut`` objects are available in ``pocket_coffea.lib.cut_functions``, otherwise the user can define their own custom ``Cut`` objects.
 
 
 Skim
@@ -319,9 +319,58 @@ In the toy Z->mumu analysis, no further categorization of the events is performe
       ...
    }
 
+If for example Z->ee events were also included in the analysis, one could have defined a more general "dilepton" preselection and categorized the events as ``2e`` or ``2mu`` depending if they contain two electrons or two muons, respectively.
+
 Define weights and variations
 ================
 
+The application of the nominal value of scale factors and weights is switched on and off just by adding the corresponding key in the ``weights`` dictionary:
+
+.. code-block:: python
+
+   cfg = {
+      ...
+      "weights": {
+         "common": {
+            "inclusive": ["genWeight","lumi","XS",
+                          "pileup",
+                          "sf_mu_id","sf_mu_iso",
+                          ],
+            "bycategory" : {
+            }
+        },
+        "bysample": {
+        }
+      },
+      ...
+   }
+
+In our case, we are applying the nominal scaling of Monte Carlo by ``lumi * XS / genWeight`` together with the pileup reweighting and the muon ID and isolation scale factors.
+The reweighting of the events is managed internally by the module ``WeightsManager``.
+To store also the up and down systematic variations corresponding to a given weight, one can specify it in the ``variations`` dictionary:
+
+.. code-block:: python
+
+   cfg = {
+      ...
+      "variations": {
+         "weights": {
+            "common": {
+               "inclusive": [ "pileup",
+                              "sf_mu_id", "sf_mu_iso"
+                           ],
+               "bycategory" : {
+               }
+            },
+         "bysample": {
+         }    
+         },  
+      },
+      ...
+   }
+
+In this case we will store the variations corresponding to the systematic variation of pileup and the muon ID and isolation scale factors.
+These systematic uncertainties will be included in the final plots.
 
 Define histograms
 ================
