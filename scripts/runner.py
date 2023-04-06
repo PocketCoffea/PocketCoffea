@@ -85,15 +85,12 @@ if __name__ == '__main__':
         os.system(f'cp {_x509_localpath} {_x509_path}')
         
     if (run_env:=config.run_options.get("env", "singularity")) == "singularity":
-        _configs_path = config.run_options["configs_path"]
         env_extra = [
             'export XRD_RUNFORKHANDLER=1',
             f'export X509_USER_PROXY={_x509_path}',
             # f'export X509_CERT_DIR={os.environ["X509_CERT_DIR"]}',
             f'source {sys.prefix}/bin/activate',
         ]
-        if "configs_path" in config.run_options:
-            env_extra += f'export PYTHONPATH={_configs_path}'
     elif run_env == "conda":
         env_extra = [
             'export XRD_RUNFORKHANDLER=1',
