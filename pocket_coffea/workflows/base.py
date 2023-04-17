@@ -41,9 +41,10 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
         :param cfg: Configurator object containing all the configurations.
         '''
-        # Read required cuts and histograms from config file
+        # Saving the configurator object in the processor
         self.cfg = cfg
-
+        # Saving the parameters from the configurator objects
+        self.parameters = self.cfg.parameters
         # Cuts
         # 1) a list of *skim* functions is applied on bare NanoAOD, with no object preselection or correction.
         #   Triggers are also applied there.
@@ -353,7 +354,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
             # If subsamples are defined we also save their metadata
             if self._hasSubsamples:
-                for subs, subsam_mask in self._categories.get_masks():
+                for subs, subsam_mask in self._subsamples[self._sample].get_masks():
                     mask_withsub = mask_on_events & subsam_mask
                     self.output["cutflow"][category][subs] = ak.sum(mask_withsub)
                     if self._isMC:
