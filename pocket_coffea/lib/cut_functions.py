@@ -1,6 +1,5 @@
 import awkward as ak
 from .cut_definition import Cut
-from ..parameters.btag import btag
 from .triggers import get_trigger_mask
 
 
@@ -183,7 +182,7 @@ def get_nObj_less(N, coll="JetGood", name=None):
 # Min b-tagged jets with custom collection
 
 
-def nBtagMin(events, params, year, **kwargs):
+def nBtagMin(events, params, year, processor_params, **kwargs):
     '''Mask for min N jets with minpt and passing btagging.
     The btag params will come from the processor, not from the parameters
     '''
@@ -197,7 +196,7 @@ def nBtagMin(events, params, year, **kwargs):
         else:
             return events.nBJetGood >= params["N"]
     else:
-        btagparam = btag[year]
+        btagparam = processor_params.btagging.working_point[year]
         if params["minpt"] > 0.0:
             return (
                 ak.sum(
@@ -222,7 +221,7 @@ def nBtagMin(events, params, year, **kwargs):
                 >= params["N"]
             )
 
-def nBtagEq(events, params, year, **kwargs):
+def nBtagEq(events, params, year, processor_params, **kwargs):
     '''Mask for == N jets with minpt and passing btagging.
     The btag params will come from the processor, not from the parameters
     '''
@@ -236,7 +235,7 @@ def nBtagEq(events, params, year, **kwargs):
         else:
             return events.nBJetGood == params["N"]
     else:
-        btagparam = btag[year]
+        btagparam = processor_params.btagging.working_point[year]
         if params["minpt"] > 0.0:
             return (
                 ak.sum(

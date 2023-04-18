@@ -23,11 +23,11 @@ class Cut:
     collection: str = "events"
     _id: str = field(init=False, repr=True, hash=True, default=None)
 
-    def get_mask(self, events, **kwargs):
+    def get_mask(self, events, processor_params, **kwargs):
         '''The function get called from the processor and the params are passed by default as the second argument.
         Additional parameters as the year, sample name or others can be included by the processor and are passed to the function.
         '''
-        return self.function(events, params=self.params, **kwargs)
+        return self.function(events, params=self.params, processor_params=processor_params,  **kwargs)
 
     def __hash__(self):
         '''The Cut is unique by its name, the  function, and the dict of parameters.'''

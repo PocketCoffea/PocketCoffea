@@ -19,9 +19,6 @@ from ..lib.hist_manager import HistManager
 from ..lib.jets import jet_correction, met_correction
 from ..lib.categorization import CartesianSelection
 from ..utils.skim import uproot_writeable, copy_file
-from ..parameters.event_flags import event_flags, event_flags_data
-from ..parameters.lumi import goldenJSON
-from ..parameters.btag import btag
 
 from ..utils.configurator import Configurator
 
@@ -103,7 +100,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self._dataset = self.events.metadata["dataset"]
         self._sample = self.events.metadata["sample"]
         self._year = self.events.metadata["year"]
-        self._btag = btag[self._year]
         self._isMC = self.events.metadata["isMC"] == "True"
         if self._isMC:
             self._era = "MC"
@@ -144,9 +140,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
         self._skim_masks = PackedSelection()
         mask_flags = np.ones(self.nEvents_initial, dtype=np.bool)
-        flags = event_flags[self._year]
+        flags = self.params.event_flags[self._year]
         if not self._isMC:
-            flags += event_flags_data[self._year]
+            flags += self.params.event_flags_data[self._year]
         for flag in flags:
             mask_flags = getattr(self.events.Flag, flag)
         self._skim_masks.add("event_flags", mask_flags)
@@ -157,7 +153,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # In case of data: check if event is in golden lumi file
         if not self._isMC:
             # mask_lumi = lumimask(self.events.run, self.events.luminosityBlock)
-            mask_lumi = LumiMask(self._goldenJSON)(
+            mask_lumi = LumiMask(self.params.lumi.goldenJSON)(
                 self.events.run, self.events.luminosityBlock
             )
             self._skim_masks.add("lumi_golden", mask_lumi)
@@ -166,9 +162,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             # Apply the skim function and add it to the mask
             mask = skim_func.get_mask(
                 self.events,
+                processor_params=self.params,
                 year=self._year,
                 sample=self._sample,
-                btag=self._btag,
                 isMC=self._isMC,
             )
             self._skim_masks.add(skim_func.id, mask)
@@ -236,7 +232,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         for cut in self._preselections:
             # Apply the cut function and add it to the mask
             mask = cut.get_mask(
-                self.events, year=self._year, sample=self._sample, isMC=self._isMC
+                self.events, processor_params=self.params,
+                year=self._year, sample=self._sample, isMC=self._isMC,
             )
             self._preselection_masks.add(cut.id, mask)
         # Now that the preselection mask is complete we can apply it to events
@@ -263,6 +260,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # We make sure that for each category the list of cuts is unique in the Configurator validation
         self._categories.prepare(
             events=self.events,
+            processor_params=self.params,
             year=self._year,
             sample=self._sample,
             isMC=self._isMC,
@@ -270,6 +268,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
         self._subsamples[self._sample].prepare(
             events=self.events,
+            processor_params=self.params,
             year=self._year,
             sample=self._sample,
             isMC=self._isMC,
