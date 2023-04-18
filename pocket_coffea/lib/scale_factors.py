@@ -302,23 +302,21 @@ def sf_btag(params, jets, btag_discriminator, year, njets, variations=["central"
     return output
 
 
-def sf_btag_calib(sample, year, njets, jetsHt):
+def sf_btag_calib(params, sample, year, njets, jetsHt):
     '''Correction to btagSF computing by comparing the inclusive shape without btagSF and with btagSF in 2D:
     njets-JetsHT bins. Each sample/year has a different correction stored in the correctionlib format.'''
-
-    
-    cset = correctionlib.CorrectionSet.from_file(btagSF_calibration[year])
-    corr = cset["btagSF_norm_correction"]
+    cset = correctionlib.CorrectionSet.from_file(params.btagSF_calibration[year]["file"])
+    corr = cset[params.btagSF_calibration[year]["name"]]
     w = corr.evaluate(sample, year, ak.to_numpy(njets), ak.to_numpy(jetsHt))
     return w
 
 
-def sf_jet_puId(jets, finalstate, year, njets):
+def sf_jet_puId(params, jets, year, njets):
     # The SF is applied only on jets passing the preselection (JetGood), pt < maxpt, and matched to a GenJet.
     # In other words the SF is not applied on jets not passing the Jet Pu ID SF.
     # We DON'T assume that the function is applied on JetGood, so we REAPPLY jetPUID selections to be sure.
     # We apply also the pt limit.
-    jet_puId_cfg = object_preselection[finalstate]["Jet"]["puId"]
+    jet_puId_cfg = params.object_preselection["Jet"]["puId"]
 
     pt = ak.to_numpy(ak.flatten(jets.pt))
     eta = ak.to_numpy(ak.flatten(jets.eta))
@@ -326,8 +324,8 @@ def sf_jet_puId(jets, finalstate, year, njets):
     genJetId_mask = ak.flatten(jets.genJetIdx >= 0)
 
     # GenGet matching by index, needs some checkes
-    cset = correctionlib.CorrectionSet.from_file(jet_puId[year])
-    corr = cset["PUJetID_eff"]
+    cset = correctionlib.CorrectionSet.from_file(params.jet_scale_factors.jet_puId[year]["file"])
+    corr = cset[params.jet_scale_factors.jet_puId[year]["name"]]
 
     # Requiring jet < maxpt, passing the jetpuid WP and matched to a GenJet (with a genJet idx != -1)
     mask = (
