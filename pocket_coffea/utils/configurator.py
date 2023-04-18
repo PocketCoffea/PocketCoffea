@@ -7,10 +7,11 @@ import cloudpickle
 from collections import defaultdict
 import inspect
 import logging
+from omegaconf import OmegaConf
 
 from ..lib.cut_definition import Cut
 from ..lib.categorization import StandardSelection, CartesianSelection
-from ..parameters.cuts.preselection_cuts import passthrough
+from ..parameters.cuts import passthrough
 from ..lib.weights_manager import WeightCustom
 from ..lib.hist_manager import Axis, HistConf
 
@@ -471,9 +472,6 @@ class Configurator:
             filtered_dataset[sample] = ds
         self.fileset = filtered_dataset
 
-    # def define_output(self):
-    #     self.outfile = os.path.join(self.output, "output_{dataset}.coffea")
-
     def load_workflow(self):
         self.processor_instance = self.workflow(cfg=self)
 
@@ -541,6 +539,10 @@ class Configurator:
                 for col in cols:
                     ocfg["columns"][sample][cat].append(col.__dict__)
 
+        #add the parameters as yaml in a separate file
+        with open(os.path.join(output, "parameters_dump.yaml"), "w") as pf:
+            pf.write(OmegaConf.to_yaml(self.parameters))
+        
         # Save the serialized configuration in json
         output_cfg = os.path.join(output, "config.json")
         print("Saving config file to " + output_cfg)
@@ -549,6 +551,8 @@ class Configurator:
         cloudpickle.dump(
             self, open(os.path.join(output, "configurator.pkl"), "wb")
         )
+        #dump also the parameters
+        
 
 
     def __repr__(self):
@@ -564,12 +568,6 @@ class Configurator:
              f"  - available weights variations: {self.available_weights_variations} ",
              f"  - available shape variations: {self.available_shape_variations}",
              ]
-            
-        # - skim
-        # - preselection
-        # - categories: {self.categories}
-        # - workflow: {self.workflow}
-        
         return "\n".join(s)
 
     def __str__(self):

@@ -1,7 +1,6 @@
 # B-tagging algorithms and working points
 
 btagging:
-
   working_point:
     2016_PreVFP:
       btagging_algorithm: btagDeepFlavB

@@ -7,8 +7,8 @@ import awkward as ak
 import numpy as np
 import correctionlib
 
-from ..parameters.object_preselection import object_preselection
-from ..parameters.jec_config import JECjsonFiles
+# from ..parameters.object_preselection import object_preselection
+# from ..parameters.jec_config import JECjsonFiles
 from ..lib.deltaR_matching import get_matching_pairs_indices, object_matching
 
 # Initialization of the jet factory

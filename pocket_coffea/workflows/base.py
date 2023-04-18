@@ -22,7 +22,6 @@ from ..utils.skim import uproot_writeable, copy_file
 from ..parameters.event_flags import event_flags, event_flags_data
 from ..parameters.lumi import goldenJSON
 from ..parameters.btag import btag
-from ..parameters.cuts.preselection_cuts import passthrough
 
 from ..utils.configurator import Configurator
 

@@ -5,56 +5,44 @@ import awkward as ak
 
 import correctionlib
 from coffea.util import load
+from omegaconf import OmegaConf as oc
 
-from ..parameters.lepton_scale_factors import (
-    electronSF,
-    muonSF,
-    electronJSONfiles,
-    muonJSONfiles,
-)
-from ..parameters.jet_scale_factors import btagSF, btagSF_calibration, jet_puId
-from ..parameters.object_preselection import object_preselection
+# from ..parameters.lepton_scale_factors import (
+#     electronSF,
+#     muonSF,
+#     electronJSONfiles,
+#     muonJSONfiles,
+# )
+# from ..parameters.jet_scale_factors import btagSF, btagSF_calibration, jet_puId
+# from ..parameters.object_preselection import object_preselection
 
 
 def get_ele_sf(
-    year, pt, eta, counts=None, key='', pt_region=None, variations=["nominal"]
+        params, year, pt, eta, counts=None, key='', pt_region=None, variations=["nominal"]
 ):
     '''
     This function computes the per-electron reco or id SF.
     If 'reco', the appropriate corrections are chosen by using the argument `pt_region`.
     '''
-    if key not in electronSF.keys():
-        sys.exit(f"SF key {key} not included in the parameters.")
-
+    electronSF = params["lepton_scale_factors"]["electron_sf"]
+    
     if key == 'reco':
-        sfName = electronSF[key][pt_region]
-        electronJSON = correctionlib.CorrectionSet.from_file(
-            electronJSONfiles[year]['file_POG']
-        )
-        map_name = electronJSONfiles[year]['name']
-    elif key == 'id':
-        sfName = electronSF[key]
-        electronJSON = correctionlib.CorrectionSet.from_file(
-            electronJSONfiles[year]['file_POG']
-        )
-        map_name = electronJSONfiles[year]['name']
-    elif key == 'trigger':
-        electronJSON = correctionlib.CorrectionSet.from_file(
-            electronJSONfiles[year]['file_triggerSF']
-        )
-        map_name = electronSF[key][year]
+       sfname = electronSF["reco"][pt_region]
+       electron_correctionset = correctionlib.CorrectionSet.from_file(
+            electronSF["trigger_sf"][year]["file"]
+       )
+       map_name = electronSF["trigger_sf"][year]["name"]
 
     if key in ['reco', 'id']:
-        # Dictionary to translate the `year` key into the corresponding key in the correction file provided by the EGM-POG
-        year_dict = {"2016_PreVFP" : "2016preVFP", "2016_PostVFP" : "2016postVFP", "2017" : "2017", "2018" : "2018"}
-        year_pog = year_dict[year]
-        sf = electronJSON[map_name].evaluate(
+        # translate the `year` key into the corresponding key in the correction file provided by the EGM-POG
+        year_pog = electronSF["era_mapping"][year]
+        sf = electron_correctionset[map_name].evaluate(
             year_pog, "sf", sfName, eta.to_numpy(), pt.to_numpy()
         )
-        sfup = electronJSON[map_name].evaluate(
+        sfup = electron_correctionset[map_name].evaluate(
             year_pog, "sfup", sfName, eta.to_numpy(), pt.to_numpy()
         )
-        sfdown = electronJSON[map_name].evaluate(
+        sfdown = electron_correctionset[map_name].evaluate(
             year_pog, "sfdown", sfName, eta.to_numpy(), pt.to_numpy()
         )
         # The unflattened arrays are returned in order to have one row per event.
@@ -68,7 +56,7 @@ def get_ele_sf(
         for variation in variations:
             if variation == "nominal":
                 output[variation] = [
-                    electronJSON[map_name].evaluate(
+                    electron_correctionset[map_name].evaluate(
                         variation, pt.to_numpy(), eta.to_numpy()
                     )
                 ]
@@ -78,10 +66,10 @@ def get_ele_sf(
                 # Systematic variations
                 output[variation] = [
                     nominal,
-                    electronJSON[map_name].evaluate(
+                    electron_correctionset[map_name].evaluate(
                         f"{variation}Up", pt.to_numpy(), eta.to_numpy()
                     ),
-                    electronJSON[map_name].evaluate(
+                    electron_correctionset[map_name].evaluate(
                         f"{variation}Down", pt.to_numpy(), eta.to_numpy()
                     ),
                 ]
@@ -95,19 +83,17 @@ def get_mu_sf(year, pt, eta, counts, key=''):
     '''
     This function computes the per-muon id or iso SF.
     '''
-    if key not in muonSF[year].keys():
-        sys.exit(f"SF key '{key}' not included in the parameters.")
+    muonSF = params["lepton_scale_factors"]["muon_sf"]
 
-    muonJSON = correctionlib.CorrectionSet.from_file(muonJSONfiles[year]['file'])
-    sfName = muonSF[year][key]
+    muon_correctionsetN = correctionlib.CorrectionSet.from_file(muonSF.JSONfiles[year]['file'])
+    sfName = muonSF.sf_name[year][key]
 
-    year_dict = {"2016_PreVFP" : "2016preVFP_UL", "2016_PostVFP" : "2016postVFP_UL", "2017" : "2017_UL", "2018" : "2018_UL"}
-    year_pog = year_dict[year]
-    sf = muonJSON[sfName].evaluate(year_pog, np.abs(eta.to_numpy()), pt.to_numpy(), "sf")
-    sfup = muonJSON[sfName].evaluate(
+    year_pog = muonSF.era_mapping[year]
+    sf = muon_correctionset[sfName].evaluate(year_pog, np.abs(eta.to_numpy()), pt.to_numpy(), "sf")
+    sfup = muon_correctionset[sfName].evaluate(
         year_pog, np.abs(eta.to_numpy()), pt.to_numpy(), "systup"
     )
-    sfdown = muonJSON[sfName].evaluate(
+    sfdown = muon_correctionset[sfName].evaluate(
         year_pog, np.abs(eta.to_numpy()), pt.to_numpy(), "systdown"
     )
 
@@ -202,7 +188,7 @@ def sf_ele_trigger(events, year, variations=["nominal"]):
     )
     sf_dict = get_ele_sf(
         year, ele_pt_flat, ele_eta_flat, ele_counts, 'trigger', variations=variations
-    )
+    ) 
 
     for variation in sf_dict.keys():
         for i, sf in enumerate(sf_dict[variation]):
@@ -231,7 +217,7 @@ def sf_mu(events, year, key=''):
     return ak.prod(sf, axis=1), ak.prod(sfup, axis=1), ak.prod(sfdown, axis=1)
 
 
-def sf_btag(jets, btag_discriminator, year, njets, variations=["central"]):
+def sf_btag(params, jets, btag_discriminator, year, njets, variations=["central"]):
     '''
     DeepJet AK4 btagging SF.
     See https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/summaries/BTV_2018_UL_btagging.html
@@ -246,8 +232,9 @@ def sf_btag(jets, btag_discriminator, year, njets, variations=["central"]):
     If variation is a jet variation the argument must be up_jes* or down_jes* since it is applied on the specified
     Jes variation jets.
     '''
-    cset = correctionlib.CorrectionSet.from_file(btagSF[year])
-    corr = cset["deepJet_shape"]
+    btagSF = params.jet_scale_factors.btagSF[year]
+    cset = correctionlib.CorrectionSet.from_file(btagSF.file)
+    corr = cset[btagSF.name]
 
     flavour = ak.to_numpy(ak.flatten(jets.hadronFlavour))
     abseta = np.abs(ak.to_numpy(ak.flatten(jets.eta)))
@@ -318,6 +305,8 @@ def sf_btag(jets, btag_discriminator, year, njets, variations=["central"]):
 def sf_btag_calib(sample, year, njets, jetsHt):
     '''Correction to btagSF computing by comparing the inclusive shape without btagSF and with btagSF in 2D:
     njets-JetsHT bins. Each sample/year has a different correction stored in the correctionlib format.'''
+
+    
     cset = correctionlib.CorrectionSet.from_file(btagSF_calibration[year])
     corr = cset["btagSF_norm_correction"]
     w = corr.evaluate(sample, year, ak.to_numpy(njets), ak.to_numpy(jetsHt))
