@@ -19,7 +19,7 @@ def register_configuration_dir(key: str, directory: str):
 # Resolver for PocketCoffea default parameters file location
 # By using the resolved ${default_params_dir:}/file.yaml the file
 # is loaded from the default params folder of the PocketCoffea package
-register_configuration_dir("default_params_dir", os.path.dirname(__file__))
+register_configuration_dir("default_params_dir", os.path.dirname(os.path.abspath(__file__)))
 
 
 ##############################################
@@ -41,6 +41,7 @@ def get_default_parameters():
     pileup = OmegaConf.load(os.path.join(basedir, 'pileup.yaml'))
     event_flags = OmegaConf.load(os.path.join(basedir, 'event_flags.yaml'))
     lumi = OmegaConf.load(os.path.join(basedir, 'lumi.yaml'))
+    jet_calibration = OmegaConf.load(os.path.join(basedir, "jets_calibration.yaml"))
     jet_scale_factors = OmegaConf.load(os.path.join(basedir, 'jet_scale_factors.yaml'))
     btagging = OmegaConf.load(os.path.join(basedir, "btagging.yaml"))
     lepton_scale_factors = OmegaConf.load(
@@ -52,6 +53,7 @@ def get_default_parameters():
         pileup,
         event_flags,
         lumi,
+        jet_calibration,
         jet_scale_factors,
         btagging,
         lepton_scale_factors,

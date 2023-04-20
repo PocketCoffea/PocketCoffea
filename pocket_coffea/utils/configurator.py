@@ -14,6 +14,7 @@ from ..lib.categorization import StandardSelection, CartesianSelection
 from ..parameters.cuts import passthrough
 from ..lib.weights_manager import WeightCustom
 from ..lib.hist_manager import Axis, HistConf
+from ..utils import build_jets_calibrator
 
 
 class Configurator:
@@ -134,6 +135,10 @@ class Configurator:
 
         # Load workflow passing the Configurator self object
         self.load_workflow()
+
+        # Check the jet_calibration and create the file if needed
+        if not os.path.exists(self.parameters.user_jets_calibration.file):
+            build_jets_calibrator.build(self.parameters.user_jets_calibration)
 
     def load_datasets(self):
         for json_dataset in self.datasets_cfg["jsons"]:

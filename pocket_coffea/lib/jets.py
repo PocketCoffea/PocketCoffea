@@ -9,16 +9,16 @@ import correctionlib
 
 from ..lib.deltaR_matching import get_matching_pairs_indices, object_matching
 
-# Initialization of the jet factory
-with importlib.resources.path(
-    "pocket_coffea.parameters.jec", "jets_evaluator.pkl.gz"
-) as path:
-    with gzip.open(path) as fin:
-        jmestuff = cloudpickle.load(fin)
+# # Initialization of the jet factory
+# with importlib.resources.path(
+#     "pocket_coffea.parameters.jec", "jets_evaluator.pkl.gz"
+# ) as path:
+#     with gzip.open(path) as fin:
+#         jmestuff = cloudpickle.load(fin)
 
-jet_factory = jmestuff["jet_factory"]
-fatjet_factory = jmestuff["fatjet_factory"]
-met_factory = jmestuff["met_factory"]
+# jet_factory = jmestuff["jet_factory"]
+# fatjet_factory = jmestuff["fatjet_factory"]
+# met_factory = jmestuff["met_factory"]
 
 
 def add_jec_variables(jets, event_rho):
