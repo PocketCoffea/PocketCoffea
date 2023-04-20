@@ -44,10 +44,10 @@ class ttHbbBaseProcessor(BaseProcessorABC):
             self.events.Electron, electron_etaSC, "etaSC"
         )
         # Build masks for selection of muons, electrons, jets, fatjets
-        self.events["MuonGood"] = lepton_selection(
-            self.events, "Muon", self.params )
+        self.events["MuonGood"] = lepton_selection(self.events, "Muon", self.params)
         self.events["ElectronGood"] = lepton_selection(
-            self.events, "Electron", self.params)
+            self.events, "Electron", self.params
+        )
         leptons = ak.with_name(
             ak.concatenate((self.events.MuonGood, self.events.ElectronGood), axis=1),
             name='PtEtaPhiMCandidate',
@@ -57,7 +57,9 @@ class ttHbbBaseProcessor(BaseProcessorABC):
         self.events["JetGood"], self.jetGoodMask = jet_selection(
             self.events, "Jet", self.params, "LeptonGood"
         )
-        self.events["BJetGood"] = btagging(self.events["JetGood"], self.params.btagging.working_point[self._year])
+        self.events["BJetGood"] = btagging(
+            self.events["JetGood"], self.params.btagging.working_point[self._year]
+        )
 
         # self.events["FatJetGood"], self.jetGoodMask = jet_selection(
         #     self.events, "FatJet", self.cfg.finalstate
@@ -77,8 +79,12 @@ class ttHbbBaseProcessor(BaseProcessorABC):
     def define_common_variables_before_presel(self, variation):
         self.events["JetGood_Ht"] = ak.sum(abs(self.events.JetGood.pt), axis=1)
         if self._isMC:
-            self.events["nJetGoodCFlavour"] = ak.sum(self.events.JetGood.hadronFlavour==4, axis=1)
-            self.events["nJetGoodBFlavour"] = ak.sum(self.events.JetGood.hadronFlavour==5, axis=1)
+            self.events["nJetGoodCFlavour"] = ak.sum(
+                self.events.JetGood.hadronFlavour == 4, axis=1
+            )
+            self.events["nJetGoodBFlavour"] = ak.sum(
+                self.events.JetGood.hadronFlavour == 5, axis=1
+            )
 
     def fill_histograms_extra(self, variation):
         '''

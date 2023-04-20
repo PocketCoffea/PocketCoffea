@@ -45,10 +45,10 @@ def jet_correction(events, jets, jetType, year, cache, applyJER=True, applyJESun
             add_jec_variables(jets, events.fixedGridRhoFastjetAll), cache
         )
 
+
 def met_correction(MET, jets):
-    return met_factory.build(
-        MET, jets, {}
-    )
+    return met_factory.build(MET, jets, {})
+
 
 def jet_correction_correctionlib(
     events, Jet, typeJet, year, JECversion, JERversion=None, verbose=False
@@ -217,7 +217,7 @@ def jet_correction_correctionlib(
         return jets_corrected
 
 
-def jet_selection(events, jet_type,  params, leptons_collection=""):
+def jet_selection(events, jet_type, params, leptons_collection=""):
 
     jets = events[jet_type]
     cuts = params.object_preselection[jet_type]
@@ -241,7 +241,7 @@ def jet_selection(events, jet_type,  params, leptons_collection=""):
 
     elif jet_type == "FatJet":
         # Apply the msd and preselection cuts
-        mask_msd = (events.FatJet.msoftdrop > cuts["msd"])
+        mask_msd = events.FatJet.msoftdrop > cuts["msd"]
         mask_good_jets = mask_presel & mask_msd
 
     return jets[mask_good_jets], mask_good_jets

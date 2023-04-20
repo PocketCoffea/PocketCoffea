@@ -162,9 +162,7 @@ class MultiCut:
         # Create the mask storage
         self.storage = MaskStorage(dim=dim, counts=counts)
         for cut in self.cuts:
-            self.storage.add(
-                cut.id, cut.get_mask(events, processor_params, **kwargs)
-            )
+            self.storage.add(cut.id, cut.get_mask(events, processor_params, **kwargs))
         self.ready = True
 
     @property
@@ -269,9 +267,7 @@ class StandardSelection:
         # Create the mask storage
         self.storage = MaskStorage(dim=dim, counts=counts)
         for cut in self.cut_functions:
-            self.storage.add(
-                cut.id, cut.get_mask(events, processor_params, **kwargs)
-            )
+            self.storage.add(cut.id, cut.get_mask(events, processor_params, **kwargs))
         self.ready = True
 
     def get_mask(self, category):

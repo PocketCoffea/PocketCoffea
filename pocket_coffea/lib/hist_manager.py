@@ -134,24 +134,54 @@ class HistManager:
                 for var in vars:
                     # Check if the variation is a wildcard and the systematic requested has subvariations
                     # defined in the parameters
-                    if var in self.processor_params.systematic_variations.weight_variations:
-                        for subvariation in self.processor_params.systematic_variations.weight_variations[var][self.year]:
-                            self.available_weights_variations += [f"{var}_{subvariation}Up", f"{var}_{subvariation}Down"]
-                            self.available_weights_variations_bycat[cat] +=  [f"{var}_{subvariation}Up", f"{var}_{subvariation}Down"]
+                    if (
+                        var
+                        in self.processor_params.systematic_variations.weight_variations
+                    ):
+                        for (
+                            subvariation
+                        ) in self.processor_params.systematic_variations.weight_variations[
+                            var
+                        ][
+                            self.year
+                        ]:
+                            self.available_weights_variations += [
+                                f"{var}_{subvariation}Up",
+                                f"{var}_{subvariation}Down",
+                            ]
+                            self.available_weights_variations_bycat[cat] += [
+                                f"{var}_{subvariation}Up",
+                                f"{var}_{subvariation}Down",
+                            ]
                     else:
                         vv = [f"{var}Up", f"{var}Down"]
                         self.available_weights_variations += vv
                         self.available_weights_variations_bycat[cat] += vv
-                        
+
             # Shape variations
             for cat, vars in self.variations_config["shape"].items():
                 for var in vars:
                     # Check if the variation is a wildcard and the systematic requested has subvariations
                     # defined in the parameters
-                    if var in self.processor_params.systematic_variations.shape_variations:
-                        for subvariation in self.processor_params.systematic_variations.shape_variations[var][self.year]:
-                            self.available_weights_variations += [f"{var}_{subvariation}Up", f"{var}_{subvariation}Down"]
-                            self.available_weights_variations_bycat[cat] +=  [f"{var}_{subvariation}Up", f"{var}_{subvariation}Down"]
+                    if (
+                        var
+                        in self.processor_params.systematic_variations.shape_variations
+                    ):
+                        for (
+                            subvariation
+                        ) in self.processor_params.systematic_variations.shape_variations[
+                            var
+                        ][
+                            self.year
+                        ]:
+                            self.available_weights_variations += [
+                                f"{var}_{subvariation}Up",
+                                f"{var}_{subvariation}Down",
+                            ]
+                            self.available_weights_variations_bycat[cat] += [
+                                f"{var}_{subvariation}Up",
+                                f"{var}_{subvariation}Down",
+                            ]
                     else:
                         vv = [f"{var}Up", f"{var}Down"]
                         self.available_shape_variations += vv
@@ -280,7 +310,7 @@ class HistManager:
         shape_variation="nominal",
         subsamples=None,  # This is a dictionary with name:ak.Array(bool)
         custom_fields=None,
-        custom_weight=None # it should be a dictionary {variable:weight}
+        custom_weight=None,  # it should be a dictionary {variable:weight}
     ):
         '''
         We loop on the configured histograms only
@@ -473,15 +503,18 @@ class HistManager:
                                     mask,
                                     data_structure,
                                 )
-                                if custom_weight != None and name in custom_weight :
+                                if custom_weight != None and name in custom_weight:
                                     weight_varied = weight_varied * mask_and_broadcast_weight(
                                         category + "customW",
-                                        subsample,  variation,
-                                        custom_weight[name], # passing the custom weight to be masked and broadcasted
+                                        subsample,
+                                        variation,
+                                        custom_weight[
+                                            name
+                                        ],  # passing the custom weight to be masked and broadcasted
                                         mask,
                                         data_structure,
                                     )
-                                    
+
                                 # Then we apply the notnone mask
                                 weight_varied = weight_varied[all_axes_isnotnone]
                                 # Fill the histogram
@@ -508,15 +541,17 @@ class HistManager:
                                 mask,
                                 data_structure,
                             )
-                            if custom_weight != None and name in custom_weight :
-                                    weight_varied = weight_varied * mask_and_broadcast_weight(
-                                        category + "customW",
-                                        subsample,
-                                        "nominal",
-                                        custom_weight[name], # passing the custom weight to be masked and broadcasted
-                                        mask,
-                                        data_structure,
-                                    )
+                            if custom_weight != None and name in custom_weight:
+                                weight_varied = weight_varied * mask_and_broadcast_weight(
+                                    category + "customW",
+                                    subsample,
+                                    "nominal",
+                                    custom_weight[
+                                        name
+                                    ],  # passing the custom weight to be masked and broadcasted
+                                    mask,
+                                    data_structure,
+                                )
                             # Then we apply the notnone mask
                             weights_nom = weights_nom[all_axes_isnotnone]
                             # Fill the histogram

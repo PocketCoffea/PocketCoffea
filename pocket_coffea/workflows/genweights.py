@@ -5,14 +5,13 @@ import copy
 from .base import BaseProcessorABC
 from ..utils.configurator import Configurator
 
+
 class genWeightsProcessor(BaseProcessorABC):
     def __init__(self, cfg: Configurator) -> None:
         super().__init__(cfg)
         self.output_format = {
             "sum_genweights": {},
-            "cutflow": {
-                "initial": {s: 0 for s in self.cfg.datasets}
-            }
+            "cutflow": {"initial": {s: 0 for s in self.cfg.datasets}},
         }
 
     def load_metadata(self):
@@ -46,6 +45,8 @@ class genWeightsProcessor(BaseProcessorABC):
         if self._isMC:
             self.output['sum_genweights'][self._dataset] = ak.sum(self.events.genWeight)
             if self._hasSubsamples:
-                raise Exception("This processor cannot compute the sum of genweights of subsamples.")
+                raise Exception(
+                    "This processor cannot compute the sum of genweights of subsamples."
+                )
 
         return self.output

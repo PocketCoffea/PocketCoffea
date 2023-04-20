@@ -16,7 +16,7 @@ from .scale_factors import (
     sf_btag_calib,
     sf_jet_puId,
     sf_L1prefiring,
-    sf_pileup_reweight
+    sf_pileup_reweight,
 )
 
 
@@ -224,7 +224,14 @@ class WeightsManager:
         if weight_name == "genWeight":
             return [('genWeight', events.genWeight / self._sum_genweights)]
         elif weight_name == 'lumi':
-            return [('lumi', ak.full_like(events.genWeight, self.params.lumi.picobarns[self._year]["tot"]))]
+            return [
+                (
+                    'lumi',
+                    ak.full_like(
+                        events.genWeight, self.params.lumi.picobarns[self._year]["tot"]
+                    ),
+                )
+            ]
         elif weight_name == 'XS':
             return [('XS', ak.full_like(events.genWeight, self._xsec))]
         elif weight_name == 'pileup':
@@ -241,17 +248,23 @@ class WeightsManager:
         elif weight_name == "sf_mu_iso":
             return [('sf_mu_iso', *sf_mu(self.params, events, self._year, 'iso'))]
         elif weight_name == "sf_mu_trigger":
-            return [('sf_mu_trigger', *sf_mu(self.params, events, self._year, 'trigger'))]
+            return [
+                ('sf_mu_trigger', *sf_mu(self.params, events, self._year, 'trigger'))
+            ]
         elif weight_name == "sf_ele_trigger":
 
             # Get all the nominal and variation SF
             if shape_variation == "nominal":
-                sf_ele_trigger_vars = self.params.systematic_variations.weight_variations.sf_ele_trigger[self._year]
+                sf_ele_trigger_vars = (
+                    self.params.systematic_variations.weight_variations.sf_ele_trigger[
+                        self._year
+                    ]
+                )
                 triggersf = sf_ele_trigger(
                     self.params,
                     events,
                     self._year,
-                    variations=["nominal"] + sf_ele_trigger_vars
+                    variations=["nominal"] + sf_ele_trigger_vars,
                 )
                 # BE AWARE --> COFFEA HACK FOR MULTIPLE VARIATIONS
                 for var in sf_ele_trigger_vars:
@@ -263,10 +276,7 @@ class WeightsManager:
             else:
                 # Only the nominal if there is a shape variation
                 triggersf = sf_ele_trigger(
-                    self.params,
-                    events,
-                    self._year,
-                    variations=["nominal"]
+                    self.params, events, self._year, variations=["nominal"]
                 )
 
             # return the nominal and everything
@@ -279,13 +289,15 @@ class WeightsManager:
 
             # Get all the nominal and variation SF
             if shape_variation == "nominal":
-                btag_vars = self.params.systematic_variations.weight_variations.sf_btag[self._year]
+                btag_vars = self.params.systematic_variations.weight_variations.sf_btag[
+                    self._year
+                ]
                 btagsf = sf_btag(
                     self.params,
                     events.JetGood,
                     self._year,
                     njets=events.nJetGood,
-                    variations=["central"] + btag_vars
+                    variations=["central"] + btag_vars,
                 )
                 # BE AWARE --> COFFEA HACK FOR MULTIPLE VARIATIONS
                 for var in btag_vars:
@@ -327,7 +339,9 @@ class WeightsManager:
             return [
                 (
                     "sf_btag_calib",
-                    sf_btag_calib(self.params, self._sample, self._year, events.nJetGood, jetsHt),
+                    sf_btag_calib(
+                        self.params, self._sample, self._year, events.nJetGood, jetsHt
+                    ),
                 )
             ]
 

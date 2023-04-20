@@ -7,8 +7,9 @@ from omegaconf import OmegaConf as oc
 from coffea.util import load
 from coffea import lookup_tools
 
+
 def get_ele_sf(
-        params, year, pt, eta, counts=None, key='', pt_region=None, variations=["nominal"]
+    params, year, pt, eta, counts=None, key='', pt_region=None, variations=["nominal"]
 ):
     '''
     This function computes the per-electron reco or id SF.
@@ -21,12 +22,12 @@ def get_ele_sf(
             electronSF.JSONfiles[year]["file"]
         )
         map_name = electronSF.JSONfiles[year]["name"]
-        
+
         if key == 'reco':
             sfname = electronSF["reco"][pt_region]
         elif key == 'id':
             sfname = electronSF["id"]
-        
+
         # translate the `year` key into the corresponding key in the correction file provided by the EGM-POG
         year_pog = electronSF["era_mapping"][year]
 
@@ -51,7 +52,7 @@ def get_ele_sf(
             electronSF.trigger_sf[year]["file"]
         )
         map_name = electronSF.trigger_sf[year]["name"]
-        
+
         output = {}
         for variation in variations:
             if variation == "nominal":
@@ -85,11 +86,15 @@ def get_mu_sf(params, year, pt, eta, counts, key=''):
     '''
     muonSF = params["lepton_scale_factors"]["muon_sf"]
 
-    muon_correctionset = correctionlib.CorrectionSet.from_file(muonSF.JSONfiles[year]['file'])
+    muon_correctionset = correctionlib.CorrectionSet.from_file(
+        muonSF.JSONfiles[year]['file']
+    )
     sfName = muonSF.sf_name[year][key]
 
     year_pog = muonSF.era_mapping[year]
-    sf = muon_correctionset[sfName].evaluate(year_pog, np.abs(eta.to_numpy()), pt.to_numpy(), "sf")
+    sf = muon_correctionset[sfName].evaluate(
+        year_pog, np.abs(eta.to_numpy()), pt.to_numpy(), "sf"
+    )
     sfup = muon_correctionset[sfName].evaluate(
         year_pog, np.abs(eta.to_numpy()), pt.to_numpy(), "systup"
     )
@@ -130,10 +135,22 @@ def sf_ele_reco(params, events, year):
     ele_eta_Below20 = ak.flatten(ele_eta[Below20])
 
     sf_reco_Above20, sfup_reco_Above20, sfdown_reco_Above20 = get_ele_sf(
-        params, year, ele_pt_Above20, ele_eta_Above20, ele_counts_Above20, 'reco', 'pt_gt_20'
+        params,
+        year,
+        ele_pt_Above20,
+        ele_eta_Above20,
+        ele_counts_Above20,
+        'reco',
+        'pt_gt_20',
     )
     sf_reco_Below20, sfup_reco_Below20, sfdown_reco_Below20 = get_ele_sf(
-        params, year, ele_pt_Below20, ele_eta_Below20, ele_counts_Below20, 'reco', 'pt_lt_20'
+        params,
+        year,
+        ele_pt_Below20,
+        ele_eta_Below20,
+        ele_counts_Below20,
+        'reco',
+        'pt_lt_20',
     )
 
     # The SF arrays corresponding to the electrons with pt above and below 20 GeV are concatenated and multiplied along the electron axis in order to obtain a per-event scale factor.
@@ -187,8 +204,14 @@ def sf_ele_trigger(params, events, year, variations=["nominal"]):
         ak.num(ele_pt),
     )
     sf_dict = get_ele_sf(
-        params, year, ele_pt_flat, ele_eta_flat, ele_counts, 'trigger', variations=variations
-    ) 
+        params,
+        year,
+        ele_pt_flat,
+        ele_eta_flat,
+        ele_counts,
+        'trigger',
+        variations=variations,
+    )
 
     for variation in sf_dict.keys():
         for i, sf in enumerate(sf_dict[variation]):
@@ -243,8 +266,8 @@ def sf_btag(params, jets, year, njets, variations=["central"]):
     pt = ak.to_numpy(ak.flatten(jets.pt))
     discr = ak.to_numpy(ak.flatten(jets[btag_discriminator]))
 
-    central_SF_byjet =  corr.evaluate("central", flavour, abseta, pt, discr)
-                   
+    central_SF_byjet = corr.evaluate("central", flavour, abseta, pt, discr)
+
     def _get_sf_variation_with_mask(variation, mask):
         index = (np.indices(discr.shape)).flatten()[mask]
         # Copying the central SF
@@ -257,7 +280,7 @@ def sf_btag(params, jets, year, njets, variations=["central"]):
     output = {}
     for variation in variations:
         if variation == "central":
-            output[variation] = [ak.prod(ak.unflatten(central_SF_byjet, njets), axis=1) ]
+            output[variation] = [ak.prod(ak.unflatten(central_SF_byjet, njets), axis=1)]
         else:
             # Nominal sf==1
             nominal = np.ones(ak.num(njets, axis=0))
@@ -280,18 +303,23 @@ def sf_btag(params, jets, year, njets, variations=["central"]):
                     btag_jes_var = "down_jes"
                 else:
                     if variation[-2:] == "Up":
-                        btag_jes_var =  f"up_jes{variation[4:-2]}"
+                        btag_jes_var = f"up_jes{variation[4:-2]}"
                     elif variation[-4:] == "Down":
-                        btag_jes_var =  f"down_jes{variation[4:-4]}"
-                        
+                        btag_jes_var = f"down_jes{variation[4:-4]}"
+
                 # This is a special case where a dedicate btagSF is computed for up and down Jes shape variations.
                 # This is not an up/down variation, but a single modified SF.
                 # N.B: It is a central SF
                 # notc_mask = flavour != 4
                 # output["central"] = [_get_sf_variation_with_mask(btag_jes_var, notc_mask)]
-                output["central"] =  [ak.prod(
-                                            ak.unflatten(  corr.evaluate("central", flavour, abseta, pt, discr), njets),
-                                     axis=1)]
+                output["central"] = [
+                    ak.prod(
+                        ak.unflatten(
+                            corr.evaluate("central", flavour, abseta, pt, discr), njets
+                        ),
+                        axis=1,
+                    )
+                ]
             else:
                 # Computing the scale factor only NON c-flavour jets
                 notc_mask = flavour != 4
@@ -307,7 +335,9 @@ def sf_btag(params, jets, year, njets, variations=["central"]):
 def sf_btag_calib(params, sample, year, njets, jetsHt):
     '''Correction to btagSF computing by comparing the inclusive shape without btagSF and with btagSF in 2D:
     njets-JetsHT bins. Each sample/year has a different correction stored in the correctionlib format.'''
-    cset = correctionlib.CorrectionSet.from_file(params.btagSF_calibration[year]["file"])
+    cset = correctionlib.CorrectionSet.from_file(
+        params.btagSF_calibration[year]["file"]
+    )
     corr = cset[params.btagSF_calibration[year]["name"]]
     w = corr.evaluate(sample, year, ak.to_numpy(njets), ak.to_numpy(jetsHt))
     return w
@@ -326,7 +356,9 @@ def sf_jet_puId(params, jets, year, njets):
     genJetId_mask = ak.flatten(jets.genJetIdx >= 0)
 
     # GenGet matching by index, needs some checkes
-    cset = correctionlib.CorrectionSet.from_file(params.jet_scale_factors.jet_puId[year]["file"])
+    cset = correctionlib.CorrectionSet.from_file(
+        params.jet_scale_factors.jet_puId[year]["file"]
+    )
     corr = cset[params.jet_scale_factors.jet_puId[year]["name"]]
 
     # Requiring jet < maxpt, passing the jetpuid WP and matched to a GenJet (with a genJet idx != -1)

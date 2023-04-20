@@ -20,7 +20,7 @@ electronJSONfiles = {
     '2017': {
         'file_POG': "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2017_UL/electron.json.gz",
         'file_triggerSF': path.join(
-        path.dirname(__file__),
+            path.dirname(__file__),
             "semileptonic_triggerSF/triggerSF_2017",
             "sf_trigger_electron_etaSC_pt_leading_2017_Ele32_EleHT_pass.json",
         ),
@@ -29,7 +29,7 @@ electronJSONfiles = {
     '2018': {
         'file_POG': "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2018_UL/electron.json.gz",
         'file_triggerSF': path.join(
-        path.dirname(__file__),
+            path.dirname(__file__),
             "semileptonic_triggerSF/triggerSF_2018_sfmutrigger",
             "sf_trigger_electron_etaSC_pt_leading_2018_Ele32_EleHT_pass_v06.json",
         ),

@@ -27,28 +27,31 @@ class Configurator:
     - workflow
     - analysis parameters
 
-    The running environment configuration is not part of the Configurator class. 
+    The running environment configuration is not part of the Configurator class.
     '''
-    def __init__(self,
-                 workflow,
-                 parameters,
-                 datasets,
-                 skim,
-                 preselections,
-                 categories,
-                 weights,
-                 variations,
-                 variables,
-                 columns = None,
-                 workflow_options = None,
-                 save_skimmed_files= None):
-        
+
+    def __init__(
+        self,
+        workflow,
+        parameters,
+        datasets,
+        skim,
+        preselections,
+        categories,
+        weights,
+        variations,
+        variables,
+        columns=None,
+        workflow_options=None,
+        save_skimmed_files=None,
+    ):
+
         # Save the workflow object and its options
         self.workflow = workflow
         self.workflow_options = workflow_options
         self.parameters = parameters
         self.save_skimmed_files = save_skimmed_files
-        # Save 
+        # Save
         # Load dataset
         self.datasets_cfg = datasets
         # The following attributes are loaded by load_datasets
@@ -57,8 +60,8 @@ class Configurator:
         self.samples = []
 
         self.subsamples = {}
-        self.subsamples_list = [] # List of subsamples (for internal checks)
-        self.total_samples_list = [] # List of subsamples and inclusive samples names
+        self.subsamples_list = []  # List of subsamples (for internal checks)
+        self.total_samples_list = []  # List of subsamples and inclusive samples names
         self.has_subsamples = {}
 
         self.years = []
@@ -70,7 +73,7 @@ class Configurator:
         # Load histogram settings
         # No manipulation is needed, maybe some check can be added
         self.variables = variables
-        
+
         # Categories: object handling categorization
         # - StandardSelection
         # - CartesianSelection
@@ -105,12 +108,8 @@ class Configurator:
         if "shape" not in variations:
             variations["shape"] = {"common": {"inclusive": []}}
 
-        self.load_variations_config(
-            variations["weights"], variation_type="weights"
-        )
-        self.load_variations_config(
-            variations["shape"], variation_type="shape"
-        )
+        self.load_variations_config(variations["weights"], variation_type="weights")
+        self.load_variations_config(variations["shape"], variation_type="shape")
         # Collecting overall list of available weights and shape variations per sample
         self.available_weights_variations = {s: ["nominal"] for s in self.samples}
         self.available_shape_variations = {s: [] for s in self.samples}
@@ -136,8 +135,6 @@ class Configurator:
         # Load workflow passing the Configurator self object
         self.load_workflow()
 
-        
-
     def load_datasets(self):
         for json_dataset in self.datasets_cfg["jsons"]:
             ds_dict = json.load(open(json_dataset))
@@ -147,7 +144,7 @@ class Configurator:
                     pass_filter = True
                     if "samples" in ds_filter:
                         if ds["metadata"]["sample"] not in ds_filter["samples"]:
-                            pass_filter = False 
+                            pass_filter = False
                     if "samples_exclude" in ds_filter:
                         if ds["metadata"]["sample"] in ds_filter["samples_exclude"]:
                             pass_filter = False
@@ -204,17 +201,16 @@ class Configurator:
                 # if there is no configured subsample, the full sample becomes its subsample
                 self.subsamples[sample] = StandardSelection({sample: [passthrough]})
 
-   
     def load_cuts_and_categories(self, skim: list, preselections: list, categories):
         '''This function loads the list of cuts and groups them in categories.
         Each cut is identified by a unique id (see Cut class definition)'''
         # If the skim, preselection and categories list are empty, append a `passthrough` Cut
-        
+
         if len(skim) == 0:
             skim.append(passthrough)
         if len(preselections) == 0:
             preselections.ppend(passthrough)
-            
+
         if categories == {}:
             categories["baseline"] = [passthrough]
 
@@ -242,7 +238,7 @@ class Configurator:
     def load_weights_config(self, wcfg):
         '''This function loads the weights definition and prepares a list of
         weights to be applied for each sample and category'''
-       
+
         # Get the list of statically available weights defined in the workflow
         available_weights = self.workflow.available_weights()
         # Read the config and save the list of weights names for each sample (and category if needed)
@@ -310,11 +306,10 @@ class Configurator:
                             self.weights_config[sample]["bycategory"][cat].append(w)
                             self.weights_config[sample]["is_split_bycat"] = True
 
-
     def load_variations_config(self, wcfg, variation_type):
         '''This function loads the variations definition and prepares a list of
         weights to be applied for each sample and category'''
-             
+
         # Get the list of statically available variations defined in the workflow
         available_variations = self.workflow.available_variations()
         # Read the config and save the list of variations names for each sample (and category if needed)
@@ -455,11 +450,12 @@ class Configurator:
 
     def save_config(self, output):
         ocfg = {}
-        ocfg["datasets"] = {"names": self.datasets,
-                            "samples": self.samples,
-                            "fileset": self.fileset,
-                            }
-        
+        ocfg["datasets"] = {
+            "names": self.datasets,
+            "samples": self.samples,
+            "fileset": self.fileset,
+        }
+
         subsamples_cuts = self.subsamples
         dump_subsamples = {}
         for sample, subsamples in subsamples_cuts.items():
@@ -517,35 +513,32 @@ class Configurator:
                 for col in cols:
                     ocfg["columns"][sample][cat].append(col.__dict__)
 
-        #add the parameters as yaml in a separate file
+        # add the parameters as yaml in a separate file
         with open(os.path.join(output, "parameters_dump.yaml"), "w") as pf:
             pf.write(OmegaConf.to_yaml(self.parameters))
-        
+
         # Save the serialized configuration in json
         output_cfg = os.path.join(output, "config.json")
         print("Saving config file to " + output_cfg)
         json.dump(ocfg, open(output_cfg, "w"), indent=2)
         # Pickle the configurator object in order to be able to reproduce completely the configuration
-        cloudpickle.dump(
-            self, open(os.path.join(output, "configurator.pkl"), "wb")
-        )
-        #dump also the parameters
-        
-
+        cloudpickle.dump(self, open(os.path.join(output, "configurator.pkl"), "wb"))
+        # dump also the parameters
 
     def __repr__(self):
-        s = ['Configurator instance:',
-             f"  - Workflow: {self.workflow}",
-             f"  - {len(self.samples)} samples: {self.samples}",
-             f"  - {len(self.subsamples)} subsamples: {list(self.subsamples.keys())}",
-             f"  - Skim: {[c.name for c in self.skim]}",
-             f"  - Preselection: {[c.name for c in self.preselections]}",
-             f"  - Categories: {self.categories}",
-             f"  - Variables:  {list(self.variables.keys())}",
-             f"  - Columns: {self.columns}",
-             f"  - available weights variations: {self.available_weights_variations} ",
-             f"  - available shape variations: {self.available_shape_variations}",
-             ]
+        s = [
+            'Configurator instance:',
+            f"  - Workflow: {self.workflow}",
+            f"  - {len(self.samples)} samples: {self.samples}",
+            f"  - {len(self.subsamples)} subsamples: {list(self.subsamples.keys())}",
+            f"  - Skim: {[c.name for c in self.skim]}",
+            f"  - Preselection: {[c.name for c in self.preselections]}",
+            f"  - Categories: {self.categories}",
+            f"  - Variables:  {list(self.variables.keys())}",
+            f"  - Columns: {self.columns}",
+            f"  - available weights variations: {self.available_weights_variations} ",
+            f"  - available shape variations: {self.available_shape_variations}",
+        ]
         return "\n".join(s)
 
     def __str__(self):

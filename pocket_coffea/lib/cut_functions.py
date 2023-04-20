@@ -221,6 +221,7 @@ def nBtagMin(events, params, year, processor_params, **kwargs):
                 >= params["N"]
             )
 
+
 def nBtagEq(events, params, year, processor_params, **kwargs):
     '''Mask for == N jets with minpt and passing btagging.
     The btag params will come from the processor, not from the parameters
@@ -284,19 +285,27 @@ def nMuon(events, params, year, **kwargs):
 ##########################33
 ## Factory methods
 
+
 def get_nBtagMin(N, minpt=0, coll="BJetGood", name=None):
     if name == None:
         name = f"n{coll}_btagMin{N}_pt{minpt}"
-    return Cut(name=name, params={"N": N, "coll": coll, "minpt": minpt}, function=nBtagMin)
+    return Cut(
+        name=name, params={"N": N, "coll": coll, "minpt": minpt}, function=nBtagMin
+    )
 
 
 def get_nBtagEq(N, minpt=0, coll="BJetGood", name=None):
     if name == None:
         name = f"n{coll}_btagEq{N}_pt{minpt}"
-    return Cut(name=name, params={"N": N, "coll": coll, "minpt": minpt}, function=nBtagEq)
+    return Cut(
+        name=name, params={"N": N, "coll": coll, "minpt": minpt}, function=nBtagEq
+    )
+
 
 def get_nBtag(*args, **kwargs):
-    raise Exception("This cut function factory is deprecated!! Use get_nBtagMin or get_nBtagEq instead.")
+    raise Exception(
+        "This cut function factory is deprecated!! Use get_nBtagMin or get_nBtagEq instead."
+    )
 
 
 def get_nElectron(N, minpt=0, coll="ElectronGood", name=None):
@@ -311,4 +320,3 @@ def get_nMuon(N, minpt=0, coll="MuonGood", name=None):
     if name == None:
         name = f"n{coll}_{N}_pt{minpt}"
     return Cut(name=name, params={"N": N, "coll": coll, "minpt": minpt}, function=nMuon)
-

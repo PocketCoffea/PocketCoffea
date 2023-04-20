@@ -107,7 +107,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             if "sum_genweights" in self.events.metadata:
                 self._sum_genweights = self.events.metadata["sum_genweights"]
             else:
-                raise Exception(f"The metadata dict of {self._dataset} has no key named `sum_genweights`.")
+                raise Exception(
+                    f"The metadata dict of {self._dataset} has no key named `sum_genweights`."
+                )
         else:
             self._era = self.events.metadata["era"]
             self._goldenJSON = goldenJSON[self._year]
@@ -232,8 +234,11 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         for cut in self._preselections:
             # Apply the cut function and add it to the mask
             mask = cut.get_mask(
-                self.events, processor_params=self.params,
-                year=self._year, sample=self._sample, isMC=self._isMC,
+                self.events,
+                processor_params=self.params,
+                year=self._year,
+                sample=self._sample,
+                isMC=self._isMC,
             )
             self._preselection_masks.add(cut.id, mask)
         # Now that the preselection mask is complete we can apply it to events
@@ -550,14 +555,14 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             #     applyJER=hasJER,
             #     applyJESunc=hasJES,
             # )
-            #met_with_JES = met_correction(
+            # met_with_JES = met_correction(
             #    nominal_events.MET,
             #    jets_with_JES
-            #)
+            # )
         else:
             jets_with_JES = nominal_events.Jet
             fatjets_with_JES = nominal_events.FatJet
-            #met_with_JES = nominal_events.MET
+            # met_with_JES = nominal_events.MET
 
         for variation in variations:
             # Restore the nominal events record since for each variation
@@ -569,7 +574,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     # put nominal shape
                     self.events["Jet"] = jets_with_JES
                     # self.events["FatJet"] = fatjets_with_JES
-                    #self.events["MET"] = met_with_JES
+                    # self.events["MET"] = met_with_JES
                 # Nominal is ASSUMED to be the first
                 yield "nominal"
             elif ("JES" in variation) | ("JER" in variation):

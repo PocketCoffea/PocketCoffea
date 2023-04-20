@@ -467,8 +467,10 @@ def _get_default_hist(name, type, coll, pos=None, fields=None, **kwargs):
                 hist_name += f"_{pos+1}"
 
             out[hist_name] = HistConf(
-                axes=[Axis(**setting),],
-                **kwargs
+                axes=[
+                    Axis(**setting),
+                ],
+                **kwargs,
             )
     return out
 

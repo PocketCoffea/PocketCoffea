@@ -1,8 +1,8 @@
-from omegaconf import OmegaConf 
+from omegaconf import OmegaConf
 import os
 
 
-def register_configuration_dir(key:str, directory:str):
+def register_configuration_dir(key: str, directory: str):
     '''
     This function registers a new resolved in the OmegaConf library
     to prepend the correct path in a configuration.
@@ -15,7 +15,8 @@ def register_configuration_dir(key:str, directory:str):
     '''
     OmegaConf.register_new_resolver(key, lambda: directory, replace=True)
 
-#Resolver for PocketCoffea default parameters file location
+
+# Resolver for PocketCoffea default parameters file location
 # By using the resolved ${default_params_dir:}/file.yaml the file
 # is loaded from the default params folder of the PocketCoffea package
 register_configuration_dir("default_params_dir", os.path.dirname(__file__))
@@ -37,20 +38,26 @@ def get_default_parameters():
     '''
     # The default configs are part of the package
     basedir = os.path.dirname(__file__)
-    pileup = OmegaConf.load(os.path.join(basedir,'pileup.yaml'))
-    event_flags = OmegaConf.load(os.path.join(basedir,'event_flags.yaml'))
-    lumi = OmegaConf.load(os.path.join(basedir,'lumi.yaml'))
-    jet_scale_factors = OmegaConf.load(os.path.join(basedir,'jet_scale_factors.yaml'))
+    pileup = OmegaConf.load(os.path.join(basedir, 'pileup.yaml'))
+    event_flags = OmegaConf.load(os.path.join(basedir, 'event_flags.yaml'))
+    lumi = OmegaConf.load(os.path.join(basedir, 'lumi.yaml'))
+    jet_scale_factors = OmegaConf.load(os.path.join(basedir, 'jet_scale_factors.yaml'))
     btagging = OmegaConf.load(os.path.join(basedir, "btagging.yaml"))
-    lepton_scale_factors = OmegaConf.load(os.path.join(basedir,'lepton_scale_factors.yaml'))
+    lepton_scale_factors = OmegaConf.load(
+        os.path.join(basedir, 'lepton_scale_factors.yaml')
+    )
     syst_variations = OmegaConf.load(os.path.join(basedir, 'variations.yaml'))
-    
-    all = OmegaConf.merge(pileup, event_flags, lumi,
-                          jet_scale_factors, btagging,
-                          lepton_scale_factors,
-                          syst_variations
-                          )
-    return all 
+
+    all = OmegaConf.merge(
+        pileup,
+        event_flags,
+        lumi,
+        jet_scale_factors,
+        btagging,
+        lepton_scale_factors,
+        syst_variations,
+    )
+    return all
 
 
 def get_defaults_and_compose(*files: list[str]):
@@ -74,6 +81,7 @@ def merge_parameters(main_config: OmegaConf, *configs: list[OmegaConf], update=T
             OmegaConf.update(main, key, c[key], merge=update)
     return main
 
+
 def merge_parameters_from_files(conf: OmegaConf, *kargs: list[str], update=True):
     '''
     Helper function to merge a list yaml files with parameters to an
@@ -96,7 +104,7 @@ def merge_parameters_from_string(conf: OmegaConf, *kargs: list, update=True):
     existing OmegaConf object.
     Each element in the list is converted to a OmegaConf object before the merging.
     In this way one can use a list of dot-string to define a config.
-    
+
     N.B: if you want to merge yaml files use `merge_parameters_from_files`.
 
     The parameters are loaded and merged in order.
@@ -120,11 +128,9 @@ def compose_parameters_from_files(*files: list[str], update=True):
     return merge_parameters(confs[0], *confs[1:], merge=update)
 
 
-
 def dump_parameters(conf: OmegaConf, outfile: str, overwrite=False):
     if os.path.exists(outfile) and not overwrite:
         raise Exception(f"Trying to overwrite the file {outfile} with overwrite=False")
 
     with open(outfile, "w") as f:
         f.write(OmegaConf.to_yaml(conf))
-        

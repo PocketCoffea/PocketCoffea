@@ -1,8 +1,8 @@
-
 from contextlib import contextmanager
 import importlib.util
 import os
 import sys
+
 
 @contextmanager
 def add_to_path(p):
@@ -13,6 +13,7 @@ def add_to_path(p):
         yield
     finally:
         sys.path = old_path
+
 
 # import a module from a path.
 # Solution from https://stackoverflow.com/questions/41861427/python-3-5-how-to-dynamically-import-a-module-given-the-full-file-path-in-the
