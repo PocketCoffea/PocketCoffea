@@ -8,10 +8,8 @@
 
 [![Actions Status][actions-badge]][actions-link]
 [![Documentation Status][rtd-badge]][rtd-link]
-
 [![PyPI version][pypi-version]][pypi-link]
 [![PyPI platforms][pypi-platforms]][pypi-link]
-
 [![GitHub Discussion][github-discussions-badge]][github-discussions-link]
 
 <!-- prettier-ignore-start -->
@@ -19,11 +17,11 @@
 [actions-link]:             https://github.com/PocketCoffea/PocketCoffea/actions
 [github-discussions-badge]: https://img.shields.io/static/v1?label=Discussions&message=Ask&color=blue&logo=github
 [github-discussions-link]:  https://github.com/PocketCoffea/PocketCoffea/discussions
-[pypi-link]:                https://pypi.org/project/PocketCoffea/
-[pypi-platforms]:           https://img.shields.io/pypi/pyversions/PocketCoffea
-[pypi-version]:             https://img.shields.io/pypi/v/PocketCoffea
-[rtd-badge]:                https://readthedocs.org/projects/PocketCoffea/badge/?version=latest
-[rtd-link]:                 https://PocketCoffea.readthedocs.io/en/latest/?badge=latest
+[pypi-link]:                https://pypi.org/project/pocket-coffea/
+[pypi-platforms]:           https://img.shields.io/pypi/pyversions/pocket-coffea
+[pypi-version]:             https://img.shields.io/pypi/v/pocket-coffea
+[rtd-badge]:                https://readthedocs.org/projects/pocketcoffea/badge/?version=latest
+[rtd-link]:                 https://pocketcoffea.readthedocs.io/en/latest/?badge=latest
 
 <!-- prettier-ignore-end -->
 PocketCoffea is a slim configuration framework for CMS NanoAOD analysess based on [Coffea](https://github.com/CoffeaTeam/coffea/). 
