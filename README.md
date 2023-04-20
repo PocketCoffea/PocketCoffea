@@ -26,10 +26,10 @@
 [rtd-link]:                 https://PocketCoffea.readthedocs.io/en/latest/?badge=latest
 
 <!-- prettier-ignore-end -->
-PocketCoffea is a slim analysis framework based on [Coffea](https://github.com/CoffeaTeam/coffea/) for CMS NanoAOD events.
+PocketCoffea is a slim configuration framework for CMS NanoAOD analysess based on [Coffea](https://github.com/CoffeaTeam/coffea/). 
 
 The goal of the framework is to define an HEP analysis in a declarative way where possible (with a well defined
-configuration file), and with python code where customization is needed (by subclassing the base PocketCoffea processor).
+configuration files), and with python code where customization is needed (by subclassing the base PocketCoffea processor).
 
 PocketCoffea defines a customizable structure to process NanoAOD events and define weights, categories, histograms. This
 is done thans to a `BaseProcessor` class which defines a `workflow` of operations to go from Raw NanoAOD to histograms.
