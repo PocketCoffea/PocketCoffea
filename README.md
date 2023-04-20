@@ -38,3 +38,5 @@ The user can customize the process from the confguration file or by redefining w
 ## Documentation
 
 All the documentaton is hosted at: https://pocketcoffea.readthedocs.io
+
+An complete Z->ee analysis example is under preparation: **[analysis example page](https://pocketcoffea.readthedocs.io/en/latest/analysis_example.html)** (WIP)
