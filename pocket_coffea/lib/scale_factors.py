@@ -15,25 +15,29 @@ def get_ele_sf(
     If 'reco', the appropriate corrections are chosen by using the argument `pt_region`.
     '''
     electronSF = params["lepton_scale_factors"]["electron_sf"]
-    
-    if key == 'reco':
-       sfname = electronSF["reco"][pt_region]
-       electron_correctionset = correctionlib.CorrectionSet.from_file(
-            electronSF["trigger_sf"][year]["file"]
-       )
-       map_name = electronSF["trigger_sf"][year]["name"]
 
     if key in ['reco', 'id']:
+        electron_correctionset = correctionlib.CorrectionSet.from_file(
+            electronSF.JSONfiles[year]["file"]
+        )
+        map_name = electronSF.JSONfiles[year]["name"]
+        
+        if key == 'reco':
+            sfname = electronSF["reco"][pt_region]
+        elif key == 'id':
+            sfname = electronSF["id"]
+        
         # translate the `year` key into the corresponding key in the correction file provided by the EGM-POG
         year_pog = electronSF["era_mapping"][year]
+
         sf = electron_correctionset[map_name].evaluate(
-            year_pog, "sf", sfName, eta.to_numpy(), pt.to_numpy()
+            year_pog, "sf", sfname, eta.to_numpy(), pt.to_numpy()
         )
         sfup = electron_correctionset[map_name].evaluate(
-            year_pog, "sfup", sfName, eta.to_numpy(), pt.to_numpy()
+            year_pog, "sfup", sfname, eta.to_numpy(), pt.to_numpy()
         )
         sfdown = electron_correctionset[map_name].evaluate(
-            year_pog, "sfdown", sfName, eta.to_numpy(), pt.to_numpy()
+            year_pog, "sfdown", sfname, eta.to_numpy(), pt.to_numpy()
         )
         # The unflattened arrays are returned in order to have one row per event.
         return (
@@ -42,6 +46,12 @@ def get_ele_sf(
             ak.unflatten(sfdown, counts),
         )
     elif key == 'trigger':
+
+        electron_correctionset = correctionlib.CorrectionSet.from_file(
+            electronSF.trigger_sf[year]["file"]
+        )
+        map_name = electronSF.trigger_sf[year]["name"]
+        
         output = {}
         for variation in variations:
             if variation == "nominal":
@@ -69,13 +79,13 @@ def get_ele_sf(
         return output
 
 
-def get_mu_sf(year, pt, eta, counts, key=''):
+def get_mu_sf(params, year, pt, eta, counts, key=''):
     '''
     This function computes the per-muon id or iso SF.
     '''
     muonSF = params["lepton_scale_factors"]["muon_sf"]
 
-    muon_correctionsetN = correctionlib.CorrectionSet.from_file(muonSF.JSONfiles[year]['file'])
+    muon_correctionset = correctionlib.CorrectionSet.from_file(muonSF.JSONfiles[year]['file'])
     sfName = muonSF.sf_name[year][key]
 
     year_pog = muonSF.era_mapping[year]
@@ -95,7 +105,7 @@ def get_mu_sf(year, pt, eta, counts, key=''):
     )
 
 
-def sf_ele_reco(events, year):
+def sf_ele_reco(params, events, year):
     '''
     This function computes the per-electron reco SF and returns the corresponding per-event SF, obtained by multiplying the per-electron SF in each event.
     Additionally, also the up and down variations of the SF are returned.
@@ -120,10 +130,10 @@ def sf_ele_reco(events, year):
     ele_eta_Below20 = ak.flatten(ele_eta[Below20])
 
     sf_reco_Above20, sfup_reco_Above20, sfdown_reco_Above20 = get_ele_sf(
-        year, ele_pt_Above20, ele_eta_Above20, ele_counts_Above20, 'reco', 'pt>20'
+        params, year, ele_pt_Above20, ele_eta_Above20, ele_counts_Above20, 'reco', 'pt_gt_20'
     )
     sf_reco_Below20, sfup_reco_Below20, sfdown_reco_Below20 = get_ele_sf(
-        year, ele_pt_Below20, ele_eta_Below20, ele_counts_Below20, 'reco', 'pt<20'
+        params, year, ele_pt_Below20, ele_eta_Below20, ele_counts_Below20, 'reco', 'pt_lt_20'
     )
 
     # The SF arrays corresponding to the electrons with pt above and below 20 GeV are concatenated and multiplied along the electron axis in order to obtain a per-event scale factor.
@@ -140,7 +150,7 @@ def sf_ele_reco(events, year):
     return sf_reco, sfup_reco, sfdown_reco
 
 
-def sf_ele_id(events, year):
+def sf_ele_id(params, events, year):
     '''
     This function computes the per-electron id SF and returns the corresponding per-event SF, obtained by multiplying the per-electron SF in each event.
     Additionally, also the up and down variations of the SF are returned.
@@ -154,14 +164,14 @@ def sf_ele_id(events, year):
         ak.num(ele_pt),
     )
     sf_id, sfup_id, sfdown_id = get_ele_sf(
-        year, ele_pt_flat, ele_eta_flat, ele_counts, 'id'
+        params, year, ele_pt_flat, ele_eta_flat, ele_counts, 'id'
     )
 
     # The SF arrays corresponding to the electrons are multiplied along the electron axis in order to obtain a per-event scale factor.
     return ak.prod(sf_id, axis=1), ak.prod(sfup_id, axis=1), ak.prod(sfdown_id, axis=1)
 
 
-def sf_ele_trigger(events, year, variations=["nominal"]):
+def sf_ele_trigger(params, events, year, variations=["nominal"]):
     '''
     This function computes the semileptonic electron trigger SF by considering the leading electron in the event.
     This computation is valid only in the case of the semileptonic final state.
@@ -177,7 +187,7 @@ def sf_ele_trigger(events, year, variations=["nominal"]):
         ak.num(ele_pt),
     )
     sf_dict = get_ele_sf(
-        year, ele_pt_flat, ele_eta_flat, ele_counts, 'trigger', variations=variations
+        params, year, ele_pt_flat, ele_eta_flat, ele_counts, 'trigger', variations=variations
     ) 
 
     for variation in sf_dict.keys():
@@ -187,7 +197,7 @@ def sf_ele_trigger(events, year, variations=["nominal"]):
     return sf_dict
 
 
-def sf_mu(events, year, key=''):
+def sf_mu(params, events, year, key=''):
     '''
     This function computes the per-muon id SF and returns the corresponding per-event SF, obtained by multiplying the per-muon SF in each event.
     Additionally, also the up and down variations of the SF are returned.
@@ -201,13 +211,14 @@ def sf_mu(events, year, key=''):
         ak.flatten(mu_eta),
         ak.num(mu_pt),
     )
-    sf, sfup, sfdown = get_mu_sf(year, mu_pt_flat, mu_eta_flat, mu_counts, key)
+    sf, sfup, sfdown = get_mu_sf(params, year, mu_pt_flat, mu_eta_flat, mu_counts, key)
 
-    # The SF arrays corresponding to all the muons are multiplied along the muon axis in order to obtain a per-event scale factor.
+    # The SF arrays corresponding to all the muons are multiplied along the
+    # muon axis in order to obtain a per-event scale factor.
     return ak.prod(sf, axis=1), ak.prod(sfup, axis=1), ak.prod(sfdown, axis=1)
 
 
-def sf_btag(params, jets, btag_discriminator, year, njets, variations=["central"]):
+def sf_btag(params, jets, year, njets, variations=["central"]):
     '''
     DeepJet AK4 btagging SF.
     See https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/summaries/BTV_2018_UL_btagging.html
@@ -223,6 +234,7 @@ def sf_btag(params, jets, btag_discriminator, year, njets, variations=["central"
     Jes variation jets.
     '''
     btagSF = params.jet_scale_factors.btagSF[year]
+    btag_discriminator = params.btagging.working_point[year]["btagging_algorithm"]
     cset = correctionlib.CorrectionSet.from_file(btagSF.file)
     corr = cset[btagSF.name]
 
@@ -349,7 +361,7 @@ def sf_L1prefiring(events):
     return L1PreFiringWeight['Nom'], L1PreFiringWeight['Up'], L1PreFiringWeight['Dn']
 
 
-def sf_pileup_reweight(events, year, params):
+def sf_pileup_reweight(params, events, year):
     puFile = params.pileupJSONfiles[year]['file']
     puName = params.pileupJSONfiles[year]['name']
 

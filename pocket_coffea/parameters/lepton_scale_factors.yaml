@@ -4,7 +4,7 @@ lepton_scale_factors:
   electron_sf:
     reco:
       pt_gt_20: RecoAbove20
-      pt_lt_20': RecoBelow20
+      pt_lt_20: RecoBelow20
 
     id: wp80iso
 
@@ -22,7 +22,7 @@ lepton_scale_factors:
         name: UL-Electron-ID-SF
 
       '2018':
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2018_UL/electron.json.gz,
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2018_UL/electron.json.gz
         name: UL-Electron-ID-SF
 
     era_mapping:

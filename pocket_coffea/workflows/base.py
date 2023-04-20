@@ -310,6 +310,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         else:
             # Creating the WeightsManager with all the configured weights
             self.weights_manager = WeightsManager(
+                self.params,
                 self.weights_config_allsamples[self._sample],
                 self.nEvents_after_presel,
                 self.events,  # to compute weights
@@ -320,7 +321,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     "sample": self._sample,
                     "xsec": self._xsec,
                     "sum_genweights": self._sum_genweights,
-                    "finalstate": self.cfg.finalstate,
                 },
             )
 

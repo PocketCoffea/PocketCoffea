@@ -10,7 +10,7 @@ systematic_variations:
       "2017": "${.2016_PreVFP}" 
       "2018": "${.2016_PreVFP}"
 
-    sf_btagging:
+    sf_btag:
       '2016_PreVFP':
         - hf
         - lf

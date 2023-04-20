@@ -136,9 +136,7 @@ class Configurator:
         # Load workflow passing the Configurator self object
         self.load_workflow()
 
-        # Save config file in output folder
-        # self.save_config()
-
+        
 
     def load_datasets(self):
         for json_dataset in self.datasets_cfg["jsons"]:
@@ -205,9 +203,6 @@ class Configurator:
             else:
                 # if there is no configured subsample, the full sample becomes its subsample
                 self.subsamples[sample] = StandardSelection({sample: [passthrough]})
-        # Unique set of cuts
-        logging.info("Subsamples:")
-        logging.info(self.subsamples)
 
    
     def load_cuts_and_categories(self, skim: list, preselections: list, categories):
@@ -243,9 +238,6 @@ class Configurator:
             self.categories = categories
         elif isinstance(categories, CartesianSelection):
             self.categories = categories
-        # Unique set of cuts
-        logging.info("Categories:")
-        logging.info(self.categories)
 
     def load_weights_config(self, wcfg):
         '''This function loads the weights definition and prepares a list of
@@ -318,8 +310,6 @@ class Configurator:
                             self.weights_config[sample]["bycategory"][cat].append(w)
                             self.weights_config[sample]["is_split_bycat"] = True
 
-        logging.info("Weights configuration")
-        logging.info(self.weights_config)
 
     def load_variations_config(self, wcfg, variation_type):
         '''This function loads the variations definition and prepares a list of

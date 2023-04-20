@@ -136,8 +136,8 @@ class HistManager:
                     # defined in the parameters
                     if var in self.processor_params.systematic_variations.weight_variations:
                         for subvariation in self.processor_params.systematic_variations.weight_variations[var][self.year]:
-                            self.available_weights_variations += [f"{subvariation}Up", f"{subvariation}Down"]
-                            self.available_weights_variations_bycat[cat] +=  [f"{subvariation}Up", f"{subvariation}Down"]
+                            self.available_weights_variations += [f"{var}_{subvariation}Up", f"{var}_{subvariation}Down"]
+                            self.available_weights_variations_bycat[cat] +=  [f"{var}_{subvariation}Up", f"{var}_{subvariation}Down"]
                     else:
                         vv = [f"{var}Up", f"{var}Down"]
                         self.available_weights_variations += vv
@@ -150,8 +150,8 @@ class HistManager:
                     # defined in the parameters
                     if var in self.processor_params.systematic_variations.shape_variations:
                         for subvariation in self.processor_params.systematic_variations.shape_variations[var][self.year]:
-                            self.available_weights_variations += [f"{subvariation}Up", f"{subvariation}Down"]
-                            self.available_weights_variations_bycat[cat] +=  [f"{subvariation}Up", f"{subvariation}Down"]
+                            self.available_weights_variations += [f"{var}_{subvariation}Up", f"{var}_{subvariation}Down"]
+                            self.available_weights_variations_bycat[cat] +=  [f"{var}_{subvariation}Up", f"{var}_{subvariation}Down"]
                     else:
                         vv = [f"{var}Up", f"{var}Down"]
                         self.available_shape_variations += vv
@@ -159,6 +159,7 @@ class HistManager:
             # Reduce to set over all the categories
             self.available_weights_variations = set(self.available_weights_variations)
             self.available_shape_variations = set(self.available_shape_variations)
+            breakpoint()
         # Prepare the variations Axes summing all the required variations
         # The variation config is organized as the weights one, by sample and by category
 

@@ -59,6 +59,7 @@ if __name__ == '__main__':
         config_module =  utils.path_import(args.cfg)
         try:
             config = config_module.cfg
+            logging.info(config)
         except AttributeError:
             print("The provided configuration module does not contain a `cfg` attribute of type Configurator. Please check your configuration!")
         if not isinstance(config, Configurator):
