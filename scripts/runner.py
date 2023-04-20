@@ -90,6 +90,8 @@ if __name__ == '__main__':
             f'export X509_USER_PROXY={_x509_path}',
             # f'export X509_CERT_DIR={os.environ["X509_CERT_DIR"]}',
             f'source {sys.prefix}/bin/activate',
+            'ulimit -u 32768',
+            'export MALLOC_TRIM_THRESHOLD_=0'
         ]
     elif run_env == "conda":
         env_extra = [

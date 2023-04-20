@@ -27,7 +27,7 @@ cfg =  {
     "run_options" : {
         "executor"       : "dask/lxplus",
         "workers"        : 1,
-        "scaleout"       : 20,
+        "scaleout"       : 40,
         "queue"          : "microcentury",
         "walltime"       : "00:40:00",
         "mem_per_worker" : "4GB", # GB
