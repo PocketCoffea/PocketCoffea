@@ -7,8 +7,6 @@ import awkward as ak
 import numpy as np
 import correctionlib
 
-# from ..parameters.object_preselection import object_preselection
-# from ..parameters.jec_config import JECjsonFiles
 from ..lib.deltaR_matching import get_matching_pairs_indices, object_matching
 
 # Initialization of the jet factory
@@ -219,12 +217,11 @@ def jet_correction_correctionlib(
         return jets_corrected
 
 
-def jet_selection(events, Jet, finalstate):
+def jet_selection(events, jet_type,  params, leptons_collection=""):
 
-    jets = events[Jet]
-    cuts = object_preselection[finalstate][Jet]
+    jets = events[jet_type]
+    cuts = params.object_preselection[jet_type]
     # Only jets that are more distant than dr to ALL leptons are tagged as good jets
-    leptons = events["LeptonGood"]
     # Mask for  jets not passing the preselection
     mask_presel = (
         (jets.pt > cuts["pt"])
@@ -232,17 +229,17 @@ def jet_selection(events, Jet, finalstate):
         & (jets.jetId >= cuts["jetId"])
     )
     # Lepton cleaning
-    if "dr" in cuts.keys():
-        dR_jets_lep = jets.metric_table(leptons)
-        mask_lepton_cleaning = ak.prod(dR_jets_lep > cuts["dr"], axis=2) == 1
+    if leptons_collection != "":
+        dR_jets_lep = jets.metric_table(events[leptons_collection])
+        mask_lepton_cleaning = ak.prod(dR_jets_lep > cuts["dr_lepton"], axis=2) == 1
 
-    if Jet == "Jet":
+    if jet_type == "Jet":
         mask_jetpuid = (jets.puId >= cuts["puId"]["value"]) | (
             jets.pt >= cuts["puId"]["maxpt"]
         )
         mask_good_jets = mask_presel & mask_lepton_cleaning & mask_jetpuid
 
-    elif Jet == "FatJet":
+    elif jet_type == "FatJet":
         # Apply the msd and preselection cuts
         mask_msd = (events.FatJet.msoftdrop > cuts["msd"])
         mask_good_jets = mask_presel & mask_msd

@@ -40,7 +40,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Saving the configurator object in the processor
         self.cfg = cfg
         # Saving the parameters from the configurator objects
-        self.parameters = self.cfg.parameters
+        self.params = self.cfg.parameters
         # Cuts
         # 1) a list of *skim* functions is applied on bare NanoAOD, with no object preselection or correction.
         #   Triggers are also applied there.
@@ -209,7 +209,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         and clean objects and define the collections as attributes of `events`.
         E.g.::
 
-             self.events["ElectronGood"] = lepton_selection(self.events, "Electron", self.cfg.finalstate)
+             self.events["ElectronGood"] = lepton_selection(self.events, "Electron", self.params)
         '''
         pass
 
@@ -380,10 +380,12 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
         self.hists_managers = HistManager(
             self.cfg.variables,
+            self._year,
             self._sample,
             self._subsamples[self._sample].keys(),
             self._categories,
             variations_config=self.cfg.variations_config[self._sample],
+            processor_params=self.params,
             custom_axes=self.custom_axes,
             isMC=self._isMC,
         )

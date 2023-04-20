@@ -8,16 +8,6 @@ lepton_scale_factors:
 
     id: wp80iso
 
-    variations:
-      "2016_PreVFP": 
-        - stat
-        - pileup
-        - era
-        - ht
-      "2016_PostVFP": "${.2016_PreVFP}" #interpolation by OmegaConf --> taking the same dict
-      "2017": "${.2016_PreVFP}" 
-      "2018": "${.2016_PreVFP}"
-
     JSONfiles: 
       '2016_PreVFP':
         file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016preVFP_UL/electron.json.gz

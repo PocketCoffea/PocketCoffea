@@ -47,6 +47,7 @@ class Configurator:
         self.workflow = workflow
         self.workflow_options = workflow_options
         self.parameters = parameters
+        self.save_skimmed_files = save_skimmed_files
         # Save 
         # Load dataset
         self.datasets_cfg = datasets
@@ -320,8 +321,6 @@ class Configurator:
         logging.info("Weights configuration")
         logging.info(self.weights_config)
 
-
-        
     def load_variations_config(self, wcfg, variation_type):
         '''This function loads the variations definition and prepares a list of
         weights to be applied for each sample and category'''
@@ -453,17 +452,6 @@ class Configurator:
                                     self.columns[subs][cat].append(w)
                             else:
                                 self.columns[sample][cat].append(w)
-
-    # def overwrite_check(self, path):
-    #         version = 1
-    #         while os.path.exists(path):
-    #             tag = str(version).rjust(2, '0')
-    #             path = f"{self.output}_v{tag}"
-    #             version += 1
-    #         if path != self.output:
-    #             print(f"The output will be saved to {path}")
-    #         self.output = path
-    #         self.cfg['output'] = self.output
 
     def filter_dataset(self, nfiles):
         filtered_dataset = {}

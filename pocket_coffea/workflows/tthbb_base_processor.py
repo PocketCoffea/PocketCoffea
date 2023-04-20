@@ -45,11 +45,9 @@ class ttHbbBaseProcessor(BaseProcessorABC):
         )
         # Build masks for selection of muons, electrons, jets, fatjets
         self.events["MuonGood"] = lepton_selection(
-            self.events, "Muon", self.cfg.finalstate
-        )
+            self.events, "Muon", self.params )
         self.events["ElectronGood"] = lepton_selection(
-            self.events, "Electron", self.cfg.finalstate
-        )
+            self.events, "Electron", self.params)
         leptons = ak.with_name(
             ak.concatenate((self.events.MuonGood, self.events.ElectronGood), axis=1),
             name='PtEtaPhiMCandidate',
@@ -57,18 +55,13 @@ class ttHbbBaseProcessor(BaseProcessorABC):
         self.events["LeptonGood"] = leptons[ak.argsort(leptons.pt, ascending=False)]
 
         self.events["JetGood"], self.jetGoodMask = jet_selection(
-            self.events, "Jet", self.cfg.finalstate
+            self.events, "Jet", self.params, "LeptonGood"
         )
-        self.events["BJetGood"] = btagging(self.events["JetGood"], self._btag)
+        self.events["BJetGood"] = btagging(self.events["JetGood"], self.params.btagging.working_point[self._year])
 
-        if self.cfg.finalstate == 'dilepton':
-            self.events["ll"] = get_dilepton(
-                self.events.ElectronGood, self.events.MuonGood
-            )
-
-        self.events["FatJetGood"], self.jetGoodMask = jet_selection(
-            self.events, "FatJet", self.cfg.finalstate
-        )
+        # self.events["FatJetGood"], self.jetGoodMask = jet_selection(
+        #     self.events, "FatJet", self.cfg.finalstate
+        # )
 
     def count_objects(self, variation):
         self.events["nMuonGood"] = ak.num(self.events.MuonGood)
@@ -92,7 +85,6 @@ class ttHbbBaseProcessor(BaseProcessorABC):
         This processor saves a metadata histogram with the number of
         events for chunk
         '''
-
         # # Filling the special histograms for events if they are present
         # if self._hasSubsamples:
         #     for subs in self._subsamples_names:

@@ -106,14 +106,18 @@ class HistManager:
     def __init__(
         self,
         hist_config,
+        year,
         sample,
         subsamples,
         categories_config,
         variations_config,
+        processor_params,
         custom_axes=None,
         isMC=True,
     ):
+        self.processor_params = processor_params
         self.isMC = isMC
+        self.year = year
         self.subsamples = subsamples
         self.histograms = defaultdict(dict)
         self.variations_config = variations_config
@@ -128,15 +132,30 @@ class HistManager:
             for cat, vars in self.variations_config["weights"].items():
                 self.available_weights_variations_bycat[cat].append("nominal")
                 for var in vars:
-                    vv = [f"{var}Up", f"{var}Down"]
-                    self.available_weights_variations += vv
-                    self.available_weights_variations_bycat[cat] += vv
+                    # Check if the variation is a wildcard and the systematic requested has subvariations
+                    # defined in the parameters
+                    if var in self.processor_params.systematic_variations.weight_variations:
+                        for subvariation in self.processor_params.systematic_variations.weight_variations[var][self.year]:
+                            self.available_weights_variations += [f"{subvariation}Up", f"{subvariation}Down"]
+                            self.available_weights_variations_bycat[cat] +=  [f"{subvariation}Up", f"{subvariation}Down"]
+                    else:
+                        vv = [f"{var}Up", f"{var}Down"]
+                        self.available_weights_variations += vv
+                        self.available_weights_variations_bycat[cat] += vv
+                        
             # Shape variations
             for cat, vars in self.variations_config["shape"].items():
                 for var in vars:
-                    vv = [f"{var}Up", f"{var}Down"]
-                    self.available_shape_variations += vv
-                    self.available_shape_variations_bycat[cat] += vv
+                    # Check if the variation is a wildcard and the systematic requested has subvariations
+                    # defined in the parameters
+                    if var in self.processor_params.systematic_variations.shape_variations:
+                        for subvariation in self.processor_params.systematic_variations.shape_variations[var][self.year]:
+                            self.available_weights_variations += [f"{subvariation}Up", f"{subvariation}Down"]
+                            self.available_weights_variations_bycat[cat] +=  [f"{subvariation}Up", f"{subvariation}Down"]
+                    else:
+                        vv = [f"{var}Up", f"{var}Down"]
+                        self.available_shape_variations += vv
+                        self.available_shape_variations_bycat[cat] += vv
             # Reduce to set over all the categories
             self.available_weights_variations = set(self.available_weights_variations)
             self.available_shape_variations = set(self.available_shape_variations)

@@ -43,10 +43,12 @@ def get_default_parameters():
     jet_scale_factors = OmegaConf.load(os.path.join(basedir,'jet_scale_factors.yaml'))
     btagging = OmegaConf.load(os.path.join(basedir, "btagging.yaml"))
     lepton_scale_factors = OmegaConf.load(os.path.join(basedir,'lepton_scale_factors.yaml'))
+    syst_variations = OmegaConf.load(os.path.join(basedir, 'variations.yaml'))
     
     all = OmegaConf.merge(pileup, event_flags, lumi,
                           jet_scale_factors, btagging,
                           lepton_scale_factors,
+                          syst_variations
                           )
     return all 
 

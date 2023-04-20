@@ -16,14 +16,8 @@ from .scale_factors import (
     sf_btag_calib,
     sf_jet_puId,
     sf_L1prefiring,
+    sf_pileup_reweight
 )
-from ..lib.pileup import sf_pileup_reweight
-
-# Framework parameters
-from ..parameters.lumi import lumi, goldenJSON
-from ..parameters.xsec import xsec
-from ..parameters.btag import btag, btag_variations
-from ..parameters.lepton_scale_factors import sf_ele_trigger_variations
 
 
 @dataclass
@@ -119,15 +113,13 @@ class WeightsManager:
             "sf_mu_trigger",
             "sf_jet_puId",
             "sf_L1prefiring",
+            "sf_btag",
         ]
-        for year, bvars in btag_variations.items():
-            out += [f"sf_btag_{var}" for var in bvars]
-        for year, sfvars in sf_ele_trigger_variations.items():
-            out += [f"sf_ele_trigger_{var}" for var in sfvars]
         return set(out)
 
     def __init__(
         self,
+        params,
         weightsConf,
         size,
         events,
@@ -135,6 +127,7 @@ class WeightsManager:
         metadata,
         storeIndividual=False,
     ):
+        self.params = params
         self._sample = metadata["sample"]
         self._year = metadata["year"]
         self._finalstate = metadata["finalstate"]
@@ -232,7 +225,7 @@ class WeightsManager:
         if weight_name == "genWeight":
             return [('genWeight', events.genWeight / self._sum_genweights)]
         elif weight_name == 'lumi':
-            return [('lumi', ak.full_like(events.genWeight, lumi[self._year]["tot"]))]
+            return [('lumi', ak.full_like(events.genWeight, self.params.lumi.picobarns[self._year]["tot"]))]
         elif weight_name == 'XS':
             return [('XS', ak.full_like(events.genWeight, self._xsec))]
         elif weight_name == 'pileup':
@@ -314,7 +307,6 @@ class WeightsManager:
 
             else:
                 # Only the nominal if there is a shape variation
-                # TODO Implement the varied btag for the JES variations
                 btagsf = sf_btag(
                     events.JetGood,
                     btag[self._year]['btagging_algorithm'],
