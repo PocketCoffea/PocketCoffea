@@ -52,13 +52,15 @@ if __name__ == '__main__':
                         log_line_template="%(color_on)s[%(levelname)-8s] %(message)s%(color_off)s")):
         print("Failed to setup logging, aborting.")
         exit(1) 
-    
+
     if args.cfg[-3:] == ".py":
         # Load the script
         config_module =  utils.path_import(args.cfg)
         try:
             config = config_module.cfg
             logging.info(config)
+            config.save_config(args.outputdir)
+
         except AttributeError:
             print("The provided configuration module does not contain a `cfg` attribute of type Configurator. Please check your configuration!")
         if not isinstance(config, Configurator):
@@ -123,6 +125,8 @@ if __name__ == '__main__':
             'ulimit -u 32768',
             'export MALLOC_TRIM_THRESHOLD_=0'
         ]
+        
+    env_extra.append(f'export PYTHONPATH={os.path.dirname(args.cfg)}:$PYTHONPATH')
     logging.debug(env_extra)
 
 
@@ -262,7 +266,7 @@ if __name__ == '__main__':
                 memory=run_options['mem_per_worker'],
                 walltime=run_options["walltime"],
                 env_extra=env_extra,
-                local_directory=os.path.join(config.output, log_folder),
+                local_directory=os.path.join(args.outputdir, log_folder),
             )
         elif 'condor' in run_options['executor']:
             log_folder = "condor_log"
@@ -294,12 +298,12 @@ if __name__ == '__main__':
                 worker_image="/cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/batch-team/dask-lxplus/lxdask-cc7:latest",
                 death_timeout="3600",
                 scheduler_options={"port": n_port, "host": socket.gethostname()},
-                log_directory = f"{config.output}/{log_folder}",
+                log_directory = f"{args.outputdir0}/{log_folder}",
                 # shared_temp_directory="/tmp"
                 job_extra={
-                    "log": f"{config.output}/{log_folder}/dask_job_output.log",
-                    "output": f"{config.output}/{log_folder}/dask_job_output.out",
-                    "error": f"{config.output}/{log_folder}/dask_job_output.err",
+                    "log": f"{args.outputdir}/{log_folder}/dask_job_output.log",
+                    "output": f"{args.outputdir}/{log_folder}/dask_job_output.out",
+                    "error": f"{args.outputdir}/{log_folder}/dask_job_output.err",
                     "should_transfer_files": "Yes",
                     "when_to_transfer_output": "ON_EXIT",
                     "+JobFlavour": f'"{run_options["queue"]}"'
@@ -317,7 +321,7 @@ if __name__ == '__main__':
         client.wait_for_workers(1)
         logging.info(">> You can connect to the Dask viewer at http://localhost:8787")
         
-        performance_report_path = os.path.join(config.output, f"{log_folder}/dask-report.html")
+        performance_report_path = os.path.join(args.outputdir, f"{log_folder}/dask-report.html")
         print(f"Saving performance report to {performance_report_path}")
         with performance_report(filename=performance_report_path):
 
