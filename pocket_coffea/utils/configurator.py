@@ -137,8 +137,8 @@ class Configurator:
         self.load_workflow()
 
         # Check the jet_calibration and create the file if needed
-        if not os.path.exists(self.parameters.user_jets_calibration.file):
-            build_jets_calibrator.build(self.parameters.user_jets_calibration)
+        if not os.path.exists(self.parameters.jets_calibration.factory_file):
+            build_jets_calibrator.build(self.parameters.jets_calibration)
 
     def load_datasets(self):
         for json_dataset in self.datasets_cfg["jsons"]:

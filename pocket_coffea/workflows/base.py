@@ -16,7 +16,7 @@ from coffea.analysis_tools import PackedSelection
 from ..lib.weights_manager import WeightsManager
 from ..lib.columns_manager import ColumnsManager
 from ..lib.hist_manager import HistManager
-from ..lib.jets import jet_correction, met_correction
+from ..lib.jets import jet_correction, met_correction, load_jet_factory
 from ..lib.categorization import CartesianSelection
 from ..utils.skim import uproot_writeable, copy_file
 
@@ -520,75 +520,71 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # nominal is assumed to be the first
         variations = ["nominal"] + self.cfg.available_shape_variations[self._sample]
         # TO be understood if a copy is needed
-        # This is probably very wrong
+        # This canbe useless or suboptimal, working on it
         nominal_events = self.events
 
-        hasJES = False
-        # HACK: hasJER is set to True even if the JER is not included in the variations.
-        # In the future, it is desirable to include a dedicated option in the config file to switch the nominal JER and JES on and off.
-        hasJER = True
-        for v in variations:
-            if "JES" in v:
-                hasJES = True
-            if "JER" in v:
-                hasJER = True
-
-        if hasJES | hasJER:
-            # correct the jets only once
-            jec4_cache = cachetools.Cache(np.inf)
-            jec8_cache = cachetools.Cache(np.inf)
-            jets_with_JES = jet_correction(
-                nominal_events,
-                nominal_events.Jet,
-                "AK4PFchs",
-                self._year,
-                jec4_cache,
-                applyJER=hasJER,
-                applyJESunc=hasJES,
+        # Calibrating Jets: only the ones in the jet_types in the params.jet_calibration config
+        jmefactory = load_jet_factory(self.params)
+        jets_calibrated = {}
+        caches = []
+        jet_calib_params= self.params.jets_calibration
+        for jet_type, factory in jet_calib_params.jet_types.items():
+            cache = cachetools.Cache(np.inf)
+            caches.append(cache)
+            jet_coll = jet_calib_params.collection[jet_type]
+            jets_calibrated[jet_coll] = jet_correction(
+                params=self.params,
+                events=nominal_events,
+                jets=nominal_events[jet_coll],
+                factory=jmefactory,
+                jet_type = jet_type,
+                year=self._year,
+                cache=cache
             )
-            # fatjets_with_JES = jet_correction(
-            #     nominal_events,
-            #     nominal_events.FatJet,
-            #     "AK8PFPuppi",
-            #     self._year,
-            #     jec8_cache,
-            #     applyJER=hasJER,
-            #     applyJESunc=hasJES,
-            # )
-            # met_with_JES = met_correction(
-            #    nominal_events.MET,
-            #    jets_with_JES
-            # )
-        else:
-            jets_with_JES = nominal_events.Jet
-            fatjets_with_JES = nominal_events.FatJet
-            # met_with_JES = nominal_events.MET
 
         for variation in variations:
-            # Restore the nominal events record since for each variation
-            # the event preselections are applied
+            # BIG assumption:
+            # All the code after the get_shape_variation creates additional
+            # branches based on the correct collections without overwriting the default
+            # collection.
+            # If not we would need to restore the nominal events doing a copy at the beginning
+            # very costly!
 
             if variation == "nominal":
                 self.events = nominal_events
-                if hasJES | hasJER:
-                    # put nominal shape
-                    self.events["Jet"] = jets_with_JES
-                    # self.events["FatJet"] = fatjets_with_JES
-                    # self.events["MET"] = met_with_JES
-                # Nominal is ASSUMED to be the first
+                # Just assign the nominal calibration
+                for jet_coll_name, jet_coll in jets_calibrated.items():
+                    self.events[jet_coll_name] = jet_coll
+                
                 yield "nominal"
+
+                
             elif ("JES" in variation) | ("JER" in variation):
                 # JES_jes is the total. JES_[type] is for different variations
                 self.events = nominal_events
-                self.events["Jet"] = jets_with_JES[variation].up
-                # self.events["FatJet"] = fatjets_with_JES[variation].up
+                for jet_coll_name, jet_coll in jets_calibrated.items():
+                    self.events[jet_coll_name] = jet_coll[variation].up
+
                 yield variation + "Up"
+
+                # then go down
                 # restore nominal before going to down
                 self.events = nominal_events
-                self.events["Jet"] = jets_with_JES[variation].down
-                # self.events["FatJet"] = fatjets_with_JES[variation].down
+                for jet_coll_name, jet_coll in jets_calibrated.items():
+                    self.events[jet_coll_name] = jet_coll[variation].down
+                
                 yield variation + "Down"
 
+
+        # additional shape variations are handled with custom provided generators
+        for additional_variation in self.get_extra_shape_variations():
+            yield additional_variation
+        
+    def get_extra_shape_variations(self):
+        #empty generator
+        return
+        yield  # the yield defines the function as a generator and the return stops it to be empty
+        
     def process(self, events: ak.Array):
         '''
         This function get called by Coffea on each chunk of NanoAOD file.

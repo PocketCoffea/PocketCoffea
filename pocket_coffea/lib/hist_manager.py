@@ -189,7 +189,6 @@ class HistManager:
             # Reduce to set over all the categories
             self.available_weights_variations = set(self.available_weights_variations)
             self.available_shape_variations = set(self.available_shape_variations)
-            breakpoint()
         # Prepare the variations Axes summing all the required variations
         # The variation config is organized as the weights one, by sample and by category
 

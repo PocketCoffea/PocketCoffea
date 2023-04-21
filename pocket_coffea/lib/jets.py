@@ -6,19 +6,8 @@ import cloudpickle
 import awkward as ak
 import numpy as np
 import correctionlib
-
+from coffea.jetmet_tools import  CorrectedMETFactory
 from ..lib.deltaR_matching import get_matching_pairs_indices, object_matching
-
-# # Initialization of the jet factory
-# with importlib.resources.path(
-#     "pocket_coffea.parameters.jec", "jets_evaluator.pkl.gz"
-# ) as path:
-#     with gzip.open(path) as fin:
-#         jmestuff = cloudpickle.load(fin)
-
-# jet_factory = jmestuff["jet_factory"]
-# fatjet_factory = jmestuff["fatjet_factory"]
-# met_factory = jmestuff["met_factory"]
 
 
 def add_jec_variables(jets, event_rho):
@@ -28,25 +17,19 @@ def add_jec_variables(jets, event_rho):
     jets["event_rho"] = ak.broadcast_arrays(event_rho, jets.pt)[0]
     return jets
 
+def load_jet_factory(params):
+    #read the factory file from params and load it
+    with gzip.open(params.jets_calibration.factory_file) as fin:
+        return cloudpickle.load(fin)
+        
 
-def jet_correction(events, jets, jetType, year, cache, applyJER=True, applyJESunc=True):
-    if applyJER & applyJESunc:
-        name = year
-    elif not applyJER:
-        name = f"{year}_NOJER"
-    elif not applyJESunc:
-        name = f"{year}_NOJESunc"
-    if jetType == "AK4PFchs":
-        return jet_factory[name].build(
-            add_jec_variables(jets, events.fixedGridRhoFastjetAll), cache
-        )
-    elif jetType == "AK8PFPuppi":
-        return fatjet_factory[name].build(
-            add_jec_variables(jets, events.fixedGridRhoFastjetAll), cache
-        )
+def jet_correction(params, events, jets, factory, jet_type,  year, cache):
+    return factory[jet_type][year].build(
+        add_jec_variables(jets, events.fixedGridRhoFastjetAll), cache
+    )
 
-
-def met_correction(MET, jets):
+def met_correction(params, MET, jets):
+    met_factory = CorrectedMETFactory(params.jet_calibration.jec_name_map)
     return met_factory.build(MET, jets, {})
 
 
