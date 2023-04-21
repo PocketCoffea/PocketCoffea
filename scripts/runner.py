@@ -34,8 +34,7 @@ if __name__ == '__main__':
     # Inputs
     parser.add_argument('--cfg', default=os.getcwd() + "/config/test.py", required=True, type=str,
                         help='Config file with parameters specific to the current run')
-    parser.add_argument("-o", "--outputdir", required=False, type=str,
-                        help="Output folder")
+    parser.add_argument("-o", "--outputdir", required=True, type=str, help="Output folder")
     parser.add_argument("-t", "--test", action="store_true", help="Run with limit 1 interactively")
     parser.add_argument("-lf","--limit-files", type=int, help="Limit number of files")
     parser.add_argument("-lc","--limit-chunks", type=int, help="Limit number of chunks", default=None)

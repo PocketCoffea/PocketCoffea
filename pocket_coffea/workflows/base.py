@@ -57,6 +57,10 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Weights configuration
         self.weights_config_allsamples = self.cfg.weights_config
 
+        # Load the jet calibration factory once for all chunks
+        self.jmefactory = load_jet_factory(self.params)
+
+        
         # Custom axis for the histograms
         self.custom_axes = []
         self.custom_histogram_fields = {}
@@ -84,6 +88,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 v: {} for v, vcfg in self.cfg.variables.items() if vcfg.metadata_hist
             },
         }
+
 
     @property
     def nevents(self):
@@ -524,7 +529,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         nominal_events = self.events
 
         # Calibrating Jets: only the ones in the jet_types in the params.jet_calibration config
-        jmefactory = load_jet_factory(self.params)
         jets_calibrated = {}
         caches = []
         jet_calib_params= self.params.jets_calibration
@@ -536,7 +540,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 params=self.params,
                 events=nominal_events,
                 jets=nominal_events[jet_coll],
-                factory=jmefactory,
+                factory=self.jmefactory,
                 jet_type = jet_type,
                 year=self._year,
                 cache=cache
