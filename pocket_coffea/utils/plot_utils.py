@@ -28,10 +28,13 @@ class Style:
             setattr(self, key, item)
         self.has_labels = False
         self.has_samples_map = False
+        self.has_lumi = False
         if "labels" in style_cfg:
             self.has_labels = True
         if "samples_map" in style_cfg:
             self.has_samples_map = True
+        if "lumi_processed" in style_cfg:
+            self.has_lumi = True
         self.set_defaults()
 
     def set_defaults(self):
@@ -74,9 +77,13 @@ class PlotManager:
                 density=self.density,
             )
 
-    def plot_datamc_all(self, ratio=True, syst=True, spliteras=False):
+    def plot_datamc_all(self, syst=True, spliteras=False):
         '''Plots all the histograms contained in the dictionary, for all years and categories.'''
         for name, datamc in self.shape_objects.items():
+            if ((datamc.is_mc_only) | (datamc.is_data_only)):
+                ratio = False
+            else:
+                ratio = True
             datamc.plot_datamc_all(ratio, syst, spliteras, save=self.save)
 
 
@@ -104,6 +111,8 @@ class Shape:
         self.plot_dir = plot_dir
         self.only_cat = only_cat
         self.style = Style(style_cfg)
+        if self.style.has_lumi:
+            self.lumi_fraction = {year : l / lumi[year]['tot'] for year, l in self.style.lumi_processed.items()}
         self.data_key = data_key
         self.log = log
         self.density = density
@@ -364,7 +373,7 @@ class Shape:
         '''Formats the figure's axes, labels, ticks, xlim and ylim.'''
         ylabel = "Counts" if not self.density else "A.U."
         self.ax.set_ylabel(ylabel, fontsize=self.style.fontsize)
-        self.ax.legend(fontsize=self.style.fontsize, ncols=2, loc="upper right")
+        self.ax.legend(fontsize=self.style.fontsize, ncol=2, loc="upper right")
         self.ax.tick_params(axis='x', labelsize=self.style.fontsize)
         self.ax.tick_params(axis='y', labelsize=self.style.fontsize)
         self.ax.set_xlim(self.xedges[0], self.xedges[-1])

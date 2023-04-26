@@ -152,7 +152,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             flags += self.params.event_flags_data[self._year]
         for flag in flags:
             mask_flags = getattr(self.events.Flag, flag)
-        self._skim_masks.add("event_flags", mask_flags)
+            self._skim_masks.add("event_flags", mask_flags)
 
         # Primary vertex requirement
         self._skim_masks.add("PVgood", self.events.PV.npvsGood > 0)

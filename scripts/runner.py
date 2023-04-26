@@ -10,18 +10,13 @@ print("""
 
 import os
 import sys
-import json
 import argparse
-import time
 import cloudpickle
 import socket
-import logging 
+import logging
 
-import uproot
-from coffea.nanoevents import NanoEventsFactory
-from coffea.util import load, save
+from coffea.util import save
 from coffea import processor
-from pprint import pprint
 
 from pocket_coffea.utils.configurator import Configurator
 from pocket_coffea.utils import utils
@@ -113,6 +108,8 @@ if __name__ == '__main__':
             f'export X509_USER_PROXY={_x509_path}',
             # f'export X509_CERT_DIR={os.environ["X509_CERT_DIR"]}',
             f'source {sys.prefix}/bin/activate',
+            'ulimit -u 32768',
+            'export MALLOC_TRIM_THRESHOLD_=0'
         ]
     elif run_env == "conda":
         env_extra = [
@@ -127,6 +124,12 @@ if __name__ == '__main__':
         ]
         
     env_extra.append(f'export PYTHONPATH={os.path.dirname(args.cfg)}:$PYTHONPATH')
+    # condor_extra = [
+    #     f"cd {os.getcwd()}",
+    #     f'source {os.environ["HOME"]}/.bashrc',
+    #     f"source {os.getcwd()}/CondaSetup.sh",
+    #     f'conda activate {os.environ["CONDA_PREFIX"]}',
+    # ]
     logging.debug(env_extra)
 
 
@@ -148,9 +151,10 @@ if __name__ == '__main__':
                                     executor_args={
                                         'skipbadfiles':run_options['skipbadfiles'],
                                         'schema': processor.NanoAODSchema,
-                                        'workers': run_options['scaleout']},
-                                    chunksize=run_options['chunk'],
-                                    maxchunks=run_options['max']
+                                        'xrootdtimeout': config.run_options.get('xrootdtimeout', 600),
+                                        'workers': config.run_options['scaleout']},
+                                    chunksize=config.run_options['chunk'],
+                                    maxchunks=config.run_options['max']
                                     )
         
         save(output, outfile.format("all"))
@@ -164,7 +168,7 @@ if __name__ == '__main__':
         from parsl.config import Config
         from parsl.executors import HighThroughputExecutor
         from parsl.launchers import SrunLauncher, SingleNodeLauncher
-        from parsl.addresses import address_by_hostname
+        from parsl.addresses import address_by_hostname, address_by_query
 
         if 'slurm' in run_options['executor']:
             slurm_htex = Config(
@@ -209,7 +213,6 @@ if __name__ == '__main__':
         elif 'condor' in run_options['executor']:
             #xfer_files = [process_worker_pool, _x509_path]
             #print(xfer_files)
-
             condor_htex = Config(
                 executors=[
                     HighThroughputExecutor(
@@ -229,8 +232,30 @@ if __name__ == '__main__':
                         ),
                     )
                 ],
-                #retries=20,
+                retries=config.run_options["retries"],
             )
+            ## Site config for naf-desy
+            if "naf-desy" in config.run_options['executor']:
+                condor_htex = Config(
+                    executors=[
+                        HighThroughputExecutor(
+                            label="coffea_parsl_condor",
+                            address=address_by_query(),
+                            max_workers=1,
+                            worker_debug=True,
+                            provider=CondorProvider(
+                                nodes_per_block=1,
+                                cores_per_slot=config.run_options["workers"],
+                                mem_per_slot=config.run_options["mem_per_worker"],
+                                init_blocks=config.run_options["scaleout"],
+                                max_blocks=(config.run_options["scaleout"]) + 10,
+                                worker_init="\n".join(env_extra + condor_extra),
+                                walltime=config.run_options["walltime"],
+                            ),
+                        )
+                    ],
+                    retries=config.run_options["retries"],
+                )
             dfk = parsl.load(condor_htex)
 
             output = processor.run_uproot_job(config.fileset,
@@ -271,10 +296,10 @@ if __name__ == '__main__':
         elif 'condor' in run_options['executor']:
             log_folder = "condor_log"
             cluster = HTCondorCluster(
-                 cores=1,
-                 memory=run_options['mem_per_worker'],
-                 disk=run_options.get('disk_per_worker', "20GB"),
-                 env_extra=env_extra,
+                 cores=config.run_options['workers'],
+                 memory=config.run_options['mem_per_worker'],
+                 disk=config.run_options.get('disk_per_worker', "2GB"),
+                 job_script_prologue=env_extra,
             )
         elif 'lxplus' in run_options["executor"]:
             log_folder = "condor_log"
@@ -292,8 +317,8 @@ if __name__ == '__main__':
             # Creating a CERN Cluster, special configuration for dask-on-lxplus
             cluster = CernCluster(
                 cores=1,
-                memory=run_options['mem_per_worker'],
-                disk=run_options.get('disk_per_worker', "20GB"),
+                memory=config.run_options['mem_per_worker'],
+                disk=config.run_options.get('disk_per_worker', "2GB"),
                 image_type="singularity",
                 worker_image="/cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/batch-team/dask-lxplus/lxdask-cc7:latest",
                 death_timeout="3600",

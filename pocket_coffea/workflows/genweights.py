@@ -23,10 +23,10 @@ class genWeightsProcessor(BaseProcessorABC):
             self._xsec = self.events.metadata["xsec"]
 
         # Check if the user specified any subsamples without performing any operation
-        if self._sample in self._subsamplesCfg:
-            self._hasSubsamples = True
-        else:
-            self._hasSubsamples = False
+        #if self._sample in self._subsamples:
+        #    self._hasSubsamples = True
+        #else:
+        #    self._hasSubsamples = False
 
     def apply_object_preselection(self, variation):
         pass
