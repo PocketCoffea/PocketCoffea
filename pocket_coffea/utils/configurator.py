@@ -534,15 +534,24 @@ class Configurator:
         s = [
             'Configurator instance:',
             f"  - Workflow: {self.workflow}",
-            f"  - {len(self.samples)} samples: {self.samples}",
-            f"  - {len(self.subsamples)} subsamples: {list(self.subsamples.keys())}",
+            f"  - N. samples: {len(self.samples)} "]
+
+        for sample, meta in self.fileset.items():
+            s.append(f"   -- Sample: {sample}: {len(meta['files'])} files")
+
+        s.append( f"  - Subsamples:")
+        for subsample, cuts in self.subsamples.items():
+            s.append(f"   -- Subsample {subsample}: {cuts}")
+
+        s += [
+           
             f"  - Skim: {[c.name for c in self.skim]}",
             f"  - Preselection: {[c.name for c in self.preselections]}",
             f"  - Categories: {self.categories}",
             f"  - Variables:  {list(self.variables.keys())}",
             f"  - Columns: {self.columns}",
             f"  - available weights variations: {self.available_weights_variations} ",
-            f"  - available shape variations: {self.available_shape_variations}",
+            f"  - available shape variations: {self.available_shape_variations}",            
         ]
         return "\n".join(s)
 

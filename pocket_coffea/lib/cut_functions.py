@@ -12,16 +12,16 @@ def passthrough_f(events, **kargs):
 
 ##############################
 ## Factory method for HLT
-def _get_trigger_mask_proxy(events, params, year, isMC, **kwargs):
+def _get_trigger_mask_proxy(events, params, processor_params, year, isMC, **kwargs):
     '''
     Helper function to call the HLT trigger mask
     '''
     return get_trigger_mask(
-        events, params["trigger_dict"], year, isMC, params["primaryDatasets"], params["invert"]
+        events, processor_params.HLT_triggers, year, isMC, params["primaryDatasets"], params["invert"]
     )
 
 
-def get_HLTsel(key, trigger_dict, primaryDatasets=None, invert=False):
+def get_HLTsel(key, primaryDatasets=None, invert=False):
     '''Create the HLT trigger mask
 
     The Cut function reads the triggers configuration and create the mask.
@@ -46,7 +46,7 @@ def get_HLTsel(key, trigger_dict, primaryDatasets=None, invert=False):
         name += "_NOT"
     return Cut(
         name=name,
-        params={"trigger_dict": trigger_dict, "primaryDatasets": primaryDatasets, "invert": invert},
+        params={"primaryDatasets": primaryDatasets, "invert": invert},
         function=_get_trigger_mask_proxy,
     )
 
