@@ -430,7 +430,7 @@ class HistManager:
                             # save the data structure for weights propagation
                             if not has_data_structure:
                                 data_structure = ak.ones_like(masked_data)
-                                had_data_structure = True
+                                has_data_structure = True
                             # flatten the data in one dimension
                             masked_data = ak.flatten(masked_data)
 
