@@ -78,7 +78,7 @@ def make_plots(entrystart, entrystop):
         density=args.density,
         save=True
     )
-    plotter.plot_datamc_all(ratio=True, syst=True, spliteras=False)
+    plotter.plot_datamc_all(syst=True, spliteras=False)
 
 # Filter dictionary of histograms with `args.only`
 accumulator['variables'] = { k : v for k,v in accumulator['variables'].items() if args.only in k }

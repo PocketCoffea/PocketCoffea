@@ -3,7 +3,7 @@ import awkward as ak
 from ..parameters.triggers import triggers
 
 
-def get_trigger_mask(events, key, year, isMC, primaryDatasets=None, invert=False):
+def get_trigger_mask(events, trigger_dict, year, isMC, primaryDatasets=None, invert=False):
     '''Computes the HLT trigger mask
 
     The function reads the triggers configuration and create the mask.
@@ -21,9 +21,7 @@ def get_trigger_mask(events, key, year, isMC, primaryDatasets=None, invert=False
     :param invert: Invert the mask, returning which events do not path ANY of the triggers
     :returns: the events mask.
     '''
-    if key not in triggers:
-        raise Exception("Requested trigger config not found!")
-    cfg = triggers[key][year]
+    cfg = trigger_dict[year]
     # If is MC
     triggers_to_apply = []
     if primaryDatasets:
