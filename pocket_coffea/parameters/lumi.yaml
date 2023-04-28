@@ -1,0 +1,34 @@
+lumi:
+  picobarns:
+    2016_PreVFP:
+      B: 5829.427727
+      C: 2601.678092
+      D: 4286.031797
+      E: 4065.974751
+      F: 2865.073752
+      tot: 19648.186119
+    2016_PostVFP:
+      F: 584.321253
+      G: 7653.261227
+      H: 8740.119304
+      tot: 16977.701784
+    '2017':
+      B: 4803.371586
+      C: 9574.029838
+      D: 4247.792714
+      E: 9314.581016
+      F: 13539.905374
+      tot: 41479.680528
+    '2018':
+      A: 14027.614284
+      B: 7066.552169
+      C: 6898.816878
+      D: 31839.492009
+      tot: 59832.47534
+
+  goldenJSON:
+    2016_PreVFP: "${default_params_dir:}/datacert/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt"
+    2016_PostVFP: "${default_params_dir:}/datacert/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt"
+    '2017': "${default_params_dir:}/datacert/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt"
+    '2018': "${default_params_dir:}/datacert/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt"
+

@@ -4,62 +4,97 @@ import json
 from copy import deepcopy
 from pprint import pprint, pformat
 import cloudpickle
-import importlib.util
 from collections import defaultdict
 import inspect
 import logging
+from omegaconf import OmegaConf
 
 from ..lib.cut_definition import Cut
 from ..lib.categorization import StandardSelection, CartesianSelection
-from ..parameters.cuts.preselection_cuts import passthrough
+from ..parameters.cuts import passthrough
 from ..lib.weights_manager import WeightCustom
 from ..lib.hist_manager import Axis, HistConf
+from ..utils import build_jets_calibrator
 
 
 class Configurator:
-    def __init__(self, cfg, overwrite_output_dir=None, plot=False, plot_version=None):
-        # Load config file and attributes
-        self.plot = plot
-        self.plot_version = plot_version
-        self.load_config(cfg)
-        # Load all the keys in the config (dangerous, can be improved)
-        self.load_attributes()
+    '''
+    Main class driving the configuration of a PocketCoffea analysis.
+    The Configurator groups the several aspects that define an analysis run:
+    - skims, preselections, categorization
+    - output: variables and columns
+    - datasets
+    - weights and variations
+    - workflow
+    - analysis parameters
 
+    The running environment configuration is not part of the Configurator class.
+    '''
+
+    def __init__(
+        self,
+        workflow,
+        parameters,
+        datasets,
+        skim,
+        preselections,
+        categories,
+        weights,
+        variations,
+        variables,
+        columns=None,
+        workflow_options=None,
+        save_skimmed_files=None,
+    ):
+
+        # Save the workflow object and its options
+        self.workflow = workflow
+        self.workflow_options = workflow_options
+        self.parameters = parameters
+        self.save_skimmed_files = save_skimmed_files
+        # Save
         # Load dataset
+        self.datasets_cfg = datasets
+        # The following attributes are loaded by load_datasets
         self.fileset = {}
         self.datasets = []
         self.samples = []
+
+        self.subsamples = {}
+        self.subsamples_list = []  # List of subsamples (for internal checks)
+        self.total_samples_list = []  # List of subsamples and inclusive samples names
+        self.has_subsamples = {}
+
         self.years = []
         self.eras = []
-        self.load_dataset()
+
+        self.load_datasets()
         self.load_subsamples()
-
-        # Check if output file exists, and in case add a `_v01` label, make directory
-        if overwrite_output_dir:
-            self.output = overwrite_output_dir
-        else:
-            self.overwrite_check()
-
-        self.mkdir_output()
-
-        # Truncate file list if self.limit is not None
-        self.truncate_filelist()
-
-        # Define output file path
-        self.define_output()
 
         # Load histogram settings
         # No manipulation is needed, maybe some check can be added
+        self.variables = variables
 
         # Categories: object handling categorization
         # - StandardSelection
         # - CartesianSelection
         ## Call the function which transforms the dictionary in the cfg
         # in the objects needed in the processors
-        self.load_cuts_and_categories()
-        ## Weights configuration
+        self.skim = []
+        self.preselections = []
+        self.load_cuts_and_categories(skim, preselections, categories)
 
-        self.load_weights_config()
+        ## Weights configuration
+        self.weights_config = {
+            s: {
+                "inclusive": [],
+                "bycategory": {c: [] for c in self.categories.keys()},
+                "is_split_bycat": False,
+            }
+            for s in self.samples
+        }
+        self.load_weights_config(weights)
+
         ## Variations configuration
         # The structure is very similar to the weights one,
         # but the common and inclusive collections are fully flattened on a
@@ -71,18 +106,14 @@ class Configurator:
             }
             for s in self.samples
         }
-        if "shape" not in self.cfg["variations"]:
-            self.cfg["variations"]["shape"] = {"common": {"inclusive": []}}
+        if "shape" not in variations:
+            variations["shape"] = {"common": {"inclusive": []}}
 
-        self.load_variations_config(
-            self.cfg["variations"]["weights"], variation_type="weights"
-        )
-        self.load_variations_config(
-            self.cfg["variations"]["shape"], variation_type="shape"
-        )
+        self.load_variations_config(variations["weights"], variation_type="weights")
+        self.load_variations_config(variations["shape"], variation_type="shape")
+        # Collecting overall list of available weights and shape variations per sample
         self.available_weights_variations = {s: ["nominal"] for s in self.samples}
         self.available_shape_variations = {s: [] for s in self.samples}
-
         for sample in self.samples:
             # Weights variations
             for cat, vars in self.variations_config[sample]["weights"].items():
@@ -90,7 +121,7 @@ class Configurator:
             # Shape variations
             for cat, vars in self.variations_config[sample]["shape"].items():
                 self.available_shape_variations[sample] += vars
-
+            # make them unique
             self.available_weights_variations[sample] = list(
                 set(self.available_weights_variations[sample])
             )
@@ -100,59 +131,19 @@ class Configurator:
 
         # Column accumulator config
         self.columns = {}
+        self.load_columns_config(columns)
 
-        self.load_columns_config()
-
-        # Load workflow
+        # Load workflow passing the Configurator self object
         self.load_workflow()
 
-        # Save config file in output folder
-        self.save_config()
+        # Check the jet_calibration and create the file if needed
+        if not os.path.exists(self.parameters.jets_calibration.factory_file):
+            build_jets_calibrator.build(self.parameters.jets_calibration)
 
-    def load_config(self, path):
-        spec = importlib.util.spec_from_file_location("cfg", path)
-        cfg = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(cfg)
-        self.cfg = cfg.cfg
-
-    def load_attributes(self):
-        exclude_auto_loading = ["categories", "weights", "variations", "columns"]
-        for key, item in self.cfg.items():
-            if key in exclude_auto_loading:
-                continue
-            setattr(self, key, item)
-        # Define default values for optional parameters
-        for key in ['only', 'save_skimmed_files']:
-            try:
-                getattr(self, key)
-            except:
-                setattr(self, key, '')
-        if self.plot:
-            # If a specific version is specified, plot that version
-            if self.plot_version != None:
-                if self.plot_version != '':
-                    self.output = self.output + f'_{self.plot_version}'
-                if not os.path.exists(self.output):
-                    sys.exit(f"The output folder {self.output} does not exist")
-            # If no version is specified, plot the latest version of the output
-            else:
-                parent_dir = os.path.abspath(os.path.join(self.output, os.pardir))
-                output_dir = os.path.basename(self.output)
-                latest_dir = list(
-                    filter(
-                        lambda folder: (
-                            (output_dir == folder) | (output_dir + '_v' in folder)
-                        ),
-                        sorted(os.listdir(parent_dir)),
-                    )
-                )[-1]
-                self.output = os.path.join(parent_dir, latest_dir)
-            self.plots = os.path.join(os.path.abspath(self.output), "plots")
-
-    def load_dataset(self):
-        for json_dataset in self.dataset["jsons"]:
+    def load_datasets(self):
+        for json_dataset in self.datasets_cfg["jsons"]:
             ds_dict = json.load(open(json_dataset))
-            ds_filter = self.dataset.get("filter", None)
+            ds_filter = self.datasets_cfg.get("filter", None)
             if ds_filter != None:
                 for key, ds in ds_dict.items():
                     pass_filter = True
@@ -169,6 +160,8 @@ class Configurator:
                         self.fileset[key] = ds
             else:
                 self.fileset.update(ds_dict)
+
+        # Now loading and storing the metadata of the filtered fileset
         if len(self.fileset) == 0:
             print("File set is empty: please check you dataset definition...")
             raise Exception("Wrong fileset configuration")
@@ -186,25 +179,19 @@ class Configurator:
 
     def load_subsamples(self):
         # subsamples configuration
-        subsamples_dict = self.dataset.get("subsamples", {})
-        self.subsamples = {}
-        self.subsamples_names = {}
-        self.has_subsamples = {}
+        subsamples_dict = self.datasets_cfg.get("subsamples", {})
         # Save list of subsamples for each sample
         for sample in self.samples:
             if sample in subsamples_dict.keys():
-                self.subsamples_names[sample] = list(subsamples_dict[sample].keys())
+                self.subsamples_list += list(subsamples_dict[sample].keys())
                 self.has_subsamples[sample] = True
             else:
                 self.has_subsamples[sample] = False
 
         # Complete list of samples and subsamples
-        self.subsamples_list = []
-        for sam in self.subsamples_names.values():
-            self.subsamples_list += sam
         self.total_samples_list = list(set(self.samples + self.subsamples_list))
 
-        # Now saving the subsamples
+        # Now saving the subsamples definition cuts
         for sample in self.samples:
             if sample in subsamples_dict:
                 subscfg = subsamples_dict[sample]
@@ -218,70 +205,48 @@ class Configurator:
             else:
                 # if there is no configured subsample, the full sample becomes its subsample
                 self.subsamples[sample] = StandardSelection({sample: [passthrough]})
-        # Unique set of cuts
-        logging.info("Subsamples:")
-        logging.info(self.subsamples)
 
-    def filter_dataset(self, nfiles):
-        filtered_dataset = {}
-        for sample, ds in self.fileset.items():
-            ds["files"] = ds["files"][0:nfiles]
-            filtered_dataset[sample] = ds
-        self.fileset = filtered_dataset
-
-    def load_cuts_and_categories(self):
+    def load_cuts_and_categories(self, skim: list, preselections: list, categories):
         '''This function loads the list of cuts and groups them in categories.
         Each cut is identified by a unique id (see Cut class definition)'''
         # If the skim, preselection and categories list are empty, append a `passthrough` Cut
-        for cut_type in ["skim", "preselections"]:
-            if len(self.cfg[cut_type]) == 0:
-                setattr(self, cut_type, [passthrough])
-                self.cfg[cut_type] = [passthrough]
-        if self.cfg["categories"] == {}:
-            self.cfg["categories"]["baseline"] = [passthrough]
 
-        # The cuts_dict is saved just for record
-        self.skim = []
-        for sk in self.cfg["skim"]:
+        if len(skim) == 0:
+            skim.append(passthrough)
+        if len(preselections) == 0:
+            preselections.ppend(passthrough)
+
+        if categories == {}:
+            categories["baseline"] = [passthrough]
+
+        for sk in skim:
             if not isinstance(sk, Cut):
                 print("Please define skim, preselections and cuts as Cut objects")
                 raise Exception("Wrong categories/cuts configuration")
             self.skim.append(sk)
 
-        self.preselections = []
-        for pres in self.cfg["preselections"]:
+        for pres in preselections:
             if not isinstance(pres, Cut):
                 print("Please define skim, preselections and cuts as Cut objects")
                 raise Exception("Wrong categories/cuts configuration")
             self.preselections.append(pres)
 
         # Now saving the categories
-        if isinstance(self.cfg["categories"], dict):
+        if isinstance(categories, dict):
             # Convert it to StandardSelection
-            self.categories = StandardSelection(self.cfg["categories"])
-        elif isinstance(self.cfg["categories"], StandardSelection):
-            self.categories = self.cfg["categories"]
-        elif isinstance(self.cfg["categories"], CartesianSelection):
-            self.categories = self.cfg["categories"]
-        # Unique set of cuts
-        logging.info("Categories:")
-        logging.info(self.categories)
+            self.categories = StandardSelection(categories)
+        elif isinstance(categories, StandardSelection):
+            self.categories = categories
+        elif isinstance(categories, CartesianSelection):
+            self.categories = categories
 
-    def load_weights_config(self):
+    def load_weights_config(self, wcfg):
         '''This function loads the weights definition and prepares a list of
         weights to be applied for each sample and category'''
-        self.weights_config = {
-            s: {
-                "inclusive": [],
-                "bycategory": {c: [] for c in self.categories.keys()},
-                "is_split_bycat": False,
-            }
-            for s in self.samples
-        }
+
         # Get the list of statically available weights defined in the workflow
         available_weights = self.workflow.available_weights()
         # Read the config and save the list of weights names for each sample (and category if needed)
-        wcfg = self.cfg["weights"]
         if "common" not in wcfg:
             print("Weights configuration error: missing 'common' weights key")
             raise Exception("Wrong weight configuration")
@@ -346,17 +311,14 @@ class Configurator:
                             self.weights_config[sample]["bycategory"][cat].append(w)
                             self.weights_config[sample]["is_split_bycat"] = True
 
-        logging.info("Weights configuration")
-        logging.info(self.weights_config)
-
     def load_variations_config(self, wcfg, variation_type):
         '''This function loads the variations definition and prepares a list of
         weights to be applied for each sample and category'''
+
         # Get the list of statically available variations defined in the workflow
         available_variations = self.workflow.available_variations()
         # Read the config and save the list of variations names for each sample (and category if needed)
 
-        # TODO Add shape variations
         if "common" not in wcfg:
             print("Variation configuration error: missing 'common' weights key")
             raise Exception("Wrong variation configuration")
@@ -417,14 +379,15 @@ class Configurator:
                                 w
                             )
 
-    def load_columns_config(self):
+    def load_columns_config(self, wcfg):
+        if wcfg == None:
+            wcfg = {}
         for sample in self.samples:
             if self.has_subsamples[sample]:
                 for sub in self.subsamples[sample]:
                     self.columns[sub] = {c: [] for c in self.categories.keys()}
             else:
                 self.columns[sample] = {c: [] for c in self.categories.keys()}
-        wcfg = self.cfg.get("columns", {})
         # common/inclusive variations
         if "common" in wcfg:
             if "inclusive" in wcfg["common"]:
@@ -480,71 +443,37 @@ class Configurator:
                             else:
                                 self.columns[sample][cat].append(w)
 
-    def overwrite_check(self):
-        if self.plot:
-            print(f"The output will be saved to {self.plots}")
-            return
-        else:
-            path = self.output
-            version = 1
-            while os.path.exists(path):
-                tag = str(version).rjust(2, '0')
-                path = f"{self.output}_v{tag}"
-                version += 1
-            if path != self.output:
-                print(f"The output will be saved to {path}")
-            self.output = path
-            self.cfg['output'] = self.output
-
-    def mkdir_output(self):
-        if not self.plot:
-            if not os.path.exists(self.output):
-                os.makedirs(self.output)
-        else:
-            if not os.path.exists(self.plots):
-                os.makedirs(self.plots)
-
-    def truncate_filelist(self):
-        try:
-            self.run_options['limit']
-        except:
-            self.run_options['limit'] = None
-        if self.run_options['limit']:
-            for dataset, filelist in self.fileset.items():
-                if isinstance(filelist, dict):
-                    self.fileset[dataset]["files"] = self.fileset[dataset]["files"][
-                        : self.run_options['limit']
-                    ]
-                elif isinstance(filelist, list):
-                    self.fileset[dataset] = self.fileset[dataset][
-                        : self.run_options['limit']
-                    ]
-                else:
-                    raise NotImplemented
-
-    def define_output(self):
-        self.outfile = os.path.join(self.output, "output_{dataset}.coffea")
+    def filter_dataset(self, nfiles):
+        filtered_dataset = {}
+        for sample, ds in self.fileset.items():
+            ds["files"] = ds["files"][0:nfiles]
+            filtered_dataset[sample] = ds
+        self.fileset = filtered_dataset
 
     def load_workflow(self):
         self.processor_instance = self.workflow(cfg=self)
 
-    def save_config(self):
-        ocfg = {k: v for k, v in self.cfg.items()}
+    def save_config(self, output):
+        ocfg = {}
+        ocfg["datasets"] = {
+            "names": self.datasets,
+            "samples": self.samples,
+            "fileset": self.fileset,
+        }
 
-        subsamples_cuts = ocfg["dataset"].get("subsamples", {})
+        subsamples_cuts = self.subsamples
         dump_subsamples = {}
         for sample, subsamples in subsamples_cuts.items():
             dump_subsamples[sample] = {}
-            for subs, cuts in subsamples.items():
-                dump_subsamples[sample][subs] = [c.serialize() for c in cuts]
-        ocfg["dataset"]["subsamples"] = dump_subsamples
+            dump_subsamples[sample] = subsamples.serialize()
+        ocfg["datasets"]["subsamples"] = dump_subsamples
 
         skim_dump = []
         presel_dump = []
         cats_dump = {}
-        for sk in ocfg["skim"]:
+        for sk in self.skim:
             skim_dump.append(sk.serialize())
-        for pre in ocfg["preselections"]:
+        for pre in self.preselections:
             presel_dump.append(pre.serialize())
 
         ocfg["skim"] = skim_dump
@@ -555,6 +484,7 @@ class Configurator:
 
         ocfg["workflow"] = {
             "name": self.workflow.__name__,
+            "workflow_options": self.workflow_options,
             "srcfile": inspect.getsourcefile(self.workflow),
         }
 
@@ -588,11 +518,42 @@ class Configurator:
                 for col in cols:
                     ocfg["columns"][sample][cat].append(col.__dict__)
 
+        # add the parameters as yaml in a separate file
+        with open(os.path.join(output, "parameters_dump.yaml"), "w") as pf:
+            pf.write(OmegaConf.to_yaml(self.parameters))
+
         # Save the serialized configuration in json
-        output_cfg = os.path.join(self.output, "config.json")
+        output_cfg = os.path.join(output, "config.json")
         print("Saving config file to " + output_cfg)
         json.dump(ocfg, open(output_cfg, "w"), indent=2)
         # Pickle the configurator object in order to be able to reproduce completely the configuration
-        cloudpickle.dump(
-            self, open(os.path.join(self.output, "configurator.pkl"), "wb")
-        )
+        cloudpickle.dump(self, open(os.path.join(output, "configurator.pkl"), "wb"))
+        # dump also the parameters
+
+    def __repr__(self):
+        s = [
+            'Configurator instance:',
+            f"  - Workflow: {self.workflow}",
+            f"  - N. samples: {len(self.samples)} "]
+
+        for sample, meta in self.fileset.items():
+            s.append(f"   -- Sample: {sample}: {len(meta['files'])} files")
+
+        s.append( f"  - Subsamples:")
+        for subsample, cuts in self.subsamples.items():
+            s.append(f"   -- Subsample {subsample}: {cuts}")
+
+        s += [
+           
+            f"  - Skim: {[c.name for c in self.skim]}",
+            f"  - Preselection: {[c.name for c in self.preselections]}",
+            f"  - Categories: {self.categories}",
+            f"  - Variables:  {list(self.variables.keys())}",
+            f"  - Columns: {self.columns}",
+            f"  - available weights variations: {self.available_weights_variations} ",
+            f"  - available shape variations: {self.available_shape_variations}",            
+        ]
+        return "\n".join(s)
+
+    def __str__(self):
+        return repr(self)

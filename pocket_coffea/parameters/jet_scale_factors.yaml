@@ -1,0 +1,35 @@
+# Default jet scale factors.
+# - btagSF: taking from cvmfs
+# - jetPuID SF
+
+jet_scale_factors:
+  btagSF:
+    # DeepJet AK4 tagger shape SF
+    '2016_PreVFP':
+      file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2016preVFP_UL/btagging.json.gz
+      name: "deepJet_shape"
+    '2016_PostVFP':
+      file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2016postVFP_UL/btagging.json.gz
+      name: "deepJet_shape"
+    '2017':
+      file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2017_UL/btagging.json.gz
+      name: "deepJet_shape"
+    '2018':
+      file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2018_UL/btagging.json.gz
+      name: "deepJet_shape"
+
+  jet_puId:
+      # Jet PU ID SF to be applied only on selected jets (pt<50) that are matched to GenJets
+      '2016_PreVFP':
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2016preVFP_UL/jmar.json.gz
+        name: PUJetID_eff
+      '2016_PostVFP':
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2016postVFP_UL/jmar.json.gz
+        name: PUJetID_eff
+      '2017':
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2017_UL/jmar.json.gz
+        name: PUJetID_eff
+      '2018':
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2018_UL/jmar.json.gz
+        name: PUJetID_eff
+

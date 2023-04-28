@@ -1,6 +1,5 @@
 import awkward as ak
 from .cut_definition import Cut
-from ..parameters.btag import btag
 from .triggers import get_trigger_mask
 
 
@@ -13,16 +12,16 @@ def passthrough_f(events, **kargs):
 
 ##############################
 ## Factory method for HLT
-def _get_trigger_mask_proxy(events, params, year, isMC, **kwargs):
+def _get_trigger_mask_proxy(events, params, processor_params, year, isMC, **kwargs):
     '''
     Helper function to call the HLT trigger mask
     '''
     return get_trigger_mask(
-        events, params["trigger_dict"], year, isMC, params["primaryDatasets"], params["invert"]
+        events, processor_params.HLT_triggers, year, isMC, params["primaryDatasets"], params["invert"]
     )
 
 
-def get_HLTsel(key, trigger_dict, primaryDatasets=None, invert=False):
+def get_HLTsel(key, primaryDatasets=None, invert=False):
     '''Create the HLT trigger mask
 
     The Cut function reads the triggers configuration and create the mask.
@@ -47,7 +46,7 @@ def get_HLTsel(key, trigger_dict, primaryDatasets=None, invert=False):
         name += "_NOT"
     return Cut(
         name=name,
-        params={"trigger_dict": trigger_dict, "primaryDatasets": primaryDatasets, "invert": invert},
+        params={"primaryDatasets": primaryDatasets, "invert": invert},
         function=_get_trigger_mask_proxy,
     )
 
@@ -183,7 +182,7 @@ def get_nObj_less(N, coll="JetGood", name=None):
 # Min b-tagged jets with custom collection
 
 
-def nBtagMin(events, params, year, **kwargs):
+def nBtagMin(events, params, year, processor_params, **kwargs):
     '''Mask for min N jets with minpt and passing btagging.
     The btag params will come from the processor, not from the parameters
     '''
@@ -197,7 +196,7 @@ def nBtagMin(events, params, year, **kwargs):
         else:
             return events.nBJetGood >= params["N"]
     else:
-        btagparam = btag[year]
+        btagparam = processor_params.btagging.working_point[year]
         if params["minpt"] > 0.0:
             return (
                 ak.sum(
@@ -222,7 +221,8 @@ def nBtagMin(events, params, year, **kwargs):
                 >= params["N"]
             )
 
-def nBtagEq(events, params, year, **kwargs):
+
+def nBtagEq(events, params, year, processor_params, **kwargs):
     '''Mask for == N jets with minpt and passing btagging.
     The btag params will come from the processor, not from the parameters
     '''
@@ -236,7 +236,7 @@ def nBtagEq(events, params, year, **kwargs):
         else:
             return events.nBJetGood == params["N"]
     else:
-        btagparam = btag[year]
+        btagparam = processor_params.btagging.working_point[year]
         if params["minpt"] > 0.0:
             return (
                 ak.sum(
@@ -285,19 +285,27 @@ def nMuon(events, params, year, **kwargs):
 ##########################33
 ## Factory methods
 
+
 def get_nBtagMin(N, minpt=0, coll="BJetGood", name=None):
     if name == None:
         name = f"n{coll}_btagMin{N}_pt{minpt}"
-    return Cut(name=name, params={"N": N, "coll": coll, "minpt": minpt}, function=nBtagMin)
+    return Cut(
+        name=name, params={"N": N, "coll": coll, "minpt": minpt}, function=nBtagMin
+    )
 
 
 def get_nBtagEq(N, minpt=0, coll="BJetGood", name=None):
     if name == None:
         name = f"n{coll}_btagEq{N}_pt{minpt}"
-    return Cut(name=name, params={"N": N, "coll": coll, "minpt": minpt}, function=nBtagEq)
+    return Cut(
+        name=name, params={"N": N, "coll": coll, "minpt": minpt}, function=nBtagEq
+    )
+
 
 def get_nBtag(*args, **kwargs):
-    raise Exception("This cut function factory is deprecated!! Use get_nBtagMin or get_nBtagEq instead.")
+    raise Exception(
+        "This cut function factory is deprecated!! Use get_nBtagMin or get_nBtagEq instead."
+    )
 
 
 def get_nElectron(N, minpt=0, coll="ElectronGood", name=None):
@@ -312,106 +320,3 @@ def get_nMuon(N, minpt=0, coll="MuonGood", name=None):
     if name == None:
         name = f"n{coll}_{N}_pt{minpt}"
     return Cut(name=name, params={"N": N, "coll": coll, "minpt": minpt}, function=nMuon)
-
-
-##################
-# Common preselection functions
-def dilepton(events, params, year, sample, **kwargs):
-
-    MET = events[params["METbranch"][year]]
-
-    # Masks for same-flavor (SF) and opposite-sign (OS)
-    SF = ((events.nMuonGood == 2) & (events.nElectronGood == 0)) | (
-        (events.nMuonGood == 0) & (events.nElectronGood == 2)
-    )
-    OS = events.ll.charge == 0
-    # SFOS = SF & OS
-    not_SF = (events.nMuonGood == 1) & (events.nElectronGood == 1)
-
-    mask = (
-        (events.nLeptonGood == 2)
-        & (ak.firsts(events.LeptonGood.pt) > params["pt_leading_lepton"])
-        & (events.nJetGood >= params["njet"])
-        & (events.nBJetGood >= params["nbjet"])
-        & (MET.pt > params["met"])
-        & OS
-        & (events.ll.mass > params["mll"])  # Opposite sign
-        &
-        # If same-flavour we exclude a mll mass interval
-        (
-            (
-                SF
-                & (
-                    (events.ll.mass < params["mll_SFOS"]["low"])
-                    | (events.ll.mass > params["mll_SFOS"]["high"])
-                )
-            )
-            | not_SF
-        )
-    )
-
-    # Pad None values with False
-    return ak.where(ak.is_none(mask), False, mask)
-
-
-def semileptonic(events, params, year, sample, **kwargs):
-
-    MET = events[params["METbranch"][year]]
-
-    has_one_electron = events.nElectronGood == 1
-    has_one_muon = events.nMuonGood == 1
-
-    mask = (
-        (events.nLeptonGood == 1)
-        &
-        # Here we properly distinguish between leading muon and leading electron
-        (
-            (
-                has_one_electron
-                & (
-                    ak.firsts(events.LeptonGood.pt)
-                    > params["pt_leading_electron"][year]
-                )
-            )
-            | (
-                has_one_muon
-                & (ak.firsts(events.LeptonGood.pt) > params["pt_leading_muon"][year])
-            )
-        )
-        & (events.nJetGood >= params["njet"])
-        & (events.nBJetGood >= params["nbjet"])
-        & (MET.pt > params["met"])
-    )
-
-    # Pad None values with False
-    return ak.where(ak.is_none(mask), False, mask)
-
-
-def semileptonic_triggerSF(events, params, year, sample, **kwargs):
-
-    has_one_electron = events.nElectronGood == 1
-    has_one_muon = events.nMuonGood == 1
-
-    mask = (
-        (events.nLeptonGood == 2)
-        &
-        # Here we properly distinguish between leading muon and leading electron
-        (
-            (
-                has_one_electron
-                & (
-                    ak.firsts(events.ElectronGood.pt)
-                    > params["pt_leading_electron"][year]
-                )
-            )
-            & (
-                has_one_muon
-                & (ak.firsts(events.MuonGood.pt) > params["pt_leading_muon"][year])
-            )
-        )
-        & (events.nJetGood >= params["njet"])
-    )
-    # & (events.nBJetGood >= params["nbjet"]) & (MET.pt > params["met"]) )
-
-    # Pad None values with False
-    return ak.where(ak.is_none(mask), False, mask)

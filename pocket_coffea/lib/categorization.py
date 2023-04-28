@@ -147,7 +147,7 @@ class MultiCut:
         # Flag indicates the MultiCut has been prepared
         self.ready = False
 
-    def prepare(self, events, year, sample, isMC):
+    def prepare(self, events, processor_params, **kwargs):
         # Redo the selector every time to clean up between variations
         if self.is_multidim:
             dim = 2
@@ -162,9 +162,7 @@ class MultiCut:
         # Create the mask storage
         self.storage = MaskStorage(dim=dim, counts=counts)
         for cut in self.cuts:
-            self.storage.add(
-                cut.id, cut.get_mask(events, year=year, sample=sample, isMC=isMC)
-            )
+            self.storage.add(cut.id, cut.get_mask(events, processor_params, **kwargs))
         self.ready = True
 
     @property
@@ -253,7 +251,7 @@ class StandardSelection:
                     f"Building a StandardSelection with cuts on differenct collections: {cut.collection} and {self.multidim_collection}"
                 )
 
-    def prepare(self, events, year, sample, isMC):
+    def prepare(self, events, processor_params, **kwargs):
         # Creating the maskstorage for the categorization.
         if self.is_multidim:
             dim = 2
@@ -269,9 +267,7 @@ class StandardSelection:
         # Create the mask storage
         self.storage = MaskStorage(dim=dim, counts=counts)
         for cut in self.cut_functions:
-            self.storage.add(
-                cut.id, cut.get_mask(events, year=year, sample=sample, isMC=isMC)
-            )
+            self.storage.add(cut.id, cut.get_mask(events, processor_params, **kwargs))
         self.ready = True
 
     def get_mask(self, category):
@@ -397,15 +393,15 @@ class CartesianSelection:
                     f"Building a CartesianSelection with cuts on differenct collections: {cut.multidim_collection} and {self.multidim_collection}"
                 )
 
-    def prepare(self, events, year, sample, isMC):
+    def prepare(self, events, processor_params, **kwargs):
         # clean the cache
         self.cache.clear()
         # Prepare the common cut:
         if self.has_common_cats:
-            self.common_cats.prepare(events, year, sample, isMC)
+            self.common_cats.prepare(events, processor_params, **kwargs)
         # Now preparing the multicut
         for multicut in self.multicuts:
-            multicut.prepare(events, year, sample, isMC)
+            multicut.prepare(events, processor_params, **kwargs)
 
     def __getmask(self, multi_index):
         if isinstance(multi_index, str):
