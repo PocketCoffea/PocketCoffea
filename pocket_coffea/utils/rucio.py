@@ -28,17 +28,23 @@ def get_xrootd_sites_map():
     sites_xrootd_access = {}
     if not os.path.exists(".sites_map.json"):
         print("Loading SITECONF info")
-        sites = [ (s, "/cvmfs/cms.cern.ch/SITECONF/"+s+"/storage.json")
-                  for s in os.listdir("/cvmfs/cms.cern.ch/SITECONF/") if s.startswith("T")]
+        sites = [
+            (s, "/cvmfs/cms.cern.ch/SITECONF/" + s + "/storage.json")
+            for s in os.listdir("/cvmfs/cms.cern.ch/SITECONF/")
+            if s.startswith("T")
+        ]
         for site_name, conf in sites:
-            if not os.path.exists(conf): continue
+            if not os.path.exists(conf):
+                continue
             try:
                 data = json.load(open(conf))
             except:
                 continue
             for site in data:
-                if site["type"] != "DISK": continue
-                if site["rse"] == None: continue
+                if site["type"] != "DISK":
+                    continue
+                if site["rse"] == None:
+                    continue
                 for proc in site["protocols"]:
                     if proc["protocol"] == "XRootD":
                         if proc["access"] not in ["global-ro", "global-rw"]:
@@ -48,13 +54,15 @@ def get_xrootd_sites_map():
                                 for rule in proc["rules"]:
                                     if rule["lfn"] not in ["/+(.*)", "/+store/(.*)"]:
                                         continue
-                                    sites_xrootd_access[site["rse"]] = rule["pfn"].replace("$1", "")
+                                    sites_xrootd_access[site["rse"]] = rule[
+                                        "pfn"
+                                    ].replace("$1", "")
                         else:
                             sites_xrootd_access[site["rse"]] = proc["prefix"]
-        json.dump(sites_xrootd_access, open(".sites_map.json","w"))
-   
+        json.dump(sites_xrootd_access, open(".sites_map.json", "w"))
+
     return json.load(open(".sites_map.json"))
-                            
+
 
 def get_dataset_files(
     dataset,
@@ -79,9 +87,7 @@ def get_dataset_files(
     client = get_rucio_client()
     outsites = []
     outfiles = []
-    for filedata in client.list_replicas(
-        [{"scope": "cms", "name": dataset}]
-    ):
+    for filedata in client.list_replicas([{"scope": "cms", "name": dataset}]):
         outfile = []
         outsite = []
         rses = filedata["rses"]

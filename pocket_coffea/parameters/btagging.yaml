@@ -1,0 +1,48 @@
+# B-tagging algorithms and working points
+
+btagging:
+  working_point:
+    2016_PreVFP:
+      btagging_algorithm: btagDeepFlavB
+      btagging_WP: 0.3093
+      bbtagging_algorithm: btagDDBvL
+      bbtagging_WP: 0.86
+      bbtagSF_DDBvL_M1_loPt: 0.86
+      bbtagSF_DDBvL_M1_loPt_up: 0.97
+      bbtagSF_DDBvL_M1_loPt_down: 0.82
+      bbtagSF_DDBvL_M1_hiPt: 0.86
+      bbtagSF_DDBvL_M1_hiPt_up: 0.97
+      bbtagSF_DDBvL_M1_hiPt_down: 0.82
+    2016_PostVFP:
+      btagging_algorithm: btagDeepFlavB
+      btagging_WP: 0.3093
+      bbtagging_algorithm: btagDDBvL
+      bbtagging_WP: 0.86
+      bbtagSF_DDBvL_M1_loPt: 0.86
+      bbtagSF_DDBvL_M1_loPt_up: 0.97
+      bbtagSF_DDBvL_M1_loPt_down: 0.82
+      bbtagSF_DDBvL_M1_hiPt: 0.86
+      bbtagSF_DDBvL_M1_hiPt_up: 0.97
+      bbtagSF_DDBvL_M1_hiPt_down: 0.82
+    '2017':
+      btagging_algorithm: btagDeepFlavB
+      btagging_WP: 0.3033
+      bbtagging_algorithm: btagDDBvL
+      bbtagging_WP: 0.86
+      bbtagSF_DDBvL_M1_loPt: 0.82
+      bbtagSF_DDBvL_M1_loPt_up: 0.86
+      bbtagSF_DDBvL_M1_loPt_down: 0.77
+      bbtagSF_DDBvL_M1_hiPt: 0.77
+      bbtagSF_DDBvL_M1_hiPt_up: 0.83
+      bbtagSF_DDBvL_M1_hiPt_down: 0.67
+    '2018':
+      btagging_algorithm: btagDeepFlavB
+      btagging_WP: 0.277
+      bbtagging_algorithm: btagDDBvL
+      bbtagging_WP: 0.86
+      bbtagSF_DDBvL_M1_loPt: 0.81
+      bbtagSF_DDBvL_M1_loPt_up: 0.88
+      bbtagSF_DDBvL_M1_loPt_down: 0.76
+      bbtagSF_DDBvL_M1_hiPt: 0.76
+      bbtagSF_DDBvL_M1_hiPt_up: 0.82
+      bbtagSF_DDBvL_M1_hiPt_down: 0.71

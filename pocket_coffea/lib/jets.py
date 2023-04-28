@@ -6,21 +6,8 @@ import cloudpickle
 import awkward as ak
 import numpy as np
 import correctionlib
-
-from ..parameters.object_preselection import object_preselection
-from ..parameters.jec_config import JECjsonFiles
+from coffea.jetmet_tools import  CorrectedMETFactory
 from ..lib.deltaR_matching import get_matching_pairs_indices, object_matching
-
-# Initialization of the jet factory
-with importlib.resources.path(
-    "pocket_coffea.parameters.jec", "jets_evaluator.pkl.gz"
-) as path:
-    with gzip.open(path) as fin:
-        jmestuff = cloudpickle.load(fin)
-
-jet_factory = jmestuff["jet_factory"]
-fatjet_factory = jmestuff["fatjet_factory"]
-met_factory = jmestuff["met_factory"]
 
 
 def add_jec_variables(jets, event_rho):
@@ -30,27 +17,21 @@ def add_jec_variables(jets, event_rho):
     jets["event_rho"] = ak.broadcast_arrays(event_rho, jets.pt)[0]
     return jets
 
+def load_jet_factory(params):
+    #read the factory file from params and load it
+    with gzip.open(params.jets_calibration.factory_file) as fin:
+        return cloudpickle.load(fin)
+        
 
-def jet_correction(events, jets, jetType, year, cache, applyJER=True, applyJESunc=True):
-    if applyJER & applyJESunc:
-        name = year
-    elif not applyJER:
-        name = f"{year}_NOJER"
-    elif not applyJESunc:
-        name = f"{year}_NOJESunc"
-    if jetType == "AK4PFchs":
-        return jet_factory[name].build(
-            add_jec_variables(jets, events.fixedGridRhoFastjetAll), cache
-        )
-    elif jetType == "AK8PFPuppi":
-        return fatjet_factory[name].build(
-            add_jec_variables(jets, events.fixedGridRhoFastjetAll), cache
-        )
-
-def met_correction(MET, jets):
-    return met_factory.build(
-        MET, jets, {}
+def jet_correction(params, events, jets, factory, jet_type,  year, cache):
+    return factory[jet_type][year].build(
+        add_jec_variables(jets, events.fixedGridRhoFastjetAll), cache
     )
+
+def met_correction(params, MET, jets):
+    met_factory = CorrectedMETFactory(params.jet_calibration.jec_name_map)
+    return met_factory.build(MET, jets, {})
+
 
 def jet_correction_correctionlib(
     events, Jet, typeJet, year, JECversion, JERversion=None, verbose=False
@@ -219,12 +200,11 @@ def jet_correction_correctionlib(
         return jets_corrected
 
 
-def jet_selection(events, Jet, finalstate):
+def jet_selection(events, jet_type, params, leptons_collection=""):
 
-    jets = events[Jet]
-    cuts = object_preselection[finalstate][Jet]
+    jets = events[jet_type]
+    cuts = params.object_preselection[jet_type]
     # Only jets that are more distant than dr to ALL leptons are tagged as good jets
-    leptons = events["LeptonGood"]
     # Mask for  jets not passing the preselection
     mask_presel = (
         (jets.pt > cuts["pt"])
@@ -232,19 +212,19 @@ def jet_selection(events, Jet, finalstate):
         & (jets.jetId >= cuts["jetId"])
     )
     # Lepton cleaning
-    if "dr" in cuts.keys():
-        dR_jets_lep = jets.metric_table(leptons)
-        mask_lepton_cleaning = ak.prod(dR_jets_lep > cuts["dr"], axis=2) == 1
+    if leptons_collection != "":
+        dR_jets_lep = jets.metric_table(events[leptons_collection])
+        mask_lepton_cleaning = ak.prod(dR_jets_lep > cuts["dr_lepton"], axis=2) == 1
 
-    if Jet == "Jet":
+    if jet_type == "Jet":
         mask_jetpuid = (jets.puId >= cuts["puId"]["value"]) | (
             jets.pt >= cuts["puId"]["maxpt"]
         )
         mask_good_jets = mask_presel & mask_lepton_cleaning & mask_jetpuid
 
-    elif Jet == "FatJet":
+    elif jet_type == "FatJet":
         # Apply the msd and preselection cuts
-        mask_msd = (events.FatJet.msoftdrop > cuts["msd"])
+        mask_msd = events.FatJet.msoftdrop > cuts["msd"]
         mask_good_jets = mask_presel & mask_msd
 
     return jets[mask_good_jets], mask_good_jets

@@ -173,23 +173,47 @@ def plot_variation_correctionlib(file, axis_x, systematics, plot_dir, **kwargs):
 
         yerr = np.array([abs(nominal - statDown), abs(statUp - nominal)])
         ax.errorbar(
-            x, nominal, yerr=yerr, xerr=xerr, label="SF nominal", **opts_sf['nominal'], fmt='none'
+            x,
+            nominal,
+            yerr=yerr,
+            xerr=xerr,
+            label="SF nominal",
+            **opts_sf['nominal'],
+            fmt='none',
         )
         xlim = (edges_x[0], edges_x[-1])
         xticks = None
 
-        if (
-            kwargs['histname'].startswith(tuple(config.plot_options['scalefactor'][kwargs['year']][kwargs['cat']].keys()))
+        if kwargs['histname'].startswith(
+            tuple(
+                config.plot_options['scalefactor'][kwargs['year']][kwargs['cat']].keys()
+            )
         ):
-            key = [k for k in config.plot_options['scalefactor'][kwargs['year']][kwargs['cat']].keys() if k in kwargs['histname']][0]
-            ylim = config.plot_options['scalefactor'][kwargs['year']][kwargs['cat']][key]['ylim']
+            key = [
+                k
+                for k in config.plot_options['scalefactor'][kwargs['year']][
+                    kwargs['cat']
+                ].keys()
+                if k in kwargs['histname']
+            ][0]
+            ylim = config.plot_options['scalefactor'][kwargs['year']][kwargs['cat']][
+                key
+            ]['ylim']
         else:
             ylim = (0.7, 1.3)
-        if (
-            kwargs['histname'].startswith(tuple(config.plot_options['ratio'][kwargs['year']][kwargs['cat']].keys()))
+        if kwargs['histname'].startswith(
+            tuple(config.plot_options['ratio'][kwargs['year']][kwargs['cat']].keys())
         ):
-            key = [k for k in config.plot_options['ratio'][kwargs['year']][kwargs['cat']].keys() if k in kwargs['histname']][0]
-            ylim_ratio = config.plot_options['ratio'][kwargs['year']][kwargs['cat']][key]['ylim']
+            key = [
+                k
+                for k in config.plot_options['ratio'][kwargs['year']][
+                    kwargs['cat']
+                ].keys()
+                if k in kwargs['histname']
+            ][0]
+            ylim_ratio = config.plot_options['ratio'][kwargs['year']][kwargs['cat']][
+                key
+            ]['ylim']
         else:
             ylim_ratio = (0.90, 1.10)
         if variable in config.plot_options['rebin'].keys():
@@ -217,15 +241,23 @@ def plot_variation_correctionlib(file, axis_x, systematics, plot_dir, **kwargs):
                 xerr=xerr,
                 label=f"SF {syst}Down",
                 **opts_sf['Down'],
-                fmt='none'
+                fmt='none',
             )
             linesUp = ax.errorbar(
-                x, systUp, yerr=0, xerr=xerr, label=f"SF {syst}Up", **opts_sf['Up'], fmt='none'
+                x,
+                systUp,
+                yerr=0,
+                xerr=xerr,
+                label=f"SF {syst}Up",
+                **opts_sf['Up'],
+                fmt='none',
             )
             rlinesDown = rax.errorbar(
                 x, ratioDown, yerr=0, xerr=xerr, **opts_sf['Down'], fmt='none'
             )
-            rlinesUp = rax.errorbar(x, ratioUp, yerr=0, xerr=xerr, **opts_sf['Up'], fmt='none')
+            rlinesUp = rax.errorbar(
+                x, ratioUp, yerr=0, xerr=xerr, **opts_sf['Up'], fmt='none'
+            )
             for lines, var in zip(
                 [linesDown, linesUp, rlinesDown, rlinesUp], ['Down', 'Up', 'Down', 'Up']
             ):

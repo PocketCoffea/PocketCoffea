@@ -1,0 +1,91 @@
+
+lepton_scale_factors:
+  ####################################################################################################
+  electron_sf:
+    reco:
+      pt_gt_20: RecoAbove20
+      pt_lt_20: RecoBelow20
+
+    id: wp80iso
+
+    JSONfiles: 
+      '2016_PreVFP':
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016preVFP_UL/electron.json.gz
+        name: UL-Electron-ID-SF
+  
+      '2016_PostVFP':
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016postVFP_UL/electron.json.gz
+        name: UL-Electron-ID-SF    
+
+      '2017':
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2017_UL/electron.json.gz
+        name: UL-Electron-ID-SF
+
+      '2018':
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2018_UL/electron.json.gz
+        name: UL-Electron-ID-SF
+
+    era_mapping:
+      # this is needed because egamma provided correction
+      #set have a fixed set of era labels, different from ours
+      "2016_PreVFP": "2016preVFP"
+      "2016_PostVFP": "2016postVFP"
+      "2017": "2017"
+      "2018": "2018"
+    
+    # The trigger SF configuration is expected to have this structure
+    # needs to be provided by the user.
+    trigger_sf:
+      2016_PreVFP:
+        name: ???
+        file: ???
+      2016_PostVFP:
+        name: ???
+        file: ???
+      '2017':
+        name: ???
+        file: ???
+      '2018':
+        name: ???
+        file: ???
+
+  ##################################################################################################  
+  muon_sf:
+    sf_name:
+      '2016_PreVFP':
+          id: NUM_TightID_DEN_TrackerMuons
+          iso: NUM_LooseRelIso_DEN_TightIDandIPCut
+          trigger: NUM_IsoMu24_or_IsoTkMu24_DEN_CutBasedIdTight_and_PFIsoTight
+
+      '2016_PostVFP':
+          id: NUM_TightID_DEN_TrackerMuons
+          iso: NUM_LooseRelIso_DEN_TightIDandIPCut
+          trigger: NUM_IsoMu24_or_IsoTkMu24_DEN_CutBasedIdTight_and_PFIsoTight
+
+      '2017':
+          id: NUM_TightID_DEN_TrackerMuons
+          iso: NUM_LooseRelIso_DEN_TightIDandIPCut
+          trigger: NUM_IsoMu27_DEN_CutBasedIdTight_and_PFIsoTight
+
+      '2018':
+          id: NUM_TightID_DEN_TrackerMuons
+          iso: NUM_LooseRelIso_DEN_TightIDandIPCut
+          trigger: NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight
+    JSONfiles:
+      '2016_PreVFP':
+          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2016preVFP_UL/muon_Z.json.gz
+      '2016_PostVFP':
+          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2016postVFP_UL/muon_Z.json.gz
+      '2017':
+          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2017_UL/muon_Z.json.gz
+      '2018':
+          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2018_UL/muon_Z.json.gz
+
+    era_mapping:
+        # this is needed because egamma provided correction
+        #set have a fixed set of era labels, different from ours
+        "2016_PreVFP": "2016preVFP_UL"
+        "2016_PostVFP": "2016postVFP_UL"
+        "2017": "2017_UL"
+        "2018": "2018_UL"
+  #####################################################################

@@ -338,10 +338,10 @@ opts_unc = {
 
 opts_gap = {
     "step": "post",
-    #"color": (0, 0, 0, 0.4),
+    # "color": (0, 0, 0, 0.4),
     "color": "white",
     "facecolor": "white",
-    #"linewidth": 0,
+    # "linewidth": 0,
     "hatch": '/' * 100,
     "zorder": 2,
 }
@@ -959,7 +959,7 @@ class EfficiencyMap:
                     ratio = self.eff_nominal[{'map': 'sf'}].values()
                     # In the bins in which the SF is 0, which are those where the trigger efficiency on data is 0,
                     # the SF is set to 1 so that MC is not rescaled in that bin.
-                    #ratio = np.where(ratio != 0, ratio, 1.0)
+                    # ratio = np.where(ratio != 0, ratio, 1.0)
                     unc = np.array(self.unc_eff_nominal[{'map': 'unc_sf'}].values())
                     ratios = [ratio, ratio - unc, ratio + unc]
                     labels = ["nominal", "statDown", "statUp"]
@@ -968,7 +968,7 @@ class EfficiencyMap:
                     eff_map = self.eff[{'map': 'sf'}].values()
                     # In the bins in which the SF is 0, which are those where the trigger efficiency on data is 0,
                     # the SF is set to 1 so that MC is not rescaled in that bin.
-                    #ratios = [np.where(eff_map != 0, eff_map, 1.0)]
+                    # ratios = [np.where(eff_map != 0, eff_map, 1.0)]
                     ratios = [eff_map]
                     if self.mode == "standard":
                         labels = [var]
@@ -1076,13 +1076,17 @@ class EfficiencyMap:
                 if (var == 'nominal') and (label == "ratio_sf"):
                     continue
                 self.map2d = histo[{'map': label}]
-                if (label == "sf"):
+                if label == "sf":
                     self.map2d.values()[np.where(self.map2d.values() == 0)] = 1.0
 
                 if save_plots:
                     fig_map, ax_map = plt.subplots(1, 1, figsize=[16, 10])
                     self.map2d.label = patch_opts[label]['label']
-                    self.map2d.plot2d(ax=ax_map, vmin=patch_opts[label]['vmin'], vmax=patch_opts[label]['vmax'])
+                    self.map2d.plot2d(
+                        ax=ax_map,
+                        vmin=patch_opts[label]['vmin'],
+                        vmax=patch_opts[label]['vmax'],
+                    )
 
                     hep.cms.text("Preliminary", loc=0, ax=ax_map)
                     hep.cms.lumitext(
@@ -1104,21 +1108,23 @@ class EfficiencyMap:
                         xticks, [str(int(t)) for t in xticks], fontsize=fontsize
                     )
                     ax_map.tick_params(
-                        axis='x',          # changes apply to the x-axis
-                        which='minor',      # both major and minor ticks are affected
-                        bottom=False,      # ticks along the bottom edge are off
-                        top=False,         # ticks along the top edge are off
-                        labelbottom=True)  # labels along the bottom edge are off
+                        axis='x',  # changes apply to the x-axis
+                        which='minor',  # both major and minor ticks are affected
+                        bottom=False,  # ticks along the bottom edge are off
+                        top=False,  # ticks along the top edge are off
+                        labelbottom=True,
+                    )  # labels along the bottom edge are off
 
                     ax_map.set_yticks(
                         yticks, [str(round(t, 4)) for t in yticks], fontsize=fontsize
                     )
                     ax_map.tick_params(
-                        axis='y',          # changes apply to the y-axis
-                        which='minor',      # both major and minor ticks are affected
-                        bottom=False,      # ticks along the bottom edge are off
-                        top=False,         # ticks along the top edge are off
-                        labelbottom=True)  # labels along the bottom edge are off
+                        axis='y',  # changes apply to the y-axis
+                        which='minor',  # both major and minor ticks are affected
+                        bottom=False,  # ticks along the bottom edge are off
+                        top=False,  # ticks along the top edge are off
+                        labelbottom=True,
+                    )  # labels along the bottom edge are off
                     ax_map.set_xlim(*self.config.variables[self.histname].axes[0].lim)
                     ax_map.set_ylim(*self.config.variables[self.histname].axes[1].lim)
                     plt.vlines(
@@ -1142,7 +1148,7 @@ class EfficiencyMap:
                                 gap[0],
                                 gap[1],
                                 **opts_gap,
-                                #label="ECAL gap",
+                                # label="ECAL gap",
                             )
 
                     for (i, x) in enumerate(self.bincenter_x):
@@ -1252,7 +1258,7 @@ class EfficiencyMap:
                         ratio = self.eff_nominal[{'map': 'sf'}].values()
                         # In the bins in which the SF is 0, which are those where the trigger efficiency on data is 0,
                         # the SF is set to 1 so that MC is not rescaled in that bin.
-                        #ratio = np.where(ratio != 0, ratio, 1.0)
+                        # ratio = np.where(ratio != 0, ratio, 1.0)
                         unc = np.array(eff_map)
                         ratios = [ratio - unc, ratio + unc]
                         labels = ["statDown", "statUp"]

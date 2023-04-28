@@ -1,0 +1,31 @@
+systematic_variations:
+  weight_variations:
+    sf_ele_trigger:
+      "2016_PreVFP": 
+         - stat
+         - pileup
+         - era
+         - ht
+      "2016_PostVFP": "${.2016_PreVFP}" #interpolation by OmegaConf --> taking the same dict
+      "2017": "${.2016_PreVFP}" 
+      "2018": "${.2016_PreVFP}"
+
+    sf_btag:
+      '2016_PreVFP':
+        - hf
+        - lf
+        - hfstats1
+        - hfstats2
+        - lfstats1
+        - lfstats2
+        - cferr1
+        - cferr2
+      '2016_PostVFP': "${.2016_PreVFP}"
+      '2017': "${.2016_PreVFP}"
+      '2018': "${.2016_PreVFP}"
+
+  shape_variations:
+    JES:
+
+    JER:
+

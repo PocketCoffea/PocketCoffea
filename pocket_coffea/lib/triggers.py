@@ -1,6 +1,5 @@
 import numpy as np
 import awkward as ak
-from ..parameters.triggers import triggers
 
 
 def get_trigger_mask(events, trigger_dict, year, isMC, primaryDatasets=None, invert=False):

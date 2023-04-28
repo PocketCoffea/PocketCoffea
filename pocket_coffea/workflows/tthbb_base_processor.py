@@ -44,11 +44,9 @@ class ttHbbBaseProcessor(BaseProcessorABC):
             self.events.Electron, electron_etaSC, "etaSC"
         )
         # Build masks for selection of muons, electrons, jets, fatjets
-        self.events["MuonGood"] = lepton_selection(
-            self.events, "Muon", self.cfg.finalstate
-        )
+        self.events["MuonGood"] = lepton_selection(self.events, "Muon", self.params)
         self.events["ElectronGood"] = lepton_selection(
-            self.events, "Electron", self.cfg.finalstate
+            self.events, "Electron", self.params
         )
         leptons = ak.with_name(
             ak.concatenate((self.events.MuonGood, self.events.ElectronGood), axis=1),
@@ -57,14 +55,11 @@ class ttHbbBaseProcessor(BaseProcessorABC):
         self.events["LeptonGood"] = leptons[ak.argsort(leptons.pt, ascending=False)]
 
         self.events["JetGood"], self.jetGoodMask = jet_selection(
-            self.events, "Jet", self.cfg.finalstate
+            self.events, "Jet", self.params, "LeptonGood"
         )
-        self.events["BJetGood"] = btagging(self.events["JetGood"], self._btag)
-
-        if self.cfg.finalstate == 'dilepton':
-            self.events["ll"] = get_dilepton(
-                self.events.ElectronGood, self.events.MuonGood
-            )
+        self.events["BJetGood"] = btagging(
+            self.events["JetGood"], self.params.btagging.working_point[self._year]
+        )
 
         # self.events["FatJetGood"], self.jetGoodMask = jet_selection(
         #     self.events, "FatJet", self.cfg.finalstate
@@ -84,15 +79,18 @@ class ttHbbBaseProcessor(BaseProcessorABC):
     def define_common_variables_before_presel(self, variation):
         self.events["JetGood_Ht"] = ak.sum(abs(self.events.JetGood.pt), axis=1)
         if self._isMC:
-            self.events["nJetGoodCFlavour"] = ak.sum(self.events.JetGood.hadronFlavour==4, axis=1)
-            self.events["nJetGoodBFlavour"] = ak.sum(self.events.JetGood.hadronFlavour==5, axis=1)
+            self.events["nJetGoodCFlavour"] = ak.sum(
+                self.events.JetGood.hadronFlavour == 4, axis=1
+            )
+            self.events["nJetGoodBFlavour"] = ak.sum(
+                self.events.JetGood.hadronFlavour == 5, axis=1
+            )
 
     def fill_histograms_extra(self, variation):
         '''
         This processor saves a metadata histogram with the number of
         events for chunk
         '''
-
         # # Filling the special histograms for events if they are present
         # if self._hasSubsamples:
         #     for subs in self._subsamples_names:

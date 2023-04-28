@@ -16,14 +16,8 @@ from .scale_factors import (
     sf_btag_calib,
     sf_jet_puId,
     sf_L1prefiring,
+    sf_pileup_reweight,
 )
-from ..lib.pileup import sf_pileup_reweight
-
-# Framework parameters
-from ..parameters.lumi import lumi, goldenJSON
-from ..parameters.xsec import xsec
-from ..parameters.btag import btag, btag_variations
-from ..parameters.lepton_scale_factors import sf_ele_trigger_variations
 
 
 @dataclass
@@ -36,7 +30,7 @@ class WeightCustom:
 
     - name: name of the weight
     - function:  function defining the weights of the events chunk.
-                 signuture (events, size, metadata:dict, shape_variation:str)
+                 signuture (params, events, size, metadata:dict, shape_variation:str)
     - variations: list of variations
 
     The function must return the weights in the following format::
@@ -119,15 +113,13 @@ class WeightsManager:
             "sf_mu_trigger",
             "sf_jet_puId",
             "sf_L1prefiring",
+            "sf_btag",
         ]
-        for year, bvars in btag_variations.items():
-            out += [f"sf_btag_{var}" for var in bvars]
-        for year, sfvars in sf_ele_trigger_variations.items():
-            out += [f"sf_ele_trigger_{var}" for var in sfvars]
         return set(out)
 
     def __init__(
         self,
+        params,
         weightsConf,
         size,
         events,
@@ -135,9 +127,9 @@ class WeightsManager:
         metadata,
         storeIndividual=False,
     ):
+        self.params = params
         self._sample = metadata["sample"]
         self._year = metadata["year"]
-        self._finalstate = metadata["finalstate"]
         self._xsec = metadata["xsec"]
         self._sum_genweights = float(metadata["sum_genweights"])
         self._shape_variation = shape_variation
@@ -177,7 +169,7 @@ class WeightsManager:
             elif isinstance(w, WeightCustom):
                 if w.name not in _weightsCache:
                     _weightsCache[w.name] = w.function(
-                        events, self.size, metadata, self._shape_variation
+                        self.params, events, self.size, metadata, self._shape_variation
                     )
                 for we in _weightsCache[w.name]:
                     # print(we)
@@ -232,30 +224,44 @@ class WeightsManager:
         if weight_name == "genWeight":
             return [('genWeight', events.genWeight / self._sum_genweights)]
         elif weight_name == 'lumi':
-            return [('lumi', ak.full_like(events.genWeight, lumi[self._year]["tot"]))]
+            return [
+                (
+                    'lumi',
+                    ak.full_like(
+                        events.genWeight, self.params.lumi.picobarns[self._year]["tot"]
+                    ),
+                )
+            ]
         elif weight_name == 'XS':
             return [('XS', ak.full_like(events.genWeight, self._xsec))]
         elif weight_name == 'pileup':
             # Pileup reweighting with nominal, up and down variations
-            return [('pileup', *sf_pileup_reweight(events, self._year))]
+            return [('pileup', *sf_pileup_reweight(self.params, events, self._year))]
         elif weight_name == 'sf_ele_reco':
             # Electron reco and id SF with nominal, up and down variations
-            return [('sf_ele_reco', *sf_ele_reco(events, self._year))]
+            return [('sf_ele_reco', *sf_ele_reco(self.params, events, self._year))]
         elif weight_name == "sf_ele_id":
-            return [('sf_ele_id', *sf_ele_id(events, self._year))]
+            return [('sf_ele_id', *sf_ele_id(self.params, events, self._year))]
         elif weight_name == 'sf_mu_id':
             # Muon id and iso SF with nominal, up and down variations
-            return [('sf_mu_id', *sf_mu(events, self._year, 'id'))]
+            return [('sf_mu_id', *sf_mu(self.params, events, self._year, 'id'))]
         elif weight_name == "sf_mu_iso":
-            return [('sf_mu_iso', *sf_mu(events, self._year, 'iso'))]
+            return [('sf_mu_iso', *sf_mu(self.params, events, self._year, 'iso'))]
         elif weight_name == "sf_mu_trigger":
-            return [('sf_mu_trigger', *sf_mu(events, self._year, 'trigger'))]
+            return [
+                ('sf_mu_trigger', *sf_mu(self.params, events, self._year, 'trigger'))
+            ]
         elif weight_name == "sf_ele_trigger":
 
             # Get all the nominal and variation SF
             if shape_variation == "nominal":
-                sf_ele_trigger_vars = sf_ele_trigger_variations[self._year]
+                sf_ele_trigger_vars = (
+                    self.params.systematic_variations.weight_variations.sf_ele_trigger[
+                        self._year
+                    ]
+                )
                 triggersf = sf_ele_trigger(
+                    self.params,
                     events,
                     self._year,
                     variations=["nominal"] + sf_ele_trigger_vars,
@@ -270,9 +276,7 @@ class WeightsManager:
             else:
                 # Only the nominal if there is a shape variation
                 triggersf = sf_ele_trigger(
-                    events,
-                    self._year,
-                    variations=["nominal"],
+                    self.params, events, self._year, variations=["nominal"]
                 )
 
             # return the nominal and everything
@@ -285,13 +289,15 @@ class WeightsManager:
 
             # Get all the nominal and variation SF
             if shape_variation == "nominal":
-                btag_vars = btag_variations[self._year]
+                btag_vars = self.params.systematic_variations.weight_variations.sf_btag[
+                    self._year
+                ]
                 btagsf = sf_btag(
+                    self.params,
                     events.JetGood,
-                    btag[self._year]['btagging_algorithm'],
                     self._year,
-                    variations=["central"] + btag_vars,
                     njets=events.nJetGood,
+                    variations=["central"] + btag_vars,
                 )
                 # BE AWARE --> COFFEA HACK FOR MULTIPLE VARIATIONS
                 for var in btag_vars:
@@ -305,6 +311,7 @@ class WeightsManager:
                 # Compute the special version of the btagSF for JES variation
                 # The name conversion is done inside the btag sf function.
                 btagsf = sf_btag(
+                    self.params,
                     events.JetGood,
                     btag[self._year]['btagging_algorithm'],
                     self._year,
@@ -314,8 +321,8 @@ class WeightsManager:
 
             else:
                 # Only the nominal if there is a shape variation
-                # TODO Implement the varied btag for the JES variations
                 btagsf = sf_btag(
+                    self.params,
                     events.JetGood,
                     btag[self._year]['btagging_algorithm'],
                     self._year,
@@ -332,7 +339,9 @@ class WeightsManager:
             return [
                 (
                     "sf_btag_calib",
-                    sf_btag_calib(self._sample, self._year, events.nJetGood, jetsHt),
+                    sf_btag_calib(
+                        self.params, self._sample, self._year, events.nJetGood, jetsHt
+                    ),
                 )
             ]
 
@@ -341,8 +350,8 @@ class WeightsManager:
                 (
                     'sf_jet_puId',
                     *sf_jet_puId(
+                        self.params,
                         events.JetGood,
-                        self._finalstate,
                         self._year,
                         njets=events.nJetGood,
                     ),

@@ -16,13 +16,9 @@ from coffea.analysis_tools import PackedSelection
 from ..lib.weights_manager import WeightsManager
 from ..lib.columns_manager import ColumnsManager
 from ..lib.hist_manager import HistManager
-from ..lib.jets import jet_correction, met_correction
+from ..lib.jets import jet_correction, met_correction, load_jet_factory
 from ..lib.categorization import CartesianSelection
 from ..utils.skim import uproot_writeable, copy_file
-from ..parameters.event_flags import event_flags, event_flags_data
-from ..parameters.lumi import goldenJSON
-from ..parameters.btag import btag
-from ..parameters.cuts.preselection_cuts import passthrough
 
 from ..utils.configurator import Configurator
 
@@ -41,9 +37,10 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
         :param cfg: Configurator object containing all the configurations.
         '''
-        # Read required cuts and histograms from config file
+        # Saving the configurator object in the processor
         self.cfg = cfg
-
+        # Saving the parameters from the configurator objects
+        self.params = self.cfg.parameters
         # Cuts
         # 1) a list of *skim* functions is applied on bare NanoAOD, with no object preselection or correction.
         #   Triggers are also applied there.
@@ -60,6 +57,10 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Weights configuration
         self.weights_config_allsamples = self.cfg.weights_config
 
+        # Load the jet calibration factory once for all chunks
+        self.jmefactory = load_jet_factory(self.params)
+
+        
         # Custom axis for the histograms
         self.custom_axes = []
         self.custom_histogram_fields = {}
@@ -88,6 +89,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             },
         }
 
+
     @property
     def nevents(self):
         '''Compute the current number of events in the current chunk.
@@ -103,7 +105,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self._dataset = self.events.metadata["dataset"]
         self._sample = self.events.metadata["sample"]
         self._year = self.events.metadata["year"]
-        self._btag = btag[self._year]
         self._isMC = self.events.metadata["isMC"] == "True"
         if self._isMC:
             self._era = "MC"
@@ -111,7 +112,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             if "sum_genweights" in self.events.metadata:
                 self._sum_genweights = self.events.metadata["sum_genweights"]
             else:
-                raise Exception(f"The metadata dict of {self._dataset} has no key named `sum_genweights`.")
+                raise Exception(
+                    f"The metadata dict of {self._dataset} has no key named `sum_genweights`."
+                )
         else:
             self._era = self.events.metadata["era"]
             self._goldenJSON = goldenJSON[self._year]
@@ -144,9 +147,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
         self._skim_masks = PackedSelection()
         mask_flags = np.ones(self.nEvents_initial, dtype=np.bool)
-        flags = event_flags[self._year]
+        flags = self.params.event_flags[self._year]
         if not self._isMC:
-            flags += event_flags_data[self._year]
+            flags += self.params.event_flags_data[self._year]
         for flag in flags:
             mask_flags &= getattr(self.events.Flag, flag).to_numpy()
         self._skim_masks.add("event_flags", mask_flags)
@@ -157,7 +160,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # In case of data: check if event is in golden lumi file
         if not self._isMC:
             # mask_lumi = lumimask(self.events.run, self.events.luminosityBlock)
-            mask_lumi = LumiMask(self._goldenJSON)(
+            mask_lumi = LumiMask(self.params.lumi.goldenJSON)(
                 self.events.run, self.events.luminosityBlock
             )
             self._skim_masks.add("lumi_golden", mask_lumi)
@@ -166,9 +169,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             # Apply the skim function and add it to the mask
             mask = skim_func.get_mask(
                 self.events,
+                processor_params=self.params,
                 year=self._year,
                 sample=self._sample,
-                btag=self._btag,
                 isMC=self._isMC,
             )
             self._skim_masks.add(skim_func.id, mask)
@@ -213,7 +216,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         and clean objects and define the collections as attributes of `events`.
         E.g.::
 
-             self.events["ElectronGood"] = lepton_selection(self.events, "Electron", self.cfg.finalstate)
+             self.events["ElectronGood"] = lepton_selection(self.events, "Electron", self.params)
         '''
         pass
 
@@ -236,7 +239,11 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         for cut in self._preselections:
             # Apply the cut function and add it to the mask
             mask = cut.get_mask(
-                self.events, year=self._year, sample=self._sample, isMC=self._isMC
+                self.events,
+                processor_params=self.params,
+                year=self._year,
+                sample=self._sample,
+                isMC=self._isMC,
             )
             self._preselection_masks.add(cut.id, mask)
         # Now that the preselection mask is complete we can apply it to events
@@ -263,6 +270,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # We make sure that for each category the list of cuts is unique in the Configurator validation
         self._categories.prepare(
             events=self.events,
+            processor_params=self.params,
             year=self._year,
             sample=self._sample,
             isMC=self._isMC,
@@ -270,6 +278,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
         self._subsamples[self._sample].prepare(
             events=self.events,
+            processor_params=self.params,
             year=self._year,
             sample=self._sample,
             isMC=self._isMC,
@@ -311,6 +320,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         else:
             # Creating the WeightsManager with all the configured weights
             self.weights_manager = WeightsManager(
+                self.params,
                 self.weights_config_allsamples[self._sample],
                 self.nEvents_after_presel,
                 self.events,  # to compute weights
@@ -321,7 +331,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     "sample": self._sample,
                     "xsec": self._xsec,
                     "sum_genweights": self._sum_genweights,
-                    "finalstate": self.cfg.finalstate,
                 },
             )
 
@@ -353,7 +362,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
             # If subsamples are defined we also save their metadata
             if self._hasSubsamples:
-                for subs, subsam_mask in self._categories.get_masks():
+                for subs, subsam_mask in self._subsamples[self._sample].get_masks():
                     mask_withsub = mask_on_events & subsam_mask
                     self.output["cutflow"][category][subs] = ak.sum(mask_withsub)
                     if self._isMC:
@@ -381,10 +390,12 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
         self.hists_managers = HistManager(
             self.cfg.variables,
+            self._year,
             self._sample,
             self._subsamples[self._sample].keys(),
             self._categories,
             variations_config=self.cfg.variations_config[self._sample],
+            processor_params=self.params,
             custom_axes=self.custom_axes,
             isMC=self._isMC,
         )
@@ -514,75 +525,70 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # nominal is assumed to be the first
         variations = ["nominal"] + self.cfg.available_shape_variations[self._sample]
         # TO be understood if a copy is needed
-        # This is probably very wrong
+        # This canbe useless or suboptimal, working on it
         nominal_events = self.events
 
-        hasJES = False
-        # HACK: hasJER is set to True even if the JER is not included in the variations.
-        # In the future, it is desirable to include a dedicated option in the config file to switch the nominal JER and JES on and off.
-        hasJER = True
-        for v in variations:
-            if "JES" in v:
-                hasJES = True
-            if "JER" in v:
-                hasJER = True
-
-        if hasJES | hasJER:
-            # correct the jets only once
-            jec4_cache = cachetools.Cache(np.inf)
-            jec8_cache = cachetools.Cache(np.inf)
-            jets_with_JES = jet_correction(
-                nominal_events,
-                nominal_events.Jet,
-                "AK4PFchs",
-                self._year,
-                jec4_cache,
-                applyJER=hasJER,
-                applyJESunc=hasJES,
+        # Calibrating Jets: only the ones in the jet_types in the params.jet_calibration config
+        jets_calibrated = {}
+        caches = []
+        jet_calib_params= self.params.jets_calibration
+        for jet_type, factory in jet_calib_params.jet_types.items():
+            cache = cachetools.Cache(np.inf)
+            caches.append(cache)
+            jet_coll = jet_calib_params.collection[jet_type]
+            jets_calibrated[jet_coll] = jet_correction(
+                params=self.params,
+                events=nominal_events,
+                jets=nominal_events[jet_coll],
+                factory=self.jmefactory,
+                jet_type = jet_type,
+                year=self._year,
+                cache=cache
             )
-            # fatjets_with_JES = jet_correction(
-            #     nominal_events,
-            #     nominal_events.FatJet,
-            #     "AK8PFPuppi",
-            #     self._year,
-            #     jec8_cache,
-            #     applyJER=hasJER,
-            #     applyJESunc=hasJES,
-            # )
-            #met_with_JES = met_correction(
-            #    nominal_events.MET,
-            #    jets_with_JES
-            #)
-        else:
-            jets_with_JES = nominal_events.Jet
-            fatjets_with_JES = nominal_events.FatJet
-            #met_with_JES = nominal_events.MET
 
         for variation in variations:
-            # Restore the nominal events record since for each variation
-            # the event preselections are applied
+            # BIG assumption:
+            # All the code after the get_shape_variation creates additional
+            # branches based on the correct collections without overwriting the default
+            # collection.
+            # If not we would need to restore the nominal events doing a copy at the beginning
+            # very costly!
 
             if variation == "nominal":
                 self.events = nominal_events
-                if hasJES | hasJER:
-                    # put nominal shape
-                    self.events["Jet"] = jets_with_JES
-                    # self.events["FatJet"] = fatjets_with_JES
-                    #self.events["MET"] = met_with_JES
-                # Nominal is ASSUMED to be the first
+                # Just assign the nominal calibration
+                for jet_coll_name, jet_coll in jets_calibrated.items():
+                    self.events[jet_coll_name] = jet_coll
+                
                 yield "nominal"
+
+                
             elif ("JES" in variation) | ("JER" in variation):
                 # JES_jes is the total. JES_[type] is for different variations
                 self.events = nominal_events
-                self.events["Jet"] = jets_with_JES[variation].up
-                # self.events["FatJet"] = fatjets_with_JES[variation].up
+                for jet_coll_name, jet_coll in jets_calibrated.items():
+                    self.events[jet_coll_name] = jet_coll[variation].up
+
                 yield variation + "Up"
+
+                # then go down
                 # restore nominal before going to down
                 self.events = nominal_events
-                self.events["Jet"] = jets_with_JES[variation].down
-                # self.events["FatJet"] = fatjets_with_JES[variation].down
+                for jet_coll_name, jet_coll in jets_calibrated.items():
+                    self.events[jet_coll_name] = jet_coll[variation].down
+                
                 yield variation + "Down"
 
+
+        # additional shape variations are handled with custom provided generators
+        for additional_variation in self.get_extra_shape_variations():
+            yield additional_variation
+        
+    def get_extra_shape_variations(self):
+        #empty generator
+        return
+        yield  # the yield defines the function as a generator and the return stops it to be empty
+        
     def process(self, events: ak.Array):
         '''
         This function get called by Coffea on each chunk of NanoAOD file.
