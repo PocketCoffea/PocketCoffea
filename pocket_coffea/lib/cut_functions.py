@@ -21,7 +21,7 @@ def _get_trigger_mask_proxy(events, params, processor_params, year, isMC, **kwar
     )
 
 
-def get_HLTsel(key, primaryDatasets=None, invert=False):
+def get_HLTsel(primaryDatasets=None, invert=False):
     '''Create the HLT trigger mask
 
     The Cut function reads the triggers configuration and create the mask.
@@ -32,14 +32,13 @@ def get_HLTsel(key, primaryDatasets=None, invert=False):
 
     This is useful to remove the overlap of primary datasets in data.
 
-    :param key: Key in the trigger configuration for the list of triggers to apply
     :param primaryDatasets: (optional) list of primaryDatasets to use. Overwrites any other config
                                       both for Data and MC
     :param invert: invert the mask, if True the function returns events failing the HLT selection
 
     :returns: events mask
     '''
-    name = f"HLT_{key}"
+    name = "HLT_trigger"
     if primaryDatasets:
         name += "_" + "_".join(primaryDatasets)
     if invert:

@@ -157,7 +157,10 @@ class Dataset:
     # Function to build the dataset dictionary
     def get_samples(self, files):
         for scfg in files:
-            sname = f"{self.name}_{scfg['metadata']['year']}"
+            if 'part' in scfg['metadata']:
+                sname = f"{self.name}_{scfg['metadata']['part']}_{scfg['metadata']['year']}"
+            else:
+                sname = f"{self.name}_{scfg['metadata']['year']}"
             if not scfg["metadata"]["isMC"]:
                 sname += f"_Era{scfg['metadata']['era']}"
             if "dbs_instance" in scfg.keys():

@@ -40,11 +40,11 @@ class HistConf:
     no_weights: bool = False  # Do not fill the weights
     metadata_hist: bool = False  # Non-event variables, for processing metadata
     hist_obj = None
-    collapse_2D_masks = False # if 2D masks are applied on the events
-                              # and the data_ndim=1, when collapse_2D_mask=True the OR
-                              # of the masks on the axis=2 is performed to get the mask
-                              # on axis=1, otherwise an exception is raised
-    collapse_2D_masks_mode = "OR" # Use OR or AND to collapse 2D masks for data_ndim=1 if collapse_2D_masks == True
+    collapse_2D_masks = False  # if 2D masks are applied on the events
+    # and the data_ndim=1, when collapse_2D_mask=True the OR
+    # of the masks on the axis=2 is performed to get the mask
+    # on axis=1, otherwise an exception is raised
+    collapse_2D_masks_mode = "OR"  # Use OR or AND to collapse 2D masks for data_ndim=1 if collapse_2D_masks == True
 
     def serialize(self):
         out = {**self.__dict__}
@@ -434,7 +434,7 @@ class HistManager:
                     # In this case the mask is reduced to per-event mask
                     # doing a logical OR only if explicitely allowed by the user
                     # WARNING!! POTENTIAL PROBLEMATIC BEHAVIOUR
-                    # The user must be aware of the behavior. 
+                    # The user must be aware of the behavior.
 
                     if data_ndim == 1 and mask.ndim > 1:
                         if histo.collapse_2D_masks:
@@ -443,24 +443,26 @@ class HistManager:
                             elif histo.collapse_2D_masks_mode == "AND":
                                 mask = ak.all(mask, axis=1)
                             else:
-                                raise Exception("You want to collapse the 2D masks on 1D data but the `collapse_2D_masks_mode` is not 'AND/OR'")
-                            
+                                raise Exception(
+                                    "You want to collapse the 2D masks on 1D data but the `collapse_2D_masks_mode` is not 'AND/OR'"
+                                )
+
                         else:
-                            raise Exception("+++++ BE AWARE! This is a possible mis-behavior! +++++\n"+
-                                            f"You are trying to fill the histogram {name} with data of dimention 1 (variable by event)"+
-                                            "and masking it with a mask with more than 1 dimension (e.g. mask on Jets)\n"+
-                                            "This means that you are either performing a cut on a collections (e.g Jets),"+
-                                            " or you are using subsamples with cuts on collections.\n"+
-                                            "\n As an example of a bad behaviour would be saving the pos=1 of a collection e.g. `JetGood.pt[1]`\n"+
-                                            "while also having a 2D cut on the `JetGood` collection --> this is not giving you the second jet passing the cut!\n"+
-                                            "In that case the 2nd JetGood.pt will be always plotted even if masked by the 2D cut: in fact "+
-                                            "the 2D masks would be collapsed to the event dimension. \n\n"
-                                            "If you really wish to save the histogram with a single value for event (data dim=1)
-                                            you can do so by configuring the histogram with `collapse_2D_masks=True\n"+
-                                            "The 2D masks will be collapsed on the event dimension (axis=1) doing an OR (default) or an AND\n"+
-                                            "You can configure this behaviour with `collapse_2D_masks_mode='OR'/'AND'` in the histo configuration."
-                                            )
-                    
+                            raise Exception(
+                                "+++++ BE AWARE! This is a possible mis-behavior! +++++\n"
+                                + f"You are trying to fill the histogram {name} with data of dimention 1 (variable by event)"
+                                + "and masking it with a mask with more than 1 dimension (e.g. mask on Jets)\n"
+                                + "This means that you are either performing a cut on a collections (e.g Jets),"
+                                + " or you are using subsamples with cuts on collections.\n"
+                                + "\n As an example of a bad behaviour would be saving the pos=1 of a collection e.g. `JetGood.pt[1]`\n"
+                                + "while also having a 2D cut on the `JetGood` collection --> this is not giving you the second jet passing the cut!\n"
+                                + "In that case the 2nd JetGood.pt will be always plotted even if masked by the 2D cut: in fact "
+                                + "the 2D masks would be collapsed to the event dimension. \n\n"
+                                + "If you really wish to save the histogram with a single value for event (data dim=1)"
+                                + "you can do so by configuring the histogram with `collapse_2D_masks=True\n"
+                                + "The 2D masks will be collapsed on the event dimension (axis=1) doing an OR (default) or an AND\n"
+                                + "You can configure this behaviour with `collapse_2D_masks_mode='OR'/'AND'` in the histo configuration."
+                            )
 
                     # Mask the variables and flatten them
                     # save the isnotnone and datastructure

@@ -41,6 +41,12 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
 
+    # Setting up the output dir
+    os.makedirs(args.outputdir, exist_ok=True)
+    outfile = os.path.join(
+        args.outputdir, "output_{}.coffea"
+    )
+    
     # Prepare logging
     if (not setup_logging(console_log_output="stdout", console_log_level=args.loglevel, console_log_color=True,
                         logfile_file="last_run.log", logfile_log_level="info", logfile_log_color=False,
@@ -88,14 +94,9 @@ if __name__ == '__main__':
     if args.executor !=None:
         run_options["executor"] = args.executor
 
-    # Setting up the output dir
-    os.makedirs(args.outputdir, exist_ok=True)
-    outfile = os.path.join(
-        args.outputdir, "output_{}.coffea"
-    )
     #### Fixing the environment (assuming this is run in singularity)
     # dask/parsl needs to export x509 to read over xrootd
-    if run_options['voms'] is not None:
+    if run_options.get('voms', None) is not None:
         _x509_path = run_options['voms']
     else:
         _x509_localpath = get_proxy_path()
@@ -149,12 +150,12 @@ if __name__ == '__main__':
                                     processor_instance=config.processor_instance,
                                     executor=_exec,
                                     executor_args={
-                                        'skipbadfiles':run_options['skipbadfiles'],
+                                        'skipbadfiles':run_options.get('skipbadfiles'),
                                         'schema': processor.NanoAODSchema,
                                         'xrootdtimeout': run_options.get('xrootdtimeout', 600),
                                         'workers': run_options['scaleout']},
                                     chunksize=run_options['chunk'],
-                                    maxchunks=run_options['max']
+                                    maxchunks=run_options.get('max', None)
                                     )
         
         save(output, outfile.format("all"))
@@ -204,7 +205,7 @@ if __name__ == '__main__':
                                             'schema': processor.NanoAODSchema,
                                             'config': None,
                                         },
-                                        chunksize=run_options['chunk'], maxchunks=run_options['max']
+                                        chunksize=run_options['chunk'], maxchunks=run_options.get('max', None)
                                         )
 
             save(output, outfile.format("all") )
@@ -267,7 +268,7 @@ if __name__ == '__main__':
                                             'schema': processor.NanoAODSchema,
                                             'config': None,
                                         },
-                                        chunksize=run_options['chunk'], maxchunks=run_options['max']
+                                        chunksize=run_options['chunk'], maxchunks=run_options.get('max', None)
                                         )
             save(output, outfile.format("all"))
             print(f"Saving output to {outfile.format('all')}")
@@ -361,13 +362,13 @@ if __name__ == '__main__':
                                         executor=processor.dask_executor,
                                         executor_args={
                                             'client': client,
-                                            'skipbadfiles':run_options['skipbadfiles'],
+                                            'skipbadfiles': run_options.get('skipbadfiles',False),
                                             'schema': processor.NanoAODSchema,
                                             'retries' : run_options['retries'],
                                             'treereduction' : run_options.get('treereduction', 20)
                                         },
                                         chunksize=run_options['chunk'],
-                                        maxchunks=run_options['max']
+                                        maxchunks=run_options.get('max', None)
                             )
                 print(f"Saving output to {outfile.format('all')}")
                 save(output, outfile.format("all") )
@@ -383,13 +384,13 @@ if __name__ == '__main__':
                                             executor=processor.dask_executor,
                                             executor_args={
                                                 'client': client,
-                                                'skipbadfiles':run_options['skipbadfiles'],
+                                                'skipbadfiles': run_options.get('skipbadfiles',False),
                                                 'schema': processor.NanoAODSchema,
                                                 'retries' : run_options['retries'],
                                                 'treereduction' : run_options.get('treereduction', 20)
                                             },
                                             chunksize=run_options['chunk'],
-                                            maxchunks=run_options['max']
+                                            maxchunks=run_options.get('max', None)
                                 )
                     print(f"Saving output to {outfile.format(sample)}")
                     save(output, outfile.format(sample))

@@ -176,6 +176,11 @@ class Configurator:
                 if 'era' in m.keys():
                     if (m["era"]) not in self.eras:
                         self.eras.append(m["era"])
+                        
+        # Check for overlap
+        data_list = {}
+        mc_list = {}
+        
 
     def load_subsamples(self):
         # subsamples configuration
@@ -183,7 +188,8 @@ class Configurator:
         # Save list of subsamples for each sample
         for sample in self.samples:
             if sample in subsamples_dict.keys():
-                self.subsamples_list += list(subsamples_dict[sample].keys())
+                # build the subsample name as sample_subsample
+                self.subsamples_list += [ f"{sample}__{subsam}" for subsam in subsamples_dict[sample].keys()]
                 self.has_subsamples[sample] = True
             else:
                 self.has_subsamples[sample] = False
@@ -204,6 +210,8 @@ class Configurator:
                     self.subsamples[sample] = subscfg
             else:
                 # if there is no configured subsample, the full sample becomes its subsample
+                # this is useful in the processor to have always a subsample
+                # the name is == the name of the sample
                 self.subsamples[sample] = StandardSelection({sample: [passthrough]})
 
     def load_cuts_and_categories(self, skim: list, preselections: list, categories):
@@ -385,7 +393,7 @@ class Configurator:
         for sample in self.samples:
             if self.has_subsamples[sample]:
                 for sub in self.subsamples[sample]:
-                    self.columns[sub] = {c: [] for c in self.categories.keys()}
+                    self.columns[f"{sample}__{sub}"] = {c: [] for c in self.categories.keys()}
             else:
                 self.columns[sample] = {c: [] for c in self.categories.keys()}
         # common/inclusive variations
@@ -415,19 +423,24 @@ class Configurator:
                     raise Exception("Wrong columns configuration")
                 if "inclusive" in s_wcfg:
                     for w in s_wcfg["inclusive"]:
-                        # append only to the specific subsample
-                        if sample in self.subsamples_list:
-                            for wcat in self.columns[sample].values():
-                                if w not in wcat:
-                                    wcat.append(w)
-                        elif self.has_subsamples[sample]:
-                            # If it was added to the general one: include only in subsamples
-                            for subs in self.subsamples[sample]:
-                                for wcat in self.columns[subs].values():
+                        # If the the sample 
+                        if sample not in self.subsamples_list:
+                            # the sample name is not a subsample, we need to check if it has subsamples
+                            if not self.has_subsamples[sample]:
+                            # add column only to the pure sample
+                                for wcat in self.columns[sample].values():
                                     if w not in wcat:
                                         wcat.append(w)
+                                       
+                            else: # the sample has subsamples
+                                # If it was added to the general one: include in all subsamples
+                                for subs in self.subsamples[sample]:
+                                    # Columns manager uses the subsample_list with the full name
+                                    for wcat in self.columns[f"{sample}__{subs}"].values():
+                                        if w not in wcat:
+                                            wcat.append(w)
                         else:
-                            # Add only to the general sample
+                            # Add only to the specific subsample
                             for wcat in self.columns[sample].values():
                                 if w not in wcat:
                                     wcat.append(w)
@@ -536,8 +549,9 @@ class Configurator:
             f"  - Workflow: {self.workflow}",
             f"  - N. samples: {len(self.samples)} "]
 
-        for sample, meta in self.fileset.items():
-            s.append(f"   -- Sample: {sample}: {len(meta['files'])} files")
+        for dataset, meta in self.fileset.items():
+            metadata = meta["metadata"]
+            s.append(f"   -- Dataset: {dataset},  Sample: {metadata['sample']}, N. files: {len(meta['files'])}, N. events: {metadata['nevents']}")
 
         s.append( f"  - Subsamples:")
         for subsample, cuts in self.subsamples.items():
