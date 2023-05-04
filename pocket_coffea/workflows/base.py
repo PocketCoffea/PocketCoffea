@@ -79,7 +79,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 **{cat: {} for cat in self._categories},
             },
             "variables": {
-                v: {}
+                v: defaultdict(dict)
                 for v, vcfg in self.cfg.variables.items()
                 if not vcfg.metadata_hist
             },
@@ -87,6 +87,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             "processing_metadata": {
                 v: {} for v, vcfg in self.cfg.variables.items() if vcfg.metadata_hist
             },
+            "datasets_metadata":{ } #year:sample:subsample
         }
 
 
@@ -102,16 +103,14 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         The function is called at the beginning of the processing for each chunk
         to load some metadata depending on the chunk sample, year and dataset.
 
-        - `_dataset`: name assigned by the user to the fileset configuration
-        - `_sample`: category of the events, used in the processing
-        - `_samplePart`: subcategory of the events, used in the processing
-        - `_outputSampleName`: name formed by sample and samplePart for the output of the processor
+        - `_dataset`: name assigned by the user to the fileset configuration: it identifies
+                      in a unique way the output and the source of the events.
+        - `_sample`: category of the events, used in the processing to parametrize things
+        - `_samplePart`: subcategory of the events, used in the processing to parametrize things
         '''
         self._dataset = self.events.metadata["dataset"] # this is the name given to the fileset
         self._sample = self.events.metadata["sample"] # this is the name of the sample
         self._samplePart = self.events.metadata.get("part", None) # this is the (optional) name of the part of the sample
-        # The output of the processor is parametrized by sample__part__subsample
-        self._outputSampleName = f"{self._sample}__{self._samplePart}" if self._samplePart else self._sample
 
         self._year = self.events.metadata["year"]
         self._isMC = self.events.metadata["isMC"] == "True" # for some reason this get to a string WIP
@@ -122,6 +121,13 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self._era = self.events.metadata["era"]
         # Loading metadata for subsamples
         self._hasSubsamples = self.cfg.has_subsamples[self._sample]
+        # Saving dataset metadata
+        self.output["datasets_metadata"] = {
+            self._year : {
+                    f"{self._sample}__{subsam}" : [self._dataset]
+                    for subsam in self._subsamples[self._sample].keys()
+                }
+            }
 
     def load_metadata_extra(self):
         '''
@@ -181,7 +187,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Finally we skim the events and count them
         self.events = self.events[self._skim_masks.all(*self._skim_masks.names)]
         self.nEvents_after_skim = self.nevents
-        self.output['cutflow']['skim'][self._outputSampleName] = self.nEvents_after_skim
+        self.output['cutflow']['skim'][self._dataset] = self.nEvents_after_skim
         self.has_events = self.nEvents_after_skim > 0
 
     def export_skimmed_chunk(self):
@@ -254,7 +260,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         ]
         self.nEvents_after_presel = self.nevents
         if variation == "nominal":
-            self.output['cutflow']['presel'][self._outputSampleName] = self.nEvents_after_presel
+            self.output['cutflow']['presel'][self._dataset] = self.nEvents_after_presel
         self.has_events = self.nEvents_after_presel > 0
 
     def define_categories(self, variation):
@@ -357,19 +363,20 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             else:
                 mask_on_events = mask
 
-            self.output["cutflow"][category][self._outputSampleName] = {self._year: ak.sum(mask_on_events)}
+            self.output["cutflow"][category][self._dataset] = {self._sample: ak.sum(mask_on_events)}
             if self._isMC:
                 w = self.weights_manager.get_weight(category)
-                self.output["sumw"][category][self._outputSampleName] = {self._year:ak.sum(w * mask_on_events)}
+                self.output["sumw"][category][self._dataset] = {self._sample: ak.sum(w * mask_on_events)}
 
             # If subsamples are defined we also save their metadata
             if self._hasSubsamples:
                 for subs, subsam_mask in self._subsamples[self._sample].get_masks():
                     mask_withsub = mask_on_events & subsam_mask
-                    self.output["cutflow"][category][f"{self._outputSampleName}__{subs}"] ={self._year: ak.sum(mask_withsub)}
+                    self.output["cutflow"][category][self._dataset][f"{self._sample}__{subs}"] = ak.sum(mask_withsub)
                     if self._isMC:
-                        self.output["sumw"][category][f"{self._outputSampleName}__{subs}"] = {self._year:ak.sum(w * mask_withsub)}
+                        self.output["sumw"][category][self._dataset][f"{self._sample}__{subs}"] = ak.sum(w * mask_withsub)
 
+                        
     def define_custom_axes_extra(self):
         '''
         Function which get called before the definition of the Histogram
@@ -428,11 +435,11 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             shape_variation=variation,
             custom_fields=self.custom_histogram_fields,
         )
-        # Saving the output
+        # Saving the output for each sample/subsample
         for subs in self._subsamples[self._sample].keys():
-            # Saving the output for each subsample
             for var, H in self.hists_managers.get_histograms(subs).items():
-                self.output["variables"][var][f"{self._outputSampleName}__{subs}"] = H
+                self.output["variables"][var][self._dataset][f"{self._sample}__{subs}"] = H
+                
 
     def fill_histograms_extra(self, variation):
         '''
@@ -461,18 +468,21 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
     def fill_column_accumulators(self, variation):
         if variation != "nominal":
             return
+
+        self.output["columns"][self._dataset] = {}
+        outcols = self.output["columns"][self._dataset]
         # TODO Fill column accumulator for different variations
         if self._hasSubsamples:
             # call the filling for each
             for subs in self._subsamples[self._sample].keys():
                 # Calling hist manager with a subsample mask
-                self.output["columns"][f"{self._outputSampleName}__{subs}"] = self.column_managers[subs].fill_columns(
+               outcols[f"{self._sample}__{subs}"] = self.column_managers[subs].fill_columns(
                     self.events,
                     self._categories,
                     subsample_mask=self._subsamples[self._sample].get_mask(subs),
                 )
         else:
-            self.output["columns"][self._outputSampleName] = self.column_managers[
+            outcols[self._sample] = self.column_managers[
                 self._sample
             ].fill_columns(
                 self.events,
@@ -630,15 +640,10 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self.load_metadata_extra()
 
         self.nEvents_initial = self.nevents
-        self.output['cutflow']['initial'][self._outputSampleName] = self.nEvents_initial
+        self.output['cutflow']['initial'][self._dataset] = self.nEvents_initial
         if self._isMC:
             # This is computed before any preselection
-            _sumgenweight = ak.sum(self.events.genWeight)
-            
-            self.output['sum_genweights'][self._outputSampleName] = { self._year: _sumgenweight }
-            if self._hasSubsamples:
-                for subs in self._subsamples[self._sample].keys():
-                    self.output['sum_genweights'][f"{self._outputSampleName}__{subs}"] ={self._year : _sumgenweight}
+            self.output['sum_genweights'][self._dataset] = ak.sum(self.events.genWeight)
 
         self.weights_config = self.weights_config_allsamples[self._sample]
         ########################

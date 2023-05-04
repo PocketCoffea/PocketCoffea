@@ -145,7 +145,7 @@ if __name__ == '__main__':
             _exec = processor.iterative_executor
         else:
             _exec = processor.futures_executor
-        output = processor.run_uproot_job(config.fileset,
+        output = processor.run_uproot_job(config.filesets,
                                     treename='Events',
                                     processor_instance=config.processor_instance,
                                     executor=_exec,
@@ -196,7 +196,7 @@ if __name__ == '__main__':
             )
             dfk = parsl.load(slurm_htex)
 
-            output = processor.run_uproot_job(config.fileset,
+            output = processor.run_uproot_job(config.filesets,
                                         treename='Events',
                                         processor_instance=config.processor_instance,
                                         executor=processor.parsl_executor,
@@ -259,7 +259,7 @@ if __name__ == '__main__':
                 )
             dfk = parsl.load(condor_htex)
 
-            output = processor.run_uproot_job(config.fileset,
+            output = processor.run_uproot_job(config.filesets,
                                         treename='Events',
                                         processor_instance=config.processor_instance,
                                         executor=processor.parsl_executor,
@@ -353,7 +353,7 @@ if __name__ == '__main__':
 
             if args.full:
                 # Running separately on each dataset
-                fileset = config.fileset
+                fileset = config.filesets
                 logging.info(f"Working on samples: {list(fileset.keys())}")
                 
                 output = processor.run_uproot_job(fileset,
@@ -374,7 +374,7 @@ if __name__ == '__main__':
                 save(output, outfile.format("all") )
             else:
                 # Running separately on each dataset
-                for sample, files in config.fileset.items():
+                for sample, files in config.filesets.items():
                     logging.info(f"Working on sample: {sample}")
                     fileset = {sample:files}
                     

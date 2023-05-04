@@ -56,7 +56,7 @@ class Configurator:
         # Load dataset
         self.datasets_cfg = datasets
         # The following attributes are loaded by load_datasets
-        self.fileset = {}
+        self.filesets = {}
         self.datasets = []
         self.samples = []
 
@@ -157,30 +157,27 @@ class Configurator:
                         if ds["metadata"]["year"] not in ds_filter["year"]:
                             pass_filter = False
                     if pass_filter:
-                        self.fileset[key] = ds
+                        self.filesets[key] = ds
             else:
-                self.fileset.update(ds_dict)
+                self.filesets.update(ds_dict)
 
-        # Now loading and storing the metadata of the filtered fileset
-        if len(self.fileset) == 0:
+        # Now loading and storing the metadata of the filtered filesets
+        if len(self.filesets) == 0:
             print("File set is empty: please check you dataset definition...")
-            raise Exception("Wrong fileset configuration")
+            raise Exception("Wrong filesets configuration")
         else:
-            for name, d in self.fileset.items():
+            for name, d in self.filesets.items():
                 m = d["metadata"]
                 if name not in self.datasets:
                     self.datasets.append(name)
-                if (m["sample"]) not in self.samples:
+                if m["sample"] not in self.samples:
                     self.samples.append(m["sample"])
+                if m["year"] not in self.years:
                     self.years.append(m["year"])
                 if 'era' in m.keys():
                     if (m["era"]) not in self.eras:
                         self.eras.append(m["era"])
                         
-        # Check for overlap
-        data_list = {}
-        mc_list = {}
-        
 
     def load_subsamples(self):
         # subsamples configuration
@@ -457,11 +454,14 @@ class Configurator:
                                 self.columns[sample][cat].append(w)
 
     def filter_dataset(self, nfiles):
-        filtered_dataset = {}
-        for sample, ds in self.fileset.items():
+        filtered_filesets = {}
+        filtered_datasets = []
+        for dataset_name, ds in self.filesets.items():
             ds["files"] = ds["files"][0:nfiles]
-            filtered_dataset[sample] = ds
-        self.fileset = filtered_dataset
+            filtered_filesets[dataset_name] = ds
+            filtered_datasets.append(dataset_name)
+        self.filesets = filtered_filesets
+        self.datasets = filtered_datasets
 
     def load_workflow(self):
         self.processor_instance = self.workflow(cfg=self)
@@ -471,7 +471,7 @@ class Configurator:
         ocfg["datasets"] = {
             "names": self.datasets,
             "samples": self.samples,
-            "fileset": self.fileset,
+            "filesets": self.filesets,
         }
 
         subsamples_cuts = self.subsamples
@@ -547,15 +547,15 @@ class Configurator:
         s = [
             'Configurator instance:',
             f"  - Workflow: {self.workflow}",
-            f"  - N. samples: {len(self.samples)} "]
+            f"  - N. datasets: {len(self.datasets)} "]
 
-        for dataset, meta in self.fileset.items():
+        for dataset, meta in self.filesets.items():
             metadata = meta["metadata"]
             s.append(f"   -- Dataset: {dataset},  Sample: {metadata['sample']}, N. files: {len(meta['files'])}, N. events: {metadata['nevents']}")
 
         s.append( f"  - Subsamples:")
         for subsample, cuts in self.subsamples.items():
-            s.append(f"   -- Subsample {subsample}: {cuts}")
+            s.append(f"   -- Sample {subsample}: {cuts}")
 
         s += [
            
