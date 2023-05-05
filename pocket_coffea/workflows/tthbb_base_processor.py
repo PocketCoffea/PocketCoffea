@@ -14,20 +14,6 @@ from ..lib.objects import (
 
 
 class ttHbbBaseProcessor(BaseProcessorABC):
-    def __init__(self, cfg: Configurator):
-        super().__init__(cfg)
-        # Additional axis for the year
-        self.custom_axes.append(
-            Axis(
-                coll="metadata",
-                field="year",
-                name="year",
-                bins=set(sorted(self.cfg.years)),
-                type="strcat",
-                growth=False,
-                label="Year",
-            )
-        )
 
     def apply_object_preselection(self, variation):
         '''

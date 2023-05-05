@@ -56,7 +56,7 @@ class Configurator:
         # Load dataset
         self.datasets_cfg = datasets
         # The following attributes are loaded by load_datasets
-        self.fileset = {}
+        self.filesets = {}
         self.datasets = []
         self.samples = []
 
@@ -157,25 +157,27 @@ class Configurator:
                         if ds["metadata"]["year"] not in ds_filter["year"]:
                             pass_filter = False
                     if pass_filter:
-                        self.fileset[key] = ds
+                        self.filesets[key] = ds
             else:
-                self.fileset.update(ds_dict)
+                self.filesets.update(ds_dict)
 
-        # Now loading and storing the metadata of the filtered fileset
-        if len(self.fileset) == 0:
+        # Now loading and storing the metadata of the filtered filesets
+        if len(self.filesets) == 0:
             print("File set is empty: please check you dataset definition...")
-            raise Exception("Wrong fileset configuration")
+            raise Exception("Wrong filesets configuration")
         else:
-            for name, d in self.fileset.items():
+            for name, d in self.filesets.items():
                 m = d["metadata"]
                 if name not in self.datasets:
                     self.datasets.append(name)
-                if (m["sample"]) not in self.samples:
+                if m["sample"] not in self.samples:
                     self.samples.append(m["sample"])
+                if m["year"] not in self.years:
                     self.years.append(m["year"])
                 if 'era' in m.keys():
                     if (m["era"]) not in self.eras:
                         self.eras.append(m["era"])
+                        
 
     def load_subsamples(self):
         # subsamples configuration
@@ -183,7 +185,8 @@ class Configurator:
         # Save list of subsamples for each sample
         for sample in self.samples:
             if sample in subsamples_dict.keys():
-                self.subsamples_list += list(subsamples_dict[sample].keys())
+                # build the subsample name as sample_subsample
+                self.subsamples_list += [ f"{sample}__{subsam}" for subsam in subsamples_dict[sample].keys()]
                 self.has_subsamples[sample] = True
             else:
                 self.has_subsamples[sample] = False
@@ -204,6 +207,8 @@ class Configurator:
                     self.subsamples[sample] = subscfg
             else:
                 # if there is no configured subsample, the full sample becomes its subsample
+                # this is useful in the processor to have always a subsample
+                # the name is == the name of the sample
                 self.subsamples[sample] = StandardSelection({sample: [passthrough]})
 
     def load_cuts_and_categories(self, skim: list, preselections: list, categories):
@@ -385,7 +390,7 @@ class Configurator:
         for sample in self.samples:
             if self.has_subsamples[sample]:
                 for sub in self.subsamples[sample]:
-                    self.columns[sub] = {c: [] for c in self.categories.keys()}
+                    self.columns[f"{sample}__{sub}"] = {c: [] for c in self.categories.keys()}
             else:
                 self.columns[sample] = {c: [] for c in self.categories.keys()}
         # common/inclusive variations
@@ -415,19 +420,24 @@ class Configurator:
                     raise Exception("Wrong columns configuration")
                 if "inclusive" in s_wcfg:
                     for w in s_wcfg["inclusive"]:
-                        # append only to the specific subsample
-                        if sample in self.subsamples_list:
-                            for wcat in self.columns[sample].values():
-                                if w not in wcat:
-                                    wcat.append(w)
-                        elif self.has_subsamples[sample]:
-                            # If it was added to the general one: include only in subsamples
-                            for subs in self.subsamples[sample]:
-                                for wcat in self.columns[subs].values():
+                        # If the the sample 
+                        if sample not in self.subsamples_list:
+                            # the sample name is not a subsample, we need to check if it has subsamples
+                            if not self.has_subsamples[sample]:
+                            # add column only to the pure sample
+                                for wcat in self.columns[sample].values():
                                     if w not in wcat:
                                         wcat.append(w)
+                                       
+                            else: # the sample has subsamples
+                                # If it was added to the general one: include in all subsamples
+                                for subs in self.subsamples[sample]:
+                                    # Columns manager uses the subsample_list with the full name
+                                    for wcat in self.columns[f"{sample}__{subs}"].values():
+                                        if w not in wcat:
+                                            wcat.append(w)
                         else:
-                            # Add only to the general sample
+                            # Add only to the specific subsample
                             for wcat in self.columns[sample].values():
                                 if w not in wcat:
                                     wcat.append(w)
@@ -444,11 +454,14 @@ class Configurator:
                                 self.columns[sample][cat].append(w)
 
     def filter_dataset(self, nfiles):
-        filtered_dataset = {}
-        for sample, ds in self.fileset.items():
+        filtered_filesets = {}
+        filtered_datasets = []
+        for dataset_name, ds in self.filesets.items():
             ds["files"] = ds["files"][0:nfiles]
-            filtered_dataset[sample] = ds
-        self.fileset = filtered_dataset
+            filtered_filesets[dataset_name] = ds
+            filtered_datasets.append(dataset_name)
+        self.filesets = filtered_filesets
+        self.datasets = filtered_datasets
 
     def load_workflow(self):
         self.processor_instance = self.workflow(cfg=self)
@@ -458,7 +471,7 @@ class Configurator:
         ocfg["datasets"] = {
             "names": self.datasets,
             "samples": self.samples,
-            "fileset": self.fileset,
+            "filesets": self.filesets,
         }
 
         subsamples_cuts = self.subsamples
@@ -534,14 +547,15 @@ class Configurator:
         s = [
             'Configurator instance:',
             f"  - Workflow: {self.workflow}",
-            f"  - N. samples: {len(self.samples)} "]
+            f"  - N. datasets: {len(self.datasets)} "]
 
-        for sample, meta in self.fileset.items():
-            s.append(f"   -- Sample: {sample}: {len(meta['files'])} files")
+        for dataset, meta in self.filesets.items():
+            metadata = meta["metadata"]
+            s.append(f"   -- Dataset: {dataset},  Sample: {metadata['sample']}, N. files: {len(meta['files'])}, N. events: {metadata['nevents']}")
 
         s.append( f"  - Subsamples:")
         for subsample, cuts in self.subsamples.items():
-            s.append(f"   -- Subsample {subsample}: {cuts}")
+            s.append(f"   -- Sample {subsample}: {cuts}")
 
         s += [
            
@@ -549,7 +563,7 @@ class Configurator:
             f"  - Preselection: {[c.name for c in self.preselections]}",
             f"  - Categories: {self.categories}",
             f"  - Variables:  {list(self.variables.keys())}",
-            f"  - Columns: {self.columns}",
+            # f"  - Columns: {self.columns}",
             f"  - available weights variations: {self.available_weights_variations} ",
             f"  - available shape variations: {self.available_shape_variations}",            
         ]

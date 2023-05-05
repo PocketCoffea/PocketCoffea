@@ -4,6 +4,7 @@ import uproot
 from collections import defaultdict
 from abc import ABC, abstractmethod
 import cachetools
+from copy import deepcopy
 
 import copy
 import os
@@ -70,16 +71,16 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self.output_format = {
             "sum_genweights": {},
             "sumw": {
-                cat: {s: 0.0 for s in self.cfg.samples} for cat in self._categories
+                cat: {} for cat in self._categories
             },
             "cutflow": {
-                "initial": {s: 0 for s in self.cfg.samples},
-                "skim": {s: 0 for s in self.cfg.samples},
-                "presel": {s: 0 for s in self.cfg.samples},
-                **{cat: {s: 0.0 for s in self.cfg.samples} for cat in self._categories},
+                "initial": {},
+                "skim": {},
+                "presel": {},
+                **{cat: {} for cat in self._categories},
             },
             "variables": {
-                v: {}
+                v: defaultdict(dict)
                 for v, vcfg in self.cfg.variables.items()
                 if not vcfg.metadata_hist
             },
@@ -87,6 +88,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             "processing_metadata": {
                 v: {} for v, vcfg in self.cfg.variables.items() if vcfg.metadata_hist
             },
+            "datasets_metadata":{ } #year:sample:subsample
         }
 
 
@@ -101,25 +103,32 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
         The function is called at the beginning of the processing for each chunk
         to load some metadata depending on the chunk sample, year and dataset.
+
+        - `_dataset`: name assigned by the user to the fileset configuration: it identifies
+                      in a unique way the output and the source of the events.
+        - `_sample`: category of the events, used in the processing to parametrize things
+        - `_samplePart`: subcategory of the events, used in the processing to parametrize things
         '''
-        self._dataset = self.events.metadata["dataset"]
-        self._sample = self.events.metadata["sample"]
+        self._dataset = self.events.metadata["dataset"] # this is the name given to the fileset
+        self._sample = self.events.metadata["sample"] # this is the name of the sample
+        self._samplePart = self.events.metadata.get("part", None) # this is the (optional) name of the part of the sample
+
         self._year = self.events.metadata["year"]
-        self._isMC = self.events.metadata["isMC"] == "True"
+        self._isMC = self.events.metadata["isMC"] == "True" # for some reason this get to a string WIP
         if self._isMC:
             self._era = "MC"
             self._xsec = self.events.metadata["xsec"]
-            if "sum_genweights" in self.events.metadata:
-                self._sum_genweights = self.events.metadata["sum_genweights"]
-            else:
-                raise Exception(
-                    f"The metadata dict of {self._dataset} has no key named `sum_genweights`."
-                )
         else:
             self._era = self.events.metadata["era"]
-            self._goldenJSON = goldenJSON[self._year]
         # Loading metadata for subsamples
         self._hasSubsamples = self.cfg.has_subsamples[self._sample]
+        # Saving dataset metadata
+        self.output["datasets_metadata"] = {
+            self._year : {
+                    f"{self._sample}__{subsam}" : set([self._dataset])
+                    for subsam in self._subsamples[self._sample].keys()
+                }
+            }
 
     def load_metadata_extra(self):
         '''
@@ -160,7 +169,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # In case of data: check if event is in golden lumi file
         if not self._isMC:
             # mask_lumi = lumimask(self.events.run, self.events.luminosityBlock)
-            mask_lumi = LumiMask(self.params.lumi.goldenJSON)(
+            mask_lumi = LumiMask(self.params.lumi.goldenJSON[self._year])(
                 self.events.run, self.events.luminosityBlock
             )
             self._skim_masks.add("lumi_golden", mask_lumi)
@@ -179,7 +188,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Finally we skim the events and count them
         self.events = self.events[self._skim_masks.all(*self._skim_masks.names)]
         self.nEvents_after_skim = self.nevents
-        self.output['cutflow']['skim'][self._sample] += self.nEvents_after_skim
+        self.output['cutflow']['skim'][self._dataset] = self.nEvents_after_skim
         self.has_events = self.nEvents_after_skim > 0
 
     def export_skimmed_chunk(self):
@@ -225,7 +234,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
         Function that counts the preselected objects and save the counts as attributes of `events`.
         The function **must** be defined by the user processor.
-        '''
+        ''' 
         pass
 
     def apply_preselections(self, variation):
@@ -252,7 +261,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         ]
         self.nEvents_after_presel = self.nevents
         if variation == "nominal":
-            self.output['cutflow']['presel'][self._sample] += self.nEvents_after_presel
+            self.output['cutflow']['presel'][self._dataset] = self.nEvents_after_presel
         self.has_events = self.nEvents_after_presel > 0
 
     def define_categories(self, variation):
@@ -329,8 +338,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 metadata={
                     "year": self._year,
                     "sample": self._sample,
+                    "part": self._samplePart,
                     "xsec": self._xsec,
-                    "sum_genweights": self._sum_genweights,
                 },
             )
 
@@ -355,19 +364,20 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             else:
                 mask_on_events = mask
 
-            self.output["cutflow"][category][self._sample] = ak.sum(mask_on_events)
+            self.output["cutflow"][category][self._dataset] = {self._sample: ak.sum(mask_on_events)}
             if self._isMC:
                 w = self.weights_manager.get_weight(category)
-                self.output["sumw"][category][self._sample] = ak.sum(w * mask_on_events)
+                self.output["sumw"][category][self._dataset] = {self._sample: ak.sum(w * mask_on_events)}
 
             # If subsamples are defined we also save their metadata
             if self._hasSubsamples:
                 for subs, subsam_mask in self._subsamples[self._sample].get_masks():
                     mask_withsub = mask_on_events & subsam_mask
-                    self.output["cutflow"][category][subs] = ak.sum(mask_withsub)
+                    self.output["cutflow"][category][self._dataset][f"{self._sample}__{subs}"] = ak.sum(mask_withsub)
                     if self._isMC:
-                        self.output["sumw"][category][subs] = ak.sum(w * mask_withsub)
+                        self.output["sumw"][category][self._dataset][f"{self._sample}__{subs}"] = ak.sum(w * mask_withsub)
 
+                        
     def define_custom_axes_extra(self):
         '''
         Function which get called before the definition of the Histogram
@@ -426,11 +436,11 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             shape_variation=variation,
             custom_fields=self.custom_histogram_fields,
         )
-        # Saving the output
+        # Saving the output for each sample/subsample
         for subs in self._subsamples[self._sample].keys():
-            # Saving the output for each subsample
             for var, H in self.hists_managers.get_histograms(subs).items():
-                self.output["variables"][var][subs] = H
+                self.output["variables"][var][self._dataset][f"{self._sample}__{subs}"] = H
+                
 
     def fill_histograms_extra(self, variation):
         '''
@@ -447,7 +457,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self.column_managers = {}
         for subs in self._subsamples[self._sample].keys():
             self.column_managers[subs] = ColumnsManager(
-                self.cfg.columns[subs], subs, self._categories
+                self.cfg.columns[f"{self._sample}__{subs}"], self._categories
             )
 
     def define_column_accumulators_extra(self):
@@ -459,18 +469,21 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
     def fill_column_accumulators(self, variation):
         if variation != "nominal":
             return
+
+        self.output["columns"][self._dataset] = {}
+        outcols = self.output["columns"][self._dataset]
         # TODO Fill column accumulator for different variations
         if self._hasSubsamples:
             # call the filling for each
             for subs in self._subsamples[self._sample].keys():
                 # Calling hist manager with a subsample mask
-                self.output["columns"][subs] = self.column_managers[subs].fill_columns(
+               outcols[f"{self._sample}__{subs}"] = self.column_managers[subs].fill_columns(
                     self.events,
                     self._categories,
                     subsample_mask=self._subsamples[self._sample].get_mask(subs),
                 )
         else:
-            self.output["columns"][self._sample] = self.column_managers[
+            outcols[self._sample] = self.column_managers[
                 self._sample
             ].fill_columns(
                 self.events,
@@ -481,6 +494,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         pass
 
     def process_extra_before_skim(self):
+        pass
+
+    def process_extra_after_skim(self):
         pass
 
     def process_extra_before_presel(self, variation):
@@ -614,6 +630,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
 
         self.events = events
+        # Define the accumulator instance for this chunk
+        self.output = copy.deepcopy(self.output_format)
 
         ###################
         # At the beginning of the processing the initial number of events
@@ -621,19 +639,12 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         #################
         self.load_metadata()
         self.load_metadata_extra()
-        # Define the accumulator instance for this chunk
-        self.output = copy.deepcopy(self.output_format)
 
         self.nEvents_initial = self.nevents
-        self.output['cutflow']['initial'][self._sample] += self.nEvents_initial
+        self.output['cutflow']['initial'][self._dataset] = self.nEvents_initial
         if self._isMC:
             # This is computed before any preselection
-            self.output['sum_genweights'][self._sample] = ak.sum(self.events.genWeight)
-            if self._hasSubsamples:
-                for subs in self._subsamples[self._sample].keys():
-                    self.output['sum_genweights'][subs] = self.output['sum_genweights'][
-                        self._sample
-                    ]
+            self.output['sum_genweights'][self._dataset] = ak.sum(self.events.genWeight)
 
         self.weights_config = self.weights_config_allsamples[self._sample]
         ########################
@@ -659,6 +670,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Doing so we avoid to compute them on the full NanoAOD dataset
         #########################
 
+        self.process_extra_after_skim()
         # Create the HistManager and ColumnManager before systematic variations
         self.define_custom_axes_extra()
         self.define_histograms()
@@ -710,12 +722,34 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
         return self.output
 
+
+    def rescale_sumgenweights(self, sumgenw_dict, output):
+        # rescale each variable
+        for var, vardata in output["variables"].items():
+            for dataset, dataset_data in vardata.items():
+                if dataset in sumgenw_dict:
+                    scaling = 1/sumgenw_dict[dataset]
+                    # it  means that's a MC sample
+                    for histo in dataset_data.values():
+                        histo *= scaling
+
+        # rescale sumw
+        for cat, catdata in output["sumw"].items():
+            for dataset, dataset_data in catdata.items():
+                if dataset in sumgenw_dict:
+                    scaling = 1/sumgenw_dict[dataset]
+                    for sample in dataset_data.keys():
+                        dataset_data[sample] *= scaling                        
+
     def postprocess(self, accumulator):
         '''
         The function is called by coffea at the end of the processing.
+        The default function calls the `rescale_sumgenweights` function to rescale the histograms
+        and `sumw` metadata using the sum of the genweights computed without preselections
+        for each dataset.
 
         To add additional customatizaion redefine the `postprocessing` function,
         but remember to include a super().postprocess() call.
         '''
-
+        self.rescale_sumgenweights(accumulator["sum_genweights"], accumulator)
         return accumulator

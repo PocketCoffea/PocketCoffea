@@ -131,7 +131,6 @@ class WeightsManager:
         self._sample = metadata["sample"]
         self._year = metadata["year"]
         self._xsec = metadata["xsec"]
-        self._sum_genweights = float(metadata["sum_genweights"])
         self._shape_variation = shape_variation
         self.weightsConf = weightsConf
         self.storeIndividual = storeIndividual
@@ -222,7 +221,7 @@ class WeightsManager:
         in the constructor.
         '''
         if weight_name == "genWeight":
-            return [('genWeight', events.genWeight / self._sum_genweights)]
+            return [('genWeight', events.genWeight)]
         elif weight_name == 'lumi':
             return [
                 (
