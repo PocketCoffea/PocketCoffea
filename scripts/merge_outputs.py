@@ -1,5 +1,7 @@
+#!/usr/bin/env python
+
 from coffea.util import load, save
-from pocket_coffea.utils.accumulate import get_joint_accumulator
+from coffea.processor import accumulate 
 import argparse
 
 parser = argparse.ArgumentParser(description='Merge datasets from different coffea outputs')
@@ -8,11 +10,9 @@ parser.add_argument('-i','--inputfiles', required=True, type=str, nargs="+",
                     help='List of coffea input files')
 parser.add_argument("-o", "--outputfile", required=True, type=str,
                     help="Output file")
-parser.add_argument("-d", "--dataset", required=True, type=str,
-                    help="Joint dataset name")
 args = parser.parse_args()
 
-files = list(set([f for f in args.inputfiles]))
+files = [load(f) for f in args.inputfiles]
 
-out = get_joint_accumulator(files, args.dataset)
+out = accumulate(files)
 save(out, args.outputfile)
