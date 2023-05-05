@@ -563,7 +563,7 @@ class Configurator:
             f"  - Preselection: {[c.name for c in self.preselections]}",
             f"  - Categories: {self.categories}",
             f"  - Variables:  {list(self.variables.keys())}",
-            f"  - Columns: {self.columns}",
+            # f"  - Columns: {self.columns}",
             f"  - available weights variations: {self.available_weights_variations} ",
             f"  - available shape variations: {self.available_shape_variations}",            
         ]

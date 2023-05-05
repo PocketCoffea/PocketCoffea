@@ -4,6 +4,7 @@ import uproot
 from collections import defaultdict
 from abc import ABC, abstractmethod
 import cachetools
+from copy import deepcopy
 
 import copy
 import os
@@ -124,7 +125,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Saving dataset metadata
         self.output["datasets_metadata"] = {
             self._year : {
-                    f"{self._sample}__{subsam}" : [self._dataset]
+                    f"{self._sample}__{subsam}" : set([self._dataset])
                     for subsam in self._subsamples[self._sample].keys()
                 }
             }
@@ -721,12 +722,34 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
         return self.output
 
+
+    def rescale_sumgenweights(self, sumgenw_dict, output):
+        # rescale each variable
+        for var, vardata in output["variables"].items():
+            for dataset, dataset_data in vardata.items():
+                if dataset in sumgenw_dict:
+                    scaling = 1/sumgenw_dict[dataset]
+                    # it  means that's a MC sample
+                    for histo in dataset_data.values():
+                        histo *= scaling
+
+        # rescale sumw
+        for cat, catdata in output["sumw"].items():
+            for dataset, dataset_data in catdata.items():
+                if dataset in sumgenw_dict:
+                    scaling = 1/sumgenw_dict[dataset]
+                    for sample in dataset_data.keys():
+                        dataset_data[sample] *= scaling                        
+
     def postprocess(self, accumulator):
         '''
         The function is called by coffea at the end of the processing.
+        The default function calls the `rescale_sumgenweights` function to rescale the histograms
+        and `sumw` metadata using the sum of the genweights computed without preselections
+        for each dataset.
 
         To add additional customatizaion redefine the `postprocessing` function,
         but remember to include a super().postprocess() call.
         '''
-
+        self.rescale_sumgenweights(accumulator["sum_genweights"], accumulator)
         return accumulator

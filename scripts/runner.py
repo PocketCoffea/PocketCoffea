@@ -54,6 +54,7 @@ if __name__ == '__main__':
         print("Failed to setup logging, aborting.")
         exit(1) 
 
+    print("Loading the configuration file...")
     if args.cfg[-3:] == ".py":
         # Load the script
         config_module =  utils.path_import(args.cfg)
