@@ -49,15 +49,18 @@ class PlotManager:
 
     def __init__(
         self,
-        hist_cfg,
+        variables,
+        hist_objs,
+        datasets_metadata,
         plot_dir,
-        only_cat=[''],
+        only_cat=None,
         style_cfg=style_cfg,
         data_key="DATA",
         log=False,
         density=False,
         save=True,
     ) -> None:
+
         self.shape_objects = {}
         self.plot_dir = plot_dir
         self.only_cat = only_cat
@@ -65,17 +68,38 @@ class PlotManager:
         self.log = log
         self.density = density
         self.save = save
-        for name, h_dict in hist_cfg.items():
-            self.shape_objects[name] = Shape(
-                h_dict,
-                name,
-                plot_dir,
-                only_cat=self.only_cat,
-                style_cfg=style_cfg,
-                data_key=self.data_key,
-                log=self.log,
-                density=self.density,
-            )
+
+
+        # Reading the datasets_metadata to
+        # build the correct shapes for each datataking year
+        # taking histo objects from hist_objs
+        self.hists_to_plot = {}
+        for variable in variables:
+            vs = {}
+            for year, samples in datasets_metadata.items():
+                hs = {}
+                for sample, datasets in samples.items():
+                    hs[sample] = {}
+                    for dataset in datasets:
+                        try:
+                            hs[sample][dataset] = hist_objs[variable][dataset][sample]
+                        except:
+                            print(f"Warning: missing dataset {dataset} for variable {variable}, year {year}")
+                vs[year] = hs
+            self.hists_to_plot[variable] = vs
+        
+        for variable, hstoplot in self.hists_to_plot.items():
+            for year, h_dict in hstoplot.items():
+                self.shape_objects[name] = Shape(
+                    h_dict,
+                    variable,
+                    plot_dir,
+                    only_cat=self.only_cat,
+                    style_cfg=style_cfg,
+                    data_key=self.data_key,
+                    log=self.log,
+                    density=self.density,
+                )
 
     def plot_datamc_all(self, syst=True, spliteras=False):
         '''Plots all the histograms contained in the dictionary, for all years and categories.'''
@@ -90,7 +114,7 @@ class PlotManager:
 class Shape:
     '''This class handles the plotting of 1D data/MC histograms.
     The constructor requires as arguments:
-    - h_dict: dictionary of histograms, with each entry corresponding to a different MC sample.
+    - h_dict: dictionary of histograms, with the following structure {}
     - name: name that identifies the Shape object.
     - style_cfg: dictionary with style and plotting options.
     - data_key: prefix for data samples (e.g. default in PocketCoffea: "DATA_SingleEle")'''
@@ -225,6 +249,9 @@ class Shape:
 
     def group_samples(self):
         '''Groups samples according to the dictionary self.style.samples_map'''
+        # First of all check if collapse_datasets options is true,
+        # in that case all the datasets (parts) for each sample are summed
+        
         if not self.style.has_samples_map:
             return
         h_dict_grouped = {}
@@ -240,6 +267,7 @@ class Shape:
             if s not in samples_in_map:
                 h_dict_grouped[s] = h
         self.h_dict = deepcopy(h_dict_grouped)
+        
 
     def load_attributes(self):
         '''Loads the attributes from the dictionary of histograms.'''
