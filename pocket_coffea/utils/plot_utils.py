@@ -80,13 +80,13 @@ class PlotManager:
         self.hists_to_plot = {}
         for variable in variables:
             vs = {}
-            for year, samples in datasets_metadata.items():
+            for year, samples in datasets_metadata["by_datataking_period"].items():
                 hs = {}
                 for sample, datasets in samples.items():
                     hs[sample] = {}
                     for dataset in datasets:
                         try:
-                            hs[sample][dataset] = hist_objs[variable][dataset][sample]
+                            hs[sample][dataset] = hist_objs[variable][sample][dataset]
                         except:
                             print(f"Warning: missing dataset {dataset} for variable {variable}, year {year}")
                 vs[year] = hs
@@ -97,6 +97,7 @@ class PlotManager:
                 name = '_'.join([variable, year])
                 self.shape_objects[name] = Shape(
                     h_dict,
+                    datasets_metadata["by_dataset"],
                     name,
                     plot_dir,
                     only_cat=self.only_cat,
@@ -135,6 +136,7 @@ class Shape:
     def __init__(
         self,
         h_dict,
+        datasets_metadata, 
         name,
         plot_dir,
         only_cat=[''],
@@ -153,6 +155,8 @@ class Shape:
         self.data_key = data_key
         self.log = log
         self.density = density
+        self.datasets_metadata=datasets_metadata
+        self.sample_is_MC = {}
         assert (
             type(h_dict) == dict
         ), "The Shape object receives a dictionary of hist.Hist objects as argument."
@@ -166,16 +170,12 @@ class Shape:
     def dense_axes(self):
         '''Returns the list of dense axes of a histogram, defined as the axes that are not categorical axes.'''
         dense_axes_dict = {s: [] for s in self.h_dict.keys()}
-        dense_axes = []
 
-        for sample, h_dict_datasets in self.h_dict.items():
-            dense_axes_dict[sample] = {}
-            for dataset, h in h_dict_datasets.items():
-                dense_axes_dict[sample][dataset] = []
-                for ax in h.axes:
-                    if not type(ax) in [hist.axis.StrCategory, hist.axis.IntCategory]:
-                        dense_axes_dict[sample][dataset].append(ax)
-            dense_axes += list(dense_axes_dict[sample].values())
+        for s, h in self.h_dict.items():
+            for ax in h.axes:
+                if not type(ax) in [hist.axis.StrCategory, hist.axis.IntCategory]:
+                    dense_axes_dict[s].append(ax)
+        dense_axes = list(dense_axes_dict.values())
         assert all(
             v == dense_axes[0] for v in dense_axes
         ), "Not all the histograms in the dictionary have the same dense dimension."
@@ -187,20 +187,16 @@ class Shape:
         '''Returns the list of categorical axes of a histogram.'''
         # Since MC and data have different categorical axes, the argument mc needs to specified
         if mc:
-            hist_dict = {s: v for s, v in self.h_dict.items() if s in self.samples_mc}
+            d = {s: v for s, v in self.h_dict.items() if s in self.samples_mc}
         else:
-            hist_dict = {s: v for s, v in self.h_dict.items() if s in self.samples_data}
-        categorical_axes_dict = {s: {} for s in hist_dict.keys()}
-        categorical_axes = []
+            d = {s: v for s, v in self.h_dict.items() if s in self.samples_data}
+        categorical_axes_dict = {s: [] for s in d.keys()}
 
-        for s, h_dict_datasets in hist_dict.items():
-            categorical_axes_dict[s] = {}
-            for d, h in h_dict_datasets.items():
-                categorical_axes_dict[s][d] = []
-                for ax in h.axes:
-                    if type(ax) in [hist.axis.StrCategory, hist.axis.IntCategory]:
-                        categorical_axes_dict[s][d].append(ax)
-            categorical_axes += list(categorical_axes_dict[s].values())
+        for s, h in d.items():
+            for ax in h.axes:
+                if type(ax) in [hist.axis.StrCategory, hist.axis.IntCategory]:
+                    categorical_axes_dict[s].append(ax)
+        categorical_axes = list(categorical_axes_dict.values())
         assert all(
             v == categorical_axes[0] for v in categorical_axes
         ), "Not all the histograms in the dictionary have the same categorical dimension."
@@ -241,7 +237,7 @@ class Shape:
         if len(stack) == 1:
             return stack[0]
         else:
-            htot = stack[0]
+            htot =hist.Hist(stack[0])
             for h in stack[1:]:
                 htot = htot + h
             return htot
@@ -262,16 +258,36 @@ class Shape:
 
     @property
     def samples_data(self):
-        return list(filter(lambda d: self.data_key in d, self.samples))
+        return list(filter(lambda d: not self.sample_is_MC[d], self.samples))
 
     @property
     def samples_mc(self):
-        return list(filter(lambda d: self.data_key not in d, self.samples))
+        return list(filter(lambda d: self.sample_is_MC[d], self.samples))
 
     def group_samples(self):
         '''Groups samples according to the dictionary self.style.samples_map'''
-        # First of all check if collapse_datasets options is true,
-        # in that case all the datasets (parts) for each sample are summed
+        # # First of all check if collapse_datasets options is true,
+        # # in that case all the datasets (parts) for each sample are summed
+        if self.style.collapse_datasets:
+            # Sum over the different datasets for each sample
+            for sample, datasets in self.h_dict.items():
+                self.h_dict[sample] = self._stack_sum(
+                    stack=hist.Stack.from_dict(
+                        {s: h for s, h in datasets.items() if s in datasets}
+                    )
+                )
+                isMC = None
+                for dataset in datasets:
+                    isMC_d = self.datasets_metadata[dataset]["isMC"] == "True"
+                    if isMC is None:
+                        isMC = isMC_d
+                        self.sample_is_MC[sample] = isMC
+                        print(self.sample_is_MC)
+                    elif isMC != isMC_d:
+                        raise Exception(f"You are collapsing together data and MC histogram!")
+                    
+        else:
+            raise NotImplementedError("Plotting histograms without collapsing is still not implemented")
         
         if not self.style.has_samples_map:
             return
@@ -291,10 +307,19 @@ class Shape:
         
 
     def load_attributes(self):
+        print(self.sample_is_MC)
+        for h,v in self.h_dict.items():
+            print(h)
+            print(v)
+            print(v.ndim)
         '''Loads the attributes from the dictionary of histograms.'''
         assert len(
-            set([self.h_dict[s][d].ndim for s in self.samples_mc for d in self.h_dict[s].keys()])
+            set([self.h_dict[s].ndim for s in self.samples_mc])
         ), "Not all the MC histograms have the same dimension."
+        assert len(
+            set([self.h_dict[s].ndim for s in self.samples_data])
+        ), "Not all the data histograms have the same dimension."
+        
         for ax in self.categorical_axes_mc:
             setattr(
                 self,
