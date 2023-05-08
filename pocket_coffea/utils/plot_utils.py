@@ -1,6 +1,7 @@
 import os
 from copy import deepcopy
 from multiprocessing import Pool
+from functools import partial
 
 import math
 import numpy as np
@@ -15,26 +16,6 @@ import mplhep as hep
 from ..parameters.lumi import lumi, femtobarn
 from ..parameters.plotting import style_cfg
 
-def slice_accumulator(accumulator, entrystart, entrystop):
-    '''Returns an accumulator containing only a reduced set of histograms, i.e. those between the positions `entrystart` and `entrystop`.'''
-    _accumulator = dict([(key, value) for key, value in accumulator.items()])
-    _accumulator['variables'] = dict(
-        [(key, value) for key, value in accumulator['variables'].items()][
-            entrystart:entrystop
-        ]
-    )
-    return _accumulator
-
-def parallelize(fun):
-
-    def inner(self, syst=True, spliteras=False):
-        delimiters = np.linspace(0, self.nhists, self.workers + 1).astype(int)
-        chunks = [(delimiters[i], delimiters[i+1]) for i in range(len(delimiters[:-1]))]
-        pool = Pool()
-        # Parallel calls of make_plots on different subsets of histograms
-        pool.starmap(fun, chunks)
-        pool.close()
-    return inner
 
 class Style:
     '''This class manages all the style options for Data/MC plots.'''
@@ -132,14 +113,14 @@ class PlotManager:
             ratio = False
         else:
             ratio = True
-        shape.plot_datamc(ratio, syst, spliteras, save=self.save)
+        shape.plot_datamc_all(ratio, syst, spliteras, save=self.save)
 
     def plot_datamc_all(self, syst=True, spliteras=False):
         '''Plots all the histograms contained in the dictionary, for all years and categories.'''
         shape_names = list(self.shape_objects.keys())
         with Pool(processes=self.workers) as pool:
             # Parallel calls of plot_datamc() on different shape objects
-            pool.map(self.plot_datamc, shape_names)
+            pool.map(partial(self.plot_datamc, syst=syst, spliteras=spliteras), shape_names)
             pool.close()
 
 
