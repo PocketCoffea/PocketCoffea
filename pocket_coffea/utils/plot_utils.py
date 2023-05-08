@@ -1,5 +1,6 @@
 import os
 from copy import deepcopy
+from multiprocessing import Pool
 
 import math
 import numpy as np
@@ -14,6 +15,26 @@ import mplhep as hep
 from ..parameters.lumi import lumi, femtobarn
 from ..parameters.plotting import style_cfg
 
+def slice_accumulator(accumulator, entrystart, entrystop):
+    '''Returns an accumulator containing only a reduced set of histograms, i.e. those between the positions `entrystart` and `entrystop`.'''
+    _accumulator = dict([(key, value) for key, value in accumulator.items()])
+    _accumulator['variables'] = dict(
+        [(key, value) for key, value in accumulator['variables'].items()][
+            entrystart:entrystop
+        ]
+    )
+    return _accumulator
+
+def parallelize(fun):
+
+    def inner(self, syst=True, spliteras=False):
+        delimiters = np.linspace(0, self.nhists, self.workers + 1).astype(int)
+        chunks = [(delimiters[i], delimiters[i+1]) for i in range(len(delimiters[:-1]))]
+        pool = Pool()
+        # Parallel calls of make_plots on different subsets of histograms
+        pool.starmap(fun, chunks)
+        pool.close()
+    return inner
 
 class Style:
     '''This class manages all the style options for Data/MC plots.'''
@@ -54,6 +75,7 @@ class PlotManager:
         only_cat=[''],
         style_cfg=style_cfg,
         data_key="DATA",
+        workers=8,
         log=False,
         density=False,
         save=True,
@@ -62,10 +84,12 @@ class PlotManager:
         self.plot_dir = plot_dir
         self.only_cat = only_cat
         self.data_key = data_key
+        self.workers = workers
         self.log = log
         self.density = density
         self.save = save
         for name, h_dict in hist_cfg.items():
+            breakpoint()
             self.shape_objects[name] = Shape(
                 h_dict,
                 name,
@@ -76,15 +100,28 @@ class PlotManager:
                 log=self.log,
                 density=self.density,
             )
+        self.nhists = len(self.shape_objects)
 
-    def plot_datamc_all(self, syst=True, spliteras=False):
-        '''Plots all the histograms contained in the dictionary, for all years and categories.'''
-        for name, datamc in self.shape_objects.items():
-            if ((datamc.is_mc_only) | (datamc.is_data_only)):
+    def plot_datamc(self, shapes, syst=True, spliteras=False):
+        '''Plots one histogram, for all years and categories.'''
+        for name, shape in shapes.items():
+            if ((shape.is_mc_only) | (shape.is_data_only)):
                 ratio = False
             else:
                 ratio = True
-            datamc.plot_datamc_all(ratio, syst, spliteras, save=self.save)
+            shape.plot_datamc(ratio, syst, spliteras, save=self.save)
+
+    def plot_datamc_all(self, syst=True, spliteras=False):
+        '''Plots all the histograms contained in the dictionary, for all years and categories.'''
+        delimiters = np.linspace(0, self.nhists, self.workers + 1).astype(int)
+        chunks = [(delimiters[i], delimiters[i+1]) for i in range(len(delimiters[:-1]))]
+        args = []
+        for chunk in chunks:
+            args.append( (dict([(key, value) for key, value in self.shape_objects.items()][chunk[0]:chunk[1]]), syst, spliteras) )
+        with Pool(processes=self.workers) as pool:
+            # Parallel calls of make_plots on different subsets of histograms
+            pool.map(self.plot_datamc, args)
+            pool.close()
 
 
 class Shape:

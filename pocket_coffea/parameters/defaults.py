@@ -1,6 +1,6 @@
 from omegaconf import OmegaConf
 import os
-
+from typing import List as list
 
 def register_configuration_dir(key: str, directory: str):
     '''
