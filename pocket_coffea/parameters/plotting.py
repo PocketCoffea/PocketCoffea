@@ -71,6 +71,7 @@ style_cfg = {
             'color': 'blue',
         },
     },
+    "collapse_datasets": True,
     "samples_map": {},
     "labels": {
         "ttHTobb": "$t\\bar{t}H\\rightarrow b\\bar{b}$",

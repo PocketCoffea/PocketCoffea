@@ -54,6 +54,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
         # Subsamples configurations: special cuts to split a sample in subsamples
         self._subsamples = self.cfg.subsamples
+        self._columns = self.cfg.columns
 
         # Weights configuration
         self.weights_config_allsamples = self.cfg.weights_config
@@ -124,11 +125,25 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self._hasSubsamples = self.cfg.has_subsamples[self._sample]
         # Saving dataset metadata
         self.output["datasets_metadata"] = {
-            self._year : {
-                    f"{self._sample}__{subsam}" : set([self._dataset])
-                    for subsam in self._subsamples[self._sample].keys()
+            "by_datataking_period": {
+                self._year : {
+                    }
+            },
+            "by_dataset": {
+                self._dataset: {
+                    "sample":self._sample,
+                    "part": self._samplePart if self._samplePart else "",
+                    "year": self._year,
+                    "isMC": self._isMC
                 }
             }
+        }
+        # now adding by datataking period
+        if self._hasSubsamples:
+            for subsam in self._subsamples[self._sample].keys():
+                self.output["datasets_metadata"]["by_datataking_period"][self._year][f"{self._sample}__{subsam}"] = set([self._dataset])
+        else:
+            self.output["datasets_metadata"]["by_datataking_period"][self._year][self._sample] = set([self._dataset])
 
     def load_metadata_extra(self):
         '''
@@ -438,8 +453,14 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         )
         # Saving the output for each sample/subsample
         for subs in self._subsamples[self._sample].keys():
+            # When we loop on all the subsample we need to format correctly the output if
+            # there are no subsamples
+            if self._hasSubsamples:
+                name = f"{self._sample}__{subs}"
+            else:
+                name = self._sample
             for var, H in self.hists_managers.get_histograms(subs).items():
-                self.output["variables"][var][self._dataset][f"{self._sample}__{subs}"] = H
+                self.output["variables"][var][self._dataset][name] = H
                 
 
     def fill_histograms_extra(self, variation):
@@ -456,9 +477,10 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
         self.column_managers = {}
         for subs in self._subsamples[self._sample].keys():
-            self.column_managers[subs] = ColumnsManager(
-                self.cfg.columns[f"{self._sample}__{subs}"], self._categories
-            )
+            if f"{self._sample}__{subs}" in self._columns:
+                self.column_managers[subs] = ColumnsManager(
+                    self._columns[f"{self._sample}__{subs}"], self._categories
+                )
 
     def define_column_accumulators_extra(self):
         '''
@@ -471,6 +493,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             return
 
         self.output["columns"][self._dataset] = {}
+        if len(self.column_managers) == 0:
+            return
+        
         outcols = self.output["columns"][self._dataset]
         # TODO Fill column accumulator for different variations
         if self._hasSubsamples:

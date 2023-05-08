@@ -70,9 +70,11 @@ class PlotManager:
 
     def __init__(
         self,
-        hist_cfg,
+        variables,
+        hist_objs,
+        datasets_metadata,
         plot_dir,
-        only_cat=[''],
+        only_cat=None,
         style_cfg=style_cfg,
         data_key="DATA",
         workers=8,
@@ -80,6 +82,7 @@ class PlotManager:
         density=False,
         save=True,
     ) -> None:
+
         self.shape_objects = {}
         self.plot_dir = plot_dir
         self.only_cat = only_cat
@@ -88,46 +91,62 @@ class PlotManager:
         self.log = log
         self.density = density
         self.save = save
-        for name, h_dict in hist_cfg.items():
-            breakpoint()
-            self.shape_objects[name] = Shape(
-                h_dict,
-                name,
-                plot_dir,
-                only_cat=self.only_cat,
-                style_cfg=style_cfg,
-                data_key=self.data_key,
-                log=self.log,
-                density=self.density,
-            )
-        self.nhists = len(self.shape_objects)
+        self.nhists = len(variables)
 
-    def plot_datamc(self, shapes, syst=True, spliteras=False):
+        # Reading the datasets_metadata to
+        # build the correct shapes for each datataking year
+        # taking histo objects from hist_objs
+        self.hists_to_plot = {}
+        for variable in variables:
+            vs = {}
+            for year, samples in datasets_metadata.items():
+                hs = {}
+                for sample, datasets in samples.items():
+                    hs[sample] = {}
+                    for dataset in datasets:
+                        try:
+                            hs[sample][dataset] = hist_objs[variable][dataset][sample]
+                        except:
+                            print(f"Warning: missing dataset {dataset} for variable {variable}, year {year}")
+                vs[year] = hs
+            self.hists_to_plot[variable] = vs
+        
+        for variable, histoplot in self.hists_to_plot.items():
+            for year, h_dict in histoplot.items():
+                name = '_'.join([variable, year])
+                self.shape_objects[name] = Shape(
+                    h_dict,
+                    name,
+                    plot_dir,
+                    only_cat=self.only_cat,
+                    style_cfg=style_cfg,
+                    data_key=self.data_key,
+                    log=self.log,
+                    density=self.density,
+                )
+
+    def plot_datamc(self, name, syst=True, spliteras=False):
         '''Plots one histogram, for all years and categories.'''
-        for name, shape in shapes.items():
-            if ((shape.is_mc_only) | (shape.is_data_only)):
-                ratio = False
-            else:
-                ratio = True
-            shape.plot_datamc(ratio, syst, spliteras, save=self.save)
+        shape = self.shape_objects[name]
+        if ((shape.is_mc_only) | (shape.is_data_only)):
+            ratio = False
+        else:
+            ratio = True
+        shape.plot_datamc(ratio, syst, spliteras, save=self.save)
 
     def plot_datamc_all(self, syst=True, spliteras=False):
         '''Plots all the histograms contained in the dictionary, for all years and categories.'''
-        delimiters = np.linspace(0, self.nhists, self.workers + 1).astype(int)
-        chunks = [(delimiters[i], delimiters[i+1]) for i in range(len(delimiters[:-1]))]
-        args = []
-        for chunk in chunks:
-            args.append( (dict([(key, value) for key, value in self.shape_objects.items()][chunk[0]:chunk[1]]), syst, spliteras) )
+        shape_names = list(self.shape_objects.keys())
         with Pool(processes=self.workers) as pool:
-            # Parallel calls of make_plots on different subsets of histograms
-            pool.map(self.plot_datamc, args)
+            # Parallel calls of plot_datamc() on different shape objects
+            pool.map(self.plot_datamc, shape_names)
             pool.close()
 
 
 class Shape:
     '''This class handles the plotting of 1D data/MC histograms.
     The constructor requires as arguments:
-    - h_dict: dictionary of histograms, with each entry corresponding to a different MC sample.
+    - h_dict: dictionary of histograms, with the following structure {}
     - name: name that identifies the Shape object.
     - style_cfg: dictionary with style and plotting options.
     - data_key: prefix for data samples (e.g. default in PocketCoffea: "DATA_SingleEle")'''
@@ -166,12 +185,16 @@ class Shape:
     def dense_axes(self):
         '''Returns the list of dense axes of a histogram, defined as the axes that are not categorical axes.'''
         dense_axes_dict = {s: [] for s in self.h_dict.keys()}
+        dense_axes = []
 
-        for s, h in self.h_dict.items():
-            for ax in h.axes:
-                if not type(ax) in [hist.axis.StrCategory, hist.axis.IntCategory]:
-                    dense_axes_dict[s].append(ax)
-        dense_axes = list(dense_axes_dict.values())
+        for sample, h_dict_datasets in self.h_dict.items():
+            dense_axes_dict[sample] = {}
+            for dataset, h in h_dict_datasets.items():
+                dense_axes_dict[sample][dataset] = []
+                for ax in h.axes:
+                    if not type(ax) in [hist.axis.StrCategory, hist.axis.IntCategory]:
+                        dense_axes_dict[sample][dataset].append(ax)
+            dense_axes += list(dense_axes_dict[sample].values())
         assert all(
             v == dense_axes[0] for v in dense_axes
         ), "Not all the histograms in the dictionary have the same dense dimension."
@@ -183,16 +206,20 @@ class Shape:
         '''Returns the list of categorical axes of a histogram.'''
         # Since MC and data have different categorical axes, the argument mc needs to specified
         if mc:
-            d = {s: v for s, v in self.h_dict.items() if s in self.samples_mc}
+            hist_dict = {s: v for s, v in self.h_dict.items() if s in self.samples_mc}
         else:
-            d = {s: v for s, v in self.h_dict.items() if s in self.samples_data}
-        categorical_axes_dict = {s: [] for s in d.keys()}
+            hist_dict = {s: v for s, v in self.h_dict.items() if s in self.samples_data}
+        categorical_axes_dict = {s: {} for s in hist_dict.keys()}
+        categorical_axes = []
 
-        for s, h in d.items():
-            for ax in h.axes:
-                if type(ax) in [hist.axis.StrCategory, hist.axis.IntCategory]:
-                    categorical_axes_dict[s].append(ax)
-        categorical_axes = list(categorical_axes_dict.values())
+        for s, h_dict_datasets in hist_dict.items():
+            categorical_axes_dict[s] = {}
+            for d, h in h_dict_datasets.items():
+                categorical_axes_dict[s][d] = []
+                for ax in h.axes:
+                    if type(ax) in [hist.axis.StrCategory, hist.axis.IntCategory]:
+                        categorical_axes_dict[s][d].append(ax)
+            categorical_axes += list(categorical_axes_dict[s].values())
         assert all(
             v == categorical_axes[0] for v in categorical_axes
         ), "Not all the histograms in the dictionary have the same categorical dimension."
@@ -262,6 +289,9 @@ class Shape:
 
     def group_samples(self):
         '''Groups samples according to the dictionary self.style.samples_map'''
+        # First of all check if collapse_datasets options is true,
+        # in that case all the datasets (parts) for each sample are summed
+        
         if not self.style.has_samples_map:
             return
         h_dict_grouped = {}
@@ -277,11 +307,12 @@ class Shape:
             if s not in samples_in_map:
                 h_dict_grouped[s] = h
         self.h_dict = deepcopy(h_dict_grouped)
+        
 
     def load_attributes(self):
         '''Loads the attributes from the dictionary of histograms.'''
         assert len(
-            set([self.h_dict[s].ndim for s in self.samples_mc])
+            set([self.h_dict[s][d].ndim for s in self.samples_mc for d in self.h_dict[s].keys()])
         ), "Not all the MC histograms have the same dimension."
         for ax in self.categorical_axes_mc:
             setattr(

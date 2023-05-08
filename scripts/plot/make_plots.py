@@ -72,11 +72,14 @@ if not os.path.exists(args.outputdir):
 
 
 plotter = PlotManager(
-    hist_cfg=accumulator['variables'],
+    variables=accumulator['variables'].keys(),
+    hist_objs=accumulator['variables'],
+    datasets_metadata=accumulator['datasets_metadata'],
     plot_dir=args.outputdir,
     style_cfg=style_cfg,
     only_cat=args.only_cat,
     data_key=args.data_key,
+    workers=args.workers,
     log=args.log,
     density=args.density,
     save=True
