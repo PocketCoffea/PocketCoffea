@@ -51,6 +51,13 @@ class Configurator:
         self.workflow = workflow
         self.workflow_options = workflow_options
         self.parameters = parameters
+        # Resolving the OmegaConf
+        try:
+            OmegaConf.resolve(self.parameters)
+        except Exception as e:
+            print("Error during resolution of OmegaConf parameters magic, please check your parameters files.")
+            raise(e)
+        
         self.save_skimmed_files = save_skimmed_files
         # Save
         # Load dataset
@@ -533,6 +540,7 @@ class Configurator:
 
         # add the parameters as yaml in a separate file
         with open(os.path.join(output, "parameters_dump.yaml"), "w") as pf:
+            # Materialize the interpolations
             pf.write(OmegaConf.to_yaml(self.parameters))
 
         # Save the serialized configuration in json

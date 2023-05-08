@@ -123,28 +123,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self._era = self.events.metadata["era"]
         # Loading metadata for subsamples
         self._hasSubsamples = self.cfg.has_subsamples[self._sample]
-        # Saving dataset metadata
-        self.output["datasets_metadata"] = {
-            "by_datataking_period": {
-                self._year : {
-                    }
-            },
-            "by_dataset": {
-                self._dataset: {
-                    "sample":self._sample,
-                    "part": self._samplePart if self._samplePart else "",
-                    "year": self._year,
-                    "isMC": self._isMC
-                }
-            }
-        }
-        # now adding by datataking period
-        if self._hasSubsamples:
-            for subsam in self._subsamples[self._sample].keys():
-                self.output["datasets_metadata"]["by_datataking_period"][self._year][f"{self._sample}__{subsam}"] = set([self._dataset])
-        else:
-            self.output["datasets_metadata"]["by_datataking_period"][self._year][self._sample] = set([self._dataset])
-
+        
     def load_metadata_extra(self):
         '''
         Function that can be called by a derived processor to define additional metadata.
@@ -460,7 +439,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             else:
                 name = self._sample
             for var, H in self.hists_managers.get_histograms(subs).items():
-                self.output["variables"][var][self._dataset][name] = H
+                self.output["variables"][var][name][self._dataset] = H
                 
 
     def fill_histograms_extra(self, variation):
@@ -492,28 +471,29 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         if variation != "nominal":
             return
 
-        self.output["columns"][self._dataset] = {}
         if len(self.column_managers) == 0:
             return
         
-        outcols = self.output["columns"][self._dataset]
+        outcols = self.output["columns"]
         # TODO Fill column accumulator for different variations
         if self._hasSubsamples:
             # call the filling for each
             for subs in self._subsamples[self._sample].keys():
                 # Calling hist manager with a subsample mask
-               outcols[f"{self._sample}__{subs}"] = self.column_managers[subs].fill_columns(
-                    self.events,
-                    self._categories,
-                    subsample_mask=self._subsamples[self._sample].get_mask(subs),
-                )
+                self.output["columns"][f"{self._sample}__{subs}"]= {
+                    self._dataset : self.column_managers[subs].fill_columns(
+                                               self.events,
+                                               self._categories,
+                                               subsample_mask=self._subsamples[self._sample].get_mask(subs),
+                                               )
+                }
         else:
-            outcols[self._sample] = self.column_managers[
+            self.output["columns"][self._sample] = { self._dataset: self.column_managers[
                 self._sample
             ].fill_columns(
                 self.events,
                 self._categories,
-            )
+            ) }
 
     def fill_column_accumulators_extra(self, variation):
         pass
@@ -773,8 +753,33 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         and `sumw` metadata using the sum of the genweights computed without preselections
         for each dataset.
 
+        Moreover the function saves in the output a dictionary of metadata
+        with the full description of the datasets taken from the configuration.
+
         To add additional customatizaion redefine the `postprocessing` function,
         but remember to include a super().postprocess() call.
         '''
         self.rescale_sumgenweights(accumulator["sum_genweights"], accumulator)
+
+        # Saving dataset metadata directly in the output file reading from the config
+        dmeta = accumulator["datasets_metadata"] = {
+            "by_datataking_period": {},
+            "by_dataset": defaultdict(dict)
+        }
+        
+        for dataset, df in self.cfg.filesets.items():
+            #copying the full metadata of the used samples in the output per direct reference
+            dmeta["by_dataset"][dataset] = df["metadata"]
+            # now adding by datataking period
+            sample = df["metadata"]["sample"]
+            year = df["metadata"]["year"]
+            if year not in dmeta["by_datataking_period"]:
+                dmeta["by_datataking_period"][year] = defaultdict(set)
+
+            if self.cfg.has_subsamples[sample]:
+                for subsam in self._subsamples[sample].keys():
+                    dmeta["by_datataking_period"][year][f"{sample}__{subsam}"].add(dataset)
+            else:
+                dmeta["by_datataking_period"][year][sample].add(dataset)
+
         return accumulator
