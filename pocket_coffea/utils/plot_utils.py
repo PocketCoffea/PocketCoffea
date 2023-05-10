@@ -57,7 +57,6 @@ class PlotManager:
         plot_dir,
         only_cat=None,
         style_cfg=style_cfg,
-        data_key="DATA",
         workers=8,
         log=False,
         density=False,
@@ -67,7 +66,6 @@ class PlotManager:
         self.shape_objects = {}
         self.plot_dir = plot_dir
         self.only_cat = only_cat
-        self.data_key = data_key
         self.workers = workers
         self.log = log
         self.density = density
@@ -102,7 +100,6 @@ class PlotManager:
                     plot_dir,
                     only_cat=self.only_cat,
                     style_cfg=style_cfg,
-                    data_key=self.data_key,
                     log=self.log,
                     density=self.density,
                 )
@@ -141,7 +138,6 @@ class Shape:
         plot_dir,
         only_cat=[''],
         style_cfg=style_cfg,
-        data_key="DATA",
         log=False,
         density=False,
     ) -> None:
@@ -152,7 +148,6 @@ class Shape:
         self.style = Style(style_cfg)
         if self.style.has_lumi:
             self.lumi_fraction = {year : l / lumi[year]['tot'] for year, l in self.style.lumi_processed.items()}
-        self.data_key = data_key
         self.log = log
         self.density = density
         self.datasets_metadata=datasets_metadata
@@ -166,6 +161,38 @@ class Shape:
         ), f"The dimension of the histogram '{self.name}' is {self.dense_dim}. Only 1D histograms are supported."
         self.load_attributes()
 
+
+    
+
+    def load_attributes(self):
+        '''Loads the attributes from the dictionary of histograms.'''
+        assert len(
+            set([self.h_dict[s].ndim for s in self.samples_mc])
+        ), "Not all the MC histograms have the same dimension."
+        assert len(
+            set([self.h_dict[s].ndim for s in self.samples_data])
+        ), "Not all the data histograms have the same dimension."
+        
+        for ax in self.categorical_axes_mc:
+            setattr(
+                self,
+                {'year': 'years', 'cat': 'categories', 'variation': 'variations'}[
+                    ax.name
+                ],
+                self.get_axis_items(ax.name),
+            )
+        self.xaxis = self.dense_axes[0]
+        self.xlabel = self.xaxis.label
+        self.xcenters = self.xaxis.centers
+        self.xedges = self.xaxis.edges
+        self.xbinwidth = np.ediff1d(self.xedges)
+        self.is_mc_only = True if len(self.samples_data) == 0 else False
+        self.is_data_only = True if len(self.samples_mc) == 0 else False
+        # if self.is_data_only | (not self.is_mc_only):
+        #     self.lumi = {
+        #         year: femtobarn(lumi[year]['tot'], digits=1) for year in self.years
+        #     }
+        
     @property
     def dense_axes(self):
         '''Returns the list of dense axes of a histogram, defined as the axes that are not categorical axes.'''
@@ -282,7 +309,6 @@ class Shape:
                     if isMC is None:
                         isMC = isMC_d
                         self.sample_is_MC[sample] = isMC
-                        print(self.sample_is_MC)
                     elif isMC != isMC_d:
                         raise Exception(f"You are collapsing together data and MC histogram!")
                     
@@ -306,46 +332,12 @@ class Shape:
         self.h_dict = deepcopy(h_dict_grouped)
         
 
-    def load_attributes(self):
-        print(self.sample_is_MC)
-        for h,v in self.h_dict.items():
-            print(h)
-            print(v)
-            print(v.ndim)
-        '''Loads the attributes from the dictionary of histograms.'''
-        assert len(
-            set([self.h_dict[s].ndim for s in self.samples_mc])
-        ), "Not all the MC histograms have the same dimension."
-        assert len(
-            set([self.h_dict[s].ndim for s in self.samples_data])
-        ), "Not all the data histograms have the same dimension."
-        
-        for ax in self.categorical_axes_mc:
-            setattr(
-                self,
-                {'year': 'years', 'cat': 'categories', 'variation': 'variations'}[
-                    ax.name
-                ],
-                self.get_axis_items(ax.name),
-            )
-        self.xaxis = self.dense_axes[0]
-        self.xlabel = self.xaxis.label
-        self.xcenters = self.xaxis.centers
-        self.xedges = self.xaxis.edges
-        self.xbinwidth = np.ediff1d(self.xedges)
-        self.is_mc_only = True if len(self.samples_data) == 0 else False
-        self.is_data_only = True if len(self.samples_mc) == 0 else False
-        if self.is_data_only | (not self.is_mc_only):
-            self.lumi = {
-                year: femtobarn(lumi[year]['tot'], digits=1) for year in self.years
-            }
-
-    def build_stacks(self, year, cat, spliteras=False):
-        '''Builds the data and MC stacks, applying a slicing by year and category.
+    def build_stacks(self, cat, spliteras=False):
+        '''Builds the data and MC stacks, applying a slicing by category.
         If spliteras is True, the extra axis "era" is kept in the data stack to
         distinguish between data samples from different data-taking eras.'''
-        slicing_mc = {'year': year, 'cat': cat}
-        slicing_mc_nominal = {'year': year, 'cat': cat, 'variation': 'nominal'}
+        slicing_mc = {'cat': cat}
+        slicing_mc_nominal = {'cat': cat, 'variation': 'nominal'}
         self.h_dict_mc = {d: self.h_dict[d][slicing_mc] for d in self.samples_mc}
         self.h_dict_mc_nominal = {
             d: self.h_dict[d][slicing_mc_nominal] for d in self.samples_mc
@@ -383,16 +375,16 @@ class Shape:
             # Sum over eras if specified as extra argument
             if 'era' in self.categorical_axes_data:
                 if spliteras:
-                    slicing_data = {'year': year, 'cat': cat}
+                    slicing_data = { 'cat': cat}
                 else:
-                    slicing_data = {'year': year, 'cat': cat, 'era': sum}
+                    slicing_data = {'cat': cat, 'era': sum}
             else:
                 if spliteras:
                     raise Exception(
                         "No axis 'era' found. Impossible to split data by era."
                     )
                 else:
-                    slicing_data = {'year': year, 'cat': cat}
+                    slicing_data = {'cat': cat}
             self.h_dict_data = {
                 d: self.h_dict[d][slicing_data] for d in self.samples_data
             }
@@ -412,7 +404,7 @@ class Shape:
         '''Instantiates the `SystUnc` objects and stores them in a dictionary with one entry for each systematic uncertainty.'''
         self.syst_manager = SystManager(self)
 
-    def define_figure(self, year=None, ratio=True):
+    def define_figure(self, toplabel=None, ratio=True):
         '''Defines the figure for the Data/MC plot.
         If ratio is True, a subplot is defined to include the Data/MC ratio plot.'''
         plt.style.use([hep.style.ROOT, {'font.size': self.style.fontsize}])
@@ -431,17 +423,13 @@ class Shape:
                 loc=0,
                 ax=self.ax,
             )
-        if year:
-            if not self.is_mc_only:
-                hep.cms.lumitext(
-                    text=f'{self.lumi[year]}' + r' fb$^{-1}$, 13 TeV,' + f' {year}',
-                    fontsize=self.style.fontsize,
-                    ax=self.ax,
-                )
-            else:
-                hep.cms.lumitext(
-                    text=f'{year}', fontsize=self.style.fontsize, ax=self.ax
-                )
+        if toplabel:
+            hep.cms.lumitext(
+                text=toplabel,
+                fontsize=self.style.fontsize,
+                ax=self.ax,
+            )
+     
 
     def format_figure(self, ratio=True):
         '''Formats the figure's axes, labels, ticks, xlim and ylim.'''
