@@ -168,10 +168,10 @@ class Shape:
         '''Loads the attributes from the dictionary of histograms.'''
         assert len(
             set([self.h_dict[s].ndim for s in self.samples_mc])
-        ), "Not all the MC histograms have the same dimension."
+        ), f"{self.name}: Not all the MC histograms have the same dimension."
         assert len(
             set([self.h_dict[s].ndim for s in self.samples_data])
-        ), "Not all the data histograms have the same dimension."
+        ), f"{self.name}: Not all the data histograms have the same dimension."
         
         for ax in self.categorical_axes_mc:
             setattr(
