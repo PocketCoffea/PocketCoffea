@@ -731,11 +731,11 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
     def rescale_sumgenweights(self, sumgenw_dict, output):
         # rescale each variable
         for var, vardata in output["variables"].items():
-            for dataset, dataset_data in vardata.items():
-                if dataset in sumgenw_dict:
-                    scaling = 1/sumgenw_dict[dataset]
-                    # it  means that's a MC sample
-                    for histo in dataset_data.values():
+            for sample, dataset_in_sample in vardata.items():
+                for dataset, histo in dataset_in_sample.items():
+                    if dataset in sumgenw_dict:
+                        scaling = 1/sumgenw_dict[dataset]
+                        # it  means that's a MC sample
                         histo *= scaling
 
         # rescale sumw
@@ -766,8 +766,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             "by_datataking_period": {},
             "by_dataset": defaultdict(dict)
         }
-        
-        for dataset, df in self.cfg.filesets.items():
+
+        for dataset in accumulator["sum_genweights"].keys():
+            df = self.cfg.filesets[dataset]
             #copying the full metadata of the used samples in the output per direct reference
             dmeta["by_dataset"][dataset] = df["metadata"]
             # now adding by datataking period

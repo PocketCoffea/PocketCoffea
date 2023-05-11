@@ -104,21 +104,21 @@ class PlotManager:
                     density=self.density,
                 )
 
-    def plot_datamc(self, name, syst=True, spliteras=False):
+    def plot_datamc(self, name, syst=True, toplabel=None, spliteras=False):
         '''Plots one histogram, for all years and categories.'''
         shape = self.shape_objects[name]
         if ((shape.is_mc_only) | (shape.is_data_only)):
             ratio = False
         else:
             ratio = True
-        shape.plot_datamc_all(ratio, syst, spliteras, save=self.save)
+        shape.plot_datamc_all(ratio, syst, toplabel=toplabel, spliteras=spliteras,  save=self.save)
 
-    def plot_datamc_all(self, syst=True, spliteras=False):
+    def plot_datamc_all(self, syst=True, toplabel=None, spliteras=False):
         '''Plots all the histograms contained in the dictionary, for all years and categories.'''
         shape_names = list(self.shape_objects.keys())
         with Pool(processes=self.workers) as pool:
             # Parallel calls of plot_datamc() on different shape objects
-            pool.map(partial(self.plot_datamc, syst=syst, spliteras=spliteras), shape_names)
+            pool.map(partial(self.plot_datamc, syst=syst, toplabel=toplabel, spliteras=spliteras), shape_names)
             pool.close()
 
 
@@ -136,7 +136,7 @@ class Shape:
         datasets_metadata, 
         name,
         plot_dir,
-        only_cat=[''],
+        only_cat=None,
         style_cfg=style_cfg,
         log=False,
         density=False,
@@ -144,7 +144,7 @@ class Shape:
         self.h_dict = h_dict
         self.name = name
         self.plot_dir = plot_dir
-        self.only_cat = only_cat
+        self.only_cat = only_cat if only_cat is not None else []
         self.style = Style(style_cfg)
         if self.style.has_lumi:
             self.lumi_fraction = {year : l / lumi[year]['tot'] for year, l in self.style.lumi_processed.items()}
@@ -404,7 +404,7 @@ class Shape:
         '''Instantiates the `SystUnc` objects and stores them in a dictionary with one entry for each systematic uncertainty.'''
         self.syst_manager = SystManager(self)
 
-    def define_figure(self, toplabel=None, ratio=True):
+    def define_figure(self, ratio=True,  toplabel=None):
         '''Defines the figure for the Data/MC plot.
         If ratio is True, a subplot is defined to include the Data/MC ratio plot.'''
         plt.style.use([hep.style.ROOT, {'font.size': self.style.fontsize}])
@@ -542,7 +542,7 @@ class Shape:
                 1.0, *ak.Array(self.xedges)[[0, -1]], colors='gray', linestyles='dashed'
             )
 
-    def plot_datamc(self, year=None, ratio=True, syst=True, ax=None, rax=None):
+    def plot_datamc(self, ratio=True, syst=True, ax=None, rax=None):
         '''Plots the data histogram as an errorbar plot on top of the MC stacked histograms.
         If ratio is True, also the Data/MC ratio plot is plotted.
         If syst is True, also the total systematic uncertainty is plotted.'''
@@ -579,30 +579,29 @@ class Shape:
 
         self.format_figure(ratio)
 
-    def plot_datamc_all(self, ratio=True, syst=True, spliteras=False, save=True):
+    def plot_datamc_all(self, ratio=True, syst=True, toplabel=None, spliteras=False, save=True):
         '''Plots the data and MC histograms for each year and category contained in the histograms.
         If ratio is True, also the Data/MC ratio plot is plotted.
         If syst is True, also the total systematic uncertainty is plotted.'''
-        for year in self.years:
-            for cat in self.categories:
-                if not any([c in cat for c in self.only_cat]):
-                    continue
-                self.define_figure(year, ratio)
-                self.build_stacks(year, cat, spliteras)
-                self.get_systematic_uncertainty()
-                self.plot_datamc(year, ratio, syst)
-                if save:
-                    plot_dir = os.path.join(self.plot_dir, cat)
-                    if self.log:
-                        plot_dir = os.path.join(plot_dir, "log")
-                    if not os.path.exists(plot_dir):
-                        os.makedirs(plot_dir)
-                    filepath = os.path.join(plot_dir, f"{self.name}_{year}_{cat}.png")
-                    print("Saving", filepath)
-                    plt.savefig(filepath, dpi=150, format="png")
-                else:
-                    plt.show(self.fig)
-                plt.close(self.fig)
+        for cat in self.categories:
+            if self.only_cat and cat not in self.only_cat:
+                continue
+            self.define_figure(ratio, toplabel)
+            self.build_stacks(cat, spliteras)
+            self.get_systematic_uncertainty()
+            self.plot_datamc(ratio, syst)
+            if save:
+                plot_dir = os.path.join(self.plot_dir, cat)
+                if self.log:
+                    plot_dir = os.path.join(plot_dir, "log")
+                if not os.path.exists(plot_dir):
+                    os.makedirs(plot_dir)
+                filepath = os.path.join(plot_dir, f"{self.name}_{cat}.png")
+                print("Saving", filepath)
+                plt.savefig(filepath, dpi=150, format="png")
+            else:
+                plt.show(self.fig)
+            plt.close(self.fig)
 
 
 class SystManager:
