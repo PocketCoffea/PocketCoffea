@@ -140,12 +140,13 @@ class Configurator:
         self.columns = {}
         self.load_columns_config(columns)
 
-        # Load workflow passing the Configurator self object
-        self.load_workflow()
-
         # Check the jet_calibration and create the file if needed
         if not os.path.exists(self.parameters.jets_calibration.factory_file):
             build_jets_calibrator.build(self.parameters.jets_calibration)
+        
+        # Load workflow passing the Configurator self object
+        self.load_workflow()
+
 
     def load_datasets(self):
         for json_dataset in self.datasets_cfg["jsons"]:
