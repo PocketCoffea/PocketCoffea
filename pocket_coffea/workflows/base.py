@@ -766,7 +766,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             "by_dataset": defaultdict(dict)
         }
 
-        for dataset in accumulator["cut_flow"]["initial"].keys():
+        for dataset in accumulator["cutflow"]["initial"].keys():
             df = self.cfg.filesets[dataset]
             #copying the full metadata of the used samples in the output per direct reference
             dmeta["by_dataset"][dataset] = df["metadata"]

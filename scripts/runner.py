@@ -325,7 +325,7 @@ if __name__ == '__main__':
                 worker_image="/cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/batch-team/dask-lxplus/lxdask-cc7:latest",
                 death_timeout="3600",
                 scheduler_options={"port": n_port, "host": socket.gethostname()},
-                log_directory = f"{args.outputdir0}/{log_folder}",
+                log_directory = f"{args.outputdir}/{log_folder}",
                 # shared_temp_directory="/tmp"
                 job_extra={
                     "log": f"{args.outputdir}/{log_folder}/dask_job_output.log",
