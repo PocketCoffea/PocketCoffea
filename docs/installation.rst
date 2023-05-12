@@ -72,8 +72,8 @@ For more information and for a comprehensive tutorial on singularity have a look
 2) To activate the singularity shell in lxplus just run:
      .. code-block:: bash
                    
-         singularity shell -B /afs -B /eos -B /tmp/ -B /cvmfs/cms.cern.ch --env KRB5CCNAME=$KRB5CCNAME \
-         /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/batch-team/dask-lxplus/lxdask-cc7:latest
+         singularity shell --bind /afs -B /cvmfs/cms.cern.ch --bind /tmp/  --bind /eos/cms/ --env KRB5CCNAME=$KRB5CCNAME \
+         --bind /etc/sysconfig/ngbauth-submit   /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/batch-team/dask-lxplus/lxdask-cc7:latest
 
 3) Now inside the singularity image we create a minimal virtualenv to keep the PocketCoffea package and its dependencies (be aware that this virtualenv just works inside the singularity image). N.B. This steps is needed **only the first time** :
      .. code-block:: bash
@@ -89,6 +89,7 @@ For more information and for a comprehensive tutorial on singularity have a look
      .. code-block:: bash
                    
          pip install -e .
+         pip install --upgrade dask-lxplus #to take the latest package
          
          # For developers
          pip install -e .[dev,docs]
