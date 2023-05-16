@@ -1,6 +1,6 @@
 from omegaconf import OmegaConf
 import os
-from typing import List as list
+from typing import List
 
 def register_configuration_dir(key: str, directory: str):
     '''
@@ -62,12 +62,12 @@ def get_default_parameters():
     return all
 
 
-def get_defaults_and_compose(*files: list[str]):
+def get_defaults_and_compose(*files: List[str]):
     default_params = get_default_parameters()
     return merge_parameters_from_files(default_params, files)
 
 
-def merge_parameters(main_config: OmegaConf, *configs: list[OmegaConf], update=True):
+def merge_parameters(main_config: OmegaConf, *configs: List[OmegaConf], update=True):
     '''
     Utility function to update a config with a list of other configs.
     `update=True` means that if the key is already present
@@ -84,7 +84,7 @@ def merge_parameters(main_config: OmegaConf, *configs: list[OmegaConf], update=T
     return main
 
 
-def merge_parameters_from_files(conf: OmegaConf, *kargs: list[str], update=True):
+def merge_parameters_from_files(conf: OmegaConf, *kargs: List[str], update=True):
     '''
     Helper function to merge a list yaml files with parameters to an
     existing OmegaConf object.
@@ -100,7 +100,7 @@ def merge_parameters_from_files(conf: OmegaConf, *kargs: list[str], update=True)
     return merge_parameters(conf, *[OmegaConf.load(f) for f in kargs], update=update)
 
 
-def merge_parameters_from_string(conf: OmegaConf, *kargs: list, update=True):
+def merge_parameters_from_string(conf: OmegaConf, *kargs: List, update=True):
     '''
     Helper function to merge a list of parameters to an
     existing OmegaConf object.
@@ -120,7 +120,7 @@ def merge_parameters_from_string(conf: OmegaConf, *kargs: list, update=True):
     return merge_parameters(conf, *[OmegaConf.create(f) for f in kargs], update=update)
 
 
-def compose_parameters_from_files(*files: list[str], update=True):
+def compose_parameters_from_files(*files: List[str], update=True):
     '''
     Helper functions which loads separately the parameters
     in all the files and then merge then in order.
