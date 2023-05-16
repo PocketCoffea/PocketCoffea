@@ -56,7 +56,7 @@ def get_dilepton(electrons, muons, transverse=False):
         fields[var] = ak.where(
             ((nelectrons + nmuons) == 2) & (nelectrons == 2),
             getattr(ee, var),
-            getattr(ee, var),
+            fields[var],
         )
         fields[var] = ak.where(
             ((nelectrons + nmuons) == 2) & (nmuons == 2),
