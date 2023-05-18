@@ -10,8 +10,12 @@ echo "on cluster environment: "$1
 echo "Current time:" $(date)
 echo "======================================="
 
-pip3 install .
-
+echo "Fixing dependencies in the image"
 if [[ $1 == "lxplus" ]]; then
+
     pip install --upgrade dask-lxplus
 fi
+
+echo "Installing PocketCoffea"
+
+pip3 install .
