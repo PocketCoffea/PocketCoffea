@@ -1,4 +1,4 @@
-build_docker:
+.build_docker_template:
   only:
     - pushes
     - merge_requests
@@ -15,10 +15,27 @@ build_docker:
   script:
     # ls /cvmfs/cms.cern.ch/ won't work, but from the container it will
     # If you want to automount CVMFS on a new docker container add the volume config /shared-mounts/cvmfs:/cvmfs:rslave
-    - docker run  -v $(pwd):$(pwd) -w $(pwd) --name ${CI_PROJECT_NAME} ${FROM} /bin/bash ./.gitlab/setup_docker.sh
+    - docker run  -v $(pwd):$(pwd) -w $(pwd) --name ${CI_PROJECT_NAME} ${FROM} /bin/bash ./.gitlab/setup_docker.sh ${CLUSTER}
     - SHA256=$(docker commit ${CI_PROJECT_NAME})
     - docker tag ${SHA256} ${TO}
     - docker push ${TO}
+
+
+
+
+
+build_docker_infn_facility:
+  extends: .build_docker_template
   variables:
     FROM: dciangot/jlab-rclone:v7
-    TO: ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}
+    TO: ${CI_REGISTRY_IMAGE}:infn-latest
+    CLUSTER: "INFN"
+
+build_docker_lxplus:
+  extends: .build_docker_template
+  variables:
+    FROM: batch-team/dask-lxplus:latest
+    TO: ${CI_REGISTRY_IMAGE}:lxplus-latest
+    CLUSTER: "lxplus"
+
+    
