@@ -32,7 +32,7 @@ build_docker_infn_facility:
 build_docker_lxplus:
   extends: .build_docker_template
   variables:
-    FROM: batch-team/dask-lxplus/lxdask-c8:latest
+    FROM: gitlab-registry.cern.ch/batch-team/dask-lxplus/lxdask-c8:latest
     TO: ${CI_REGISTRY_IMAGE}:lxplus-latest
     CLUSTER: "lxplus"
 
