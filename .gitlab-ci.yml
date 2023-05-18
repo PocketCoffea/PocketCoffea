@@ -21,9 +21,7 @@
     - docker push ${TO}
 
 
-
-
-
+#--------------------------------------------------------------------
 build_docker_infn_facility:
   extends: .build_docker_template
   variables:
@@ -34,8 +32,22 @@ build_docker_infn_facility:
 build_docker_lxplus:
   extends: .build_docker_template
   variables:
-    FROM: batch-team/dask-lxplus:latest
+    FROM: batch-team/dask-lxplus/lxdask-c8:latest
     TO: ${CI_REGISTRY_IMAGE}:lxplus-latest
     CLUSTER: "lxplus"
 
+#-------------------------------------------------------------------
+
+build_docker_infn_facility_tagged:
+  extends: build_docker_infn_facility
+  only:
+    - tags
+  variables:
+    TO: ${CI_REGISTRY_IMAGE}:infn-${CI_COMMIT_TAG}
     
+build_docker_lxplus_tagged:
+  extends: build_docker_lxplus
+  only:
+    - tags
+  variables:
+    TO: ${CI_REGISTRY_IMAGE}:lxplus-${CI_COMMIT_TAG}
