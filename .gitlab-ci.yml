@@ -19,8 +19,8 @@
     - SHA256=$(docker commit ${CI_PROJECT_NAME})
     - docker tag ${SHA256} ${TO}
     - docker push ${TO}
-    - docker tag ${SHA256} ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}
-    - docker push ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}
+    - docker tag ${SHA256} ${TO_COMMIT}
+    - docker push ${TO_COMMIT}
 
 #--------------------------------------------------------------------
 build_docker_infn_facility_latest:
@@ -28,6 +28,7 @@ build_docker_infn_facility_latest:
   variables:
     FROM: dciangot/jlab-rclone:v7
     TO: ${CI_REGISTRY_IMAGE}:infn-latest
+    TO_COMMIT: ${CI_REGISTRY_IMAGE}:infn-${CI_COMMIT_SHORT_SHA}
     CLUSTER: "INFN"
 
 build_docker_lxplus_latest:
@@ -35,6 +36,7 @@ build_docker_lxplus_latest:
   variables:
     FROM: gitlab-registry.cern.ch/batch-team/dask-lxplus/lxdask-c8:latest
     TO: ${CI_REGISTRY_IMAGE}:lxplus-latest
+    TO_COMMIT: ${CI_REGISTRY_IMAGE}:lxplus-${CI_COMMIT_SHORT_SHA}
     CLUSTER: "lxplus"
 
 
