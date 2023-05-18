@@ -17,10 +17,10 @@
     # If you want to automount CVMFS on a new docker container add the volume config /shared-mounts/cvmfs:/cvmfs:rslave
     - docker run  -v $(pwd):$(pwd) -w $(pwd) --name ${CI_PROJECT_NAME} ${FROM} /bin/bash ./.gitlab/setup_docker.sh ${CLUSTER}
     - SHA256=$(docker commit ${CI_PROJECT_NAME})
-    - echo "Tagging with latest"
+    - echo 'Tagging with latest'
     - docker tag ${SHA256} ${TO}
     - docker push ${TO}
-    - echo "Tagging with commit"
+    - echo 'Tagging with commit'
     - docker tag ${SHA256} ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}
     - docker push ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}
 
