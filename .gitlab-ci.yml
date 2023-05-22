@@ -19,8 +19,8 @@
     - SHA256=$(docker commit ${CI_PROJECT_NAME})
     - docker tag ${SHA256} ${TO}
     - docker push ${TO}
-    - docker tag ${SHA256} ${TO_COMMIT}
-    - docker push ${TO_COMMIT}
+   # - docker tag ${SHA256} ${TO_COMMIT}
+   # - docker push ${TO_COMMIT}
 
 #--------------------------------------------------------------------
 build_docker_infn_facility_latest:
