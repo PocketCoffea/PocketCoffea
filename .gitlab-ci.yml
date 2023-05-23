@@ -38,7 +38,7 @@ build_docker_lxplus_latest:
     TO: ${CI_REGISTRY_IMAGE}:lxplus-cc7-latest
     TO_COMMIT: ${CI_REGISTRY_IMAGE}:lxplus-${CI_COMMIT_SHORT_SHA}
     CLUSTER: "lxplus"
-
+    
 
 #-------------------------------------------------------------------
 
@@ -54,4 +54,4 @@ build_docker_lxplus_tagged:
   only:
     - tags
   variables:
-    TO: ${CI_REGISTRY_IMAGE}:lxplus-${CI_COMMIT_TAG}
+    TO: ${CI_REGISTRY_IMAGE}:lxplus-cc7-${CI_COMMIT_TAG}
