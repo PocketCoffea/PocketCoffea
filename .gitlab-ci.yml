@@ -35,7 +35,7 @@ build_docker_lxplus_latest:
   extends: .build_docker_template
   variables:
     FROM: gitlab-registry.cern.ch/batch-team/dask-lxplus/lxdask-cc7:latest
-    TO: ${CI_REGISTRY_IMAGE}:lxplus-latest
+    TO: ${CI_REGISTRY_IMAGE}:lxplus-cc7-latest
     TO_COMMIT: ${CI_REGISTRY_IMAGE}:lxplus-${CI_COMMIT_SHORT_SHA}
     CLUSTER: "lxplus"
 
