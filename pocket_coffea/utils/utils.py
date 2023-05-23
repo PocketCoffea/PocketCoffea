@@ -18,6 +18,8 @@ def add_to_path(p):
 # import a module from a path.
 # Solution from https://stackoverflow.com/questions/41861427/python-3-5-how-to-dynamically-import-a-module-given-the-full-file-path-in-the
 def path_import(absolute_path):
+    if not os.path.exist(absolute_path):
+        raise Exception(f"Module path {absolute_path} not found!")
     with add_to_path(os.path.dirname(absolute_path)):
         spec = importlib.util.spec_from_file_location(absolute_path, absolute_path)
         module = importlib.util.module_from_spec(spec)
