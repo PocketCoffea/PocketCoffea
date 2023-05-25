@@ -322,7 +322,7 @@ if __name__ == '__main__':
                 memory=run_options['mem_per_worker'],
                 disk=run_options.get('disk_per_worker', "2GB"),
                 image_type="singularity",
-                worker_image="/cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/batch-team/dask-lxplus/lxdask-cc7:latest",
+                worker_image=run_options["worker_image"],
                 death_timeout="3600",
                 scheduler_options={"port": n_port, "host": socket.gethostname()},
                 log_directory = f"{args.outputdir}/{log_folder}",
