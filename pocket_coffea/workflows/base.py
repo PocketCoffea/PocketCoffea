@@ -490,6 +490,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                                                self.events,
                                                self._categories,
                                                subsample_mask=self._subsamples[self._sample].get_mask(subs),
+                                               weights_manager=self.weights_manager
                                                )
                 }
         else:
@@ -498,6 +499,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             ].fill_columns(
                 self.events,
                 self._categories,
+                subsample_mask = None,
+                weights_manager=self.weights_manager
             ) }
 
     def fill_column_accumulators_extra(self, variation):

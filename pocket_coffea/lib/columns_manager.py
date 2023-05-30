@@ -27,7 +27,7 @@ class ColumnsManager:
         for cat in categories:
             self.cfg[cat].append(cfg)
 
-    def fill_columns(self, events, cuts_masks, subsample_mask=None):
+    def fill_columns(self, events, cuts_masks, subsample_mask=None, weights_manager=None):
         self.output = {}
         for category, outarrays in self.cfg.items():
             self.output[category] = {}
@@ -36,6 +36,12 @@ class ColumnsManager:
             if subsample_mask is not None:
                 mask = mask & subsample_mask
 
+            # Getting the weights
+            # Only for nominal variation for the moment
+            if weights_manager:
+                self.output[category]["weight"] = column_accumulator(
+                    ak.to_numpy(weights_manager.get_weight(category), allow_missing=False))
+                
             for outarray in outarrays:
 
                 # Check if the cut is multidimensional
