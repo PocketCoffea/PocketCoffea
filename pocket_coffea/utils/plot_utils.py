@@ -128,7 +128,7 @@ class Shape:
     - h_dict: dictionary of histograms, with the following structure {}
     - name: name that identifies the Shape object.
     - style_cfg: dictionary with style and plotting options.
-    - data_key: prefix for data samples (e.g. default in PocketCoffea: "DATA_SingleEle")'''
+    '''
 
     def __init__(
         self,
@@ -584,8 +584,9 @@ class Shape:
         If ratio is True, also the Data/MC ratio plot is plotted.
         If syst is True, also the total systematic uncertainty is plotted.'''
         for cat in self.categories:
-            if self.only_cat and cat not in self.only_cat:
-                continue
+            if self.only_cat:
+                if cat not in self.only_cat:
+                    continue
             self.define_figure(ratio, toplabel)
             self.build_stacks(cat, spliteras)
             self.get_systematic_uncertainty()
@@ -730,9 +731,12 @@ class SystUnc:
         '''Method used in the constructor to instanstiate a SystUnc object from
         a list of SystUnc objects. The sytematic uncertainties in self.syst_list,
         are summed in quadrature to define a new SystUnc object.'''
-        index_non_empty = [i for i, s in enumerate(self.syst_list) if not s._is_empty][
-            0
-        ]
+        try:
+            index_non_empty = [i for i, s in enumerate(self.syst_list) if not s._is_empty][
+                0
+            ]
+        except:
+            print(self.datamc.name)
         self.nominal = self.syst_list[index_non_empty].nominal
         self.xlabel = self.syst_list[index_non_empty].xlabel
         self.xcenters = self.syst_list[index_non_empty].xcenters
@@ -747,7 +751,7 @@ class SystUnc:
                     np.equal(self.xcenters, syst.xcenters)
                 ), "Attempting to sum systematic uncertainties with different bin centers."
             self.err2_up += syst.err2_up
-            self.err2_down += syst.err2_up
+            self.err2_down += syst.err2_down
 
     def _get_err2(self):
         '''Method used in the constructor to instanstiate a SystUnc object from
