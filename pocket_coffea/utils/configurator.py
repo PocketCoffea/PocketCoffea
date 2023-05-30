@@ -16,6 +16,12 @@ from ..lib.weights_manager import WeightCustom
 from ..lib.hist_manager import Axis, HistConf
 from ..utils import build_jets_calibrator
 
+from pprint import PrettyPrinter
+
+def format(data, indent=0, width=80, depth=None, compact=True, sort_dicts=True):
+    pp = PrettyPrinter(indent=indent, width=width, depth=depth, compact=compact, sort_dicts=sort_dicts)
+    return pp.pformat(data)
+
 
 class Configurator:
     '''
@@ -571,10 +577,10 @@ class Configurator:
             f"  - Skim: {[c.name for c in self.skim]}",
             f"  - Preselection: {[c.name for c in self.preselections]}",
             f"  - Categories: {self.categories}",
-            f"  - Variables:  {list(self.variables.keys())}",
-            # f"  - Columns: {self.columns}",
-            f"  - available weights variations: {self.available_weights_variations} ",
-            f"  - available shape variations: {self.available_shape_variations}",            
+            f"  - Variables:  {format(list(self.variables.keys()))}",
+            f"  - Columns: {format(self.columns)}",
+            f"  - available weights variations: {format(self.available_weights_variations)} ",
+            f"  - available shape variations: {format(self.available_shape_variations)}",            
         ]
         return "\n".join(s)
 

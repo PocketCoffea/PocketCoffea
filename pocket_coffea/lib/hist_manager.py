@@ -526,7 +526,7 @@ class HistManager:
                                     # We get the weights for the current category
                                     weight_varied = weights[category][variation]
 
-                                # Broadcast and mask the weight (using the cached value is possible)
+                                # Broadcast and mask the weight (using the cached value if possible)
                                 weight_varied = mask_and_broadcast_weight(
                                     category,
                                     subsample,
@@ -672,7 +672,7 @@ def mask_and_broadcast_weight(weight, mask, data_structure):
     We need to handle different cases:
     - Mask dimension=1 (mask on events):
        If the data_structure.dim = 2 it means that we want to plot a collection
-       - we mask the weights by events
+       - we mask the weights by events (data is already masked)
        - broadcast weight to the collection by multiplying to the datastructure (1-like array)
        - flatten the final weight
        If the data_structure.dim = 1:
@@ -689,6 +689,10 @@ def mask_and_broadcast_weight(weight, mask, data_structure):
         # If the mask has dim =1 and the data dim =2
         # we need to mask the weight on dim=1, then to broadcast
         # on the data_structure -> then flatten
+        allow_missing = False
+        if ak.sum(ak.is_none(data_structure, axis=-1)) > 0:
+            data_structure = ak.fill_none(data_structure, 0.)
+
         return ak.to_numpy(
             ak.flatten(data_structure * (weight[mask])), allow_missing=False
         )

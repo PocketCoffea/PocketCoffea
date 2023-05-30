@@ -40,6 +40,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
         # Saving the configurator object in the processor
         self.cfg = cfg
+        self.workflow_options = self.cfg.workflow_options
         # Saving the parameters from the configurator objects
         self.params = self.cfg.parameters
         # Cuts
@@ -455,9 +456,14 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
         self.column_managers = {}
         for subs in self._subsamples[self._sample].keys():
-            if f"{self._sample}__{subs}" in self._columns:
+            if self._hasSubsamples:
+                name = f"{self._sample}__{subs}"
+            else:
+                name = self._sample
+
+            if name in self._columns:
                 self.column_managers[subs] = ColumnsManager(
-                    self._columns[f"{self._sample}__{subs}"], self._categories
+                    self._columns[name], self._categories
                 )
 
     def define_column_accumulators_extra(self):
