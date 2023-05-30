@@ -747,7 +747,7 @@ class SystUnc:
                     np.equal(self.xcenters, syst.xcenters)
                 ), "Attempting to sum systematic uncertainties with different bin centers."
             self.err2_up += syst.err2_up
-            self.err2_down += syst.err2_up
+            self.err2_down += syst.err2_down
 
     def _get_err2(self):
         '''Method used in the constructor to instanstiate a SystUnc object from
