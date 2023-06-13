@@ -1,6 +1,11 @@
 Configuration
 #############
 
+
+
+
+
+
 A PocketCoffea analysis can be customized by writing a configuration file, containing all the information needed
 to setup an analysis run.
 

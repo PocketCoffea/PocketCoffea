@@ -7,7 +7,7 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   pocket_coffea.parameters.cuts
+   pocket_coffea.parameters.jec
 
 Submodules
 ----------
@@ -16,6 +16,30 @@ pocket\_coffea.parameters.btag module
 -------------------------------------
 
 .. automodule:: pocket_coffea.parameters.btag
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pocket\_coffea.parameters.cuts module
+-------------------------------------
+
+.. automodule:: pocket_coffea.parameters.cuts
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pocket\_coffea.parameters.dask\_env module
+------------------------------------------
+
+.. automodule:: pocket_coffea.parameters.dask_env
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pocket\_coffea.parameters.defaults module
+-----------------------------------------
+
+.. automodule:: pocket_coffea.parameters.defaults
    :members:
    :undoc-members:
    :show-inheritance:
@@ -36,10 +60,10 @@ pocket\_coffea.parameters.histograms module
    :undoc-members:
    :show-inheritance:
 
-pocket\_coffea.parameters.jec module
-------------------------------------
+pocket\_coffea.parameters.jec\_config module
+--------------------------------------------
 
-.. automodule:: pocket_coffea.parameters.jec
+.. automodule:: pocket_coffea.parameters.jec_config
    :members:
    :undoc-members:
    :show-inheritance:
@@ -68,34 +92,10 @@ pocket\_coffea.parameters.lumi module
    :undoc-members:
    :show-inheritance:
 
-pocket\_coffea.parameters.nureco module
----------------------------------------
-
-.. automodule:: pocket_coffea.parameters.nureco
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-pocket\_coffea.parameters.object\_preselection module
------------------------------------------------------
-
-.. automodule:: pocket_coffea.parameters.object_preselection
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-pocket\_coffea.parameters.pileup module
----------------------------------------
-
-.. automodule:: pocket_coffea.parameters.pileup
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-pocket\_coffea.parameters.triggers module
+pocket\_coffea.parameters.plotting module
 -----------------------------------------
 
-.. automodule:: pocket_coffea.parameters.triggers
+.. automodule:: pocket_coffea.parameters.plotting
    :members:
    :undoc-members:
    :show-inheritance:

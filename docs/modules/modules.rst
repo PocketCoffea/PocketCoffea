@@ -2,6 +2,6 @@ pocket_coffea
 =============
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 4
 
    pocket_coffea

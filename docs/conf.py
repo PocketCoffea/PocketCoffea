@@ -49,7 +49,7 @@ myst_enable_extensions = [
     "fieldlist",
     "html_admonition",
     "html_image",
-    "linkify",
+#    "linkify",
     "replacements",
     "smartquotes",
     "strikethrough",
