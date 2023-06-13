@@ -48,7 +48,12 @@ class HistConf:
 
     def serialize(self):
         out = {**self.__dict__}
-        out["axes"] = [a.__dict__ for a in self.axes]
+        out["axes"] = []
+        for a in self.axes:
+            ax_dict = {}
+            for k,v in a.__dict__.item():
+                if k !="transform":
+                    ax_dict[k] = v
         return out
 
 

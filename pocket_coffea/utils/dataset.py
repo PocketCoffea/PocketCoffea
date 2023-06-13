@@ -79,7 +79,7 @@ class Sample:
             files_rucio, sites = rucio.get_dataset_files(
                 das_name, **self.sites_cfg, output="first"
             )
-            self.fileslist_concrete = files_rucio
+            self.fileslist_concrete += files_rucio
 
     # Function to build the sample dictionary
     def get_sample_dict(self, redirector=True, prefix="root://xrootd-cms.infn.it//"):
