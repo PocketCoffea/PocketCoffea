@@ -20,7 +20,8 @@ The user can customize the process from the confguration file or by redefining w
    running
    concepts
    configuration
-   examples
+   parameters
+   datasets
    analysis_example
    performance
    api

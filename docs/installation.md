@@ -13,21 +13,25 @@ For more information and for a comprehensive tutorial on singularity have a look
 tutorial](https://hsf-training.github.io/hsf-training-docker/10-singularity/index.html).
 
 A Docker image containing a python environment with the PocketCoffea package is automatically build by the GitLab repository CD/CI on the latest version of the
-code and for each tagged version. The image registry
-https://gitlab.cern.ch/cms-analysis/general/PocketCoffea/container_registry/16693). 
+code and for each tagged version. The image registry is
+[here](https://gitlab.cern.ch/cms-analysis/general/PocketCoffea/container_registry/16693), and it can be used directly
+with Docker. 
 
 The docker image is then **unpacked** to a Singularity image which is available on **cvmfs**. 
 
+:::{note}
 The singularity image is **the preferred way to setup** the environment, both for running user's analysis and for local development. 
+:::
 
 ### Using Singularity to run the analysis
 
 The singularity environment is activated on **lxplus** with the following command:
 
 ```bash
-apptainer shell --bind /afs -B /cvmfs/cms.cern.ch --bind /tmp  --bind /eos/cms/ \
-         --env KRB5CCNAME=$KRB5CCNAME --bind /etc/sysconfig/ngbauth-submit  \
-         /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-latest 
+apptainer shell --bind /afs -B /cvmfs/cms.cern.ch \
+                --bind /tmp  --bind /eos/cms/ \
+    --env KRB5CCNAME=$KRB5CCNAME --bind /etc/sysconfig/ngbauth-submit  \
+    /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-latest 
 ```
 
 The last part of the command contains the image version on unpacked:
@@ -45,7 +49,8 @@ installation of the package is needed. Follow the instructions:
 
 ```bash
 #Enter the image
-apptainer shell --bind /afs -B /cvmfs/cms.cern.ch --bind /tmp  --bind /eos/cms/ \
+apptainer shell --bind /afs -B /cvmfs/cms.cern.ch \
+         --bind /tmp  --bind /eos/cms/ \
          --env KRB5CCNAME=$KRB5CCNAME --bind /etc/sysconfig/ngbauth-submit  \
          /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-latest 
 
@@ -65,9 +70,10 @@ pip install -e .[dev]
 
 The next time the user enters in the singularity the virtual environment needs to be activated. 
 
+:::{admonition} Work in progress
+:class: warning
 **N.B.**: At the moment local changes implemented in this way are not propagated to jobs running on condor through Dask. 
-
-------------------------------------------
+:::
 
 
 ## Manual installation in a Python environment
@@ -117,7 +123,7 @@ git clone git@github.com:PocketCoffea/PocketCoffea.git
     ```
 
 
-
-
+:::{admonition} Work in progress
+:class: warning
 **N.B.: The CMSSW environment is not compatible with the package.**
-
+:::

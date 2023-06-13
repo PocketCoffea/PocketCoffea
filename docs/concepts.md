@@ -1,6 +1,4 @@
-########
-Concepts
-########
+# Concepts
 
 In PocketCoffea the processing of the NanoAOD events starts from the raw unprocessed dataset up to histograms or ntuples defined in multiple categories.
 
@@ -15,18 +13,21 @@ The form of a Coffea processor is completely free: in PocketCoffea we define a `
     The user defines a custom processor, which derives from the base class `BaseProcessorABC`. In this code the user is free to define the object preselection, custom collections and custom processing steps. The base class provides a series of entrypoints for the derived processor, to modify specific part of the computation, therefore improving a lot the readibility of the custom code, and keeping a more rigid structure.
 
 * Configuration
-    The configuration of the categories, weights, systematics and histograms to plot is defined in a configuration file and not in the code. This permits a user-friendly interface if one does not need to modify the processing steps. The user provides small piece of codes (mostly python dictionaries), to customize cuts, weights and histograms. The structure of the configuration is fixed to allow users to build on top of each other setups.
+    The configuration of the categories, weights, systematics and histograms to plot is defined in a configuration file
+    and not in the code. This permits a user-friendly interface if one does not need to modify the processing steps. The
+    user provides small piece of codes (mostly python dictionaries), to customize cuts, weights and histograms. The
+    structure of the configuration is fixed to allow users to build on top of each other setups.  Moreover, all the
+    parameters defining a CMS analyses, like working points, scale factors, calibration factors, are defined
+    consistently for all the users with yaml files, as described more 
 
 
 Have a look at the rest of this page for a detailed description of the default processing steps and of the PocketCoffea configuration. 
     
-Basic workflow
-##############
+## Base workflow
 
-The basic workflow is defined by the `BaseProcessorABC::process()` function. The processor constructor is called only once for all the processing, whereas the `process()` function is called for each different chunk (piece of a NanoAOD dataset).
+The base workflow is defined by the `BaseProcessorABC::process()` function. The processor constructor is called only once for all the processing, whereas the `process()` function is called for each different chunk (piece of a NanoAOD dataset).
  
-Initialization
---------------
+### Initialization
 
 * Load metadata
      Each chunk of a NanoAOD file is read by coffea along with its metadata, specified in the dataset configuration. This function reads the sample name, year and prepares several files and configurations for the processing: triggers, SF files, JEC files, the goldenJSON. 
@@ -38,22 +39,23 @@ Initialization
      Compute the sum of the genWeights before any preselection and initialize the configuration of the weights for the sample type of the current chunk.
 
         
-Skimming of events
-------------------
+### Skimming of events
+
 The first step in the processing reduces the number of events on which we need to apply object preselections and correction by applying a skimming cut.
-
-* Triggers 
-     The requests trigger are linked to the `finalstate` key in the configuration. Trigger are applied as the first step to reduce the number of events are the beginning.  The trigger mask is saved to be applied in the `skim_events` function
-
 * User defined extra processing
-    The user can redefine the function `process_extra_before_skim()` to add additional processing before the skimming phase, for example to add variables.
+    The user can redefine the function `process_extra_before_skim()` and `process_extra_after_skim()` to add additional
+    processing before and after the skimming phase, for example to add variables.
 
 * Skim
-    The function `skim_events` applied the events filters, primary vertex requirement (at least 1 good PV) and triggers. Moreover, the function applies the skimming functions requested by the user from the configuration (see Configuration chapter for more details).
+    The function `skim_events` applied the events flags, primary vertex requirement (at least 1 good PV). Moreover, the
+    function applies the skimming functions requested by the user from the configuration (see Configuration chapter for
+    more details). 
     Only the events passing the skimming mask are further processed down the chain.
+    
+* Exporting skimmed files
+    Skimmed NanoAODs can be exported at this stage: check the Configurations page for details. 
 
-Object cleaning and preselection
---------------------------------
+### Object cleaning and preselection
 
 * Objects preselection
        The user processor **must** define the method `apply_object_preselection()`. In this function the user should clean the NanoAOD collections and create new ones with the selected objects. For example: `Electron` --> `ElectronGood`. The new collections are added to the `self.events` awkward array attribute.
@@ -71,8 +73,7 @@ Object cleaning and preselection
        The preselection cut requested by the user in the configuration are applied and the events not passing the mask are removed from the rest of the processing.
 
 
-Categories, Weights and Histograms
-----------------------------------
+### Categories, Weights and Histograms
 
 * Extra processing after preselection
       After the event preselection the number of events is now reduced and the user can add additional processing in the functions `define_common_variables_after_presel()` and `process_extra_after_presel()`. Classifiers, discriminators and MVA techniques should be applied here, now that the number of events has been reduced.
@@ -95,19 +96,19 @@ Categories, Weights and Histograms
 * Histograms filling
       The function `fill_histogram()` is than called to automatically fill all the requested histogram from the configuration. The used can redefine the function `fill_histograms_extra()` to handle the filling of custom histograms, or special cases not handled automatically by the `HistManager`.
 
-Processor output
-----------------
+## Processor output
 
-After all this processing the base processor simply counts the events in all the categories in the function `count_events()` and stores these metadata in the output `cutflow` and `sumw` attributes.All the output histograms and metadata coming from each chunk are accumulated by coffea in a single output dictionary.
+After all this processing the base processor simply counts the events in all the categories in the function
+`count_events()` and stores these metadata in the output `cutflow` and `sumw` attributes. All the output histograms and
+metadata coming from each chunk are accumulated by coffea in a single output dictionary. Moreover the metadata about the
+processed datasets are also included in the final output. Please refer to [INSERT LINK]() for a reference about the
+output format.
 
 * Postprocessing
         At the end of the processing of all the chunks the `postprocess()` function, defined in the base processor is called. This function rescale the total weights of the MC histograms to normalize them w.r.t the sum of the genweights. The `scale_genweight` factor is also saved in the output. Doing so, the overall scale of the MC histograms is always correct, also if the processor is run on a partial dataset.
-
         
-.. _filter_concept:
 
-Filtering
-#########
+## Filtering
 
 We have three steps of "filtering" events in the base workflow
 
@@ -129,20 +130,17 @@ We have three steps of "filtering" events in the base workflow
 3) **Categories**:
       groups of cut functions are applied as masks in order to define categories. Events are not removed but the masks are used for the output.
 
-.. _cutobject:
       
-Cut object
------------
+## Cut object
 
 In Coffea, cuts are encoded as boolean masks on the `events` awkward array. The boolean masks can be stored in a
-`PackedSelector <https://coffeateam.github.io/coffea/notebooks/accumulators.html#PackedSelection>`_ object from coffea,
+[PackedSelector](https://coffeateam.github.io/coffea/notebooks/accumulators.html#PackedSelection) object from coffea,
 which can store different masks and perform the **AND** of them efficiently.
 
 In PocketCoffea a small layer is defined to handle as **a single object both the cutting function and its parameters**. This is
 implemented in the `Cut` helper class (see :ref:`cut_definition`).
 
-.. code-block:: python
-   
+```python
     def NjetsNb(events,params, **kwargs):
          mask =  ((events.njet >= params["njet"] ) &
          (events.nbjet >= params["nbjet"]))
@@ -153,6 +151,7 @@ implemented in the `Cut` helper class (see :ref:`cut_definition`).
        params = { "njet":4, "nbjet": 2},
        function = NjetsNb
     )
+```
     
 
 This simple object permits the user to define a parametrized cutting function and then reuse it with different
@@ -161,24 +160,20 @@ readable way: have a look at :ref:`config_preserve`.
 
 This structure makes possible the creation of **factory methods** to build the `Cut` objects on request
 
-.. code-block:: python
-
+```python
     def getNjetNb_cut(njet, nb):
       return Cut(
             name=f"{njet}jet-{nb}bjet",
             params ={"njet": njet, "nbjet": nb},
             function=NjetsNb
           )
+```
 
 PocketCoffea implements a set of **factory methods** for common cut operations: they are defined in :ref:`cut_functions_lib`.
 
 
-Histogramming
-#############
+## Histogramming
 
 In PocketCoffea histograms are created with the **hist** library, developed by `scikit-hep <https://github.com/scikit-hep/hist>`_.
 
-.. _config_preserve:
-
-Configuration preservation
-##########################
+## Configuration preservation
