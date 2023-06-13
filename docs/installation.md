@@ -123,7 +123,7 @@ git clone git@github.com:PocketCoffea/PocketCoffea.git
     ```
 
 
-:::{admonition} Work in progress
+:::{admonition} Warning
 :class: warning
 **N.B.: The CMSSW environment is not compatible with the package.**
 :::

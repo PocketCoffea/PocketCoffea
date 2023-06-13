@@ -90,7 +90,7 @@ The general idea is the following:
 	* For **Data**: ``year``, ``isMC``, ``era`` and ``primaryDataset``.
 
 For a more detailed discussion about datasets, samples and their meaning in PocketCoffea,
-see **MISSING LINK**.
+see [Datasets handling](./datasets.md).
 
 When the json datasets are built, the metadata parameters are linked to the files list, defining a unique dataset entry
 with the corresponding files. The `primaryDataset` key for Data datasets is needed in order to apply a trigger
