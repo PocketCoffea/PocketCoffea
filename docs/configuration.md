@@ -100,11 +100,16 @@ cfg = Configurator(
                           "sf_btag", "sf_jet_puId", 
                           ],
             "bycategory" : {
+                "2jets_20pt" : [.....]
             }
         },
         "bysample": {
-             "inclusive": [],
-             "bycategory": {}
+             "TTToSemiLeptonic": {
+                  "inclusive": [...],
+                  "bycategory": { 
+                       "2jets_20pt": [....]
+                   }
+             }
         }
     },
 
@@ -113,15 +118,17 @@ cfg = Configurator(
             "common": {
                 "inclusive": [  "pileup",
                                 "sf_ele_reco", "sf_ele_id",
-                                "sf_mu_id", "sf_mu_iso", "sf_jet_puId",
-                                "sf_btag"                               
+                                "sf_mu_id", "sf_mu_iso",
+                                 "sf_jet_puId","sf_btag"  
                               ],
                 "bycategory" : {
                 }
             },
             "bysample": {
-                "inclusive": [],
-                "bycategory": {}
+              "TTToSemiLeptonic": {
+                    "inclusive": [],
+                    "bycategory": {}
+                }
             } 
         },
         "shape": {
@@ -130,7 +137,27 @@ cfg = Configurator(
     },
 
     
-   variables = {
+    variables = {
+        "HT" : HistConf([Axis(coll="events", field="events", bins=100, start=0, stop=200, label="HT")] ),
+        "leading_jet_pt_eta" : HistConf(
+            [
+                Axis(coll="JetGood", field="pt", bins=40, start=0, stop=200, pos=0, label="Leading jet $p_T$"),
+                Axis(coll="JetGood", field="eta", bins=40, start=-5, stop=5, pos=0, label="Leading jet $\eta$")
+            ] ),
+            
+         #Plotting all jets together
+         "all_jets_pt_eta" : HistConf(
+            [
+                Axis(coll="JetGood", field="pt", bins=40, start=0, stop=200, pos=None, label="All jets $p_T$"),
+                Axis(coll="JetGood", field="eta", bins=40, start=-5, stop=5, pos=None, label="All jets $\eta$")
+            ] ),
+            
+        "subleading_jetpt_MET" : HistConf(
+            [
+                Axis(coll="JetGood", field="pt", bins=40, start=0, stop=200, pos=0, label="Leading jet $p_T$"),
+                Axis(coll="MET", field="pt", bins=40, start=0, stop=100, label="MET")
+            ] ),
+                
         **ele_hists(coll="ElectronGood", pos=0),
         **muon_hists(coll="MuonGood", pos=0),
         **count_hist(name="nElectronGood", coll="ElectronGood",bins=3, start=0, stop=3),
@@ -140,6 +167,7 @@ cfg = Configurator(
         **jet_hists(coll="JetGood", pos=0),
         **jet_hists(coll="JetGood", pos=1),
         **jet_hists(coll="JetGood", pos=2),
+        
     },
 
     columns = {
@@ -345,44 +373,43 @@ The code is available at [pocket_coffea.lib.categorization](pocket_coffea.lib.ca
     
      
 
-
 ## Weights
 
-Weights are handled in PocketCoffea through the `WeightsManager` object (see API :ref:`weightsmanager`).
-The configuration file sets which weight is applied to which sample in which category.
+Weights are handled in PocketCoffea through the `WeightsManager` object (see [API](pocket_coffea.lib.weights_manager.WeightsManager)).
+The configuration file specifies which weight is applied to which sample in which category.
 
 ```python
-                
-   "weights": {
+cfg = Configurator(
+  
+    weights = {
         "common": {
             "inclusive": ["genWeight","lumi","XS",
                           "pileup",
                           "sf_ele_reco", "sf_ele_id",
                           "sf_mu_id","sf_mu_iso",
-                          "sf_btag",
-                          "sf_btag_calib", 
+                          "sf_btag", "sf_jet_puId", 
                           ],
             "bycategory" : {
-                ....
+                "2jets_20pt" : [.....]
             }
         },
         "bysample": {
-            "ttHbb": {
-                 "inclusive" : ["sf_jet_puId"],
-                 "bycategory": {
-                    ....
-                 }
-            }
+             "TTToSemiLeptonic": {
+                  "inclusive": [...],
+                  "bycategory": { 
+                       "2jets_20pt": [....]
+                   }
+             }
         }
-    }
+    },
+    ....
+)
 ```
-
 
 To reduce boilerplate configuration the weights are specified following a `decision-tree` style and applied in a hierarchical fashion. 
 Weights can be assigned to all samples (`common` key), inclusively or by category.
 Weights can also be assigned to specific samples, again inclusively or in specific categories.
 
-   
 A set of *predefined weights* with centrally produced corrections and scale factors for the CMS Run2 ultra-legacy
 analysis have been already implemented in PocketCoffea and are available in the configuration by using string
 identifiers:
@@ -392,23 +419,22 @@ identifiers:
 - **XS**: sample cross-section
 - **pileup**: pileup scale factor
 - **sf_ele_reco**, **sf_ele_id**: electron reconstruction and ID scalefactors. The working point is defined by the
-  `finalstate` configuration.
+  [`lepton_scale_factors`](https://github.com/PocketCoffea/PocketCoffea/blob/main/pocket_coffea/parameters/lepton_scale_factors.yaml)
+  key in the parameters (see [Parameters](./parameters.md) docs)
 - **sf_mu_id**, **sf_mu_iso**: muon id and isolation SF.
 - **sf_btag**: btagPOG shape scale factors
-- **sf_btag_calib**: custom computed btag SF corrections for ttHbb
 - **sf_jet_puId**:  jet puID SF
 
 If a weight is requested in the configuration, but it doens't exist, the framework emits an error before running.
 
-## On-the-flight custom weights
+### On-the-flight custom weights
 
 Weights can be created by the user directly in the configuration. The `WeightCustom` object allows to create
 a function with a name that get called for each chunk to produce an array of weights (and optionally their variations).
-Have a look at the API :ref:`weightsmanager`. 
+Have a look at the [API](pocket_coffea.lib.weights_manager.WeightCustom).
 
 ```python
-
-   WeightCustom(
+WeightCustom(
       name="custom_weight",
       function= lambda events, size, metadata: [("pt_weight", 1 + events.JetGood[:,0].pt/400.)]
    )
@@ -417,27 +443,180 @@ Have a look at the API :ref:`weightsmanager`.
 The custom weight can be added in the configuration instead of the string identifier of centrally-defined weights.
 
 ```python
-   custom_w = WeightCustom(
-      name="custom_weight",
-      function= lambda events, size, metadata: [("pt_weight", 1 + events.JetGood[:,0].pt/400.)]
-   )
+custom_w = WeightCustom(
+  name="custom_weight",
+  function= lambda events, size, metadata: [("pt_weight", 1 + events.JetGood[:,0].pt/400.)]
+)
 
-    "weights": {
-        "common": {
-            "inclusive": [... ],
-            "bycategory" : {
-                "3jets": [custom_w]
-            }
+"weights": {
+    "common": {
+        "inclusive": [... ],
+        "bycategory" : {
+            "3jets": [custom_w]
         }
-   }
+    }
+}
 ```
-
-
+:::{tip}
 The user can create a library of custom weights and include them in the configuration.
-
-
+:::
 
 ## Variations
 
+Systematics variations are also configured in the `Configurator`. Weights and shape variations are supported. 
+The configuration is applied in an hierarchical fashion as for the `Weights`, to compact the matrix of
+samples and categories. 
+
+* **Weights variations**:  if the weights defined in the `WeightsManager` has up and down variations, they can be
+  activated by just putting the weight name in the `variations` configuration. Up and down shapes will be exported for
+  histograms. 
+  
+  ```python
+  cfg = Configurator(
+     ....
+    variations = {
+        "weights": {
+            "common": {
+                "inclusive": [  "pileup",
+                                "sf_ele_reco", "sf_ele_id",
+                                "sf_mu_id", "sf_mu_iso",
+                                 "sf_jet_puId","sf_btag"  
+                              ],
+                "bycategory" : {
+                }
+            },
+            "bysample": {
+              "TTToSemiLeptonic": {
+                    "inclusive": [],
+                    "bycategory": {}
+                }
+            } 
+        },
+        "shape": {
+        ....
+        }
+    },
+    ...
+  )
+  ```
+  
+* **Shape variations**: shape variations are related to lepton, jets and MET scale variations and similar systematics. 
+  The handling of these variations is more complex since everything after skimming (see [docs](./concepts.md#filtering))
+  is rerun for each shape variation. 
+  
+  Have a look at the base processor
+  [get_shape_variations()](pocket_coffea.workflows.base.BaseProcessorABC.get_shape_variations) function to learn about
+  their implementation. 
+  
+  
+  ```pythony
+  cfg = Configurator(
+     ....
+    variations = {
+        "weights": .....
+        # Shape variations
+        "shape": {
+            "common":
+              "inclusive": ["JESTotal","JER"]
+        }
+    },
+    ...
+  )
+  ```
+  
+  :::{warning}
+  Only JES and JER variations have been implemented for the moment and are available to be used. 
+  The available JES variations depend on the jet calibration configuration defined in the parameters ([docs](./parameters.md#cross-references)).
+  :::
+  
+  
 ## Histograms configuration
  
+The PocketCoffea configuration allows the user to define histograms without modifying the processor code. 
+The histogram configuration closely follows the interface of the [scikit-hep/hist](https://github.com/scikit-hep/hist)
+library, used by Coffea to handle histograms.
+
+Histograms are identified by unique labels and built using a [`HistConf`](pocket_coffea.lib.hist_manager.HistConf)
+object. Each `HistConf` object has a list of [`Axis`](pocket_coffea.lib.hist_manager.Axis) objets, which follow the
+interface of the `hist` library axes. 
+
+:::{Important}
+The number of Axis contained in a `HistConf` is not limited! The user can work with 1,2,3,4..D histograms without
+changing the interface. However, be aware of memory issues which may affect large histograms with too many bins. 
+:::
+
+
+```python
+cfg = Configurator(
+   variables = {
+        "HT" : HistConf([Axis(coll="events", field="events", bins=100, start=0, stop=200, label="HT")] ),
+        "leading_jet_pt_eta" : HistConf(
+            [
+                Axis(coll="JetGood", field="pt", bins=40, start=0, stop=200, pos=0, label="Leading jet $p_T$"),
+                Axis(coll="JetGood", field="eta", bins=40, start=-5, stop=5, pos=0, label="Leading jet $\eta$")
+            ] ),
+            
+         #Plotting all jets together
+         "all_jets_pt_eta" : HistConf(
+            [
+                Axis(coll="JetGood", field="pt", bins=40, start=0, stop=200, pos=None, label="All jets $p_T$"),
+                Axis(coll="JetGood", field="eta", bins=40, start=-5, stop=5, pos=None, label="All jets $\eta$")
+            ] ),
+            
+        "subleading_jetpt_MET" : HistConf(
+            [
+                Axis(coll="JetGood", field="pt", bins=40, start=0, stop=200, pos=0, label="Leading jet $p_T$"),
+                Axis(coll="MET", field="pt", bins=40, start=0, stop=100, label="MET")
+            ] ),
+            
+                
+        **ele_hists(coll="ElectronGood", pos=0),
+        **muon_hists(coll="MuonGood", pos=0),
+        **count_hist(name="nElectronGood", coll="ElectronGood",bins=3, start=0, stop=3),
+        **count_hist(name="nMuonGood", coll="MuonGood",bins=3, start=0, stop=3),
+        **count_hist(name="nJets", coll="JetGood",bins=10, start=4, stop=14),
+        **count_hist(name="nBJets", coll="BJetGood",bins=12, start=2, stop=14),
+        **jet_hists(coll="JetGood", pos=0),
+        **jet_hists(coll="JetGood", pos=1),
+        **jet_hists(coll="JetGood", pos=2),
+        
+    },
+    ...
+)
+
+```
+
+The `Axis` object has many options: in particular the array to be plotted is taken from the `events` mother array
+using the `coll` and `field` attributed. If an array is global in NanoAOD, the `coll` is `events`. 
+
+```python
+
+@dataclass
+class Axis:
+    field: str  # variable to plot
+    label: str  # human readable label for the axis
+    bins: int = None
+    start: float = None
+    stop: float = None
+    coll: str = "events"  # Collection or events or metadata or custom
+    name: str = None      # Identifier of the axis: By default is built as coll.field, if not provided
+    pos: int = None       # index in the collection to plot. If None plot all the objects on the same histogram
+    type: str = "regular" # regular/variable/integer/intcat/strcat
+    transform: str = None
+    lim: Tuple[float] = (0, 0)
+    underflow: bool = True
+    overflow: bool = True
+    growth: bool = False
+```
+
+### Multidimensional arrays
+A special mention is worth it for the `pos` attributes. The user can specify which object in a collection to use for the
+field to plot:  if the collection contains more
+than 1 object, e.g. Jet, and `pos=1`,  only the attributes of the 2nd object will be plotted. If the second object is missing, the
+attributes are None-padded automatically. 
+
+:::{tip}
+If the collection contains more objects (e.g. the Jet collection) and the attribute `pos` is None, the array
+is flattened before filling the histograms. This means that you can plot the $p_T$ of all the jets in a single plot just
+by using `Axes(coll="Jet", field="pt", pos=None)`
+:::

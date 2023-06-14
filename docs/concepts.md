@@ -9,20 +9,21 @@ The form of a Coffea processor is completely free: in PocketCoffea we define a `
 
 **Flexibility** and **customization** is provided in two ways:
 
-* Workflow customization
+* **Workflow customization**
     The user defines a custom processor, which derives from the base class `BaseProcessorABC`. In this code the user is free to define the object preselection, custom collections and custom processing steps. The base class provides a series of entrypoints for the derived processor, to modify specific part of the computation, therefore improving a lot the readibility of the custom code, and keeping a more rigid structure.
 
-* Configuration
+* **Configuration**
     The configuration of the categories, weights, systematics and histograms to plot is defined in a configuration file
     and not in the code. This permits a user-friendly interface if one does not need to modify the processing steps. The
     user provides small piece of codes (mostly python dictionaries), to customize cuts, weights and histograms. The
     structure of the configuration is fixed to allow users to build on top of each other setups.  Moreover, all the
     parameters defining a CMS analyses, like working points, scale factors, calibration factors, are defined
-    consistently for all the users with yaml files, as described more 
+    consistently for all the users with yaml files, as described in [Parameters](./parameters.md)
 
-
+:::{tip}
 Have a look at the rest of this page for a detailed description of the default processing steps and of the PocketCoffea configuration. 
-    
+:::
+
 ## Base workflow
 
 The base workflow is defined by the `BaseProcessorABC::process()` function. The processor constructor is called only once for all the processing, whereas the `process()` function is called for each different chunk (piece of a NanoAOD dataset).
@@ -101,7 +102,7 @@ The first step in the processing reduces the number of events on which we need t
 After all this processing the base processor simply counts the events in all the categories in the function
 `count_events()` and stores these metadata in the output `cutflow` and `sumw` attributes. All the output histograms and
 metadata coming from each chunk are accumulated by coffea in a single output dictionary. Moreover the metadata about the
-processed datasets are also included in the final output. Please refer to [INSERT LINK]() for a reference about the
+processed datasets are also included in the final output. Please refer to [Output format](#output-format) for a reference about the
 output format.
 
 * Postprocessing
@@ -177,3 +178,6 @@ PocketCoffea implements a set of **factory methods** for common cut operations: 
 In PocketCoffea histograms are created with the **hist** library, developed by `scikit-hep <https://github.com/scikit-hep/hist>`_.
 
 ## Configuration preservation
+
+
+## Output format

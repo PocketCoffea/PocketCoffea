@@ -10,7 +10,7 @@ This module defines several helper classes to handle Masks and Selections.
   All the cuts are handled by a single MaskStorage. The StandardSelection object stores which cuts
   are applied in each category.
 
-- CartesianSelection: handles the definition of cartesian producton of categories. The class
+- CartesianSelection: handles the definition of cartesian product of categories. The class
   keeps a list of MultiCut objects, each defining a set of subcategories. Then, it defines automatically
   categories which are the cartesian products of the categories defined by each MultiCut.
   A StandardSelection object can be embeeded in the CartesianSelection to defined categories not used in the
