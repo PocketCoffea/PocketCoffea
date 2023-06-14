@@ -138,38 +138,38 @@ In Coffea, cuts are encoded as boolean masks on the `events` awkward array. The 
 which can store different masks and perform the **AND** of them efficiently.
 
 In PocketCoffea a small layer is defined to handle as **a single object both the cutting function and its parameters**. This is
-implemented in the `Cut` helper class (see :ref:`cut_definition`).
+implemented in the `Cut` helper class (see [cut_definition](pocket_coffea.lib.cut_definition.Cut).
 
 ```python
-    def NjetsNb(events,params, **kwargs):
-         mask =  ((events.njet >= params["njet"] ) &
-         (events.nbjet >= params["nbjet"]))
-         return mask
-   
-    cut = Cut(
-       name = "4j-2b",
-       params = { "njet":4, "nbjet": 2},
-       function = NjetsNb
-    )
+def NjetsNb(events,params, **kwargs):
+    mask =  ((events.njet >= params["njet"] ) &
+             (events.nbjet >= params["nbjet"]))
+    return mask
+
+cut = Cut(
+    name = "4j-2b",
+    params = { "njet":4, "nbjet": 2},
+    function = NjetsNb
+)
 ```
     
 
 This simple object permits the user to define a parametrized cutting function and then reuse it with different
 parameters. Moreover the `Cut` object is technically implemented to be able to dump it's configuration in the most
-readable way: have a look at :ref:`config_preserve`.
+readable way: have a look at [](#configuration-preservation).
 
-This structure makes possible the creation of **factory methods** to build the `Cut` objects on request
+This structure makes possible the creation of **factory methods** to build the `Cut` objects.
 
 ```python
-    def getNjetNb_cut(njet, nb):
-      return Cut(
-            name=f"{njet}jet-{nb}bjet",
-            params ={"njet": njet, "nbjet": nb},
-            function=NjetsNb
-          )
+def getNjetNb_cut(njet, nb):
+    return Cut(
+        name=f"{njet}jet-{nb}bjet",
+        params ={"njet": njet, "nbjet": nb},
+        function=NjetsNb
+     )
 ```
 
-PocketCoffea implements a set of **factory methods** for common cut operations: they are defined in :ref:`cut_functions_lib`.
+PocketCoffea implements a set of **factory methods** for common cut operations: they are defined in [cut functions](pocket_coffea.lib.cut_functions).
 
 
 ## Histogramming

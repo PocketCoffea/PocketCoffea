@@ -72,10 +72,16 @@ cfg = Configurator(
     },
 
     workflow = ttHbbBaseProcessor,
+    workflow_options = {},
     
-    skim = [get_nObj_min(4, 15., "Jet"),
-             get_HLTsel()],
+    # Skimming and categorization
+    skim = [
+             get_nObj_min(4, 15., "Jet"),
+             get_HLTsel()
+             ],
+             
     preselections = [semileptonic_presel_nobtag],
+    
     categories = {
         "baseline": [passthrough],
         "1b" : [ get_nBtagEq(1, coll="BJetGood")],
@@ -83,7 +89,8 @@ cfg = Configurator(
         "3b" : [ get_nBtagEq(3, coll="BJetGood")],
         "4b" : [ get_nBtagEq(4, coll="BJetGood")]
     },
-
+    
+    # Weights configuration
     weights = {
         "common": {
             "inclusive": ["genWeight","lumi","XS",
@@ -169,85 +176,174 @@ run_options = {
                 
 
 ## Datasets
+
 The dataset configuration has the following structure:
 
 ```python
-   "dataset" : {
-            "jsons": ["datasets/signal_ttHTobb_lxplus.json",
-                      "datasets/backgrounds_MC.json"],
-            "filter" : {
-                "samples": ["TTToSemiLeptonic"],
-                "samples_exclude" : [],
-                "year": ['2018']
-            }
+cfg = Configurator(
+    datasets = {
+        "jsons": [f"{localdir}/datasets/backgrounds_MC_ttbar_2018.json",
+                  f"{localdir}/datasets/backgrounds_MC_ttbar_2017.json",
+                  f"{localdir}/datasets/DATA_SingleEle.json",
+                  f"{localdir}/datasets/DATA_SingleEle.json",
+                    ],
+        "filter" : {
+            "samples": ["TTToSemiLeptonic","DATA_SingleEle","DATA_SingleEle"],
+            "samples_exclude" : [],
+            "year": ['2018','2017']
         },
+        "subsamples":{
+            "TTToSemiLeptonic": {
+                "=1b":  [get_nBtagEq(1, coll="Jet")],
+                "=2b" : [get_nBtagEq(2, coll="Jet")],
+                ">2b" : [get_nBtagMin(3, coll="Jet")]
+            }
+        }
+    },
+    ....
+    )
 ```
 
 - The `jsons` key contains the list of dataset definition file to consider as inputs
 - The `filter` dictionary gives the user the possibility to filter on the fly the desidered samples to include or
   exclude from the full list taken from the jsons files. Samples can be filtered by name of by year.
+  
+- `subsamples` makes possible to define cuts splitting the events in multiple sub-samples. See
+  the [datasets](./datasets.md) page for a more in-depth definition of them. A list of Cut objects is used to define the
+  subsample, an AND between them is used to mask the events. 
+  
+  In the example, by using the `subsamples` option
+  effectively the `TTToSemiLeptonic` sample will be split in the framework in 3 pieces called  `TTToSemiLeptonic__=1b`,
+  `TTToSemiLeptonic__=2b`, `TTToSemiLeptonic__>2b`. 
+  
+  :::{warning}
+  Subsamples do not need to be exclusive. Subsample masks are applied before exporting histograms, columns and counting events.
+  :::
 
 
-##Workflow
+## Workflow
 
 ```python
-   from pocket_coffea.workflows.tthbb_base_processor import ttHbbBaseProcessor
-            
-   "workflow" : ttHbbBaseProcessor,
-   "output"   : "output/tth_semilep",
-   "worflow_options" : {},
+from pocket_coffea.workflows.tthbb_base_processor import ttHbbBaseProcessor
+
+"workflow" : ttHbbBaseProcessor,
+"worflow_options" : {},
 ```
 
 - `workflow` key specifies directly the class to use.
-- `output` key contains the location of the output files. A version number is appended to the name at each run. 
 - `workflow_options`: dictionary with additional options for specific processors (user defined)
 
   
-##Cuts and categories
-
+## Cuts and categories
 
 The events skimming, preselection and categorization is defined in a structured way in PocketCoffea:
-see :ref:`filter_concept` for a detailed explanation of the difference between the steps.
+see [Concepts#Filtering](./concepts.md#filtering) for a detailed explanation of the difference between the steps.
 
 ```python
-                
-   # skimming, preselection and categories
+cfg = Configurator(
+   skim = [
+                get_nObj_min(4, 15., "Jet"),
+                get_HLTsel()
+                ],
 
-   from pocket_coffea.lib.cut_functions import get_nObj_min, get_nObj_eq, get_nBtag
-   
-   "finalstate" : "semileptonic",
-   
-   "skim": [get_nObj_min(4, 15., "Jet") ],
-   
-   "preselections" : [semileptonic_presel],
-   
-   "categories": {
-       "baseline": [passthrough],
-       "1b" : [ get_nBtag(1, coll="BJetGood")],
-       "2b" : [ get_nBtag(2, coll="BJetGood")],
-       "3b" : [ get_nBtag(3, coll="BJetGood")],
-       "4b" : [ get_nBtag(4, coll="BJetGood")]
-   },
+   preselections = [semileptonic_presel_nobtag],
+
+   categories = StandardSelection({
+          "baseline": [passthrough],
+           "1b" : [ get_nBtagEq(1, coll="BJetGood")],
+           "2b" : [ get_nBtagEq(2, coll="BJetGood")],
+           "3b" : [ get_nBtagEq(3, coll="BJetGood")],
+           "4b" : [ get_nBtagEq(4, coll="BJetGood")]
+      }),
+   ....
+)
 ```
 
-- Finalstate
-     The finalstate key is used to define the set of HLT trigger to apply and should also be used by users to
-     parametrize the object preselection code, in order to have a consistent trigger and object preselection
-     configuration. **N.B.** the skimming step is applied before any object correction and preselection.
-- Skim
-     The skim configuration is a list of `Cut` object. Events passing the **AND** of the list of cuts pass the skim
-- Preselections
-     Again the preselection is a list of `Cut` object and **AND** between them is applied.
-     **N.B.** :The preselection cut is applied after objects preselections and cleaning.
-- Categories:
-     Categories are defined by a dictionary which assigns unique names to list of `Cut` object.
-
-The `Cut` objects are defined in `pocket_coffea.lib.cut_definition`.
-Have a look at the documentation about the :ref:`cutobject` and its API (:ref:`cut_definition`).
-This is a simple object grouping a name, a cut function, a dictionary of parameters.
+A `Cut` is a simple object grouping a name, a cut function, a dictionary of parameters.
 The same `Cut` object can be used in different points of the configuration.
+The `Cut` objects are defined in `pocket_coffea.lib.cut_definition`.
+Have a look at the documentation about the [Cut object](./concepts.md#cut-object) and its
+[API](pocket_coffea.lib.cut_definition). 
 
-PocketCoffea implements a set of **factory methods** for common cut functions: they are defined in :ref:`cut_functions_lib`.
+PocketCoffea implements a set of **factory methods** for common cut functions: they are defined in [cut_functions](pocket_coffea.lib.cut_functions).
+
+In the configuration the categorization is split in:
+
+- **Skim**:
+     The skim configuration is a list of `Cut` object. Events passing the **AND** of the list of cuts pass the skim.
+- **Preselections**:
+     The preselection is a list of `Cut` object and **AND** between them is applied.
+
+     :::{alert}
+     **N.B.**: The preselection cut is applied after objects preselections and cleaning. 
+     :::
+
+- **Categories**: Splitting of events for histograms and columns output.
+
+
+### Categorization utilities
+PocketCoffea defines different ways to categorize events. 
+The code is available at [pocket_coffea.lib.categorization](pocket_coffea.lib.categorization).
+
+- **StandardSelection**:
+     handles the definition of categories from a dictionary of Cut objects. Each key defines a category with a list of
+     `Cut` objects which are applied with an **AND**.
+     
+    ```python
+    categories = StandardSelection({
+          "baseline": [passthrough],
+           "1b" : [ get_nBtagEq(1, coll="BJetGood")],
+           "2b" : [ get_nBtagEq(2, coll="BJetGood")],
+           "3b" : [ get_nBtagEq(3, coll="BJetGood")],
+           "4b" : [ get_nBtagEq(4, coll="BJetGood")]
+      }),
+    ```
+     
+- **CartesianSelection**: 
+    handles the definition of cartesian product of categories. The class keeps a list of
+    [MultiCut](pocket_coffea.lib.categorization.MultiCut) objects, each defining a set of subcategories (or bins).
+    The `CartesianSelection` utils defines automatically categories which are the cartesian products of the bins defined
+    by each MultiCut. 
+    A `StandardSelection` object can be embedded in the CartesianSelection to defined "common" categories not used in the
+    cartesian product.
+    This utility can be very useful to build a differential analysis. 
+    
+    For example, this is the configuration to build categories as
+    $((N_{jets} [4,5,>6]) \times (N_{bjets} [3,4,5,>6])) + \text{inclusive} + 4jets40pt$
+    
+    ```python
+    categories = CartesianSelection(
+        multicuts = [
+            MultiCut(name="Njets",
+                     cuts=[
+                         get_nObj_eq(4, 15., "JetGood"),
+                         get_nObj_eq(5, 15., "JetGood"),
+                         get_nObj_min(6, 15., "JetGood"),
+                     ],
+                     cuts_names=["4j","5j","6j"]),
+            MultiCut(name="Nbjet",
+                    cuts=[
+                         get_nObj_eq(3, 15., "BJetGood"),
+                         get_nObj_eq(4, 15., "BJetGood"),
+                         get_nObj_eq(5, 15., "BJetGood"),
+                         get_nObj_min(6, coll="BJetGood"),
+                     ],
+                     cuts_names=["3b","4b","5b","6b"])
+        ],
+        common_cats = StandardSelection({
+            "inclusive": [passthrough],
+            "4jets_40pt" : [get_nObj_min(4, 40., "JetGood")]
+        })
+    ),
+    ```
+    
+    
+    :::{warning}
+    The standard `PackedSelection` utility from coffea can handle a maximum of 64 categories. The `CartesianSelection`
+    tool overcomes this limitation internally.
+    :::
+    
+     
 
 
 ## Weights

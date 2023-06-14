@@ -65,6 +65,7 @@ templates_path = []
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ["_build", "**.ipynb_checkpoints", "Thumbs.db", ".DS_Store", ".env"]
 
+myst_number_code_blocks = ["python"]
 
 # -- Options for HTML output -------------------------------------------------
 
