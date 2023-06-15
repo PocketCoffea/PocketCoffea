@@ -24,7 +24,16 @@ the core of the framework code and to get the latest under development features.
 The environment needs to be set differently depending on the cluster where you want to run. Please refer to the detailed
 guide [Installation guide](https://pocketcoffea.readthedocs.io/en/latest/installation.html). 
 
-We report here briefly the necessary steps to setup the framework from sources. 
+If you want to test it on lxplus just use the singularity image: 
+
+```bash
+apptainer shell --bind /afs -B /cvmfs/cms.cern.ch \
+                --bind /tmp  --bind /eos/cms/ \
+    --env KRB5CCNAME=$KRB5CCNAME --bind /etc/sysconfig/ngbauth-submit  \
+    /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-latest
+```
+
+If instead you want to install it from source, to contribute to the core framework code:
 
 ```bash
 pythom -m venv myenv
@@ -45,8 +54,6 @@ A dedicated `repository <https://github.com/PocketCoffea/AnalysisConfigs>`_ is s
 different analysis. Clone the repository **outside** of the PocketCoffea main folder:
 
 ```bash
-cd ..
-
 # Now downloading the example configuration
 git clone https://github.com/PocketCoffea/AnalysisConfigs.git
 cd AnalysisConfigs/configs/zmumu
@@ -398,31 +405,30 @@ directly passed to the constructor of the ``Cut`` object as the dictionary ``par
 ``dimuon`` and the ``Cut`` object ``dimuon_presel`` in the preamble of the config script:
 
 ```python
-   def dimuon(events, params, year, sample, **kwargs):
+def dimuon(events, params, year, sample, **kwargs):
+    # Masks for same-flavor (SF) and opposite-sign (OS)
+    SF = ((events.nMuonGood == 2) & (events.nElectronGood == 0))
+    OS = events.ll.charge == 0
 
-      # Masks for same-flavor (SF) and opposite-sign (OS)
-      SF = ((events.nMuonGood == 2) & (events.nElectronGood == 0))
-      OS = events.ll.charge == 0
+    mask = (
+       (events.nLeptonGood == 2)
+       & (ak.firsts(events.MuonGood.pt) > params["pt_leading_muon"])
+       & OS & SF
+       & (events.ll.mass > params["mll"]["low"])
+       & (events.ll.mass < params["mll"]["high"])
+    )
 
-      mask = (
-         (events.nLeptonGood == 2)
-         & (ak.firsts(events.MuonGood.pt) > params["pt_leading_muon"])
-         & OS & SF
-         & (events.ll.mass > params["mll"]["low"])
-         & (events.ll.mass < params["mll"]["high"])
-      )
+    # Pad None values with False
+    return ak.where(ak.is_none(mask), False, mask)
 
-      # Pad None values with False
-      return ak.where(ak.is_none(mask), False, mask)
-
-   dimuon_presel = Cut(
-      name="dilepton",
-      params={
-         "pt_leading_muon": 25,
-         "mll": {'low': 25, 'high': 2000},
-      },
-      function=dimuon,
-   )
+dimuon_presel = Cut(
+    name="dilepton",
+    params={
+       "pt_leading_muon": 25,
+       "mll": {'low': 25, 'high': 2000},
+    },
+    function=dimuon,
+ )
 ```
 
 In a scenario of an analysis requiring several different cuts, a dedicated library of cuts and functions can be defined
