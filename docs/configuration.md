@@ -609,6 +609,13 @@ class Axis:
     growth: bool = False
 ```
 
+:::{tip}
+A set of factory methods to build commonly used histogram configuration is available in
+[](pocket_coffea.parameters.histograms).
+They produce dictionaries of `HistConf` objects that need to be *unpacked* in the configuration file with the syntax: `**jet_hists(coll="JetGood", pos=2)`
+:::
+
+
 ### Multidimensional arrays
 A special mention is worth it for the `pos` attributes. The user can specify which object in a collection to use for the
 field to plot:  if the collection contains more
@@ -619,4 +626,58 @@ attributes are None-padded automatically.
 If the collection contains more objects (e.g. the Jet collection) and the attribute `pos` is None, the array
 is flattened before filling the histograms. This means that you can plot the $p_T$ of all the jets in a single plot just
 by using `Axes(coll="Jet", field="pt", pos=None)`
+:::
+
+## Columns output
+
+In PocketCoffea it is also possible to export arrays from NanoAOD events: the configuration is handled with a
+[`ColOut`](pocket_coffea.lib.columns_manager.ColOut) object.
+
+The configuration follows the same structure of the `Weights` configuration. 
+A list of `ColOut` objects is assigner either inclusively and to all the samples or specifically to a sample and
+category. 
+
+```python
+cfg = Configurator(
+   # columns output configuration
+   columns = {
+        "common": {
+             "inclusive": [],
+             "bycategory": {}
+        },
+        "bysample": {
+            "TTToSemiLeptonic" : { "inclusive":  [ColOut("LeptonGood",["pt","eta","phi"])]},
+            "TTToSemiLeptonic__=1b" :{ "inclusive":  [ColOut("JetGood",["pt","eta","phi"])]},
+            "TTToSemiLeptonic__=2b":{ "inclusive":  [ColOut("BJetGood",["pt","eta","phi"])]},
+        }
+    }
+    )
+```
+
+The `ColOut` object defines which collection and fields get exported in the output file, moreover by default the number 
+of object in the collection is saved only once along the fields. This is needed because the output accumulator contains
+flattened arrays. The output can then be unflattened using the saved number of objects.
+
+```python
+@dataclass
+class ColOut:
+    collection: str  # Collection
+    columns: List[str]  # list of columns to export
+    flatten: bool = True  # Flatten by defaul
+    store_size: bool = True
+    fill_none: bool = True
+    fill_value: float = -999.0  # by default the None elements are filled
+    pos_start: int = None  # First position in the collection to export. If None export from the first element
+    pos_end: int = None  # Last position in the collection to export. If None export until the last element
+```
+
+Similarly to the `pos` option for the `Axes` configuration, it is possible to specify a range of objects to restrict the
+output over the collection.
+
+
+:::{Warning}
+At the moment the output columns gets accumulated over all the chunks of the processed datasets and returned as a single
+file. 
+This may cause memory problems in case of a large number of events or exported data. A solution is to export single
+files separately: the option is under development. 
 :::

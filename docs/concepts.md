@@ -173,11 +173,8 @@ def getNjetNb_cut(njet, nb):
 PocketCoffea implements a set of **factory methods** for common cut operations: they are defined in [cut functions](pocket_coffea.lib.cut_functions).
 
 
-## Histogramming
-
-In PocketCoffea histograms are created with the **hist** library, developed by `scikit-hep <https://github.com/scikit-hep/hist>`_.
-
 ## Configuration preservation
 
 
 ## Output format
+ 

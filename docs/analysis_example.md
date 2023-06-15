@@ -2,8 +2,6 @@
 
 Few analyses example, with increasing level of complexity are documented here and on the configuration repository: https://github.com/PocketCoffea/AnalysisConfigs/
 
-# Z-> mu mu simple analysis example
-
 A full example of all the steps needed to run a full analysis with PocketCoffea is reported, starting from the creation of the datasets list, the customization of parameters and the production of the final shapes and plots.
 As an example, a toy example version of the Drell-Yan analysis targeting the Z->mumu channel is implemented.
 

@@ -2,7 +2,7 @@
 
 The installation of the PocketCoffea package is very simple and based only on the `python` enviroment tools.
 
-## Job submissions: CERN lxplus
+## CERN lxplus with jobs submission
 ----------------------------
 If you are working on CERN lxplus and you will scale your processing on HTCondor, follow this installation
 instructions.
@@ -19,7 +19,7 @@ with Docker.
 
 The docker image is then **unpacked** to a Singularity image which is available on **cvmfs**. 
 
-:::{note}
+:::{tip}
 The singularity image is **the preferred way to setup** the environment, both for running user's analysis and for local development. 
 :::
 
@@ -39,6 +39,9 @@ The last part of the command contains the image version on unpacked:
 
 Once inside the environment no installation is needed. The PocketCoffea scripts are globally available and the user's
 analysis can be run directly. 
+
+If a specific image is needed for a computing environment, more flavours of the docker/singularity image can be
+built. Please get in touch!
 
 ### Using Singularity for local development
 
@@ -75,6 +78,14 @@ The next time the user enters in the singularity the virtual environment needs t
 **N.B.**: At the moment local changes implemented in this way are not propagated to jobs running on condor through Dask. 
 :::
 
+## Vanilla python package
+The PocketCoffea package has been published on Pypi. It can be installed with
+
+```bash
+$ pip install pocket-coffea
+```
+
+Using the singularity image is the recommened way of working with the package (on lxplus). 
 
 ## Manual installation in a Python environment
 
@@ -123,7 +134,7 @@ git clone git@github.com:PocketCoffea/PocketCoffea.git
     ```
 
 
-:::{admonition} Warning
+:::{admonition} N.B.
 :class: warning
-**N.B.: The CMSSW environment is not compatible with the package.**
+Installing the package in a CMSSW environment is not recommended and it is expected to fail.
 :::

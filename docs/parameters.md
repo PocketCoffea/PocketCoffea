@@ -35,10 +35,11 @@ pose any limitation.
 
 The **OmegaConf** ([docs](https://omegaconf.readthedocs.io/en/latest/index.html)) package has been chosen to handle the yaml parameters file: this allow us to compose different parameter sets and/or being able to dynamically overwrite part of a configuration.
 
-::::{tip}
-PocketCoffea defines a set of default parameters sets for the most common CMS parameters: lumi, jets calibrations, event
-flags, btagging working points. 
-::::
+:::{important}
+The `parameters` object is passed to the `Configurator` class (see [Configuration](./configuration.md)), which passes it
+inside the Coffea processor and to all the components of the framework. Therefore, the parameters object is the ideal
+container for all the the necessary metadata that are not part of the analysis configuration. 
+:::
 
 Let's have a look at one of the default parameters set defined in the PocketCoffea defaults in
 [`pocket_coffea/parameters/jet_scale_factors.yaml`](https://github.com/PocketCoffea/PocketCoffea/blob/main/pocket_coffea/parameters/jet_scale_factors.yaml)
@@ -76,6 +77,11 @@ jet_scale_factors:
         name: PUJetID_eff
 
 ```
+
+::::{tip}
+PocketCoffea defines a set of default parameters sets for the most common CMS parameters: lumi, jets calibrations, event
+flags, btagging working points. 
+::::
 
 The file contains a nested structure splitting the parameters by datataking period. Internally the jet scale factor application
 code in PocketCoffea will look for the `jet_scale_factors.btagSF` metadata when applying the btaggging scale factors. 

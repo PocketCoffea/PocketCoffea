@@ -49,7 +49,7 @@ $ runner.py --help
        -f, --full            Process all datasets at the same time
 ```
 
-# Easy debug
+## Easy debugging
 
 The easiest way to debug a new processor is to run locally on a single process. The `runner()` script has
 the `--test` options which enables the `iterative` processor independently from the running configuration specified in
