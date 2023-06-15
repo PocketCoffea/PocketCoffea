@@ -591,31 +591,14 @@ The scaleout configurations really depends on cluster and schedulers with differ
 
 ```python
 
-## Example for naf-desy
+## Example for CERN HTCondor submission
 run_options = {
-    "executor"       : "parsl/condor/naf-desy", # scheduler/cluster-type/site
-    "workers"        : 1, # cpus for each job
-    "scaleout"       : 300, # numbers of job
-    "queue"          : "microcentury",# job queue time for condor
-    "walltime"       : "00:40:00", # walltime for condor jobs
-    "disk_per_worker": "4GB", # disk size for each job(stored files)
-    "mem_per_worker" : "2GB", # RAM size for each job
-    "exclusive"      : False, # not used for condor
-    "chunk"          : 200000, #chunk size 
-    "retries"        : 20, # numbers of retries when job failes
-    "max"            : None, # numbers of chunks 
-    "skipbadfiles"   : None, # skip badfiles
-    "voms"           : None, # point to the voms certificate directory
-    "limit"          : None, # limited files
-    }
-    
-## Example for CERN
-run_options = {
-        "executor"       : "dask/condor",
+        "executor"       : "dask/lxplus",
         "env"            : "singularity",
         "workers"        : 1,
-        "scaleout"       : 300,
-        "queue"          : "standard",
+        "scaleout"       : 50,
+        "worker_image"   : "/cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-latest",
+        "queue"          : "microcentury",
         "walltime"       : "00:40:00",
         "mem_per_worker" : "4GB", # GB
         "disk_per_worker" : "1GB", # GB
