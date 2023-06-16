@@ -101,16 +101,17 @@ class MaskStorage:
 class MultiCut:
     """Class for keeping track of a list of cuts and their masks by index.
     The class is built from a list of Cut objects and cuts names.
+  
+    This class just wraps a list of Cuts to be used along with the CartesianSelection class.
+    This class is useful to build a 1D binning to be combined with other binnings
+    with a CartesianSelection.
 
     The `prepare()` methods instantiate a `PackedSelection` object
     to keep track of the masks. If the cuts are more than 64 the current
     implementation fails.
 
     The single masks can be retrieved by their index in the list
-    with the function `get_mask()`.
-
-    This object is useful to build a 1D binning to be combined
-    with a CartesianSelection with other binnings.
+    with the function `get_mask(cut_index)`
     """
 
     def __init__(self, name: str, cuts: List[Cut], cuts_names: List[str] = None):
@@ -133,7 +134,7 @@ class MultiCut:
                 and cut.collection != self.multidim_collection
             ):
                 raise Exception(
-                    f"Building a StandardSelection with cuts on differenct collections: {cut.collection} and {self.multidim_collection}"
+                    f"Building a MultiCut with cuts on differenct collections: {cut.collection} and {self.multidim_collection}"
                 )
 
         if cuts_names:
