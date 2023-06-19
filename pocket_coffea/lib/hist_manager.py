@@ -51,7 +51,7 @@ class HistConf:
         out["axes"] = []
         for a in self.axes:
             ax_dict = {}
-            for k,v in a.__dict__.item():
+            for k,v in a.__dict__.items():
                 if k !="transform":
                     ax_dict[k] = v
         return out

@@ -63,8 +63,10 @@ if __name__ == '__main__':
             logging.info(config)
             config.save_config(args.outputdir)
 
-        except AttributeError:
-            print("The provided configuration module does not contain a `cfg` attribute of type Configurator. Please check your configuration!")
+        except AttributeError as e:
+            print("Error: ", e)
+            raise("The provided configuration module does not contain a `cfg` attribute of type Configurator. Please check your configuration!")
+
         if not isinstance(config, Configurator):
             raise("The configuration module attribute `cfg` is not of type Configurator. Please check yuor configuration!")
 
