@@ -22,12 +22,12 @@ The user can customize the process from the confguration file or by redefining w
 :titlesonly:
 changelog.md
 installation.md
+analysis_example.md
 running.md
 concepts.md
 configuration.md
 parameters.md
 datasets.md
-analysis_example.md
 performance.md
 api.md
 ```
