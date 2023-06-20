@@ -439,6 +439,13 @@ class Shape:
                 loc=0,
                 ax=self.ax,
             )
+        else:
+            hep.cms.text(
+                "Preliminary",
+                fontsize=self.style.fontsize,
+                loc=0,
+                ax=self.ax,
+            )
         if self.toplabel:
             hep.cms.lumitext(
                 text=self.toplabel,
@@ -610,7 +617,7 @@ class Shape:
                 plot_dir = os.path.join(self.plot_dir, cat)
                 if not os.path.exists(plot_dir):
                     os.makedirs(plot_dir)
-                if log:
+                if self.log:
                     filepath = os.path.join(plot_dir, f"log_{self.name}_{cat}.png")
                 else:
                     filepath = os.path.join(plot_dir, f"{self.name}_{cat}.png")
