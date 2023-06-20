@@ -5,8 +5,7 @@
  / ____/ /_/ / /__/ ,< /  __/ /_/ /___/ /_/ / __/ __/  __/ /_/ / 
 /_/    \____/\___/_/|_|\___/\__/\____/\____/_/ /_/  \___/\__,_/  
 ```
-
-[![Actions Status][actions-badge]][actions-link]
+<!--[![Actions Status][actions-badge]][actions-link] -->
 [![Documentation Status][rtd-badge]][rtd-link]
 [![PyPI version][pypi-version]][pypi-link]
 [![PyPI platforms][pypi-platforms]][pypi-link]
