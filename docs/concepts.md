@@ -177,6 +177,121 @@ PocketCoffea implements a set of **factory methods** for common cut operations: 
 
 
 ## Output format
- 
- 
+The output of the PocketCoffea processors is standardize by the
+[`BaseProcessorABC`](pocket_coffea.workflow.base.BaseProcessorABC.output_format) base class. The user can always add to the
+`self.output` accumulator  custom objects. 
+
+The default output schema contains the following items:
+
+- **cutflow**: contains the number of MC events (not weighted) passing the skimming, preselection and each category. The
+    schema is `category:dataset:(sub)sample:N.events.
+  
+  For example (from the [#Z\rightarrow \mu\mu$ analysis example]):
+  ```python
+  out["cutflow"] = {
+    'initial': {
+        'DATA_SingleMuon_2018_EraA': 241608232,
+        'DYJetsToLL_M-50_2018': 195510810,
+        'DATA_SingleMuon_2018_EraD': 513909894,
+        'DATA_SingleMuon_2018_EraC': 109986009,
+        'DATA_SingleMuon_2018_EraB': 119918017
+        },
+    'skim': {
+        'DATA_SingleMuon_2018_EraA': 182721650,
+        'DYJetsToLL_M-50_2018': 42180665,
+        'DATA_SingleMuon_2018_EraD': 416492318,
+        'DATA_SingleMuon_2018_EraC': 89702938,
+        'DATA_SingleMuon_2018_EraB': 91326404
+        },
+    'presel': {
+        'DATA_SingleMuon_2018_EraA': 10474575,
+        'DYJetsToLL_M-50_2018': 24267626,
+        'DATA_SingleMuon_2018_EraD': 24042954,
+        'DATA_SingleMuon_2018_EraC': 5193039,
+        'DATA_SingleMuon_2018_EraB': 5305372
+        },
+    'baseline': {
+        'DATA_SingleMuon_2018_EraA': {'DATA_SingleMuon': 10474575},
+        'DYJetsToLL_M-50_2018': {'DYJetsToLL': 24267626},
+        'DATA_SingleMuon_2018_EraD': {'DATA_SingleMuon': 24042954},
+        'DATA_SingleMuon_2018_EraC': {'DATA_SingleMuon': 5193039},
+        'DATA_SingleMuon_2018_EraB': {'DATA_SingleMuon': 5305372}
+        }
+    }
+  ```
+  
+  If a dataset is split in more subsamples (by configuration), the output shows the number of events in each of the
+  subsample
+  
+  ```python
+  out["cutflow"] = {
+       ......
+      'baseline': {
+          'DATA_SingleEle_2018_EraD': {'DATA_SingleEle': 2901},
+          'DATA_SingleEle_2018_EraC': {'DATA_SingleEle': 3252},
+          'DATA_SingleEle_2018_EraB': {'DATA_SingleEle': 2763},
+          'DATA_SingleEle_2018_EraA': {'DATA_SingleEle': 2385},
+          'DATA_SingleEle_2017_EraF': {'DATA_SingleEle': 7162},
+          'DATA_SingleEle_2017_EraE': {'DATA_SingleEle': 6681},
+          'DATA_SingleEle_2017_EraD': {'DATA_SingleEle': 6003},
+          'DATA_SingleEle_2017_EraC': {'DATA_SingleEle': 4961},
+          'DATA_SingleEle_2017_EraB': {'DATA_SingleEle': 4709},
+
+          'TTToSemiLeptonic_2017': {
+              'TTToSemiLeptonic': 253530,
+              'TTToSemiLeptonic__=1b': 78524,
+              'TTToSemiLeptonic__=2b': 133595,
+              'TTToSemiLeptonic__>2b': 29690},
+          'TTToSemiLeptonic_2018': {
+              'TTToSemiLeptonic': 252951,
+              'TTToSemiLeptonic__=1b': 76406,
+              'TTToSemiLeptonic__=2b': 133971,
+              'TTToSemiLeptonic__>2b': 31414}},
+                
+    '1b': {
+        'DATA_SingleEle_2018_EraD': {'DATA_SingleEle': 901},
+        'DATA_SingleEle_2018_EraC': {'DATA_SingleEle': 984},
+        'DATA_SingleEle_2018_EraB': {'DATA_SingleEle': 879},
+        'DATA_SingleEle_2018_EraA': {'DATA_SingleEle': 762},
+        'DATA_SingleEle_2017_EraF': {'DATA_SingleEle': 2185},
+        'DATA_SingleEle_2017_EraE': {'DATA_SingleEle': 2063},
+        'DATA_SingleEle_2017_EraD': {'DATA_SingleEle': 1881},
+        'DATA_SingleEle_2017_EraC': {'DATA_SingleEle': 1530},
+        'DATA_SingleEle_2017_EraB': {'DATA_SingleEle': 1457},
+            
+        'TTToSemiLeptonic_2017': {
+            'TTToSemiLeptonic': 97865,
+            'TTToSemiLeptonic__=1b': 72355,
+            'TTToSemiLeptonic__=2b': 23417,
+            'TTToSemiLeptonic__>2b': 2093},
+        'TTToSemiLeptonic_2018': {
+            'TTToSemiLeptonic': 96522,
+            'TTToSemiLeptonic__=1b': 70336,
+            'TTToSemiLeptonic__=2b': 23890,
+            'TTToSemiLeptonic__>2b': 2296}}
+    }
+
+  ```
+
+- **sumw**: contains the total number of weighted MC events in each category of the analysis for each dataset and
+  (sub)sample. The two levels are necessary since each dataset may be split in multiple subsamples.
+  
+  ```python
+  out["sumw"] = {'baseline': { 'DYJetsToLL_M-50_2018': {'DYJetsToLL': 44614145.4945453}}}                                
+  ```
+
+- **sum_genweights**: Total sum of the generator weights for each dataset. This is used in the base processor
+  `postprocessing()` function to rescale automatically all the histograms and `sumw`. It is also kept in the output for
+  later uses.
+  
+  ```python
+  out["sum_genweights"] =  {'DYJetsToLL_M-50_2018': 3323477400000.0}
+  ```
+
+- **variables**
+
+- **columns**
+
+- **datasets_metadata**
+
 
