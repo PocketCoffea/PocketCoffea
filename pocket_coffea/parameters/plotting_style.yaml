@@ -1,0 +1,81 @@
+plotting_style:
+
+    collapse_datasets: true     # Plot all the datasets with the same sample as a single shape 
+    fontsize: 22
+    fontsize_legend_ratio: 12
+    
+
+    opts_figure:
+      datamc:
+        figsize: [12,9]
+      datamc_ratio:
+        figsize: [12,12]
+        gridspec_kw:
+          height_ratios: [3,1]
+        sharex: true
+        
+      partial:
+        figsize: [12,15]
+        gridspec_kw:
+          height_ratios: [3,1]
+        sharex: true
+
+    opts_data:
+      color: black
+      elinewidth: 1
+      label: Data
+      linestyle: solid
+      linewidth: 0
+      marker: .
+      markersize: 5.0
+
+      
+    opts_mc:
+      histtype: "fill"
+      stack: true
+      flow: "sum"  # add underflow and overflow bin to first/last bin
+      edges: false
+      
+    opts_syst:
+      down:
+        color: blue
+        linestyle: dotted
+        linewidth: 1
+      nominal:
+        color: black
+        linestyle: solid
+        linewidth: 1
+      up:
+        color: red
+        linestyle: dashed
+        linewidth: 1
+        
+    opts_unc:
+      Down:
+        elinewidth: 1
+        linestyle: dotted
+        linewidth: 1
+        marker: .
+        markersize: 1.0
+      Up:
+        elinewidth: 1
+        linestyle: dashed
+        linewidth: 1
+        marker: .
+        markersize: 1.0
+        
+      total:
+        color: [0.,0.,0.,0.4]
+        facecolor: [0.,0.,0.,0.]
+        hatch: "////"
+        linewidth: 0
+        step: post
+        zorder: 2
+        
+    plot_upper_label:
+      by_year:
+        "2016_PreVFP": "${pico_to_femto:${lumi.picobarns.2016_PreVFP.tot}}"
+        "2016_PostVFP": "${pico_to_femto:${lumi.picobarns.2016_PostVFP.tot}}"
+        "2017": "${pico_to_femto:${lumi.picobarns.2017.tot}}"
+        "2018": "${pico_to_femto:${lumi.picobarns.2018.tot}}"
+
