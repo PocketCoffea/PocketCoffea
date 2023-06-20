@@ -54,6 +54,7 @@ class PlotManager:
         datasets_metadata,
         plot_dir,
         style_cfg,
+        toplabel=None,
         only_cat=None,
         workers=8,
         log=False,
@@ -69,6 +70,7 @@ class PlotManager:
         self.density = density
         self.save = save
         self.nhists = len(variables)
+        self.toplabel = toplabel
 
         # Reading the datasets_metadata to
         # build the correct shapes for each datataking year
@@ -91,6 +93,12 @@ class PlotManager:
         for variable, histoplot in self.hists_to_plot.items():
             for year, h_dict in histoplot.items():
                 name = '_'.join([variable, year])
+                # If toplabel is overwritten we use that, if not we take the lumi from the year
+                if self.toplabel:
+                    toplabel_to_use = self.toplabel
+                else:
+                    toplabel_to_use = f"$\mathcal{{L}}$ = {style_cfg.plot_upper_label.by_year[year]:.2f}/fb"
+                
                 self.shape_objects[name] = Shape(
                     h_dict,
                     datasets_metadata["by_dataset"],
@@ -100,9 +108,10 @@ class PlotManager:
                     only_cat=self.only_cat,
                     log=self.log,
                     density=self.density,
+                    toplabel=toplabel_to_use
                 )
 
-    def plot_datamc(self, name, syst=True, toplabel=None, spliteras=False):
+    def plot_datamc(self, name, syst=True, spliteras=False):
         '''Plots one histogram, for all years and categories.'''
         print("Plotting: ", name)
         shape = self.shape_objects[name]
@@ -110,15 +119,19 @@ class PlotManager:
             ratio = False
         else:
             ratio = True
-        shape.plot_datamc_all(ratio, syst, toplabel=toplabel, spliteras=spliteras, save=self.save)
+        shape.plot_datamc_all(ratio, syst, spliteras=spliteras, save=self.save)
 
-    def plot_datamc_all(self, syst=True, toplabel=None, spliteras=False):
+    def plot_datamc_all(self, syst=True,  spliteras=False):
         '''Plots all the histograms contained in the dictionary, for all years and categories.'''
         shape_names = list(self.shape_objects.keys())
-        with Pool(processes=self.workers) as pool:
-            # Parallel calls of plot_datamc() on different shape objects
-            pool.map(partial(self.plot_datamc, syst=syst, toplabel=toplabel, spliteras=spliteras), shape_names)
-            pool.close()
+        if self.workers > 1:
+            with Pool(processes=self.workers) as pool:
+                # Parallel calls of plot_datamc() on different shape objects
+                pool.map(partial(self.plot_datamc, syst=syst, spliteras=spliteras), shape_names)
+                pool.close()
+        else:
+            for shape in shape_names:
+                self.plot_datamc(shape, syst=syst, spliteras=spliteras)
 
 
 class Shape:
@@ -127,8 +140,7 @@ class Shape:
     - h_dict: dictionary of histograms, with the following structure {}
     - name: name that identifies the Shape object.
     - style_cfg: dictionary with style and plotting options.
-    - data_key: prefix for data samples (e.g. default in PocketCoffea: "DATA_SingleEle")'''
-
+    '''
     def __init__(
         self,
         h_dict,
@@ -136,6 +148,7 @@ class Shape:
         name,
         plot_dir,
         style_cfg,
+        toplabel=None,
         only_cat=None,
         log=False,
         density=False,
@@ -145,6 +158,7 @@ class Shape:
         self.plot_dir = plot_dir
         self.only_cat = only_cat if only_cat is not None else []
         self.style = Style(style_cfg)
+        self.toplabel = toplabel if toplabel else ""
         if self.style.has_lumi:
             self.lumi_fraction = {year : l / lumi[year]['tot'] for year, l in self.style.lumi_processed.items()}
         self.log = log
@@ -187,10 +201,7 @@ class Shape:
         self.xbinwidth = np.ediff1d(self.xedges)
         self.is_mc_only = True if len(self.samples_data) == 0 else False
         self.is_data_only = True if len(self.samples_mc) == 0 else False
-        # if self.is_data_only | (not self.is_mc_only):
-        #     self.lumi = {
-        #         year: femtobarn(lumi[year]['tot'], digits=1) for year in self.years
-        #     }
+
         
     @property
     def dense_axes(self):
@@ -409,7 +420,7 @@ class Shape:
         '''Instantiates the `SystUnc` objects and stores them in a dictionary with one entry for each systematic uncertainty.'''
         self.syst_manager = SystManager(self, self.style)
 
-    def define_figure(self, ratio=True,  toplabel=None):
+    def define_figure(self, ratio=True):
         '''Defines the figure for the Data/MC plot.
         If ratio is True, a subplot is defined to include the Data/MC ratio plot.'''
         plt.style.use([hep.style.ROOT, {'font.size': self.style.fontsize}])
@@ -428,9 +439,9 @@ class Shape:
                 loc=0,
                 ax=self.ax,
             )
-        if toplabel:
+        if self.toplabel:
             hep.cms.lumitext(
-                text=toplabel,
+                text=self.toplabel,
                 fontsize=self.style.fontsize,
                 ax=self.ax,
             )
@@ -517,8 +528,6 @@ class Shape:
         self.get_datamc_ratio()
         if ax:
             self.rax = rax
-        print(self.ratio, self.ratio_unc)
-        print(np.sum(self.ratio_unc < 0))
         self.rax.errorbar(
             self.xcenters, self.ratio, yerr=self.ratio_unc, **self.style.opts_data
         )
@@ -586,24 +595,25 @@ class Shape:
 
         self.format_figure(ratio)
 
-    def plot_datamc_all(self, ratio=True, syst=True, toplabel=None, spliteras=False, save=True):
+    def plot_datamc_all(self, ratio=True, syst=True, spliteras=False, save=True):
         '''Plots the data and MC histograms for each year and category contained in the histograms.
         If ratio is True, also the Data/MC ratio plot is plotted.
         If syst is True, also the total systematic uncertainty is plotted.'''
         for cat in self.categories:
             if self.only_cat and cat not in self.only_cat:
                 continue
-            self.define_figure(ratio, toplabel)
+            self.define_figure(ratio)
             self.build_stacks(cat, spliteras)
             self.get_systematic_uncertainty()
             self.plot_datamc(ratio, syst)
             if save:
                 plot_dir = os.path.join(self.plot_dir, cat)
-                if self.log:
-                    plot_dir = os.path.join(plot_dir, "log")
                 if not os.path.exists(plot_dir):
                     os.makedirs(plot_dir)
-                filepath = os.path.join(plot_dir, f"{self.name}_{cat}.png")
+                if log:
+                    filepath = os.path.join(plot_dir, f"log_{self.name}_{cat}.png")
+                else:
+                    filepath = os.path.join(plot_dir, f"{self.name}_{cat}.png")
                 print("Saving", filepath)
                 plt.savefig(filepath, dpi=150, format="png")
             else:
