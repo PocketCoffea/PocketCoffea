@@ -13,14 +13,13 @@ from matplotlib.pyplot import cm
 from matplotlib.ticker import MultipleLocator, AutoMinorLocator
 import mplhep as hep
 
-from ..parameters.lumi import lumi, femtobarn
-from ..parameters.plotting import style_cfg
 
 
 class Style:
     '''This class manages all the style options for Data/MC plots.'''
 
-    def __init__(self, style_cfg=style_cfg) -> None:
+    def __init__(self, style_cfg) -> None:
+        self.style_cfg = style_cfg
         required_keys = ["opts_figure", "opts_mc", "opts_data", "opts_unc"]
         for key in required_keys:
             assert (
@@ -29,14 +28,13 @@ class Style:
         for key, item in style_cfg.items():
             setattr(self, key, item)
         self.has_labels = False
-        self.has_samples_map = False
+        self.has_samples_groups = False
         self.has_lumi = False
         if "labels" in style_cfg:
             self.has_labels = True
-        if "samples_map" in style_cfg:
-            self.has_samples_map = True
-        if "lumi_processed" in style_cfg:
-            self.has_lumi = True
+        if "samples_groups" in style_cfg:
+            self.has_samples_groups = True
+
         self.set_defaults()
 
     def set_defaults(self):
@@ -55,8 +53,8 @@ class PlotManager:
         hist_objs,
         datasets_metadata,
         plot_dir,
+        style_cfg,
         only_cat=None,
-        style_cfg=style_cfg,
         workers=8,
         log=False,
         density=False,
@@ -98,20 +96,21 @@ class PlotManager:
                     datasets_metadata["by_dataset"],
                     name,
                     plot_dir,
-                    only_cat=self.only_cat,
                     style_cfg=style_cfg,
+                    only_cat=self.only_cat,
                     log=self.log,
                     density=self.density,
                 )
 
     def plot_datamc(self, name, syst=True, toplabel=None, spliteras=False):
         '''Plots one histogram, for all years and categories.'''
+        print("Plotting: ", name)
         shape = self.shape_objects[name]
         if ((shape.is_mc_only) | (shape.is_data_only)):
             ratio = False
         else:
             ratio = True
-        shape.plot_datamc_all(ratio, syst, toplabel=toplabel, spliteras=spliteras,  save=self.save)
+        shape.plot_datamc_all(ratio, syst, toplabel=toplabel, spliteras=spliteras, save=self.save)
 
     def plot_datamc_all(self, syst=True, toplabel=None, spliteras=False):
         '''Plots all the histograms contained in the dictionary, for all years and categories.'''
@@ -136,8 +135,8 @@ class Shape:
         datasets_metadata, 
         name,
         plot_dir,
+        style_cfg,
         only_cat=None,
-        style_cfg=style_cfg,
         log=False,
         density=False,
     ) -> None:
@@ -315,11 +314,11 @@ class Shape:
         else:
             raise NotImplementedError("Plotting histograms without collapsing is still not implemented")
         
-        if not self.style.has_samples_map:
+        if not self.style.has_samples_groups:
             return
         h_dict_grouped = {}
         samples_in_map = []
-        for sample_new, samples_list in self.style.samples_map.items():
+        for sample_new, samples_list in self.style.samples_groups.items():
             h_dict_grouped[sample_new] = self._stack_sum(
                 stack=hist.Stack.from_dict(
                     {s: h for s, h in self.h_dict.items() if s in samples_list}
@@ -393,7 +392,13 @@ class Shape:
     def get_datamc_ratio(self):
         '''Computes the data/MC ratio and the corresponding uncertainty.'''
         num = self.stack_sum_data.values()
+
         den = self.stack_sum_mc_nominal.values()
+
+        if np.any(den <0 ):
+            print(f"WARNING: negative bins in MC of shape {self.name}. BE CAREFUL! Putting negative bins to 0 for plotting..")
+        den[den < 0] = 0
+            
         self.ratio = num / den
         # TO DO: Implement Poisson interval valid also for num~0
         # np.sqrt(num) is just an approximation of the uncertainty valid at large num
@@ -402,7 +407,7 @@ class Shape:
 
     def get_systematic_uncertainty(self):
         '''Instantiates the `SystUnc` objects and stores them in a dictionary with one entry for each systematic uncertainty.'''
-        self.syst_manager = SystManager(self)
+        self.syst_manager = SystManager(self, self.style)
 
     def define_figure(self, ratio=True,  toplabel=None):
         '''Defines the figure for the Data/MC plot.
@@ -429,7 +434,7 @@ class Shape:
                 fontsize=self.style.fontsize,
                 ax=self.ax,
             )
-     
+        
 
     def format_figure(self, ratio=True):
         '''Formats the figure's axes, labels, ticks, xlim and ylim.'''
@@ -512,6 +517,8 @@ class Shape:
         self.get_datamc_ratio()
         if ax:
             self.rax = rax
+        print(self.ratio, self.ratio_unc)
+        print(np.sum(self.ratio_unc < 0))
         self.rax.errorbar(
             self.xcenters, self.ratio, yerr=self.ratio_unc, **self.style.opts_data
         )
@@ -607,19 +614,20 @@ class Shape:
 class SystManager:
     '''This class handles the systematic uncertainties of 1D MC histograms.'''
 
-    def __init__(self, datamc: Shape, has_mcstat=True) -> None:
-        self.datamc = datamc
+    def __init__(self, shape: Shape, style_cfg: Style,  has_mcstat=True) -> None:
+        self.shape = shape
+        self.style_cfg = style_cfg
         assert all(
             [
                 (var == "nominal") | var.endswith(("Up", "Down"))
-                for var in self.datamc.variations
+                for var in self.shape.variations
             ]
         ), "All the variations names that are not 'nominal' must end in 'Up' or 'Down'."
         self.variations_up = [
-            var for var in self.datamc.variations if var.endswith("Up")
+            var for var in self.shape.variations if var.endswith("Up")
         ]
         self.variations_down = [
-            var for var in self.datamc.variations if var.endswith("Down")
+            var for var in self.shape.variations if var.endswith("Down")
         ]
         assert len(self.variations_up) == len(
             self.variations_down
@@ -630,11 +638,11 @@ class SystManager:
         self.syst_dict = {}
 
         for syst_name in self.systematics:
-            self.syst_dict[syst_name] = SystUnc(self.datamc, syst_name)
+            self.syst_dict[syst_name] = SystUnc(self.style_cfg, self.shape, syst_name)
 
     @property
     def total(self):
-        total = SystUnc(name="total", syst_list=list(self.syst_dict.values()))
+        total = SystUnc(style_cfg = self.style_cfg, name="total", syst_list=list(self.syst_dict.values()))
         return total
 
     @property
@@ -653,9 +661,9 @@ class SystUnc:
     returning a `SystUnc` instance corresponding to their sum in quadrature.'''
 
     def __init__(
-        self, datamc: Shape = None, name: str = None, syst_list: list = None
+            self, style_cfg, shape: Shape = None, name: str = None, syst_list: list = None
     ) -> None:
-        self.datamc = datamc
+        self.shape = shape
         self.name = name
         self.is_mcstat = self.name == "mcstat"
 
@@ -663,23 +671,22 @@ class SystUnc:
         self.nominal = 0.0
         self.err2_up = 0.0
         self.err2_down = 0.0
-        if datamc:
+        self.style = style_cfg
+        if shape:
             if syst_list:
                 raise Exception(
-                    "The initialization of the instance is ambiguous. Either a `DataMC` object or a list of `SystUnc` objects should be passed to the constructor."
+                    "The initialization of the instance is ambiguous. Either a `Shape` object or a list of `SystUnc` objects should be passed to the constructor."
                 )
             else:
                 self.syst_list = [self]
             self._get_err2()
-            # Inherit style from Shape object
-            self.style = self.datamc.style
             # Full nominal MC including all MC samples
-            self.h_mc_nominal = self.datamc.stack_sum_mc_nominal
+            self.h_mc_nominal = self.shape.stack_sum_mc_nominal
             self.nominal = self.h_mc_nominal.values()
-            self.xlabel = self.datamc.xlabel
-            self.xcenters = self.datamc.xcenters
-            self.xedges = self.datamc.xedges
-            self.xbinwidth = self.datamc.xbinwidth
+            self.xlabel = self.shape.xlabel
+            self.xcenters = self.shape.xcenters
+            self.xedges = self.shape.xedges
+            self.xbinwidth = self.shape.xbinwidth
         elif syst_list:
             self.syst_list = syst_list
             assert (
@@ -689,8 +696,6 @@ class SystUnc:
                 (self._n_empty == 1) & (self.nsyst == 1)
             ), "Attempting to intialize a `SystUnc` instance with an empty systematic uncertainty."
             self._get_err2_from_syst()
-            # Get default style
-            self.style = Style()
 
     def __add__(self, other):
         '''Sum in quadrature of two systematic uncertainties.
@@ -754,7 +759,7 @@ class SystUnc:
         a Shape object. The corresponding up/down squared uncertainties are stored and take
         into account the possibility for the uncertainty to be one-sided.'''
         # Loop over all the MC samples and sum the systematic uncertainty in quadrature
-        for h in self.datamc.stack_mc:
+        for h in self.shape.stack_mc:
             # Nominal variation for a single MC sample
             h_nom = h[{'variation': 'nominal'}]
             nom = h_nom.values()
@@ -795,7 +800,7 @@ class SystUnc:
         plt.style.use([hep.style.ROOT, {'font.size': self.style.fontsize}])
         plt.rcParams.update({'font.size': self.style.fontsize})
         if not ax:
-            self.fig, self.ax = plt.subplots(1, 1, **self.style.opts_figure["datamc"])
+            self.fig, self.ax = plt.subplots(1, 1, **self.style.opts_figure["shape"])
         else:
             self.ax = ax
             self.fig = self.ax.get_figure
