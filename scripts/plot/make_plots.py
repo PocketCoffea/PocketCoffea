@@ -15,7 +15,6 @@ parser = argparse.ArgumentParser(description='Plot histograms from coffea file')
 parser.add_argument('--cfg',  help='Config file with parameters specific to the current run', required=True)
 parser.add_argument("-o", "--outputdir", required=True, type=str, help="Output folder")
 parser.add_argument("-i", "--inputfile", required=True, type=str, help="Input file")
-parser.add_argument('-v', '--version', type=str, default=None, help='Version of output (e.g. `v01`, `v02`, etc.)')
 parser.add_argument('-j', '--workers', type=int, default=1, help='Number of parallel workers to use for plotting')
 #parser.add_argument('-o', '--only', type=str, default='', help='Filter histograms name with string', required=False)
 parser.add_argument('-oc', '--only_cat', type=str, nargs="+", help='Filter categories with string', required=False)
@@ -26,7 +25,6 @@ parser.add_argument('--partial_unc_band', action='store_true', help='Plot only t
 parser.add_argument('--overwrite', action='store_true', help='Overwrite plots in output folder')
 parser.add_argument('--log', action='store_true', help='Set y-axis scale to log')
 parser.add_argument('--density', action='store_true', help='Set density parameter to have a normalized plot')
-parser.add_argument('-d', '--data_key', type=str, default='DATA', help='Prefix for data samples', required=False)
 
 args = parser.parse_args()
 

@@ -667,10 +667,68 @@ Loading the configuration file...
   - available weights variations: {'DATA_SingleMuon': ['nominal', 'sf_mu_iso', 'pileup', 'sf_mu_id'], 'DYJetsToLL': ['nominal', 'sf_mu_iso', 'pileup', 'sf_mu_id']} 
   - available shape variations: {'DATA_SingleMuon': [], 'DYJetsToLL': []}
 Saving config file to output_all/config.json
-....
+
+# DASK output starts here
 ```
 
 
 ## Produce plots
 
-To be completed
+Once the processing is done, the output folder looks like
+
+```bash
+(pocket-coffea) ➜  output_folder git:(main) ✗ lrt
+total 146M
+-rw-r--r-- 1 user group  31K Jun 19 11:34 parameters_dump.yaml
+-rw-r--r-- 1 user group 126K Jun 19 11:34 config.json
+-rw-r--r-- 1 user group  20M Jun 19 11:34 configurator.pkl
+-rw-r--r-- 1 user group 144M Jun 19 11:52 output_all.coffea
+```
+
+The parameters used in the processing are dumped, as well as a human-readable version of the config file in json format,
+and a machine-readable `Configurator` object in `cloudpickle` format.
+
+To produce plots, for each category and variable defined in the configuration a `make_plots.py` script is available:
+
+```bash
+$ make_plots.py --help
+
+usage: make_plots.py [-h] --cfg CFG -o OUTPUTDIR -i INPUTFILE [-v VERSION] [-j WORKERS] [-oc ONLY_CAT [ONLY_CAT ...]] [-os ONLY_SYST [ONLY_SYST ...]] [-e EXCLUDE] [--split_systematics] [--partial_unc_band] [--overwrite] [--log] [--density] [-d DATA_KEY]
+
+Plot histograms from coffea file
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --cfg CFG             Config file with parameters specific to the current run
+  -o OUTPUTDIR, --outputdir OUTPUTDIR
+                        Output folder
+  -i INPUTFILE, --inputfile INPUTFILE
+                        Input file
+  -j WORKERS, --workers WORKERS
+                        Number of parallel workers to use for plotting
+  -oc ONLY_CAT [ONLY_CAT ...], --only_cat ONLY_CAT [ONLY_CAT ...]
+                        Filter categories with string
+  -os ONLY_SYST [ONLY_SYST ...], --only_syst ONLY_SYST [ONLY_SYST ...]
+                        Filter systematics with a list of strings
+  -e EXCLUDE, --exclude EXCLUDE
+                        Exclude categories with string
+  --split_systematics   Split systematic uncertainties in the ratio plot
+  --partial_unc_band    Plot only the partial uncertainty band corresponding to the systematics specified as the argument `only_syst`
+  --overwrite           Overwrite plots in output folder
+  --log                 Set y-axis scale to log
+  --density             Set density parameter to have a normalized plot
+
+```
+
+
+By running: 
+
+```bash
+$ cd output
+$ make_plots.py --cfg configurator.pkl -o plots -i output_all.coffea -j 6 --log
+```
+
+all the plots are created in the `plots` folder.  The structure of the output and the dataset metadata dictionary
+contained in the output file are used to compose the samples list forming the stack of histograms. 
+
+![](./images/mll_2018_baseline.png)
