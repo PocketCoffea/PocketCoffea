@@ -48,9 +48,6 @@ elif args.cfg[-4:] == ".pkl":
 else:
     raise sys.exit("Please provide a .py/.pkl configuration file")
 
-#print("Starting ", end='')
-#print(time.ctime())
-#start = time.time()
 
 if os.path.isfile( args.inputfile ): accumulator = load(args.inputfile)
 else: sys.exit(f"Input file '{args.inputfile}' does not exist")

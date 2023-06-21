@@ -9,6 +9,7 @@ from copy import deepcopy
 import copy
 import os
 import logging
+import time
 
 from coffea import processor
 from coffea.lumi_tools import LumiMask
@@ -87,7 +88,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             },
             "columns": {},
             "processing_metadata": {
-                v: {} for v, vcfg in self.cfg.variables.items() if vcfg.metadata_hist
+                v: defaultdict(dict)
+                for v, vcfg in self.cfg.variables.items()
+                if vcfg.metadata_hist
             },
             "datasets_metadata":{ } #year:sample:subsample
         }
@@ -392,7 +395,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         Only one HistManager is created for all the subsamples.
         The subsamples masks are passed to `fill_histogram` and used internally.
         '''
-        self.hists_managers = HistManager(
+        self.hists_manager = HistManager(
             self.cfg.variables,
             self._year,
             self._sample,
@@ -422,7 +425,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
         # Filling the autofill=True histogram automatically
         # Calling hist manager with the subsample masks
-        self.hists_managers.fill_histograms(
+        self.hists_manager.fill_histograms(
             self.events,
             self.weights_manager,
             self._categories,
@@ -438,9 +441,10 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 name = f"{self._sample}__{subs}"
             else:
                 name = self._sample
-            for var, H in self.hists_managers.get_histograms(subs).items():
+            for var, H in self.hists_manager.get_histograms(subs).items():
                 self.output["variables"][var][name][self._dataset] = H
-                
+
+        
 
     def fill_histograms_extra(self, variation):
         '''
@@ -517,6 +521,53 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
     def process_extra_after_presel(self, variation):
         pass
+
+    def save_processing_metadata(self):
+        # Filling the special histograms for processing metadata if they are present
+        total_processing_time = self.stop_time - self.start_time # in seconds
+        add_axes = {"variation":"nominal"} if self._isMC else {}  
+        if self._hasSubsamples:
+            for subs in self._subsamples[self._sample].keys():
+                for k, n in zip(["initial", "skim","presel"],
+                                [self.nEvents_initial, self.nEvents_after_skim, self.nEvents_after_presel ]):
+                    if hepc := self.hists_manager.get_histogram(subs, f"events_per_chunk_{k}"):
+                        hepc.hist_obj.fill(
+                            cat=hepc.only_categories[0],
+                            nevents=n,
+                            **add_axes
+                        )
+                        self.output["processing_metadata"][f"events_per_chunk_{k}"][
+                            f"{self._sample}__{subs}"][self._dataset] = hepc.hist_obj
+                        
+                    if hepc := self.hists_manager.get_histogram(subs, f"throughput_per_chunk_{k}"):
+                        hepc.hist_obj.fill(
+                            cat=hepc.only_categories[0],
+                            throughput=n/total_processing_time,
+                            **add_axes
+                        )
+                        self.output["processing_metadata"][f"throughput_per_chunk_{k}"][
+                            f"{self._sample}__{subs}"][self._dataset] = hepc.hist_obj
+        else:
+            for k, n in zip(["initial", "skim","presel"],
+                            [self.nEvents_initial, self.nEvents_after_skim, self.nEvents_after_presel ]):
+                if hepc := self.hists_manager.get_histogram(self._sample, f"events_per_chunk_{k}"):
+                    hepc.hist_obj.fill(
+                        cat=hepc.only_categories[0],
+                        nevents=n,
+                        **add_axes
+                    )
+                    self.output["processing_metadata"][f"events_per_chunk_{k}"][
+                        self._sample][self._dataset] = hepc.hist_obj
+
+                if hepc := self.hists_manager.get_histogram(self._sample, f"throughput_per_chunk_{k}"):
+                    hepc.hist_obj.fill(
+                        cat=hepc.only_categories[0],
+                        throughput=n/total_processing_time,
+                        **add_axes
+                    )
+                    self.output["processing_metadata"][f"throughput_per_chunk_{k}"][
+                        self._sample][self._dataset] = hepc.hist_obj
+        
 
     @classmethod
     def available_variations(cls):
@@ -641,7 +692,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
           - define histograms
           - count events in each category
         '''
-
+        self.start_time = time.time()
         self.events = events
         # Define the accumulator instance for this chunk
         self.output = copy.deepcopy(self.output_format)
@@ -733,6 +784,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             if variation == "nominal":
                 self.count_events(variation)
 
+        self.stop_time = time.time()
+        self.save_processing_metadata()
         return self.output
 
 
@@ -791,4 +844,5 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             else:
                 dmeta["by_datataking_period"][year][sample].add(dataset)
 
+        
         return accumulator
