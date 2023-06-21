@@ -191,7 +191,7 @@ voms-proxy-init -voms cms -rfc --valid 168:0
 build_datasets.py --cfg datasets/dataset_definitions.json -o
 
 # if you are running at CERN it is useful to restrict the data sources to Tiers closer to CERN
-build_datasets.py --cfg datasets/dataset_definitions.json -o -rs 'T[123]_(FR|IT|BE|CH|DE)_\w+'
+build_datasets.py --cfg datasets/datasets_definitions.json -o -rs 'T[123]_(FR|IT|BE|CH|DE)_\w+'
 ```
 
 Four ``json`` files are produced as output, two for each dataset: a version includes file paths with a specific prefix
@@ -598,7 +598,14 @@ cfg = Configurator(
 	
 ## Run the processor
 
-Run the coffea processor to get ``.coffea`` output files. The ``coffea`` processor can be run locally with ``iterative`` or ``futures`` executors or scaleout to clusters. We now test the setup on ``lxplus``, ``naf-desy`` but more sites can also be included later.
+Run the coffea processor to get ``.coffea`` output files. The ``coffea`` processor can be run locally or be scaled out
+to clusters:
+- ``iterative`` execution runs single thread locally and it useful for debugging
+- ``futures`` execute the processor in multiple threads locally and it can be usefull for fast processing of a small
+  amount of file.
+- ``dask/lxplus`` uses the dask scheduler with lxplus the configuration to send out workers on HTCondor jobs.
+  
+We can now test the setup on ``lxplus` but more sites can also be included later.
 
 ```bash
 # read all information from the config file
@@ -606,7 +613,7 @@ runner.py --cfg example_config.py --full  -o output_v1
 
 # iterative run is also possible
 ## run --test for iterative processor with ``--limit-chunks/-lc``(default:2) and ``--limit-files/-lf``(default:1)
-runner.py --cfg example_config.py  --full --test --lf 1 --lc  2 -o output_v1
+runner.py --cfg example_config.py  --full --test -lf 1 -lc  2 -o output_v1
 
 ## change the --executor and numbers of jobs with -s/--scaleout
 runner.py --cfg example_config.py  --full --executor futures -s 10 -o output_v1

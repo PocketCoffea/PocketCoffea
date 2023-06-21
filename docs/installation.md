@@ -121,13 +121,14 @@ git clone git@github.com:PocketCoffea/PocketCoffea.git
    c) A conda environment:
 
       ```bash
-      conda env create --name pocket-coffea python=3.8
+      conda env create --name pocket-coffea python=3.9
       conda activate pocket-coffea
       ```
 
 3) Install the PocketCoffea package locally, so that you can also edit the package files:
 
     ```bash
+    cd PocketCoffea
     pip install -e .
     # For developers
     pip install -e .[dev,docs]
