@@ -119,10 +119,13 @@ git clone git@github.com:PocketCoffea/PocketCoffea.git
       ```
 
    c) A conda environment:
+   [**micromamba**](https://mamba.readthedocs.io/en/latest/user_guide/micromamba.html) is the recommended version of *conda* to use: it is lighter and faster than a conda/miniconda environment.
 
       ```bash
-      conda env create --name pocket-coffea python=3.9
-      conda activate pocket-coffea
+      # Install micromamba
+      curl micro.mamba.pm/install.sh | bash
+      micromamba create -n pocket-coffea python=3.9
+      micromamba activate pocket-coffea
       ```
 
 3) Install the PocketCoffea package locally, so that you can also edit the package files:
