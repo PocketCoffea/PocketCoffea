@@ -285,7 +285,7 @@ class HistManager:
         }
 
     def get_histogram(self, subsample, name):
-        return self.histograms[subsample][name]
+        return self.histograms[subsample].get(name, None)
 
     def __prefetch_weights(self, category, shape_variation):
         '''
