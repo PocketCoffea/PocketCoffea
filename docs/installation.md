@@ -90,7 +90,7 @@ Using the singularity image is the recommened way of working with the package (o
 ## Manual installation in a Python environment
 
 If you don't need to run on batch systems, but only locally, the package can be installed in the python environment of
-your choice: **conda**, **virtualenv**, **venv**, LCG**.
+your choice: **conda**, **virtualenv**, **venv**, **LCG**.
 
 1) Clone the repository in your preferred location:
 
@@ -98,31 +98,31 @@ your choice: **conda**, **virtualenv**, **venv**, LCG**.
 git clone git@github.com:PocketCoffea/PocketCoffea.git
 ```
 
-2) Define the python environment
+2) Now define the python environment using **alternatively**  a virtual env, or conda:
 
-   a) It can be LCG:
+   a) The user can use a LCG environment as a base (to avoid having to download many packages)  with a virtual environment on top:
 
       ```bash
       source /cvmfs/sft.cern.ch/lcg/views/LCG_103/x86_64-centos7-gcc11-opt/setup.sh
-      ```
-
-   b) A python virtual       
-
-      ```bash
       python -m venv --system-site-packages myenv
+      source myenv/bin/activate
       ```
 
       The creation of the `venv` is necessary only the first time, then you can just activate it:
       
       ```bash
+      source /cvmfs/sft.cern.ch/lcg/views/LCG_103/x86_64-centos7-gcc11-opt/setup.sh
       source myenv/bin/activate
       ```
 
    c) A conda environment:
+   [**micromamba**](https://mamba.readthedocs.io/en/latest/user_guide/micromamba.html) is the recommended version of *conda* to use: it is lighter and faster than a conda/miniconda environment.
 
       ```bash
-      conda env create --name pocket-coffea python=3.9
-      conda activate pocket-coffea
+      # Install micromamba
+      curl micro.mamba.pm/install.sh | bash
+      micromamba create -n pocket-coffea python=3.9 -c conda-forge
+      micromamba activate pocket-coffea
       ```
 
 3) Install the PocketCoffea package locally, so that you can also edit the package files:
