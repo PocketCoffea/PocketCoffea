@@ -173,12 +173,41 @@ def getNjetNb_cut(njet, nb):
 PocketCoffea implements a set of **factory methods** for common cut operations: they are defined in [cut functions](pocket_coffea.lib.cut_functions).
 
 
-## Configuration preservation
+## Analysis configuration preservation
+The configuration of each analysis run is preserved by saving along the output all the necessary metadata to reproduce
+it.  Once the processing is done, the output folder looks like:
 
+```bash
+(pocket-coffea) ➜  output_folder git:(main) ✗ lrt
+total 146M
+-rw-r--r-- 1 user group  31K Jun 19 11:34 parameters_dump.yaml
+-rw-r--r-- 1 user group 126K Jun 19 11:34 config.json
+-rw-r--r-- 1 user group  20M Jun 19 11:34 configurator.pkl
+-rw-r--r-- 1 user group 144M Jun 19 11:52 output_all.coffea
+```
+ 
+Three files are saved along the coffea output file:
+- **parameters dump**: this files contains the full [parameters](./parameters.md) set dumped in a yaml file. This file
+can be reloaded for another analysis run or can be used to compose other configurations. 
+
+- **configuration dump**: the analysis configuration contained in the `Configurator` instance is saved in two formats:
+  - a *human readable* file in json format containing all the `Configurator` info, but not directly usable to rerun the
+  analysis. 
+  - a *machine readable* pickled file, containing the `Configurator` instance itself, that can be used directly to rerun
+  the analysis. 
+  
+  :::{warning}
+  The pickled `Configurator` instance can be used reliably to rerun the analysis **only if** the PocketCoffea and user
+  provided code are at the same version used when the pickled file has been created. Using git and storing the git
+  commit used for an analysis run is therefore recommended.
+  :::
+  
+The python file defining the configuration analysis is not stored because it can be also built in a more dynamic way:
+storing the dumped version of the `Configurator` object, is a much more reliable method.
 
 ## Output format
 The output of the PocketCoffea processors is standardize by the
-[`BaseProcessorABC`](pocket_coffea.workflow.base.BaseProcessorABC.output_format) base class. The user can always add to the
+[`BaseProcessorABC`](pocket_coffea.workflows.base.BaseProcessorABC) base class. The user can always add to the
 `self.output` accumulator  custom objects. 
 
 The default output schema contains the following items:
@@ -288,10 +317,136 @@ The default output schema contains the following items:
   out["sum_genweights"] =  {'DYJetsToLL_M-50_2018': 3323477400000.0}
   ```
 
-- **variables**
+- **variables**: dictionary containing all the histogram objects create by the analysis run. 
+  The structure is:  histogram name --> (sub)sample --> dataset name --> Hist object.  
+  This kind of structure is needed because multiple dataset can have the same (sub)sample type, for example when the
+  analysis is run on multiple analysis periods. The histograms output configuration is documented [here](./configuration.md#histograms-configuration).
+  
+  :::{note}
+  The categories and variations are   part of the `Hist` axes, whereas the data taking period is not explicitely
+  saved. This is because each dataset is uniquely assiociated to a single data taking period. The information can be
+  reconstructed looking at the `dataset_metadata` output. 
+  :::
+  
+  ```python 
+    >>> out["variables"].keys()
+    dict_keys(['MuonGood_eta_1', 'MuonGood_pt_1', 'MuonGood_phi_1', 'nElectronGood', 'nMuonGood', 'nJets', 'nBJets', 'JetGood_eta_1', 'JetGood_pt_1', 'JetGood_phi_1', 'JetGood_btagDeepFlavB_1', 'JetGood_eta_2', 'JetGood_pt_2', 'JetGood_phi_2', 'JetGood_btagDeepFlavB_2', 'mll'])
 
-- **columns**
+    >>> out["variables"]["mll"].keys()
+    dict_keys(['DATA_SingleMuon', 'DYJetsToLL'])
 
-- **datasets_metadata**
+    >>> out["variables"]["mll"]["DATA_SingleMuon"]
+    {'DATA_SingleMuon_2018_EraA':
+        Hist(
+            StrCategory(['baseline'], name='cat', label='Category'),
+            Regular(100, 0, 200, name='ll.mass', label='$M_{\\ell\\ell}$ [GeV]'),
+            storage=Weight()) # Sum: WeightedSum(value=1.04425e+07, variance=1.04425e+07) (WeightedSum(value=1.04746e+07, variance=1.04746e+07) with flow),
+     'DATA_SingleMuon_2018_EraD': 
+        Hist(
+            StrCategory(['baseline'], name='cat', label='Category'),
+            Regular(100, 0, 200, name='ll.mass', label='$M_{\\ell\\ell}$ [GeV]'),
+            storage=Weight()) # Sum: WeightedSum(value=2.39693e+07, variance=2.39693e+07) (WeightedSum(value=2.4043e+07, variance=2.4043e+07) with flow),
+     'DATA_SingleMuon_2018_EraC':
+        Hist(
+            StrCategory(['baseline'], name='cat', label='Category'),
+            Regular(100, 0, 200, name='ll.mass', label='$M_{\\ell\\ell}$ [GeV]'),
+            storage=Weight()) # Sum: WeightedSum(value=5.17717e+06, variance=5.17717e+06) (WeightedSum(value=5.19304e+06, variance=5.19304e+06) with flow),
+     'DATA_SingleMuon_2018_EraB': 
+        Hist(
+            StrCategory(['baseline'], name='cat', label='Category'),
+            Regular(100, 0, 200, name='ll.mass', label='$M_{\\ell\\ell}$ [GeV]'),
+            storage=Weight()) # Sum: WeightedSum(value=5.28916e+06, variance=5.28916e+06)
+            (WeightedSum(value=5.30537e+06, variance=5.30537e+06) with flow)
+    }
+   ```
+
+
+- **columns**: The columns configuration is similar to the variables one. The structure is: (sub)sample name --> dataset
+  name  --> category --> column output name.  The grouping is on the sample and not on the variables given the fact the usually the
+  column outputs are more frequently used separated by samples. 
+  
+  ```python
+  >>> out["columns"].keys()
+  dict_keys(['TTToSemiLeptonic__=1b', 'TTToSemiLeptonic__=2b', 'TTToSemiLeptonic__>2b'])
+
+  >>> out["columns"]["TTToSemiLeptonic__=1b"].keys()
+  dict_keys(['TTToSemiLeptonic_2018', 'TTToSemiLeptonic_2017'])
+
+  >>> out["columns"]["TTToSemiLeptonic__=1b"]["TTToSemiLeptonic_2018"].keys()
+  dict_keys(['baseline', '1b', '2b', '3b', '4b'])
+
+  >>> out["columns"]["TTToSemiLeptonic__=1b"]["TTToSemiLeptonic_2018"]["baseline"].keys()
+  dict_keys(['LeptonGood_N', 'LeptonGood_pt', 'LeptonGood_eta', 'LeptonGood_phi', 'JetGood_N', 'JetGood_pt', 'JetGood_eta', 'JetGood_phi'])
+
+  >>> out["columns"]["TTToSemiLeptonic__=1b"]["TTToSemiLeptonic_2018"]["baseline"]["JetGood_pt"]
+  column_accumulator(array([ 73.79437 ,  60.94935 ,  59.455273, ..., 113.379875,  58.940334,
+        57.60932 ], dtype=float32))
+    
+  ```
+  
+  
+- **datasets_metadata**: the dataset metadata is saved in the output to be able to reference the provenance of the
+  events used to fill the output histograms  and columns in case the analysis run parameters are lost. 
+  It contains the map (sub)sample <--> datasets, split by data taking period, but also the full dataset list info.
+  
+  In the following example, note that the **dataset** `TTToSemiLeptonic_2018` is split in 3 different **subsamples**, whereas the
+  `DATA_SingleEle` sample refers to 5 different **datasets** corresponding to different eras.
+  
+  :::{warning}
+  For an in-depth explanation of the differences between **datasets** and **(sub)samples** in the framework, have a look
+  at the [Datasets handling](./datasets.md) page.
+  :::
+  ```python 
+  >>> out["datasets_metadata"]
+  {'by_datataking_period': {
+      '2018': defaultdict(set,
+              {'TTToSemiLeptonic__=1b': {'TTToSemiLeptonic_2018'},
+               'TTToSemiLeptonic__=2b': {'TTToSemiLeptonic_2018'},
+               'TTToSemiLeptonic__>2b': {'TTToSemiLeptonic_2018'},
+               'DATA_SingleEle': {'DATA_SingleEle_2018_EraA',
+                                  'DATA_SingleEle_2018_EraB',
+                                  'DATA_SingleEle_2018_EraC',
+                                  'DATA_SingleEle_2018_EraD'}}),
+       '2017': defaultdict(set,
+              {'TTToSemiLeptonic__=1b': {'TTToSemiLeptonic_2017'},
+               'TTToSemiLeptonic__=2b': {'TTToSemiLeptonic_2017'},
+               'TTToSemiLeptonic__>2b': {'TTToSemiLeptonic_2017'},
+               'DATA_SingleEle': {'DATA_SingleEle_2017_EraB',
+                                  'DATA_SingleEle_2017_EraC',
+                                  'DATA_SingleEle_2017_EraD',
+                                  'DATA_SingleEle_2017_EraE',
+                                  'DATA_SingleEle_2017_EraF'}})},
+  'by_dataset': defaultdict(dict,
+             {'TTToSemiLeptonic_2018': {
+                 'das_names': "['/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM']",
+                 'sample': 'TTToSemiLeptonic',
+                 'year': '2018',
+                 'isMC': 'True',
+                 'xsec': '365.4574',
+                 'sum_genweights': '143354134528.0',
+                 'nevents': '476408000',
+                 'size': '1030792999916'},
+              'TTToSemiLeptonic_2017': {
+                  'das_names': "['/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM']",
+                  'sample': 'TTToSemiLeptonic',
+                  'year': '2017',
+                  'isMC': 'True',
+                  'xsec': '365.4574',
+                  'sum_genweights': '104129945600.0',
+                  'nevents': '346052000',
+                  'size': '766341543050'},
+              'DATA_SingleEle_2017_EraB': {
+                  'das_names': "['/SingleElectron/Run2017B-UL2017_MiniAODv2_NanoAODv9-v1/NANOAOD']",
+                  'sample': 'DATA_SingleEle',
+                  'year': '2017',
+                  'isMC': 'False',
+                  'primaryDataset': 'SingleEle',
+                  'era': 'B',
+                  'nevents': '60537490',
+                  'size': '50665471331'},
+             })
+        }
+  ```
+  
 
 
