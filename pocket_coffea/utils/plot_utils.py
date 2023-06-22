@@ -8,6 +8,9 @@ import numpy as np
 import awkward as ak
 import hist
 
+import matplotlib
+matplotlib.use('agg')
+
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
 from matplotlib.ticker import MultipleLocator, AutoMinorLocator
