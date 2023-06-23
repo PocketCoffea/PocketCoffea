@@ -21,8 +21,10 @@ The main steps that need to be performed are the following:
 PocketCoffea can be installed from pip or directly from the sources. The latter is needed if you wish to contribute to
 the core of the framework code and to get the latest under development features. 
 
+:::{tip}
 The environment needs to be set differently depending on the cluster where you want to run. Please refer to the detailed
 guide [Installation guide](https://pocketcoffea.readthedocs.io/en/latest/installation.html). 
+:::
 
 If you want to test it on lxplus just use the singularity image: 
 
@@ -36,7 +38,7 @@ apptainer shell --bind /afs -B /cvmfs/cms.cern.ch \
 If instead you want to install it from source, to contribute to the core framework code:
 
 ```bash
-pythom -m venv myenv
+python -m venv myenv
 source myenv/bin/activate
 
 git clone https://github.com/PocketCoffea/PocketCoffea.git
