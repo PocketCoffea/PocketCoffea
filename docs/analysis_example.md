@@ -391,7 +391,7 @@ The skim selection of the events is performed "on the fly" to reduce the number 
 also apply the HLT trigger requirements required by the analysis.  The following steps of the analysis are performed
 only on the events passing the skim selection, while the others are discarded from the branch ``events``, therefore
 reducing the computational load on the processor.  In the config file, we specify two skim cuts: one is selecting events
-with at least one 15 GeV muon and the second is requiring the HLT ``SingleMuon`` path.
+with at least one 18 GeV muon and the second is requiring the HLT ``SingleMuon`` path.
 
 Triggers are specified in a parameter yaml files under the `params` dir (but the localtion is up to the user). 
 The parameters are then loadedand added to the default parameters in the preamble of the config file. 
