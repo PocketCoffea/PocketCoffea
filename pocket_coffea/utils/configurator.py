@@ -466,6 +466,10 @@ class Configurator:
                                     self.columns[subs][cat].append(w)
                             else:
                                 self.columns[sample][cat].append(w)
+        #prune the empty categories
+        
+
+    
 
     def filter_dataset(self, nfiles):
         filtered_filesets = {}
@@ -562,6 +566,7 @@ class Configurator:
         s = [
             'Configurator instance:',
             f"  - Workflow: {self.workflow}",
+            f"  - Workflow options: {self.workflow_options}",
             f"  - N. datasets: {len(self.datasets)} "]
 
         for dataset, meta in self.filesets.items():
@@ -573,7 +578,6 @@ class Configurator:
             s.append(f"   -- Sample {subsample}: {cuts}")
 
         s += [
-           
             f"  - Skim: {[c.name for c in self.skim]}",
             f"  - Preselection: {[c.name for c in self.preselections]}",
             f"  - Categories: {self.categories}",

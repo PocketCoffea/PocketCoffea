@@ -681,3 +681,118 @@ file.
 This may cause memory problems in case of a large number of events or exported data. A solution is to export single
 files separately: the option is under development. 
 :::
+
+
+### Exporting chunks in separate files
+When exporting arrays from the processor, the size of the output may become an issue. In fact, by default the coffea
+processor will accumulate the `column_accumulators` for each chunk to produce the total output at the end of the
+processing. This process may accumulate too much memory and crush the processing. 
+
+To overcome this issue there is the possibility to export the `Columns` output of each chunk in a separate file,
+without adding anything to the standard PocketCoffea output. 
+
+To activate this mode, just add the option `dump_columns_as_arrays_per_chunk` in the `workflow_options` dictionary of
+the `Configurator`. 
+The target directory can be local (no xrootD prefix) or a xRootD localtion. 
+
+```python
+cfg = Configurator(
+    parameters = parameters,
+    datasets = {
+        "jsons": [f"{localdir}/datasets/signal_ttHTobb_local.json",
+                  f"{localdir}/datasets/backgrounds_MC_ttbar_local.json",
+                  f"{localdir}/datasets/backgrounds_MC_TTbb_local.json"],
+        "filter" : {
+            "samples": ["ttHTobb", "TTToSemiLeptonic", "TTbbSemiLeptonic"],
+            "samples_exclude" : [],
+            "year": ["2016_PreVFP",
+                     "2016_PostVFP",
+                     "2017","2018"] #All the years
+        }
+    },
+
+    workflow = PartonMatchingProcessor,
+    workflow_options = {"parton_jet_min_dR": 0.3,
+                        "dump_columns_as_arrays_per_chunk": "root://t3se01.psi.ch:1094//store/user/dvalsecc/ttHbb/output_columns_parton_matching/sig_bkg_05_07_2023_v1/"},
+    
+    .... 
+    columns = {
+        "common": {
+            "bycategory": {
+                    "semilep_LHE": [
+                        ColOut("Parton", ["pt", "eta", "phi", "mass", "pdgId", "provenance"], flatten=False),
+                        ColOut(
+                            "PartonMatched",
+                            ["pt", "eta", "phi","mass", "pdgId", "provenance", "dRMatchedJet",], flatten=False
+                        ),
+                        ColOut(
+                            "JetGood",
+                            ["pt", "eta", "phi", "hadronFlavour", "btagDeepFlavB"], flatten=False
+                        ),
+                        ColOut(
+                            "JetGoodMatched",
+                            [
+                                "pt",
+                                "eta",
+                                "phi",
+                                "hadronFlavour",
+                                "btagDeepFlavB",
+                                "dRMatchedJet",
+                            ], flatten=False
+                        ),
+                        
+                        ColOut("LeptonGood",
+                               ["pt","eta","phi"],flatten=False,
+                               pos_end=1, store_size=False),
+                        ColOut("MET", ["phi","pt","significance"], flatten=False),
+                        ColOut("Generator",["x1","x2","id1","id2","xpdf1","xpdf2"], flatten=False),
+                        ColOut("LeptonParton",["pt","eta","phi","mass","pdgId"], flatten=False)
+                    ]
+                }
+        },
+        "bysample":{
+            "ttHTobb":{
+                "bycategory": {
+                    "semilep_LHE": [ColOut("HiggsParton",
+                                           ["pt","eta","phi","mass","pdgId"], pos_end=1, store_size=False, flatten=False)]
+                }
+            }
+        }
+    },
+)
+```
+
+This configuration will create a structure of folders containing the dataset name and the categories: 
+
+```bash
+# main output folder
+(pocket-coffea) ➜  sig_bkg_05_07_2023_v1 lrt
+total 3.5K
+drwxr-xr-x 3 dvalsecc ethz-higgs 512 Jul  5 15:06 TTbbSemiLeptonic_Powheg_2018
+drwxr-xr-x 3 dvalsecc ethz-higgs 512 Jul  5 15:06 TTbbSemiLeptonic_Powheg_2016_PreVFP
+drwxr-xr-x 3 dvalsecc ethz-higgs 512 Jul  5 15:06 TTToSemiLeptonic_2016_PreVFP
+drwxr-xr-x 3 dvalsecc ethz-higgs 512 Jul  5 15:06 TTbbSemiLeptonic_Powheg_2016_PostVFP
+drwxr-xr-x 3 dvalsecc ethz-higgs 512 Jul  5 15:07 TTbbSemiLeptonic_Powheg_2017
+drwxr-xr-x 3 dvalsecc ethz-higgs 512 Jul  5 15:14 TTToSemiLeptonic_2016_PostVFP
+drwxr-xr-x 3 dvalsecc ethz-higgs 512 Jul  5 15:20 TTToSemiLeptonic_2017
+
+# Output by dataset
+(pocket-coffea) ➜  sig_bkg_05_07_2023_v1 cd TTbbSemiLeptonic_Powheg_2018
+(pocket-coffea) ➜  TTbbSemiLeptonic_Powheg_2018 lrt
+# categories
+drwxr-xr-x 24 dvalsecc ethz-higgs 512 Jul  5 15:12 semilep_LHE
+
+# Chunks output
+(pocket-coffea) ➜  TTbbSemiLeptonic_Powheg_2018 cd semilep_LHE 
+(pocket-coffea) ➜  semilep_LHE lrt
+total 219M
+-rw-r--r-- 1 dvalsecc ethz-higgs 161K Jul  5 15:06 58cae696-ff9a-11eb-8bcf-b4e45d9fbeef_%2FEvents%3B1_0-6000.parquet
+-rw-r--r-- 1 dvalsecc ethz-higgs 8.8M Jul  5 15:07 f90f7300-022f-11ec-8fd2-0c0013acbeef_%2FEvents%3B1_403500-807000.parquet
+-rw-r--r-- 1 dvalsecc ethz-higgs 9.2M Jul  5 15:07 b788eafa-0203-11ec-9ed1-0b0013acbeef_%2FEvents%3B1_429000-858000.parquet
+-rw-r--r-- 1 dvalsecc ethz-higgs 8.8M Jul  5 15:07 f90f7300-022f-11ec-8fd2-0c0013acbeef_%2FEvents%3B1_0-403500.parquet
+-rw-r--r-- 1 dvalsecc ethz-higgs  11M Jul  5 15:07 df0073b2-05f2-11ec-936f-118810acbeef_%2FEvents%3B1_0-495000.parquet
+-rw-r--r-- 1 dvalsecc ethz-higgs 715K Jul  5 15:07 94c2a20e-ff92-11eb-9e5b-7e969e86beef_%2FEvents%3B1_0-28681.parquet
+-rw-r--r-- 1 dvalsecc ethz-higgs 9.2M Jul  5 15:07 b788eafa-0203-11ec-9ed1-0b0013acbeef_%2FEvents%3B1_0-429000.parquet
+-rw-r--r-- 1 dvalsecc ethz-higgs  14M Jul  5 15:07 b379fc2e-0203-11ec-8947-030013acbeef_%2FEvents%3B1_0-639000.parquet
+
+```

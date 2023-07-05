@@ -72,15 +72,9 @@ def copy_file(
         copyproc.add_job(local_file, destination)
         copyproc.prepare()
         copyproc.run()
-        client = XRootD.client.FileSystem(
-            location[: location[pfx_len:].find("/") + pfx_len]
-        )
-        status = client.locate(
-            destination[destination[pfx_len:].find("/") + pfx_len + 1 :],
-            XRootD.client.flags.OpenFlags.READ,
-        )
-        assert status[0].ok
-        del client
+        status, response = copyproc.run()
+        if status.status != 0:
+            raise Exception(status.message)
         del copyproc
     else:
         dirname = os.path.dirname(destination)
