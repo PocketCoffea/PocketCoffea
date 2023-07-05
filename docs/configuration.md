@@ -689,11 +689,20 @@ processor will accumulate the `column_accumulators` for each chunk to produce th
 processing. This process may accumulate too much memory and crush the processing. 
 
 To overcome this issue there is the possibility to export the `Columns` output of each chunk in a separate file,
-without adding anything to the standard PocketCoffea output. 
+without adding anything to the standard PocketCoffea output. The file can be saved in a local folder or sent remotely
+with xrootd. 
+
+:::{Warning}
+With this setup the output will be in parquet format, so it is not necessary to flatten the awkward arrays before
+saving. The full awkward structure can be kept in the output arrays. 
+:::
 
 To activate this mode, just add the option `dump_columns_as_arrays_per_chunk` in the `workflow_options` dictionary of
 the `Configurator`. 
 The target directory can be local (no xrootD prefix) or a xRootD localtion. 
+
+The following configuration shows the setup in action. **N.B.:** the columns are not flattened (the default), because
+the output parquet file will contain directly awkward arrays (not column accumulators).
 
 ```python
 cfg = Configurator(
