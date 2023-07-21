@@ -507,7 +507,7 @@ class Shape:
                 handles,
                 labels,
                 fontsize=self.style.fontsize,
-                ncols=2,
+                ncol=2,
                 loc="upper right",
             )
 
