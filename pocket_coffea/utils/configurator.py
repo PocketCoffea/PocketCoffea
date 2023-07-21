@@ -515,7 +515,7 @@ class Configurator:
 
         ocfg["workflow"] = {
             "name": self.workflow.__name__,
-            "workflow_options": self.workflow_options,
+            "workflow_options": self.workflow_options if self.workflow_options != None else {},
             "srcfile": inspect.getsourcefile(self.workflow),
         }
 
@@ -566,7 +566,7 @@ class Configurator:
         s = [
             'Configurator instance:',
             f"  - Workflow: {self.workflow}",
-            f"  - Workflow options: {self.workflow_options}",
+            f"  - Workflow options: {self.workflow_options if self.workflow_options != None else {}}",
             f"  - N. datasets: {len(self.datasets)} "]
 
         for dataset, meta in self.filesets.items():
