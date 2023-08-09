@@ -57,16 +57,16 @@ build_docker_lxplus_latest:
 # Tag images using git tag
 build_docker_infn_facility_tagged:
   extends: .tag_skopeo
-  only:
-    - tags
+  rules:
+    - if: $CI_COMMIT_TAG
   variables:
     IMAGE_ORIGIN_TAG: ${CI_REGISTRY_IMAGE}:infn-${CI_COMMIT_SHORT_SHA}
     IMAGE_DESTINATION_TAG: ${CI_REGISTRY_IMAGE}:infn-${CI_COMMIT_TAG}
     
 build_docker_lxplus_tagged:
   extends: .tag_skopeo
-  only:
-    - tags
+  rules:
+    - if: $CI_COMMIT_TAG
   variables:
     IMAGE_ORIGIN_TAG: ${CI_REGISTRY_IMAGE}:lxplus-${CI_COMMIT_SHORT_SHA}
     IMAGE_DESTINATION_TAG: ${CI_REGISTRY_IMAGE}:lxplus-cc7-${CI_COMMIT_TAG}
