@@ -49,7 +49,7 @@ class Configurator:
         variations,
         variables,
         columns=None,
-        workflow_options={},
+        workflow_options=None,
         save_skimmed_files=None,
     ):
 
