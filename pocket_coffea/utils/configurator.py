@@ -49,13 +49,13 @@ class Configurator:
         variations,
         variables,
         columns=None,
-        workflow_options=None,
+        workflow_options={},
         save_skimmed_files=None,
     ):
 
         # Save the workflow object and its options
         self.workflow = workflow
-        self.workflow_options = workflow_options
+        self.workflow_options = workflow_options if workflow_options != None else {}
         self.parameters = parameters
         # Resolving the OmegaConf
         try:
@@ -515,7 +515,7 @@ class Configurator:
 
         ocfg["workflow"] = {
             "name": self.workflow.__name__,
-            "workflow_options": self.workflow_options if self.workflow_options != None else {},
+            "workflow_options": self.workflow_options,
             "srcfile": inspect.getsourcefile(self.workflow),
         }
 
@@ -566,7 +566,7 @@ class Configurator:
         s = [
             'Configurator instance:',
             f"  - Workflow: {self.workflow}",
-            f"  - Workflow options: {self.workflow_options if self.workflow_options != None else {}}",
+            f"  - Workflow options: {self.workflow_options}",
             f"  - N. datasets: {len(self.datasets)} "]
 
         for dataset, meta in self.filesets.items():
