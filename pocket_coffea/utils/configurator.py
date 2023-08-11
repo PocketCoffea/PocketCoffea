@@ -233,7 +233,7 @@ class Configurator:
         if len(skim) == 0:
             skim.append(passthrough)
         if len(preselections) == 0:
-            preselections.ppend(passthrough)
+            preselections.append(passthrough)
 
         if categories == {}:
             categories["baseline"] = [passthrough]
