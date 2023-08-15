@@ -62,8 +62,6 @@ if not args.overwrite:
 if not os.path.exists(args.outputdir):
     os.makedirs(args.outputdir)
 
-breakpoint()
-
 variables = accumulator['variables'].keys()
 if args.exclude_hist != None:
     variables = list(filter(lambda x : all([s not in x for s in args.exclude_hist]), variables))
