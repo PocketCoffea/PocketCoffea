@@ -386,7 +386,7 @@ class Shape:
 
         if not self.is_mc_only:
             # Sum over eras if specified as extra argument
-            if 'era' in self.categorical_axes_data:
+            if 'era' in [ax.name for ax in self.categorical_axes_data]:
                 if spliteras:
                     slicing_data = { 'cat': cat}
                 else:
