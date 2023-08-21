@@ -33,7 +33,7 @@ class Style:
         self.has_labels = False
         self.has_samples_groups = False
         self.has_lumi = False
-        if "labels" in style_cfg:
+        if "labels_mc" in style_cfg:
             self.has_labels = True
         if "samples_groups" in style_cfg:
             self.has_samples_groups = True
@@ -369,12 +369,12 @@ class Shape:
         color = iter(cm.gist_rainbow(np.linspace(0, 1, len(self.nevents.keys()))))
         # Assign random colors to each sample
         self.colors = [next(color) for d in self.nevents.keys()]
-        if hasattr(self.style, "colors"):
+        if hasattr(self.style, "colors_mc"):
             # Initialize random colors
             for i, d in enumerate(self.nevents.keys()):
                 # If the color for a corresponding sample exists in the dictionary, assign the color to the sample
-                if d in self.style.colors:
-                    self.colors[i] = self.style.colors[d]
+                if d in self.style.colors_mc:
+                    self.colors[i] = self.style.colors_mc[d]
         # Order the MC dictionary by number of events
         self.h_dict_mc = {d: self.h_dict_mc[d] for d in self.nevents.keys()}
         self.h_dict_mc_nominal = {
@@ -496,8 +496,8 @@ class Shape:
             labels_new = []
             handles_new = []
             for i, l in enumerate(labels):
-                if l in self.style.labels:
-                    labels_new.append(f"{self.style.labels[l]}")
+                if l in self.style.labels_mc:
+                    labels_new.append(f"{self.style.labels_mc[l]}")
                 else:
                     labels_new.append(l)
                 handles_new.append(handles[i])
