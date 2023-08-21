@@ -21,6 +21,10 @@ class ColumnsManager:
         self.cfg = cfg
         self.categories_config = categories_config
 
+    @property
+    def ncols(self):
+        return sum([len(cols) for cols in self.cfg.values()])
+
     def add_column(self, cfg: ColOut, categories=None):
         if categories is None:
             categories = self.categories_config.keys()
