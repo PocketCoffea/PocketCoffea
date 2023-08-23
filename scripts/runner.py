@@ -14,6 +14,7 @@ import argparse
 import cloudpickle
 import socket
 import logging
+import time
 
 from coffea.util import save
 from coffea import processor
@@ -22,6 +23,7 @@ from pocket_coffea.utils.configurator import Configurator
 from pocket_coffea.utils import utils
 from pocket_coffea.utils.network import get_proxy_path
 from pocket_coffea.utils.logging import setup_logging
+from pocket_coffea.utils.benchmarking import print_processing_stats
 
 
 if __name__ == '__main__':
@@ -136,7 +138,8 @@ if __name__ == '__main__':
     # ]
     logging.debug(env_extra)
 
-
+    start_time = time.time()
+    
     #########
     # Executors
     if run_options['executor'] in ['futures', 'iterative']:
@@ -160,7 +163,7 @@ if __name__ == '__main__':
                                     chunksize=run_options['chunk'],
                                     maxchunks=run_options.get('max', None)
                                     )
-        
+        print_processing_stats(output, start_time, run_options["scaleout"])
         save(output, outfile.format("all"))
         print(f"Saving output to {outfile.format('all')}")
 
@@ -211,6 +214,7 @@ if __name__ == '__main__':
                                         chunksize=run_options['chunk'], maxchunks=run_options.get('max', None)
                                         )
 
+            print_processing_stats(output, start_time, run_options["scaleout"])
             save(output, outfile.format("all") )
             print(f"Saving output to {outfile.format('all')}")
     
@@ -273,6 +277,7 @@ if __name__ == '__main__':
                                         },
                                         chunksize=run_options['chunk'], maxchunks=run_options.get('max', None)
                                         )
+            print_processing_stats(output, start_time, run_options["scaleout"])
             save(output, outfile.format("all"))
             print(f"Saving output to {outfile.format('all')}")
 
@@ -374,6 +379,7 @@ if __name__ == '__main__':
                                         maxchunks=run_options.get('max', None)
                             )
                 print(f"Saving output to {outfile.format('all')}")
+                print_processing_stats(output, start_time, run_options["scaleout"])
                 save(output, outfile.format("all") )
             else:
                 # Running separately on each dataset
@@ -396,6 +402,7 @@ if __name__ == '__main__':
                                             maxchunks=run_options.get('max', None)
                                 )
                     print(f"Saving output to {outfile.format(sample)}")
+                    print_processing_stats(output, start_time, run_options["scaleout"])
                     save(output, outfile.format(sample))
 
     else:
