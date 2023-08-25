@@ -95,58 +95,114 @@
         "files": [
             {
                 "das_names": [
-                    "/SingleMuon/Run2018A-UL2018_MiniAODv2_NanoAODv9-v2/NANOAOD"
+                    "/SingleMuon/Run2016B-ver1_HIPM_UL2016_MiniAODv2_NanoAODv9-v2/NANOAOD", "/SingleMuon/Run2016B-ver2_HIPM_UL2016_MiniAODv2_NanoAODv9-v2/NANOAOD"
                 ],
                 "metadata": {
-                    "year": "2018",
-                    "isMC": false,
-                    "primaryDataset": "SingleMuon",
-                    "era": "A"
-                },
-                "das_parents_names": [
-                    "/SingleMuon/Run2018A-UL2018_MiniAODv2-v3/MINIAOD"
-                ]
-            },
-            {
-                "das_names": [
-                    "/SingleMuon/Run2018B-UL2018_MiniAODv2_NanoAODv9-v2/NANOAOD"
-                ],
-                "metadata": {
-                    "year": "2018",
+                    "year": "2016_PreVFP",
                     "isMC": false,
                     "primaryDataset": "SingleMuon",
                     "era": "B"
                 },
                 "das_parents_names": [
-                    "/SingleMuon/Run2018B-UL2018_MiniAODv2-v2/MINIAOD"
+                    "/SingleMuon/Run2016B-ver1_HIPM_UL2016_MiniAODv2-v2/MINIAOD", "/SingleMuon/Run2016B-ver2_HIPM_UL2016_MiniAODv2-v2/MINIAOD"
                 ]
             },
             {
                 "das_names": [
-                    "/SingleMuon/Run2018C-UL2018_MiniAODv2_NanoAODv9-v2/NANOAOD"
+                    "/SingleMuon/Run2016C-HIPM_UL2016_MiniAODv2_NanoAODv9-v2/NANOAOD"
                 ],
                 "metadata": {
-                    "year": "2018",
+                    "year": "2016_PreVFP",
                     "isMC": false,
                     "primaryDataset": "SingleMuon",
                     "era": "C"
                 },
                 "das_parents_names": [
-                    "/SingleMuon/Run2018C-UL2018_MiniAODv2-v2/MINIAOD"
+                    "/SingleMuon/Run2016C-HIPM_UL2016_MiniAODv2-v2/MINIAOD"
                 ]
             },
             {
                 "das_names": [
-                    "/SingleMuon/Run2018D-UL2018_MiniAODv2_NanoAODv9-v1/NANOAOD"
+                    "/SingleMuon/Run2016D-HIPM_UL2016_MiniAODv2_NanoAODv9-v2/NANOAOD"
                 ],
                 "metadata": {
-                    "year": "2018",
+                    "year": "2016_PreVFP",
                     "isMC": false,
                     "primaryDataset": "SingleMuon",
                     "era": "D"
                 },
                 "das_parents_names": [
-                    "/SingleMuon/Run2018D-UL2018_MiniAODv2-v3/MINIAOD"
+                    "/SingleMuon/Run2016D-HIPM_UL2016_MiniAODv2-v2/MINIAOD"
+                ]
+            },
+            {
+                "das_names": [
+                    "/SingleMuon/Run2016E-HIPM_UL2016_MiniAODv2_NanoAODv9-v2/NANOAOD"
+                ],
+                "metadata": {
+                    "year": "2016_PreVFP",
+                    "isMC": false,
+                    "primaryDataset": "SingleMuon",
+                    "era": "E"
+                },
+                "das_parents_names": [
+                    "/SingleMuon/Run2016E-HIPM_UL2016_MiniAODv2-v2/MINIAOD"
+                ]
+            },
+            {
+                "das_names": [
+                    "/SingleMuon/Run2016F-HIPM_UL2016_MiniAODv2_NanoAODv9-v2/NANOAOD"
+                ],
+                "metadata": {
+                    "year": "2016_PreVFP",
+                    "isMC": false,
+                    "primaryDataset": "SingleMuon",
+                    "era": "F"
+                },
+                "das_parents_names": [
+                    "/SingleMuon/Run2016F-HIPM_UL2016_MiniAODv2-v2/MINIAOD"
+                ]
+            },
+            {
+                "das_names": [
+                    "/SingleMuon/Run2016F-UL2016_MiniAODv2_NanoAODv9-v1/NANOAOD"
+                ],
+                "metadata": {
+                    "year": "2016_PostVFP",
+                    "isMC": false,
+                    "primaryDataset": "SingleMuon",
+                    "era": "F"
+                },
+                "das_parents_names": [
+                    "/SingleMuon/Run2016F-UL2016_MiniAODv2-v2/MINIAOD"
+                ]
+            },
+            {
+                "das_names": [
+                    "/SingleMuon/Run2016G-UL2016_MiniAODv2_NanoAODv9-v1/NANOAOD"
+                ],
+                "metadata": {
+                    "year": "2016_PostVFP",
+                    "isMC": false,
+                    "primaryDataset": "SingleMuon",
+                    "era": "G"
+                },
+                "das_parents_names": [
+                    "/SingleMuon/Run2016G-UL2016_MiniAODv2-v2/MINIAOD"
+                ]
+            },
+            {
+                "das_names": [
+                    "/SingleMuon/Run2016H-UL2016_MiniAODv2_NanoAODv9-v1/NANOAOD"
+                ],
+                "metadata": {
+                    "year": "2016_PostVFP",
+                    "isMC": false,
+                    "primaryDataset": "SingleMuon",
+                    "era": "H"
+                },
+                "das_parents_names": [
+                    "/SingleMuon/Run2016H-UL2016_MiniAODv2-v2/MINIAOD"
                 ]
             },
             {
@@ -218,6 +274,62 @@
                 "das_parents_names": [
                     "/SingleMuon/Run2017F-UL2017_MiniAODv2-v1/MINIAOD"
                 ]
+            },
+            {
+                "das_names": [
+                    "/SingleMuon/Run2018A-UL2018_MiniAODv2_NanoAODv9-v2/NANOAOD"
+                ],
+                "metadata": {
+                    "year": "2018",
+                    "isMC": false,
+                    "primaryDataset": "SingleMuon",
+                    "era": "A"
+                },
+                "das_parents_names": [
+                    "/SingleMuon/Run2018A-UL2018_MiniAODv2-v3/MINIAOD"
+                ]
+            },
+            {
+                "das_names": [
+                    "/SingleMuon/Run2018B-UL2018_MiniAODv2_NanoAODv9-v2/NANOAOD"
+                ],
+                "metadata": {
+                    "year": "2018",
+                    "isMC": false,
+                    "primaryDataset": "SingleMuon",
+                    "era": "B"
+                },
+                "das_parents_names": [
+                    "/SingleMuon/Run2018B-UL2018_MiniAODv2-v2/MINIAOD"
+                ]
+            },
+            {
+                "das_names": [
+                    "/SingleMuon/Run2018C-UL2018_MiniAODv2_NanoAODv9-v2/NANOAOD"
+                ],
+                "metadata": {
+                    "year": "2018",
+                    "isMC": false,
+                    "primaryDataset": "SingleMuon",
+                    "era": "C"
+                },
+                "das_parents_names": [
+                    "/SingleMuon/Run2018C-UL2018_MiniAODv2-v2/MINIAOD"
+                ]
+            },
+            {
+                "das_names": [
+                    "/SingleMuon/Run2018D-UL2018_MiniAODv2_NanoAODv9-v1/NANOAOD"
+                ],
+                "metadata": {
+                    "year": "2018",
+                    "isMC": false,
+                    "primaryDataset": "SingleMuon",
+                    "era": "D"
+                },
+                "das_parents_names": [
+                    "/SingleMuon/Run2018D-UL2018_MiniAODv2-v3/MINIAOD"
+                ]
             }
         ]
     },
@@ -227,58 +339,114 @@
         "files": [
             {
                 "das_names": [
-                    "/EGamma/Run2018A-UL2018_MiniAODv2_NanoAODv9_GT36-v1/NANOAOD"
+                    "/SingleElectron/Run2016B-ver1_HIPM_UL2016_MiniAODv2_NanoAODv9-v2/NANOAOD", "/SingleElectron/Run2016B-ver2_HIPM_UL2016_MiniAODv2_NanoAODv9-v2/NANOAOD"
                 ],
                 "metadata": {
-                    "year": "2018",
-                    "isMC": false,
-                    "primaryDataset": "SingleEle",
-                    "era": "A"
-                },
-                "das_parents_names": [
-                    "/EGamma/Run2018A-UL2018_MiniAODv2_GT36-v1/MINIAOD"
-                ]
-            },
-            {
-                "das_names": [
-                    "/EGamma/Run2018B-UL2018_MiniAODv2_NanoAODv9_GT36-v1/NANOAOD"
-                ],
-                "metadata": {
-                    "year": "2018",
+                    "year": "2016_PreVFP",
                     "isMC": false,
                     "primaryDataset": "SingleEle",
                     "era": "B"
                 },
                 "das_parents_names": [
-                    "/EGamma/Run2018B-UL2018_MiniAODv2_GT36-v1/MINIAOD"
+                    "/SingleElectron/Run2016B-ver1_HIPM_UL2016_MiniAODv2-v2/MINIAOD", "/SingleElectron/Run2016B-ver2_HIPM_UL2016_MiniAODv2-v2/MINIAOD"
                 ]
             },
             {
                 "das_names": [
-                    "/EGamma/Run2018C-UL2018_MiniAODv2_NanoAODv9_GT36-v1/NANOAOD"
+                    "/SingleElectron/Run2016C-HIPM_UL2016_MiniAODv2_NanoAODv9-v2/NANOAOD"
                 ],
                 "metadata": {
-                    "year": "2018",
+                    "year": "2016_PreVFP",
                     "isMC": false,
                     "primaryDataset": "SingleEle",
                     "era": "C"
                 },
                 "das_parents_names": [
-                    "/EGamma/Run2018C-UL2018_MiniAODv2_GT36-v1/MINIAOD"
+                    "/SingleElectron/Run2016C-HIPM_UL2016_MiniAODv2-v2/MINIAOD"
                 ]
             },
             {
                 "das_names": [
-                    "/EGamma/Run2018D-UL2018_MiniAODv2_NanoAODv9-v3/NANOAOD"
+                    "/SingleElectron/Run2016D-HIPM_UL2016_MiniAODv2_NanoAODv9-v2/NANOAOD"
                 ],
                 "metadata": {
-                    "year": "2018",
+                    "year": "2016_PreVFP",
                     "isMC": false,
                     "primaryDataset": "SingleEle",
                     "era": "D"
                 },
                 "das_parents_names": [
-                    "/EGamma/Run2018D-UL2018_MiniAODv2-v2/MINIAOD"
+                    "/SingleElectron/Run2016D-HIPM_UL2016_MiniAODv2-v2/MINIAOD"
+                ]
+            },
+            {
+                "das_names": [
+                    "/SingleElectron/Run2016E-HIPM_UL2016_MiniAODv2_NanoAODv9-v2/NANOAOD"
+                ],
+                "metadata": {
+                    "year": "2016_PreVFP",
+                    "isMC": false,
+                    "primaryDataset": "SingleEle",
+                    "era": "E"
+                },
+                "das_parents_names": [
+                    "/SingleElectron/Run2016E-HIPM_UL2016_MiniAODv2-v5/MINIAOD"
+                ]
+            },
+            {
+                "das_names": [
+                    "/SingleElectron/Run2016F-HIPM_UL2016_MiniAODv2_NanoAODv9-v2/NANOAOD"
+                ],
+                "metadata": {
+                    "year": "2016_PreVFP",
+                    "isMC": false,
+                    "primaryDataset": "SingleEle",
+                    "era": "F"
+                },
+                "das_parents_names": [
+                    "/SingleElectron/Run2016F-HIPM_UL2016_MiniAODv2-v2/MINIAOD"
+                ]
+            },
+            {
+                "das_names": [
+                    "/SingleElectron/Run2016F-UL2016_MiniAODv2_NanoAODv9-v1/NANOAOD"
+                ],
+                "metadata": {
+                    "year": "2016_PostVFP",
+                    "isMC": false,
+                    "primaryDataset": "SingleEle",
+                    "era": "F"
+                },
+                "das_parents_names": [
+                    "/SingleElectron/Run2016F-UL2016_MiniAODv2-v2/MINIAOD"
+                ]
+            },
+            {
+                "das_names": [
+                    "/SingleElectron/Run2016G-UL2016_MiniAODv2_NanoAODv9-v1/NANOAOD"
+                ],
+                "metadata": {
+                    "year": "2016_PostVFP",
+                    "isMC": false,
+                    "primaryDataset": "SingleEle",
+                    "era": "G"
+                },
+                "das_parents_names": [
+                    "/SingleElectron/Run2016G-UL2016_MiniAODv2-v2/MINIAOD"
+                ]
+            },
+            {
+                "das_names": [
+                    "/SingleElectron/Run2016H-UL2016_MiniAODv2_NanoAODv9-v1/NANOAOD"
+                ],
+                "metadata": {
+                    "year": "2016_PostVFP",
+                    "isMC": false,
+                    "primaryDataset": "SingleEle",
+                    "era": "H"
+                },
+                "das_parents_names": [
+                    "/SingleElectron/Run2016H-UL2016_MiniAODv2-v2/MINIAOD"
                 ]
             },
             {
@@ -350,6 +518,62 @@
                 "das_parents_names": [
                     "/SingleElectron/Run2017F-UL2017_MiniAODv2-v1/MINIAOD"
                 ]
+            },
+            {
+                "das_names": [
+                    "/EGamma/Run2018A-UL2018_MiniAODv2_NanoAODv9_GT36-v1/NANOAOD"
+                ],
+                "metadata": {
+                    "year": "2018",
+                    "isMC": false,
+                    "primaryDataset": "SingleEle",
+                    "era": "A"
+                },
+                "das_parents_names": [
+                    "/EGamma/Run2018A-UL2018_MiniAODv2_GT36-v1/MINIAOD"
+                ]
+            },
+            {
+                "das_names": [
+                    "/EGamma/Run2018B-UL2018_MiniAODv2_NanoAODv9_GT36-v1/NANOAOD"
+                ],
+                "metadata": {
+                    "year": "2018",
+                    "isMC": false,
+                    "primaryDataset": "SingleEle",
+                    "era": "B"
+                },
+                "das_parents_names": [
+                    "/EGamma/Run2018B-UL2018_MiniAODv2_GT36-v1/MINIAOD"
+                ]
+            },
+            {
+                "das_names": [
+                    "/EGamma/Run2018C-UL2018_MiniAODv2_NanoAODv9_GT36-v1/NANOAOD"
+                ],
+                "metadata": {
+                    "year": "2018",
+                    "isMC": false,
+                    "primaryDataset": "SingleEle",
+                    "era": "C"
+                },
+                "das_parents_names": [
+                    "/EGamma/Run2018C-UL2018_MiniAODv2_GT36-v1/MINIAOD"
+                ]
+            },
+            {
+                "das_names": [
+                    "/EGamma/Run2018D-UL2018_MiniAODv2_NanoAODv9-v3/NANOAOD"
+                ],
+                "metadata": {
+                    "year": "2018",
+                    "isMC": false,
+                    "primaryDataset": "SingleEle",
+                    "era": "D"
+                },
+                "das_parents_names": [
+                    "/EGamma/Run2018D-UL2018_MiniAODv2-v2/MINIAOD"
+                ]
             }
         ]
     },
@@ -359,30 +583,28 @@
         "files": [
             {
                 "das_names": [
-                    "/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM"
-                ],
-                "metadata": {
-                    "year": "2018",
-                    "isMC": true,
-                    "xsec": 0.2953,
-                    "sum_genweights": 4843452.0
-                },
-                "das_parents_names": [
-                    "/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v2/MINIAODSIM"
-                ]
-            },
-            {
-                "das_names": [
                     "/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v2/NANOAODSIM"
                 ],
                 "metadata": {
                     "year": "2017",
                     "isMC": true,
-                    "xsec": 0.2953,
-                    "sum_genweights": 3919781.0
+                    "xsec": 0.2953
                 },
                 "das_parents_names": [
                     "/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL17MiniAODv2-106X_mc2017_realistic_v9-v2/MINIAODSIM"
+                ]
+            },
+            {
+                "das_names": [
+                    "/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM"
+                ],
+                "metadata": {
+                    "year": "2018",
+                    "isMC": true,
+                    "xsec": 0.2953
+                },
+                "das_parents_names": [
+                    "/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v2/MINIAODSIM"
                 ]
             }
         ]
@@ -391,30 +613,6 @@
         "sample": "TTbbSemiLeptonic",
         "json_output": "datasets/backgrounds_MC_TTbb.json",
         "files": [
-            {
-                "das_names": [
-                    "/TTbb_4f_TTToSemiLeptonic_TuneCP5-Powheg-Openloops-Pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
-                ],
-                "metadata": {
-                    "year": "2018",
-                    "isMC": true
-                },
-                "das_parents_names": [
-                    "/TTbb_4f_TTToSemiLeptonic_TuneCP5-Powheg-Openloops-Pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM"
-                ]
-            },
-            {
-                "das_names": [
-                    "/TTbb_4f_TTToSemiLeptonic_TuneCP5-Powheg-Openloops-Pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM"
-                ],
-                "metadata": {
-                    "year": "2017",
-                    "isMC": true
-                },
-                "das_parents_names": [
-                    "/TTbb_4f_TTToSemiLeptonic_TuneCP5-Powheg-Openloops-Pythia8/RunIISummer20UL17MiniAODv2-106X_mc2017_realistic_v9-v1/MINIAODSIM"
-                ]
-            },
             {
                 "das_names": [
                     "/TTbb_4f_TTToSemiLeptonic_TuneCP5-Powheg-Openloops-Pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM"
@@ -438,6 +636,30 @@
                 "das_parents_names": [
                     "/TTbb_4f_TTToSemiLeptonic_TuneCP5-Powheg-Openloops-Pythia8/RunIISummer20UL16MiniAODv2-106X_mcRun2_asymptotic_v17-v1/MINIAODSIM"
                 ]
+            },
+            {
+                "das_names": [
+                    "/TTbb_4f_TTToSemiLeptonic_TuneCP5-Powheg-Openloops-Pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM"
+                ],
+                "metadata": {
+                    "year": "2017",
+                    "isMC": true
+                },
+                "das_parents_names": [
+                    "/TTbb_4f_TTToSemiLeptonic_TuneCP5-Powheg-Openloops-Pythia8/RunIISummer20UL17MiniAODv2-106X_mc2017_realistic_v9-v1/MINIAODSIM"
+                ]
+            },
+            {
+                "das_names": [
+                    "/TTbb_4f_TTToSemiLeptonic_TuneCP5-Powheg-Openloops-Pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
+                ],
+                "metadata": {
+                    "year": "2018",
+                    "isMC": true
+                },
+                "das_parents_names": [
+                    "/TTbb_4f_TTToSemiLeptonic_TuneCP5-Powheg-Openloops-Pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM"
+                ]
             }
         ]
     },
@@ -447,16 +669,28 @@
         "files": [
             {
                 "das_names": [
-                    "/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
+                    "/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM"
                 ],
                 "metadata": {
-                    "year": "2018",
+                    "year": "2016_PreVFP",
                     "isMC": true,
-                    "xsec": 365.4574,
-                    "sum_genweights": 143354134528.0
+                    "xsec": 365.4574
                 },
                 "das_parents_names": [
-                    "/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v2/MINIAODSIM"
+                    "/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL16MiniAODAPVv2-106X_mcRun2_asymptotic_preVFP_v11-v1/MINIAODSIM"
+                ]
+            },
+            {
+                "das_names": [
+                    "/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL16NanoAOD-106X_mcRun2_asymptotic_v13-v1/NANOAODSIM"
+                ],
+                "metadata": {
+                    "year": "2016_PostVFP",
+                    "isMC": true,
+                    "xsec": 365.4574
+                },
+                "das_parents_names": [
+                    "/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL16MiniAOD-106X_mcRun2_asymptotic_v13-v2/MINIAODSIM"
                 ]
             },
             {
@@ -466,11 +700,23 @@
                 "metadata": {
                     "year": "2017",
                     "isMC": true,
-                    "xsec": 365.4574,
-                    "sum_genweights": 104129945600.0
+                    "xsec": 365.4574
                 },
                 "das_parents_names": [
                     "/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL17MiniAODv2-106X_mc2017_realistic_v9-v1/MINIAODSIM"
+                ]
+            },
+            {
+                "das_names": [
+                    "/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
+                ],
+                "metadata": {
+                    "year": "2018",
+                    "isMC": true,
+                    "xsec": 365.4574
+                },
+                "das_parents_names": [
+                    "/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v2/MINIAODSIM"
                 ]
             }
         ]
@@ -481,16 +727,28 @@
         "files": [
             {
                 "das_names": [
-                    "/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
+                    "/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL16NanoAODAPVv9-106X_mcRun2_asymptotic_preVFP_v11-v1/NANOAODSIM"
                 ],
                 "metadata": {
-                    "year": "2018",
+                    "year": "2016_PreVFP",
                     "isMC": true,
-                    "xsec": 88.3419,
-                    "sum_genweights": 10457566208.0
+                    "xsec": 88.3419
                 },
                 "das_parents_names": [
-                    "/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM"
+                    "/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL16MiniAODAPVv2-106X_mcRun2_asymptotic_preVFP_v11-v1/MINIAODSIM"
+                ]
+            },
+            {
+                "das_names": [
+                    "/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM"
+                ],
+                "metadata": {
+                    "year": "2016_PostVFP",
+                    "isMC": true,
+                    "xsec": 88.3419
+                },
+                "das_parents_names": [
+                    "/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL16MiniAODv2-106X_mcRun2_asymptotic_v17-v1/MINIAODSIM"
                 ]
             },
             {
@@ -500,11 +758,23 @@
                 "metadata": {
                     "year": "2017",
                     "isMC": true,
-                    "xsec": 88.3419,
-                    "sum_genweights": 7695841280.0
+                    "xsec": 88.3419
                 },
                 "das_parents_names": [
                     "/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL17MiniAODv2-106X_mc2017_realistic_v9-v1/MINIAODSIM"
+                ]
+            },
+            {
+                "das_names": [
+                    "/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
+                ],
+                "metadata": {
+                    "year": "2018",
+                    "isMC": true,
+                    "xsec": 88.3419
+                },
+                "das_parents_names": [
+                    "/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM"
                 ]
             }
         ]
@@ -515,32 +785,30 @@
         "files": [
             {
                 "das_names": [
-                    "/ST_s-channel_4f_leptonDecays_TuneCP5_13TeV-amcatnlo-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
-                ],
-                "metadata": {
-                    "year": "2018",
-                    "isMC": true,
-                    "xsec": 3.36,
-                    "part": "s-channel_4f_leptonDecays",
-                    "sum_genweights": 68767080.0
-                },
-                "das_parents_names": [
-                    "/ST_s-channel_4f_leptonDecays_TuneCP5_13TeV-amcatnlo-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM"
-                ]
-            },
-            {
-                "das_names": [
                     "/ST_s-channel_4f_leptonDecays_TuneCP5_13TeV-amcatnlo-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM"
                 ],
                 "metadata": {
                     "year": "2017",
                     "isMC": true,
                     "xsec": 3.36,
-                    "part": "s-channel_4f_leptonDecays",
-                    "sum_genweights": 48361408.0
+                    "part": "s-channel_4f_leptonDecays"
                 },
                 "das_parents_names": [
                     "/ST_s-channel_4f_leptonDecays_TuneCP5_13TeV-amcatnlo-pythia8/RunIISummer20UL17MiniAODv2-106X_mc2017_realistic_v9-v1/MINIAODSIM"
+                ]
+            },
+            {
+                "das_names": [
+                    "/ST_s-channel_4f_leptonDecays_TuneCP5_13TeV-amcatnlo-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
+                ],
+                "metadata": {
+                    "year": "2018",
+                    "isMC": true,
+                    "xsec": 3.36,
+                    "part": "s-channel_4f_leptonDecays"
+                },
+                "das_parents_names": [
+                    "/ST_s-channel_4f_leptonDecays_TuneCP5_13TeV-amcatnlo-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM"
                 ]
             }
         ]
@@ -551,32 +819,30 @@
         "files": [
             {
                 "das_names": [
-                    "/ST_t-channel_top_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
-                ],
-                "metadata": {
-                    "year": "2018",
-                    "isMC": true,
-                    "xsec": 136.02,
-                    "part": "t-channel_top_4f_InclusiveDecays",
-                    "sum_genweights": 18955980800.0
-                },
-                "das_parents_names": [
-                    "/ST_t-channel_top_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM"
-                ]
-            },
-            {
-                "das_names": [
                     "/ST_t-channel_top_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM"
                 ],
                 "metadata": {
                     "year": "2017",
                     "isMC": true,
                     "xsec": 136.02,
-                    "part": "t-channel_top_4f_InclusiveDecays",
-                    "sum_genweights": 13807998976.0
+                    "part": "t-channel_top_4f_InclusiveDecays"
                 },
                 "das_parents_names": [
                     "/ST_t-channel_top_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8/RunIISummer20UL17MiniAODv2-106X_mc2017_realistic_v9-v1/MINIAODSIM"
+                ]
+            },
+            {
+                "das_names": [
+                    "/ST_t-channel_top_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
+                ],
+                "metadata": {
+                    "year": "2018",
+                    "isMC": true,
+                    "xsec": 136.02,
+                    "part": "t-channel_top_4f_InclusiveDecays"
+                },
+                "das_parents_names": [
+                    "/ST_t-channel_top_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM"
                 ]
             }
         ]
@@ -587,32 +853,30 @@
         "files": [
             {
                 "das_names": [
-                    "/ST_t-channel_antitop_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
-                ],
-                "metadata": {
-                    "year": "2018",
-                    "isMC": true,
-                    "xsec": 80.95,
-                    "part": "t-channel_antitop_4f_InclusiveDecays",
-                    "sum_genweights": 6114950656.0
-                },
-                "das_parents_names": [
-                    "/ST_t-channel_antitop_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM"
-                ]
-            },
-            {
-                "das_names": [
                     "/ST_t-channel_antitop_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM"
                 ],
                 "metadata": {
                     "year": "2017",
                     "isMC": true,
                     "xsec": 80.95,
-                    "part": "t-channel_antitop_4f_InclusiveDecays",
-                    "sum_genweights": 4462870016.0
+                    "part": "t-channel_antitop_4f_InclusiveDecays"
                 },
                 "das_parents_names": [
                     "/ST_t-channel_antitop_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8/RunIISummer20UL17MiniAODv2-106X_mc2017_realistic_v9-v1/MINIAODSIM"
+                ]
+            },
+            {
+                "das_names": [
+                    "/ST_t-channel_antitop_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
+                ],
+                "metadata": {
+                    "year": "2018",
+                    "isMC": true,
+                    "xsec": 80.95,
+                    "part": "t-channel_antitop_4f_InclusiveDecays"
+                },
+                "das_parents_names": [
+                    "/ST_t-channel_antitop_4f_InclusiveDecays_TuneCP5_13TeV-powheg-madspin-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM"
                 ]
             }
         ]
@@ -623,32 +887,30 @@
         "files": [
             {
                 "das_names": [
-                    "/ST_tW_top_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
-                ],
-                "metadata": {
-                    "year": "2018",
-                    "isMC": true,
-                    "xsec": 35.85,
-                    "part": "tW_top_5f_NoFullyHadronicDecays",
-                    "sum_genweights": 365675712.0
-                },
-                "das_parents_names": [
-                    "/ST_tW_top_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM"
-                ]
-            },
-            {
-                "das_names": [
                     "/ST_tW_top_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM"
                 ],
                 "metadata": {
                     "year": "2017",
                     "isMC": true,
                     "xsec": 35.85,
-                    "part": "tW_top_5f_NoFullyHadronicDecays",
-                    "sum_genweights": 276021536.0
+                    "part": "tW_top_5f_NoFullyHadronicDecays"
                 },
                 "das_parents_names": [
                     "/ST_tW_top_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL17MiniAODv2-106X_mc2017_realistic_v9-v1/MINIAODSIM"
+                ]
+            },
+            {
+                "das_names": [
+                    "/ST_tW_top_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
+                ],
+                "metadata": {
+                    "year": "2018",
+                    "isMC": true,
+                    "xsec": 35.85,
+                    "part": "tW_top_5f_NoFullyHadronicDecays"
+                },
+                "das_parents_names": [
+                    "/ST_tW_top_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM"
                 ]
             }
         ]
@@ -659,32 +921,30 @@
         "files": [
             {
                 "das_names": [
-                    "/ST_tW_antitop_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
-                ],
-                "metadata": {
-                    "year": "2018",
-                    "isMC": true,
-                    "xsec": 35.85,
-                    "part": "tW_antitop_5f_NoFullyHadronicDecays",
-                    "sum_genweights": 355945824.0
-                },
-                "das_parents_names": [
-                    "/ST_tW_antitop_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM"
-                ]
-            },
-            {
-                "das_names": [
                     "/ST_tW_antitop_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM"
                 ],
                 "metadata": {
                     "year": "2017",
                     "isMC": true,
                     "xsec": 35.85,
-                    "part": "tW_antitop_5f_NoFullyHadronicDecays",
-                    "sum_genweights": 274168320.0
+                    "part": "tW_antitop_5f_NoFullyHadronicDecays"
                 },
                 "das_parents_names": [
                     "/ST_tW_antitop_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL17MiniAODv2-106X_mc2017_realistic_v9-v1/MINIAODSIM"
+                ]
+            },
+            {
+                "das_names": [
+                    "/ST_tW_antitop_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
+                ],
+                "metadata": {
+                    "year": "2018",
+                    "isMC": true,
+                    "xsec": 35.85,
+                    "part": "tW_antitop_5f_NoFullyHadronicDecays"
+                },
+                "das_parents_names": [
+                    "/ST_tW_antitop_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM"
                 ]
             }
         ]
@@ -696,32 +956,30 @@
         "files": [
             {
                 "das_names": [
-                    "/WJetsToLNu_HT-70To100_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
-                ],
-                "metadata": {
-                    "year": "2018",
-                    "isMC": true,
-                    "xsec": 1292.0,
-                    "part": "70To100",
-                    "sum_genweights": 66220252.0
-                },
-                "das_parents_names": [
-                    "/WJetsToLNu_HT-70To100_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM"
-                ]
-            },
-            {
-                "das_names": [
                     "/WJetsToLNu_HT-70To100_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM"
                 ],
                 "metadata": {
                     "year": "2017",
                     "isMC": true,
                     "xsec": 1292.0,
-                    "part": "70To100",
-                    "sum_genweights": 44576512.0
+                    "part": "70To100"
                 },
                 "das_parents_names": [
                     "/WJetsToLNu_HT-70To100_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL17MiniAODv2-106X_mc2017_realistic_v9-v1/MINIAODSIM"
+                ]
+            },
+            {
+                "das_names": [
+                    "/WJetsToLNu_HT-70To100_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
+                ],
+                "metadata": {
+                    "year": "2018",
+                    "isMC": true,
+                    "xsec": 1292.0,
+                    "part": "70To100"
+                },
+                "das_parents_names": [
+                    "/WJetsToLNu_HT-70To100_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM"
                 ]
             }
         ]
@@ -733,32 +991,30 @@
         "files": [
             {
                 "das_names": [
-                    "/WJetsToLNu_HT-100To200_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
-                ],
-                "metadata": {
-                    "year": "2018",
-                    "isMC": true,
-                    "xsec": 1345.0,
-                    "part": "100To200",
-                    "sum_genweights": 51408968.0
-                },
-                "das_parents_names": [
-                    "/WJetsToLNu_HT-100To200_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v2/MINIAODSIM"
-                ]
-            },
-            {
-                "das_names": [
                     "/WJetsToLNu_HT-100To200_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM"
                 ],
                 "metadata": {
                     "year": "2017",
                     "isMC": true,
                     "xsec": 1345.0,
-                    "part": "100To200",
-                    "sum_genweights": 47424464.0
+                    "part": "100To200"
                 },
                 "das_parents_names": [
                     "/WJetsToLNu_HT-100To200_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL17MiniAODv2-106X_mc2017_realistic_v9-v1/MINIAODSIM"
+                ]
+            },
+            {
+                "das_names": [
+                    "/WJetsToLNu_HT-100To200_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
+                ],
+                "metadata": {
+                    "year": "2018",
+                    "isMC": true,
+                    "xsec": 1345.0,
+                    "part": "100To200"
+                },
+                "das_parents_names": [
+                    "/WJetsToLNu_HT-100To200_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v2/MINIAODSIM"
                 ]
             }
         ]
@@ -770,32 +1026,30 @@
         "files": [
             {
                 "das_names": [
-                    "/WJetsToLNu_HT-200To400_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
-                ],
-                "metadata": {
-                    "year": "2018",
-                    "isMC": true,
-                    "xsec": 359.7,
-                    "part": "200To400",
-                    "sum_genweights": 58225632.0
-                },
-                "das_parents_names": [
-                    "/WJetsToLNu_HT-200To400_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM"
-                ]
-            },
-            {
-                "das_names": [
                     "/WJetsToLNu_HT-200To400_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM"
                 ],
                 "metadata": {
                     "year": "2017",
                     "isMC": true,
                     "xsec": 359.7,
-                    "part": "200To400",
-                    "sum_genweights": 42281976.0
+                    "part": "200To400"
                 },
                 "das_parents_names": [
                     "/WJetsToLNu_HT-200To400_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL17MiniAODv2-106X_mc2017_realistic_v9-v1/MINIAODSIM"
+                ]
+            },
+            {
+                "das_names": [
+                    "/WJetsToLNu_HT-200To400_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
+                ],
+                "metadata": {
+                    "year": "2018",
+                    "isMC": true,
+                    "xsec": 359.7,
+                    "part": "200To400"
+                },
+                "das_parents_names": [
+                    "/WJetsToLNu_HT-200To400_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM"
                 ]
             }
         ]
@@ -807,32 +1061,30 @@
         "files": [
             {
                 "das_names": [
-                    "/WJetsToLNu_HT-400To600_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
-                ],
-                "metadata": {
-                    "year": "2018",
-                    "isMC": true,
-                    "xsec": 48.91,
-                    "part": "400To600",
-                    "sum_genweights": 7444030.0
-                },
-                "das_parents_names": [
-                    "/WJetsToLNu_HT-400To600_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM"
-                ]
-            },
-            {
-                "das_names": [
                     "/WJetsToLNu_HT-400To600_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM"
                 ],
                 "metadata": {
                     "year": "2017",
                     "isMC": true,
                     "xsec": 48.91,
-                    "part": "400To600",
-                    "sum_genweights": 5468473.0
+                    "part": "400To600"
                 },
                 "das_parents_names": [
                     "/WJetsToLNu_HT-400To600_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL17MiniAODv2-106X_mc2017_realistic_v9-v1/MINIAODSIM"
+                ]
+            },
+            {
+                "das_names": [
+                    "/WJetsToLNu_HT-400To600_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
+                ],
+                "metadata": {
+                    "year": "2018",
+                    "isMC": true,
+                    "xsec": 48.91,
+                    "part": "400To600"
+                },
+                "das_parents_names": [
+                    "/WJetsToLNu_HT-400To600_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM"
                 ]
             }
         ]
@@ -844,32 +1096,30 @@
         "files": [
             {
                 "das_names": [
-                    "/WJetsToLNu_HT-600To800_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
-                ],
-                "metadata": {
-                    "year": "2018",
-                    "isMC": true,
-                    "xsec": 12.05,
-                    "part": "600To800",
-                    "sum_genweights": 7718765.0
-                },
-                "das_parents_names": [
-                    "/WJetsToLNu_HT-600To800_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM"
-                ]
-            },
-            {
-                "das_names": [
                     "/WJetsToLNu_HT-600To800_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM"
                 ],
                 "metadata": {
                     "year": "2017",
                     "isMC": true,
                     "xsec": 12.05,
-                    "part": "600To800",
-                    "sum_genweights": 5545298.0
+                    "part": "600To800"
                 },
                 "das_parents_names": [
                     "/WJetsToLNu_HT-600To800_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL17MiniAODv2-106X_mc2017_realistic_v9-v1/MINIAODSIM"
+                ]
+            },
+            {
+                "das_names": [
+                    "/WJetsToLNu_HT-600To800_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
+                ],
+                "metadata": {
+                    "year": "2018",
+                    "isMC": true,
+                    "xsec": 12.05,
+                    "part": "600To800"
+                },
+                "das_parents_names": [
+                    "/WJetsToLNu_HT-600To800_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM"
                 ]
             }
         ]
@@ -881,32 +1131,30 @@
         "files": [
             {
                 "das_names": [
-                    "/WJetsToLNu_HT-800To1200_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
-                ],
-                "metadata": {
-                    "year": "2018",
-                    "isMC": true,
-                    "xsec": 5.501,
-                    "part": "800To1200",
-                    "sum_genweights": 7306187.0
-                },
-                "das_parents_names": [
-                    "/WJetsToLNu_HT-800To1200_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM"
-                ]
-            },
-            {
-                "das_names": [
                     "/WJetsToLNu_HT-800To1200_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v3/NANOAODSIM"
                 ],
                 "metadata": {
                     "year": "2017",
                     "isMC": true,
                     "xsec": 5.501,
-                    "part": "800To1200",
-                    "sum_genweights": 5088483.0
+                    "part": "800To1200"
                 },
                 "das_parents_names": [
                     "/WJetsToLNu_HT-800To1200_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL17MiniAODv2-106X_mc2017_realistic_v9-v2/MINIAODSIM"
+                ]
+            },
+            {
+                "das_names": [
+                    "/WJetsToLNu_HT-800To1200_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
+                ],
+                "metadata": {
+                    "year": "2018",
+                    "isMC": true,
+                    "xsec": 5.501,
+                    "part": "800To1200"
+                },
+                "das_parents_names": [
+                    "/WJetsToLNu_HT-800To1200_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM"
                 ]
             }
         ]
@@ -918,32 +1166,30 @@
         "files": [
             {
                 "das_names": [
-                    "/WJetsToLNu_HT-1200To2500_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
-                ],
-                "metadata": {
-                    "year": "2018",
-                    "isMC": true,
-                    "xsec": 1.152,
-                    "part": "1200To2500",
-                    "sum_genweights": 6481518.0
-                },
-                "das_parents_names": [
-                    "/WJetsToLNu_HT-1200To2500_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v2/MINIAODSIM"
-                ]
-            },
-            {
-                "das_names": [
                     "/WJetsToLNu_HT-1200To2500_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v1/NANOAODSIM"
                 ],
                 "metadata": {
                     "year": "2017",
                     "isMC": true,
                     "xsec": 1.152,
-                    "part": "1200To2500",
-                    "sum_genweights": 4752118.0
+                    "part": "1200To2500"
                 },
                 "das_parents_names": [
                     "/WJetsToLNu_HT-1200To2500_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL17MiniAODv2-106X_mc2017_realistic_v9-v1/MINIAODSIM"
+                ]
+            },
+            {
+                "das_names": [
+                    "/WJetsToLNu_HT-1200To2500_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM"
+                ],
+                "metadata": {
+                    "year": "2018",
+                    "isMC": true,
+                    "xsec": 1.152,
+                    "part": "1200To2500"
+                },
+                "das_parents_names": [
+                    "/WJetsToLNu_HT-1200To2500_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v2/MINIAODSIM"
                 ]
             }
         ]
@@ -955,32 +1201,30 @@
         "files": [
             {
                 "das_names": [
-                    "/WJetsToLNu_HT-2500ToInf_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM"
-                ],
-                "metadata": {
-                    "year": "2018",
-                    "isMC": true,
-                    "xsec": 0.02646,
-                    "part": "2500ToInf",
-                    "sum_genweights": 2097648.0
-                },
-                "das_parents_names": [
-                    "/WJetsToLNu_HT-2500ToInf_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v2/MINIAODSIM"
-                ]
-            },
-            {
-                "das_names": [
                     "/WJetsToLNu_HT-2500ToInf_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL17NanoAODv9-106X_mc2017_realistic_v9-v2/NANOAODSIM"
                 ],
                 "metadata": {
                     "year": "2017",
                     "isMC": true,
                     "xsec": 0.02646,
-                    "part": "2500ToInf",
-                    "sum_genweights": 1185699.0
+                    "part": "2500ToInf"
                 },
                 "das_parents_names": [
                     "/WJetsToLNu_HT-2500ToInf_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL17MiniAODv2-106X_mc2017_realistic_v9-v2/MINIAODSIM"
+                ]
+            },
+            {
+                "das_names": [
+                    "/WJetsToLNu_HT-2500ToInf_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM"
+                ],
+                "metadata": {
+                    "year": "2018",
+                    "isMC": true,
+                    "xsec": 0.02646,
+                    "part": "2500ToInf"
+                },
+                "das_parents_names": [
+                    "/WJetsToLNu_HT-2500ToInf_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v2/MINIAODSIM"
                 ]
             }
         ]
