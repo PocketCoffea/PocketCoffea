@@ -80,6 +80,7 @@ plotter = PlotManager(
     save=True
 )
 plotter.plot_datamc_all(syst=True, spliteras=False)
+#plotter.plot_datamc_all(syst=False, spliteras=False)
 
 # if Log is also requested, rerun
 if args.log:
