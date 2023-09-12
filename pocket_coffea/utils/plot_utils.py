@@ -144,7 +144,6 @@ class Shape:
     - name: name that identifies the Shape object.
     - style_cfg: dictionary with style and plotting options.
     '''
-
     def __init__(
         self,
         h_dict,
@@ -611,10 +610,9 @@ class Shape:
         If ratio is True, also the Data/MC ratio plot is plotted.
         If syst is True, also the total systematic uncertainty is plotted.'''
         for cat in self.categories:
-            if self.only_cat:
-                if cat not in self.only_cat:
-                    continue
-            self.define_figure(ratio, toplabel)
+            if self.only_cat and cat not in self.only_cat:
+                continue
+            self.define_figure(ratio)
             self.build_stacks(cat, spliteras)
             self.get_systematic_uncertainty()
             self.plot_datamc(ratio, syst)
@@ -757,12 +755,9 @@ class SystUnc:
         '''Method used in the constructor to instanstiate a SystUnc object from
         a list of SystUnc objects. The sytematic uncertainties in self.syst_list,
         are summed in quadrature to define a new SystUnc object.'''
-        try:
-            index_non_empty = [i for i, s in enumerate(self.syst_list) if not s._is_empty][
-                0
-            ]
-        except:
-            print(self.datamc.name)
+        index_non_empty = [i for i, s in enumerate(self.syst_list) if not s._is_empty][
+            0
+        ]
         self.nominal = self.syst_list[index_non_empty].nominal
         self.xlabel = self.syst_list[index_non_empty].xlabel
         self.xcenters = self.syst_list[index_non_empty].xcenters
