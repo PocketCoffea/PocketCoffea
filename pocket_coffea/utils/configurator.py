@@ -16,6 +16,12 @@ from ..lib.weights_manager import WeightCustom
 from ..lib.hist_manager import Axis, HistConf
 from ..utils import build_jets_calibrator
 
+from pprint import PrettyPrinter
+
+def format(data, indent=0, width=80, depth=None, compact=True, sort_dicts=True):
+    pp = PrettyPrinter(indent=indent, width=width, depth=depth, compact=compact, sort_dicts=sort_dicts)
+    return pp.pformat(data)
+
 
 class Configurator:
     '''
@@ -49,7 +55,7 @@ class Configurator:
 
         # Save the workflow object and its options
         self.workflow = workflow
-        self.workflow_options = workflow_options
+        self.workflow_options = workflow_options if workflow_options != None else {}
         self.parameters = parameters
         # Resolving the OmegaConf
         try:
@@ -227,7 +233,7 @@ class Configurator:
         if len(skim) == 0:
             skim.append(passthrough)
         if len(preselections) == 0:
-            preselections.ppend(passthrough)
+            preselections.append(passthrough)
 
         if categories == {}:
             categories["baseline"] = [passthrough]
@@ -460,6 +466,10 @@ class Configurator:
                                     self.columns[subs][cat].append(w)
                             else:
                                 self.columns[sample][cat].append(w)
+        #prune the empty categories
+        
+
+    
 
     def filter_dataset(self, nfiles):
         filtered_filesets = {}
@@ -556,6 +566,7 @@ class Configurator:
         s = [
             'Configurator instance:',
             f"  - Workflow: {self.workflow}",
+            f"  - Workflow options: {self.workflow_options}",
             f"  - N. datasets: {len(self.datasets)} "]
 
         for dataset, meta in self.filesets.items():
@@ -567,14 +578,13 @@ class Configurator:
             s.append(f"   -- Sample {subsample}: {cuts}")
 
         s += [
-           
             f"  - Skim: {[c.name for c in self.skim]}",
             f"  - Preselection: {[c.name for c in self.preselections]}",
             f"  - Categories: {self.categories}",
-            f"  - Variables:  {list(self.variables.keys())}",
-            # f"  - Columns: {self.columns}",
-            f"  - available weights variations: {self.available_weights_variations} ",
-            f"  - available shape variations: {self.available_shape_variations}",            
+            f"  - Variables:  {format(list(self.variables.keys()))}",
+            f"  - Columns: {format(self.columns)}",
+            f"  - available weights variations: {format(self.available_weights_variations)} ",
+            f"  - available shape variations: {format(self.available_shape_variations)}",            
         ]
         return "\n".join(s)
 

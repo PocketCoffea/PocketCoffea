@@ -204,7 +204,7 @@ default_jets_calibration:
 # The user can build it from the default factory configurations above
 
 jets_calibration:
-  factory_file: "${default_jets_calibration.factory_files_dir}/jets_calibrator_JES_JER_Syst.pkl.gz"
+  factory_file: "./jets_calibrator_JES_JER_Syst.pkl.gz"
   jet_types:
     AK4PFchs: "${default_jets_calibration.factory_configuration.AK4PFchs.JES_JER_Syst}" 
     AK8PFPuppi: "${default_jets_calibration.factory_configuration.AK8PFPuppi.JES_JER_Syst}"

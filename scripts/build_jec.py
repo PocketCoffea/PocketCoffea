@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 '''
 Nice code to build the JEC/JER and JES uncertainties taken from
 https://github.com/andrzejnovak/boostedhiggs/blob/master/boostedhiggs/build_jec.py

@@ -40,6 +40,24 @@ extensions = [
     "sphinx_copybutton",
 ]
 
+myst_enable_extensions = [
+    "amsmath",
+    "attrs_inline",
+    "colon_fence",
+    "deflist",
+    "dollarmath",
+    "fieldlist",
+    "html_admonition",
+    "html_image",
+#    "linkify",
+    "replacements",
+    "smartquotes",
+    "strikethrough",
+    "substitution",
+    "tasklist",
+    # "sphinx_tippy"
+]
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = []
 
@@ -48,6 +66,7 @@ templates_path = []
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ["_build", "**.ipynb_checkpoints", "Thumbs.db", ".DS_Store", ".env"]
 
+myst_number_code_blocks = ["python"]
 
 # -- Options for HTML output -------------------------------------------------
 

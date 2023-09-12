@@ -35,11 +35,11 @@ def lepton_selection(events, lepton_flavour, params):
 def get_dilepton(electrons, muons, transverse=False):
 
     fields = {
-        "pt": None,
-        "eta": None,
-        "phi": None,
-        "mass": None,
-        "charge": None,
+        "pt": 0.,
+        "eta": 0.,
+        "phi": 0.,
+        "mass": 0.,
+        "charge": 0.,
     }
 
     electrons = ak.pad_none(electrons, 2)

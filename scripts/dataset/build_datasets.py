@@ -14,6 +14,7 @@ import os
 import sys
 import argparse
 import json
+from multiprocessing import Pool
 
 from pocket_coffea.utils.dataset import Dataset
 
@@ -72,6 +73,7 @@ parser.add_argument(
     type=str,
 )
 parser.add_argument("-rs", "--regex-sites", help="Regex to filter sites", type=str)
+parser.add_argument("-p", "--parallelize", help="Number of workers", type=int, default=4)
 args = parser.parse_args()
 config = json.load(open(args.cfg))
 
@@ -82,7 +84,7 @@ else:
     keys = config.keys()
 
 
-for key in keys:
+def do_dataset(key):  
     print("*" * 40)
     print("> Working on dataset: ", key)
     if key not in config:
@@ -92,19 +94,34 @@ for key in keys:
     if args.local_prefix:
         dataset_cfg["storage_prefix"] = args.local_prefix
 
-    dataset = Dataset(
-        name=key,
-        cfg=dataset_cfg,
-        sites_cfg={
-            "whitelist_sites": args.whitelist_sites,
-            "blacklist_sites": args.blacklist_sites,
-            "regex_sites": args.regex_sites,
-        },
-    )
+    try:
+        dataset = Dataset(
+            name=key,
+            cfg=dataset_cfg,
+            sites_cfg={
+                "whitelist_sites": args.whitelist_sites,
+                "blacklist_sites": args.blacklist_sites,
+                "regex_sites": args.regex_sites,
+            },
+        )
+    except:
+        raise Exception(f"Error getting info about dataset: {key}")
+    
+    return dataset
 
+
+pool = Pool(args.parallelize)
+
+print(keys)
+datasets = pool.map(do_dataset, keys)
+pool.close()
+
+for dataset in datasets:
     dataset.save(overwrite=args.overwrite, split=args.split_by_year)
     if args.check:
         dataset.check_samples()
 
-if args.download:
-    dataset.download()
+    if args.download:
+        dataset.download()
+
+        

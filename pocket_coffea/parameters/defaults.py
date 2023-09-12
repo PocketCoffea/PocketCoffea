@@ -20,7 +20,7 @@ def register_configuration_dir(key: str, directory: str):
 # By using the resolved ${default_params_dir:}/file.yaml the file
 # is loaded from the default params folder of the PocketCoffea package
 register_configuration_dir("default_params_dir", os.path.dirname(os.path.abspath(__file__)))
-
+OmegaConf.register_new_resolver("pico_to_femto", lambda x: float(x)/1000.)
 
 ##############################################
 def get_default_parameters():
@@ -48,6 +48,7 @@ def get_default_parameters():
         os.path.join(basedir, 'lepton_scale_factors.yaml')
     )
     syst_variations = OmegaConf.load(os.path.join(basedir, 'variations.yaml'))
+    plotting_style = OmegaConf.load(os.path.join(basedir, 'plotting_style.yaml'))
 
     all = OmegaConf.merge(
         pileup,
@@ -58,6 +59,7 @@ def get_default_parameters():
         btagging,
         lepton_scale_factors,
         syst_variations,
+        plotting_style
     )
     return all
 

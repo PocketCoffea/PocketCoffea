@@ -4,18 +4,18 @@ pocket\_coffea.utils package
 Submodules
 ----------
 
-pocket\_coffea.utils.PlotEfficiency module
-------------------------------------------
-
-.. automodule:: pocket_coffea.utils.PlotEfficiency
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 pocket\_coffea.utils.PlotSF module
 ----------------------------------
 
 .. automodule:: pocket_coffea.utils.PlotSF
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pocket\_coffea.utils.build\_jets\_calibrator module
+---------------------------------------------------
+
+.. automodule:: pocket_coffea.utils.build_jets_calibrator
    :members:
    :undoc-members:
    :show-inheritance:
@@ -44,6 +44,14 @@ pocket\_coffea.utils.load\_output module
    :undoc-members:
    :show-inheritance:
 
+pocket\_coffea.utils.logging module
+-----------------------------------
+
+.. automodule:: pocket_coffea.utils.logging
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pocket\_coffea.utils.network module
 -----------------------------------
 
@@ -52,10 +60,42 @@ pocket\_coffea.utils.network module
    :undoc-members:
    :show-inheritance:
 
+pocket\_coffea.utils.plot\_efficiency module
+--------------------------------------------
+
+.. automodule:: pocket_coffea.utils.plot_efficiency
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pocket\_coffea.utils.plot\_utils module
 ---------------------------------------
 
 .. automodule:: pocket_coffea.utils.plot_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pocket\_coffea.utils.rucio module
+---------------------------------
+
+.. automodule:: pocket_coffea.utils.rucio
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pocket\_coffea.utils.skim module
+--------------------------------
+
+.. automodule:: pocket_coffea.utils.skim
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pocket\_coffea.utils.utils module
+---------------------------------
+
+.. automodule:: pocket_coffea.utils.utils
    :members:
    :undoc-members:
    :show-inheritance:

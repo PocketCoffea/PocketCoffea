@@ -20,6 +20,7 @@ from ..lib.hist_manager import HistManager
 from ..lib.jets import jet_correction, met_correction, load_jet_factory
 from ..lib.categorization import CartesianSelection
 from ..utils.skim import uproot_writeable, copy_file
+from ..utils.utils import dump_ak_array
 
 from ..utils.configurator import Configurator
 
@@ -40,6 +41,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
         # Saving the configurator object in the processor
         self.cfg = cfg
+        self.workflow_options = self.cfg.workflow_options
         # Saving the parameters from the configurator objects
         self.params = self.cfg.parameters
         # Cuts
@@ -455,9 +457,14 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
         self.column_managers = {}
         for subs in self._subsamples[self._sample].keys():
-            if f"{self._sample}__{subs}" in self._columns:
+            if self._hasSubsamples:
+                name = f"{self._sample}__{subs}"
+            else:
+                name = self._sample
+
+            if name in self._columns:
                 self.column_managers[subs] = ColumnsManager(
-                    self._columns[f"{self._sample}__{subs}"], self._categories
+                    self._columns[name], self._categories
                 )
 
     def define_column_accumulators_extra(self):
@@ -478,21 +485,57 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         if self._hasSubsamples:
             # call the filling for each
             for subs in self._subsamples[self._sample].keys():
-                # Calling hist manager with a subsample mask
-                self.output["columns"][f"{self._sample}__{subs}"]= {
-                    self._dataset : self.column_managers[subs].fill_columns(
+                if self.workflow_options.get("dump_columns_as_arrays_per_chunk", None)!=None:
+                    # filling awkward arrays to be dumped per chunk
+                    out_arrays = self.column_managers[subs].fill_ak_arrays(
                                                self.events,
                                                self._categories,
                                                subsample_mask=self._subsamples[self._sample].get_mask(subs),
+                                               weights_manager=self.weights_manager
                                                )
-                }
+                    fname = (self.events.behavior["__events_factory__"]._partition_key.replace( "/", "_" )
+                        + ".parquet")
+                    for category, akarr in out_arrays.items(): 
+                        # building the file name
+                        subdirs = [self._dataset, sub, category]
+                        dump_ak_array(akarray, fname, self.workflow_options["dump_columns_as_arrays_per_chunk"]+"/", subdirs)
+
+
+                else:
+                    # Filling columns to be accumulated for all the chunks
+                    # Calling hist manager with a subsample mask
+                    self.output["columns"][f"{self._sample}__{subs}"]= {
+                        self._dataset : self.column_managers[subs].fill_columns_accumulators(
+                                                   self.events,
+                                                   self._categories,
+                                                   subsample_mask=self._subsamples[self._sample].get_mask(subs),
+                                                   weights_manager=self.weights_manager
+                                                   )
+                    }
         else:
-            self.output["columns"][self._sample] = { self._dataset: self.column_managers[
-                self._sample
-            ].fill_columns(
-                self.events,
-                self._categories,
-            ) }
+            # NO subsamples
+            if self.workflow_options.get("dump_columns_as_arrays_per_chunk", None)!=None:
+                out_arrays = self.column_managers[self._sample].fill_ak_arrays(
+                                               self.events,
+                                               self._categories,
+                                               subsample_mask=None,
+                                               weights_manager=self.weights_manager
+                                               )
+                # building the file name
+                fname = (self.events.behavior["__events_factory__"]._partition_key.replace( "/", "_" )
+                         + ".parquet")
+                for category, akarr in out_arrays.items():
+                    subdirs = [self._dataset, category]
+                    dump_ak_array(akarr, fname, self.workflow_options["dump_columns_as_arrays_per_chunk"]+"/", subdirs)
+            else:    
+                self.output["columns"][self._sample] = { self._dataset: self.column_managers[
+                    self._sample
+                ].fill_columns_accumulators(
+                    self.events,
+                    self._categories,
+                    subsample_mask = None,
+                    weights_manager=self.weights_manager
+                ) }
 
     def fill_column_accumulators_extra(self, variation):
         pass

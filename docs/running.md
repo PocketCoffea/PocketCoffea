@@ -1,5 +1,4 @@
-Running the analysis
-####################
+# Running the analysis
 
 The PocketCoffea analysis can be runned in three main modalities
 
@@ -16,9 +15,9 @@ The PocketCoffea analysis can be runned in three main modalities
   
 Assuming that PocketCoffea is installed, to run the analysis just use the `runner.py` script:
 
-.. code-block:: bash
+```bash
+$ runner.py --help
 
-    >> runner.py --help
 
          ____             __        __  ______      ________          
         / __ \____  _____/ /_____  / /_/ ____/___  / __/ __/__  ____ _
@@ -27,7 +26,7 @@ Assuming that PocketCoffea is installed, to run the analysis just use the `runne
      /_/    \____/\___/_/|_|\___/\__/\____/\____/_/ /_/  \___/\__,_/  
 
 
-     usage: runner.py [-h] --cfg CFG [-o OUTPUTDIR] [-t] [-lf LIMIT_FILES] [-lc LIMIT_CHUNKS] [-e EXECUTOR] [-s SCALEOUT]
+     usage: runner.py [-h] --cfg CFG -o OUTPUTDIR [-t] [-lf LIMIT_FILES] [-lc LIMIT_CHUNKS] [-e EXECUTOR] [-s SCALEOUT] [-ll LOGLEVEL] [-f]
 
      Run analysis on NanoAOD files using PocketCoffea processors
 
@@ -35,7 +34,7 @@ Assuming that PocketCoffea is installed, to run the analysis just use the `runne
        -h, --help            show this help message and exit
        --cfg CFG             Config file with parameters specific to the current run
        -o OUTPUTDIR, --outputdir OUTPUTDIR
-                             Overwrite the output folder in the configuration
+                             Output folder
        -t, --test            Run with limit 1 interactively
        -lf LIMIT_FILES, --limit-files LIMIT_FILES
                              Limit number of files
@@ -45,18 +44,23 @@ Assuming that PocketCoffea is installed, to run the analysis just use the `runne
                              Overwrite executor from config (to be used only with the --test options)
        -s SCALEOUT, --scaleout SCALEOUT
                              Overwrite scalout config
+       -ll LOGLEVEL, --loglevel LOGLEVEL
+                             Logging level
+       -f, --full            Process all datasets at the same time
+```
 
-
-Easy debug
-----------
+## Easy debugging
 
 The easiest way to debug a new processor is to run locally on a single process. The `runner()` script has
 the `--test` options which enables the `iterative` processor independently from the running configuration specified in
 the configuration file. The processor is run on a file of each input dataset.
 
->>> runner.py --cfg config/base.py --test
-
+```bash
+$ runner.py --cfg config.py --test
+```
 
 If you want to run locally with multiple processes for a fixed number of chunks just use the options:
 
->>> runner.py --cfg config/base.py --test -e futures -s 4 --limit-files 10 --limit-chunks 10
+```bash
+$ runner.py --cfg config.py --test -e futures -s 4 --limit-files 10 --limit-chunks 10
+```

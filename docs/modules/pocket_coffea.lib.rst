@@ -4,6 +4,14 @@ pocket\_coffea.lib package
 Submodules
 ----------
 
+pocket\_coffea.lib.categorization module
+----------------------------------------
+
+.. automodule:: pocket_coffea.lib.categorization
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pocket\_coffea.lib.columns\_manager module
 ------------------------------------------
 
@@ -32,14 +40,6 @@ pocket\_coffea.lib.deltaR\_matching module
 ------------------------------------------
 
 .. automodule:: pocket_coffea.lib.deltaR_matching
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-pocket\_coffea.lib.fill\_columns module
----------------------------------------
-
-.. automodule:: pocket_coffea.lib.fill_columns
    :members:
    :undoc-members:
    :show-inheritance:
@@ -80,14 +80,6 @@ pocket\_coffea.lib.parton\_provenance module
 --------------------------------------------
 
 .. automodule:: pocket_coffea.lib.parton_provenance
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-pocket\_coffea.lib.pileup module
---------------------------------
-
-.. automodule:: pocket_coffea.lib.pileup
    :members:
    :undoc-members:
    :show-inheritance:

@@ -1,9 +1,6 @@
+# PocketCoffea
 
-PocketCoffea
-=========================
-
-Introduction
-------------
+## Introduction
 
 PocketCoffea is a slim analysis framework based on Coffea for CMS NanoAOD events.
 
@@ -15,19 +12,23 @@ is done thanks to a `BaseProcessor` class which defines a `workflow` of operatio
 The user can customize the process from the confguration file or by redefining well-defined steps in the workflow.
 
 
-.. toctree::
-   installation
-   running
-   concepts
-   configuration
-   examples
-   analysis_example
-   performance
-   api
+:::{tip}
+- If you wish to jump into practice have a look at the [full analyses example](./analysis_example.md). 
+- If you want a broader introduction to the components of PocketCoffea have a look at [Concepts](./concepts.md).
+- Looking for the configuration manual? [Configuration](./configuration.md)
+:::
 
-Indices and tables
-==================
+```{toctree}
+:titlesonly:
+changelog.md
+installation.md
+analysis_example.md
+running.md
+concepts.md
+configuration.md
+parameters.md
+datasets.md
+performance.md
+api.md
+```
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

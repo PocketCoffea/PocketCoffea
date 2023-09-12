@@ -399,7 +399,7 @@ def sf_pileup_reweight(params, events, year):
 
     puWeightsJSON = correctionlib.CorrectionSet.from_file(puFile)
 
-    nPu = events.Pileup.nPU.to_numpy()
+    nPu = events.Pileup.nTrueInt.to_numpy()
     sf = puWeightsJSON[puName].evaluate(nPu, 'nominal')
     sfup = puWeightsJSON[puName].evaluate(nPu, 'up')
     sfdown = puWeightsJSON[puName].evaluate(nPu, 'down')

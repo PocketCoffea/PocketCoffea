@@ -1,0 +1,72 @@
+stages:
+  - build
+  - tag
+
+include:
+  - project: 'cms-analysis/general/container-image-ci-templates'
+    file:
+      - 'kaniko-image.gitlab-ci.yml'
+      - 'skopeo.gitlab-ci.yml'
+
+variables:
+    CONTEXT_DIR: ""
+    DOCKER_FILE_NAME: "Dockerfile"
+    GIT_SUBMODULE_STRATEGY: recursive
+    PUSH_IMAGE: "true"
+    ACCELERATED_IMAGE: "true"
+    BUILD_ARGS: ""
+    SCAN_IMAGE: "false"
+
+.build_docker_template:
+  extends: .build_kaniko
+  only:
+    - pushes
+    - merge_requests
+
+#--------------------------------------------------------------------
+# Build images and tag with short commit SHA
+build_docker_infn_facility:
+  extends: .build_docker_template
+  variables:
+    BUILD_ARGS: "FROM_IMAGE=dciangot/jlab-rclone:v7 CLUSTER=INFN"
+    REGISTRY_IMAGE_PATH: ${CI_REGISTRY_IMAGE}:infn-${CI_COMMIT_SHORT_SHA}
+    # TO_COMMIT: ${CI_REGISTRY_IMAGE}:infn-latest
+
+build_docker_lxplus:
+  extends: .build_docker_template
+  variables:
+    BUILD_ARGS: "FROM_IMAGE=gitlab-registry.cern.ch/batch-team/dask-lxplus/lxdask-cc7:latest CLUSTER=lxplus"
+    REGISTRY_IMAGE_PATH: ${CI_REGISTRY_IMAGE}:lxplus-${CI_COMMIT_SHORT_SHA}
+    # TO_COMMIT: ${CI_REGISTRY_IMAGE}:lxplus-cc7-latest
+
+#--------------------------------------------------------------------
+# Tag images on default branch as latest
+build_docker_infn_facility_latest:
+  extends: .tag_skopeo
+  variables:
+    IMAGE_ORIGIN_TAG: ${CI_REGISTRY_IMAGE}:infn-${CI_COMMIT_SHORT_SHA}
+    IMAGE_DESTINATION_TAG: ${CI_REGISTRY_IMAGE}:infn-latest
+
+build_docker_lxplus_latest:
+  extends: .tag_skopeo
+  variables:
+    IMAGE_ORIGIN_TAG: ${CI_REGISTRY_IMAGE}:lxplus-${CI_COMMIT_SHORT_SHA}
+    IMAGE_DESTINATION_TAG: ${CI_REGISTRY_IMAGE}:lxplus-cc7-latest
+
+#-------------------------------------------------------------------
+# Tag images using git tag
+build_docker_infn_facility_tagged:
+  extends: .tag_skopeo
+  rules:
+    - if: $CI_COMMIT_TAG
+  variables:
+    IMAGE_ORIGIN_TAG: ${CI_REGISTRY_IMAGE}:infn-${CI_COMMIT_SHORT_SHA}
+    IMAGE_DESTINATION_TAG: ${CI_REGISTRY_IMAGE}:infn-${CI_COMMIT_TAG}
+    
+build_docker_lxplus_tagged:
+  extends: .tag_skopeo
+  rules:
+    - if: $CI_COMMIT_TAG
+  variables:
+    IMAGE_ORIGIN_TAG: ${CI_REGISTRY_IMAGE}:lxplus-${CI_COMMIT_SHORT_SHA}
+    IMAGE_DESTINATION_TAG: ${CI_REGISTRY_IMAGE}:lxplus-cc7-${CI_COMMIT_TAG}

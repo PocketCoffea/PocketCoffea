@@ -1,2 +1,6 @@
 recursive-include pocket_coffea/ *.json
 recursive-include pocket_coffea/ *.txt
+prune notebooks
+prune config
+prune docs
+prune datasets
