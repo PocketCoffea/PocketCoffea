@@ -19,7 +19,7 @@ parser.add_argument('-j', '--workers', type=int, default=1, help='Number of para
 #parser.add_argument('-o', '--only', type=str, default='', help='Filter histograms name with string', required=False)
 parser.add_argument('-oc', '--only_cat', type=str, nargs="+", help='Filter categories with string', required=False)
 parser.add_argument('-os', '--only_syst', type=str, nargs="+", help='Filter systematics with a list of strings', required=False)
-parser.add_argument('-e', '--exclude', type=str, default=None, help='Exclude categories with string', required=False)
+parser.add_argument('-e', '--exclude_hist', type=str, nargs="+", default=None, help='Exclude histograms with a list of strings', required=False)
 parser.add_argument('--split_systematics', action='store_true', help='Split systematic uncertainties in the ratio plot')
 parser.add_argument('--partial_unc_band', action='store_true', help='Plot only the partial uncertainty band corresponding to the systematics specified as the argument `only_syst`')
 parser.add_argument('--overwrite', action='store_true', help='Overwrite plots in output folder')
@@ -62,10 +62,14 @@ if not args.overwrite:
 if not os.path.exists(args.outputdir):
     os.makedirs(args.outputdir)
 
+variables = accumulator['variables'].keys()
+if args.exclude_hist != None:
+    variables = list(filter(lambda x : all([s not in x for s in args.exclude_hist]), variables))
+hist_objs = { v : accumulator['variables'][v] for v in variables }
 
 plotter = PlotManager(
-    variables=accumulator['variables'].keys(),
-    hist_objs=accumulator['variables'],
+    variables=variables,
+    hist_objs=hist_objs,
     datasets_metadata=accumulator['datasets_metadata'],
     plot_dir=args.outputdir,
     style_cfg=config.parameters.plotting_style,
@@ -81,8 +85,8 @@ plotter.plot_datamc_all(syst=True, spliteras=False)
 # if Log is also requested, rerun
 if args.log:
     plotter = PlotManager(
-        variables=accumulator['variables'].keys(),
-        hist_objs=accumulator['variables'],
+        variables=variables,
+        hist_objs=hist_objs,
          datasets_metadata=accumulator['datasets_metadata'],
         plot_dir=args.outputdir,
         style_cfg=config.parameters.plotting_style,
