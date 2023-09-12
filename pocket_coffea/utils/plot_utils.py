@@ -1,4 +1,4 @@
-import os
+import os,sys
 from copy import deepcopy
 from multiprocessing import Pool
 from functools import partial
@@ -16,7 +16,7 @@ from matplotlib.pyplot import cm
 from matplotlib.ticker import MultipleLocator, AutoMinorLocator
 import mplhep as hep
 
-
+np.seterr(divide="ignore", invalid="ignore")
 
 class Style:
     '''This class manages all the style options for Data/MC plots.'''
@@ -114,7 +114,7 @@ class PlotManager:
                     toplabel=toplabel_to_use
                 )
 
-    def plot_datamc(self, name, syst=True, spliteras=False):
+    def plot_datamc(self, name, syst=False, spliteras=False):
         '''Plots one histogram, for all years and categories.'''
         print("Plotting: ", name)
         shape = self.shape_objects[name]
@@ -124,7 +124,7 @@ class PlotManager:
             ratio = True
         shape.plot_datamc_all(ratio, syst, spliteras=spliteras, save=self.save)
 
-    def plot_datamc_all(self, syst=True,  spliteras=False):
+    def plot_datamc_all(self, syst=False,  spliteras=False):
         '''Plots all the histograms contained in the dictionary, for all years and categories.'''
         shape_names = list(self.shape_objects.keys())
         if self.workers > 1:
@@ -482,6 +482,7 @@ class Shape:
                 reference_shape = reference_shape / integral
             ymax = max(reference_shape)
             if not np.isnan(ymax):
+                if ymax==0: ymax=1
                 self.ax.set_ylim((0, 2.0 * ymax))
         if ratio:
             self.ax.set_xlabel("")
@@ -546,9 +547,11 @@ class Shape:
     def plot_systematic_uncertainty(self, ratio=False, ax=None):
         '''Plots the asymmetric systematic uncertainty band on top of the MC stack, if `ratio` is set to False.
         To plot the systematic uncertainty in a ratio plot, `ratio` has to be set to True and the uncertainty band will be plotted around 1 in the ratio plot.'''
+
         ax = self.ax
         up = self.syst_manager.total.up
         down = self.syst_manager.total.down
+        #print('up:', up, 'down', down) 
         if ratio:
             # In order to get a consistent uncertainty band, the up/down variations of the ratio are set to 1 where the nominal value is 0
             ax = self.rax
@@ -568,10 +571,11 @@ class Shape:
                 1.0, *ak.Array(self.xedges)[[0, -1]], colors='gray', linestyles='dashed'
             )
 
-    def plot_datamc(self, ratio=True, syst=True, ax=None, rax=None):
+    def plot_datamc(self, ratio=True, syst=False, ax=None, rax=None):
         '''Plots the data histogram as an errorbar plot on top of the MC stacked histograms.
         If ratio is True, also the Data/MC ratio plot is plotted.
         If syst is True, also the total systematic uncertainty is plotted.'''
+
         if ratio:
             if self.is_mc_only:
                 raise Exception(
@@ -581,7 +585,6 @@ class Shape:
                 raise Exception(
                     "The Data/MC ratio cannot be plotted if the histogram is Data only."
                 )
-
         if ax:
             self.ax = ax
         if rax:
@@ -590,6 +593,7 @@ class Shape:
             self.plot_mc()
             self.plot_data()
             if syst:
+                print(self.name, 'plotting syst unc')
                 self.plot_systematic_uncertainty()
         elif self.is_mc_only:
             self.plot_mc()
@@ -610,6 +614,7 @@ class Shape:
         If ratio is True, also the Data/MC ratio plot is plotted.
         If syst is True, also the total systematic uncertainty is plotted.'''
         for cat in self.categories:
+            print('Plotting cat:', cat)
             if self.only_cat and cat not in self.only_cat:
                 continue
             self.define_figure(ratio)
@@ -709,6 +714,7 @@ class SystUnc:
             self.xbinwidth = self.shape.xbinwidth
         elif syst_list:
             self.syst_list = syst_list
+
             assert (
                 self.nsyst > 0
             ), "Attempting to initialize a `SystUnc` instance with an empty list of systematic uncertainties."
@@ -755,9 +761,16 @@ class SystUnc:
         '''Method used in the constructor to instanstiate a SystUnc object from
         a list of SystUnc objects. The sytematic uncertainties in self.syst_list,
         are summed in quadrature to define a new SystUnc object.'''
-        index_non_empty = [i for i, s in enumerate(self.syst_list) if not s._is_empty][
-            0
-        ]
+        # print('\t List of syst:', self.syst_list)
+        index_non_empty = [i for i, s in enumerate(self.syst_list) if not s._is_empty]
+        # An attempt to solve the crash when the plots are empty.
+        # Not successeful:
+        if len(index_non_empty)!=0:
+            index_non_empty = index_non_empty[0]
+        else:
+            print('Syst fo this shape can not be done. Existing')
+            sys.exit(1)
+
         self.nominal = self.syst_list[index_non_empty].nominal
         self.xlabel = self.syst_list[index_non_empty].xlabel
         self.xcenters = self.syst_list[index_non_empty].xcenters

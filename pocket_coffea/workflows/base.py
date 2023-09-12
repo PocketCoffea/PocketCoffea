@@ -485,7 +485,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         if self._hasSubsamples:
             # call the filling for each
             for subs in self._subsamples[self._sample].keys():
-                if self.workflow_options.get("dump_columns_as_arrays_per_chunk", None)!=None:
+                if self.workflow_options!=None and self.workflow_options.get("dump_columns_as_arrays_per_chunk", None)!=None:
                     # filling awkward arrays to be dumped per chunk
                     out_arrays = self.column_managers[subs].fill_ak_arrays(
                                                self.events,
@@ -514,7 +514,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     }
         else:
             # NO subsamples
-            if self.workflow_options.get("dump_columns_as_arrays_per_chunk", None)!=None:
+            #print('Workflow options: ', self.workflow_options)
+            if self.workflow_options!=None and self.workflow_options.get("dump_columns_as_arrays_per_chunk", None)!=None:
                 out_arrays = self.column_managers[self._sample].fill_ak_arrays(
                                                self.events,
                                                self._categories,
