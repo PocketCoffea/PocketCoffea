@@ -8,10 +8,10 @@ from coffea.util import load
 
 from pocket_coffea.utils.plot_utils import PlotManager
 from pocket_coffea.parameters import defaults
-from pocket_coffea import parameters
 
 parser = argparse.ArgumentParser(description='Plot histograms from coffea file')
-parser.add_argument('--cfg',  help='YAML file with plotting parameters', required=False)
+parser.add_argument('--cfg', help='YAML file with all the analysis parameters', required=True)
+parser.add_argument('-op', '--overwrite_parameters', type=str, nargs="+", default=None, help='YAML file with plotting parameters to overwrite default parameters', required=False)
 parser.add_argument("-o", "--outputdir", required=True, type=str, help="Output folder")
 parser.add_argument("-i", "--inputfile", required=True, type=str, help="Input file")
 parser.add_argument('-j', '--workers', type=int, default=1, help='Number of parallel workers to use for plotting')
@@ -27,15 +27,19 @@ parser.add_argument('--density', action='store_true', help='Set density paramete
 args = parser.parse_args()
 
 print("Loading the configuration file...")
-# Load default parameters from pocket_coffea
-default_parameters = defaults.get_default_parameters()
-if args.cfg == parser.get_default("cfg"):
-    parameters = default_parameters
+
 # Load yaml file with OmegaConf
-elif args.cfg[-5:] == ".yaml":
-    parameters = defaults.merge_parameters_from_files(default_parameters, args.cfg, update=True)
+if args.cfg[-5:] == ".yaml":
+    parameters_dump = OmegaConf.load(args.cfg)
 else:
     raise Exception("The input file format is not valid. The config file should be a in .yaml format.")
+
+# Overwrite plotting parameters
+if args.overwrite_parameters == parser.get_default("overwrite_parameters"):
+    parameters = parameters_dump
+else:
+    parameters = defaults.merge_parameters_from_files(parameters_dump, *args.overwrite_parameters, update=True)
+
 # Resolving the OmegaConf
 try:
     OmegaConf.resolve(parameters)
