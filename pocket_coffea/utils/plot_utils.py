@@ -118,6 +118,11 @@ class PlotManager:
         '''Plots one histogram, for all years and categories.'''
         print("Plotting: ", name)
         shape = self.shape_objects[name]
+        if shape.dense_dim > 1:
+            print(f"WARNING: cannot plot data/MC for histogram {shape.name} with dimension {shape.dense_dim}.")
+            print("The method `plot_datamc` will be skipped.")
+            return
+
         if ((shape.is_mc_only) | (shape.is_data_only)):
             ratio = False
         else:
