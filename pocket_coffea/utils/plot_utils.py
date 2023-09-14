@@ -172,13 +172,8 @@ class Shape:
             type(h_dict) == dict
         ), "The Shape object receives a dictionary of hist.Hist objects as argument."
         self.group_samples()
-        assert (
-            self.dense_dim == 1
-        ), f"The dimension of the histogram '{self.name}' is {self.dense_dim}. Only 1D histograms are supported."
-        self.load_attributes()
-
-
-    
+        if self.dense_dim == 1:
+            self.load_attributes()
 
     def load_attributes(self):
         '''Loads the attributes from the dictionary of histograms.'''
@@ -513,6 +508,11 @@ class Shape:
 
     def plot_mc(self, ax=None):
         '''Plots the MC histograms as a stacked plot.'''
+        if self.dense_dim > 1:
+            print(f"WARNING: cannot plot data/MC for histogram {self.name} with dimension {self.dense_dim}.")
+            print("The method `plot_mc` will be skipped.")
+            return
+
         if ax:
             self.ax = ax
         self.stack_mc_nominal.plot(
@@ -522,6 +522,11 @@ class Shape:
 
     def plot_data(self, ax=None):
         '''Plots the data histogram as an errorbar plot.'''
+        if self.dense_dim > 1:
+            print(f"WARNING: cannot plot data/MC for histogram {self.name} with dimension {self.dense_dim}.")
+            print("The method `plot_data` will be skipped.")
+            return
+
         if ax:
             self.ax = ax
         y = self.stack_sum_data.values()
@@ -535,6 +540,11 @@ class Shape:
 
     def plot_datamc_ratio(self, ax=None):
         '''Plots the Data/MC ratio as an errorbar plot.'''
+        if self.dense_dim > 1:
+            print(f"WARNING: cannot plot data/MC for histogram {self.name} with dimension {self.dense_dim}.")
+            print("The method `plot_datamc_ratio` will be skipped.")
+            return
+
         self.get_datamc_ratio()
         if ax:
             self.rax = rax
@@ -546,6 +556,11 @@ class Shape:
     def plot_systematic_uncertainty(self, ratio=False, ax=None):
         '''Plots the asymmetric systematic uncertainty band on top of the MC stack, if `ratio` is set to False.
         To plot the systematic uncertainty in a ratio plot, `ratio` has to be set to True and the uncertainty band will be plotted around 1 in the ratio plot.'''
+        if self.dense_dim > 1:
+            print(f"WARNING: cannot plot data/MC for histogram {self.name} with dimension {self.dense_dim}.")
+            print("The method `plot_systematic_uncertainty` will be skipped.")
+            return
+
         ax = self.ax
         up = self.syst_manager.total.up
         down = self.syst_manager.total.down
@@ -572,6 +587,11 @@ class Shape:
         '''Plots the data histogram as an errorbar plot on top of the MC stacked histograms.
         If ratio is True, also the Data/MC ratio plot is plotted.
         If syst is True, also the total systematic uncertainty is plotted.'''
+        if self.dense_dim > 1:
+            print(f"WARNING: cannot plot data/MC for histogram {self.name} with dimension {self.dense_dim}.")
+            print("The method `plot_datamc` will be skipped.")
+            return
+
         if ratio:
             if self.is_mc_only:
                 raise Exception(
@@ -609,6 +629,11 @@ class Shape:
         '''Plots the data and MC histograms for each year and category contained in the histograms.
         If ratio is True, also the Data/MC ratio plot is plotted.
         If syst is True, also the total systematic uncertainty is plotted.'''
+        if self.dense_dim > 1:
+            print(f"WARNING: cannot plot data/MC for histogram {self.name} with dimension {self.dense_dim}.")
+            print("The method `plot_datamc_all` will be skipped.")
+            return
+
         for cat in self.categories:
             if self.only_cat and cat not in self.only_cat:
                 continue

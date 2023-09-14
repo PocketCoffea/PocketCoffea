@@ -6,57 +6,11 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 import mplhep as hep
-import hist
-from coffea import processor
-from coffea.hist import Bin, Hist, plot
-from coffea.lookup_tools.dense_lookup import dense_lookup
-from coffea.util import save, load
 
-import correctionlib, rich
+import correctionlib
 import correctionlib.convert
 
 from pocket_coffea.parameters.lumi import lumi, femtobarn
-
-# color_datamc = {'data' : 'black', 'mc' : 'red'}
-opts_data = {
-    'linestyle': 'solid',
-    'linewidth': 0,
-    'marker': '.',
-    'markersize': 1.0,
-    'color': 'black',
-    'elinewidth': 1,
-    'label': 'Data',
-}
-
-opts_mc = {
-    'nominal': {
-        'linestyle': 'solid',
-        'linewidth': 0,
-        'marker': '.',
-        'markersize': 1.0,
-        'color': 'red',
-        'elinewidth': 1,
-        'label': r'$t\bar{t}$ DL + SL MC',
-    },
-    'Up': {
-        'linestyle': 'dashed',
-        'linewidth': 0,
-        'marker': '.',
-        'markersize': 1.0,
-        'color': 'red',
-        'elinewidth': 1,
-        'label': r'$t\bar{t}$ DL + SL MC',
-    },
-    'Down': {
-        'linestyle': 'dotted',
-        'linewidth': 0,
-        'marker': '.',
-        'markersize': 1.0,
-        'color': 'red',
-        'elinewidth': 1,
-        'label': r'$t\bar{t}$ DL + SL MC',
-    },
-}
 
 opts_sf = {
     'nominal': {
@@ -100,32 +54,6 @@ opts_unc = {
     "hatch": '/' * hatch_density,
     "zorder": 2,
     "label": "Stat. unc.",
-}
-
-patch_opts = {
-    'data': {'vmin': 0.4, 'vmax': 1.0},
-    'mc': {'vmin': 0.4, 'vmax': 1.0},
-    'sf': {'vmin': 0.75, 'vmax': 1.2, 'label': "Trigger SF"},
-    'unc_data': {'vmax': 0.05},
-    'unc_mc': {'vmax': 0.05},
-    'unc_sf': {'vmax': 0.05, 'label': "Trigger SF unc."},
-    'unc_rel_data': {'vmax': 0.05},
-    'unc_rel_mc': {'vmax': 0.05},
-    'unc_rel_sf': {'vmax': 0.05, 'label': "Trigger SF unc."},
-    'ratio_sf': {'vmin': 0.95, 'vmax': 1.05, 'label': "ratio SF var./nom."},
-}
-
-round_opts = {
-    'data': {'round': 2},
-    'mc': {'round': 2},
-    'sf': {'round': 2},
-    'unc_data': {'round': 2},
-    'unc_mc': {'round': 2},
-    'unc_sf': {'round': 2},
-    'unc_rel_data': {'round': 2},
-    'unc_rel_mc': {'round': 2},
-    'unc_rel_sf': {'round': 2},
-    'ratio_sf': {'round': 3},
 }
 
 # def plot_variation(x, y, yerr, xerr, xlabel, ylabel, syst, var, opts, ax, data=False, sf=False, **kwargs):
@@ -186,41 +114,36 @@ def plot_variation_correctionlib(file, axis_x, systematics, plot_dir, **kwargs):
 
         if kwargs['histname'].startswith(
             tuple(
-                config.plot_options['scalefactor'][kwargs['year']][kwargs['cat']].keys()
+                config['parameters_sf'][kwargs['year']][kwargs['cat']].keys()
             )
         ):
             key = [
                 k
-                for k in config.plot_options['scalefactor'][kwargs['year']][
+                for k in config['parameters_sf'][kwargs['year']][
                     kwargs['cat']
                 ].keys()
                 if k in kwargs['histname']
             ][0]
-            ylim = config.plot_options['scalefactor'][kwargs['year']][kwargs['cat']][
+            ylim = config['parameters_sf'][kwargs['year']][kwargs['cat']][
                 key
             ]['ylim']
         else:
             ylim = (0.7, 1.3)
         if kwargs['histname'].startswith(
-            tuple(config.plot_options['ratio'][kwargs['year']][kwargs['cat']].keys())
+            tuple(config['parameters_ratio'][kwargs['year']][kwargs['cat']].keys())
         ):
             key = [
                 k
-                for k in config.plot_options['ratio'][kwargs['year']][
+                for k in config['parameters_ratio'][kwargs['year']][
                     kwargs['cat']
                 ].keys()
                 if k in kwargs['histname']
             ][0]
-            ylim_ratio = config.plot_options['ratio'][kwargs['year']][kwargs['cat']][
+            ylim_ratio = config['parameters_ratio'][kwargs['year']][kwargs['cat']][
                 key
             ]['ylim']
         else:
             ylim_ratio = (0.90, 1.10)
-        if variable in config.plot_options['rebin'].keys():
-            if 'xticks' in config.plot_options['rebin'][variable].keys():
-                xticks = config.plot_options['rebin'][variable]['xticks']
-            if 'xlim' in config.plot_options['rebin'][variable].keys():
-                xlim = config.plot_options['rebin'][variable]['xlim']
         if syst != 'nominal':
             systDown = correction.evaluate(f"{syst}Down", x)
             systUp = correction.evaluate(f"{syst}Up", x)
@@ -303,4 +226,4 @@ def plot_variation_correctionlib(file, axis_x, systematics, plot_dir, **kwargs):
             f"{kwargs['histname']}_{kwargs['year']}_sf_{kwargs['cat']}_{syst}.png",
         )
         print("Saving", filename)
-        fig.savefig(filename, dpi=config.plot_options['dpi'], format="png")
+        fig.savefig(filename, dpi=config['opts_sf']['figure']['dpi'], format="png")
