@@ -1122,7 +1122,7 @@ class EfficiencyMap:
                         fontsize=18,
                         ax=ax_map,
                     )
-                    ax_map.set_title(var)
+                    ax_map.set_title(self.map2d.label)
                     if self.varname_x == 'ElectronGood.pt':
                         ax_map.set_xscale('log')
 
