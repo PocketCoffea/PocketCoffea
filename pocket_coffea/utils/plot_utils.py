@@ -113,6 +113,17 @@ class PlotManager:
                     density=self.density,
                     toplabel=toplabel_to_use
                 )
+        self.make_dirs()
+
+    def make_dirs(self):
+        '''Create directories recursively before saving plots with multiprocessing
+        to avoid conflicts between different processes.'''
+        if self.save:
+            for name, shape in self.shape_objects.items():
+                for cat in shape.categories:
+                    plot_dir = os.path.join(self.plot_dir, cat)
+                    if not os.path.exists(plot_dir):
+                        os.makedirs(plot_dir)
 
     def plot_datamc(self, name, syst=True, spliteras=False):
         '''Plots one histogram, for all years and categories.'''
@@ -177,8 +188,7 @@ class Shape:
             type(h_dict) == dict
         ), "The Shape object receives a dictionary of hist.Hist objects as argument."
         self.group_samples()
-        if self.dense_dim == 1:
-            self.load_attributes()
+        self.load_attributes()
 
     def load_attributes(self):
         '''Loads the attributes from the dictionary of histograms.'''
@@ -202,6 +212,12 @@ class Shape:
         self.xcenters = self.xaxis.centers
         self.xedges = self.xaxis.edges
         self.xbinwidth = np.ediff1d(self.xedges)
+        if self.dense_dim == 2:
+            self.yaxis = self.dense_axes[1]
+            self.ylabel = self.yaxis.label
+            self.ycenters = self.yaxis.centers
+            self.yedges = self.yaxis.edges
+            self.ybinwidth = np.ediff1d(self.yedges)
         self.is_mc_only = True if len(self.samples_data) == 0 else False
         self.is_data_only = True if len(self.samples_mc) == 0 else False
 
@@ -648,8 +664,6 @@ class Shape:
             self.plot_datamc(ratio, syst)
             if save:
                 plot_dir = os.path.join(self.plot_dir, cat)
-                if not os.path.exists(plot_dir):
-                    os.makedirs(plot_dir)
                 if self.log:
                     filepath = os.path.join(plot_dir, f"log_{self.name}_{cat}.png")
                 else:
