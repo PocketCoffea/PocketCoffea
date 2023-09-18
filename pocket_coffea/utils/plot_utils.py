@@ -113,11 +113,27 @@ class PlotManager:
                     density=self.density,
                     toplabel=toplabel_to_use
                 )
+        self.make_dirs()
+
+    def make_dirs(self):
+        '''Create directories recursively before saving plots with multiprocessing
+        to avoid conflicts between different processes.'''
+        if self.save:
+            for name, shape in self.shape_objects.items():
+                for cat in shape.categories:
+                    plot_dir = os.path.join(self.plot_dir, cat)
+                    if not os.path.exists(plot_dir):
+                        os.makedirs(plot_dir)
 
     def plot_datamc(self, name, syst=True, spliteras=False):
         '''Plots one histogram, for all years and categories.'''
         print("Plotting: ", name)
         shape = self.shape_objects[name]
+        if shape.dense_dim > 1:
+            print(f"WARNING: cannot plot data/MC for histogram {shape.name} with dimension {shape.dense_dim}.")
+            print("The method `plot_datamc` will be skipped.")
+            return
+
         if ((shape.is_mc_only) | (shape.is_data_only)):
             ratio = False
         else:
@@ -172,13 +188,7 @@ class Shape:
             type(h_dict) == dict
         ), "The Shape object receives a dictionary of hist.Hist objects as argument."
         self.group_samples()
-        assert (
-            self.dense_dim == 1
-        ), f"The dimension of the histogram '{self.name}' is {self.dense_dim}. Only 1D histograms are supported."
         self.load_attributes()
-
-
-    
 
     def load_attributes(self):
         '''Loads the attributes from the dictionary of histograms.'''
@@ -202,6 +212,12 @@ class Shape:
         self.xcenters = self.xaxis.centers
         self.xedges = self.xaxis.edges
         self.xbinwidth = np.ediff1d(self.xedges)
+        if self.dense_dim == 2:
+            self.yaxis = self.dense_axes[1]
+            self.ylabel = self.yaxis.label
+            self.ycenters = self.yaxis.centers
+            self.yedges = self.yaxis.edges
+            self.ybinwidth = np.ediff1d(self.yedges)
         self.is_mc_only = True if len(self.samples_data) == 0 else False
         self.is_data_only = True if len(self.samples_mc) == 0 else False
 
@@ -513,6 +529,11 @@ class Shape:
 
     def plot_mc(self, ax=None):
         '''Plots the MC histograms as a stacked plot.'''
+        if self.dense_dim > 1:
+            print(f"WARNING: cannot plot data/MC for histogram {self.name} with dimension {self.dense_dim}.")
+            print("The method `plot_mc` will be skipped.")
+            return
+
         if ax:
             self.ax = ax
         self.stack_mc_nominal.plot(
@@ -522,6 +543,11 @@ class Shape:
 
     def plot_data(self, ax=None):
         '''Plots the data histogram as an errorbar plot.'''
+        if self.dense_dim > 1:
+            print(f"WARNING: cannot plot data/MC for histogram {self.name} with dimension {self.dense_dim}.")
+            print("The method `plot_data` will be skipped.")
+            return
+
         if ax:
             self.ax = ax
         y = self.stack_sum_data.values()
@@ -535,6 +561,11 @@ class Shape:
 
     def plot_datamc_ratio(self, ax=None):
         '''Plots the Data/MC ratio as an errorbar plot.'''
+        if self.dense_dim > 1:
+            print(f"WARNING: cannot plot data/MC for histogram {self.name} with dimension {self.dense_dim}.")
+            print("The method `plot_datamc_ratio` will be skipped.")
+            return
+
         self.get_datamc_ratio()
         if ax:
             self.rax = rax
@@ -546,6 +577,11 @@ class Shape:
     def plot_systematic_uncertainty(self, ratio=False, ax=None):
         '''Plots the asymmetric systematic uncertainty band on top of the MC stack, if `ratio` is set to False.
         To plot the systematic uncertainty in a ratio plot, `ratio` has to be set to True and the uncertainty band will be plotted around 1 in the ratio plot.'''
+        if self.dense_dim > 1:
+            print(f"WARNING: cannot plot data/MC for histogram {self.name} with dimension {self.dense_dim}.")
+            print("The method `plot_systematic_uncertainty` will be skipped.")
+            return
+
         ax = self.ax
         up = self.syst_manager.total.up
         down = self.syst_manager.total.down
@@ -572,6 +608,11 @@ class Shape:
         '''Plots the data histogram as an errorbar plot on top of the MC stacked histograms.
         If ratio is True, also the Data/MC ratio plot is plotted.
         If syst is True, also the total systematic uncertainty is plotted.'''
+        if self.dense_dim > 1:
+            print(f"WARNING: cannot plot data/MC for histogram {self.name} with dimension {self.dense_dim}.")
+            print("The method `plot_datamc` will be skipped.")
+            return
+
         if ratio:
             if self.is_mc_only:
                 raise Exception(
@@ -609,6 +650,11 @@ class Shape:
         '''Plots the data and MC histograms for each year and category contained in the histograms.
         If ratio is True, also the Data/MC ratio plot is plotted.
         If syst is True, also the total systematic uncertainty is plotted.'''
+        if self.dense_dim > 1:
+            print(f"WARNING: cannot plot data/MC for histogram {self.name} with dimension {self.dense_dim}.")
+            print("The method `plot_datamc_all` will be skipped.")
+            return
+
         for cat in self.categories:
             if self.only_cat and cat not in self.only_cat:
                 continue
@@ -618,8 +664,6 @@ class Shape:
             self.plot_datamc(ratio, syst)
             if save:
                 plot_dir = os.path.join(self.plot_dir, cat)
-                if not os.path.exists(plot_dir):
-                    os.makedirs(plot_dir)
                 if self.log:
                     filepath = os.path.join(plot_dir, f"log_{self.name}_{cat}.png")
                 else:
