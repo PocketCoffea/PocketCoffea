@@ -162,7 +162,7 @@ def save_corrections(corrections):
                 corrections=[clibcorr],
             )
             rich.print(cset)
-            filename = f'sf_trigger_{map_name}_{year}_{cat}.json'
+            filename = f'sf_trigger_{map_name}_{cat}.json'
             outfile_triggersf = os.path.join(maps_dir, filename)
             outfile_triggersf = overwrite_check(outfile_triggersf)
             print(f"Saving semileptonic trigger scale factors in {outfile_triggersf}")
