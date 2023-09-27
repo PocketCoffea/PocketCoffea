@@ -3,6 +3,8 @@ import sys
 import json
 from collections import defaultdict
 
+from multiprocessing import Pool
+from functools import partial
 import subprocess
 import requests
 import parsl
@@ -13,6 +15,51 @@ from parsl.executors.threads import ThreadPoolExecutor
 from .network import get_proxy_path
 from . import rucio
 
+def do_dataset(key, config, local_prefix, whitelist_sites, blacklist_sites, regex_sites, **kwargs):
+    print("*" * 40)
+    print("> Working on dataset: ", key)
+    if key not in config:
+        print("Key: not found in the dataset configuration file")
+        exit(1)
+    dataset_cfg = config[key]
+    if local_prefix:
+        dataset_cfg["storage_prefix"] = local_prefix
+
+    try:
+        dataset = Dataset(
+            name=key,
+            cfg=dataset_cfg,
+            sites_cfg={
+                "whitelist_sites": whitelist_sites,
+                "blacklist_sites": blacklist_sites,
+                "regex_sites": regex_sites,
+            },
+        )
+    except:
+        raise Exception(f"Error getting info about dataset: {key}")
+
+    return dataset
+
+def build_datasets(cfg, keys, overwrite, download, check, split_by_year, local_prefix,
+                   whitelist_sites, blacklist_sites, regex_sites, parallelize):
+
+    config = json.load(open(cfg))
+
+    if not keys:
+        keys = config.keys()
+    args = {arg : value for arg, value in locals().items() if arg != "keys"}
+
+    with Pool(parallelize) as pool:
+        print(keys)
+        datasets = pool.map(partial(do_dataset, **args), keys)
+
+    for dataset in datasets:
+        dataset.save(overwrite=overwrite, split=split_by_year)
+        if check:
+            dataset.check_samples()
+
+        if download:
+            dataset.download()
 
 class Sample:
     def __init__(self, name, das_names, sample, metadata, sites_cfg, **kwargs):
