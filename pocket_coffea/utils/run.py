@@ -52,9 +52,12 @@ class BaseRunner:
 
         #TODO improve the run options config
         self.cfg = config
-        self.filesets = self.cfg.filesets
         self.processor_instance = self.cfg.processor_instance
         self.run_options = config_module.run_options
+
+    @property
+    def filesets(self):
+        return self.cfg.filesets
 
     def load_proxy(self):
         if self.run_options.get('voms', None) is not None:
@@ -104,7 +107,7 @@ class BaseRunner:
                                         maxchunks=self.run_options.get('max', None)
                                         )
 
-    def run(self, full=False):
+    def run(self, full=False, test=False, limit_files=None, limit_chunks=None, executor=None, scaleout=None):
         # This method has to be overridden in the sub-class definition 
         if not hasattr(self, "cluster"):
             raise Exception("The Runner object has no attribute 'cluster'. Please review the cluster definition in the 'setup_cluster()' method.")
@@ -141,14 +144,33 @@ class DaskRunner(BaseRunner):
         self.client.wait_for_workers(1)
         logging.info(">> You can connect to the Dask viewer at http://localhost:8787")
 
-    def run(self, full=False):
-        super().run(full=full)
+    def run(self, full=False, test=False, limit_files=None, limit_chunks=None, executor=None, scaleout=None):
+        super().run(full=full, test=test, limit_files=limit_files, limit_chunks=limit_chunks, executor=executor, scaleout=scaleout)
         self.start_client()
 
         performance_report_path = os.path.join(self.output_dir, f"{self.log_folder}/dask-report.html")
         print(f"Saving performance report to {performance_report_path}")
 
         with performance_report(filename=performance_report_path):
+
+            if test:
+                self.run_options["executor"] = executor if executor else "iterative"
+                self.run_options["limit"] = limit_files if limit_files else 1
+                self.run_options["max"] = limit_chunks if limit_chunks else 2
+                self.cfg.filter_dataset(self.run_options["limit"])
+
+            if limit_files != None:
+                run_options["limit"] = args.limit_files
+                config.filter_dataset(run_options["limit"])
+
+            if limit_chunks != None:
+                self.run_options["max"] = limit_chunks
+
+            if scaleout != None:
+                self.run_options["scaleout"] = scaleout
+
+            if executor != None:
+                self.run_options["executor"] = executor
 
             if full:
                 # Running separately on each dataset
