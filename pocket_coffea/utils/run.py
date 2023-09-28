@@ -11,23 +11,30 @@ from coffea.util import save
 from pocket_coffea.parameters.dask_env import setup_dask
 from pocket_coffea.utils.network import get_proxy_path
 from pocket_coffea.utils.logging import setup_logging
-from pocket_coffea.utils.configurator import Configurator
-from pocket_coffea.utils import utils
-
 
 class BaseRunner:
-    def __init__(self, architecture, scheduler, cfg, output_dir, loglevel="INFO"):
+    def __init__(self, architecture, executor, run_options, output_dir, loglevel="INFO"):
         self.architecture = architecture
-        self.scheduler = scheduler
-        self.cfg = cfg
-        self.config_dir = os.path.dirname(cfg)
+        self.executor = executor
+        self.run_options = run_options
+        # self.config_dir = os.path.dirname(cfg)
         self.output_dir = output_dir
         os.makedirs(self.output_dir, exist_ok=True)
         self.output_file = os.path.join(self.output_dir, "output_{}.coffea")
         self.setup_logging(loglevel)
-        self.load_config()
         self.load_proxy()
         self.load_env_extra()
+
+    @property
+    def executor_instance(self):
+        if self.executor == "dask":
+            return processor.dask_executor
+        elif self.executor == "futures":
+            return processor.futures_executor
+        elif self.executor == "parsl":
+            return processor.parsl_executor
+        elif self.executor == "iterative":
+            return processor.iterative_executor
 
     def setup_logging(self, loglevel):
         if (not setup_logging(console_log_output="stdout", console_log_level=loglevel, console_log_color=True,
@@ -35,29 +42,6 @@ class BaseRunner:
                         log_line_template="%(color_on)s[%(levelname)-8s] %(message)s%(color_off)s")):
             print("Failed to setup logging, aborting.")
             exit(1)
-
-    def load_config(self):
-        config_module =  utils.path_import(self.cfg)
-        try:
-            config = config_module.cfg
-            logging.info(config)
-            config.save_config(self.output_dir)
-
-        except AttributeError as e:
-            print("Error: ", e)
-            raise("The provided configuration module does not contain a `cfg` attribute of type Configurator. Please check your configuration!")
-
-        if not isinstance(config, Configurator):
-            raise("The configuration module attribute `cfg` is not of type Configurator. Please check yuor configuration!")
-
-        #TODO improve the run options config
-        self.cfg = config
-        self.processor_instance = self.cfg.processor_instance
-        self.run_options = config_module.run_options
-
-    @property
-    def filesets(self):
-        return self.cfg.filesets
 
     def load_proxy(self):
         if self.run_options.get('voms', None) is not None:
@@ -78,18 +62,14 @@ class BaseRunner:
             'ulimit -u 32768',
             'export MALLOC_TRIM_THRESHOLD_=0'
         ]        
-        self.env_extra.append(f'export PYTHONPATH={self.config_dir}:$PYTHONPATH')
+        # self.env_extra.append(f'export PYTHONPATH={self.config_dir}:$PYTHONPATH')
 
     def get_executor_args(self):
         executor_args = {
             'skipbadfiles': self.run_options.get('skipbadfiles',False),
             'schema': processor.NanoAODSchema,
-            'retries' : self.run_options['retries'],
-            'treereduction' : self.run_options.get('treereduction', 20),
             'xrootdtimeout': self.run_options.get('xrootdtimeout', 600),
         }
-        if hasattr(self, "client"):
-            executor_args.update({'client': self.client})
 
         return executor_args
 
@@ -97,25 +77,40 @@ class BaseRunner:
         # Here the cluster configuration has to be defined for sub-classes
         pass
 
-    def run_fileset(self, fileset):
+    def run_fileset(self, fileset, processor_instance):
         return processor.run_uproot_job(fileset,
                                         treename='Events',
-                                        processor_instance=self.processor_instance,
-                                        executor=processor.dask_executor,
+                                        processor_instance=processor_instance,
+                                        executor=self.executor_instance,
                                         executor_args=self.get_executor_args(),
                                         chunksize=self.run_options['chunk'],
                                         maxchunks=self.run_options.get('max', None)
                                         )
 
-    def run(self, full=False, test=False, limit_files=None, limit_chunks=None, executor=None, scaleout=None):
+    def run(
+            self,
+            filesets,
+            processor_instance,
+            full=False,
+            test=False,
+            limit_files=None,
+            limit_chunks=None,
+            scaleout=None,
+            ):
         # This method has to be overridden in the sub-class definition 
-        if not hasattr(self, "cluster"):
+        if self.architecture != "local" and not hasattr(self, "cluster"):
             raise Exception("The Runner object has no attribute 'cluster'. Please review the cluster definition in the 'setup_cluster()' method.")
         pass
 
 class DaskRunner(BaseRunner):
-    def __init__(self, architecture, cfg, output_dir, loglevel="INFO"):
-        super().__init__(architecture, scheduler="dask", cfg=cfg, output_dir=output_dir, loglevel=loglevel)
+    def __init__(self, architecture, run_options, output_dir, loglevel="INFO"):
+        super().__init__(
+            architecture,
+            executor="dask",
+            run_options=run_options,
+            output_dir=output_dir,
+            loglevel=loglevel,
+            )
             
         setup_dask(dask.config)
         self.setup_cluster()
@@ -135,6 +130,14 @@ class DaskRunner(BaseRunner):
         else:
             raise NotImplementedError
         
+    def get_executor_args(self):
+        executor_args = super().get_executor_args()
+        executor_args['treereduction'] = self.run_options.get('treereduction', 20)
+        executor_args['retries'] = self.run_options['retries']
+        executor_args['client'] = self.client
+
+        return executor_args
+
     def start_client(self):
         logging.info(f">> Starting the Dask client: sending out {self.run_options['scaleout']} jobs.")
         self.cluster.adapt(minimum=1 if self.run_options.get("adapt", False) else self.run_options['scaleout'],
@@ -144,27 +147,25 @@ class DaskRunner(BaseRunner):
         self.client.wait_for_workers(1)
         logging.info(">> You can connect to the Dask viewer at http://localhost:8787")
 
-    def run(self, full=False, test=False, limit_files=None, limit_chunks=None, executor=None, scaleout=None):
-        super().run(full=full, test=test, limit_files=limit_files, limit_chunks=limit_chunks, executor=executor, scaleout=scaleout)
-    
-        if test:
-            self.run_options["executor"] = executor if executor else "iterative"
-            self.run_options["limit"] = limit_files if limit_files else 1
-            self.run_options["max"] = limit_chunks if limit_chunks else 2
-            self.cfg.filter_dataset(self.run_options["limit"])
-
-        if limit_files != None:
-            self.run_options["limit"] = limit_files
-            self.cfg.filter_dataset(self.run_options["limit"])
-
-        if limit_chunks != None:
-            self.run_options["max"] = limit_chunks
-
-        if scaleout != None:
-            self.run_options["scaleout"] = scaleout
-
-        if executor != None:
-            self.run_options["executor"] = executor
+    def run(
+        self,
+        filesets,
+        processor_instance,
+        full=False,
+        test=False,
+        limit_files=None,
+        limit_chunks=None,
+        scaleout=None,
+    ):
+        super().run(
+            filesets,
+            processor_instance,
+            full=full,
+            test=test,
+            limit_files=limit_files,
+            limit_chunks=limit_chunks,
+            scaleout=scaleout,
+        )
 
         self.start_client()
 
@@ -175,17 +176,74 @@ class DaskRunner(BaseRunner):
 
             if full:
                 # Running separately on each dataset
-                logging.info(f"Working on samples: {list(self.filesets.keys())}")
+                logging.info(f"Working on samples: {list(filesets.keys())}")
                 
-                output = self.run_fileset(self.filesets)
+                output = self.run_fileset(filesets, processor_instance)
                 print(f"Saving output to {self.output_file.format('all')}")
                 save(output, self.output_file.format('all') )
             else:
                 # Running separately on each dataset
-                for sample, files in self.filesets.items():
+                for sample, files in filesets.items():
                     logging.info(f"Working on sample: {sample}")
                     fileset = {sample:files}
 
-                    output = self.run_fileset(fileset)
+                    output = self.run_fileset(fileset, processor_instance)
                     print(f"Saving output to {self.output_file.format(sample)}")
                     save(output, self.output_file.format(sample))
+
+class IterativeRunner(BaseRunner):
+    def __init__(self, architecture, run_options, output_dir, loglevel="INFO"):
+        super().__init__(
+            architecture,
+            executor="iterative", 
+            run_options=run_options,
+            output_dir=output_dir,
+            loglevel=loglevel,
+            )
+        # Source the environment variables
+        os.environ["XRD_RUNFORKHANDLER"] = "1"
+        os.environ["X509_USER_PROXY"] = self._x509_path
+
+    def get_executor_args(self):
+        executor_args = super().get_executor_args()
+        executor_args['workers'] = 1
+
+        return executor_args
+
+    def run(
+        self,
+        filesets,
+        processor_instance,
+        full=False,
+        test=False,
+        limit_files=None,
+        limit_chunks=None,
+        scaleout=None,
+    ):
+        super().run(
+            filesets,
+            processor_instance,
+            full=full,
+            test=test,
+            limit_files=limit_files,
+            limit_chunks=limit_chunks,
+            scaleout=scaleout,
+        )
+        self.run_fileset(filesets, processor_instance)
+
+        if full:
+            # Running separately on each dataset
+            logging.info(f"Working on samples: {list(filesets.keys())}")
+            
+            output = self.run_fileset(filesets, processor_instance)
+            print(f"Saving output to {self.output_file.format('all')}")
+            save(output, self.output_file.format('all') )
+        else:
+            # Running separately on each dataset
+            for sample, files in filesets.items():
+                logging.info(f"Working on sample: {sample}")
+                fileset = {sample:files}
+
+                output = self.run_fileset(fileset, processor_instance)
+                print(f"Saving output to {self.output_file.format(sample)}")
+                save(output, self.output_file.format(sample))
