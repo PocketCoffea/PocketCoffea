@@ -61,7 +61,7 @@ class BaseRunner:
             f'conda activate {os.environ["CONDA_DEFAULT_ENV"]}',
             'ulimit -u 32768',
             'export MALLOC_TRIM_THRESHOLD_=0'
-        ]        
+        ]
         # self.env_extra.append(f'export PYTHONPATH={self.config_dir}:$PYTHONPATH')
 
     def get_executor_args(self):
@@ -247,3 +247,11 @@ class IterativeRunner(BaseRunner):
                 output = self.run_fileset(fileset, processor_instance)
                 print(f"Saving output to {self.output_file.format(sample)}")
                 save(output, self.output_file.format(sample))
+
+def get_runner(executor):
+    if executor == "dask":
+        return DaskRunner
+    elif executor == "iterative":
+        return IterativeRunner
+    elif executor == "parsl":
+        raise NotImplementedError
