@@ -114,8 +114,8 @@ class BaseRunner:
         pass
 
 class DaskRunner(BaseRunner):
-    def __init__(self, architecture, cfg, output_dir):
-        super().__init__(architecture, scheduler="dask", cfg=cfg, output_dir=output_dir)
+    def __init__(self, architecture, cfg, output_dir, loglevel="INFO"):
+        super().__init__(architecture, scheduler="dask", cfg=cfg, output_dir=output_dir, loglevel=loglevel)
             
         setup_dask(dask.config)
         self.setup_cluster()
@@ -160,8 +160,8 @@ class DaskRunner(BaseRunner):
                 self.cfg.filter_dataset(self.run_options["limit"])
 
             if limit_files != None:
-                run_options["limit"] = args.limit_files
-                config.filter_dataset(run_options["limit"])
+                self.run_options["limit"] = limit_files
+                self.cfg.filter_dataset(self.run_options["limit"])
 
             if limit_chunks != None:
                 self.run_options["max"] = limit_chunks
