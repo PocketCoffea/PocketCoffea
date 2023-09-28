@@ -146,31 +146,32 @@ class DaskRunner(BaseRunner):
 
     def run(self, full=False, test=False, limit_files=None, limit_chunks=None, executor=None, scaleout=None):
         super().run(full=full, test=test, limit_files=limit_files, limit_chunks=limit_chunks, executor=executor, scaleout=scaleout)
+    
+        if test:
+            self.run_options["executor"] = executor if executor else "iterative"
+            self.run_options["limit"] = limit_files if limit_files else 1
+            self.run_options["max"] = limit_chunks if limit_chunks else 2
+            self.cfg.filter_dataset(self.run_options["limit"])
+
+        if limit_files != None:
+            self.run_options["limit"] = limit_files
+            self.cfg.filter_dataset(self.run_options["limit"])
+
+        if limit_chunks != None:
+            self.run_options["max"] = limit_chunks
+
+        if scaleout != None:
+            self.run_options["scaleout"] = scaleout
+
+        if executor != None:
+            self.run_options["executor"] = executor
+
         self.start_client()
 
         performance_report_path = os.path.join(self.output_dir, f"{self.log_folder}/dask-report.html")
         print(f"Saving performance report to {performance_report_path}")
 
         with performance_report(filename=performance_report_path):
-
-            if test:
-                self.run_options["executor"] = executor if executor else "iterative"
-                self.run_options["limit"] = limit_files if limit_files else 1
-                self.run_options["max"] = limit_chunks if limit_chunks else 2
-                self.cfg.filter_dataset(self.run_options["limit"])
-
-            if limit_files != None:
-                self.run_options["limit"] = limit_files
-                self.cfg.filter_dataset(self.run_options["limit"])
-
-            if limit_chunks != None:
-                self.run_options["max"] = limit_chunks
-
-            if scaleout != None:
-                self.run_options["scaleout"] = scaleout
-
-            if executor != None:
-                self.run_options["executor"] = executor
 
             if full:
                 # Running separately on each dataset
