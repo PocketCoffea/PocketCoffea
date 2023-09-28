@@ -25,54 +25,54 @@ parser.add_argument(
     required=False,
 )
 parser.add_argument(
-    "-k", "--keys", nargs="+", required=False, help="Dataset keys to select"
+    "-k", "--keys", nargs="+", required=False, help="Keys of the datasets to be created. If None, the keys are read from the datasets definition file."
 )
 parser.add_argument(
     '-d',
     '--download',
     action='store_true',
     default=False,
-    help='Download dataset files on local machine',
+    help='Download datasets from DAS',
     required=False,
 )
 parser.add_argument(
     '-o',
     '--overwrite',
     action='store_true',
-    help="Overwrite existing file definition json",
+    help="Overwrite existing .json datasets",
     default=False,
 )
 parser.add_argument(
     '-c',
     '--check',
     action='store_true',
-    help="Check file existance in the local prefix",
+    help="Check existence of the datasets",
     default=False,
 )
 parser.add_argument(
     '-s',
     '--split-by-year',
-    help="Split output files by year",
+    help="Split datasets by year",
     action="store_true",
     default=False,
 )
-parser.add_argument("-l", "--local-prefix", help="Local prefix", type=str, default=None)
+parser.add_argument("-l", "--local-prefix", help="Prefix of the local path where the datasets are stored", type=str, default=None)
 parser.add_argument(
     "-ws",
     "--whitelist-sites",
-    help="List of sites in the whitelist",
+    help="List of sites to be whitelisted",
     nargs="+",
     type=str,
 )
 parser.add_argument(
     "-bs",
     "--blacklist-sites",
-    help="List of sites in the blacklist",
+    help="List of sites to be blacklisted",
     nargs="+",
     type=str,
 )
-parser.add_argument("-rs", "--regex-sites", help="Regex to filter sites", type=str)
-parser.add_argument("-p", "--parallelize", help="Number of workers", type=int, default=4)
+parser.add_argument("-rs", "--regex-sites", help="Regex string to be used to filter the sites", type=str)
+parser.add_argument("-p", "--parallelize", help="Number of parallel processes to be used to fetch the datasets", type=int, default=4)
 args = parser.parse_args()
 
 print(vars(args))
