@@ -126,6 +126,7 @@ class DaskRunner(BaseRunner):
                 walltime=self.run_options["walltime"],
                 env_extra=self.env_extra,
                 local_directory=os.path.join(self.output_dir, self.log_folder),
+                log_directory=os.path.join(self.output_dir, self.log_folder),
             )
         else:
             raise NotImplementedError
