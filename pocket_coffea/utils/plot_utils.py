@@ -759,6 +759,7 @@ class SystUnc:
             assert not (
                 (self._n_empty == 1) & (self.nsyst == 1)
             ), "Attempting to intialize a `SystUnc` instance with an empty systematic uncertainty."
+            self.shape = self.syst_list[0].shape
             self._get_err2_from_syst()
 
     def __add__(self, other):
@@ -799,9 +800,11 @@ class SystUnc:
         '''Method used in the constructor to instanstiate a SystUnc object from
         a list of SystUnc objects. The sytematic uncertainties in self.syst_list,
         are summed in quadrature to define a new SystUnc object.'''
-        index_non_empty = [i for i, s in enumerate(self.syst_list) if not s._is_empty][
-            0
-        ]
+        if not self._is_empty:
+            index_non_empty = [i for i, s in enumerate(self.syst_list) if not s._is_empty][0]
+        else:
+            raise Exception(' '.join([f"The systematic uncertainty `{self.name}` of the shape `{self.shape.name}` is empty.",
+                                    "Please check the histogram definition. If a histogram is expected to be empty in a given category, the category can be excluded with the option `only_cat`."]))
         self.nominal = self.syst_list[index_non_empty].nominal
         self.xlabel = self.syst_list[index_non_empty].xlabel
         self.xcenters = self.syst_list[index_non_empty].xcenters
