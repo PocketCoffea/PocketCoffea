@@ -1,6 +1,7 @@
 import os
 from copy import deepcopy
 from multiprocessing import Pool
+from collections import defaultdict
 from functools import partial
 
 import math
@@ -9,8 +10,6 @@ import awkward as ak
 import hist
 
 import matplotlib
-matplotlib.use('agg')
-
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
 from matplotlib.ticker import MultipleLocator, AutoMinorLocator
@@ -62,7 +61,7 @@ class PlotManager:
         workers=8,
         log=False,
         density=False,
-        save=True,
+        save=True
     ) -> None:
 
         self.shape_objects = {}
@@ -113,17 +112,18 @@ class PlotManager:
                     density=self.density,
                     toplabel=toplabel_to_use
                 )
-        self.make_dirs()
+        if self.save:
+            self.make_dirs()
+            matplotlib.use('agg')
 
     def make_dirs(self):
         '''Create directories recursively before saving plots with multiprocessing
         to avoid conflicts between different processes.'''
-        if self.save:
-            for name, shape in self.shape_objects.items():
-                for cat in shape.categories:
-                    plot_dir = os.path.join(self.plot_dir, cat)
-                    if not os.path.exists(plot_dir):
-                        os.makedirs(plot_dir)
+        for name, shape in self.shape_objects.items():
+            for cat in shape.categories:
+                plot_dir = os.path.join(self.plot_dir, cat)
+                if not os.path.exists(plot_dir):
+                    os.makedirs(plot_dir)
 
     def plot_datamc(self, name, syst=True, spliteras=False):
         '''Plots one histogram, for all years and categories.'''
@@ -184,8 +184,9 @@ class Shape:
         self.density = density
         self.datasets_metadata=datasets_metadata
         self.sample_is_MC = {}
+        self._stacksCache = defaultdict(dict)
         assert (
-            type(h_dict) == dict
+            type(h_dict) in [dict, defaultdict]
         ), "The Shape object receives a dictionary of hist.Hist objects as argument."
         self.group_samples()
         self.load_attributes()
@@ -418,6 +419,7 @@ class Shape:
                 d: self.h_dict[d][slicing_data] for d in self.samples_data
             }
             self.stack_data = hist.Stack.from_dict(self.h_dict_data)
+
 
     def get_datamc_ratio(self):
         '''Computes the data/MC ratio and the corresponding uncertainty.'''
@@ -727,7 +729,6 @@ class SystUnc:
     def __init__(
             self, style_cfg, shape: Shape = None, name: str = None, syst_list: list = None
     ) -> None:
-        self.shape = shape
         self.name = name
         self.is_mcstat = self.name == "mcstat"
 
@@ -743,14 +744,15 @@ class SystUnc:
                 )
             else:
                 self.syst_list = [self]
-            self._get_err2()
+            self.shape_name = shape.name
+            self._get_err2(shape)
             # Full nominal MC including all MC samples
-            self.h_mc_nominal = self.shape.stack_sum_mc_nominal
+            self.h_mc_nominal = shape.stack_sum_mc_nominal
             self.nominal = self.h_mc_nominal.values()
-            self.xlabel = self.shape.xlabel
-            self.xcenters = self.shape.xcenters
-            self.xedges = self.shape.xedges
-            self.xbinwidth = self.shape.xbinwidth
+            self.xlabel = shape.xlabel
+            self.xcenters = shape.xcenters
+            self.xedges = shape.xedges
+            self.xbinwidth = shape.xbinwidth
         elif syst_list:
             self.syst_list = syst_list
             assert (
@@ -759,7 +761,14 @@ class SystUnc:
             assert not (
                 (self._n_empty == 1) & (self.nsyst == 1)
             ), "Attempting to intialize a `SystUnc` instance with an empty systematic uncertainty."
-            self.shape = self.syst_list[0].shape
+            _syst = self.syst_list[0]
+            self.shape_name = _syst.shape_name
+            self.h_mc_nominal = _syst.h_mc_nominal
+            self.nominal = _syst.nominal
+            self.xlabel = _syst.xlabel
+            self.xcenters = _syst.xcenters
+            self.xedges = _syst.xedges
+            self.xbinwidth = _syst.xbinwidth
             self._get_err2_from_syst()
 
     def __add__(self, other):
@@ -803,7 +812,7 @@ class SystUnc:
         if not self._is_empty:
             index_non_empty = [i for i, s in enumerate(self.syst_list) if not s._is_empty][0]
         else:
-            raise Exception(' '.join([f"The systematic uncertainty `{self.name}` of the shape `{self.shape.name}` is empty.",
+            raise Exception(' '.join([f"The systematic uncertainty `{self.name}` of the shape `{self.shape_name}` is empty.",
                                     "Please check the histogram definition. If a histogram is expected to be empty in a given category, the category can be excluded with the option `only_cat`."]))
         self.nominal = self.syst_list[index_non_empty].nominal
         self.xlabel = self.syst_list[index_non_empty].xlabel
@@ -821,12 +830,12 @@ class SystUnc:
             self.err2_up += syst.err2_up
             self.err2_down += syst.err2_down
 
-    def _get_err2(self):
+    def _get_err2(self, shape):
         '''Method used in the constructor to instanstiate a SystUnc object from
         a Shape object. The corresponding up/down squared uncertainties are stored and take
         into account the possibility for the uncertainty to be one-sided.'''
         # Loop over all the MC samples and sum the systematic uncertainty in quadrature
-        for h in self.shape.stack_mc:
+        for h in shape.stack_mc:
             # Nominal variation for a single MC sample
             h_nom = h[{'variation': 'nominal'}]
             nom = h_nom.values()
