@@ -646,12 +646,12 @@ class Shape:
         if ratio:
             # In order to get a consistent uncertainty band, the up/down variations of the ratio are set to 1 where the nominal value is 0
             ax = self.rax
-            up = self.syst_manager.total[cat].ratio_up
-            down = self.syst_manager.total[cat].ratio_down
+            up = self.syst_manager.total(cat).ratio_up
+            down = self.syst_manager.total(cat).ratio_down
         else:
             ax = self.ax
-            up = self.syst_manager.total[cat].up
-            down = self.syst_manager.total[cat].down
+            up = self.syst_manager.total(cat).up
+            down = self.syst_manager.total(cat).down
 
         unc_band = np.array([down, up])
         ax.fill_between(
@@ -767,21 +767,16 @@ class SystManager:
             for syst_name in self.systematics:
                 self.syst_dict[cat][syst_name] = SystUnc(self.shape.style, stacks, syst_name)
 
-    @property
-    def total(self):
-        dict_total = {}
-        for cat, syst_dict in self.syst_dict.items():
-            dict_total[cat] = SystUnc(style = self.style, name="total", syst_list=list(syst_dict.values()))
-        return dict_total
+    def total(self, cat):
+        return SystUnc(style = self.style, name="total", syst_list=list(self.syst_dict[cat].values()))
 
-    @property
-    def mcstat(self):
-        return self.syst_dict["mcstat"]
+    def mcstat(self, cat):
+        return self.syst_dict[cat]["mcstat"]
 
-    def get_syst(self, syst_name: str):
+    def get_syst(self, syst_name: str, cat: str):
         '''Returns the SystUnc object corresponding to a given systematic uncertainty,
-        passed as the argument `syst_name`.'''
-        return self.syst_dict[syst_name]
+        passed as the argument `syst_name` and for a given category, passed as the argument `cat`.'''
+        return self.syst_dict[cat][syst_name]
 
 
 class SystUnc:
