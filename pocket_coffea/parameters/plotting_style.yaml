@@ -20,6 +20,9 @@ plotting_style:
           height_ratios: [3,1]
         sharex: true
 
+      systematics:
+        figsize: [9,9]
+
     opts_data:
       color: black
       elinewidth: 1
