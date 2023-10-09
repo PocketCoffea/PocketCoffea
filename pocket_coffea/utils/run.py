@@ -92,10 +92,6 @@ class BaseRunner:
             filesets,
             processor_instance,
             full=False,
-            test=False,
-            limit_files=None,
-            limit_chunks=None,
-            scaleout=None,
             ):
         # This method has to be overridden in the sub-class definition 
         if self.architecture != "local" and not hasattr(self, "cluster"):
@@ -153,19 +149,11 @@ class DaskRunner(BaseRunner):
         filesets,
         processor_instance,
         full=False,
-        test=False,
-        limit_files=None,
-        limit_chunks=None,
-        scaleout=None,
     ):
         super().run(
             filesets,
             processor_instance,
             full=full,
-            test=test,
-            limit_files=limit_files,
-            limit_chunks=limit_chunks,
-            scaleout=scaleout,
         )
 
         self.start_client()
@@ -192,6 +180,55 @@ class DaskRunner(BaseRunner):
                     print(f"Saving output to {self.output_file.format(sample)}")
                     save(output, self.output_file.format(sample))
 
+class FuturesRunner(BaseRunner):
+    def __init__(self, architecture, run_options, output_dir, loglevel="INFO"):
+        super().__init__(
+            architecture,
+            executor="futures",
+            run_options=run_options,
+            output_dir=output_dir,
+            loglevel=loglevel,
+            )
+        # Source the environment variables
+        os.environ["XRD_RUNFORKHANDLER"] = "1"
+        os.environ["X509_USER_PROXY"] = self._x509_path
+
+    def get_executor_args(self):
+        executor_args = super().get_executor_args()
+        executor_args['workers'] = self.run_options['scaleout']
+
+        return executor_args
+
+    def run(
+        self,
+        filesets,
+        processor_instance,
+        full=False,
+    ):
+        super().run(
+            filesets,
+            processor_instance,
+            full,
+        )
+        self.run_fileset(filesets, processor_instance)
+
+        if full:
+            # Running separately on each dataset
+            logging.info(f"Working on samples: {list(filesets.keys())}")
+
+            output = self.run_fileset(filesets, processor_instance)
+            print(f"Saving output to {self.output_file.format('all')}")
+            save(output, self.output_file.format('all') )
+        else:
+            # Running separately on each dataset
+            for sample, files in filesets.items():
+                logging.info(f"Working on sample: {sample}")
+                fileset = {sample:files}
+
+                output = self.run_fileset(fileset, processor_instance)
+                print(f"Saving output to {self.output_file.format(sample)}")
+                save(output, self.output_file.format(sample))
+
 class IterativeRunner(BaseRunner):
     def __init__(self, architecture, run_options, output_dir, loglevel="INFO"):
         super().__init__(
@@ -216,19 +253,11 @@ class IterativeRunner(BaseRunner):
         filesets,
         processor_instance,
         full=False,
-        test=False,
-        limit_files=None,
-        limit_chunks=None,
-        scaleout=None,
     ):
         super().run(
             filesets,
             processor_instance,
             full=full,
-            test=test,
-            limit_files=limit_files,
-            limit_chunks=limit_chunks,
-            scaleout=scaleout,
         )
         self.run_fileset(filesets, processor_instance)
 
@@ -252,6 +281,8 @@ class IterativeRunner(BaseRunner):
 def get_runner(executor):
     if executor == "dask":
         return DaskRunner
+    elif executor == "futures":
+        return FuturesRunner
     elif executor == "iterative":
         return IterativeRunner
     elif executor == "parsl":
