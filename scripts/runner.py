@@ -23,6 +23,23 @@ from pocket_coffea.utils import utils
 from pocket_coffea.utils.network import get_proxy_path
 from pocket_coffea.utils.logging import setup_logging
 
+def load_run_options(cfg):
+    config_module =  utils.path_import(cfg)
+    try:
+        config = config_module.cfg
+        logging.info(config)
+        config.save_config(args.outputdir)
+
+    except AttributeError as e:
+        print("Error: ", e)
+        raise("The provided configuration module does not contain a `cfg` attribute of type Configurator. Please check your configuration!")
+
+    if not isinstance(config, Configurator):
+        raise("The configuration module attribute `cfg` is not of type Configurator. Please check yuor configuration!")
+
+    #TODO improve the run options config
+    return config_module.run_options
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run analysis on NanoAOD files using PocketCoffea processors')
@@ -52,29 +69,17 @@ if __name__ == '__main__':
                         logfile_file="last_run.log", logfile_log_level="info", logfile_log_color=False,
                         log_line_template="%(color_on)s[%(levelname)-8s] %(message)s%(color_off)s")):
         print("Failed to setup logging, aborting.")
-        exit(1) 
+        exit(1)
 
     print("Loading the configuration file...")
     if args.cfg[-3:] == ".py":
         # Load the script
-        config_module =  utils.path_import(args.cfg)
-        try:
-            config = config_module.cfg
-            logging.info(config)
-            config.save_config(args.outputdir)
-
-        except AttributeError as e:
-            print("Error: ", e)
-            raise("The provided configuration module does not contain a `cfg` attribute of type Configurator. Please check your configuration!")
-
-        if not isinstance(config, Configurator):
-            raise("The configuration module attribute `cfg` is not of type Configurator. Please check yuor configuration!")
-
-        #TODO improve the run options conig
-        run_options = config_module.run_options
+        run_options = load_run_options(args.cfg)
         
     elif args.cfg[-4:] == ".pkl":
+        # WARNING: This has to be tested!!
         config = cloudpickle.load(open(args.cfg,"rb"))
+        run_options = config.run_options
     else:
         raise sys.exit("Please provide a .py/.pkl configuration file")
 
