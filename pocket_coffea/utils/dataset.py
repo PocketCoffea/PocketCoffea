@@ -40,8 +40,8 @@ def do_dataset(key, config, local_prefix, whitelist_sites, blacklist_sites, rege
 
     return dataset
 
-def build_datasets(cfg, keys, overwrite, download, check, split_by_year, local_prefix,
-                   whitelist_sites, blacklist_sites, regex_sites, parallelize):
+def build_datasets(cfg, keys=None, overwrite=False, download=False, check=False, split_by_year=False, local_prefix=None,
+                   whitelist_sites=None, blacklist_sites=None, regex_sites=None, parallelize=4):
 
     config = json.load(open(cfg))
 
