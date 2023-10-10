@@ -210,7 +210,6 @@ class FuturesRunner(BaseRunner):
             processor_instance,
             full,
         )
-        self.run_fileset(filesets, processor_instance)
 
         if full:
             # Running separately on each dataset
@@ -259,7 +258,6 @@ class IterativeRunner(BaseRunner):
             processor_instance,
             full=full,
         )
-        self.run_fileset(filesets, processor_instance)
 
         if full:
             # Running separately on each dataset
