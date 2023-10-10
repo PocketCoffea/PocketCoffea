@@ -475,22 +475,22 @@ def _get_default_hist(name, type, coll, pos=None, fields=None, **kwargs):
     return out
 
 
-def jet_hists(coll="JetGood", pos=None, fields=None, name=None):
+def jet_hists(coll="JetGood", pos=None, fields=None, name=None, **kwargs):
     if name == None:
         name = coll
-    return _get_default_hist(name, "jet", coll, pos, fields)
+    return _get_default_hist(name, "jet", coll, pos, fields, **kwargs)
 
 
-def fatjet_hists(coll="FatJetGood", pos=None, fields=None, name=None):
+def fatjet_hists(coll="FatJetGood", pos=None, fields=None, name=None, **kwargs):
     if name == None:
         name = coll
-    return _get_default_hist(name, "fatjet", coll, pos, fields)
+    return _get_default_hist(name, "fatjet", coll, pos, fields, **kwargs)
 
 
-def parton_hists(coll="PartonMatched", pos=None, fields=None, name=None):
+def parton_hists(coll="PartonMatched", pos=None, fields=None, name=None, **kwargs):
     if name == None:
         name = coll
-    return _get_default_hist(name, "parton", coll, pos, fields)
+    return _get_default_hist(name, "parton", coll, pos, fields, **kwargs)
 
 
 def ele_hists(coll="ElectronGood", pos=None, fields=None, name=None, **kwargs):
@@ -505,25 +505,25 @@ def muon_hists(coll="MuonGood", pos=None, fields=None, name=None, **kwargs):
     return _get_default_hist(name, "muon", coll, pos, fields, **kwargs)
 
 
-def lepton_hists(coll="LeptonGood", pos=None, fields=None, name=None):
+def lepton_hists(coll="LeptonGood", pos=None, fields=None, name=None, **kwargs):
     if name == None:
         name = coll
-    return _get_default_hist(name, "lepton", coll, pos, fields)
+    return _get_default_hist(name, "lepton", coll, pos, fields, **kwargs)
 
 
-def met_hists(coll="MET", pos=None, fields=None, name=None):
+def met_hists(coll="MET", pos=None, fields=None, name=None, **kwargs):
     if name == None:
         name = coll
-    return _get_default_hist(name, "met", coll, pos, fields)
+    return _get_default_hist(name, "met", coll, pos, fields, **kwargs)
 
 
-def sv_hists(coll="SV", pos=None, fields=None, name=None):
+def sv_hists(coll="SV", pos=None, fields=None, name=None, **kwargs):
     if name == None:
         name = coll
-    return _get_default_hist(name, "sv", coll, pos, fields)
+    return _get_default_hist(name, "sv", coll, pos, fields, **kwargs)
 
 
-def count_hist(coll, bins=10, start=0, stop=9, label=None, name=None):
+def count_hist(coll, bins=10, start=0, stop=9, label=None, name=None, **kwargs):
     if name == None:
         name = f"n{coll}"
     return {
@@ -538,6 +538,7 @@ def count_hist(coll, bins=10, start=0, stop=9, label=None, name=None):
                     stop=stop,
                     lim=(start, stop),
                 )
-            ]
+            ],
+            **kwargs
         )
     }
