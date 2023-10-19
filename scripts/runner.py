@@ -178,7 +178,7 @@ if __name__ == '__main__':
         from parsl.executors import HighThroughputExecutor
         from parsl.launchers import SrunLauncher, SingleNodeLauncher
         from parsl.addresses import address_by_hostname, address_by_query
-        parsl.set_stream_logger(name='PARSL', level=logging.ERROR, stream=sys.stdout)
+        #parsl.set_stream_logger(name='PARSL', level=logging.ERROR, stream=sys.stdout)
 
         if 'slurm' in run_options['executor']:
             slurm_htex = Config(
@@ -210,7 +210,7 @@ if __name__ == '__main__':
                                         processor_instance=config.processor_instance,
                                         executor=processor.parsl_executor,
                                         executor_args={
-                                            'skipbadfiles':True,
+                                            'skipbadfiles': run_options.get('skipbadfiles', False),
                                             'schema': processor.NanoAODSchema,
                                             'config': None,
                                         },
@@ -230,7 +230,7 @@ if __name__ == '__main__':
                         address=address_by_hostname(),
                         #worker_ports=(8786,8785),
                         max_workers=1,
-                        worker_debug=True,
+                        worker_debug=False,
                         prefetch_capacity=0,
                         provider=CondorProvider(
                             nodes_per_block=1,
@@ -249,6 +249,7 @@ if __name__ == '__main__':
                     )
                 ],
                 retries=run_options["retries"],
+	        run_dir="/tmp/"+os.getlogin()+"/parsl_runinfo",
             )
             ## Site config for naf-desy
             if "naf-desy" in run_options['executor']:
@@ -281,7 +282,7 @@ if __name__ == '__main__':
                                         processor_instance=config.processor_instance,
                                         executor=processor.parsl_executor,
                                         executor_args={
-                                            'skipbadfiles':True,
+                                            'skipbadfiles': run_options.get('skipbadfiles', False),
                                             'schema': processor.NanoAODSchema,
                                             'config': None,
                                         },
