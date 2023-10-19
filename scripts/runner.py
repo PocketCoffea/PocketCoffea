@@ -8,7 +8,7 @@ print("""
                                                                  
 """)
 
-import os
+import os, getpass
 import sys
 import argparse
 import cloudpickle
@@ -249,7 +249,7 @@ if __name__ == '__main__':
                     )
                 ],
                 retries=run_options["retries"],
-	        run_dir="/tmp/"+os.getlogin()+"/parsl_runinfo",
+	        run_dir="/tmp/"+getpass.getuser()+"/parsl_runinfo",
             )
             ## Site config for naf-desy
             if "naf-desy" in run_options['executor']:
