@@ -28,6 +28,7 @@ def load_run_options(cfg):
     try:
         config = config_module.cfg
         logging.info(config)
+        config.run_options = config_module.run_options
         config.save_config(args.outputdir)
 
     except AttributeError as e:
@@ -38,7 +39,7 @@ def load_run_options(cfg):
         raise("The configuration module attribute `cfg` is not of type Configurator. Please check yuor configuration!")
 
     #TODO improve the run options config
-    return config_module.run_options
+    return config, config_module.run_options
 
 
 if __name__ == '__main__':
@@ -74,7 +75,7 @@ if __name__ == '__main__':
     print("Loading the configuration file...")
     if args.cfg[-3:] == ".py":
         # Load the script
-        run_options = load_run_options(args.cfg)
+        config, run_options = load_run_options(args.cfg)
         
     elif args.cfg[-4:] == ".pkl":
         # WARNING: This has to be tested!!
