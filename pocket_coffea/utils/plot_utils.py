@@ -1,4 +1,4 @@
-import os,sys
+import os
 from copy import deepcopy
 from multiprocessing import Pool
 from collections import defaultdict
@@ -140,7 +140,7 @@ class PlotManager:
                 if not os.path.exists(plot_dir):
                     os.makedirs(plot_dir)
 
-    def plot_datamc(self, name, syst=False, spliteras=False):
+    def plot_datamc(self, name, syst=True, spliteras=False):
         '''Plots one histogram, for all years and categories.'''
         print("Plotting: ", name)
         shape = self.shape_objects[name]
@@ -155,7 +155,7 @@ class PlotManager:
             ratio = True
         shape.plot_datamc_all(ratio, syst, spliteras=spliteras, save=self.save)
 
-    def plot_datamc_all(self, syst=False,  spliteras=False):
+    def plot_datamc_all(self, syst=True,  spliteras=False):
         '''Plots all the histograms contained in the dictionary, for all years and categories.'''
         shape_names = list(self.shape_objects.keys())
         if self.workers > 1:
@@ -632,7 +632,6 @@ class Shape:
     def plot_systematic_uncertainty(self, cat, ratio=False, ax=None):
         '''Plots the asymmetric systematic uncertainty band on top of the MC stack, if `ratio` is set to False.
         To plot the systematic uncertainty in a ratio plot, `ratio` has to be set to True and the uncertainty band will be plotted around 1 in the ratio plot.'''
-
         if self.dense_dim > 1:
             print(f"WARNING: cannot plot data/MC for histogram {self.name} with dimension {self.dense_dim}.")
             print("The method `plot_systematic_uncertainty` will be skipped.")
@@ -668,7 +667,6 @@ class Shape:
                 1.0, *ak.Array(self.style.opts_axes["xedges"])[[0, -1]], colors='gray', linestyles='dashed'
             )
 
-
     def plot_datamc(self, cat, ratio=True, syst=True, ax=None, rax=None):
         '''Plots the data histogram as an errorbar plot on top of the MC stacked histograms.
         If ratio is True, also the Data/MC ratio plot is plotted.
@@ -687,6 +685,7 @@ class Shape:
                 raise Exception(
                     "The Data/MC ratio cannot be plotted if the histogram is Data only."
                 )
+
         if ax:
             self.ax = ax
         if rax:
@@ -720,7 +719,7 @@ class Shape:
             return
 
         for cat in self.categories:
-            print('Plotting cat:', cat)
+            print('Plotting category:', cat)
             if self.only_cat and cat not in self.only_cat:
                 continue
             self.define_figure(ratio)
@@ -811,7 +810,6 @@ class SystUnc:
             self.nominal = stacks["mc_nominal_sum"].values()
         elif syst_list:
             self.syst_list = syst_list
-
             assert (
                 self.nsyst > 0
             ), "Attempting to initialize a `SystUnc` instance with an empty list of systematic uncertainties."
