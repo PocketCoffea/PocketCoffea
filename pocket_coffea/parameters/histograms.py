@@ -470,7 +470,7 @@ def _get_default_hist(name, type, coll, pos=None, fields=None, **kwargs):
                 axes=[
                     Axis(**setting),
                 ],
-                **kwargs,
+                **kwargs
             )
     return out
 
