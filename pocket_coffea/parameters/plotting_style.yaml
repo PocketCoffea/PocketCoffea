@@ -7,9 +7,9 @@ plotting_style:
 
     opts_figure:
       datamc:
-        figsize: [8,6]
+        figsize: [12,9]
       datamc_ratio:
-        figsize: [8,8]
+        figsize: [12,12]
         gridspec_kw:
           height_ratios: [3,1]
         sharex: true
