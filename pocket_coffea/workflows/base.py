@@ -75,6 +75,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             "sumw": {
                 cat: {} for cat in self._categories
             },
+            "sumw2": {
+                cat: {} for cat in self._categories
+            },
             "cutflow": {
                 "initial": {},
                 "skim": {},
@@ -150,7 +153,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         defined the cut at the preselection level, not at skim level.
         '''
         self._skim_masks = PackedSelection()
-        mask_flags = np.ones(self.nEvents_initial, dtype=np.bool)
+        mask_flags = np.ones(self.nEvents_initial, dtype=bool)
         flags = self.params.event_flags[self._year]
         if not self._isMC:
             flags += self.params.event_flags_data[self._year]
@@ -363,6 +366,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             if self._isMC:
                 w = self.weights_manager.get_weight(category)
                 self.output["sumw"][category][self._dataset] = {self._sample: ak.sum(w * mask_on_events)}
+                self.output["sumw2"][category][self._dataset] = {self._sample: ak.sum((w**2) * mask_on_events)}
 
             # If subsamples are defined we also save their metadata
             if self._hasSubsamples:
@@ -371,6 +375,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     self.output["cutflow"][category][self._dataset][f"{self._sample}__{subs}"] = ak.sum(mask_withsub)
                     if self._isMC:
                         self.output["sumw"][category][self._dataset][f"{self._sample}__{subs}"] = ak.sum(w * mask_withsub)
+                        self.output["sumw2"][category][self._dataset][f"{self._sample}__{subs}"] = ak.sum((w**2) * mask_withsub)
 
                         
     def define_custom_axes_extra(self):
@@ -479,7 +484,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
         if len(self.column_managers) == 0:
             return
-        
+    
         outcols = self.output["columns"]
         # TODO Fill column accumulator for different variations
         if self._hasSubsamples:
@@ -487,6 +492,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             for subs in self._subsamples[self._sample].keys():
                 if self.workflow_options.get("dump_columns_as_arrays_per_chunk", None)!=None:
                     # filling awkward arrays to be dumped per chunk
+                    if self.column_managers[subs].ncols == 0: break
                     out_arrays = self.column_managers[subs].fill_ak_arrays(
                                                self.events,
                                                self._categories,
@@ -504,6 +510,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 else:
                     # Filling columns to be accumulated for all the chunks
                     # Calling hist manager with a subsample mask
+                    if self.column_managers[subs].ncols == 0: break
                     self.output["columns"][f"{self._sample}__{subs}"]= {
                         self._dataset : self.column_managers[subs].fill_columns_accumulators(
                                                    self.events,
@@ -514,6 +521,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     }
         else:
             # NO subsamples
+            if self.column_managers[self._sample].ncols == 0: return
             if self.workflow_options.get("dump_columns_as_arrays_per_chunk", None)!=None:
                 out_arrays = self.column_managers[self._sample].fill_ak_arrays(
                                                self.events,
@@ -527,7 +535,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 for category, akarr in out_arrays.items():
                     subdirs = [self._dataset, category]
                     dump_ak_array(akarr, fname, self.workflow_options["dump_columns_as_arrays_per_chunk"]+"/", subdirs)
-            else:    
+            else:
                 self.output["columns"][self._sample] = { self._dataset: self.column_managers[
                     self._sample
                 ].fill_columns_accumulators(
@@ -595,19 +603,20 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         jets_calibrated = {}
         caches = []
         jet_calib_params= self.params.jets_calibration
-        for jet_type, factory in jet_calib_params.jet_types.items():
-            cache = cachetools.Cache(np.inf)
-            caches.append(cache)
-            jet_coll = jet_calib_params.collection[jet_type]
-            jets_calibrated[jet_coll] = jet_correction(
-                params=self.params,
-                events=nominal_events,
-                jets=nominal_events[jet_coll],
-                factory=self.jmefactory,
-                jet_type = jet_type,
-                year=self._year,
-                cache=cache
-            )
+        if "JES" in variations or "JER" in variations:
+            for jet_type, factory in jet_calib_params.jet_types.items():
+                cache = cachetools.Cache(np.inf)
+                caches.append(cache)
+                jet_coll = jet_calib_params.collection[jet_type]
+                jets_calibrated[jet_coll] = jet_correction(
+                    params=self.params,
+                    events=nominal_events,
+                    jets=nominal_events[jet_coll],
+                    factory=self.jmefactory,
+                    jet_type = jet_type,
+                    year=self._year,
+                    cache=cache
+                )
 
         for variation in variations:
             # BIG assumption:
@@ -786,7 +795,16 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 if dataset in sumgenw_dict:
                     scaling = 1/sumgenw_dict[dataset]
                     for sample in dataset_data.keys():
-                        dataset_data[sample] *= scaling                        
+                        dataset_data[sample] *= scaling
+
+        # rescale sumw2
+        for cat, catdata in output["sumw2"].items():
+            for dataset, dataset_data in catdata.items():
+                if dataset in sumgenw_dict:
+                    scaling = 1/sumgenw_dict[dataset]**2
+                    for sample in dataset_data.keys():
+                        dataset_data[sample] *= scaling
+                        
 
     def postprocess(self, accumulator):
         '''
@@ -801,7 +819,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         To add additional customatizaion redefine the `postprocessing` function,
         but remember to include a super().postprocess() call.
         '''
-        self.rescale_sumgenweights(accumulator["sum_genweights"], accumulator)
+        if not self.workflow_options.get("donotscale_sumgenweights", False):
+            self.rescale_sumgenweights(accumulator["sum_genweights"], accumulator)
 
         # Saving dataset metadata directly in the output file reading from the config
         dmeta = accumulator["datasets_metadata"] = {
