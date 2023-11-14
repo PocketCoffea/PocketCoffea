@@ -12,11 +12,10 @@ print(
 
 import os
 import sys
-import argparse
 import json
-from multiprocessing import Pool
+import argparse
 
-from pocket_coffea.utils.dataset import Dataset
+from pocket_coffea.utils.dataset import build_datasets
 
 parser = argparse.ArgumentParser(description='Build dataset fileset in json format')
 parser.add_argument(
@@ -26,102 +25,56 @@ parser.add_argument(
     required=False,
 )
 parser.add_argument(
-    "-k", "--keys", nargs="+", required=False, help="Dataset keys to select"
+    "-k", "--keys", nargs="+", required=False, help="Keys of the datasets to be created. If None, the keys are read from the datasets definition file."
 )
 parser.add_argument(
     '-d',
     '--download',
     action='store_true',
     default=False,
-    help='Download dataset files on local machine',
+    help='Download datasets from DAS',
     required=False,
 )
 parser.add_argument(
     '-o',
     '--overwrite',
     action='store_true',
-    help="Overwrite existing file definition json",
+    help="Overwrite existing .json datasets",
     default=False,
 )
 parser.add_argument(
     '-c',
     '--check',
     action='store_true',
-    help="Check file existance in the local prefix",
+    help="Check existence of the datasets",
     default=False,
 )
 parser.add_argument(
     '-s',
     '--split-by-year',
-    help="Split output files by year",
+    help="Split datasets by year",
     action="store_true",
     default=False,
 )
-parser.add_argument("-l", "--local-prefix", help="Local prefix", type=str, default=None)
+parser.add_argument("-l", "--local-prefix", help="Prefix of the local path where the datasets are stored", type=str, default=None)
 parser.add_argument(
     "-ws",
     "--whitelist-sites",
-    help="List of sites in the whitelist",
+    help="List of sites to be whitelisted",
     nargs="+",
     type=str,
 )
 parser.add_argument(
     "-bs",
     "--blacklist-sites",
-    help="List of sites in the blacklist",
+    help="List of sites to be blacklisted",
     nargs="+",
     type=str,
 )
-parser.add_argument("-rs", "--regex-sites", help="Regex to filter sites", type=str)
-parser.add_argument("-p", "--parallelize", help="Number of workers", type=int, default=4)
+parser.add_argument("-rs", "--regex-sites", help="Regex string to be used to filter the sites", type=str)
+parser.add_argument("-p", "--parallelize", help="Number of parallel processes to be used to fetch the datasets", type=int, default=4)
 args = parser.parse_args()
-config = json.load(open(args.cfg))
 
+print(vars(args))
 
-if args.keys:
-    keys = args.keys
-else:
-    keys = config.keys()
-
-
-def do_dataset(key):  
-    print("*" * 40)
-    print("> Working on dataset: ", key)
-    if key not in config:
-        print("Key: not found in the dataset configuration file")
-        exit(1)
-    dataset_cfg = config[key]
-    if args.local_prefix:
-        dataset_cfg["storage_prefix"] = args.local_prefix
-
-    try:
-        dataset = Dataset(
-            name=key,
-            cfg=dataset_cfg,
-            sites_cfg={
-                "whitelist_sites": args.whitelist_sites,
-                "blacklist_sites": args.blacklist_sites,
-                "regex_sites": args.regex_sites,
-            },
-        )
-    except:
-        raise Exception(f"Error getting info about dataset: {key}")
-    
-    return dataset
-
-
-pool = Pool(args.parallelize)
-
-print(keys)
-datasets = pool.map(do_dataset, keys)
-pool.close()
-
-for dataset in datasets:
-    dataset.save(overwrite=args.overwrite, split=args.split_by_year)
-    if args.check:
-        dataset.check_samples()
-
-    if args.download:
-        dataset.download()
-
-        
+build_datasets(**vars(args))

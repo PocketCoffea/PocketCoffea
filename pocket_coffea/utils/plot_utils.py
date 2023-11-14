@@ -1,6 +1,7 @@
 import os,sys
 from copy import deepcopy
 from multiprocessing import Pool
+from collections import defaultdict
 from functools import partial
 
 import math
@@ -9,22 +10,22 @@ import awkward as ak
 import hist
 
 import matplotlib
-matplotlib.use('agg')
-
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
 from matplotlib.ticker import MultipleLocator, AutoMinorLocator
 import mplhep as hep
 
-np.seterr(divide="ignore", invalid="ignore")
+from omegaconf import OmegaConf
+from pocket_coffea.parameters.defaults import merge_parameters
 
+np.seterr(divide="ignore", invalid="ignore")
 class Style:
     '''This class manages all the style options for Data/MC plots.'''
 
     def __init__(self, style_cfg) -> None:
         self.style_cfg = style_cfg
-        required_keys = ["opts_figure", "opts_mc", "opts_data", "opts_unc"]
-        for key in required_keys:
+        self._required_keys = ["opts_figure", "opts_mc", "opts_data", "opts_unc"]
+        for key in self._required_keys:
             assert (
                 key in style_cfg
             ), f"The key `{key}` is not defined in the style dictionary."
@@ -46,6 +47,19 @@ class Style:
         if not hasattr(self, "fontsize"):
             self.fontsize = 22
 
+    def update(self, style_cfg):
+        '''Updates the style options with a new dictionary.'''
+        if not type(style_cfg) in [dict, defaultdict]:
+            raise Exception("The style options should be passed as a dictionary.")
+        style_new = OmegaConf.create(style_cfg)
+        valid_keys = self._required_keys + ["opts_axes"]
+        for key, item in style_cfg.items():
+            if key not in valid_keys:
+                raise Exception(f"The key `{key}` is not a valid style option. Valid keys: {valid_keys}")
+            self.style_cfg = merge_parameters(self.style_cfg, style_new, update=True)
+        for key, item in style_cfg.items():
+            setattr(self, key, item)
+
 
 class PlotManager:
     '''This class manages multiple Shape objects and their plotting.'''
@@ -62,7 +76,7 @@ class PlotManager:
         workers=8,
         log=False,
         density=False,
-        save=True,
+        save=True
     ) -> None:
 
         self.shape_objects = {}
@@ -113,11 +127,28 @@ class PlotManager:
                     density=self.density,
                     toplabel=toplabel_to_use
                 )
+        if self.save:
+            self.make_dirs()
+            matplotlib.use('agg')
+
+    def make_dirs(self):
+        '''Create directories recursively before saving plots with multiprocessing
+        to avoid conflicts between different processes.'''
+        for name, shape in self.shape_objects.items():
+            for cat in shape.categories:
+                plot_dir = os.path.join(self.plot_dir, cat)
+                if not os.path.exists(plot_dir):
+                    os.makedirs(plot_dir)
 
     def plot_datamc(self, name, syst=False, spliteras=False):
         '''Plots one histogram, for all years and categories.'''
         print("Plotting: ", name)
         shape = self.shape_objects[name]
+        if shape.dense_dim > 1:
+            print(f"WARNING: cannot plot data/MC for histogram {shape.name} with dimension {shape.dense_dim}.")
+            print("The method `plot_datamc` will be skipped.")
+            return
+
         if ((shape.is_mc_only) | (shape.is_data_only)):
             ratio = False
         else:
@@ -168,17 +199,13 @@ class Shape:
         self.density = density
         self.datasets_metadata=datasets_metadata
         self.sample_is_MC = {}
+        self._stacksCache = defaultdict(dict)
         assert (
-            type(h_dict) == dict
+            type(h_dict) in [dict, defaultdict]
         ), "The Shape object receives a dictionary of hist.Hist objects as argument."
         self.group_samples()
-        assert (
-            self.dense_dim == 1
-        ), f"The dimension of the histogram '{self.name}' is {self.dense_dim}. Only 1D histograms are supported."
         self.load_attributes()
-
-
-    
+        self.syst_manager = SystManager(self, self.style)
 
     def load_attributes(self):
         '''Loads the attributes from the dictionary of histograms.'''
@@ -197,11 +224,31 @@ class Shape:
                 ],
                 self.get_axis_items(ax.name),
             )
-        self.xaxis = self.dense_axes[0]
-        self.xlabel = self.xaxis.label
-        self.xcenters = self.xaxis.centers
-        self.xedges = self.xaxis.edges
-        self.xbinwidth = np.ediff1d(self.xedges)
+        xaxis = self.dense_axes[0]
+        self.style.update(
+            {
+            'opts_axes' : {
+                'xlabel' : xaxis.label,
+                'xcenters' : xaxis.centers.tolist(),
+                'xedges' : xaxis.edges.tolist(),
+                'xbinwidth' : np.ediff1d(xaxis.edges).tolist()
+                }
+            }
+        )
+
+        if self.dense_dim == 2:
+            yaxis = self.dense_axes[1]
+            self.style.update(
+                {
+                    'opts_axes' : {
+                        'ylabel' : yaxis.label,
+                        'ycenters' : yaxis.centers.tolist(),
+                        'yedges' : yaxis.edges.tolist(),
+                        'ybinwidth' : np.ediff1d(yaxis.edges).tolist()
+                    }
+                }
+            )
+
         self.is_mc_only = True if len(self.samples_data) == 0 else False
         self.is_data_only = True if len(self.samples_mc) == 0 else False
 
@@ -267,13 +314,15 @@ class Shape:
             axis = [ax for ax in self.categorical_axes_data if ax.name == axis_name][0]
         return list(axis.value(range(axis.size)))
 
-    def _stack_sum(self, mc=None, stack=None):
+    def _stack_sum(self, cat=None, mc=None, stack=None):
         '''Returns the sum histogram of a stack (`hist.stack.Stack`) of histograms.'''
         if not stack:
+            if not cat:
+                raise Exception("The category `cat` should be passed when the `stack` option is not specified.")
             if mc:
-                stack = self.stack_mc_nominal
+                stack = self._stacksCache[cat]["mc"]
             else:
-                stack = self.stack_data
+                stack = self._stacksCache[cat]["data"]
         if len(stack) == 1:
             return stack[0]
         else:
@@ -283,14 +332,14 @@ class Shape:
             return htot
 
     @property
-    def stack_sum_data(self):
+    def stack_sum_data(self, cat):
         '''Returns the sum histogram of a stack (`hist.stack.Stack`) of data histograms.'''
-        return self._stack_sum(mc=False)
+        return self._stack_sum(cat, mc=False)
 
     @property
-    def stack_sum_mc_nominal(self):
+    def stack_sum_mc_nominal(self, cat):
         '''Returns the sum histogram of a stack (`hist.stack.Stack`) of MC histograms.'''
-        return self._stack_sum(mc=True)
+        return self._stack_sum(cat, mc=True)
 
     @property
     def samples(self):
@@ -345,83 +394,90 @@ class Shape:
         self.h_dict = deepcopy(h_dict_grouped)
         
 
-    def build_stacks(self, cat, spliteras=False):
+    def _get_stacks(self, cat, spliteras=False):
         '''Builds the data and MC stacks, applying a slicing by category.
+        The stacks are cached in a dictionary so that they are not recomputed every time.
         If spliteras is True, the extra axis "era" is kept in the data stack to
         distinguish between data samples from different data-taking eras.'''
-        slicing_mc = {'cat': cat}
-        slicing_mc_nominal = {'cat': cat, 'variation': 'nominal'}
-        self.h_dict_mc = {d: self.h_dict[d][slicing_mc] for d in self.samples_mc}
-        self.h_dict_mc_nominal = {
-            d: self.h_dict[d][slicing_mc_nominal] for d in self.samples_mc
-        }
-        # Store number of weighted MC events
-        self.nevents = {
-            d: round(sum(self.h_dict_mc_nominal[d].values()), 1)
-            for d in self.samples_mc
-        }
-        reverse = True
-        # Order the events dictionary by decreasing number of events if linear scale, increasing if log scale
-        # N.B.: Here implement if log: reverse=False
-        self.nevents = dict(
-            sorted(self.nevents.items(), key=lambda x: x[1], reverse=reverse)
-        )
-        color = iter(cm.gist_rainbow(np.linspace(0, 1, len(self.nevents.keys()))))
-        # Assign random colors to each sample
-        self.colors = [next(color) for d in self.nevents.keys()]
-        if hasattr(self.style, "colors_mc"):
-            # Initialize random colors
-            for i, d in enumerate(self.nevents.keys()):
-                # If the color for a corresponding sample exists in the dictionary, assign the color to the sample
-                if d in self.style.colors_mc:
-                    self.colors[i] = self.style.colors_mc[d]
-        # Order the MC dictionary by number of events
-        self.h_dict_mc = {d: self.h_dict_mc[d] for d in self.nevents.keys()}
-        self.h_dict_mc_nominal = {
-            d: self.h_dict_mc_nominal[d] for d in self.nevents.keys()
-        }
-        # Build MC stack with variations and nominal MC stack
-        self.stack_mc = hist.Stack.from_dict(self.h_dict_mc)
-        self.stack_mc_nominal = hist.Stack.from_dict(self.h_dict_mc_nominal)
-
-        if not self.is_mc_only:
-            # Sum over eras if specified as extra argument
-            if 'era' in [ax.name for ax in self.categorical_axes_data]:
-                if spliteras:
-                    slicing_data = { 'cat': cat}
-                else:
-                    slicing_data = {'cat': cat, 'era': sum}
-            else:
-                if spliteras:
-                    raise Exception(
-                        "No axis 'era' found. Impossible to split data by era."
-                    )
-                else:
-                    slicing_data = {'cat': cat}
-            self.h_dict_data = {
-                d: self.h_dict[d][slicing_data] for d in self.samples_data
+        if not cat in self._stacksCache:
+            stacks = {}
+            slicing_mc = {'cat': cat}
+            slicing_mc_nominal = {'cat': cat, 'variation': 'nominal'}
+            h_dict_mc = {d: self.h_dict[d][slicing_mc] for d in self.samples_mc}
+            h_dict_mc_nominal = {
+                d: self.h_dict[d][slicing_mc_nominal] for d in self.samples_mc
             }
-            self.stack_data = hist.Stack.from_dict(self.h_dict_data)
+            # Store number of weighted MC events
+            self.nevents = {
+                d: round(sum(h_dict_mc_nominal[d].values()), 1)
+                for d in self.samples_mc
+            }
+            reverse = True
+            # Order the events dictionary by decreasing number of events if linear scale, increasing if log scale
+            # N.B.: Here implement if log: reverse=False
+            self.nevents = dict(
+                sorted(self.nevents.items(), key=lambda x: x[1], reverse=reverse)
+            )
+            color = iter(cm.gist_rainbow(np.linspace(0, 1, len(self.nevents.keys()))))
+            # Assign random colors to each sample
+            self.colors = [next(color) for d in self.nevents.keys()]
+            if hasattr(self.style, "colors_mc"):
+                # Initialize random colors
+                for i, d in enumerate(self.nevents.keys()):
+                    # If the color for a corresponding sample exists in the dictionary, assign the color to the sample
+                    if d in self.style.colors_mc:
+                        self.colors[i] = self.style.colors_mc[d]
+            # Order the MC dictionary by number of events
+            h_dict_mc = {d: h_dict_mc[d] for d in self.nevents.keys()}
+            h_dict_mc_nominal = {
+                d: h_dict_mc_nominal[d] for d in self.nevents.keys()
+            }
+            # Build MC stack with variations and nominal MC stack
+            stacks["mc"] = hist.Stack.from_dict(h_dict_mc)
+            stacks["mc_nominal"] = hist.Stack.from_dict(h_dict_mc_nominal)
+            stacks["mc_nominal_sum"] = self._stack_sum(stack = stacks["mc_nominal"])
 
-    def get_datamc_ratio(self):
+            if not self.is_mc_only:
+                # Sum over eras if specified as extra argument
+                if 'era' in [ax.name for ax in self.categorical_axes_data]:
+                    if spliteras:
+                        slicing_data = { 'cat': cat}
+                    else:
+                        slicing_data = {'cat': cat, 'era': sum}
+                else:
+                    if spliteras:
+                        raise Exception(
+                            "No axis 'era' found. Impossible to split data by era."
+                        )
+                    else:
+                        slicing_data = {'cat': cat}
+                self.h_dict_data = {
+                    d: self.h_dict[d][slicing_data] for d in self.samples_data
+                }
+                stacks["data"] = hist.Stack.from_dict(self.h_dict_data)
+                stacks["data_sum"] = self._stack_sum(stack = stacks["data"])
+            self._stacksCache[cat] = stacks
+            self.syst_manager.update()
+        return self._stacksCache[cat]
+
+    def get_datamc_ratio(self, cat):
         '''Computes the data/MC ratio and the corresponding uncertainty.'''
-        num = self.stack_sum_data.values()
+        stacks = self._get_stacks(cat)
+        num = stacks["data_sum"].values()
 
-        den = self.stack_sum_mc_nominal.values()
+        den = stacks["mc_nominal_sum"].values()
 
         if np.any(den <0 ):
             print(f"WARNING: negative bins in MC of shape {self.name}. BE CAREFUL! Putting negative bins to 0 for plotting..")
         den[den < 0] = 0
             
-        self.ratio = num / den
+        ratio = num / den
         # TO DO: Implement Poisson interval valid also for num~0
         # np.sqrt(num) is just an approximation of the uncertainty valid at large num
-        self.ratio_unc = np.sqrt(num) / den
-        self.ratio_unc[np.isnan(self.ratio_unc)] = np.inf
+        ratio_unc = np.sqrt(num) / den
+        ratio_unc[np.isnan(ratio_unc)] = np.inf
 
-    def get_systematic_uncertainty(self):
-        '''Instantiates the `SystUnc` objects and stores them in a dictionary with one entry for each systematic uncertainty.'''
-        self.syst_manager = SystManager(self, self.style)
+        return ratio, ratio_unc
 
     def define_figure(self, ratio=True):
         '''Defines the figure for the Data/MC plot.
@@ -433,8 +489,10 @@ class Shape:
                 2, 1, **self.style.opts_figure["datamc_ratio"]
             )
             self.fig.subplots_adjust(hspace=0.06)
+            axes = (self.ax, self.rax)
         else:
             self.fig, self.ax = plt.subplots(1, 1, **self.style.opts_figure["datamc"])
+            axes = self.ax
         if self.is_mc_only:
             hep.cms.text(
                 "Simulation Preliminary",
@@ -455,30 +513,31 @@ class Shape:
                 fontsize=self.style.fontsize,
                 ax=self.ax,
             )
-        
+        return self.fig, axes
 
-    def format_figure(self, ratio=True):
+    def format_figure(self, cat, ratio=True):
         '''Formats the figure's axes, labels, ticks, xlim and ylim.'''
+        stacks = self._get_stacks(cat)
         ylabel = "Counts" if not self.density else "A.U."
         self.ax.set_ylabel(ylabel, fontsize=self.style.fontsize)
         self.ax.legend(fontsize=self.style.fontsize, ncol=2, loc="upper right")
         self.ax.tick_params(axis='x', labelsize=self.style.fontsize)
         self.ax.tick_params(axis='y', labelsize=self.style.fontsize)
-        self.ax.set_xlim(self.xedges[0], self.xedges[-1])
+        self.ax.set_xlim(self.style.opts_axes["xedges"][0], self.style.opts_axes["xedges"][-1])
         if self.log:
             self.ax.set_yscale("log")
             if self.is_mc_only:
-                exp = math.floor(math.log(max(self.stack_sum_mc_nominal.values()), 10))
+                exp = math.floor(math.log(max(stacks["mc_nominal_sum"].values()), 10))
             else:
-                exp = math.floor(math.log(max(self.stack_sum_data.values()), 10))
+                exp = math.floor(math.log(max(stacks["data_sum"].values()), 10))
             self.ax.set_ylim((0.01, 10 ** (exp + 3)))
         else:
             if self.is_mc_only:
-                reference_shape = self.stack_sum_mc_nominal.values()
+                reference_shape = stacks["mc_nominal_sum"].values()
             else:
-                reference_shape = self.stack_sum_data.values()
+                reference_shape = stacks["data_sum"].values()
             if self.density:
-                integral = sum(reference_shape) * self.xbinwidth
+                integral = sum(reference_shape) * np.array(self.style.opts_axes["xbinwidth"])
                 reference_shape = reference_shape / integral
             ymax = max(reference_shape)
             if not np.isnan(ymax):
@@ -486,7 +545,7 @@ class Shape:
                 self.ax.set_ylim((0, 2.0 * ymax))
         if ratio:
             self.ax.set_xlabel("")
-            self.rax.set_xlabel(self.xlabel, fontsize=self.style.fontsize)
+            self.rax.set_xlabel(self.style.opts_axes["xlabel"], fontsize=self.style.fontsize)
             self.rax.set_ylabel("Data / MC", fontsize=self.style.fontsize)
             self.rax.yaxis.set_label_coords(-0.075, 1)
             self.rax.tick_params(axis='x', labelsize=self.style.fontsize)
@@ -512,55 +571,93 @@ class Shape:
                 loc="upper right",
             )
 
-    def plot_mc(self, ax=None):
+    def plot_mc(self, cat, ax=None):
         '''Plots the MC histograms as a stacked plot.'''
+        stacks = self._get_stacks(cat)
+        if self.dense_dim > 1:
+            print(f"WARNING: cannot plot data/MC for histogram {self.name} with dimension {self.dense_dim}.")
+            print("The method `plot_mc` will be skipped.")
+            return
+
         if ax:
             self.ax = ax
-        self.stack_mc_nominal.plot(
+        else:
+            if not hasattr(self, "ax"):
+                self.define_figure(ratio=False)
+        stacks["mc_nominal"].plot(
             ax=self.ax, color=self.colors, density=self.density, **self.style.opts_mc
         )
-        self.format_figure(ratio=False)
+        self.format_figure(cat, ratio=False)
 
-    def plot_data(self, ax=None):
+    def plot_data(self, cat, ax=None):
         '''Plots the data histogram as an errorbar plot.'''
+        stacks = self._get_stacks(cat)
+        if self.dense_dim > 1:
+            print(f"WARNING: cannot plot data/MC for histogram {self.name} with dimension {self.dense_dim}.")
+            print("The method `plot_data` will be skipped.")
+            return
+
         if ax:
             self.ax = ax
-        y = self.stack_sum_data.values()
+        else:
+            if not hasattr(self, "ax"):
+                self.define_figure(ratio=False)
+        y = stacks["data_sum"].values()
         yerr = np.sqrt(y)
-        integral = sum(y) * self.xbinwidth
+        integral = sum(y) * np.array(self.style.opts_axes["xbinwidth"])
         if self.density:
             y = y / integral
             yerr = yerr / integral
-        self.ax.errorbar(self.xcenters, y, yerr=yerr, **self.style.opts_data)
-        self.format_figure(ratio=False)
+        self.ax.errorbar(self.style.opts_axes["xcenters"], y, yerr=yerr, **self.style.opts_data)
+        self.format_figure(cat, ratio=False)
 
-    def plot_datamc_ratio(self, ax=None):
+    def plot_datamc_ratio(self, cat, ax=None):
         '''Plots the Data/MC ratio as an errorbar plot.'''
-        self.get_datamc_ratio()
-        if ax:
-            self.rax = rax
-        self.rax.errorbar(
-            self.xcenters, self.ratio, yerr=self.ratio_unc, **self.style.opts_data
-        )
-        self.format_figure(ratio=True)
+        if self.dense_dim > 1:
+            print(f"WARNING: cannot plot data/MC for histogram {self.name} with dimension {self.dense_dim}.")
+            print("The method `plot_datamc_ratio` will be skipped.")
+            return
 
-    def plot_systematic_uncertainty(self, ratio=False, ax=None):
+        ratio, ratio_unc = self.get_datamc_ratio(cat)
+        if ax:
+            self.rax = ax
+        else:
+            if not hasattr(self, "rax"):
+                self.define_figure(ratio=True)
+        self.rax.errorbar(
+            self.style.opts_axes["xcenters"], ratio, yerr=ratio_unc, **self.style.opts_data
+        )
+        self.format_figure(cat, ratio=True)
+
+    def plot_systematic_uncertainty(self, cat, ratio=False, ax=None):
         '''Plots the asymmetric systematic uncertainty band on top of the MC stack, if `ratio` is set to False.
         To plot the systematic uncertainty in a ratio plot, `ratio` has to be set to True and the uncertainty band will be plotted around 1 in the ratio plot.'''
 
-        ax = self.ax
-        up = self.syst_manager.total.up
-        down = self.syst_manager.total.down
-        #print('up:', up, 'down', down) 
+        if self.dense_dim > 1:
+            print(f"WARNING: cannot plot data/MC for histogram {self.name} with dimension {self.dense_dim}.")
+            print("The method `plot_systematic_uncertainty` will be skipped.")
+            return
+
+        if ax:
+            self.ax = ax
+            if ratio:
+                self.rax = ax
+        else:
+            if not hasattr(self, "ax"):
+                self.define_figure(ratio=ratio)
         if ratio:
             # In order to get a consistent uncertainty band, the up/down variations of the ratio are set to 1 where the nominal value is 0
             ax = self.rax
-            up = self.syst_manager.total.ratio_up
-            down = self.syst_manager.total.ratio_down
+            up = self.syst_manager.total(cat).ratio_up
+            down = self.syst_manager.total(cat).ratio_down
+        else:
+            ax = self.ax
+            up = self.syst_manager.total(cat).up
+            down = self.syst_manager.total(cat).down
 
         unc_band = np.array([down, up])
         ax.fill_between(
-            self.xedges,
+            self.style.opts_axes["xedges"],
             np.r_[unc_band[0], unc_band[0, -1]],
             np.r_[unc_band[1], unc_band[1, -1]],
             **self.style.opts_unc['total'],
@@ -568,13 +665,18 @@ class Shape:
         )
         if ratio:
             ax.hlines(
-                1.0, *ak.Array(self.xedges)[[0, -1]], colors='gray', linestyles='dashed'
+                1.0, *ak.Array(self.style.opts_axes["xedges"])[[0, -1]], colors='gray', linestyles='dashed'
             )
 
-    def plot_datamc(self, ratio=True, syst=False, ax=None, rax=None):
+
+    def plot_datamc(self, cat, ratio=True, syst=True, ax=None, rax=None):
         '''Plots the data histogram as an errorbar plot on top of the MC stacked histograms.
         If ratio is True, also the Data/MC ratio plot is plotted.
         If syst is True, also the total systematic uncertainty is plotted.'''
+        if self.dense_dim > 1:
+            print(f"WARNING: cannot plot data/MC for histogram {self.name} with dimension {self.dense_dim}.")
+            print("The method `plot_datamc` will be skipped.")
+            return
 
         if ratio:
             if self.is_mc_only:
@@ -590,41 +692,41 @@ class Shape:
         if rax:
             self.rax = rax
         if (not self.is_mc_only) & (not self.is_data_only):
-            self.plot_mc()
-            self.plot_data()
+            self.plot_mc(cat)
+            self.plot_data(cat)
             if syst:
-                print(self.name, 'plotting syst unc')
-                self.plot_systematic_uncertainty()
+                self.plot_systematic_uncertainty(cat)
         elif self.is_mc_only:
-            self.plot_mc()
+            self.plot_mc(cat)
             if syst:
-                self.plot_systematic_uncertainty()
+                self.plot_systematic_uncertainty(cat)
         elif self.is_data_only:
-            self.plot_data()
+            self.plot_data(cat)
 
         if ratio:
-            self.plot_datamc_ratio()
+            self.plot_datamc_ratio(cat)
             if syst:
-                self.plot_systematic_uncertainty(ratio)
+                self.plot_systematic_uncertainty(cat, ratio=ratio)
 
-        self.format_figure(ratio)
+        self.format_figure(cat, ratio=ratio)
 
     def plot_datamc_all(self, ratio=True, syst=True, spliteras=False, save=True):
         '''Plots the data and MC histograms for each year and category contained in the histograms.
         If ratio is True, also the Data/MC ratio plot is plotted.
         If syst is True, also the total systematic uncertainty is plotted.'''
+        if self.dense_dim > 1:
+            print(f"WARNING: cannot plot data/MC for histogram {self.name} with dimension {self.dense_dim}.")
+            print("The method `plot_datamc_all` will be skipped.")
+            return
+
         for cat in self.categories:
             print('Plotting cat:', cat)
             if self.only_cat and cat not in self.only_cat:
                 continue
             self.define_figure(ratio)
-            self.build_stacks(cat, spliteras)
-            self.get_systematic_uncertainty()
-            self.plot_datamc(ratio, syst)
+            self.plot_datamc(cat, ratio=ratio, syst=syst)
             if save:
                 plot_dir = os.path.join(self.plot_dir, cat)
-                if not os.path.exists(plot_dir):
-                    os.makedirs(plot_dir)
                 if self.log:
                     filepath = os.path.join(plot_dir, f"log_{self.name}_{cat}.png")
                 else:
@@ -639,9 +741,9 @@ class Shape:
 class SystManager:
     '''This class handles the systematic uncertainties of 1D MC histograms.'''
 
-    def __init__(self, shape: Shape, style_cfg: Style,  has_mcstat=True) -> None:
+    def __init__(self, shape: Shape, style: Style, has_mcstat=True) -> None:
         self.shape = shape
-        self.style_cfg = style_cfg
+        self.style = style
         assert all(
             [
                 (var == "nominal") | var.endswith(("Up", "Down"))
@@ -660,24 +762,24 @@ class SystManager:
         self.systematics = [s.split("Up")[0] for s in self.variations_up]
         if has_mcstat:
             self.systematics.append("mcstat")
-        self.syst_dict = {}
+        self.syst_dict = defaultdict(dict)
 
-        for syst_name in self.systematics:
-            self.syst_dict[syst_name] = SystUnc(self.style_cfg, self.shape, syst_name)
+    def update(self):
+        '''Updates the dictionary of systematic uncertainties with the new cached stacks.'''
+        for cat, stacks in self.shape._stacksCache.items():
+            for syst_name in self.systematics:
+                self.syst_dict[cat][syst_name] = SystUnc(self.shape.style, stacks, syst_name)
 
-    @property
-    def total(self):
-        total = SystUnc(style_cfg = self.style_cfg, name="total", syst_list=list(self.syst_dict.values()))
-        return total
+    def total(self, cat):
+        return SystUnc(style = self.style, name="total", syst_list=list(self.syst_dict[cat].values()))
 
-    @property
-    def mcstat(self):
-        return self.syst_dict["mcstat"]
+    def mcstat(self, cat):
+        return self.syst_dict[cat]["mcstat"]
 
-    def get_syst(self, syst_name: str):
+    def get_syst(self, syst_name: str, cat: str):
         '''Returns the SystUnc object corresponding to a given systematic uncertainty,
-        passed as the argument `syst_name`.'''
-        return self.syst_dict[syst_name]
+        passed as the argument `syst_name` and for a given category, passed as the argument `cat`.'''
+        return self.syst_dict[cat][syst_name]
 
 
 class SystUnc:
@@ -686,9 +788,8 @@ class SystUnc:
     returning a `SystUnc` instance corresponding to their sum in quadrature.'''
 
     def __init__(
-            self, style_cfg, shape: Shape = None, name: str = None, syst_list: list = None
+            self, style: Style, stacks: dict = None, name: str = None, syst_list: list = None
     ) -> None:
-        self.shape = shape
         self.name = name
         self.is_mcstat = self.name == "mcstat"
 
@@ -696,22 +797,18 @@ class SystUnc:
         self.nominal = 0.0
         self.err2_up = 0.0
         self.err2_down = 0.0
-        self.style = style_cfg
-        if shape:
+        self.style = style
+        if stacks:
             if syst_list:
                 raise Exception(
                     "The initialization of the instance is ambiguous. Either a `Shape` object or a list of `SystUnc` objects should be passed to the constructor."
                 )
             else:
                 self.syst_list = [self]
-            self._get_err2()
+            self._get_err2(stacks)
             # Full nominal MC including all MC samples
-            self.h_mc_nominal = self.shape.stack_sum_mc_nominal
-            self.nominal = self.h_mc_nominal.values()
-            self.xlabel = self.shape.xlabel
-            self.xcenters = self.shape.xcenters
-            self.xedges = self.shape.xedges
-            self.xbinwidth = self.shape.xbinwidth
+            self.h_mc_nominal = stacks["mc_nominal_sum"]
+            self.nominal = stacks["mc_nominal_sum"].values()
         elif syst_list:
             self.syst_list = syst_list
 
@@ -721,13 +818,16 @@ class SystUnc:
             assert not (
                 (self._n_empty == 1) & (self.nsyst == 1)
             ), "Attempting to intialize a `SystUnc` instance with an empty systematic uncertainty."
+            _syst = self.syst_list[0]
+            self.h_mc_nominal = _syst.h_mc_nominal
+            self.nominal = _syst.nominal
             self._get_err2_from_syst()
 
     def __add__(self, other):
         '''Sum in quadrature of two systematic uncertainties.
         In case multiple objects are summed, the information on the systematic uncertainties that
         have been summed is stored in self.syst_list.'''
-        return SystUnc(name=f"{self.name}_{other.name}", syst_list=[self, other])
+        return SystUnc(style=self.style, name=f"{self.name}_{other.name}", syst_list=[self, other])
 
     @property
     def up(self):
@@ -761,38 +861,29 @@ class SystUnc:
         '''Method used in the constructor to instanstiate a SystUnc object from
         a list of SystUnc objects. The sytematic uncertainties in self.syst_list,
         are summed in quadrature to define a new SystUnc object.'''
-        # print('\t List of syst:', self.syst_list)
-        index_non_empty = [i for i, s in enumerate(self.syst_list) if not s._is_empty]
-        # An attempt to solve the crash when the plots are empty.
-        # Not successeful:
-        if len(index_non_empty)!=0:
-            index_non_empty = index_non_empty[0]
+        if not self._is_empty:
+            index_non_empty = [i for i, s in enumerate(self.syst_list) if not s._is_empty][0]
         else:
-            print('Syst fo this shape can not be done. Existing')
-            sys.exit(1)
-
+            raise Exception(' '.join([f"The systematic uncertainty `{self.name}` is empty.",
+                                    "Please check the histogram definition. If a histogram is expected to be empty in a given category, the category can be excluded with the option `only_cat`."]))
         self.nominal = self.syst_list[index_non_empty].nominal
-        self.xlabel = self.syst_list[index_non_empty].xlabel
-        self.xcenters = self.syst_list[index_non_empty].xcenters
-        self.xedges = self.syst_list[index_non_empty].xedges
-        self.xbinwidth = self.syst_list[index_non_empty].xbinwidth
         for syst in self.syst_list:
             if not ((self._is_empty) | (syst._is_empty)):
                 assert all(
                     np.equal(self.nominal, syst.nominal)
                 ), "Attempting to sum systematic uncertainties with different nominal MC."
                 assert all(
-                    np.equal(self.xcenters, syst.xcenters)
+                    np.equal(self.style.opts_axes["xcenters"], syst.style.opts_axes["xcenters"])
                 ), "Attempting to sum systematic uncertainties with different bin centers."
             self.err2_up += syst.err2_up
             self.err2_down += syst.err2_down
 
-    def _get_err2(self):
+    def _get_err2(self, stacks):
         '''Method used in the constructor to instanstiate a SystUnc object from
         a Shape object. The corresponding up/down squared uncertainties are stored and take
         into account the possibility for the uncertainty to be one-sided.'''
         # Loop over all the MC samples and sum the systematic uncertainty in quadrature
-        for h in self.shape.stack_mc:
+        for h in stacks["mc"]:
             # Nominal variation for a single MC sample
             h_nom = h[{'variation': 'nominal'}]
             nom = h_nom.values()
@@ -833,7 +924,7 @@ class SystUnc:
         plt.style.use([hep.style.ROOT, {'font.size': self.style.fontsize}])
         plt.rcParams.update({'font.size': self.style.fontsize})
         if not ax:
-            self.fig, self.ax = plt.subplots(1, 1, **self.style.opts_figure["shape"])
+            self.fig, self.ax = plt.subplots(1, 1, **self.style.opts_figure["systematics"])
         else:
             self.ax = ax
             self.fig = self.ax.get_figure
@@ -842,27 +933,27 @@ class SystUnc:
         )
         # hep.cms.lumitext(text=f'{self.lumi[year]}' + r' fb$^{-1}$, 13 TeV,' + f' {year}', fontsize=self.style.fontsize, ax=self.ax)
         self.ax.hist(
-            self.xcenters,
+            self.style.opts_axes["xcenters"],
             weights=self.nominal,
             histtype="step",
             label="nominal",
             **self.style.opts_syst["nominal"],
         )
         self.ax.hist(
-            self.xcenters,
+            self.style.opts_axes["xcenters"],
             weights=self.up,
             histtype="step",
             label=f"{self.name} up",
             **self.style.opts_syst["up"],
         )
         self.ax.hist(
-            self.xcenters,
+            self.style.opts_axes["xcenters"],
             weights=self.down,
             histtype="step",
             label=f"{self.name} down",
             **self.style.opts_syst["down"],
         )
-        self.ax.set_xlabel(self.xlabel)
+        self.ax.set_xlabel(self.style.opts_axes["xlabel"])
         self.ax.set_ylabel("Counts")
         self.ax.legend()
         return self.fig, self.ax
