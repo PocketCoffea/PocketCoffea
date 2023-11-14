@@ -88,10 +88,10 @@ default_axis_settings = {
     },
     'lepton_pt': {
         "field": "pt",
-        "bins": 60,
+        "bins": 50,
         "start": 0,
-        'stop': 300,
-        "lim": (0, 300),
+        'stop': 150,
+        "lim": (0, 150),
         'label': "$p_{T}^{\ell}$ [GeV]",
     },
     'lepton_eta': {
@@ -122,8 +122,8 @@ default_axis_settings = {
         "field": "pt",
         "bins": 50,
         "start": 0,
-        'stop': 400,
-        "lim": (0, 400),
+        'stop': 250,
+        "lim": (0, 250),
         'label': "$p_{T}^{j}$ [GeV]",
     },
     'jet_eta': {
