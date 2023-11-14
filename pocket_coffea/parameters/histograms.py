@@ -88,7 +88,7 @@ default_axis_settings = {
     },
     'lepton_pt': {
         "field": "pt",
-        "bins": 50,
+        "bins": 60,
         "start": 0,
         'stop': 150,
         "lim": (0, 150),
