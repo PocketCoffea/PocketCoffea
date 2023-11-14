@@ -126,7 +126,7 @@ if __name__ == '__main__':
             'export XRD_RUNFORKHANDLER=1',
             f'export X509_USER_PROXY={_x509_path}',
             # f'export X509_CERT_DIR={os.environ["X509_CERT_DIR"]}',
-            #'source /etc/profile.d/conda.sh',
+            'source /etc/profile.d/conda.sh',  # This looks site-specific, may not work everywhere.
             f'export PATH={os.environ["CONDA_PREFIX"]}/bin:$PATH',
             f'conda activate {os.environ["CONDA_DEFAULT_ENV"]}',
             'ulimit -u 32768',
@@ -138,13 +138,10 @@ if __name__ == '__main__':
             f'export X509_CERT_DIR={os.environ["X509_CERT_DIR"]}',
             f'export PYTHONPATH=$PYTHONPATH:{os.getcwd()}',
             f'cd {os.getcwd()}',
-            f'source {os.environ["HOME"]}/.bashrc',
-            f'source {os.getcwd()}/CondaSetup.sh',
+            f'source {os.environ["HOME"]}/.bashrc', # Conda should be setup by .bashrc for this to work
             f'conda activate {os.environ["CONDA_PREFIX"]}',
         ]
 
-        
-    env_extra.append(f'export PYTHONPATH={os.path.dirname(args.cfg)}:$PYTHONPATH')
     
     logging.debug(env_extra)
 
