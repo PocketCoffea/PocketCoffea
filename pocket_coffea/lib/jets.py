@@ -257,7 +257,7 @@ def get_dijet(jets):
             fields[var]
         )
 
-    fields["deltaR"] = ak.where( (njet == 2), jets[:,0].delta_r(jets[:,1]), -1)
+    fields["deltaR"] = ak.where( (njet >= 2), jets[:,0].delta_r(jets[:,1]), -1)
 
     dijet = ak.zip(fields, with_name="PtEtaPhiMCandidate")
 

@@ -132,17 +132,20 @@ if __name__ == '__main__':
             'ulimit -u 32768',
             'export MALLOC_TRIM_THRESHOLD_=0'
         ]
-        condor_extra = [
-            "export XRD_RUNFORKHANDLER=1",
-            f'export X509_USER_PROXY={_x509_path}',
-            f'export X509_CERT_DIR={os.environ["X509_CERT_DIR"]}',
-            f'export PYTHONPATH=$PYTHONPATH:{os.getcwd()}',
-            f'cd {os.getcwd()}',
-            f'source {os.environ["HOME"]}/.bashrc', # Conda should be setup by .bashrc for this to work
-            f'conda activate {os.environ["CONDA_PREFIX"]}',
-        ]
-
+    env_extra.append(f'export PYTHONPATH={os.path.dirname(args.cfg)}:$PYTHONPATH')
     
+    condor_extra = [
+        'echo \"Current date and time: `date`"',
+        'echo "Hostname=`hostname`"',
+        "export XRD_RUNFORKHANDLER=1",
+        f'export X509_USER_PROXY={_x509_path}',
+        #f'export X509_CERT_DIR={os.environ["X509_CERT_DIR"]}',
+        f'export PYTHONPATH=$PYTHONPATH:{os.getcwd()}',
+        f'cd {os.getcwd()}',
+        f'source {os.environ["HOME"]}/.bashrc', # Conda should be setup by .bashrc for this to work
+        f'conda activate {os.environ["CONDA_PREFIX"]}',
+    ]
+
     logging.debug(env_extra)
 
     #########
@@ -233,7 +236,7 @@ if __name__ == '__main__':
                         address=address_by_hostname(),
                         #worker_ports=(8786,8785),
                         max_workers=1,
-                        worker_debug=False,
+                        worker_debug=True,
                         prefetch_capacity=0,
                         provider=CondorProvider(
                             nodes_per_block=1,
