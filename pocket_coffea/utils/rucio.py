@@ -4,6 +4,7 @@ import getpass
 import re
 import json
 from rucio.client import Client
+from collections import defaultdict
 
 os.environ["RUCIO_HOME"] = "/cvmfs/cms.cern.ch/rucio/x86_64/rhel7/py3/current"
 
@@ -25,7 +26,7 @@ def get_rucio_client():
 
 
 def get_xrootd_sites_map():
-    sites_xrootd_access = {}
+    sites_xrootd_access = defaultdict(dict)
     if not os.path.exists(".sites_map.json"):
         print("Loading SITECONF info")
         sites = [
@@ -52,17 +53,25 @@ def get_xrootd_sites_map():
                         if "prefix" not in proc:
                             if "rules" in proc:
                                 for rule in proc["rules"]:
-                                    if rule["lfn"] not in ["/+(.*)", "/+store/(.*)"]:
-                                        continue
-                                    sites_xrootd_access[site["rse"]] = rule[
-                                        "pfn"
-                                    ].replace("$1", "")
+                                    sites_xrootd_access[site["rse"]][rule["lfn"]] = rule["pfn"]
                         else:
                             sites_xrootd_access[site["rse"]] = proc["prefix"]
         json.dump(sites_xrootd_access, open(".sites_map.json", "w"))
 
     return json.load(open(".sites_map.json"))
 
+
+def _get_pfn_for_site(path, rules):
+    if isinstance(rules, dict):
+        for rule, pfn in rules.items():
+            if m:=re.match(rule, path):
+                grs = m.groups()
+                for i in range(len(grs)):
+                    pfn = pfn.replace(f"${i+1}", grs[i])
+                return pfn
+    else: 
+        return rules + "/"+ path
+    
 
 def get_dataset_files(
     dataset,
@@ -104,7 +113,7 @@ def get_dataset_files(
                         or site not in sites_xrootd_prefix
                     ):
                         continue
-                    outfile.append(sites_xrootd_prefix[site] + filedata["name"])
+                    outfile.append(_get_pfn_for_site(filedata["name"], sites_xrootd_prefix[site]))
                     outsite.append(site)
                     found = True
 
@@ -135,7 +144,7 @@ def get_dataset_files(
                             or site not in sites_xrootd_prefix
                         ):
                             continue
-                        outfile.append(sites_xrootd_prefix[site] + filedata["name"])
+                        outfile.append(_get_pfn_for_site(filedata["name"], sites_xrootd_prefix[site]))
                         outsite.append(site)
                         found = True
                 else:
@@ -149,7 +158,7 @@ def get_dataset_files(
                         or site not in sites_xrootd_prefix
                     ):
                         continue
-                    outfile.append(sites_xrootd_prefix[site] + filedata["name"])
+                    outfile.append(_get_pfn_for_site(filedata["name"], sites_xrootd_prefix[site]))
                     outsite.append(site)
                     found = True
 

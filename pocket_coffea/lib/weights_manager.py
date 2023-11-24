@@ -312,10 +312,9 @@ class WeightsManager:
                 btagsf = sf_btag(
                     self.params,
                     events.JetGood,
-                    btag[self._year]['btagging_algorithm'],
                     self._year,
-                    variations=[shape_variation],
                     njets=events.nJetGood,
+                    variations=[shape_variation],
                 )
 
             else:
@@ -323,10 +322,9 @@ class WeightsManager:
                 btagsf = sf_btag(
                     self.params,
                     events.JetGood,
-                    btag[self._year]['btagging_algorithm'],
                     self._year,
-                    variations=["central"],
                     njets=events.nJetGood,
+                    variations=["central"],
                 )
 
             # return the nominal and everything

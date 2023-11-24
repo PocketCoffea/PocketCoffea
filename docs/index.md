@@ -24,6 +24,7 @@ changelog.md
 installation.md
 analysis_example.md
 running.md
+plots.md
 concepts.md
 configuration.md
 parameters.md

@@ -69,6 +69,12 @@ def get_matching_objects_indices_padnone(
 def metric_pt(obj, obj2):
     return abs(obj.pt - obj2.pt)
 
+def metric_eta(obj, obj2):
+    return abs(obj.eta - obj2.eta)
+
+def metric_phi(obj, obj2):
+    return abs(obj.phi - obj2.phi)
+
 
 def object_matching(obj, obj2, dr_min, dpt_max=None, return_indices=False):
     # Compute deltaR(quark, jet) and save the nearest jet (deltaR matching)
