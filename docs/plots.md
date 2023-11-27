@@ -14,19 +14,19 @@ The plotting procedure is managed by several classes each targeting a specific t
 Once the output .coffea file has been produced, plots can be produced by executing the plotting script:
 
 ```
-cd /path/to/output/folder
-make_plots.py --cfg parameters_dump.yaml -op plotting_style.yaml -i output_all.coffea -o plots -j 8
+
+make_plots.py output_dir
+#--cfg parameters_dump.yaml -op plotting_style.yaml -i output_all.coffea -o plots -j 8
 ```
+where `<output_dir>` is the directory of the output of the runner. It is a **required** argument Input coffea file is then assumed to be at: `<output_dir>/output_all.coffea`, configuration files is taken at `<output_dir>/parameters_dump.yaml. The resulting plots will be saved at `<output_dir>/plots/`. If you wish to use other input parameters, those can be overwritten with the folowing arguments:
 
-The `make_plots.py` takes as **required** arguments:
 
-- `--cfg`: The .yaml config file dumped after running the analysis, containing all the analysis parameters
-- `-o`: Output folder where the plots are saved
 - `-i`: Input .coffea file with histograms
+- `-o`: Output folder where the plots are saved
+- `-op`: a .yaml config file to overwrite the plotting style (see below)
 
 The optional arguments are:
 
-- `-op`: Additional .yaml config file to overwrite the plotting style when plotting
 - `-j`: Number of workers used for plotting
 - `--only_cat`: Filter categories with a list of strings
 - `--only_syst`: Filter systematics with a list of strings
@@ -36,6 +36,7 @@ The optional arguments are:
 - `--overwrite`: If the output folder is already existing, overwrite its content
 - `--log`: Set y-axis scale to log
 - `--density`: Set density parameter to have a normalized plot
+- `--verbose`: Tells how much printing is done. 0 - for minimal, 2- for a lot (useful for debugging).
 
 ## Plotting parameters
 
@@ -55,8 +56,12 @@ plotting_style:
 
     samples_groups:
         ttbar:
-            TTTo2L2Nu
-            TTToSemiLeptonic
+           - TTTo2L2Nu
+           - TTToSemiLeptonic
+
+    exclude_samples:                                                                                                                                     
+      - TTToHadronic
+      
 ```
 
 The user can define custom labels for the MC samples and a custom coloring scheme. Additionally, the Data and MC samples can be merged between each other by specifying a dictionary of samples in the `samples_groups` key. In the example above, a single sample `ttbar` will be plotted by merging the samples `TTTo2L2Nu` and `TTToSemiLeptonic`.

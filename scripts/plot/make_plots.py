@@ -15,7 +15,7 @@ parser.add_argument('--cfg', help='YAML file with all the analysis parameters', 
 parser.add_argument('-op', '--overwrite_parameters', type=str, nargs="+", default=None, help='YAML file with plotting parameters to overwrite default parameters', required=False)
 parser.add_argument("-o", "--outputdir", required=False, type=str, help="Output folder")
 parser.add_argument("-i", "--inputfile", required=False, type=str, help="Input file")
-parser.add_argument('-j', '--workers', type=int, default=4, help='Number of parallel workers to use for plotting', required=False)
+parser.add_argument('-j', '--workers', type=int, default=8, help='Number of parallel workers to use for plotting', required=False)
 parser.add_argument('-oc', '--only_cat', type=str, nargs="+", help='Filter categories with string', required=False)
 parser.add_argument('-os', '--only_syst', type=str, nargs="+", help='Filter systematics with a list of strings', required=False)
 parser.add_argument('-e', '--exclude_hist', type=str, nargs="+", default=None, help='Exclude histograms with a list of strings', required=False)
@@ -24,11 +24,13 @@ parser.add_argument('--partial_unc_band', action='store_true', help='Plot only t
 parser.add_argument('--overwrite', '--over', action='store_true', help='Overwrite plots in output folder', required=False)
 parser.add_argument('--log', action='store_true', help='Set y-axis scale to log', required=False)
 parser.add_argument('--density', action='store_true', help='Set density parameter to have a normalized plot', required=False)
+parser.add_argument('-v', '--verbose', type=int, default=1, help='Verbose level for debugging. Higher the number more stuff is printed.', required=False)
 
 args = parser.parse_args()
 
-print("Loading the configuration file...")
-print(args)
+if args.verbose>0:
+    print("Loading the configuration file...\n",args)
+
 
 # Using the input_dir obtain the config files and coffea file (if not set with argparse):
 if args.cfg==None:
@@ -61,6 +63,7 @@ except Exception as e:
 
 style_cfg = parameters['plotting_style']
 
+
 if os.path.isfile( args.inputfile ): accumulator = load(args.inputfile)
 else: sys.exit(f"Input file '{args.inputfile}' does not exist")
 
@@ -86,6 +89,7 @@ plotter = PlotManager(
     workers=args.workers,
     log=False,
     density=args.density,
+    verbose=args.verbose,
     save=True
 )
 plotter.plot_datamc_all(syst=True, spliteras=False)
@@ -102,6 +106,9 @@ if args.log:
         workers=args.workers,
         log=True,
         density=args.density,
+        verbose=args.verbose,
         save=True
     )
     plotter.plot_datamc_all(syst=True, spliteras=False)
+
+print("Output plots are saved at: ", args.outputdir)
