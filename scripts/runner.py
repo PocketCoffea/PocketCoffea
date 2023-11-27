@@ -8,7 +8,7 @@ print("""
                                                                  
 """)
 
-import os
+import os, getpass
 import sys
 import argparse
 import cloudpickle
@@ -126,22 +126,27 @@ if __name__ == '__main__':
             'export XRD_RUNFORKHANDLER=1',
             f'export X509_USER_PROXY={_x509_path}',
             # f'export X509_CERT_DIR={os.environ["X509_CERT_DIR"]}',
-            'source /etc/profile.d/conda.sh',
+            'source /etc/profile.d/conda.sh',  # This looks site-specific, may not work everywhere.
             f'export PATH={os.environ["CONDA_PREFIX"]}/bin:$PATH',
             f'conda activate {os.environ["CONDA_DEFAULT_ENV"]}',
             'ulimit -u 32768',
             'export MALLOC_TRIM_THRESHOLD_=0'
         ]
-        
     env_extra.append(f'export PYTHONPATH={os.path.dirname(args.cfg)}:$PYTHONPATH')
-    # condor_extra = [
-    #     f"cd {os.getcwd()}",
-    #     f'source {os.environ["HOME"]}/.bashrc',
-    #     f"source {os.getcwd()}/CondaSetup.sh",
-    #     f'conda activate {os.environ["CONDA_PREFIX"]}',
-    # ]
-    logging.debug(env_extra)
+    
+    condor_extra = [
+        'echo \"Current date and time: `date`"',
+        'echo "Hostname=`hostname`"',
+        "export XRD_RUNFORKHANDLER=1",
+        f'export X509_USER_PROXY={_x509_path}',
+        #f'export X509_CERT_DIR={os.environ["X509_CERT_DIR"]}',
+        f'export PYTHONPATH=$PYTHONPATH:{os.getcwd()}',
+        f'cd {os.getcwd()}',
+        f'source {os.environ["HOME"]}/.bashrc', # Conda should be setup by .bashrc for this to work
+        f'conda activate {os.environ["CONDA_PREFIX"]}',
+    ]
 
+    logging.debug(env_extra)
 
     #########
     # Executors
@@ -179,6 +184,7 @@ if __name__ == '__main__':
         from parsl.executors import HighThroughputExecutor
         from parsl.launchers import SrunLauncher, SingleNodeLauncher
         from parsl.addresses import address_by_hostname, address_by_query
+        #parsl.set_stream_logger(name='PARSL', level=logging.ERROR, stream=sys.stdout)
 
         if 'slurm' in run_options['executor']:
             slurm_htex = Config(
@@ -210,7 +216,7 @@ if __name__ == '__main__':
                                         processor_instance=config.processor_instance,
                                         executor=processor.parsl_executor,
                                         executor_args={
-                                            'skipbadfiles':True,
+                                            'skipbadfiles': run_options.get('skipbadfiles', False),
                                             'schema': processor.NanoAODSchema,
                                             'config': None,
                                         },
@@ -226,23 +232,30 @@ if __name__ == '__main__':
             condor_htex = Config(
                 executors=[
                     HighThroughputExecutor(
-                        label="coffea_parsl_slurm",
-                        #address=address_by_hostname(),
-                        worker_ports=(8786,8785),
+                        label="coffea_parsl_condor",
+                        address=address_by_hostname(),
+                        #worker_ports=(8786,8785),
+                        max_workers=1,
+                        worker_debug=True,
                         prefetch_capacity=0,
                         provider=CondorProvider(
-                            channel=LocalChannel(script_dir='logs_parsl'),
-                            launcher=SingleNodeLauncher(),
-                            max_blocks=(run_options['scaleout'])+10,
-                            init_blocks=run_options['scaleout'],
-                            worker_init="\n".join(env_extra),
+                            nodes_per_block=1,
+                            cores_per_slot=run_options["workers"],
+                            #channel=LocalChannel(script_dir='logs_parsl'),
+                            mem_per_slot=run_options["mem_per_worker"],
+                            init_blocks=run_options["scaleout"],
+                            max_blocks=(run_options["scaleout"]) + 5,
+                            worker_init="\n".join(condor_extra),
+                            walltime=run_options["walltime"],
+                            requirements=run_options["requirements"],
                             #transfer_input_files=xfer_files,
-                            scheduler_options=condor_cfg,
-                            walltime='00:30:00'
+                            #scheduler_options=condor_cfg,
+                            
                         ),
                     )
                 ],
                 retries=run_options["retries"],
+	        run_dir="/tmp/"+getpass.getuser()+"/parsl_runinfo",
             )
             ## Site config for naf-desy
             if "naf-desy" in run_options['executor']:
@@ -259,21 +272,23 @@ if __name__ == '__main__':
                                 mem_per_slot=run_options["mem_per_worker"],
                                 init_blocks=run_options["scaleout"],
                                 max_blocks=(run_options["scaleout"]) + 10,
-                                worker_init="\n".join(env_extra + condor_extra),
+                                worker_init="\n".join(condor_extra),
                                 walltime=run_options["walltime"],
+                                requirements=run_options["requirements"],
                             ),
                         )
                     ],
                     retries=run_options["retries"],
                 )
+            
             dfk = parsl.load(condor_htex)
-
+            print('Ready to run with parsl')
             output = processor.run_uproot_job(config.filesets,
                                         treename='Events',
                                         processor_instance=config.processor_instance,
                                         executor=processor.parsl_executor,
                                         executor_args={
-                                            'skipbadfiles':True,
+                                            'skipbadfiles': run_options.get('skipbadfiles', False),
                                             'schema': processor.NanoAODSchema,
                                             'config': None,
                                         },
@@ -309,7 +324,7 @@ if __name__ == '__main__':
                  cores=run_options['workers'],
                  memory=run_options['mem_per_worker'],
                  disk=run_options.get('disk_per_worker', "2GB"),
-                 job_script_prologue=env_extra,
+                 job_script_prologue=condor_extra,
             )
         elif 'lxplus' in run_options["executor"]:
             log_folder = "condor_log"
@@ -361,7 +376,7 @@ if __name__ == '__main__':
         with performance_report(filename=performance_report_path):
 
             if args.full:
-                # Running separately on each dataset
+                # Running separately on all datasets at once
                 fileset = config.filesets
                 logging.info(f"Working on samples: {list(fileset.keys())}")
                 
