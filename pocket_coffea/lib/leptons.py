@@ -41,8 +41,8 @@ def get_dilepton(electrons, muons, transverse=False):
         "mass": 0.,
         "charge": 0.,
     }
-
-    leptons = ak.pad_none(ak.with_name(ak.concatenate([ muons, electrons], axis=1), "PtEtaPhiMCandidate"), 2)
+    
+    leptons = ak.pad_none(ak.with_name(ak.concatenate([ muons[:, 0:2], electrons[:, 0:2]], axis=1), "PtEtaPhiMCandidate"), 2)
     nlep =  ak.num(leptons[~ak.is_none(leptons, axis=1)])
     ll = leptons[:,0] + leptons[:,1]
 
