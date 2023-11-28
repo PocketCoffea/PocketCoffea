@@ -15,13 +15,12 @@ Once the output `.coffea` file has been produced, plots can be generates by exec
 
 ```
 make_plots.py output_dir
-
 ```
-Here `<output_dir>` is the output directory of the runner; it is a **required** argument. Input `.coffea` file is then assumed to be at: `<output_dir>/output_all.coffea`; configuration file is taken at `<output_dir>/parameters_dump.yaml`. The resulting plots will be saved at `<output_dir>/plots/`. If you wish to change these parameters, they can be overwritten with the folowing arguments:
+Here `<output_dir>` is the output directory of the runner; it is a **required** argument. Input `.coffea` file is then assumed to be at: `<output_dir>/output_all.coffea`; configuration file is taken at `<output_dir>/parameters_dump.yaml`. The resulting plots will be saved at `<output_dir>/plots/`. If you wish to change any of these parameters, they can be overwritten with the folowing arguments:
 
-- `-i`: Input .coffea file with histograms
-- `-o`: Output folder where the plots are saved
-- `-op`: a .yaml config file to overwrite the plotting style (see below)
+- `-i`: Input .coffea file with histograms.
+- `-o`: Output folder where the plots are saved.
+- `-op`: A `.yaml` config file to overwrite the plotting style (see below).
 
 Other optional arguments are:
 
@@ -38,7 +37,7 @@ Other optional arguments are:
 
 ## Plotting parameters
 
-The parameters provided by the `--cfg` argument can be overwritten by providing an additional parameter to the script with `--overwrite_parameters` (`-op`).
+The parameters of the default plotting style can be overwritten with a new config, provided with an additional argument to the script with `--overwrite_parameters plot_config.yaml` (also `-op` for short).
 
 The structure of the additional `.yaml` config file has to be the following:
 ```
