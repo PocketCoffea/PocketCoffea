@@ -657,20 +657,24 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
                 
             elif ("JES" in variation) | ("JER" in variation):
-                # We recover the variation name from the string by stripping the jet type string
-                variation_name = '_'.join(variation.split("_")[:-1])
                 # JES_jes is the total. JES_[type] is for different variations
+                # We recover the variation name and the jet type by splitting the variation name
+                variation_name = '_'.join(variation.split("_")[:-1])
+                jet_type = variation.split("_")[-1]
                 self.events = nominal_events
-                for jet_coll_name, jet_coll in jets_calibrated.items():
-                    self.events[jet_coll_name] = jet_coll[variation_name].up
+
+                # We vary ONLY the jet collection corresponding to the jet type in the variation name
+                # This way, we vary independently the different jet types
+                # e.g. `JES_Total_AK4PFchs` will vary only the `AK4PFchs` jets,
+                # while `JES_Total_AK8PFPuppi` will vary only the `AK8PFPuppi` jets
+                jet_coll_name = jet_calib_params.collection[jet_type]
+                self.events[jet_coll_name] = jets_calibrated[jet_coll_name][variation_name].up
 
                 yield variation + "Up"
 
-                # then go down
-                # restore nominal before going to down
+                # restore nominal before saving the down-variated collection
                 self.events = nominal_events
-                for jet_coll_name, jet_coll in jets_calibrated.items():
-                    self.events[jet_coll_name] = jet_coll[variation_name].down
+                self.events[jet_coll_name] = jets_calibrated[jet_coll_name][variation_name].down
                 
                 yield variation + "Down"
 
