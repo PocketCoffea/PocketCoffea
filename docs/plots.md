@@ -56,13 +56,13 @@ plotting_style:
            - TTTo2L2Nu
            - TTToSemiLeptonic
 
-    exclude_samples:                                                                                                                                     
+    exclude_samples:
         - TTToHadronic
-	  
+
     rescale_samples:
 	    ttbar: 1.12
 	    DY_LO: 1.33
-      
+
 ```
 
 The user can define custom labels for the MC samples and a custom coloring scheme. Additionally, the Data and MC samples can be merged between each other by specifying a dictionary of samples in the `samples_groups` key. In the example above, a single sample `ttbar` will be plotted by merging the samples `TTTo2L2Nu` and `TTToSemiLeptonic`. Certain samples can be excluded from plotting with `exclude_samples` key.
