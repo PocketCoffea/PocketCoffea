@@ -104,6 +104,8 @@ class PlotManager:
                             hs[sample][dataset] = hist_objs[variable][sample][dataset]
                         except:
                             print(f"Warning: missing dataset {dataset} for variable {variable}, year {year}")
+                    if len(hs[sample].keys()) == 0:
+                        del hs[sample]
                 vs[year] = hs
             self.hists_to_plot[variable] = vs
         
@@ -209,12 +211,17 @@ class Shape:
 
     def load_attributes(self):
         '''Loads the attributes from the dictionary of histograms.'''
-        assert len(
-            set([self.h_dict[s].ndim for s in self.samples_mc])
-        ), f"{self.name}: Not all the MC histograms have the same dimension."
-        assert len(
-            set([self.h_dict[s].ndim for s in self.samples_data])
-        ), f"{self.name}: Not all the data histograms have the same dimension."
+        self.is_mc_only = True if len(self.samples_data) == 0 else False
+        self.is_data_only = True if len(self.samples_mc) == 0 else False
+
+        if not self.is_data_only:
+            assert len(
+                set([self.h_dict[s].ndim for s in self.samples_mc])
+            ), f"{self.name}: Not all the MC histograms have the same dimension."
+        if not self.is_mc_only:
+            assert len(
+                set([self.h_dict[s].ndim for s in self.samples_data])
+            ), f"{self.name}: Not all the data histograms have the same dimension. len = {len(set([self.h_dict[s].ndim for s in self.samples_data]))}"
         
         for ax in self.categorical_axes_mc:
             setattr(
@@ -248,10 +255,6 @@ class Shape:
                     }
                 }
             )
-
-        self.is_mc_only = True if len(self.samples_data) == 0 else False
-        self.is_data_only = True if len(self.samples_mc) == 0 else False
-
         
     @property
     def dense_axes(self):
