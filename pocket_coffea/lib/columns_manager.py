@@ -59,7 +59,10 @@ class ColumnsManager:
                             while exporting collection {outarray.collection}! Please check your categorization"
                         )
                 # Applying mask after getting the collection
-                data = events[outarray.collection][mask]
+                if(outarray.collection=="events"):
+                    data = events[mask]
+                else:    
+                    data = events[outarray.collection][mask]
 
                 # Filtering the position in the collection if needed
                 if outarray.pos_start and outarray.pos_end:

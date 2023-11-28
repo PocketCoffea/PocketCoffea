@@ -12,6 +12,9 @@ from parsl import python_app
 from parsl.config import Config
 from parsl.executors.threads import ThreadPoolExecutor
 
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 from .network import get_proxy_path
 from . import rucio
 
@@ -106,6 +109,8 @@ class Sample:
                 link = f"https://cmsweb.cern.ch:8443/dbs/{self.metadata['dbs_instance']}/DBSReader/files?dataset={das_name}&detail=True"
             else:
                 link = f"https://cmsweb.cern.ch:8443/dbs/prod/global/DBSReader/files?dataset={das_name}&detail=True"
+
+            # print('\t Getting files for dataset: ', das_name)
             r = requests.get(
                 link,
                 cert=proxy,

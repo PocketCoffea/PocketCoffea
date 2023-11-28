@@ -18,7 +18,7 @@ import mplhep as hep
 from omegaconf import OmegaConf
 from pocket_coffea.parameters.defaults import merge_parameters
 
-
+np.seterr(divide="ignore", invalid="ignore")
 class Style:
     '''This class manages all the style options for Data/MC plots.'''
 
@@ -544,6 +544,7 @@ class Shape:
                 reference_shape = reference_shape / integral
             ymax = max(reference_shape)
             if not np.isnan(ymax):
+                if ymax==0: ymax=1
                 self.ax.set_ylim((0, 2.0 * ymax))
         if ratio:
             self.ax.set_xlabel("")
@@ -721,6 +722,7 @@ class Shape:
             return
 
         for cat in self.categories:
+            print('Plotting category:', cat)
             if self.only_cat and cat not in self.only_cat:
                 continue
             self.define_figure(ratio)

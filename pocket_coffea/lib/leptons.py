@@ -41,33 +41,20 @@ def get_dilepton(electrons, muons, transverse=False):
         "mass": 0.,
         "charge": 0.,
     }
-
-    electrons = ak.pad_none(electrons, 2)
-    muons = ak.pad_none(muons, 2)
-
-    nelectrons = ak.num(electrons[~ak.is_none(electrons, axis=1)])
-    nmuons = ak.num(muons[~ak.is_none(muons, axis=1)])
-
-    ee = electrons[:, 0] + electrons[:, 1]
-    mumu = muons[:, 0] + muons[:, 1]
-    emu = electrons[:, 0] + muons[:, 0]
+    
+    leptons = ak.pad_none(ak.with_name(ak.concatenate([ muons[:, 0:2], electrons[:, 0:2]], axis=1), "PtEtaPhiMCandidate"), 2)
+    nlep =  ak.num(leptons[~ak.is_none(leptons, axis=1)])
+    ll = leptons[:,0] + leptons[:,1]
 
     for var in fields.keys():
         fields[var] = ak.where(
-            ((nelectrons + nmuons) == 2) & (nelectrons == 2),
-            getattr(ee, var),
-            fields[var],
+            (nlep == 2),
+            getattr(ll, var),
+            fields[var]
         )
-        fields[var] = ak.where(
-            ((nelectrons + nmuons) == 2) & (nmuons == 2),
-            getattr(mumu, var),
-            fields[var],
-        )
-        fields[var] = ak.where(
-            ((nelectrons + nmuons) == 2) & (nelectrons == 1) & (nmuons == 1),
-            getattr(emu, var),
-            fields[var],
-        )
+        
+    fields["deltaR"] = ak.where(
+        (nlep == 2), leptons[:,0].delta_r(leptons[:,1]), -1)
 
     if transverse:
         fields["eta"] = ak.zeros_like(fields["pt"])
