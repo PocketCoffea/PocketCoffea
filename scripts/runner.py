@@ -236,7 +236,7 @@ if __name__ == '__main__':
                         address=address_by_hostname(),
                         #worker_ports=(8786,8785),
                         max_workers=1,
-                        worker_debug=True,
+                        worker_debug=False,
                         prefetch_capacity=0,
                         provider=CondorProvider(
                             nodes_per_block=1,
