@@ -567,23 +567,29 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         By default they are all the weights defined in the WeightsManager
         '''
         vars = WeightsManager.available_variations()
-        vars.update(
-            [
-                "JES_Total",
-                'JES_FlavorQCD',
-                'JES_RelativeBal',
-                'JES_HF',
-                'JES_BBEC1',
-                'JES_EC2',
-                'JES_Absolute',
-                'JES_Absolute_2018',
-                'JES_HF_2018',
-                'JES_EC2_2018',
-                'JES_RelativeSample_2018',
-                'JES_BBEC1_2018',
-                'JER',
-            ]
-        )
+        available_jet_types = [
+            "AK4PFchs",
+            "AK8PFPuppi"
+        ]
+        available_jet_variations = [
+            "JES_Total",
+            'JES_FlavorQCD',
+            'JES_RelativeBal',
+            'JES_HF',
+            'JES_BBEC1',
+            'JES_EC2',
+            'JES_Absolute',
+            'JES_Absolute_2018',
+            'JES_HF_2018',
+            'JES_EC2_2018',
+            'JES_RelativeSample_2018',
+            'JES_BBEC1_2018',
+            'JER',
+        ]
+        # Here we define the naming scheme for the jet variations
+        # For each jet type, we define the variations names as `{variation}_{jet_type}`
+        available_jet_variations = [f"{v}_{jt}" for v in available_jet_variations for jt in available_jet_types]
+        vars.update(available_jet_variations)
         return vars
 
     def get_shape_variations(self):
@@ -596,22 +602,37 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # nominal is assumed to be the first
         variations = ["nominal"] + self.cfg.available_shape_variations[self._sample]
         # TO be understood if a copy is needed
-        # This canbe useless or suboptimal, working on it
+        # This can be useless or suboptimal, working on it
         nominal_events = self.events
+
+        # Define flags to know if the variations include JES or JER
+        has_jes = any(["JES" in v for v in variations])
+        has_jer = any(["JER" in v for v in variations])
+
+        # Extract the jet type to calibrate from the variation name
+        # Expected format: `JES_Total_AK4PFchs`
+        jet_types_to_calibrate = []
+        if has_jes:
+            jet_types_to_calibrate += set([v.split("_")[-1] for v in variations if "JES" in v])
+        if has_jer:
+            jet_types_to_calibrate += set([v.split("_")[-1] for v in variations if "JER" in v])
+        jet_types_to_calibrate = set(jet_types_to_calibrate)
 
         # Calibrating Jets: only the ones in the jet_types in the params.jet_calibration config
         jets_calibrated = {}
         caches = []
         jet_calib_params= self.params.jets_calibration
-        if "JES" in variations or "JER" in variations:
+        if has_jes or has_jer:
             for jet_type, factory in jet_calib_params.jet_types.items():
+                # If the jet_type read from the parameters is not included in the variations, we skip it
+                if not jet_type in jet_types_to_calibrate: continue
                 cache = cachetools.Cache(np.inf)
                 caches.append(cache)
-                jet_coll = jet_calib_params.collection[jet_type]
-                jets_calibrated[jet_coll] = jet_correction(
+                jet_coll_name = jet_calib_params.collection[jet_type]
+                jets_calibrated[jet_coll_name] = jet_correction(
                     params=self.params,
                     events=nominal_events,
-                    jets=nominal_events[jet_coll],
+                    jets=nominal_events[jet_coll_name],
                     factory=self.jmefactory,
                     jet_type = jet_type,
                     year=self._year,
@@ -637,17 +658,23 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 
             elif ("JES" in variation) | ("JER" in variation):
                 # JES_jes is the total. JES_[type] is for different variations
+                # We recover the variation name and the jet type by splitting the variation name
+                variation_name = '_'.join(variation.split("_")[:-1])
+                jet_type = variation.split("_")[-1]
                 self.events = nominal_events
-                for jet_coll_name, jet_coll in jets_calibrated.items():
-                    self.events[jet_coll_name] = jet_coll[variation].up
+
+                # We vary ONLY the jet collection corresponding to the jet type in the variation name
+                # This way, we vary independently the different jet types
+                # e.g. `JES_Total_AK4PFchs` will vary only the `AK4PFchs` jets,
+                # while `JES_Total_AK8PFPuppi` will vary only the `AK8PFPuppi` jets
+                jet_coll_name = jet_calib_params.collection[jet_type]
+                self.events[jet_coll_name] = jets_calibrated[jet_coll_name][variation_name].up
 
                 yield variation + "Up"
 
-                # then go down
-                # restore nominal before going to down
+                # restore nominal before saving the down-variated collection
                 self.events = nominal_events
-                for jet_coll_name, jet_coll in jets_calibrated.items():
-                    self.events[jet_coll_name] = jet_coll[variation].down
+                self.events[jet_coll_name] = jets_calibrated[jet_coll_name][variation_name].down
                 
                 yield variation + "Down"
 
