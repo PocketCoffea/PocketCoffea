@@ -41,6 +41,9 @@ class Style:
         self.has_exclude_samples=False
         if "exclude_samples" in style_cfg:
             self.has_exclude_samples = True
+        self.has_rescale_samples=False
+        if "rescale_samples" in style_cfg:
+            self.has_rescale_samples = True
         self.set_defaults()
 
         #print("Style config:\n", style_cfg)
@@ -416,6 +419,8 @@ class Shape:
         self.h_dict = deepcopy(h_dict_grouped)
 
     def rescale_samples(self):
+        if not self.style.has_rescale_samples:
+            return
         for sample,scale in self.style.rescale_samples.items():
 
             if sample in self.h_dict.keys():
@@ -590,14 +595,15 @@ class Shape:
             labels_new = []
             handles_new = []
             for i, l in enumerate(labels):
+                # If additional scale is provided, plot it on the legend:
+                scale_str = ""
+                if self.style.has_rescale_samples and l in self.style.rescale_samples.keys():
+                    scale_str = " x%.2f"%self.style.rescale_samples[l]
+                    
                 if l in self.style.labels_mc:
-                    labels_new.append(f"{self.style.labels_mc[l]}")
+                    labels_new.append(f"{self.style.labels_mc[l]}"+scale_str)
                 else:
-                    if l in self.style.rescale_samples.keys():
-                        #If additional scale is provided, plot it on the legend:
-                        labels_new.append(l+" x%.2f"%self.style.rescale_samples[l])
-                    else:
-                        labels_new.append(l)
+                    labels_new.append(l+scale_str)
                     
                 handles_new.append(handles[i])
             labels = labels_new
