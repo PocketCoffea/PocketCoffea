@@ -287,9 +287,16 @@ class Shape:
                 if type(ax) in [hist.axis.StrCategory, hist.axis.IntCategory]:
                     categorical_axes_dict[s].append(ax)
         categorical_axes = list(categorical_axes_dict.values())
-        assert all(
-            v == categorical_axes[0] for v in categorical_axes
-        ), "Not all the histograms in the dictionary have the same categorical dimension."
+        error_msg = f"The Shape object `{self.name}` contains histograms with different categorical axes in the %1 datasets.\nMismatching axes:\n"
+        if mc:
+            error_msg = error_msg.replace("%1", "MC")
+        else:
+            error_msg = error_msg.replace("%1", "Data")
+        for v in categorical_axes:
+            for i, axis in enumerate(v):
+                if axis != categorical_axes[0][i]:
+                    error_msg += f"{axis}\n" + f"{categorical_axes[0][i]}"
+                    raise Exception(error_msg)
         categorical_axes = categorical_axes[0]
 
         return categorical_axes
