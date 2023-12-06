@@ -28,9 +28,6 @@ parser.add_argument('-v', '--verbose', type=int, default=1, help='Verbose level 
 
 args = parser.parse_args()
 
-if args.verbose>0:
-    print("Loading the configuration file...\n",args)
-
 
 # Using the input_dir obtain the config files and coffea file (if not set with argparse):
 if args.cfg==None:
@@ -92,6 +89,8 @@ plotter = PlotManager(
     verbose=args.verbose,
     save=True
 )
+
+print("Started plotting.  Please wait...")
 plotter.plot_datamc_all(syst=True, spliteras=False)
 
 # if Log is also requested, rerun

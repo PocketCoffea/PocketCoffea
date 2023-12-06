@@ -218,6 +218,7 @@ class Shape:
             type(h_dict) in [dict, defaultdict]
         ), "The Shape object receives a dictionary of hist.Hist objects as argument."
         self.group_samples()
+        self.exclude_samples()
         self.rescale_samples()
         self.load_attributes()
         self.syst_manager = SystManager(self, self.style)
@@ -401,6 +402,7 @@ class Shape:
         h_dict_grouped = {}
         samples_in_map = []
         for sample_new, samples_list in self.style.samples_groups.items():
+            # print(sample_new, samples_list)
             h_dict_grouped[sample_new] = self._stack_sum(
                 stack=hist.Stack.from_dict(
                     {s: h for s, h in self.h_dict.items() if s in samples_list}
@@ -410,13 +412,22 @@ class Shape:
             self.sample_is_MC[sample_new] = self.sample_is_MC[samples_list[0]]
             samples_in_map += samples_list
 
-        samples_to_exclude = []
-        if self.style.has_exclude_samples:
-            samples_to_exclude = self.style.exclude_samples
         for s, h in self.h_dict.items():
-            if s not in samples_in_map and s not in samples_to_exclude:
+            if s not in samples_in_map:
                 h_dict_grouped[s] = h
         self.h_dict = deepcopy(h_dict_grouped)
+
+    def exclude_samples(self):
+        if not self.style.has_exclude_samples:
+            return
+
+        samples_to_exclude = self.style.exclude_samples
+        h_dict_excluded = {}
+        for s, h in self.h_dict.items():
+            if s not in samples_to_exclude:
+                h_dict_excluded[s] = h
+
+        self.h_dict = deepcopy(h_dict_excluded)
 
     def rescale_samples(self):
         if not self.style.has_rescale_samples:
@@ -599,8 +610,8 @@ class Shape:
                 scale_str = ""
                 if self.style.has_rescale_samples and l in self.style.rescale_samples.keys():
                     scale_str = " x%.2f"%self.style.rescale_samples[l]
-                    
                 if l in self.style.labels_mc:
+                    
                     labels_new.append(f"{self.style.labels_mc[l]}"+scale_str)
                 else:
                     labels_new.append(l+scale_str)
