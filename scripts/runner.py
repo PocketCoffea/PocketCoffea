@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 print("""
-    ____             __        __  ______      ________          
+    ____             __        __  ______      ________
    / __ \____  _____/ /_____  / /_/ ____/___  / __/ __/__  ____ _
   / /_/ / __ \/ ___/ //_/ _ \/ __/ /   / __ \/ /_/ /_/ _ \/ __ `/
- / ____/ /_/ / /__/ ,< /  __/ /_/ /___/ /_/ / __/ __/  __/ /_/ / 
-/_/    \____/\___/_/|_|\___/\__/\____/\____/_/ /_/  \___/\__,_/  
-                                                                 
-""")
+ / ____/ /_/ / /__/ ,< /  __/ /_/ /___/ /_/ / __/ __/  __/ /_/ /
+/_/    \____/\___/_/|_|\___/\__/\____/\____/_/ /_/  \___/\__,_/
 
+""")
 import os, getpass
 import sys
 import argparse
@@ -64,7 +63,7 @@ if __name__ == '__main__':
     outfile = os.path.join(
         args.outputdir, "output_{}.coffea"
     )
-    
+
     # Prepare logging
     if (not setup_logging(console_log_output="stdout", console_log_level=args.loglevel, console_log_color=True,
                         logfile_file="last_run.log", logfile_log_level="info", logfile_log_color=False,
@@ -76,7 +75,7 @@ if __name__ == '__main__':
     if args.cfg[-3:] == ".py":
         # Load the script
         config, run_options = load_run_options(args.cfg)
-        
+
     elif args.cfg[-4:] == ".pkl":
         # WARNING: This has to be tested!!
         config = cloudpickle.load(open(args.cfg,"rb"))
@@ -111,7 +110,7 @@ if __name__ == '__main__':
         _x509_localpath = get_proxy_path()
         _x509_path = os.environ['HOME'] + f'/{_x509_localpath.split("/")[-1]}'
         os.system(f'cp {_x509_localpath} {_x509_path}')
-        
+
     if (run_env:=run_options.get("env", "singularity")) == "singularity":
         env_extra = [
             'export XRD_RUNFORKHANDLER=1',
@@ -132,19 +131,18 @@ if __name__ == '__main__':
             'ulimit -u 32768',
             'export MALLOC_TRIM_THRESHOLD_=0'
         ]
+        condor_extra = [
+            'echo \"Current date and time: `date`"',
+            'echo "Hostname=`hostname`"',
+            "export XRD_RUNFORKHANDLER=1",
+            f'export X509_USER_PROXY={_x509_path}',
+            f'export PYTHONPATH=$PYTHONPATH:{os.getcwd()}',
+            f'cd {os.getcwd()}',
+            f'source {os.environ["HOME"]}/.bashrc', # Conda should be setup by .bashrc for this to work
+            f'conda activate {os.environ["CONDA_PREFIX"]}',
+        ]
+
     env_extra.append(f'export PYTHONPATH={os.path.dirname(args.cfg)}:$PYTHONPATH')
-    
-    condor_extra = [
-        'echo \"Current date and time: `date`"',
-        'echo "Hostname=`hostname`"',
-        "export XRD_RUNFORKHANDLER=1",
-        f'export X509_USER_PROXY={_x509_path}',
-        #f'export X509_CERT_DIR={os.environ["X509_CERT_DIR"]}',
-        f'export PYTHONPATH=$PYTHONPATH:{os.getcwd()}',
-        f'cd {os.getcwd()}',
-        f'source {os.environ["HOME"]}/.bashrc', # Conda should be setup by .bashrc for this to work
-        f'conda activate {os.environ["CONDA_PREFIX"]}',
-    ]
 
     logging.debug(env_extra)
 
@@ -171,7 +169,7 @@ if __name__ == '__main__':
                                     chunksize=run_options['chunk'],
                                     maxchunks=run_options.get('max', None)
                                     )
-        
+
         save(output, outfile.format("all"))
         print(f"Saving output to {outfile.format('all')}")
 
@@ -225,7 +223,7 @@ if __name__ == '__main__':
 
             save(output, outfile.format("all") )
             print(f"Saving output to {outfile.format('all')}")
-    
+
         elif 'condor' in run_options['executor']:
             #xfer_files = [process_worker_pool, _x509_path]
             #print(xfer_files)
@@ -234,9 +232,8 @@ if __name__ == '__main__':
                     HighThroughputExecutor(
                         label="coffea_parsl_condor",
                         address=address_by_hostname(),
-                        #worker_ports=(8786,8785),
                         max_workers=1,
-                        worker_debug=True,
+                        worker_debug=False,
                         prefetch_capacity=0,
                         provider=CondorProvider(
                             nodes_per_block=1,
@@ -250,7 +247,7 @@ if __name__ == '__main__':
                             requirements=run_options["requirements"],
                             #transfer_input_files=xfer_files,
                             #scheduler_options=condor_cfg,
-                            
+
                         ),
                     )
                 ],
@@ -280,7 +277,9 @@ if __name__ == '__main__':
                     ],
                     retries=run_options["retries"],
                 )
-            
+
+
+
             dfk = parsl.load(condor_htex)
             print('Ready to run with parsl')
             output = processor.run_uproot_job(config.filesets,
@@ -306,7 +305,7 @@ if __name__ == '__main__':
         from distributed import Client
         from dask.distributed import performance_report
         setup_dask(dask.config)
-        
+
         if 'slurm' in run_options['executor']:
             log_folder = "slurm_log"
             cluster = SLURMCluster(
@@ -321,10 +320,11 @@ if __name__ == '__main__':
         elif 'condor' in run_options['executor']:
             log_folder = "condor_log"
             cluster = HTCondorCluster(
-                 cores=run_options['workers'],
-                 memory=run_options['mem_per_worker'],
-                 disk=run_options.get('disk_per_worker', "2GB"),
-                 job_script_prologue=condor_extra,
+                cores=run_options['workers'],
+                memory=run_options['mem_per_worker'],
+                disk=run_options.get('disk_per_worker', "2GB"),
+                job_script_prologue=condor_extra,
+                log_directory = f"{args.outputdir}/{log_folder}",
             )
         elif 'lxplus' in run_options["executor"]:
             log_folder = "condor_log"
@@ -370,16 +370,16 @@ if __name__ == '__main__':
         logging.info(">> Waiting for the first job to start...")
         client.wait_for_workers(1)
         logging.info(">> You can connect to the Dask viewer at http://localhost:8787")
-        
+
         performance_report_path = os.path.join(args.outputdir, f"{log_folder}/dask-report.html")
         print(f"Saving performance report to {performance_report_path}")
         with performance_report(filename=performance_report_path):
 
             if args.full:
-                # Running separately on all datasets at once
+                # Running on all datasets at once
                 fileset = config.filesets
                 logging.info(f"Working on samples: {list(fileset.keys())}")
-                
+
                 output = processor.run_uproot_job(fileset,
                                         treename='Events',
                                         processor_instance=config.processor_instance,
@@ -401,7 +401,7 @@ if __name__ == '__main__':
                 for sample, files in config.filesets.items():
                     logging.info(f"Working on sample: {sample}")
                     fileset = {sample:files}
-                    
+
                     output = processor.run_uproot_job(fileset,
                                             treename='Events',
                                             processor_instance=config.processor_instance,
