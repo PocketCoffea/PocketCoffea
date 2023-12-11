@@ -452,12 +452,22 @@ collection_fields = {
 }
 
 
-def _get_default_hist(name, type, coll, pos=None, fields=None, **kwargs):
+def _get_default_hist(name, type, coll, pos=None, fields=None, axis_settings=None, **kwargs):
+    '''Factory function to create a dictionary of HistConf objects for a given collection.
+    name: name of the histogram
+    type: type of the collection (e.g. jet, fatjet, parton, electron, muon, lepton, met, sv)
+    coll: name of the collection in the coffea processor (e.g. JetGood, ElectronGood, MuonGood, MET))
+    pos: position of the object in the collection (e.g. 0, 1, 2, 3, ...)
+    fields: list of fields to plot (e.g. eta, pt, phi, ...)
+    axis_settings: dictionary of settings for the axis of the histogram, to be used to overwrite the default axis settings
+    kwargs: additional arguments to be passed to the HistConf object (e.g. `only_variations`, `exclude_samples`, `only_samples`, `exclude_categories`, `only_categories`)'''
     out = {}
     for field in collection_fields[type]:
         if fields == None or field in fields:
             hist_name = f"{name}_{field}"
             setting = deepcopy(default_axis_settings[f"{type}_{field}"])
+            if axis_settings != None and f"{type}_{field}" in axis_settings:
+                setting.update(axis_settings[f"{type}_{field}"])
             setting["coll"] = coll
             # If the position argument is given the histogram is
             # created for the specific position
