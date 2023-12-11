@@ -55,6 +55,7 @@ if __name__ == '__main__':
     parser.add_argument("-s","--scaleout", type=int, help="Overwrite scalout config" )
     parser.add_argument("-q","--queue", type=str, help="Overwrite queue config" )
     parser.add_argument("-wt","--walltime", type=str, help="Overwrite walltime config" )
+    parser.add_argument("-ac","--adapt-chunksize", action="store_true", help="Adapt chunksize to the number of available workers" )
     parser.add_argument("-ll","--loglevel", type=str, help="Logging level", default="INFO" )
     parser.add_argument("-f","--full", action="store_true", help="Process all datasets at the same time", default=False )
     args = parser.parse_args()
@@ -410,6 +411,17 @@ if __name__ == '__main__':
                     logging.info(f"Working on sample: {sample}")
                     fileset = {sample:files}
 
+                    n_events_tot = int(files["metadata"]["nevents"])
+                    n_workers_max = n_events_tot / run_options["chunk"]
+
+                    # If the number of available workers exceeds the maximum number of workers for a given sample,
+                    # the chunksize is reduced so that all the workers are used to process the given sample
+                    if (run_options["scaleout"] > n_workers_max) and args.adapt_chunksize:
+                        chunksize = int(n_events_tot / run_options["scaleout"])
+                        logging.info(f"Reducing chunksize from {run_options['chunk']} to {chunksize} for sample {sample}")
+                    else:
+                        chunksize = run_options["chunk"]
+
                     output = processor.run_uproot_job(fileset,
                                             treename='Events',
                                             processor_instance=config.processor_instance,
@@ -421,7 +433,7 @@ if __name__ == '__main__':
                                                 'retries' : run_options['retries'],
                                                 'treereduction' : run_options.get('treereduction', 20)
                                             },
-                                            chunksize=run_options['chunk'],
+                                            chunksize=chunksize,
                                             maxchunks=run_options.get('max', None)
                                 )
                     print(f"Saving output to {outfile.format(sample)}")
