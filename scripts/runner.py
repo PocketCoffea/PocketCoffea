@@ -53,6 +53,8 @@ if __name__ == '__main__':
     parser.add_argument("-e","--executor", type=str,
                         help="Overwrite executor from config (to be used only with the --test options)" )
     parser.add_argument("-s","--scaleout", type=int, help="Overwrite scalout config" )
+    parser.add_argument("-q","--queue", type=str, help="Overwrite queue config" )
+    parser.add_argument("-wt","--walltime", type=str, help="Overwrite walltime config" )
     parser.add_argument("-ll","--loglevel", type=str, help="Logging level", default="INFO" )
     parser.add_argument("-f","--full", action="store_true", help="Process all datasets at the same time", default=False )
     args = parser.parse_args()
@@ -101,6 +103,12 @@ if __name__ == '__main__':
 
     if args.executor !=None:
         run_options["executor"] = args.executor
+
+    if args.queue !=None:
+        run_options["queue"] = args.queue
+
+    if args.walltime !=None:
+        run_options["walltime"] = args.walltime
 
     #### Fixing the environment (assuming this is run in singularity)
     # dask/parsl needs to export x509 to read over xrootd
