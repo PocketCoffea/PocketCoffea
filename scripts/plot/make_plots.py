@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import os
 import sys
+import re
 import argparse
 
 from omegaconf import OmegaConf
@@ -10,7 +11,7 @@ from pocket_coffea.utils.plot_utils import PlotManager
 from pocket_coffea.parameters import defaults
 
 parser = argparse.ArgumentParser(description='Plot histograms from coffea file')
-parser.add_argument('input_dir', help='Directory with cofea files and parameters', type=str)
+parser.add_argument('--input_dir', help='Directory with cofea files and parameters', type=str, default=os.getcwd(), required=False)
 parser.add_argument('--cfg', help='YAML file with all the analysis parameters', required=False)
 parser.add_argument('-op', '--overwrite_parameters', type=str, nargs="+", default=None, help='YAML file with plotting parameters to overwrite default parameters', required=False)
 parser.add_argument("-o", "--outputdir", required=False, type=str, help="Output folder")
@@ -19,6 +20,7 @@ parser.add_argument('-j', '--workers', type=int, default=8, help='Number of para
 parser.add_argument('-oc', '--only_cat', type=str, nargs="+", help='Filter categories with string', required=False)
 parser.add_argument('-os', '--only_syst', type=str, nargs="+", help='Filter systematics with a list of strings', required=False)
 parser.add_argument('-e', '--exclude_hist', type=str, nargs="+", default=None, help='Exclude histograms with a list of strings', required=False)
+parser.add_argument('-oh', '--only_hist', type=str, nargs="+", default=None, help='Plot only histograms with a list of regular expression strings', required=False)
 parser.add_argument('--split_systematics', action='store_true', help='Split systematic uncertainties in the ratio plot', required=False)
 parser.add_argument('--partial_unc_band', action='store_true', help='Plot only the partial uncertainty band corresponding to the systematics specified as the argument `only_syst`', required=False)
 parser.add_argument('--overwrite', '--over', action='store_true', help='Overwrite plots in output folder', required=False)
@@ -74,6 +76,8 @@ if not os.path.exists(args.outputdir):
 variables = accumulator['variables'].keys()
 if args.exclude_hist != None:
     variables = list(filter(lambda x : all([s not in x for s in args.exclude_hist]), variables))
+if args.only_hist != None:
+    variables = [s for s in variables if any([re.search(p, s) for p in args.only_hist])]
 hist_objs = { v : accumulator['variables'][v] for v in variables }
 
 plotter = PlotManager(
