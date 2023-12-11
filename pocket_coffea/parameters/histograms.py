@@ -485,52 +485,52 @@ def _get_default_hist(name, type, coll, pos=None, fields=None, axis_settings=Non
     return out
 
 
-def jet_hists(coll="JetGood", pos=None, fields=None, name=None, **kwargs):
+def jet_hists(coll="JetGood", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
     if name == None:
         name = coll
-    return _get_default_hist(name, "jet", coll, pos, fields, **kwargs)
+    return _get_default_hist(name, "jet", coll, pos, fields, axis_settings, **kwargs)
 
 
-def fatjet_hists(coll="FatJetGood", pos=None, fields=None, name=None, **kwargs):
+def fatjet_hists(coll="FatJetGood", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
     if name == None:
         name = coll
-    return _get_default_hist(name, "fatjet", coll, pos, fields, **kwargs)
+    return _get_default_hist(name, "fatjet", coll, pos, fields, axis_settings, **kwargs)
 
 
-def parton_hists(coll="PartonMatched", pos=None, fields=None, name=None, **kwargs):
+def parton_hists(coll="PartonMatched", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
     if name == None:
         name = coll
-    return _get_default_hist(name, "parton", coll, pos, fields, **kwargs)
+    return _get_default_hist(name, "parton", coll, pos, fields, axis_settings, **kwargs)
 
 
-def ele_hists(coll="ElectronGood", pos=None, fields=None, name=None, **kwargs):
+def ele_hists(coll="ElectronGood", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
     if name == None:
         name = coll
-    return _get_default_hist(name, "electron", coll, pos, fields, **kwargs)
+    return _get_default_hist(name, "electron", coll, pos, fields, axis_settings, **kwargs)
 
 
-def muon_hists(coll="MuonGood", pos=None, fields=None, name=None, **kwargs):
+def muon_hists(coll="MuonGood", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
     if name == None:
         name = coll
-    return _get_default_hist(name, "muon", coll, pos, fields, **kwargs)
+    return _get_default_hist(name, "muon", coll, pos, fields, axis_settings, **kwargs)
 
 
-def lepton_hists(coll="LeptonGood", pos=None, fields=None, name=None, **kwargs):
+def lepton_hists(coll="LeptonGood", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
     if name == None:
         name = coll
-    return _get_default_hist(name, "lepton", coll, pos, fields, **kwargs)
+    return _get_default_hist(name, "lepton", coll, pos, fields, axis_settings, **kwargs)
 
 
-def met_hists(coll="MET", pos=None, fields=None, name=None, **kwargs):
+def met_hists(coll="MET", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
     if name == None:
         name = coll
-    return _get_default_hist(name, "met", coll, pos, fields, **kwargs)
+    return _get_default_hist(name, "met", coll, pos, fields, axis_settings, **kwargs)
 
 
-def sv_hists(coll="SV", pos=None, fields=None, name=None, **kwargs):
+def sv_hists(coll="SV", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
     if name == None:
         name = coll
-    return _get_default_hist(name, "sv", coll, pos, fields, **kwargs)
+    return _get_default_hist(name, "sv", coll, pos, fields, axis_settings, **kwargs)
 
 
 def count_hist(coll, bins=10, start=0, stop=9, label=None, name=None, **kwargs):
