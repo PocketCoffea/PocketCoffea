@@ -520,6 +520,17 @@ class Shape:
             self.syst_manager.update()
         return self._stacksCache[cat]
 
+    def _is_empty(self, cat):
+        '''Checks if the data and MC stacks are empty.'''
+        is_empty = True
+        if not self.is_data_only:
+            if sum(self._stacksCache[cat]["mc_nominal_sum"].values()) != 0:
+                is_empty = False
+        if not self.is_mc_only:
+            if sum(self._stacksCache[cat]["data_sum"].values()) != 0:
+                is_empty = False
+        return is_empty
+
     def get_datamc_ratio(self, cat):
         '''Computes the data/MC ratio and the corresponding uncertainty.'''
         stacks = self._get_stacks(cat)
@@ -670,6 +681,12 @@ class Shape:
             if not hasattr(self, "ax"):
                 self.define_figure(ratio=False)
         y = stacks["data_sum"].values()
+        # Add underflow and overflow bins to the first and last bin, respectively
+        if self.style.opts_mc["flow"] == "sum":
+            y_underflow = stacks["data_sum"][hist.underflow].value
+            y_overflow = stacks["data_sum"][hist.overflow].value
+            y[0] += y_underflow
+            y[-1] += y_overflow
         yerr = np.sqrt(y)
         integral = sum(y) * np.array(self.style.opts_axes["xbinwidth"])
         if self.density:
@@ -760,18 +777,18 @@ class Shape:
         if (not self.is_mc_only) & (not self.is_data_only):
             self.plot_mc(cat)
             self.plot_data(cat)
-            if syst:
+            if syst & (not self._is_empty(cat)):
                 self.plot_systematic_uncertainty(cat)
         elif self.is_mc_only:
             self.plot_mc(cat)
-            if syst:
+            if syst & (not self._is_empty(cat)):
                 self.plot_systematic_uncertainty(cat)
         elif self.is_data_only:
             self.plot_data(cat)
 
         if ratio:
             self.plot_datamc_ratio(cat)
-            if syst:
+            if syst & (not self._is_empty(cat)):
                 self.plot_systematic_uncertainty(cat, ratio=ratio)
 
         self.format_figure(cat, ratio=ratio)
