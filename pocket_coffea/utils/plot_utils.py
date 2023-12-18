@@ -148,6 +148,8 @@ class PlotManager:
         to avoid conflicts between different processes.'''
         for name, shape in self.shape_objects.items():
             for cat in shape.categories:
+                if self.only_cat and cat not in self.only_cat:
+                    continue
                 plot_dir = os.path.join(self.plot_dir, cat)
                 if not os.path.exists(plot_dir):
                     os.makedirs(plot_dir)
