@@ -80,6 +80,11 @@ if args.only_hist != None:
     variables = [s for s in variables if any([re.search(p, s) for p in args.only_hist])]
 hist_objs = { v : accumulator['variables'][v] for v in variables }
 
+if args.log:
+    log = True
+else:
+    log = False
+
 plotter = PlotManager(
     variables=variables,
     hist_objs=hist_objs,
@@ -88,7 +93,7 @@ plotter = PlotManager(
     style_cfg=style_cfg,
     only_cat=args.only_cat,
     workers=args.workers,
-    log=False,
+    log=log,
     density=args.density,
     verbose=args.verbose,
     save=True
@@ -96,22 +101,5 @@ plotter = PlotManager(
 
 print("Started plotting.  Please wait...")
 plotter.plot_datamc_all(syst=True, spliteras=False)
-
-# if Log is also requested, rerun
-if args.log:
-    plotter = PlotManager(
-        variables=variables,
-        hist_objs=hist_objs,
-        datasets_metadata=accumulator['datasets_metadata'],
-        plot_dir=args.outputdir,
-        style_cfg=style_cfg,
-        only_cat=args.only_cat,
-        workers=args.workers,
-        log=True,
-        density=args.density,
-        verbose=args.verbose,
-        save=True
-    )
-    plotter.plot_datamc_all(syst=True, spliteras=False)
 
 print("Output plots are saved at: ", args.outputdir)
