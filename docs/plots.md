@@ -33,7 +33,7 @@ Other optional arguments are:
 - `-j`: Number of workers used for plotting
 - `--only_cat`: Filter categories with a list of strings
 - `--only_syst`: Filter systematics with a list of strings
-- `--exclude_hist`: Exclude histograms with a list of strings
+- `--exclude_hist`: Exclude histograms with a list of regular expressions
 - `--only_hist`: Filter histograms with a list of regular expressions
 - `--split_systematics`: Split systematic uncertainties in the ratio plot
 - `--partial_unc_band`: Plot only the partial uncertainty band corresponding to the systematics specified as the argument `only_syst`
