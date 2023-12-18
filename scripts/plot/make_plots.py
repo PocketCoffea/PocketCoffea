@@ -19,7 +19,7 @@ parser.add_argument("-i", "--inputfile", required=False, type=str, help="Input f
 parser.add_argument('-j', '--workers', type=int, default=8, help='Number of parallel workers to use for plotting', required=False)
 parser.add_argument('-oc', '--only_cat', type=str, nargs="+", help='Filter categories with string', required=False)
 parser.add_argument('-os', '--only_syst', type=str, nargs="+", help='Filter systematics with a list of strings', required=False)
-parser.add_argument('-e', '--exclude_hist', type=str, nargs="+", default=None, help='Exclude histograms with a list of strings', required=False)
+parser.add_argument('-e', '--exclude_hist', type=str, nargs="+", default=None, help='Exclude histograms with a list of regular expression strings', required=False)
 parser.add_argument('-oh', '--only_hist', type=str, nargs="+", default=None, help='Plot only histograms with a list of regular expression strings', required=False)
 parser.add_argument('--split_systematics', action='store_true', help='Split systematic uncertainties in the ratio plot', required=False)
 parser.add_argument('--partial_unc_band', action='store_true', help='Plot only the partial uncertainty band corresponding to the systematics specified as the argument `only_syst`', required=False)
@@ -75,7 +75,8 @@ if not os.path.exists(args.outputdir):
 
 variables = accumulator['variables'].keys()
 if args.exclude_hist != None:
-    variables = list(filter(lambda x : all([s not in x for s in args.exclude_hist]), variables))
+    variables_to_exclude = [s for s in variables if any([re.search(p, s) for p in args.exclude_hist])]
+    variables = [s for s in variables if s not in variables_to_exclude]
 if args.only_hist != None:
     variables = [s for s in variables if any([re.search(p, s) for p in args.only_hist])]
 hist_objs = { v : accumulator['variables'][v] for v in variables }
