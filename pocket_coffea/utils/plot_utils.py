@@ -401,8 +401,25 @@ class Shape:
             return
         h_dict_grouped = {}
         samples_in_map = []
+
+        cleaned_samples_list = self.style.samples_groups.copy()
         for sample_new, samples_list in self.style.samples_groups.items():
-            # print(sample_new, samples_list)
+            #print(sample_new, samples_list)
+            for s_to_group in samples_list:
+                if s_to_group not in self.h_dict.keys():
+                    if self.verbose>=0:
+                        print("WARNING. Sample ",s_to_group," is not in the list of samples: ", list(self.h_dict.keys()), "Skipping it.")
+                    cleaned_samples_list[sample_new].remove(s_to_group)
+                    continue
+                if self.verbose>=1:
+                    print("\t Sample ",s_to_group," will be grouped into sample", sample_new)
+
+        for sample_new, samples_list in cleaned_samples_list.items():
+            if len(samples_list)==0:
+                if self.verbose>=1:
+                    print("WARNING. The list of samples to group is empty!  Group name:", sample_new)
+                continue
+            
             h_dict_grouped[sample_new] = self._stack_sum(
                 stack=hist.Stack.from_dict(
                     {s: h for s, h in self.h_dict.items() if s in samples_list}
