@@ -12,7 +12,6 @@ import hist
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
-from matplotlib.ticker import MultipleLocator, AutoMinorLocator
 import mplhep as hep
 
 from omegaconf import OmegaConf
