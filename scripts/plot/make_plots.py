@@ -31,13 +31,13 @@ parser.add_argument('-v', '--verbose', type=int, default=1, help='Verbose level 
 args = parser.parse_args()
 
 
-# Using the input_dir obtain the config files and coffea file (if not set with argparse):
+# Using the `input_dir` argument, read the default config and coffea files (if not set with argparse):
 if args.cfg==None:
-    args.cfg = args.input_dir+"/parameters_dump.yaml"
+    args.cfg = os.path.join(args.input_dir, "parameters_dump.yaml")
 if args.inputfile==None:
-    args.inputfile = args.input_dir+"/output_all.coffea"
+    args.inputfile = os.path.join(args.input_dir, "output_all.coffea")
 if args.outputdir==None:
-    args.outputdir = args.input_dir+"/plots/"
+    args.outputdir = os.path.join(args.input_dir, "plots")
 
 # Load yaml file with OmegaConf
 
