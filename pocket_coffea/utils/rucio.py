@@ -65,6 +65,10 @@ def get_xrootd_sites_map():
                             sites_xrootd_access[site["rse"]] = proc["prefix"]
         json.dump(sites_xrootd_access, open(".sites_map.json", "w"))
 
+    else:
+        print("Your .sites_map.json cond already exists! Will use that filr for sites configuration, will not overwrite it.")
+        print("\t If you need it to be updated remove the .sites_map.json and rerun this script.")
+
     return json.load(open(".sites_map.json"))
 
 
@@ -76,9 +80,9 @@ def _get_pfn_for_site(path, rules):
                 for i in range(len(grs)):
                     pfn = pfn.replace(f"${i+1}", grs[i])
                 return pfn
-    else: 
+    else:
         return rules + "/"+ path
-    
+
 
 def get_dataset_files(
     dataset,
@@ -122,6 +126,7 @@ def get_dataset_files(
                         continue
                     outfile.append(_get_pfn_for_site(filedata["name"], sites_xrootd_prefix[site]))
                     outsite.append(site)
+
                     found = True
 
             if not found:
