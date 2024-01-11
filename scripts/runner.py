@@ -381,7 +381,7 @@ if __name__ == '__main__':
                     "error": f"{args.outputdir}/{log_folder}/dask_job_output.err",
                     "should_transfer_files": "Yes",
                     "when_to_transfer_output": "ON_EXIT",
-                   "+JobFlavour": f'"{run_options["queue"]}"'
+                    "+JobFlavour": f'"{run_options["queue"]}"'
                 },
                 env_extra=env_extra,
             )
