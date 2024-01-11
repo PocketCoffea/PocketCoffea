@@ -30,7 +30,7 @@ parser.add_argument('-v', '--verbose', type=int, default=1, help='Verbose level 
 args = parser.parse_args()
 
 
-# Using the input_dir obtain the config files and coffea file (if not set with argparse):
+# Using the input_dir to obtain the config files and coffea file (if they are not set with arguments):
 if args.cfg==None:
     args.cfg = args.input_dir+"/parameters_dump.yaml"
 if args.inputfile==None:

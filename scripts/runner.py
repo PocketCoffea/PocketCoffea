@@ -53,7 +53,7 @@ if __name__ == '__main__':
     parser.add_argument("-e","--executor", type=str,
                         help="Overwrite executor from config (to be used only with the --test options)" )
     parser.add_argument("-s","--scaleout", type=int, help="Overwrite scalout config" )
-    parser.add_argument("-ll","--loglevel", type=str, help="Logging level", default="INFO" )
+    parser.add_argument("-ll","--loglevel", type=str, help="Console logging level", default="INFO" )
     parser.add_argument("-f","--full", action="store_true", help="Process all datasets at the same time", default=False )
     args = parser.parse_args()
 
@@ -63,10 +63,10 @@ if __name__ == '__main__':
     outfile = os.path.join(
         args.outputdir, "output_{}.coffea"
     )
-
+    logfile = os.path.join(args.outputdir, "logfile.log")
     # Prepare logging
     if (not setup_logging(console_log_output="stdout", console_log_level=args.loglevel, console_log_color=True,
-                        logfile_file="last_run.log", logfile_log_level="info", logfile_log_color=False,
+                        logfile_file=logfile, logfile_log_level="info", logfile_log_color=False,
                         log_line_template="%(color_on)s[%(levelname)-8s] %(message)s%(color_off)s")):
         print("Failed to setup logging, aborting.")
         exit(1)
@@ -183,8 +183,10 @@ if __name__ == '__main__':
         from parsl.executors import HighThroughputExecutor
         from parsl.launchers import SrunLauncher, SingleNodeLauncher
         from parsl.addresses import address_by_hostname, address_by_query
-        #parsl.set_stream_logger(name='PARSL', level=logging.ERROR, stream=sys.stdout)
 
+        # Setting Console loglevel to ERROR in order to avoid logs from Parsl
+        logging.getLogger().handlers[0].setLevel("ERROR")
+        
         if 'slurm' in run_options['executor']:
             slurm_htex = Config(
                 executors=[
@@ -445,3 +447,12 @@ if __name__ == '__main__':
     else:
         print(f"Executor {run_options['executor']} not defined!")
         exit(1)
+
+
+    #print("Logger handlers:", logging.getLogger().handlers )
+    log_file = logging.getLogger().handlers[1].baseFilename
+    #print("Logfile is saved at:", log_file)
+    # Copying logfile also to last_run.log
+    import shutil
+    shutil.copyfile(log_file, 'last_run.log')
+        
