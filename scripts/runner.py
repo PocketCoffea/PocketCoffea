@@ -140,6 +140,7 @@ if __name__ == '__main__':
             f'cd {os.getcwd()}',
             f'source {os.environ["HOME"]}/.bashrc', # Conda should be setup by .bashrc for this to work
             f'conda activate {os.environ["CONDA_PREFIX"]}',
+            'echo "Conda has been activated, hopefylly... We are ready to roll!"'
         ]
 
     env_extra.append(f'export PYTHONPATH={os.path.dirname(args.cfg)}:$PYTHONPATH')
@@ -191,7 +192,7 @@ if __name__ == '__main__':
                         label="coffea_parsl_slurm",
                         address=address_by_hostname(),
                         prefetch_capacity=0,
-                        mem_per_worker=run_options['mem_per_worker'],
+                        mem_per_worker=run_options.get("mem_per_worker_parsl", 2),
                         provider=SlurmProvider(
                             channel=LocalChannel(script_dir='logs_parsl'),
                             launcher=SrunLauncher(),
@@ -239,7 +240,7 @@ if __name__ == '__main__':
                             nodes_per_block=1,
                             cores_per_slot=run_options["workers"],
                             #channel=LocalChannel(script_dir='logs_parsl'),
-                            mem_per_slot=run_options["mem_per_worker"],
+                            mem_per_slot=run_options.get("mem_per_worker_parsl", 2),
                             init_blocks=run_options["scaleout"],
                             max_blocks=(run_options["scaleout"]) + 5,
                             worker_init="\n".join(condor_extra),
@@ -282,20 +283,42 @@ if __name__ == '__main__':
 
             dfk = parsl.load(condor_htex)
             print('Ready to run with parsl')
-            output = processor.run_uproot_job(config.filesets,
-                                        treename='Events',
-                                        processor_instance=config.processor_instance,
-                                        executor=processor.parsl_executor,
-                                        executor_args={
-                                            'skipbadfiles': run_options.get('skipbadfiles', False),
-                                            'schema': processor.NanoAODSchema,
-                                            'config': None,
-                                        },
-                                        chunksize=run_options['chunk'], maxchunks=run_options.get('max', None)
-                                        )
-            save(output, outfile.format("all"))
-            print(f"Saving output to {outfile.format('all')}")
 
+            if args.full:
+                # Running on all datasets at once
+                fileset = config.filesets
+                logging.info(f"Working on samples: {list(fileset.keys())}")
+                output = processor.run_uproot_job(fileset,
+                                                  treename='Events',
+                                                  processor_instance=config.processor_instance,
+                                                  executor=processor.parsl_executor,
+                                                  executor_args={
+                                                      'skipbadfiles': run_options.get('skipbadfiles', False),
+                                                      'schema': processor.NanoAODSchema,
+                                                      'config': None,
+                                                  },
+                                                  chunksize=run_options['chunk'], maxchunks=run_options.get('max', None)
+                                                  )
+                print(f"Saving output to {outfile.format('all')}")
+                save(output, outfile.format("all"))
+            else:
+                # Running separately on each dataset
+                for sample, files in config.filesets.items():
+                    logging.info(f"Working on sample: {sample}")
+                    fileset = {sample:files}
+                    output = processor.run_uproot_job(fileset,
+                                                      treename='Events',
+                                                      processor_instance=config.processor_instance,
+                                                      executor=processor.parsl_executor,
+                                                      executor_args={
+                                                          'skipbadfiles': run_options.get('skipbadfiles', False),
+                                                          'schema': processor.NanoAODSchema,
+                                                          'config': None,
+                                                      },
+                                                      chunksize=run_options['chunk'], maxchunks=run_options.get('max', None)
+                                                      )
+                    print(f"Saving output to {outfile.format(sample)}")
+                    save(output, outfile.format(sample))
 
     # DASK runners
     elif 'dask' in run_options['executor']:
@@ -356,7 +379,7 @@ if __name__ == '__main__':
                     "error": f"{args.outputdir}/{log_folder}/dask_job_output.err",
                     "should_transfer_files": "Yes",
                     "when_to_transfer_output": "ON_EXIT",
-                    "+JobFlavour": f'"{run_options["queue"]}"'
+                   "+JobFlavour": f'"{run_options["queue"]}"'
                 },
                 env_extra=env_extra,
             )

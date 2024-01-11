@@ -66,8 +66,8 @@ def get_xrootd_sites_map():
         json.dump(sites_xrootd_access, open(".sites_map.json", "w"))
 
     else:
-        print("Your .sites_map.json cond already exists! Will use that filr for sites configuration, will not overwrite it.")
-        print("\t If you need it to be updated remove the .sites_map.json and rerun this script.")
+        print("Your .sites_map.json file already exists! Will use that file for sites configuration, not overwriting it.")
+        print("\t If you need it to be updated remove the .sites_map.json and rerun this script again.")
 
     return json.load(open(".sites_map.json"))
 
