@@ -1,4 +1,3 @@
-from pocket_coffea.parameters.cuts.preselection_cuts import *
 from pocket_coffea.workflows.tthbb_base_processor import ttHbbBaseProcessor
 from pocket_coffea.lib.cut_functions import get_nObj_min, get_nObj_eq, get_nBtagEq, get_HLTsel
 from pocket_coffea.parameters.histograms import *
@@ -54,7 +53,7 @@ cfg =  {
         "1b" : [ get_nBtagEq(1, coll="BJetGood")],
         "2b" : [ get_nBtagEq(2, coll="BJetGood")],
         "3b" : [ get_nBtagEq(3, coll="BJetGood")],
-        "4b" : [ get_nBtagEq(4, coll="BJetGood")]
+         "4b" : [ get_nBtagEq(4, coll="BJetGood")]
     },
 
     
