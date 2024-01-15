@@ -12,7 +12,8 @@ from pocket_coffea.parameters import defaults
 parser = argparse.ArgumentParser(description='Plot histograms from coffea file')
 parser.add_argument('input_dir', help='Directory with cofea files and parameters', type=str)
 parser.add_argument('--cfg', help='YAML file with all the analysis parameters', required=False)
-parser.add_argument('-op', '--overwrite_parameters', type=str, nargs="+", default=None, help='YAML file with plotting parameters to overwrite default parameters', required=False)
+parser.add_argument('-op', '--overwrite_parameters', type=str, nargs="+", default=None,
+                    help='YAML file with plotting parameters to overwrite default parameters', required=False)
 parser.add_argument("-o", "--outputdir", required=False, type=str, help="Output folder")
 parser.add_argument("-i", "--inputfile", required=False, type=str, help="Input file")
 parser.add_argument('-j', '--workers', type=int, default=8, help='Number of parallel workers to use for plotting', required=False)
@@ -29,7 +30,7 @@ parser.add_argument('-v', '--verbose', type=int, default=1, help='Verbose level 
 args = parser.parse_args()
 
 
-# Using the input_dir obtain the config files and coffea file (if not set with argparse):
+# Using the input_dir to obtain the config files and coffea file (if they are not set with arguments):
 if args.cfg==None:
     args.cfg = args.input_dir+"/parameters_dump.yaml"
 if args.inputfile==None:

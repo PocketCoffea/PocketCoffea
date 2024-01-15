@@ -118,8 +118,12 @@ class Sample:
             )
             filesjson = r.json()
             for fj in filesjson:
-                if fj["is_file_valid"] == 0:
-                    print(f"ERROR: File not valid on DAS: {f['name']}")
+                if 'is_file_valid' not in fj.keys():
+                    # print("fj=", fj)
+                    raise Exception(f"(probably) an Invalid dataset name provided for entry: {self}!")
+                elif  fj["is_file_valid"] == 0:
+                    print(f"ERROR: File not valid on DAS: {fj['name']}")
+                    raise Exception(f"Invalid files in sample {self}!")
                 else:
                     self.fileslist_redirector.append(fj['logical_file_name'])
                     self.metadata["nevents"] += fj['event_count']

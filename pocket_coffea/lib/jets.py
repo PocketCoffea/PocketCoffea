@@ -234,6 +234,8 @@ def btagging(Jet, btag):
     return Jet[Jet[btag["btagging_algorithm"]] > btag["btagging_WP"]]
 
 
+def CvsLsorted(jets, ctag):
+    return jets[ak.argsort(jets[ctag["tagger"]], axis=1, ascending=False)]
 
 
 def get_dijet(jets):
