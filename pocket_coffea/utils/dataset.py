@@ -121,10 +121,14 @@ class Sample:
                 if 'is_file_valid' not in fj.keys():
                     # print("fj=", fj)
                     raise Exception(f"(probably) an Invalid dataset name provided for entry: {self}!")
-                elif  fj["is_file_valid"] == 0:
-                    print(f"ERROR: File not valid on DAS: {fj['name']}")
-                    raise Exception(f"Invalid files in sample {self}!")
                 else:
+                    if fj["is_file_valid"] == 0:
+                        #print(fj)
+                        print(f"\t WARNING: A file not valid on DAS: {fj['logical_file_name']}")
+                        print("\t We are skipping it")
+                        #raise Exception(f"Invalid files in sample {self}!")
+                        continue
+                    
                     self.fileslist_redirector.append(fj['logical_file_name'])
                     self.metadata["nevents"] += fj['event_count']
                     self.metadata["size"] += fj['file_size']
