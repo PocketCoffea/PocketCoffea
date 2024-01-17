@@ -73,4 +73,4 @@ plotting_style:
 ```
 
 User can define custom labels for the MC samples and a custom coloring scheme. Additionally, the Data and MC samples can be merged between each other by specifying a dictionary of samples in the `samples_groups` key. In the example above, a single sample `ttbar` will be plotted by merging the samples `TTTo2L2Nu` and `TTToSemiLeptonic`. Certain samples can be excluded from plotting with `exclude_samples` key.
-One could also rescale certain samples, using the `rescale_samples` keys.
+One could also rescale certain samples by a multiplicative factor, using the `rescale_samples` keys.

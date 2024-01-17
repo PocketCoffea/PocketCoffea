@@ -20,7 +20,7 @@ parser.add_argument('-j', '--workers', type=int, default=8, help='Number of para
 parser.add_argument('-oc', '--only_cat', type=str, nargs="+", help='Filter categories with string', required=False)
 parser.add_argument('-os', '--only_syst', type=str, nargs="+", help='Filter systematics with a list of strings', required=False)
 parser.add_argument('-e', '--exclude_hist', type=str, nargs="+", default=None, help='Exclude histograms with a list of regular expression strings', required=False)
-parser.add_argument('-oh', '--only_hist', type=str, nargs="+", default=None, help='Plot only histograms with a list of regular expression strings', required=False)
+parser.add_argument('-oh', '--only_hist', type=str, nargs="+", default=None, help='Filter histograms with a list of regular expression strings', required=False)
 parser.add_argument('--split_systematics', action='store_true', help='Split systematic uncertainties in the ratio plot', required=False)
 parser.add_argument('--partial_unc_band', action='store_true', help='Plot only the partial uncertainty band corresponding to the systematics specified as the argument `only_syst`', required=False)
 parser.add_argument('--overwrite', '--over', action='store_true', help='Overwrite plots in output folder', required=False)
