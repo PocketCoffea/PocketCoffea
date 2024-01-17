@@ -117,15 +117,15 @@ class DaskExecutorFactory(BaseExecutorFactory):
         setup_dask(dask.config)
 
         # Slurm cluster
-        log_folder = "slurm_log"
         self.dask_cluster = SLURMCluster(
-                queue=run_options['queue'],
-                cores=run_options['cores-per-worker'],
-                processes=run_options['cores-per-worker'],
-                memory=run_options['mem-per-worker'],
-                walltime=run_options["walltime"],
-                env_extra=self.get_worker_env(),
-                local_directory=os.path.join(self.outputdir, log_folder),
+                queue=self.run_options['queue'],
+                cores=self.run_options['cores-per-worker'],
+                processes=self.run_options['cores-per-worker'],
+                memory=self.run_options['mem-per-worker'],
+                walltime=self.run_options["walltime"],
+                job_script_prologue=self.get_worker_env(),
+                local_directory=os.path.join(self.outputdir, "slurm_localdir"),
+                log_directory=os.path.join(self.outputdir, "slurm_log"),
             )
 
         #Cluster adaptive number of jobs only if requested
