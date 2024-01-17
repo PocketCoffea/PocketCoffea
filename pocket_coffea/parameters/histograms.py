@@ -150,6 +150,22 @@ default_axis_settings = {
         "lim": (0, 1),
         'label': "AK4 DeepJet b-tag score",
     },
+    'jet_btagDeepFlavCvL': {
+        "field": "btagDeepFlavCvL",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 DeepJet CvsL score",
+    },
+    'jet_btagDeepFlavCvB': {
+        "field": "btagDeepFlavCvB",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 DeepJet CvsB score",
+    },
     'fatjet_pt': {
         "field": "pt",
         "bins": 100,
@@ -417,7 +433,7 @@ default_axis_settings = {
 }
 
 collection_fields = {
-    'jet': ["eta", "pt", "phi", "btagDeepFlavB"],
+    'jet': ["eta", "pt", "phi", "btagDeepFlavB", "btagDeepFlavCvL", "btagDeepFlavCvB"],
     'fatjet': [
         "eta",
         "pt",
@@ -475,7 +491,8 @@ def _get_default_hist(name, type, coll, pos=None, fields=None, axis_settings=Non
                 setting["pos"] = pos
                 # Avoid 0-indexing for the name of the histogram
                 hist_name += f"_{pos+1}"
-
+                setting["label"] = setting["label"] + " for Obj. #%i"%(pos+1)
+                
             out[hist_name] = HistConf(
                 axes=[
                     Axis(**setting),
