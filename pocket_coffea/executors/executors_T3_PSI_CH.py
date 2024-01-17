@@ -117,6 +117,7 @@ class DaskExecutorFactory(BaseExecutorFactory):
         setup_dask(dask.config)
 
         # Slurm cluster
+        print(">>> Creating a SLURM cluster")
         self.dask_cluster = SLURMCluster(
                 queue=self.run_options['queue'],
                 cores=self.run_options['cores-per-worker'],

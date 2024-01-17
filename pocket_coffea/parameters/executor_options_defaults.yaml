@@ -1,8 +1,8 @@
 general: 
   scalout: 1
   chunksize: 100000
-  limit-files: 1
-  limit-chunks: 1
+  limit-files: null
+  limit-chunks: null
   retries: 20
   tree-reduction: 20
   skip-bad-files: false

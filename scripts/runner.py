@@ -57,6 +57,8 @@ if __name__ == '__main__':
     parser.add_argument("-s","--scaleout", type=int, help="Overwrite scalout config" )
     parser.add_argument("-ll","--loglevel", type=str, help="Logging level", default="INFO" )
     parser.add_argument("-f","--full", action="store_true", help="Process all datasets at the same time", default=False )
+    parser.add_argument("--executor-custom-setup", type=str, help="Python module to be loaded as custom executor setup")
+
     args = parser.parse_args()
 
 
@@ -131,7 +133,15 @@ if __name__ == '__main__':
    
 
     # if site is known we can load the corresponding module
-    if site == "lxplus":
+    if args.executor_custom_setup:
+        # The user is providing a custom python module that acts as an executor factory.
+        executors_lib =  utils.path_import(args.executor_custom_setup)
+        if "get_executor_factory" not in executors_lib.__dict__.keys():
+            print(f"The user defined executor setup module {args.executor_custom_setup}"
+                  "does not define a `get_executor_factory` function!")
+            exit(1)
+        
+    elif site == "lxplus":
         from pocket_coffea.executors import executors_lxplus as executors_lib
     elif site == "T3_PSI_CH":
         from pocket_coffea.executors import executors_T3_PSI_CH as executors_lib
