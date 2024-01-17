@@ -206,10 +206,10 @@ class HistManager:
             # Check if the histogram is active for the current sample
             # We only check for the parent sample, not for subsamples
             if hcfg.only_samples != None:
-                if self.sample not in cfg.only_samples:
+                if sample not in cfg.only_samples:
                     continue
             elif hcfg.exclude_samples != None:
-                if self.sample in hcfg.exclude_samples:
+                if sample in hcfg.exclude_samples:
                     continue
             # Now we handle the selection of the categories
             cats = []
