@@ -9,6 +9,7 @@ general:
   voms-proxy: null
 
 dask@lxplus:
+  scaleout: 10
   cores-per-worker: 1
   mem-per-worker: "2GB"
   disk-per-worker: "2GB"
@@ -19,6 +20,12 @@ dask@lxplus:
   performance-report: true
   
 
-
-T3_PSI_CH:
-  
+dask@T3_PSI_CH:
+  scaleout: 10
+  cores-per-worker: 1
+  mem-per-worker: "4GB"
+  disk-per-worker: "2GB"
+  queue: "standard"
+  walltime: "6:00:00"
+  adaptive: false
+  performance-report: false

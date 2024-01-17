@@ -133,6 +133,8 @@ if __name__ == '__main__':
     # if site is known we can load the corresponding module
     if site == "lxplus":
         from pocket_coffea.executors import executors_lxplus as executors_lib
+    elif site == "T3_PSI_CH":
+        from pocket_coffea.executors import executors_T3_PSI_CH as executors_lib
     else:
         from pocket_coffea.executors import executors_base as executors_lib
 

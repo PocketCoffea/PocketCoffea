@@ -74,6 +74,9 @@ class FuturesExecutorFactory(BaseExecutorFactory):
     
 
 class DaskExecutorFactory(BaseExecutorFactory):
+    '''
+    At T3_PSI_CH the dask executor is based on slurm
+    '''
 
     def __init__(self, run_options, outputdir, **kwargs):
         self.outputdir = outputdir
@@ -110,40 +113,19 @@ class DaskExecutorFactory(BaseExecutorFactory):
         # Setup dask general options from parameters/dask_env.py
         import dask.config
         from distributed import Client
+        from dask_jobqueue import SLURMCluster
         setup_dask(dask.config)
 
-        # Spin up a HTCondor cluster for dask using dask_lxplus
-        from dask_lxplus import CernCluster
-        if "lxplus" not in socket.gethostname():
-                raise Exception("Trying to run with dask/lxplus not at CERN! Please try different runner options")
-
-        print(">> Creating dask-lxplus cluster")
-        n_port = 8786  #hardcoded by dask-cluster
-        if not check_port(8786):
-            raise RuntimeError(
-                "Port '8786' is already occupied on this node. Try another machine."
-            )
-        # Creating a CERN Cluster, special configuration for dask-on-lxplus
-        log_folder = "condor_log"
-        self.dask_cluster = CernCluster(
-                cores=self.run_options['cores-per-worker'],
-                memory=self.run_options['mem-per-worker'],
-                disk=self.run_options['disk-per-worker'],
-                image_type="singularity",
-                worker_image=self.run_options["worker-image"],
-                death_timeout=self.run_options["death-timeout"],
-                scheduler_options={"port": n_port, "host": socket.gethostname()},
-                log_directory = f"{self.outputdir}/{log_folder}",
-                # shared_temp_directory="/tmp"
-                job_extra={
-                    "log": f"{self.outputdir}/{log_folder}/dask_job_output.log",
-                    "output": f"{self.outputdir}/{log_folder}/dask_job_output.out",
-                    "error": f"{self.outputdir}/{log_folder}/dask_job_output.err",
-                    "should_transfer_files": "Yes", #
-                    "when_to_transfer_output": "ON_EXIT",
-                    "+JobFlavour": f'"{self.run_options["queue"]}"'
-                },
+        # Slurm cluster
+        log_folder = "slurm_log"
+        self.dask_cluster = SLURMCluster(
+                queue=run_options['queue'],
+                cores=run_options['cores-per-worker'],
+                processes=run_options['cores-per-worker'],
+                memory=run_options['mem-per-worker'],
+                walltime=run_options["walltime"],
                 env_extra=self.get_worker_env(),
+                local_directory=os.path.join(self.outputdir, log_folder),
             )
 
         #Cluster adaptive number of jobs only if requested
