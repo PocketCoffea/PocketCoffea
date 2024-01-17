@@ -91,17 +91,17 @@ class DaskExecutorFactory(BaseExecutorFactory):
             ]
         
         # Adding list of custom setup commands from user defined run options
-        if "custom-setup-commands" in self.run_options:
+        if self.run_options.get("custom-setup-commands", None):
             env_worker += self.run_options["custom-setup-commands"]
 
         # Now checking for conda environment  conda-env:true
-        if "conda-env" in self.run_options:
+        if self.run_options.get("conda-end", False):
             env_worker += [f'export PATH={os.environ["CONDA_PREFIX"]}/bin:$PATH',
                            f'conda activate {os.environ["CONDA_DEFAULT_ENV"]}']
 
         # if local-virtual-env: true the dask job is configured to pickup
         # the local virtual environment. 
-        if "local-virtualenv" in self.run_options:
+        if self.run_options.get("local-virtualenv", False)
             env_worker.append(f"source {sys.prefix}/bin/activate")
 
         return env_worker

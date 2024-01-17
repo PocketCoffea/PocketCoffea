@@ -18,7 +18,9 @@ dask@lxplus:
   queue: "microcentury"
   adaptive: false
   performance-report: true
-  
+  custom-setup-commands: null
+  conda-env: false
+  local-virtualenv: false
 
 dask@T3_PSI_CH:
   scaleout: 10
@@ -29,3 +31,6 @@ dask@T3_PSI_CH:
   walltime: "6:00:00"
   adaptive: false
   performance-report: false
+  custom-setup-commands: null
+  conda-env: false
+  local-virtualenv: false
