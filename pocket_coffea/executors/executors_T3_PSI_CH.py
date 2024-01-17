@@ -95,13 +95,19 @@ class DaskExecutorFactory(BaseExecutorFactory):
             env_worker += self.run_options["custom-setup-commands"]
 
         # Now checking for conda environment  conda-env:true
-        if self.run_options.get("conda-end", False):
-            env_worker += [f'export PATH={os.environ["CONDA_PREFIX"]}/bin:$PATH',
-                           f'conda activate {os.environ["CONDA_DEFAULT_ENV"]}']
+        if self.run_options.get("conda-env", False):
+            env_worker.append(f'export PATH={os.environ["CONDA_PREFIX"]}/bin:$PATH')
+            if "CONDA_ROOT_PREFIX" in os.environ:
+                env_worker.append(f"{os.environ['CONDA_ROOT_PREFIX']} activate {os.environ['CONDA_DEFAULT_ENV']}")
+            elif "MAMBA_ROOT_PREFIX" in os.environ:
+                env_worker.append(f"{os.environ['MAMBA_ROOT_PREFIX']} activate {os.environ['CONDA_DEFAULT_ENV']}")
+            else:
+                print("CONDA prefix not found in env! Something is wrong with your conda installation if you want to use conda in the dask cluster.")
+                exit(1)
 
         # if local-virtual-env: true the dask job is configured to pickup
         # the local virtual environment. 
-        if self.run_options.get("local-virtualenv", False)
+        if self.run_options.get("local-virtualenv", False):
             env_worker.append(f"source {sys.prefix}/bin/activate")
 
         return env_worker
@@ -128,6 +134,7 @@ class DaskExecutorFactory(BaseExecutorFactory):
                 local_directory=os.path.join(self.outputdir, "slurm_localdir"),
                 log_directory=os.path.join(self.outputdir, "slurm_log"),
             )
+        print(self.get_worker_env())
 
         #Cluster adaptive number of jobs only if requested
         print(">> Sending out jobs")

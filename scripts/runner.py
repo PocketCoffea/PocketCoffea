@@ -109,7 +109,7 @@ if __name__ == '__main__':
 
     # Now merge on top the user defined run_options
     if args.run_options:
-        parameters_utils.merge_parameters_from_files(run_options, args.run_options)
+        run_options = parameters_utils.merge_parameters_from_files(run_options, args.run_options)
        
     if args.executor !=None:
         run_options["executor"] = args.executor
