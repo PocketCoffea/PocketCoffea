@@ -717,17 +717,17 @@ To produce plots, for each category and variable defined in the configuration a 
 ```bash
 $ make_plots.py --help
 
-usage: make_plots.py [-h] [--input_dir INPUT_DIR] [--cfg CFG] [-op OVERWRITE_PARAMETERS [OVERWRITE_PARAMETERS ...]] [-o OUTPUTDIR] [-i INPUTFILE] [-j WORKERS] [-oc ONLY_CAT [ONLY_CAT ...]] [-os ONLY_SYST [ONLY_SYST ...]] [-e EXCLUDE_HIST [EXCLUDE_HIST ...]]
-                     [-oh ONLY_HIST [ONLY_HIST ...]] [--split_systematics] [--partial_unc_band] [--overwrite] [--log] [--density] [-v VERBOSE]
+usage: make_plots.py [-h] [--input-dir INPUT_DIR] [--cfg CFG] [-op OVERWRITE_PARAMETERS [OVERWRITE_PARAMETERS ...]] [-o OUTPUTDIR] [-i INPUTFILE] [-j WORKERS] [-oc ONLY_CAT [ONLY_CAT ...]] [-os ONLY_SYST [ONLY_SYST ...]] [-e EXCLUDE_HIST [EXCLUDE_HIST ...]] [-oh ONLY_HIST [ONLY_HIST ...]] [--split-systematics] [--partial-unc-band]
+                     [--overwrite] [--log] [--density] [-v VERBOSE]
 
 Plot histograms from coffea file
 
 optional arguments:
   -h, --help            show this help message and exit
-  --input_dir INPUT_DIR
+  --input-dir INPUT_DIR
                         Directory with cofea files and parameters
   --cfg CFG             YAML file with all the analysis parameters
-  -op OVERWRITE_PARAMETERS [OVERWRITE_PARAMETERS ...], --overwrite_parameters OVERWRITE_PARAMETERS [OVERWRITE_PARAMETERS ...]
+  -op OVERWRITE_PARAMETERS [OVERWRITE_PARAMETERS ...], --overwrite-parameters OVERWRITE_PARAMETERS [OVERWRITE_PARAMETERS ...]
                         YAML file with plotting parameters to overwrite default parameters
   -o OUTPUTDIR, --outputdir OUTPUTDIR
                         Output folder
@@ -735,22 +735,21 @@ optional arguments:
                         Input file
   -j WORKERS, --workers WORKERS
                         Number of parallel workers to use for plotting
-  -oc ONLY_CAT [ONLY_CAT ...], --only_cat ONLY_CAT [ONLY_CAT ...]
+  -oc ONLY_CAT [ONLY_CAT ...], --only-cat ONLY_CAT [ONLY_CAT ...]
                         Filter categories with string
-  -os ONLY_SYST [ONLY_SYST ...], --only_syst ONLY_SYST [ONLY_SYST ...]
+  -os ONLY_SYST [ONLY_SYST ...], --only-syst ONLY_SYST [ONLY_SYST ...]
                         Filter systematics with a list of strings
-  -e EXCLUDE_HIST [EXCLUDE_HIST ...], --exclude_hist EXCLUDE_HIST [EXCLUDE_HIST ...]
+  -e EXCLUDE_HIST [EXCLUDE_HIST ...], --exclude-hist EXCLUDE_HIST [EXCLUDE_HIST ...]
                         Exclude histograms with a list of regular expression strings
-  -oh ONLY_HIST [ONLY_HIST ...], --only_hist ONLY_HIST [ONLY_HIST ...]
+  -oh ONLY_HIST [ONLY_HIST ...], --only-hist ONLY_HIST [ONLY_HIST ...]
                         Filter histograms with a list of regular expression strings
-  --split_systematics   Split systematic uncertainties in the ratio plot
-  --partial_unc_band    Plot only the partial uncertainty band corresponding to the systematics specified as the argument `only_syst`
+  --split-systematics   Split systematic uncertainties in the ratio plot
+  --partial-unc-band    Plot only the partial uncertainty band corresponding to the systematics specified as the argument `only_syst`
   --overwrite, --over   Overwrite plots in output folder
   --log                 Set y-axis scale to log
   --density             Set density parameter to have a normalized plot
   -v VERBOSE, --verbose VERBOSE
                         Verbose level for debugging. Higher the number more stuff is printed.
-
 ```
 
 

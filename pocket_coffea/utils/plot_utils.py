@@ -726,6 +726,11 @@ class Shape:
         else:
             if not hasattr(self, "rax"):
                 self.define_figure(ratio=True)
+
+        # Removing nans and inf
+        np.nan_to_num(ratio, copy=False)
+        np.nan_to_num(ratio_unc, copy=False)
+
         self.rax.errorbar(
             self.style.opts_axes["xcenters"], ratio, yerr=ratio_unc, **self.style.opts_data
         )
