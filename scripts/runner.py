@@ -55,9 +55,6 @@ if __name__ == '__main__':
     parser.add_argument("-e","--executor", type=str,
                         help="Overwrite executor from config (to be used only with the --test options)", required=True, default="iterative")
     parser.add_argument("-s","--scaleout", type=int, help="Overwrite scalout config" )
-    parser.add_argument("-q","--queue", type=str, help="Overwrite queue config" )
-    parser.add_argument("-wt","--walltime", type=str, help="Overwrite walltime config" )
-    parser.add_argument("-ac","--adapt-chunksize", action="store_true", help="Adapt chunksize to the number of available workers" )
     parser.add_argument("-ll","--loglevel", type=str, help="Console logging level", default="INFO" )
     parser.add_argument("-f","--full", action="store_true", help="Process all datasets at the same time", default=False )
     parser.add_argument("--executor-custom-setup", type=str, help="Python module to be loaded as custom executor setup")
@@ -194,13 +191,24 @@ if __name__ == '__main__':
         for sample, files in config.filesets.items():
             logging.info(f"Working on sample: {sample}")
             fileset = {sample:files}
+
+            n_events_tot = int(files["metadata"]["nevents"])
+            n_workers_max = n_events_tot / run_options["chunk"]
+            
+            # If the number of available workers exceeds the maximum number of workers for a given sample,
+            # the chunksize is reduced so that all the workers are used to process the given sample
+            if (run_options["scaleout"] > n_workers_max):
+                adapted_chunksize = int(n_events_tot / run_options["scaleout"])
+                logging.info(f"Reducing chunksize from {run_options['chunk']} to {chunksize} for sample {sample}")
+            else:
+                adapted_chunksize = run_options["chunk"]
             
             output = processor.run_uproot_job(fileset,
                                               treename='Events',
                                               processor_instance=config.processor_instance,
                                               executor=executor_factory.get(),
                                               executor_args=executor_args,
-                                              chunksize=run_options['chunksize'],
+                                              chunksize=adapted_chunksize,
                                               maxchunks=run_options.get('limit-chunks', None)
                                               )
             print(f"Saving output to {outfile.format(sample)}")

@@ -38,6 +38,7 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.napoleon",
     "sphinx_copybutton",
+    "sphinx_markdown_tables",
 ]
 
 myst_enable_extensions = [

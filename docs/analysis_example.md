@@ -618,52 +618,53 @@ to clusters:
   amount of file.
 - ``dask@lxplus`` uses the dask scheduler with lxplus the configuration to send out workers on HTCondor jobs.
 
-The executors are configured in `pocket_coffea/executors` module for a set of preferined grid-sites. Please get in
+The executors are configured in `pocket_coffea/executors` module for a set of predefined grid-sites. Please get in
 contact with the developers and open a PR if you want to include your specific site to the supported list. 
 
-  
-We can now test the setup on ``lxplus` but more sites can also be included later.
+
+:::{tip}
+Have a look at [`Running`](./running.md) for more details about the configuration of the different execturos.
+:::
+
+In this tutorial we **assume the use of lxplus**, but the example should work fine also on other sites with the
+`iterative` or `futures` setup.  The Dask scheduler execution needs to be configured properly to send out jobs in your facility.
+
 
 ```bash
-# read all information from the config file
-runner.py --cfg example_config.py --full  -o output_v1
+## First let's test the running locally with  --test for iterative processor with ``--limit-chunks/-lc``(default:2) and ``--limit-files/-lf``(default:1)
+runner.py --cfg example_config.py --test  -o output_test
+```
 
-# iterative run is also possible
-## run --test for iterative processor with ``--limit-chunks/-lc``(default:2) and ``--limit-files/-lf``(default:1)
-runner.py --cfg example_config.py  --full --test -lf 1 -lc  2 -o output_v1
+We can now submit the full processing on the HTcondor cluster with dask:
 
 ## change the --executor and numbers of jobs with -s/--scaleout
-runner.py --cfg example_config.py  --full --executor futures -s 10 -o output_v1
+```bash
+runner.py --cfg example_config.py  --full --executor dask@lxplus  --scaleout 10  -o output_dask
 ```
 
 The scaleout configurations really depends on cluster and schedulers with different sites(lxplus, LPC, naf-desy).
+The default options for the executor `dask@lxplus` are contained [here](https://github.com/PocketCoffea/PocketCoffea/tree/main/pocket_coffea/parameters/executor_options_defaults.yaml). 
+But the user can add more custom run options with a .yaml file: 
 
-```python
+```bash
+$> cat custom_run_options.yaml
 
-## Example for CERN HTCondor submission
-run_options = {
-        "executor"       : "dask/lxplus",
-        "env"            : "singularity",
-        "workers"        : 1,
-        "scaleout"       : 50,
-        "worker_image"   : "/cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-latest",
-        "queue"          : "microcentury",
-        "walltime"       : "00:40:00",
-        "mem_per_worker" : "4GB", # GB
-        "disk_per_worker" : "1GB", # GB
-        "exclusive"      : False,
-        "chunk"          : 400000,
-        "retries"        : 50,
-        "treereduction"  : 20,
-        "adapt"          : False,
-        
-    }
+queue: espresso
+chunksize: 50000
+scaleout: 10
+
 ```
+
+Try now to run with custom options: 
+```bash
+runner.py --cfg example_config.py  --full --executor dask@lxplus --run-options custom_run_options.yaml  -o output_dask
+```
+
 
 The output of the script will be similar to 
 
 ```bash
-$ runner.py --cfg example_config.py -o output_all
+$ runner.py --cfg example_config.py  --executor dask@lxplus --run-options custom_run_options.yaml  -o output_dask
 
     ____             __        __  ______      ________          
    / __ \____  _____/ /_____  / /_/ ____/___  / __/ __/__  ____ _
