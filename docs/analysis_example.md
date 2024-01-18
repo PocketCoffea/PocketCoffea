@@ -1,6 +1,6 @@
 # Full analysis examples
 
-Few analyses example, with increasing level of complexity are documented here and on the configuration repository: https://github.com/PocketCoffea/AnalysisConfigs/
+Few analyses example, with increasing level of complexity are documented here and on the configuration repository: [AnalysisConfigs](https://github.com/PocketCoffea/AnalysisConfigs/)
 
 A full example of all the steps needed to run a full analysis with PocketCoffea is reported, starting from the creation of the datasets list, the customization of parameters and the production of the final shapes and plots.
 As an example, a toy example version of the Drell-Yan analysis targeting the $Z\rightarrow \mu\mu$ channel is implemented.
@@ -717,13 +717,18 @@ To produce plots, for each category and variable defined in the configuration a 
 ```bash
 $ make_plots.py --help
 
-usage: make_plots.py [-h] --cfg CFG -o OUTPUTDIR -i INPUTFILE [-v VERSION] [-j WORKERS] [-oc ONLY_CAT [ONLY_CAT ...]] [-os ONLY_SYST [ONLY_SYST ...]] [-e EXCLUDE] [--split_systematics] [--partial_unc_band] [--overwrite] [--log] [--density] [-d DATA_KEY]
+usage: make_plots.py [-h] [--input_dir INPUT_DIR] [--cfg CFG] [-op OVERWRITE_PARAMETERS [OVERWRITE_PARAMETERS ...]] [-o OUTPUTDIR] [-i INPUTFILE] [-j WORKERS] [-oc ONLY_CAT [ONLY_CAT ...]] [-os ONLY_SYST [ONLY_SYST ...]] [-e EXCLUDE_HIST [EXCLUDE_HIST ...]]
+                     [-oh ONLY_HIST [ONLY_HIST ...]] [--split_systematics] [--partial_unc_band] [--overwrite] [--log] [--density] [-v VERBOSE]
 
 Plot histograms from coffea file
 
 optional arguments:
   -h, --help            show this help message and exit
-  --cfg CFG             Config file with parameters specific to the current run
+  --input_dir INPUT_DIR
+                        Directory with cofea files and parameters
+  --cfg CFG             YAML file with all the analysis parameters
+  -op OVERWRITE_PARAMETERS [OVERWRITE_PARAMETERS ...], --overwrite_parameters OVERWRITE_PARAMETERS [OVERWRITE_PARAMETERS ...]
+                        YAML file with plotting parameters to overwrite default parameters
   -o OUTPUTDIR, --outputdir OUTPUTDIR
                         Output folder
   -i INPUTFILE, --inputfile INPUTFILE
@@ -734,13 +739,17 @@ optional arguments:
                         Filter categories with string
   -os ONLY_SYST [ONLY_SYST ...], --only_syst ONLY_SYST [ONLY_SYST ...]
                         Filter systematics with a list of strings
-  -e EXCLUDE, --exclude EXCLUDE
-                        Exclude categories with string
+  -e EXCLUDE_HIST [EXCLUDE_HIST ...], --exclude_hist EXCLUDE_HIST [EXCLUDE_HIST ...]
+                        Exclude histograms with a list of regular expression strings
+  -oh ONLY_HIST [ONLY_HIST ...], --only_hist ONLY_HIST [ONLY_HIST ...]
+                        Filter histograms with a list of regular expression strings
   --split_systematics   Split systematic uncertainties in the ratio plot
   --partial_unc_band    Plot only the partial uncertainty band corresponding to the systematics specified as the argument `only_syst`
-  --overwrite           Overwrite plots in output folder
+  --overwrite, --over   Overwrite plots in output folder
   --log                 Set y-axis scale to log
   --density             Set density parameter to have a normalized plot
+  -v VERBOSE, --verbose VERBOSE
+                        Verbose level for debugging. Higher the number more stuff is printed.
 
 ```
 
@@ -749,10 +758,18 @@ By running:
 
 ```bash
 $ cd output
-$ make_plots.py --cfg configurator.pkl -o plots -i output_all.coffea -j 6 --log
+$ make_plots.py -i output_all.coffea --cfg parameters_dump.yaml -o plots
 ```
 
 all the plots are created in the `plots` folder.  The structure of the output and the dataset metadata dictionary
 contained in the output file are used to compose the samples list forming the stack of histograms. 
+
+Additionally, one can customize the plotting style by passing a custom yaml file with the desired plotting options an additional argument:
+
+```bash
+$ make_plots.py -i output_all.coffea --cfg parameters_dump.yaml -o plots -op plotting_style.yaml
+```
+
+More instructions on how to customize the plotting parameters in `plotting_style.yaml` can be found in the [Plotting](https://pocketcoffea.readthedocs.io/en/latest/plots.html) section.
 
 ![](./images/mll_2018_baseline.png)

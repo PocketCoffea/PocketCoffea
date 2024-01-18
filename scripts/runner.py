@@ -55,7 +55,10 @@ if __name__ == '__main__':
     parser.add_argument("-e","--executor", type=str,
                         help="Overwrite executor from config (to be used only with the --test options)", required=True, default="iterative")
     parser.add_argument("-s","--scaleout", type=int, help="Overwrite scalout config" )
-    parser.add_argument("-ll","--loglevel", type=str, help="Logging level", default="INFO" )
+    parser.add_argument("-q","--queue", type=str, help="Overwrite queue config" )
+    parser.add_argument("-wt","--walltime", type=str, help="Overwrite walltime config" )
+    parser.add_argument("-ac","--adapt-chunksize", action="store_true", help="Adapt chunksize to the number of available workers" )
+    parser.add_argument("-ll","--loglevel", type=str, help="Console logging level", default="INFO" )
     parser.add_argument("-f","--full", action="store_true", help="Process all datasets at the same time", default=False )
     parser.add_argument("--executor-custom-setup", type=str, help="Python module to be loaded as custom executor setup")
 
@@ -67,10 +70,10 @@ if __name__ == '__main__':
     outfile = os.path.join(
         args.outputdir, "output_{}.coffea"
     )
-
+    logfile = os.path.join(args.outputdir, "logfile.log")
     # Prepare logging
     if (not setup_logging(console_log_output="stdout", console_log_level=args.loglevel, console_log_color=True,
-                        logfile_file="last_run.log", logfile_log_level="info", logfile_log_color=False,
+                        logfile_file=logfile, logfile_log_level="info", logfile_log_color=False,
                         log_line_template="%(color_on)s[%(levelname)-8s] %(message)s%(color_off)s")):
         print("Failed to setup logging, aborting.")
         exit(1)

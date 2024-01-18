@@ -150,6 +150,22 @@ default_axis_settings = {
         "lim": (0, 1),
         'label': "AK4 DeepJet b-tag score",
     },
+    'jet_btagDeepFlavCvL': {
+        "field": "btagDeepFlavCvL",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 DeepJet CvsL score",
+    },
+    'jet_btagDeepFlavCvB': {
+        "field": "btagDeepFlavCvB",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 DeepJet CvsB score",
+    },
     'fatjet_pt': {
         "field": "pt",
         "bins": 100,
@@ -417,7 +433,7 @@ default_axis_settings = {
 }
 
 collection_fields = {
-    'jet': ["eta", "pt", "phi", "btagDeepFlavB"],
+    'jet': ["eta", "pt", "phi", "btagDeepFlavB", "btagDeepFlavCvL", "btagDeepFlavCvB"],
     'fatjet': [
         "eta",
         "pt",
@@ -452,12 +468,22 @@ collection_fields = {
 }
 
 
-def _get_default_hist(name, type, coll, pos=None, fields=None, **kwargs):
+def _get_default_hist(name, type, coll, pos=None, fields=None, axis_settings=None, **kwargs):
+    '''Factory function to create a dictionary of HistConf objects for a given collection.
+    name: name of the histogram
+    type: type of the collection (e.g. jet, fatjet, parton, electron, muon, lepton, met, sv)
+    coll: name of the collection in the coffea processor (e.g. JetGood, ElectronGood, MuonGood, MET))
+    pos: position of the object in the collection (e.g. 0, 1, 2, 3, ...)
+    fields: list of fields to plot (e.g. eta, pt, phi, ...)
+    axis_settings: dictionary of settings for the axis of the histogram, to be used to overwrite the default axis settings
+    kwargs: additional arguments to be passed to the HistConf object (e.g. `only_variations`, `exclude_samples`, `only_samples`, `exclude_categories`, `only_categories`)'''
     out = {}
     for field in collection_fields[type]:
         if fields == None or field in fields:
             hist_name = f"{name}_{field}"
             setting = deepcopy(default_axis_settings[f"{type}_{field}"])
+            if axis_settings != None and f"{type}_{field}" in axis_settings:
+                setting.update(axis_settings[f"{type}_{field}"])
             setting["coll"] = coll
             # If the position argument is given the histogram is
             # created for the specific position
@@ -465,65 +491,66 @@ def _get_default_hist(name, type, coll, pos=None, fields=None, **kwargs):
                 setting["pos"] = pos
                 # Avoid 0-indexing for the name of the histogram
                 hist_name += f"_{pos+1}"
-
+                setting["label"] = setting["label"] + " for Obj. #%i"%(pos+1)
+                
             out[hist_name] = HistConf(
                 axes=[
                     Axis(**setting),
                 ],
-                **kwargs,
+                **kwargs
             )
     return out
 
 
-def jet_hists(coll="JetGood", pos=None, fields=None, name=None):
+def jet_hists(coll="JetGood", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
     if name == None:
         name = coll
-    return _get_default_hist(name, "jet", coll, pos, fields)
+    return _get_default_hist(name, "jet", coll, pos, fields, axis_settings, **kwargs)
 
 
-def fatjet_hists(coll="FatJetGood", pos=None, fields=None, name=None):
+def fatjet_hists(coll="FatJetGood", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
     if name == None:
         name = coll
-    return _get_default_hist(name, "fatjet", coll, pos, fields)
+    return _get_default_hist(name, "fatjet", coll, pos, fields, axis_settings, **kwargs)
 
 
-def parton_hists(coll="PartonMatched", pos=None, fields=None, name=None):
+def parton_hists(coll="PartonMatched", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
     if name == None:
         name = coll
-    return _get_default_hist(name, "parton", coll, pos, fields)
+    return _get_default_hist(name, "parton", coll, pos, fields, axis_settings, **kwargs)
 
 
-def ele_hists(coll="ElectronGood", pos=None, fields=None, name=None, **kwargs):
+def ele_hists(coll="ElectronGood", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
     if name == None:
         name = coll
-    return _get_default_hist(name, "electron", coll, pos, fields, **kwargs)
+    return _get_default_hist(name, "electron", coll, pos, fields, axis_settings, **kwargs)
 
 
-def muon_hists(coll="MuonGood", pos=None, fields=None, name=None, **kwargs):
+def muon_hists(coll="MuonGood", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
     if name == None:
         name = coll
-    return _get_default_hist(name, "muon", coll, pos, fields, **kwargs)
+    return _get_default_hist(name, "muon", coll, pos, fields, axis_settings, **kwargs)
 
 
-def lepton_hists(coll="LeptonGood", pos=None, fields=None, name=None):
+def lepton_hists(coll="LeptonGood", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
     if name == None:
         name = coll
-    return _get_default_hist(name, "lepton", coll, pos, fields)
+    return _get_default_hist(name, "lepton", coll, pos, fields, axis_settings, **kwargs)
 
 
-def met_hists(coll="MET", pos=None, fields=None, name=None):
+def met_hists(coll="MET", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
     if name == None:
         name = coll
-    return _get_default_hist(name, "met", coll, pos, fields)
+    return _get_default_hist(name, "met", coll, pos, fields, axis_settings, **kwargs)
 
 
-def sv_hists(coll="SV", pos=None, fields=None, name=None):
+def sv_hists(coll="SV", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
     if name == None:
         name = coll
-    return _get_default_hist(name, "sv", coll, pos, fields)
+    return _get_default_hist(name, "sv", coll, pos, fields, axis_settings, **kwargs)
 
 
-def count_hist(coll, bins=10, start=0, stop=9, label=None, name=None):
+def count_hist(coll, bins=10, start=0, stop=9, label=None, name=None, **kwargs):
     if name == None:
         name = f"n{coll}"
     return {
@@ -538,6 +565,7 @@ def count_hist(coll, bins=10, start=0, stop=9, label=None, name=None):
                     stop=stop,
                     lim=(start, stop),
                 )
-            ]
+            ],
+            **kwargs
         )
     }
