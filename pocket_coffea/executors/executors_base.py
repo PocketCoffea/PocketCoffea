@@ -45,21 +45,27 @@ class ExecutorFactoryABC(ABC):
     
 class IterativeExecutorFactory(ExecutorFactoryABC):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, run_options,  **kwargs):
+        super().__init__(run_options, **kwargs)
 
     def get(self):
         return coffea_processor.iterative_executor
 
 
 class FuturesExecutorFactory(ExecutorFactoryABC):
-    def __init__(self):
-        super().__init__()
+
+    def __init__(self, run_options, **kwargs):
+        super().__init__(run_options, **kwargs)
 
     def get(self):
         return coffea_processor.futures_executor
 
-    
+    def customize_args(self, args):
+        args = super().customize_args(args)
+        # in the futures executor Nworkers == N scalout
+        args["workers"] = self.run_options["scaleout"]
+        return args
+
         
 
 def get_executor_factory(executor_name, **kwargs):

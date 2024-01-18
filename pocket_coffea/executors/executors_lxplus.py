@@ -3,41 +3,16 @@ import sys
 import socket
 from coffea import processor as coffea_processor
 from .executors_base import ExecutorFactoryABC
-from pocket_coffea.utils.network import get_proxy_path
+from .executors_base import IterativeExecutorFactory, FuturesExecutorFactory
 from pocket_coffea.utils.network import check_port
 from pocket_coffea.parameters.dask_env import setup_dask
-
-    
-class IterativeExecutorFactory(ExecutorFactoryABC):
-
-    def __init__(self, run_options, **kwargs):
-        super().__init__(run_options) 
-
-    def get(self):
-        return coffea_processor.iterative_executor
-
-
-class FuturesExecutorFactory(ExecutorFactoryABC):
-
-    def __init__(self, run_options, **kwargs):
-        super().__init__(run_options)
-
-    def get(self):
-        return coffea_processor.futures_executor
-
-    def customize_args(self, args):
-        args = super().customize_args(args)
-        # in the futures executor Nworkers == N scalout
-        args["workers"] = self.run_options["scaleout"]
-        return args
-
     
 
 class DaskExecutorFactory(ExecutorFactoryABC):
 
     def __init__(self, run_options, outputdir, **kwargs):
         self.outputdir = outputdir
-        super().__init__(run_options)
+        super().__init__(run_options, **kwargs)
 
     def get_worker_env(self):
         env_worker = [
