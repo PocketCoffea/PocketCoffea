@@ -55,6 +55,8 @@ if __name__ == '__main__':
     parser.add_argument("-e","--executor", type=str,
                         help="Overwrite executor from config (to be used only with the --test options)", required=True, default="iterative")
     parser.add_argument("-s","--scaleout", type=int, help="Overwrite scalout config" )
+    parser.add_argument("-c","--chunksize", type=int, help="Overwrite chunksize config" )
+    parser.add_argument("-q","--queue", type=str, help="Overwrite queue config" )
     parser.add_argument("-ll","--loglevel", type=str, help="Console logging level", default="INFO" )
     parser.add_argument("-f","--full", action="store_true", help="Process all datasets at the same time", default=False )
     parser.add_argument("--executor-custom-setup", type=str, help="Python module to be loaded as custom executor setup")
@@ -124,6 +126,13 @@ if __name__ == '__main__':
     if args.scaleout!=None:
         run_options["scaleout"] = args.scaleout
 
+    if args.chunksize!=None:
+        run_options["chunksize"] = args.chunksize
+
+    if args.queue!=None:
+        run_options["queue"] = args.queue
+
+        
     ## Default config for testing: iterative executor, with 2 file and 2 chunks
     if args.test:
         run_options["executor"] = args.executor if args.executor else "iterative"

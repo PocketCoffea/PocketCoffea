@@ -1,5 +1,5 @@
 general: 
-  scalout: 1
+  scaleout: 1
   chunksize: 100000
   limit-files: null
   limit-chunks: null
