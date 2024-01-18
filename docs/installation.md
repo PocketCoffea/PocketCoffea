@@ -28,11 +28,15 @@ The singularity image is **the preferred way to setup** the environment, both fo
 The singularity environment is activated on **lxplus** with the following command:
 
 ```bash
-apptainer shell --bind /afs -B /cvmfs/cms.cern.ch \
-                --bind /tmp  --bind /eos/cms/ \
-    --env KRB5CCNAME=$KRB5CCNAME --bind /etc/sysconfig/ngbauth-submit  \
-    /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-latest 
+apptainer shell  -B /afs -B /cvmfs/cms.cern.ch -B /tmp  -B /eos/cms/  \
+                 -B /etc/sysconfig/ngbauth-submit  \
+                 -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME=${XDG_RUNTIME_DIR}/krb5cc 
+                 /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-latest 
 ```
+
+N.B.: The command to start the apptainer image has changed when lxplus moved to the el9 machines by default. The
+difference is about the handling of the kerberos ticket necessary to access to the condor scheduler. The new apptainer
+shell command above setups correctly the environment.
 
 The last part of the command contains the image version on unpacked:
 **cms-analysis/general/pocketcoffea:lxplus-cc7-latest**. 
@@ -45,17 +49,21 @@ built. Please get in touch!
 
 ### Using Singularity for local development
 
-If the user needs to modify locally the central PocketCoffea code, the singularity image can still be used as a baseline
-(for dependencies), but a local
+If the user needs to modify locally the **central PocketCoffea code**, the singularity image can still be used as a
+baseline, in order to avoid reinstalling any dependencies, but a local
 installation of the package is needed. Follow the instructions: 
 
 
 ```bash
 #Enter the image
-apptainer shell --bind /afs -B /cvmfs/cms.cern.ch \
-         --bind /tmp  --bind /eos/cms/ \
-         --env KRB5CCNAME=$KRB5CCNAME --bind /etc/sysconfig/ngbauth-submit  \
-         /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-latest 
+apptainer shell  -B /afs -B /cvmfs/cms.cern.ch -B /tmp  -B /eos/cms/  \
+                 -B /etc/sysconfig/ngbauth-submit  \
+                 -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME=${XDG_RUNTIME_DIR}/krb5cc 
+                 /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-latest
+
+# Clone locally the PocketCoffea repo
+git clone git@github.com:PocketCoffea/PocketCoffea.git
+cd PocketCoffea
 
 # Create a local virtual environment using the packages defined in the singularity image
 python -m venv --system-site-packages myenv
@@ -63,19 +71,29 @@ python -m venv --system-site-packages myenv
 # Activate the environment
 source myenv/bin/activate
 
-# Clone locally the PocketCoffea repo
-git clone git@github.com:PocketCoffea/PocketCoffea.git
-cd PocketCoffea
-
 # Install in EDITABLE mode
 pip install -e .[dev]
 ```
 
 The next time the user enters in the singularity the virtual environment needs to be activated. 
+```bash
+#Enter the image
+apptainer shell  -B /afs -B /cvmfs/cms.cern.ch -B /tmp  -B /eos/cms/  \
+                 -B /etc/sysconfig/ngbauth-submit  \
+                 -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME=${XDG_RUNTIME_DIR}/krb5cc 
+                 /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-latest
 
-:::{admonition} Work in progress
+# Activate the virtual environment
+cd PocketCoffea
+source myenv/bin/activate
+```
+
+
+:::{admonition} Setup the job submission with local core changes
 :class: warning
-**N.B.**: At the moment local changes implemented in this way are not propagated to jobs running on condor through Dask. 
+**N.B.**: In order to properly propagated the local environment and local code changes to jobs running on condor through
+Dask the user needs to setup the executor options properly with the `local-virtualenv: true` options. Checkout the
+running instructions for more details.  
 :::
 
 ## Vanilla python package
