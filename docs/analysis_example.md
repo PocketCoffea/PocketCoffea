@@ -29,23 +29,34 @@ guide [Installation guide](https://pocketcoffea.readthedocs.io/en/latest/install
 If you want to test it on lxplus just use the singularity image: 
 
 ```bash
-apptainer shell --bind /afs -B /cvmfs/cms.cern.ch \
-                --bind /tmp  --bind /eos/cms/ \
-    --env KRB5CCNAME=$KRB5CCNAME --bind /etc/sysconfig/ngbauth-submit  \
-    /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-latest
+apptainer shell  -B /afs -B /cvmfs/cms.cern.ch -B /tmp  -B /eos/cms/  \
+                 -B /etc/sysconfig/ngbauth-submit  \
+                 -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME=${XDG_RUNTIME_DIR}/krb5cc 
+                 /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-latest
+
 ```
 
-If instead you want to install it from source, to contribute to the core framework code:
+If instead you want to install it from source, in order to be able to modify and contribute to the core framework code
+you need to create a virtual environment. The recommended way of doing it is inside the singularity image as described
+in [`Installation`](./installation.md).
 
 ```bash
+git clone https://github.com/PocketCoffea/PocketCoffea.git
+cd PocketCoffea
 python -m venv myenv
 source myenv/bin/activate
 
-git clone https://github.com/PocketCoffea/PocketCoffea.git
-cd PocketCoffea
 pip install -e .  
 #-e installs it in "editable" mode so that the modified files are included dynamically in the package.
 ```
+
+:::{admonition} Setup the job submission with local core changes
+:class: warning
+**N.B.**: In order to properly propagated the local environment and local code changes to jobs running on condor through
+Dask the user needs to setup the executor options properly with the `local-virtualenv: true` options. Checkout the
+running instructions for more details [`Running`](./running.md).
+:::
+
 
 ## Configuration files
 
@@ -57,7 +68,7 @@ Have a look at the [Configuration](./configuration.md) page for more detailed ex
 :::
 
 A dedicated repository  [`AnalysisConfigs`](https://github.com/PocketCoffea/AnalysisConfigs) collects the config files for
-different analysis. Clone the repository:
+different analysis. Some analysis configs have been included in the main PocketCoffea repository for reference. 
 
 ```bash
 # Now downloading the example configuration
@@ -605,7 +616,11 @@ to clusters:
 - ``iterative`` execution runs single thread locally and it useful for debugging
 - ``futures`` execute the processor in multiple threads locally and it can be usefull for fast processing of a small
   amount of file.
-- ``dask/lxplus`` uses the dask scheduler with lxplus the configuration to send out workers on HTCondor jobs.
+- ``dask@lxplus`` uses the dask scheduler with lxplus the configuration to send out workers on HTCondor jobs.
+
+The executors are configured in `pocket_coffea/executors` module for a set of preferined grid-sites. Please get in
+contact with the developers and open a PR if you want to include your specific site to the supported list. 
+
   
 We can now test the setup on ``lxplus` but more sites can also be included later.
 
