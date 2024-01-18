@@ -9,7 +9,7 @@ from pocket_coffea.parameters.dask_env import setup_dask
 
     
 
-class DaskExecutorFactory(BaseExecutorABC):
+class DaskExecutorFactory(ExecutorFactoryABC):
     '''
     At T3_PSI_CH the dask executor is based on slurm
     '''

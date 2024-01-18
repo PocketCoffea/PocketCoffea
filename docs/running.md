@@ -26,7 +26,7 @@ $ runner.py --help
 /_/    \____/\___/_/|_|\___/\__/\____/\____/_/ /_/  \___/\__,_/
 
 
-usage: runner.py [-h] --cfg CFG [-ro RUN_OPTIONS] -o OUTPUTDIR [-t] [-lf LIMIT_FILES] [-lc LIMIT_CHUNKS] -e EXECUTOR [-s SCALEOUT] [-ll LOGLEVEL] [-f] [--executor-custom-setup EXECUTOR_CUSTOM_SETUP]
+usage: runner.py [-h] --cfg CFG [-ro RUN_OPTIONS] -o OUTPUTDIR [-t] [-lf LIMIT_FILES] [-lc LIMIT_CHUNKS] -e EXECUTOR [-s SCALEOUT] [-c CHUNKSIZE] [-q QUEUE] [-ll LOGLEVEL] [-f] [--executor-custom-setup EXECUTOR_CUSTOM_SETUP]
 
 Run analysis on NanoAOD files using PocketCoffea processors
 
@@ -46,11 +46,16 @@ optional arguments:
                         Overwrite executor from config (to be used only with the --test options)
   -s SCALEOUT, --scaleout SCALEOUT
                         Overwrite scalout config
+  -c CHUNKSIZE, --chunksize CHUNKSIZE
+                        Overwrite chunksize config
+  -q QUEUE, --queue QUEUE
+                        Overwrite queue config
   -ll LOGLEVEL, --loglevel LOGLEVEL
                         Console logging level
   -f, --full            Process all datasets at the same time
   --executor-custom-setup EXECUTOR_CUSTOM_SETUP
                         Python module to be loaded as custom executor setup
+
 ```
 
 To run with a predefined executor just pass the `--executor` option string when calling the `runner.py` string:
@@ -138,7 +143,8 @@ the number of files or number of chunks to analyse (for testing purposes)
 
 ```bash
 $> runner.py  --cfg analysis_config.py -o output --executor dask@lxplus \
-              --limit-files 10  --limit-chunks 10
+              --limit-files 10  --limit-chunks 10 \
+              --chunksize 150000 --queue espresso
 ```
 
 ### Customize the executor software environment
@@ -185,7 +191,7 @@ $ runner.py --cfg config.py --test
 If you want to run locally with multiple processes for a fixed number of chunks just use the options:
 
 ```bash
-$ runner.py --cfg config.py --test -e futures -s 4 --limit-files 10 --limit-chunks 10
+$ runner.py --cfg config.py --test -e futures -s 4 --limit-files 10 --limit-chunks 10 
 ```
 
 

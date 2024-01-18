@@ -202,7 +202,7 @@ if __name__ == '__main__':
             fileset = {sample:files}
 
             n_events_tot = int(files["metadata"]["nevents"])
-            n_workers_max = n_events_tot / run_options["chunk"]
+            n_workers_max = n_events_tot / run_options["chunksize"]
             
             # If the number of available workers exceeds the maximum number of workers for a given sample,
             # the chunksize is reduced so that all the workers are used to process the given sample
@@ -210,7 +210,7 @@ if __name__ == '__main__':
                 adapted_chunksize = int(n_events_tot / run_options["scaleout"])
                 logging.info(f"Reducing chunksize from {run_options['chunk']} to {chunksize} for sample {sample}")
             else:
-                adapted_chunksize = run_options["chunk"]
+                adapted_chunksize = run_options["chunksize"]
             
             output = processor.run_uproot_job(fileset,
                                               treename='Events',

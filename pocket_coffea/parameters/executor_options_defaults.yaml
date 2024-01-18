@@ -1,6 +1,6 @@
 general: 
   scaleout: 1
-  chunksize: 100000
+  chunksize: 50000
   limit-files: null
   limit-chunks: null
   retries: 20

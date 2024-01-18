@@ -36,6 +36,12 @@ apptainer shell  -B /afs -B /cvmfs/cms.cern.ch -B /tmp  -B /eos/cms/  \
 
 ```
 
+
+:::{tip}
+If you want just to test the analysis example or to work on an analysis configuration without modifying the central
+code, you **don't need any other setup step**!
+:::
+
 If instead you want to install it from source, in order to be able to modify and contribute to the core framework code
 you need to create a virtual environment. The recommended way of doing it is inside the singularity image as described
 in [`Installation`](./installation.md).
@@ -771,5 +777,5 @@ $ make_plots.py -i output_all.coffea --cfg parameters_dump.yaml -o plots -op plo
 ```
 
 More instructions on how to customize the plotting parameters in `plotting_style.yaml` can be found in the [Plotting](https://pocketcoffea.readthedocs.io/en/latest/plots.html) section.
-
+ 
 ![](./images/mll_2018_baseline.png)
