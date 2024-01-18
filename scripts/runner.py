@@ -23,22 +23,22 @@ from pocket_coffea.utils.configurator import Configurator
 from pocket_coffea.utils import utils
 from pocket_coffea.utils.logging import setup_logging
 from pocket_coffea.parameters import defaults as parameters_utils
+from pocket_coffea.executors import executors_base
 
 def load_config(cfg):
+    ''' Helper function to load a Configurator instance from a user defined python module'''
     config_module =  utils.path_import(cfg)
     try:
         config = config_module.cfg
         logging.info(config)
         config.save_config(args.outputdir)
-
     except AttributeError as e:
         print("Error: ", e)
         raise("The provided configuration module does not contain a `cfg` attribute of type Configurator. Please check your configuration!")
 
     if not isinstance(config, Configurator):
         raise("The configuration module attribute `cfg` is not of type Configurator. Please check yuor configuration!")
-
-    #TODO improve the run options config
+    
     return config
 
 
@@ -132,7 +132,7 @@ if __name__ == '__main__':
         config.filter_dataset(run_options["limit-files"])
    
 
-    # if site is known we can load the corresponding module
+    # The user can provide a custom executor factory module
     if args.executor_custom_setup:
         # The user is providing a custom python module that acts as an executor factory.
         executors_lib =  utils.path_import(args.executor_custom_setup)
@@ -140,17 +140,25 @@ if __name__ == '__main__':
             print(f"The user defined executor setup module {args.executor_custom_setup}"
                   "does not define a `get_executor_factory` function!")
             exit(1)
-        
+
+    # if site is known we can load the corresponding module
     elif site == "lxplus":
         from pocket_coffea.executors import executors_lxplus as executors_lib
     elif site == "T3_PSI_CH":
         from pocket_coffea.executors import executors_T3_PSI_CH as executors_lib
+    elif site == "purdue":
+        from pocket_coffea.executors import executors_purdue as executors_lib
     else:
         from pocket_coffea.executors import executors_base as executors_lib
 
     # Load the executor class from the lib and instantiate it
     executor_factory = executors_lib.get_executor_factory(executor_name, run_options=run_options, outputdir=args.outputdir)
-
+    # Check the type of the executor_factory
+    if not isinstance(executor_factory, executors_base.ExecutorFactoryABC):
+        print("The user defined executor factory lib is not of type BaseExecturoABC!")
+        exit(1)
+    
+    
     # Options that are used to instantiate the executor object in coffea,
     # needs to be customized by the executor class for different types
     executor_args_base = {

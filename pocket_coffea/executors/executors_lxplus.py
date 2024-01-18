@@ -2,53 +2,13 @@ import os
 import sys
 import socket
 from coffea import processor as coffea_processor
+from .executors_base import ExecutorFactoryABC
 from pocket_coffea.utils.network import get_proxy_path
 from pocket_coffea.utils.network import check_port
 from pocket_coffea.parameters.dask_env import setup_dask
 
-
-class BaseExecutorFactory():
-
-    def __init__(self, run_options, **kwargs):
-        self.run_options = run_options
-        self.setup()
-
-    def get(self):
-        return None
-
-    def setup_proxyfile(self):
-        if self.run_options.get('voms-proxy', None) is not None:
-             self.x509_path = self.run_options['voms-proxy']
-        else:
-             _x509_localpath = get_proxy_path()
-             # Copy the proxy to the home from the /tmp to be used by workers
-             self.x509_path = os.environ['HOME'] + f'/{_x509_localpath.split("/")[-1]}'
-             os.system(f'cp {_x509_localpath} {self.x509_path}')
-             
-    def setup(self):
-        self.setup_proxyfile()
-        # Set envs for lxplus
-        self.set_env()
- 
-    def set_env(self):
-        # define some environmental variable
-        # that are general enought to be always useful
-        vars= {
-            "XRD_RUNFORKHANDLER": "1",
-            "MALLOC_TRIM_THRESHOLD_" : "0",
-            "X509_USER_PROXY": self.x509_path
-        }
-        for k,v in vars.items():
-            os.environ[k] = v
-
-    def customize_args(self, args):
-        return args
-
-    def close(self):
-        pass
-
     
-class IterativeExecutorFactory(BaseExecutorFactory):
+class IterativeExecutorFactory(ExecutorFactoryABC):
 
     def __init__(self, run_options, **kwargs):
         super().__init__(run_options) 
@@ -57,7 +17,7 @@ class IterativeExecutorFactory(BaseExecutorFactory):
         return coffea_processor.iterative_executor
 
 
-class FuturesExecutorFactory(BaseExecutorFactory):
+class FuturesExecutorFactory(ExecutorFactoryABC):
 
     def __init__(self, run_options, **kwargs):
         super().__init__(run_options)
@@ -73,7 +33,7 @@ class FuturesExecutorFactory(BaseExecutorFactory):
 
     
 
-class DaskExecutorFactory(BaseExecutorFactory):
+class DaskExecutorFactory(ExecutorFactoryABC):
 
     def __init__(self, run_options, outputdir, **kwargs):
         self.outputdir = outputdir
