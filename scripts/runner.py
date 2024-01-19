@@ -206,7 +206,7 @@ if __name__ == '__main__':
 
             run = Runner(
                 executor=executor,
-                chunksize=run_options["chunksize"],
+                chunksize=adapted_chunksize,
                 maxchunks=run_options["limit-chunks"],
                 skipbadfiles=run_options['skip-bad-files'],
                 schema=processor.NanoAODSchema,
