@@ -43,15 +43,39 @@ build_docker_lxplus:
 # Tag images on default branch as latest
 build_docker_infn_facility_latest:
   extends: .tag_skopeo
+  rules:
+   - if: '$CI_COMMIT_REF_NAME == "main"'
   variables:
     IMAGE_ORIGIN_TAG: ${CI_REGISTRY_IMAGE}:infn-${CI_COMMIT_SHORT_SHA}
     IMAGE_DESTINATION_TAG: ${CI_REGISTRY_IMAGE}:infn-latest
 
 build_docker_lxplus_latest:
   extends: .tag_skopeo
+  rules:
+   - if: '$CI_COMMIT_REF_NAME == "main"'
   variables:
     IMAGE_ORIGIN_TAG: ${CI_REGISTRY_IMAGE}:lxplus-${CI_COMMIT_SHORT_SHA}
     IMAGE_DESTINATION_TAG: ${CI_REGISTRY_IMAGE}:lxplus-cc7-latest
+
+
+#-----------------------------
+# Tag images on stable branch
+build_docker_infn_facility_stable:
+  extends: .tag_skopeo
+  rules:
+   - if: '$CI_COMMIT_REF_NAME == "stable"'
+  variables:
+    IMAGE_ORIGIN_TAG: ${CI_REGISTRY_IMAGE}:infn-${CI_COMMIT_SHORT_SHA}
+    IMAGE_DESTINATION_TAG: ${CI_REGISTRY_IMAGE}:infn-stable
+
+build_docker_lxplus_stable:
+  extends: .tag_skopeo
+  rules:
+   - if: '$CI_COMMIT_REF_NAME == "stable"'
+  variables:
+    IMAGE_ORIGIN_TAG: ${CI_REGISTRY_IMAGE}:lxplus-${CI_COMMIT_SHORT_SHA}
+    IMAGE_DESTINATION_TAG: ${CI_REGISTRY_IMAGE}:lxplus-cc7-stable
+
 
 #-------------------------------------------------------------------
 # Tag images using git tag
