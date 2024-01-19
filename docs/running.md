@@ -107,7 +107,7 @@ dask@lxplus:
   cores-per-worker: 1
   mem-per-worker: "2GB"
   disk-per-worker: "2GB"
-  worker-image: /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-latest
+  worker-image: /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-stable
   death-timeout: "3600"
   queue: "microcentury"
   adaptive: false
