@@ -1,53 +1,63 @@
 # Installation
 
-The installation of the PocketCoffea package is very simple and based only on the `python` enviroment tools.
+## Apptainer image
 
-## CERN lxplus with jobs submission
-----------------------------
-If you are working on CERN lxplus and you will scale your processing on HTCondor, follow this installation
-instructions.
+The best way to use the PocketCoffea package is using the prebuilt **apptainer** images. This method is particulary important if you
+need to run the Dask scheduler on HTCondor.  An **apptainer** (also called singularity) image is just a virtual environment
+which isolate your code in a well defined environment with the correct python packages and dependecies.  For more
+information and for a comprehensive tutorial on apptainer have a look at the [HSF tutorial](https://hsf-training.github.io/hsf-training-docker/10-apptainer/index.html).
 
-The best way to use the package on lxplus is by using **singularity** images. This method is particulary important if you need to run the Dask scheduler on HTCondor.
-A **singularity** (also called apptainer) image is just a virtual environment which isolate your code in a well defined environment with the correct python packages and versions.
-For more information and for a comprehensive tutorial on singularity have a look at the [HSF
-tutorial](https://hsf-training.github.io/hsf-training-docker/10-singularity/index.html).
-
-A Docker image containing a python environment with the PocketCoffea package is automatically build by the GitLab repository CD/CI on the latest version of the
-code and for each tagged version. The image registry is
+A Docker image containing a python environment with the PocketCoffea package is automatically build by the GitLab
+repository CD/CI for different versions of the code. The image registry is
 [here](https://gitlab.cern.ch/cms-analysis/general/PocketCoffea/container_registry/16693), and it can be used directly
-with Docker. 
+with Docker.
 
-The docker image is then **unpacked** to a Singularity image which is available on **cvmfs**. 
+Maintained versions:
+- **main**: the main branch is the freshest code and it is installed in ***-latest** images. 
+- **stable**: after more extensive tests the main branch is pushed to the stable branch and installed in ***-stable**
+images (recommended). 
+- **tagged**: each tagged version of the code is installed in a specific version of the image.
+
+Docker images are created for different computing environment such as lxplus and analysis facilities.
+The docker image is then **unpacked** to a Apptainer image which is available on **cvmfs**. 
 
 :::{tip}
-The singularity image is **the preferred way to setup** the environment, both for running user's analysis and for local development. 
+The apptainer images on `/cvmfs` is **the preferred way to setup** the environment, both for running user's analysis and for local development. 
 :::
 
-### Using Singularity to run the analysis
+### Using Apptainer to run the analysis
 
-The singularity environment is activated on **lxplus** with the following command:
+If you are working on CERN lxplus and you will scale your processing on HTCondor, follow this installation
+instructions.  The same strategy can be used in other computing environment, either with the same image or with
+customized ones (please get in touch if you need a specific environment). 
+
+The apptainer environment is activated on **lxplus** with the following command:
 
 ```bash
 apptainer shell --bind /afs -B /cvmfs/cms.cern.ch \
                 --bind /tmp  --bind /eos/cms/ \
     --env KRB5CCNAME=$KRB5CCNAME --bind /etc/sysconfig/ngbauth-submit  \
-    /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-latest 
+    /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-stable
 ```
 
+N.B.: The command to start the apptainer image has changed when lxplus moved to the el9 machines by default. The
+difference is about the handling of the kerberos ticket necessary to access to the condor scheduler. The new apptainer
+shell command above setups correctly the environment.
+
 The last part of the command contains the image version on unpacked:
-**cms-analysis/general/pocketcoffea:lxplus-cc7-latest**. 
+**cms-analysis/general/pocketcoffea:lxplus-cc7-stable**. The stable version is the recommended one to stay up-to-date
+with the development without the rought edges of the main branch. 
 
 Once inside the environment no installation is needed. The PocketCoffea scripts are globally available and the user's
 analysis can be run directly. 
 
-If a specific image is needed for a computing environment, more flavours of the docker/singularity image can be
+If a specific image is needed for a computing environment, more flavours of the docker/apptainer image can be
 built. Please get in touch!
 
-### Using Singularity for local development
+### Using Apptainer for local development
 
-If the user needs to modify locally the central PocketCoffea code, the singularity image can still be used as a baseline
-(for dependencies), but a local
-installation of the package is needed. Follow the instructions: 
+If the user needs to modify locally the central PocketCoffea code, the apptainer image can still be used as a baseline
+(for dependencies), but a local installation of the package is needed. Follow the instructions:
 
 
 ```bash
@@ -55,27 +65,41 @@ installation of the package is needed. Follow the instructions:
 apptainer shell --bind /afs -B /cvmfs/cms.cern.ch \
          --bind /tmp  --bind /eos/cms/ \
          --env KRB5CCNAME=$KRB5CCNAME --bind /etc/sysconfig/ngbauth-submit  \
-         /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-latest 
-
-# Create a local virtual environment using the packages defined in the singularity image
-python -m venv --system-site-packages myenv
-
-# Activate the environment
-source myenv/bin/activate
+         /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-stable
 
 # Clone locally the PocketCoffea repo
 git clone git@github.com:PocketCoffea/PocketCoffea.git
 cd PocketCoffea
 
+# Create a local virtual environment using the packages defined in the apptainer image
+python -m venv --system-site-packages myenv
+
+# Activate the environment
+source myenv/bin/activate
+
 # Install in EDITABLE mode
 pip install -e .[dev]
 ```
 
-The next time the user enters in the singularity the virtual environment needs to be activated. 
+The next time the user enters in the apptainer the virtual environment needs to be activated. 
+```bash
+#Enter the image
+apptainer shell  -B /afs -B /cvmfs/cms.cern.ch -B /tmp  -B /eos/cms/  \
+                 -B /etc/sysconfig/ngbauth-submit  \
+                 -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME=${XDG_RUNTIME_DIR}/krb5cc 
+                 /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-stable
 
-:::{admonition} Work in progress
+# Activate the virtual environment
+cd PocketCoffea
+source myenv/bin/activate
+```
+
+
+:::{admonition} Setup the job submission with local core changes
 :class: warning
-**N.B.**: At the moment local changes implemented in this way are not propagated to jobs running on condor through Dask. 
+**N.B.**: In order to properly propagated the local environment and local code changes to jobs running on condor through
+Dask the user needs to setup the executor options properly with the `local-virtualenv: true` options. Checkout the
+running instructions for more details.  
 :::
 
 ## Vanilla python package
@@ -85,7 +109,7 @@ The PocketCoffea package has been published on Pypi. It can be installed with
 $ pip install pocket-coffea
 ```
 
-Using the singularity image is the recommened way of working with the package (on lxplus). 
+Using the apptainer image is the recommened way of working with the package (on lxplus). 
 
 ## Manual installation in a Python environment
 
