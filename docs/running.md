@@ -147,6 +147,7 @@ $> runner.py  --cfg analysis_config.py -o output --executor dask@lxplus \
               --chunksize 150000 --queue espresso
 ```
 
+
 ### Customize the executor software environment
 The software environment where the executor runs the analysis is defined by the python environment where the analysis is
 launched but also by the executor options. 
@@ -176,6 +177,28 @@ custom-setup-commands:
   - export CUSTOM_VARIABLE=1
 
 ```
+
+## Dask scheduler on lxplus
+The dask scheduler started by the `runner.py` script needs to stay alive in the user interactive session. 
+This means that if you start a runner process directly in the lxplus machine (in a singularity session) you cannot
+logout from the session. 
+
+The solution is using the `tmux` program to keep your analysis session in the background. `tmux` allows you to create a
+session, detach from it, exit lxplus, and at the next login reattch to the running session. 
+
+This service needs to be activate, only once, for your user with `systemctl --user enable --now tmux.service`. The full
+documentation about this (new) feature is available on the [Service
+Portal](https://cern.service-now.com/service-portal?id=kb_article&n=KB0008111).
+
+Once setup you can start a tmux session as:
+```bash
+tmux new -s your-session-name
+# start an apptainer image and launch your analysis
+
+# press `Ctrl+b d` to detach from the session
+```
+your running session are visible with `tmux ls`. To reconnect do `tmux a -t your-session-name`. Look
+[here](https://tmuxcheatsheet.com/) for more info about tmux. 
 
 
 ## Easy debugging
@@ -207,8 +230,7 @@ for a full-fledged example.
 
 The user factory must implement a class deriving from
 [ExecutorFactoryABC](https://github.com/PocketCoffea/PocketCoffea/tree/main/pocket_coffea/executors/executors_base.py). 
-The factory returns the type of coffea runner that will be instantiated and prepared the dask clusters, configuring it
-and starting the jobs. 
+The factory returns an instance of a Executor that is passed to the coffea Runner. 
 
 ```python
 ## custom executor defined in my_custom_executor.py by the user
@@ -221,7 +243,7 @@ from coffea import processor as coffea_processor
 class ExecutorFactoryCustom(ExecutorFactorABC):
 
     def get(self):
-        return coffea_processor.dask_executor
+        return coffea_processor.dask_executor(**self.customized_args())
 
     def setup(self):
         '''This function is called by the base class constructor'''
@@ -231,9 +253,11 @@ class ExecutorFactoryCustom(ExecutorFactorABC):
     def start_custom_dask_cluster(self):
         self.dask_cluster = .......... #custom configuration
 
-    def customize_args(self, args):
+    def customized_args(self):
         '''This function customized the args that coffea uses to instantiate 
         the executor class passed by the get() method'''
+        args = super().customized_args()
+        args["custom-arg"] = "..."
         return args
 
     def close(self):
@@ -251,8 +275,7 @@ def get_executor_factory(executor_name, **kwargs):
 
 ```
 
-The user's module must implement a `get_executor_factory(string, run_options)` method which return the class of executor
-to be instantiated by the runner. 
+The user's module must implement a `get_executor_factory(string, run_options)` method which returns the instantiated Executor. 
 
 The module is then used like this:
 

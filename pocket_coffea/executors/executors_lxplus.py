@@ -105,10 +105,10 @@ class DaskExecutorFactory(ExecutorFactoryABC):
 
         
     def get(self):
-        return coffea_processor.dask_executor 
+        return coffea_processor.dask_executor(**self.customized_args())
 
-    def customize_args(self, args):
-        args = super().customize_args(args)
+    def customized_args(self):
+        args = super().customized_args()
         # in the futures executor Nworkers == N scalout
         args["client"] = self.dask_client
         args["treereduction"] = self.run_options["tree-reduction"]

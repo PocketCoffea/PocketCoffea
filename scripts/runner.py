@@ -18,6 +18,7 @@ from yaml import Loader, Dumper
 
 from coffea.util import save
 from coffea import processor
+from coffea.processor import Runner
 
 from pocket_coffea.utils.configurator import Configurator
 from pocket_coffea.utils import utils
@@ -53,7 +54,7 @@ if __name__ == '__main__':
     parser.add_argument("-lf","--limit-files", type=int, help="Limit number of files")
     parser.add_argument("-lc","--limit-chunks", type=int, help="Limit number of chunks", default=None)
     parser.add_argument("-e","--executor", type=str,
-                        help="Overwrite executor from config (to be used only with the --test options)", required=True, default="iterative")
+                        help="Overwrite executor from config (to be used only with the --test options)", default="iterative")
     parser.add_argument("-s","--scaleout", type=int, help="Overwrite scalout config" )
     parser.add_argument("-c","--chunksize", type=int, help="Overwrite chunksize config" )
     parser.add_argument("-q","--queue", type=str, help="Overwrite queue config" )
@@ -112,10 +113,7 @@ if __name__ == '__main__':
     # Now merge on top the user defined run_options
     if args.run_options:
         run_options = parameters_utils.merge_parameters_from_files(run_options, args.run_options)
-       
-    if args.executor !=None:
-        run_options["executor"] = args.executor
-        
+
     if args.limit_files!=None:
         run_options["limit-files"] = args.limit_files
         config.filter_dataset(run_options["limit-files"])
@@ -135,7 +133,7 @@ if __name__ == '__main__':
         
     ## Default config for testing: iterative executor, with 2 file and 2 chunks
     if args.test:
-        run_options["executor"] = args.executor if args.executor else "iterative"
+        executor = args.executor if args.executor else "iterative"
         run_options["limit-files"] = args.limit_files if args.limit_files else 2
         run_options["limit-chunks"] = args.limit_chunks if args.limit_chunks else 2
         config.filter_dataset(run_options["limit-files"])
@@ -167,31 +165,25 @@ if __name__ == '__main__':
         print("The user defined executor factory lib is not of type BaseExecturoABC!")
         exit(1)
     
-    
-    # Options that are used to instantiate the executor object in coffea,
-    # needs to be customized by the executor class for different types
-    executor_args_base = {
-            'skipbadfiles': run_options['skip-bad-files'],
-            'schema': processor.NanoAODSchema,
-    }
-    # Now customize
-    executor_args = executor_factory.customize_args(executor_args_base)
-    logging.info("Executor args:")
-    logging.info(executor_args)
+    # Instantiate the executor
+    executor = executor_factory.get()
         
     if args.full:
         # Running on all datasets at once
         fileset = config.filesets
         logging.info(f"Working on samples: {list(fileset.keys())}")
-        
-        output = processor.run_uproot_job(fileset,
-                                          treename='Events',
-                                          processor_instance=config.processor_instance,
-                                          executor=executor_factory.get(),
-                                          executor_args=executor_args,
-                                          chunksize=run_options['chunksize'],
-                                          maxchunks=run_options['limit-chunks']
-                                          )
+
+        run = Runner(
+            executor=executor,
+            chunksize=run_options["chunksize"],
+            maxchunks=run_options["limit-chunks"],
+            skipbadfiles=run_options['skip-bad-files'],
+            schema=processor.NanoAODSchema,
+            format="root",
+        )
+        output = run(fileset, treename="Events",
+                     processor_instance=config.processor_instance)
+
         print(f"Saving output to {outfile.format('all')}")
         save(output, outfile.format("all") )
         
@@ -211,15 +203,17 @@ if __name__ == '__main__':
                 logging.info(f"Reducing chunksize from {run_options['chunk']} to {chunksize} for sample {sample}")
             else:
                 adapted_chunksize = run_options["chunksize"]
-            
-            output = processor.run_uproot_job(fileset,
-                                              treename='Events',
-                                              processor_instance=config.processor_instance,
-                                              executor=executor_factory.get(),
-                                              executor_args=executor_args,
-                                              chunksize=adapted_chunksize,
-                                              maxchunks=run_options.get('limit-chunks', None)
-                                              )
+
+            run = Runner(
+                executor=executor,
+                chunksize=run_options["chunksize"],
+                maxchunks=run_options["limit-chunks"],
+                skipbadfiles=run_options['skip-bad-files'],
+                schema=processor.NanoAODSchema,
+                format="root",
+            )
+            output = run(fileset, treename="Events",
+                         processor_instance=config.processor_instance)
             print(f"Saving output to {outfile.format(sample)}")
             save(output, outfile.format(sample))
          

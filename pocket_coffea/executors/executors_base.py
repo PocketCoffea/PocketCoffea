@@ -11,7 +11,7 @@ class ExecutorFactoryABC(ABC):
 
     @abstractmethod
     def get(self):
-        return None
+        pass
 
     def setup(self):
         self.setup_proxyfile()
@@ -37,8 +37,8 @@ class ExecutorFactoryABC(ABC):
         for k,v in vars.items():
             os.environ[k] = v
 
-    def customize_args(self, args):
-        return args
+    def customized_args(self):
+        return {}
 
     def close(self):
         pass
@@ -49,7 +49,7 @@ class IterativeExecutorFactory(ExecutorFactoryABC):
         super().__init__(run_options, **kwargs)
 
     def get(self):
-        return coffea_processor.iterative_executor
+        return coffea_processor.iterative_executor(**self.customized_args())
 
 
 class FuturesExecutorFactory(ExecutorFactoryABC):
@@ -58,10 +58,10 @@ class FuturesExecutorFactory(ExecutorFactoryABC):
         super().__init__(run_options, **kwargs)
 
     def get(self):
-        return coffea_processor.futures_executor
+        return coffea_processor.futures_executor(**self.customized_args())
 
-    def customize_args(self, args):
-        args = super().customize_args(args)
+    def customized_args(self):
+        args = super().customized_args()
         # in the futures executor Nworkers == N scalout
         args["workers"] = self.run_options["scaleout"]
         return args

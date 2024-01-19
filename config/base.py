@@ -53,7 +53,7 @@ cfg =  {
         "1b" : [ get_nBtagEq(1, coll="BJetGood")],
         "2b" : [ get_nBtagEq(2, coll="BJetGood")],
         "3b" : [ get_nBtagEq(3, coll="BJetGood")],
-         "4b" : [ get_nBtagEq(4, coll="BJetGood")]
+        "4b" : [ get_nBtagEq(4, coll="BJetGood")]
     },
 
     
