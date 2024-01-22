@@ -643,8 +643,9 @@ runner.py --cfg example_config.py --test  -o output_test
 
 We can now submit the full processing on the HTcondor cluster with dask:
 
-## change the --executor and numbers of jobs with -s/--scaleout
 ```bash
+## change the --executor and numbers of jobs with -s/--scaleout
+
 runner.py --cfg example_config.py  --full --executor dask@lxplus  --scaleout 10  -o output_dask
 ```
 
