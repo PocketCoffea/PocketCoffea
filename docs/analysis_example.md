@@ -32,7 +32,7 @@ If you want to test it on lxplus just use the singularity image:
 apptainer shell --bind /afs -B /cvmfs/cms.cern.ch \
                 --bind /tmp  --bind /eos/cms/ \
     --env KRB5CCNAME=$KRB5CCNAME --bind /etc/sysconfig/ngbauth-submit  \
-    /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-latest
+    /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-stable
 ```
 
 If instead you want to install it from source, to contribute to the core framework code:
@@ -631,7 +631,7 @@ run_options = {
         "env"            : "singularity",
         "workers"        : 1,
         "scaleout"       : 50,
-        "worker_image"   : "/cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-latest",
+        "worker_image"   : "/cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-stable",
         "queue"          : "microcentury",
         "walltime"       : "00:40:00",
         "mem_per_worker" : "4GB", # GB
