@@ -189,7 +189,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
             # the chunksize is reduced so that all the workers are used to process the given sample
             if (run_options["scaleout"] > n_workers_max):
                 adapted_chunksize = int(n_events_tot / run_options["scaleout"])
-                logging.info(f"Reducing chunksize from {run_options['chunk']} to {chunksize} for sample {sample}")
+                logging.info(f"Reducing chunksize from {run_options['chunk']} to {adapted_chunksize} for sample {sample}")
             else:
                 adapted_chunksize = run_options["chunksize"]
 
