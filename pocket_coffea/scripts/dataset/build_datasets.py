@@ -4,7 +4,7 @@ import json
 import argparse
 import click
 
-from pocket_coffea.utils.dataset import build_datasets
+from pocket_coffea.utils import dataset
 
 @click.command()
 @click.option(
@@ -62,17 +62,17 @@ from pocket_coffea.utils.dataset import build_datasets
 def build_datasets(cfg, keys, download, overwrite, check,
          split_by_year, local_prefix, whitelist_sites, blacklist_sites, regex_sites, parallelize):
     '''Build dataset fileset in json format'''
-    build_datasets(cfg=cfg,
-                   keys=keys,
-                   download=download,
-                   overwrite=overwrite,
-                   check=check,
-                   split_by_year=split_by_year,
-                   local_prefix=local_prefix,
-                   whitelist_sites=whitelist_sites,
-                   backlist_sites=blacklist_sites,
-                   regex_sites=regex_sites,
-                   parallelize=parallelize)
+    dataset.build_datasets(cfg=cfg,
+                           keys=keys,
+                           download=download,
+                           overwrite=overwrite,
+                           check=check,
+                           split_by_year=split_by_year,
+                           local_prefix=local_prefix,
+                           whitelist_sites=whitelist_sites,
+                           blacklist_sites=blacklist_sites,
+                           regex_sites=regex_sites,
+                           parallelize=parallelize)
 
 
 

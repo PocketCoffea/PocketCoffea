@@ -18,7 +18,7 @@ from pocket_coffea.utils.logging import setup_logging
 from pocket_coffea.parameters import defaults as parameters_utils
 from pocket_coffea.executors import executors_base
 
-def load_config(cfg):
+def load_config(cfg, outputdir):
     ''' Helper function to load a Configurator instance from a user defined python module'''
     config_module =  utils.path_import(cfg)
     try:
@@ -37,7 +37,7 @@ def load_config(cfg):
 @click.command()
 @click.option('--cfg', required=True, type=str,
               help='Config file with parameters specific to the current run')
-@click.option("-ro", "--run-options", type=str, default=None, help="User provided run options .yaml file")
+@click.option("-ro", "--custom-run-options", type=str, default=None, help="User provided run options .yaml file")
 @click.option("-o", "--outputdir", required=True, type=str, help="Output folder")
 @click.option("-t", "--test", is_flag=True, help="Run with limit 1 interactively")
 @click.option("-lf","--limit-files", type=int, help="Limit number of files")
@@ -49,7 +49,7 @@ def load_config(cfg):
 @click.option("-ll","--loglevel", type=str, help="Console logging level", default="INFO" )
 @click.option("-f","--full", is_flag=True, help="Process all datasets at the same time", default=False )
 @click.option("--executor-custom-setup", type=str, help="Python module to be loaded as custom executor setup")
-def runner(cfg, run_options, outputdir, test, limit_files,
+def run(cfg,  custom_run_options, outputdir, test, limit_files,
            limit_chunks, executor, scaleout, chunksize,
            queue, loglevel, full, executor_custom_setup):
     '''Run an analysis on NanoAOD files using PocketCoffea processors'''
@@ -70,7 +70,7 @@ def runner(cfg, run_options, outputdir, test, limit_files,
     print("Loading the configuration file...")
     if cfg[-3:] == ".py":
         # Load the script
-        config = load_config(cfg)
+        config = load_config(cfg, outputdir)
 
     elif cfg[-4:] == ".pkl":
         # WARNING: This has to be tested!!
@@ -100,8 +100,8 @@ def runner(cfg, run_options, outputdir, test, limit_files,
         run_options.update(run_options_defaults[f"{executor_name}@{site}"])
 
     # Now merge on top the user defined run_options
-    if run_options:
-        run_options = parameters_utils.merge_parameters_from_files(run_options, run_options)
+    if custom_run_options:
+        run_options = parameters_utils.merge_parameters_from_files(run_options, custom_run_options)
 
     if limit_files!=None:
         run_options["limit-files"] = limit_files
@@ -212,4 +212,4 @@ def runner(cfg, run_options, outputdir, test, limit_files,
 
 
 if __name__ == "__main__":
-    runner()
+    run()

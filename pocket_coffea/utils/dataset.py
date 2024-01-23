@@ -55,7 +55,7 @@ def build_datasets(cfg, keys=None, overwrite=False, download=False, check=False,
     args = {arg : value for arg, value in locals().items() if arg != "keys"}
 
     with Pool(parallelize) as pool:
-        print(keys)
+        print("Dataset keys:", list(keys))
         datasets = pool.map(partial(do_dataset, **args), keys)
 
     for dataset in datasets:

@@ -1,5 +1,5 @@
 import click
-from pocket_coffea.scripts.runner import runner
+from pocket_coffea.scripts.runner import run
 from pocket_coffea.scripts.dataset.build_datasets import build_datasets
 from pocket_coffea.scripts.plot.make_plots import make_plots
 
@@ -23,7 +23,7 @@ def cli():
     pass
 
 cli.add_command(build_datasets)
-cli.add_command(runner)
+cli.add_command(run)
 cli.add_command(make_plots)
 
 if __name__ == '__main__':
