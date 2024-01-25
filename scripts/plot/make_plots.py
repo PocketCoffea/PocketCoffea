@@ -11,7 +11,7 @@ from pocket_coffea.utils.plot_utils import PlotManager
 from pocket_coffea.parameters import defaults
 
 parser = argparse.ArgumentParser(description='Plot histograms from coffea file')
-parser.add_argument('--input-dir', help='Directory with cofea files and parameters', type=str, default=os.getcwd(), required=False)
+parser.add_argument('-inp', '--input-dir', help='Directory with cofea files and parameters', type=str, default=os.getcwd(), required=False)
 parser.add_argument('--cfg', help='YAML file with all the analysis parameters', required=False)
 parser.add_argument('-op', '--overwrite-parameters', type=str, nargs="+", default=None,
                     help='YAML file with plotting parameters to overwrite default parameters', required=False)
@@ -22,8 +22,9 @@ parser.add_argument('-oc', '--only-cat', type=str, nargs="+", help='Filter categ
 parser.add_argument('-os', '--only-syst', type=str, nargs="+", help='Filter systematics with a list of strings', required=False)
 parser.add_argument('-e', '--exclude-hist', type=str, nargs="+", default=None, help='Exclude histograms with a list of regular expression strings', required=False)
 parser.add_argument('-oh', '--only-hist', type=str, nargs="+", default=None, help='Filter histograms with a list of regular expression strings', required=False)
-parser.add_argument('--split-systematics', action='store_true', help='Split systematic uncertainties in the ratio plot', required=False)
 parser.add_argument('--partial-unc-band', action='store_true', help='Plot only the partial uncertainty band corresponding to the systematics specified as the argument `only_syst`', required=False)
+parser.add_argument('--split-systematics', action='store_true', help='Split systematic uncertainties in the ratio plot', required=False)
+parser.add_argument('-ns','--no-syst', action='store_true', help='Do not include systematics', required=False)
 parser.add_argument('--overwrite', '--over', action='store_true', help='Overwrite plots in output folder', required=False)
 parser.add_argument('--log', action='store_true', help='Set y-axis scale to log', required=False)
 parser.add_argument('--density', action='store_true', help='Set density parameter to have a normalized plot', required=False)
@@ -100,8 +101,12 @@ plotter = PlotManager(
     verbose=args.verbose,
     save=True
 )
-
+if args.no_syst:
+    syst = False
+else:
+    syst = True
+    
 print("Started plotting.  Please wait...")
-plotter.plot_datamc_all(syst=False, spliteras=False)
+plotter.plot_datamc_all(syst=syst, spliteras=False)
 
 print("Output plots are saved at: ", args.outputdir)
