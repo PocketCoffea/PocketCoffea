@@ -36,7 +36,7 @@ import click
 @click.option("--dry", is_flag=True, help="Do not execute hadd, save metadata")
 def hadd_skimmed_files(files_list, outputdir, only_datasets, files, events, scaleout, overwrite, dry):
     '''
-    Regroup skimmed datasets by joining different files (like hadd for ROOT files). 
+    Regroup skimmed datasets by joining different files (like hadd for ROOT files) 
     '''
     df = load(files_list)
     workload = []
