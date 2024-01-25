@@ -1,6 +1,9 @@
 # Changelog
 
 This page keeps track of major and minor changes between versions. 
+### PocketCoffea 0.7
+
+- Improved and generalized executors configuration for runner.py
 
 ### PocketCoffea 1.0rc0
 The main change is the possibility to completely split the analysis configuration files and parameters from the core of

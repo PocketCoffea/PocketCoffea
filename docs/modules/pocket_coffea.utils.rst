@@ -4,14 +4,6 @@ pocket\_coffea.utils package
 Submodules
 ----------
 
-pocket\_coffea.utils.PlotSF module
-----------------------------------
-
-.. automodule:: pocket_coffea.utils.PlotSF
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 pocket\_coffea.utils.build\_jets\_calibrator module
 ---------------------------------------------------
 
@@ -68,6 +60,14 @@ pocket\_coffea.utils.plot\_efficiency module
    :undoc-members:
    :show-inheritance:
 
+pocket\_coffea.utils.plot\_sf module
+------------------------------------
+
+.. automodule:: pocket_coffea.utils.plot_sf
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pocket\_coffea.utils.plot\_utils module
 ---------------------------------------
 
@@ -80,6 +80,14 @@ pocket\_coffea.utils.rucio module
 ---------------------------------
 
 .. automodule:: pocket_coffea.utils.rucio
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pocket\_coffea.utils.run module
+-------------------------------
+
+.. automodule:: pocket_coffea.utils.run
    :members:
    :undoc-members:
    :show-inheritance:
