@@ -41,7 +41,7 @@ build_docker_lxplus:
 build_docker_swan:
   extends: .build_docker_template
   variables:
-    BUILD_ARGS: "FROM_IMAGE=gitlab-registry.cern.ch/swan/docker-images/jupyter/swan-cern CLUSTER=swan"
+    BUILD_ARGS: "FROM_IMAGE=gitlab-registry.cern.ch/swan/docker-images/jupyter/swan-cern:v0.0.2 CLUSTER=swan"
     REGISTRY_IMAGE_PATH: ${CI_REGISTRY_IMAGE}:swan-${CI_COMMIT_SHORT_SHA}
 
 #--------------------------------------------------------------------
