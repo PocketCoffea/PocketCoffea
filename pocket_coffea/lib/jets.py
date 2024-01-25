@@ -216,10 +216,13 @@ def jet_selection(events, jet_type, params, leptons_collection=""):
         dR_jets_lep = jets.metric_table(events[leptons_collection])
         mask_lepton_cleaning = ak.prod(dR_jets_lep > cuts["dr_lepton"], axis=2) == 1
 
-    if jet_type == "Jet":
+    if 'run_period' not in params or params['run_period']!='Run3': # puid does not exist for Run3 samples
         mask_jetpuid = (jets.puId >= cuts["puId"]["value"]) | (
             jets.pt >= cuts["puId"]["maxpt"]
         )
+    else:
+        mask_jetpuid = True
+    if jet_type == "Jet":
         mask_good_jets = mask_presel & mask_lepton_cleaning & mask_jetpuid
 
     elif jet_type == "FatJet":

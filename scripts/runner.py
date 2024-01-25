@@ -154,6 +154,9 @@ if __name__ == '__main__':
         os.environ["XRD_RUNFORKHANDLER"] = "1"
         os.environ["X509_USER_PROXY"] = _x509_path
 
+        #for k in config.filesets.keys():
+        #    print(k, config.filesets[k]['files'])
+        
         if run_options['executor'] == 'iterative':
             _exec = processor.iterative_executor
         else:
@@ -265,7 +268,7 @@ if __name__ == '__main__':
                             label="coffea_parsl_condor",
                             address=address_by_query(),
                             max_workers=1,
-                            worker_debug=True,
+                            worker_debug=False,
                             provider=CondorProvider(
                                 nodes_per_block=1,
                                 cores_per_slot=run_options["workers"],
@@ -279,6 +282,7 @@ if __name__ == '__main__':
                         )
                     ],
                     retries=run_options["retries"],
+                    run_dir="/tmp/"+getpass.getuser()+"/parsl_runinfo",
                 )
 
 
@@ -307,6 +311,7 @@ if __name__ == '__main__':
                 # Running separately on each dataset
                 for sample, files in config.filesets.items():
                     logging.info(f"Working on sample: {sample}")
+                    print(f"Working on sample: {sample}")
                     fileset = {sample:files}
                     output = processor.run_uproot_job(fileset,
                                                       treename='Events',

@@ -478,9 +478,11 @@ class Shape:
                 d: round(sum(h_dict_mc_nominal[d].values()), 1)
                 for d in self.samples_mc
             }
-            reverse = True
+            
             # Order the events dictionary by decreasing number of events if linear scale, increasing if log scale
-            # N.B.: Here implement if log: reverse=False
+            reverse = True
+            if self.log:
+                reverse = False
             self.nevents = dict(
                 sorted(self.nevents.items(), key=lambda x: x[1], reverse=reverse)
             )

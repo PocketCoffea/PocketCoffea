@@ -147,10 +147,10 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
           - **user-defined** skimming cuts
 
         BE CAREFUL: the skimming is done before any object preselection and cleaning.
-        Only collections and branches already present in the NanoAOD before any correct
+        Only collections and branches already present in the NanoAOD before any corrections
         can be used.
-        Alternatively, if you need to apply the cut on preselected objects,
-        defined the cut at the preselection level, not at skim level.
+        Alternatively, if you need to apply the cut on preselected objects - 
+        define the cut at the preselection level, not at skim level.
         '''
         self._skim_masks = PackedSelection()
         mask_flags = np.ones(self.nEvents_initial, dtype=bool)
