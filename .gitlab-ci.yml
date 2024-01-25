@@ -68,7 +68,7 @@ build_docker_swan_main:
    - if: '$CI_COMMIT_REF_NAME == "main"'
   variables:
     IMAGE_ORIGIN_TAG: ${CI_REGISTRY_IMAGE}:swan-${CI_COMMIT_SHORT_SHA}
-    IMAGE_DESTINATION_TAG: ${CI_REGISTRY_IMAGE}-swan:v0.0.2
+    IMAGE_DESTINATION_TAG: ${CI_REGISTRY_IMAGE}/swan:v0.0.2
     
 #-----------------------------
 # Tag images on stable branch
