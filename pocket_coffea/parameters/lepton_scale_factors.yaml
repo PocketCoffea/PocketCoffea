@@ -26,8 +26,8 @@ lepton_scale_factors:
         name: UL-Electron-ID-SF
 
     era_mapping:
-      # this is needed because egamma provided correction
-      #set have a fixed set of era labels, different from ours
+      # this is needed because the correction set provided by EGM
+      # have a fixed set of era labels, different from ours
       "2016_PreVFP": "2016preVFP"
       "2016_PostVFP": "2016postVFP"
       "2017": "2017"
@@ -73,17 +73,17 @@ lepton_scale_factors:
           trigger: NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight
     JSONfiles:
       '2016_PreVFP':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2016preVFP_UL/muon_Z.json.gz
+          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2016preVFP_UL/muon_Z_v2.json.gz
       '2016_PostVFP':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2016postVFP_UL/muon_Z.json.gz
+          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2016postVFP_UL/muon_Z_v2.json.gz
       '2017':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2017_UL/muon_Z.json.gz
+          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2017_UL/muon_Z_v2.json.gz
       '2018':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2018_UL/muon_Z.json.gz
+          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2018_UL/muon_Z_v2.json.gz
 
     era_mapping:
-        # this is needed because egamma provided correction
-        #set have a fixed set of era labels, different from ours
+        # this is needed because the correction set provided by MUO
+        # have a fixed set of era labels, different from ours
         "2016_PreVFP": "2016preVFP_UL"
         "2016_PostVFP": "2016postVFP_UL"
         "2017": "2017_UL"

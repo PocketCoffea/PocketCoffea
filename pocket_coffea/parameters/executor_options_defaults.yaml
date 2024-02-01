@@ -30,7 +30,7 @@ dask@T3_PSI_CH:
   queue: "standard"
   walltime: "6:00:00"
   adaptive: false
-  performance-report: false
+  performance-report: true
   custom-setup-commands: null
   conda-env: false
   local-virtualenv: false
