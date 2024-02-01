@@ -155,6 +155,8 @@ if __name__ == '__main__':
         from pocket_coffea.executors import executors_T3_PSI_CH as executors_lib
     elif site == "purdue":
         from pocket_coffea.executors import executors_purdue as executors_lib
+    elif site == "DESY_NAF":
+        from pocket_coffea.executors import executors_DESY_NAF as executors_lib
     else:
         from pocket_coffea.executors import executors_base as executors_lib
 
