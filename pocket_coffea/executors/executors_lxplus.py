@@ -34,8 +34,7 @@ class DaskExecutorFactory(ExecutorFactoryABC):
             elif "MAMBA_ROOT_PREFIX" in os.environ:
                 env_worker.append(f"{os.environ['MAMBA_ROOT_PREFIX']} activate {os.environ['CONDA_DEFAULT_ENV']}")
             else:
-                print("CONDA prefix not found in env! Something is wrong with your conda installation if you want to use conda in the dask cluster.")
-                exit(1)
+                raise Exception("CONDA prefix not found in env! Something is wrong with your conda installation if you want to use conda in the dask cluster.")
 
         # if local-virtual-env: true the dask job is configured to pickup
         # the local virtual environment. 
@@ -112,6 +111,7 @@ class DaskExecutorFactory(ExecutorFactoryABC):
         # in the futures executor Nworkers == N scalout
         args["client"] = self.dask_client
         args["treereduction"] = self.run_options["tree-reduction"]
+        args["skip-bad-files"] = self.run_options["skip-bad-files"]
         args["retries"] = self.run_options["retries"]
         return args
 
