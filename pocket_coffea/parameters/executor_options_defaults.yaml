@@ -36,7 +36,7 @@ dask@T3_PSI_CH:
   local-virtualenv: false
 
 
-parsl@NAF_DESY:
+parsl-condor@NAF_DESY:
   scaleout: 10
   cores-per-worker: 1
   mem-per-worker: "4GB"
