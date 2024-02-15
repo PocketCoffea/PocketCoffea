@@ -216,7 +216,8 @@ def jet_selection(events, jet_type, params, leptons_collection=""):
         dR_jets_lep = jets.metric_table(events[leptons_collection])
         mask_lepton_cleaning = ak.prod(dR_jets_lep > cuts["dr_lepton"], axis=2) == 1
 
-    if 'run_period' not in params or params['run_period']!='Run3': # puid does not exist for Run3 samples
+    # Selection on PUid. Only available in Run2 UL, thus we need to determine which sample we run over:
+    if events.metadata["year"] in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
         mask_jetpuid = (jets.puId >= cuts["puId"]["value"]) | (
             jets.pt >= cuts["puId"]["maxpt"]
         )

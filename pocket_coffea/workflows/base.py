@@ -814,11 +814,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         for var, vardata in output["variables"].items():
             for sample, dataset_in_sample in vardata.items():
                 for dataset, histo in dataset_in_sample.items():
-                    #print("Scaling", var, sample, dataset)
-                    #print(self.cfg.weights_config)
                     # First, determine whether we must use the sum_signOf_genweights or sum_genweights for rescaling.
                     # This information is taken from a weights config file for each _sample_
-
                     wei = self.cfg.weights_config[sample]['inclusive']
                     if 'signOf_genWeight' in wei and 'genWeight' not in wei:
                         sumgenw_dict = output["sum_signOf_genweights"]
