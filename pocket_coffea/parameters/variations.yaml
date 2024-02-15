@@ -24,6 +24,14 @@ systematic_variations:
       '2017': "${.2016_PreVFP}"
       '2018': "${.2016_PreVFP}"
 
+    sf_ctag:
+      '2016_PreVFP':
+        - Extrap
+        - Interp
+      '2016_PostVFP': "${.2016_PreVFP}"
+      '2017': "${.2016_PreVFP}"
+      '2018': "${.2016_PreVFP}"
+
   shape_variations:
     JES:
 
