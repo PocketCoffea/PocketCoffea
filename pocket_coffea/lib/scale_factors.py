@@ -338,6 +338,39 @@ def sf_btag_calib(params, sample, year, njets, jetsHt):
     return w
 
 
+def sf_ctag(params, jets, year, njets, variations=["central"]):
+    '''
+    Scale factors for charm jet tagging
+    '''
+    # print("Doing sf_ctag", year)
+
+    ctagSF = params.jet_scale_factors.ctagSF[year]
+    ctagger = params.ctagging.working_point[year]["tagger"]
+    corrset = correctionlib.CorrectionSet.from_file(ctagSF.file)
+
+    #print(list(corrset.keys()))
+    #print(list(corrset.items()))
+    
+    corr = corrset[ctagSF.name]
+
+    #print(corr)
+    
+    flav = ak.to_numpy(ak.flatten(jets.hadronFlavour))
+    CvL = ak.to_numpy(ak.flatten(jets.btagDeepCvL))
+    CvB = ak.to_numpy(ak.flatten(jets.btagDeepCvB))
+
+    discr = ak.to_numpy(ak.flatten(jets[ctagger]))
+
+    central_SF_byjet = corr.evaluate("central", flav, CvL, CvB)
+
+    #print(central_SF_byjet)
+    #print("Unflatt=", ak.unflatten(central_SF_byjet, njets))
+    #print("Prod:", ak.prod(ak.unflatten(central_SF_byjet, njets), axis=1))
+    
+    output = ak.prod(ak.unflatten(central_SF_byjet, njets), axis=1)
+
+    return output
+    
 def sf_jet_puId(params, jets, year, njets):
     # The SF is applied only on jets passing the preselection (JetGood), pt < maxpt, and matched to a GenJet.
     # In other words the SF is not applied on jets not passing the Jet Pu ID SF.
