@@ -15,6 +15,7 @@ from .scale_factors import (
     sf_mu,
     sf_btag,
     sf_btag_calib,
+    sf_ctag,
     sf_jet_puId,
     sf_L1prefiring,
     sf_pileup_reweight,
@@ -94,6 +95,7 @@ class WeightsManager:
                 'sf_mu_trigger',
                 'sf_btag',
                 'sf_btag_calib',
+                'sf_ctag',
                 'sf_jet_puId',
                 'sf_L1prefiring',
             ]
@@ -322,7 +324,7 @@ class WeightsManager:
                 )
 
             else:
-                # Only the nominal if there is a shape variation
+                # Only the nominal if there are no shape variations
                 btagsf = sf_btag(
                     self.params,
                     events.JetGood,
@@ -345,6 +347,17 @@ class WeightsManager:
                     ),
                 )
             ]
+
+        elif weight_name == 'sf_ctag':
+            ctagsf = sf_ctag(
+                self.params,
+                events.JetGood,
+                self._year,
+                njets=events.nJetGood,
+                variations=["central"],
+            )
+
+            return [('sf_ctag', ctagsf)]
 
         elif weight_name == 'sf_jet_puId':
             return [
