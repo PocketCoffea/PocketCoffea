@@ -118,6 +118,7 @@ class WeightsManager:
             "sf_jet_puId",
             "sf_L1prefiring",
             "sf_btag",
+            "sf_ctag"
         ]
         return set(out)
 
@@ -291,7 +292,6 @@ class WeightsManager:
             ]
 
         elif weight_name == 'sf_btag':
-
             # Get all the nominal and variation SF
             if shape_variation == "nominal":
                 btag_vars = self.params.systematic_variations.weight_variations.sf_btag[
@@ -349,15 +349,44 @@ class WeightsManager:
             ]
 
         elif weight_name == 'sf_ctag':
-            ctagsf = sf_ctag(
-                self.params,
-                events.JetGood,
-                self._year,
-                njets=events.nJetGood,
-                variations=["central"],
-            )
+            print("Doing ctag SFs", shape_variation)
 
-            return [('sf_ctag', ctagsf)]
+            if shape_variation == "nominal":
+                ctag_vars = self.params.systematic_variations.weight_variations.sf_ctag[
+                    self._year
+                ]
+                ctagsf = sf_ctag(
+                    self.params,
+                    events.JetGood,
+                    self._year,
+                    njets=events.nJetGood,
+                    variations=["central"] + ctag_vars,
+                )
+
+                #print(ctagsf)
+                for var in ctag_vars:
+                    #print("ctag_var", var)
+                    #print(ctagsf[var])
+                    # Rescale the up and down variation by the central one to
+                    # avoid double counting of the central SF when adding the weights
+                    # as separate entries in the Weights object.
+                    ctagsf[var][1] = ctagsf[var][1] / ctagsf["central"][0]
+                    ctagsf[var][2] = ctagsf[var][2] / ctagsf["central"][0]
+
+
+            else:
+                # Only the nominal if there are no shape variations
+                ctagsf = sf_ctag(
+                    self.params,
+                    events.JetGood,
+                    self._year,
+                    njets=events.nJetGood,
+                    variations=["central"],
+                )
+
+            # return the nominal and everything
+            print([(f"sf_ctag_{var}", *weights) for var, weights in ctagsf.items()])
+            return [(f"sf_ctag_{var}", *weights) for var, weights in ctagsf.items()]
 
         elif weight_name == 'sf_jet_puId':
             return [

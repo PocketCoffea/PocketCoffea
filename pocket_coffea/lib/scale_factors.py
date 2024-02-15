@@ -359,16 +359,31 @@ def sf_ctag(params, jets, year, njets, variations=["central"]):
     CvL = ak.to_numpy(ak.flatten(jets.btagDeepCvL))
     CvB = ak.to_numpy(ak.flatten(jets.btagDeepCvB))
 
-    discr = ak.to_numpy(ak.flatten(jets[ctagger]))
+    #discr = ak.to_numpy(ak.flatten(jets[ctagger]))
 
     central_SF_byjet = corr.evaluate("central", flav, CvL, CvB)
-
+    
     #print(central_SF_byjet)
     #print("Unflatt=", ak.unflatten(central_SF_byjet, njets))
     #print("Prod:", ak.prod(ak.unflatten(central_SF_byjet, njets), axis=1))
-    
-    output = ak.prod(ak.unflatten(central_SF_byjet, njets), axis=1)
 
+    output = {}
+    for variation in variations:
+        if variation == "central":
+            output[variation] = [ak.prod(ak.unflatten(central_SF_byjet, njets), axis=1)]
+        else:
+            # Nominal sf==1
+            nominal = np.ones(ak.num(njets, axis=0))
+            # Systematic variations
+            up_variation_SF_byjet = corr.evaluate(f"up_{variation}", flav, CvL, CvB)
+            down_variation_SF_byjet = corr.evaluate(f"down_{variation}", flav, CvL, CvB)
+
+            output[variation] = [
+                nominal,
+                ak.prod(ak.unflatten(up_variation_SF_byjet,njets), axis=1),
+                ak.prod(ak.unflatten(down_variation_SF_byjet,njets), axis=1)
+            ]
+            
     return output
     
 def sf_jet_puId(params, jets, year, njets):
