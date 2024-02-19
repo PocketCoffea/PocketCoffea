@@ -22,7 +22,9 @@ variables:
   only:
     - pushes
     - merge_requests
-
+    - coffea_2023
+    - main
+    - stable
 #--------------------------------------------------------------------
 # Build images and tag with short commit SHA
 build_docker_infn_facility:
