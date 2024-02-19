@@ -95,7 +95,7 @@ build_docker_lxplus_stable:
 build_docker_lxplus_coffea2023:
   extends: .tag_skopeo
   rules:
-   - if: '$CI_COMMIT_REF_NAME == "coffea2023"'
+   - if: '$CI_COMMIT_REF_NAME == "coffea_2023"'
   variables:
     IMAGE_ORIGIN_TAG: ${CI_REGISTRY_IMAGE}:lxplus-${CI_COMMIT_SHORT_SHA}
     IMAGE_DESTINATION_TAG: ${CI_REGISTRY_IMAGE}:lxplus-cc7-coffea2023
