@@ -44,7 +44,7 @@ def do_dataset(key, config, local_prefix, whitelist_sites, blacklist_sites, rege
     return dataset
 
 def build_datasets(cfg, keys=None, overwrite=False, download=False, check=False, split_by_year=False, local_prefix=None,
-                   whitelist_sites=None, blacklist_sites=None, regex_sites=None, parallelize=4):
+                   whitelist_sites=None, blacklist_sites=None, regex_sites=None, parallelize=4, redirector="root://xrootd-cms.infn.it//"):
 
     config = json.load(open(cfg))
 
@@ -192,10 +192,11 @@ class Sample:
 
 
 class Dataset:
-    def __init__(self, name, cfg, sites_cfg=None, append_parents=False):
+    def __init__(self, name, cfg, sites_cfg=None, append_parents=False, redirector="root://xrootd-cms.infn.it//"):
         self.cfg = cfg
         self.prefix = cfg.get("storage_prefix", None)
         self.name = name
+        self.redirector = redirector
         self.outfile = cfg["json_output"]
         self.sample = cfg["sample"]
         self.sample_dict_redirector = {}
@@ -238,7 +239,7 @@ class Dataset:
             self.samples_obj.append(sample)
 
             # Save redirector
-            self.sample_dict_redirector.update(sample.get_sample_dict(redirector=True))
+            self.sample_dict_redirector.update(sample.get_sample_dict(redirector=True, prefix=self.redirector))
             # Save concrete
             self.sample_dict_concrete.update(sample.get_sample_dict(redirector=False))
 

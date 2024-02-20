@@ -73,6 +73,7 @@ parser.add_argument(
 )
 parser.add_argument("-rs", "--regex-sites", help="Regex string to be used to filter the sites", type=str)
 parser.add_argument("-p", "--parallelize", help="Number of parallel processes to be used to fetch the datasets", type=int, default=4)
+parser.add_argument("--redirector", help="Redirector to be used to fetch the datasets", type=str, default="root://xrootd-cms.infn.it//")
 args = parser.parse_args()
 
 print(vars(args))
