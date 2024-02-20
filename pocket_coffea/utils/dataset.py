@@ -18,7 +18,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from .network import get_proxy_path
 from . import rucio
 
-def do_dataset(key, config, local_prefix, whitelist_sites, blacklist_sites, regex_sites, **kwargs):
+def do_dataset(key, config, local_prefix, whitelist_sites, blacklist_sites, regex_sites, redirector, **kwargs):
     print("*" * 40)
     print("> Working on dataset: ", key)
     if key not in config:
@@ -37,6 +37,7 @@ def do_dataset(key, config, local_prefix, whitelist_sites, blacklist_sites, rege
                 "blacklist_sites": blacklist_sites,
                 "regex_sites": regex_sites,
             },
+            redirector=redirector
         )
     except:
         raise Exception(f"Error getting info about dataset: {key}")
