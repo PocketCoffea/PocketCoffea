@@ -22,7 +22,9 @@ variables:
   only:
     - pushes
     - merge_requests
-
+    - coffea_2023
+    - main
+    - stable
 #--------------------------------------------------------------------
 # Build images and tag with short commit SHA
 build_docker_infn_facility:
@@ -89,6 +91,16 @@ build_docker_lxplus_stable:
     IMAGE_DESTINATION_TAG: ${CI_REGISTRY_IMAGE}:lxplus-cc7-stable
 
 
+#----------------------------------
+# Tag images on coffea2023 branch
+
+build_docker_lxplus_coffea2023:
+  extends: .tag_skopeo
+  rules:
+   - if: '$CI_COMMIT_REF_NAME == "coffea_2023"'
+  variables:
+    IMAGE_ORIGIN_TAG: ${CI_REGISTRY_IMAGE}:lxplus-${CI_COMMIT_SHORT_SHA}
+    IMAGE_DESTINATION_TAG: ${CI_REGISTRY_IMAGE}:lxplus-cc7-coffea2023
 
 
 
