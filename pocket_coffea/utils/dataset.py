@@ -52,11 +52,26 @@ def build_datasets(cfg, keys=None, overwrite=False, download=False, check=False,
 
     if not keys:
         keys = config.keys()
-    args = {arg : value for arg, value in locals().items() if arg != "keys"}
 
-    with Pool(parallelize) as pool:
-        print("Dataset keys:", list(keys))
-        datasets = pool.map(partial(do_dataset, **args), keys)
+    args = {
+        "config": config,
+        "overwrite": overwrite,
+        "download": download,
+        "check": check,
+        "split_by_year": split_by_year,
+        "local_prefix": local_prefix,
+        "whitelist_sites": whitelist_sites,
+        "blacklist_sites": blacklist_sites,
+        "regex_sites": regex_sites,
+        "parallelize": parallelize
+    }
+    
+    if parallelize == 1:
+        datasets = [do_dataset(key, **args) for key in keys]
+    else:
+        with Pool(parallelize) as pool:
+            print("Dataset keys:", list(keys))
+            datasets = pool.map(partial(do_dataset, **args), keys)
 
     for dataset in datasets:
         dataset.save(overwrite=overwrite, split=split_by_year)
@@ -137,11 +152,16 @@ class Sample:
             if len(self.fileslist_redirector) == 0:
                 raise Exception(f"Found 0 files for sample {self}!")
 
-            # Now query rucio to get the concrete dataset passing the sites filtering options
-            files_rucio, sites = rucio.get_dataset_files(
-                das_name, **self.sites_cfg, output="first"
-            )
-            self.fileslist_concrete += files_rucio
+            if self.metadata.get("dbs_instance", "prod/global") == "prod/global":
+                # Now query rucio to get the concrete dataset passing the sites filtering options
+                files_replicas, sites = rucio.get_dataset_files(
+                    das_name, **self.sites_cfg, output="first"
+                )
+            else:
+                # Use DBS to get the site
+                files_replicas, sites = rucio.get_dataset_files_from_dbs(das_name, self.metadata["dbs_instance"])
+                
+            self.fileslist_concrete += files_replicas
 
     # Function to build the sample dictionary
     def get_sample_dict(self, redirector=True, prefix="root://xrootd-cms.infn.it//"):
