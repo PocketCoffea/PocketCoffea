@@ -1,0 +1,36 @@
+general: 
+  scaleout: 1
+  chunksize: 50000
+  limit-files: null
+  limit-chunks: null
+  retries: 20
+  tree-reduction: 20
+  skip-bad-files: false
+  voms-proxy: null
+
+dask@lxplus:
+  scaleout: 10
+  cores-per-worker: 1
+  mem-per-worker: "2GB"
+  disk-per-worker: "2GB"
+  worker-image: /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-latest
+  death-timeout: "3600"
+  queue: "microcentury"
+  adaptive: false
+  performance-report: true
+  custom-setup-commands: null
+  conda-env: false
+  local-virtualenv: false
+
+dask@T3_PSI_CH:
+  scaleout: 10
+  cores-per-worker: 1
+  mem-per-worker: "4GB"
+  disk-per-worker: "2GB"
+  queue: "standard"
+  walltime: "6:00:00"
+  adaptive: false
+  performance-report: false
+  custom-setup-commands: null
+  conda-env: false
+  local-virtualenv: false

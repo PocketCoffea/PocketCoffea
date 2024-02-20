@@ -217,9 +217,14 @@ def jet_selection(events, jet_type, params, leptons_collection=""):
         mask_lepton_cleaning = ak.prod(dR_jets_lep > cuts["dr_lepton"], axis=2) == 1
 
     if jet_type == "Jet":
-        mask_jetpuid = (jets.puId >= cuts["puId"]["value"]) | (
-            jets.pt >= cuts["puId"]["maxpt"]
-        )
+        # Selection on PUid. Only available in Run2 UL, thus we need to determine which sample we run over:
+        if events.metadata["year"] in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
+            mask_jetpuid = (jets.puId >= cuts["puId"]["value"]) | (
+                jets.pt >= cuts["puId"]["maxpt"]
+            )
+        else:
+            mask_jetpuid = True
+  
         mask_good_jets = mask_presel & mask_lepton_cleaning & mask_jetpuid
 
     elif jet_type == "FatJet":
@@ -232,3 +237,35 @@ def jet_selection(events, jet_type, params, leptons_collection=""):
 
 def btagging(Jet, btag):
     return Jet[Jet[btag["btagging_algorithm"]] > btag["btagging_WP"]]
+
+
+def CvsLsorted(jets, ctag):
+    return jets[ak.argsort(jets[ctag["tagger"]], axis=1, ascending=False)]
+
+
+def get_dijet(jets):
+    
+    fields = {
+        "pt": 0.,
+        "eta": 0.,
+        "phi": 0.,
+        "mass": 0.,
+    }
+
+    jets = ak.pad_none(jets, 2)
+    njet = ak.num(jets[~ak.is_none(jets, axis=1)])
+    
+    dijet = jets[:, 0] + jets[:, 1]
+
+    for var in fields.keys():
+        fields[var] = ak.where(
+            (njet >= 2),
+            getattr(dijet, var),
+            fields[var]
+        )
+
+    fields["deltaR"] = ak.where( (njet >= 2), jets[:,0].delta_r(jets[:,1]), -1)
+
+    dijet = ak.zip(fields, with_name="PtEtaPhiMCandidate")
+
+    return dijet

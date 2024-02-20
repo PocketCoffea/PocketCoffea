@@ -12,6 +12,9 @@ from parsl import python_app
 from parsl.config import Config
 from parsl.executors.threads import ThreadPoolExecutor
 
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 from .network import get_proxy_path
 from . import rucio
 
@@ -106,6 +109,8 @@ class Sample:
                 link = f"https://cmsweb.cern.ch:8443/dbs/{self.metadata['dbs_instance']}/DBSReader/files?dataset={das_name}&detail=True"
             else:
                 link = f"https://cmsweb.cern.ch:8443/dbs/prod/global/DBSReader/files?dataset={das_name}&detail=True"
+
+            # print('\t Getting files for dataset: ', das_name)
             r = requests.get(
                 link,
                 cert=proxy,
@@ -113,9 +118,17 @@ class Sample:
             )
             filesjson = r.json()
             for fj in filesjson:
-                if fj["is_file_valid"] == 0:
-                    print(f"ERROR: File not valid on DAS: {f['name']}")
+                if 'is_file_valid' not in fj.keys():
+                    # print("fj=", fj)
+                    raise Exception(f"(probably) an Invalid dataset name provided for entry: {self}!")
                 else:
+                    if fj["is_file_valid"] == 0:
+                        #print(fj)
+                        print(f"\t WARNING: A file not valid on DAS: {fj['logical_file_name']}")
+                        print("\t We are skipping it")
+                        #raise Exception(f"Invalid files in sample {self}!")
+                        continue
+                    
                     self.fileslist_redirector.append(fj['logical_file_name'])
                     self.metadata["nevents"] += fj['event_count']
                     self.metadata["size"] += fj['file_size']

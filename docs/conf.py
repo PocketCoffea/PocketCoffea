@@ -23,7 +23,7 @@ sys.path.append(str(BASEDIR / "pocket_coffea"))
 # -- Project information -----------------------------------------------------
 
 project = "PocketCoffea"
-copyright = "2022 "
+copyright = "2024"
 author = "Davide Valsecchi, Matteo Marchegiani"
 
 
@@ -38,6 +38,7 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.napoleon",
     "sphinx_copybutton",
+    "sphinx_markdown_tables",
 ]
 
 myst_enable_extensions = [
@@ -77,7 +78,7 @@ html_theme = "sphinx_book_theme"
 
 html_title = f"{project}"
 
-html_baseurl = "https://PocketCoffea.readthedocs.io/en/latest/"
+html_baseurl = "https://PocketCoffea.readthedocs.io/en/stable/"
 
 html_theme_options = {
     "home_page_in_toc": True,

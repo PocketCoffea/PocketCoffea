@@ -8,13 +8,20 @@ from collections import defaultdict
 
 os.environ["RUCIO_HOME"] = "/cvmfs/cms.cern.ch/rucio/x86_64/rhel7/py3/current"
 
-
 def get_rucio_client():
+
+    # If the local username account is different than CERN username
+    # one has to setup an environment variable to be accessible here:
+    CERN_USERNAME = os.getenv('CERN_USERNAME')
+
+    if CERN_USERNAME=='':
+        # If the username is not setup - take a local one
+        CERN_USERNAME = getpass.getuser()
     try:
         nativeClient = Client(
             rucio_host="https://cms-rucio.cern.ch",
             auth_host="https://cms-rucio-auth.cern.ch",
-            account=getpass.getuser(),
+            account=CERN_USERNAME,
             creds={"client_cert": get_proxy_path(), "client_key": get_proxy_path()},
             auth_type='x509',
         )
@@ -58,6 +65,10 @@ def get_xrootd_sites_map():
                             sites_xrootd_access[site["rse"]] = proc["prefix"]
         json.dump(sites_xrootd_access, open(".sites_map.json", "w"))
 
+    else:
+        print("Your .sites_map.json file already exists! Will use that file for sites configuration, not overwriting it.")
+        print("\t If you need it to be updated remove the .sites_map.json and rerun this script again.")
+
     return json.load(open(".sites_map.json"))
 
 
@@ -69,9 +80,9 @@ def _get_pfn_for_site(path, rules):
                 for i in range(len(grs)):
                     pfn = pfn.replace(f"${i+1}", grs[i])
                 return pfn
-    else: 
+    else:
         return rules + "/"+ path
-    
+
 
 def get_dataset_files(
     dataset,
@@ -115,6 +126,7 @@ def get_dataset_files(
                         continue
                     outfile.append(_get_pfn_for_site(filedata["name"], sites_xrootd_prefix[site]))
                     outsite.append(site)
+
                     found = True
 
             if not found:

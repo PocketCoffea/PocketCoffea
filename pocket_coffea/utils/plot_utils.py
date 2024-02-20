@@ -12,13 +12,12 @@ import hist
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
-from matplotlib.ticker import MultipleLocator, AutoMinorLocator
 import mplhep as hep
 
 from omegaconf import OmegaConf
 from pocket_coffea.parameters.defaults import merge_parameters
 
-
+np.seterr(divide="ignore", invalid="ignore")
 class Style:
     '''This class manages all the style options for Data/MC plots.'''
 
@@ -38,8 +37,15 @@ class Style:
             self.has_labels = True
         if "samples_groups" in style_cfg:
             self.has_samples_groups = True
-
+        self.has_exclude_samples=False
+        if "exclude_samples" in style_cfg:
+            self.has_exclude_samples = True
+        self.has_rescale_samples=False
+        if "rescale_samples" in style_cfg:
+            self.has_rescale_samples = True
         self.set_defaults()
+
+        #print("Style config:\n", style_cfg)
 
     def set_defaults(self):
         if not "stack" in self.opts_mc:
@@ -76,6 +82,7 @@ class PlotManager:
         workers=8,
         log=False,
         density=False,
+        verbose=1,
         save=True
     ) -> None:
 
@@ -88,6 +95,7 @@ class PlotManager:
         self.save = save
         self.nhists = len(variables)
         self.toplabel = toplabel
+        self.verbose=verbose
 
         # Reading the datasets_metadata to
         # build the correct shapes for each datataking year
@@ -104,9 +112,11 @@ class PlotManager:
                             hs[sample][dataset] = hist_objs[variable][sample][dataset]
                         except:
                             print(f"Warning: missing dataset {dataset} for variable {variable}, year {year}")
+                    if len(hs[sample].keys()) == 0:
+                        del hs[sample]
                 vs[year] = hs
             self.hists_to_plot[variable] = vs
-        
+
         for variable, histoplot in self.hists_to_plot.items():
             for year, h_dict in histoplot.items():
                 name = '_'.join([variable, year])
@@ -115,7 +125,7 @@ class PlotManager:
                     toplabel_to_use = self.toplabel
                 else:
                     toplabel_to_use = f"$\mathcal{{L}}$ = {style_cfg.plot_upper_label.by_year[year]:.2f}/fb"
-                
+
                 self.shape_objects[name] = Shape(
                     h_dict,
                     datasets_metadata["by_dataset"],
@@ -125,7 +135,8 @@ class PlotManager:
                     only_cat=self.only_cat,
                     log=self.log,
                     density=self.density,
-                    toplabel=toplabel_to_use
+                    toplabel=toplabel_to_use,
+                    verbose=self.verbose
                 )
         if self.save:
             self.make_dirs()
@@ -136,17 +147,21 @@ class PlotManager:
         to avoid conflicts between different processes.'''
         for name, shape in self.shape_objects.items():
             for cat in shape.categories:
+                if self.only_cat and cat not in self.only_cat:
+                    continue
                 plot_dir = os.path.join(self.plot_dir, cat)
                 if not os.path.exists(plot_dir):
                     os.makedirs(plot_dir)
 
     def plot_datamc(self, name, syst=True, spliteras=False):
         '''Plots one histogram, for all years and categories.'''
-        print("Plotting: ", name)
+        if self.verbose>0:
+            print("Plotting: ", name)
         shape = self.shape_objects[name]
         if shape.dense_dim > 1:
-            print(f"WARNING: cannot plot data/MC for histogram {shape.name} with dimension {shape.dense_dim}.")
-            print("The method `plot_datamc` will be skipped.")
+            if self.verbose>0:
+                print(f"WARNING: cannot plot data/MC for histogram {shape.name} with dimension {shape.dense_dim}.")
+                print("The method `plot_datamc` will be skipped.")
             return
 
         if ((shape.is_mc_only) | (shape.is_data_only)):
@@ -178,7 +193,7 @@ class Shape:
     def __init__(
         self,
         h_dict,
-        datasets_metadata, 
+        datasets_metadata,
         name,
         plot_dir,
         style_cfg,
@@ -186,6 +201,7 @@ class Shape:
         only_cat=None,
         log=False,
         density=False,
+        verbose=1,
     ) -> None:
         self.h_dict = h_dict
         self.name = name
@@ -199,23 +215,35 @@ class Shape:
         self.density = density
         self.datasets_metadata=datasets_metadata
         self.sample_is_MC = {}
+        self.verbose = verbose
         self._stacksCache = defaultdict(dict)
         assert (
             type(h_dict) in [dict, defaultdict]
         ), "The Shape object receives a dictionary of hist.Hist objects as argument."
         self.group_samples()
+        self.exclude_samples()
+        self.rescale_samples()
         self.load_attributes()
         self.syst_manager = SystManager(self, self.style)
 
     def load_attributes(self):
         '''Loads the attributes from the dictionary of histograms.'''
-        assert len(
-            set([self.h_dict[s].ndim for s in self.samples_mc])
-        ), f"{self.name}: Not all the MC histograms have the same dimension."
-        assert len(
-            set([self.h_dict[s].ndim for s in self.samples_data])
-        ), f"{self.name}: Not all the data histograms have the same dimension."
+        if self.verbose>1:
+            print(self.h_dict)
+            print("samples:", self.samples_mc)
         
+        self.is_mc_only = True if len(self.samples_data) == 0 else False
+        self.is_data_only = True if len(self.samples_mc) == 0 else False
+
+        if not self.is_data_only:
+            assert len(
+                set([self.h_dict[s].ndim for s in self.samples_mc])
+            ), f"{self.name}: Not all the MC histograms have the same dimension."
+        if not self.is_mc_only:
+            assert len(
+                set([self.h_dict[s].ndim for s in self.samples_data])
+            ), f"{self.name}: Not all the data histograms have the same dimension."
+
         for ax in self.categorical_axes_mc:
             setattr(
                 self,
@@ -249,10 +277,6 @@ class Shape:
                 }
             )
 
-        self.is_mc_only = True if len(self.samples_data) == 0 else False
-        self.is_data_only = True if len(self.samples_mc) == 0 else False
-
-        
     @property
     def dense_axes(self):
         '''Returns the list of dense axes of a histogram, defined as the axes that are not categorical axes.'''
@@ -284,9 +308,16 @@ class Shape:
                 if type(ax) in [hist.axis.StrCategory, hist.axis.IntCategory]:
                     categorical_axes_dict[s].append(ax)
         categorical_axes = list(categorical_axes_dict.values())
-        assert all(
-            v == categorical_axes[0] for v in categorical_axes
-        ), "Not all the histograms in the dictionary have the same categorical dimension."
+        error_msg = f"The Shape object `{self.name}` contains histograms with different categorical axes in the %1 datasets.\nMismatching axes:\n"
+        if mc:
+            error_msg = error_msg.replace("%1", "MC")
+        else:
+            error_msg = error_msg.replace("%1", "Data")
+        for v in categorical_axes:
+            for i, axis in enumerate(v):
+                if axis != categorical_axes[0][i]:
+                    error_msg += f"{axis}\n" + f"{categorical_axes[0][i]}"
+                    raise Exception(error_msg)
         categorical_axes = categorical_axes[0]
 
         return categorical_axes
@@ -360,6 +391,7 @@ class Shape:
         if self.style.collapse_datasets:
             # Sum over the different datasets for each sample
             for sample, datasets in self.h_dict.items():
+                #print("Grouping:", sample, datasets)
                 self.h_dict[sample] = self._stack_sum(
                     stack=hist.Stack.from_dict(
                         {s: h for s, h in datasets.items() if s in datasets}
@@ -373,27 +405,73 @@ class Shape:
                         self.sample_is_MC[sample] = isMC
                     elif isMC != isMC_d:
                         raise Exception(f"You are collapsing together data and MC histogram!")
-                    
+
         else:
             raise NotImplementedError("Plotting histograms without collapsing is still not implemented")
-        
+
         if not self.style.has_samples_groups:
             return
         h_dict_grouped = {}
         samples_in_map = []
+
+        cleaned_samples_list = self.style.samples_groups.copy()
         for sample_new, samples_list in self.style.samples_groups.items():
+            #print(sample_new, samples_list)
+            for s_to_group in samples_list:
+                if s_to_group not in self.h_dict.keys():
+                    if self.verbose>=0:
+                        print("WARNING. Sample ",s_to_group," is not in the list of samples: ", list(self.h_dict.keys()), "Skipping it.")
+                    cleaned_samples_list[sample_new].remove(s_to_group)
+                    continue
+                if self.verbose>=1:
+                    print("\t Sample ",s_to_group," will be grouped into sample", sample_new)
+
+        for sample_new, samples_list in cleaned_samples_list.items():
+            if len(samples_list)==0:
+                if self.verbose>=1:
+                    print("WARNING. The list of samples to group is empty!  Group name:", sample_new)
+                continue
+            
             h_dict_grouped[sample_new] = self._stack_sum(
                 stack=hist.Stack.from_dict(
                     {s: h for s, h in self.h_dict.items() if s in samples_list}
                 )
             )
+            isMC = self.sample_is_MC[samples_list[0]]
+            self.sample_is_MC[sample_new] = self.sample_is_MC[samples_list[0]]
             samples_in_map += samples_list
+
         for s, h in self.h_dict.items():
             if s not in samples_in_map:
                 h_dict_grouped[s] = h
         self.h_dict = deepcopy(h_dict_grouped)
-        
 
+    def exclude_samples(self):
+        if not self.style.has_exclude_samples:
+            return
+
+        samples_to_exclude = self.style.exclude_samples
+        h_dict_excluded = {}
+        for s, h in self.h_dict.items():
+            if s not in samples_to_exclude:
+                h_dict_excluded[s] = h
+
+        self.h_dict = deepcopy(h_dict_excluded)
+
+    def rescale_samples(self):
+        if not self.style.has_rescale_samples:
+            return
+        for sample,scale in self.style.rescale_samples.items():
+
+            if sample in self.h_dict.keys():
+                if self.verbose>=2:
+                    print("Rescaling hist", self.h_dict[sample].name, "in sample",sample, " by ", scale)
+                self.h_dict[sample] = self.h_dict[sample]*scale
+            else:
+                if self.verbose>0:
+                    print("Warning: the rescaling sample is not among the samples in the histograms. Nothing will be rescaled! ")
+                    print("\t Rescale requested for:", sample, ";  hists exist:", self.h_dict.keys())
+                    
     def _get_stacks(self, cat, spliteras=False):
         '''Builds the data and MC stacks, applying a slicing by category.
         The stacks are cached in a dictionary so that they are not recomputed every time.
@@ -412,9 +490,11 @@ class Shape:
                 d: round(sum(h_dict_mc_nominal[d].values()), 1)
                 for d in self.samples_mc
             }
-            reverse = True
+            
             # Order the events dictionary by decreasing number of events if linear scale, increasing if log scale
-            # N.B.: Here implement if log: reverse=False
+            reverse = True
+            if self.log:
+                reverse = False
             self.nevents = dict(
                 sorted(self.nevents.items(), key=lambda x: x[1], reverse=reverse)
             )
@@ -460,6 +540,17 @@ class Shape:
             self.syst_manager.update()
         return self._stacksCache[cat]
 
+    def _is_empty(self, cat):
+        '''Checks if the data and MC stacks are empty.'''
+        is_empty = True
+        if not self.is_data_only:
+            if sum(self._stacksCache[cat]["mc_nominal_sum"].values()) != 0:
+                is_empty = False
+        if not self.is_mc_only:
+            if sum(self._stacksCache[cat]["data_sum"].values()) != 0:
+                is_empty = False
+        return is_empty
+
     def get_datamc_ratio(self, cat):
         '''Computes the data/MC ratio and the corresponding uncertainty.'''
         stacks = self._get_stacks(cat)
@@ -468,9 +559,10 @@ class Shape:
         den = stacks["mc_nominal_sum"].values()
 
         if np.any(den <0 ):
-            print(f"WARNING: negative bins in MC of shape {self.name}. BE CAREFUL! Putting negative bins to 0 for plotting..")
+            if self.verbose>0:
+                print(f"WARNING: negative bins in MC of shape {self.name}. BE CAREFUL! Putting negative bins to 0 for plotting..")
         den[den < 0] = 0
-            
+
         ratio = num / den
         # TO DO: Implement Poisson interval valid also for num~0
         # np.sqrt(num) is just an approximation of the uncertainty valid at large num
@@ -541,6 +633,7 @@ class Shape:
                 reference_shape = reference_shape / integral
             ymax = max(reference_shape)
             if not np.isnan(ymax):
+                if ymax==0: ymax=1
                 self.ax.set_ylim((0, 2.0 * ymax))
         if ratio:
             self.ax.set_xlabel("")
@@ -555,10 +648,16 @@ class Shape:
             labels_new = []
             handles_new = []
             for i, l in enumerate(labels):
+                # If additional scale is provided, plot it on the legend:
+                scale_str = ""
+                if self.style.has_rescale_samples and l in self.style.rescale_samples.keys():
+                    scale_str = " x%.2f"%self.style.rescale_samples[l]
                 if l in self.style.labels_mc:
-                    labels_new.append(f"{self.style.labels_mc[l]}")
+                    
+                    labels_new.append(f"{self.style.labels_mc[l]}"+scale_str)
                 else:
-                    labels_new.append(l)
+                    labels_new.append(l+scale_str)
+                    
                 handles_new.append(handles[i])
             labels = labels_new
             handles = handles_new
@@ -602,6 +701,12 @@ class Shape:
             if not hasattr(self, "ax"):
                 self.define_figure(ratio=False)
         y = stacks["data_sum"].values()
+        # Add underflow and overflow bins to the first and last bin, respectively
+        if self.style.opts_mc["flow"] == "sum":
+            y_underflow = stacks["data_sum"][hist.underflow].value
+            y_overflow = stacks["data_sum"][hist.overflow].value
+            y[0] += y_underflow
+            y[-1] += y_overflow
         yerr = np.sqrt(y)
         integral = sum(y) * np.array(self.style.opts_axes["xbinwidth"])
         if self.density:
@@ -623,6 +728,11 @@ class Shape:
         else:
             if not hasattr(self, "rax"):
                 self.define_figure(ratio=True)
+
+        # Removing nans and inf
+        np.nan_to_num(ratio, copy=False)
+        np.nan_to_num(ratio_unc, copy=False)
+
         self.rax.errorbar(
             self.style.opts_axes["xcenters"], ratio, yerr=ratio_unc, **self.style.opts_data
         )
@@ -692,18 +802,18 @@ class Shape:
         if (not self.is_mc_only) & (not self.is_data_only):
             self.plot_mc(cat)
             self.plot_data(cat)
-            if syst:
+            if syst & (not self._is_empty(cat)):
                 self.plot_systematic_uncertainty(cat)
         elif self.is_mc_only:
             self.plot_mc(cat)
-            if syst:
+            if syst & (not self._is_empty(cat)):
                 self.plot_systematic_uncertainty(cat)
         elif self.is_data_only:
             self.plot_data(cat)
 
         if ratio:
             self.plot_datamc_ratio(cat)
-            if syst:
+            if syst & (not self._is_empty(cat)):
                 self.plot_systematic_uncertainty(cat, ratio=ratio)
 
         self.format_figure(cat, ratio=ratio)
@@ -718,6 +828,8 @@ class Shape:
             return
 
         for cat in self.categories:
+            if self.verbose>1:
+                print('Plotting category:', cat)
             if self.only_cat and cat not in self.only_cat:
                 continue
             self.define_figure(ratio)
@@ -728,7 +840,8 @@ class Shape:
                     filepath = os.path.join(plot_dir, f"log_{self.name}_{cat}.png")
                 else:
                     filepath = os.path.join(plot_dir, f"{self.name}_{cat}.png")
-                print("Saving", filepath)
+                if self.verbose>0:
+                    print("Saving", filepath)
                 plt.savefig(filepath, dpi=150, format="png")
             else:
                 plt.show(self.fig)

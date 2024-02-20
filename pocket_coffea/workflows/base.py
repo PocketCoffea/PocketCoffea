@@ -72,6 +72,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Accumulators for the output
         self.output_format = {
             "sum_genweights": {},
+            "sum_signOf_genweights": {},
             "sumw": {
                 cat: {} for cat in self._categories
             },
@@ -127,7 +128,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self._era = self.events.metadata["era"]
         # Loading metadata for subsamples
         self._hasSubsamples = self.cfg.has_subsamples[self._sample]
-        
+
     def load_metadata_extra(self):
         '''
         Function that can be called by a derived processor to define additional metadata.
@@ -147,10 +148,10 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
           - **user-defined** skimming cuts
 
         BE CAREFUL: the skimming is done before any object preselection and cleaning.
-        Only collections and branches already present in the NanoAOD before any correct
+        Only collections and branches already present in the NanoAOD before any corrections
         can be used.
-        Alternatively, if you need to apply the cut on preselected objects,
-        defined the cut at the preselection level, not at skim level.
+        Alternatively, if you need to apply the cut on preselected objects -
+        define the cut at the preselection level, not at skim level.
         '''
         self._skim_masks = PackedSelection()
         mask_flags = np.ones(self.nEvents_initial, dtype=bool)
@@ -232,7 +233,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
         Function that counts the preselected objects and save the counts as attributes of `events`.
         The function **must** be defined by the user processor.
-        ''' 
+        '''
         pass
 
     def apply_preselections(self, variation):
@@ -377,7 +378,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                         self.output["sumw"][category][self._dataset][f"{self._sample}__{subs}"] = ak.sum(w * mask_withsub)
                         self.output["sumw2"][category][self._dataset][f"{self._sample}__{subs}"] = ak.sum((w**2) * mask_withsub)
 
-                        
+
     def define_custom_axes_extra(self):
         '''
         Function which get called before the definition of the Histogram
@@ -446,7 +447,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 name = self._sample
             for var, H in self.hists_managers.get_histograms(subs).items():
                 self.output["variables"][var][name][self._dataset] = H
-                
+
 
     def fill_histograms_extra(self, variation):
         '''
@@ -484,13 +485,13 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
         if len(self.column_managers) == 0:
             return
-    
+
         outcols = self.output["columns"]
         # TODO Fill column accumulator for different variations
         if self._hasSubsamples:
             # call the filling for each
             for subs in self._subsamples[self._sample].keys():
-                if self.workflow_options.get("dump_columns_as_arrays_per_chunk", None)!=None:
+                if self.workflow_options!=None and self.workflow_options.get("dump_columns_as_arrays_per_chunk", None)!=None:
                     # filling awkward arrays to be dumped per chunk
                     if self.column_managers[subs].ncols == 0: break
                     out_arrays = self.column_managers[subs].fill_ak_arrays(
@@ -501,7 +502,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                                                )
                     fname = (self.events.behavior["__events_factory__"]._partition_key.replace( "/", "_" )
                         + ".parquet")
-                    for category, akarr in out_arrays.items(): 
+                    for category, akarr in out_arrays.items():
                         # building the file name
                         subdirs = [self._dataset, sub, category]
                         dump_ak_array(akarray, fname, self.workflow_options["dump_columns_as_arrays_per_chunk"]+"/", subdirs)
@@ -522,7 +523,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         else:
             # NO subsamples
             if self.column_managers[self._sample].ncols == 0: return
-            if self.workflow_options.get("dump_columns_as_arrays_per_chunk", None)!=None:
+            if self.workflow_options!=None and self.workflow_options.get("dump_columns_as_arrays_per_chunk", None)!=None:
                 out_arrays = self.column_managers[self._sample].fill_ak_arrays(
                                                self.events,
                                                self._categories,
@@ -567,23 +568,29 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         By default they are all the weights defined in the WeightsManager
         '''
         vars = WeightsManager.available_variations()
-        vars.update(
-            [
-                "JES_Total",
-                'JES_FlavorQCD',
-                'JES_RelativeBal',
-                'JES_HF',
-                'JES_BBEC1',
-                'JES_EC2',
-                'JES_Absolute',
-                'JES_Absolute_2018',
-                'JES_HF_2018',
-                'JES_EC2_2018',
-                'JES_RelativeSample_2018',
-                'JES_BBEC1_2018',
-                'JER',
-            ]
-        )
+        available_jet_types = [
+            "AK4PFchs",
+            "AK8PFPuppi"
+        ]
+        available_jet_variations = [
+            "JES_Total",
+            'JES_FlavorQCD',
+            'JES_RelativeBal',
+            'JES_HF',
+            'JES_BBEC1',
+            'JES_EC2',
+            'JES_Absolute',
+            'JES_Absolute_2018',
+            'JES_HF_2018',
+            'JES_EC2_2018',
+            'JES_RelativeSample_2018',
+            'JES_BBEC1_2018',
+            'JER',
+        ]
+        # Here we define the naming scheme for the jet variations
+        # For each jet type, we define the variations names as `{variation}_{jet_type}`
+        available_jet_variations = [f"{v}_{jt}" for v in available_jet_variations for jt in available_jet_types]
+        vars.update(available_jet_variations)
         return vars
 
     def get_shape_variations(self):
@@ -596,22 +603,37 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # nominal is assumed to be the first
         variations = ["nominal"] + self.cfg.available_shape_variations[self._sample]
         # TO be understood if a copy is needed
-        # This canbe useless or suboptimal, working on it
+        # This can be useless or suboptimal, working on it
         nominal_events = self.events
+
+        # Define flags to know if the variations include JES or JER
+        has_jes = any(["JES" in v for v in variations])
+        has_jer = any(["JER" in v for v in variations])
+
+        # Extract the jet type to calibrate from the variation name
+        # Expected format: `JES_Total_AK4PFchs`
+        jet_types_to_calibrate = []
+        if has_jes:
+            jet_types_to_calibrate += set([v.split("_")[-1] for v in variations if "JES" in v])
+        if has_jer:
+            jet_types_to_calibrate += set([v.split("_")[-1] for v in variations if "JER" in v])
+        jet_types_to_calibrate = set(jet_types_to_calibrate)
 
         # Calibrating Jets: only the ones in the jet_types in the params.jet_calibration config
         jets_calibrated = {}
         caches = []
         jet_calib_params= self.params.jets_calibration
-        if "JES" in variations or "JER" in variations:
+        if has_jes or has_jer:
             for jet_type, factory in jet_calib_params.jet_types.items():
+                # If the jet_type read from the parameters is not included in the variations, we skip it
+                if not jet_type in jet_types_to_calibrate: continue
                 cache = cachetools.Cache(np.inf)
                 caches.append(cache)
-                jet_coll = jet_calib_params.collection[jet_type]
-                jets_calibrated[jet_coll] = jet_correction(
+                jet_coll_name = jet_calib_params.collection[jet_type]
+                jets_calibrated[jet_coll_name] = jet_correction(
                     params=self.params,
                     events=nominal_events,
-                    jets=nominal_events[jet_coll],
+                    jets=nominal_events[jet_coll_name],
                     factory=self.jmefactory,
                     jet_type = jet_type,
                     year=self._year,
@@ -631,36 +653,42 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 # Just assign the nominal calibration
                 for jet_coll_name, jet_coll in jets_calibrated.items():
                     self.events[jet_coll_name] = jet_coll
-                
+
                 yield "nominal"
 
-                
+
             elif ("JES" in variation) | ("JER" in variation):
                 # JES_jes is the total. JES_[type] is for different variations
+                # We recover the variation name and the jet type by splitting the variation name
+                variation_name = '_'.join(variation.split("_")[:-1])
+                jet_type = variation.split("_")[-1]
                 self.events = nominal_events
-                for jet_coll_name, jet_coll in jets_calibrated.items():
-                    self.events[jet_coll_name] = jet_coll[variation].up
+
+                # We vary ONLY the jet collection corresponding to the jet type in the variation name
+                # This way, we vary independently the different jet types
+                # e.g. `JES_Total_AK4PFchs` will vary only the `AK4PFchs` jets,
+                # while `JES_Total_AK8PFPuppi` will vary only the `AK8PFPuppi` jets
+                jet_coll_name = jet_calib_params.collection[jet_type]
+                self.events[jet_coll_name] = jets_calibrated[jet_coll_name][variation_name].up
 
                 yield variation + "Up"
 
-                # then go down
-                # restore nominal before going to down
+                # restore nominal before saving the down-variated collection
                 self.events = nominal_events
-                for jet_coll_name, jet_coll in jets_calibrated.items():
-                    self.events[jet_coll_name] = jet_coll[variation].down
-                
+                self.events[jet_coll_name] = jets_calibrated[jet_coll_name][variation_name].down
+
                 yield variation + "Down"
 
 
         # additional shape variations are handled with custom provided generators
         for additional_variation in self.get_extra_shape_variations():
             yield additional_variation
-        
+
     def get_extra_shape_variations(self):
         #empty generator
         return
         yield  # the yield defines the function as a generator and the return stops it to be empty
-        
+
     def process(self, events: ak.Array):
         '''
         This function get called by Coffea on each chunk of NanoAOD file.
@@ -701,6 +729,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         if self._isMC:
             # This is computed before any preselection
             self.output['sum_genweights'][self._dataset] = ak.sum(self.events.genWeight)
+            self.output['sum_signOf_genweights'][self._dataset] = ak.sum(np.sign(self.events.genWeight))
 
         self.weights_config = self.weights_config_allsamples[self._sample]
         ########################
@@ -779,11 +808,19 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         return self.output
 
 
-    def rescale_sumgenweights(self, sumgenw_dict, output):
+    def rescale_sumgenweights(self, output):
         # rescale each variable
+
         for var, vardata in output["variables"].items():
             for sample, dataset_in_sample in vardata.items():
                 for dataset, histo in dataset_in_sample.items():
+                    # First, determine whether we must use the sum_signOf_genweights or sum_genweights for rescaling.
+                    # This information is taken from a weights config file for each _sample_
+                    wei = self.cfg.weights_config[sample]['inclusive']
+                    if 'signOf_genWeight' in wei and 'genWeight' not in wei:
+                        sumgenw_dict = output["sum_signOf_genweights"]
+                    else:
+                        sumgenw_dict = output["sum_genweights"]
                     if dataset in sumgenw_dict:
                         scaling = 1/sumgenw_dict[dataset]
                         # it  means that's a MC sample
@@ -792,6 +829,13 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # rescale sumw
         for cat, catdata in output["sumw"].items():
             for dataset, dataset_data in catdata.items():
+                sample_from_dataset = list(dataset_data.keys())[0]
+                wei = self.cfg.weights_config[sample_from_dataset]['inclusive']
+                if 'signOf_genWeight' in wei and 'genWeight' not in wei:
+                    sumgenw_dict = output["sum_signOf_genweights"]
+                else:
+                    sumgenw_dict = output["sum_genweights"]
+
                 if dataset in sumgenw_dict:
                     scaling = 1/sumgenw_dict[dataset]
                     for sample in dataset_data.keys():
@@ -800,11 +844,17 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # rescale sumw2
         for cat, catdata in output["sumw2"].items():
             for dataset, dataset_data in catdata.items():
+                sample_from_dataset = list(dataset_data.keys())[0]
+                wei = self.cfg.weights_config[sample_from_dataset]['inclusive']
+                if 'signOf_genWeight' in wei and 'genWeight' not in wei:
+                    sumgenw_dict = output["sum_signOf_genweights"]
+                else:
+                    sumgenw_dict = output["sum_genweights"]
                 if dataset in sumgenw_dict:
                     scaling = 1/sumgenw_dict[dataset]**2
                     for sample in dataset_data.keys():
                         dataset_data[sample] *= scaling
-                        
+
 
     def postprocess(self, accumulator):
         '''
@@ -820,7 +870,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         but remember to include a super().postprocess() call.
         '''
         if not self.workflow_options.get("donotscale_sumgenweights", False):
-            self.rescale_sumgenweights(accumulator["sum_genweights"], accumulator)
+            self.rescale_sumgenweights(accumulator)
 
         # Saving dataset metadata directly in the output file reading from the config
         dmeta = accumulator["datasets_metadata"] = {
