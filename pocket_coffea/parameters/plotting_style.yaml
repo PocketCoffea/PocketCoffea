@@ -81,4 +81,8 @@ plotting_style:
         "2016_PostVFP": "${pico_to_femto:${lumi.picobarns.2016_PostVFP.tot}}"
         "2017": "${pico_to_femto:${lumi.picobarns.2017.tot}}"
         "2018": "${pico_to_femto:${lumi.picobarns.2018.tot}}"
+        "2022_preEE": "${pico_to_femto:${lumi.picobarns.2022_preEE.tot}}"
+        "2022_postEE": "${pico_to_femto:${lumi.picobarns.2022_postEE.tot}}"
+        "2023_preBPix": "${pico_to_femto:${lumi.picobarns.2023_preBPix.tot}}"
+        "2023_postBPix": "${pico_to_femto:${lumi.picobarns.2023_postBPix.tot}}"
 

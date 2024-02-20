@@ -11,7 +11,7 @@ from pocket_coffea.parameters import defaults
 import click
 
 @click.command()
-@click.option('--input-dir', help='Directory with cofea files and parameters', type=str, default=os.getcwd(), required=False)
+@click.option('-inp', '--input-dir', help='Directory with cofea files and parameters', type=str, default=os.getcwd(), required=False)
 @click.option('--cfg', help='YAML file with all the analysis parameters', required=False)
 @click.option('-op', '--overwrite-parameters', type=str, multiple=True,
               default=None, help='YAML file with plotting parameters to overwrite default parameters', required=False)
@@ -24,12 +24,13 @@ import click
 @click.option('-oh', '--only-hist', type=str, multiple=True, default=None, help='Filter histograms with a list of regular expression strings', required=False)
 @click.option('--split-systematics', is_flag=True, help='Split systematic uncertainties in the ratio plot', required=False)
 @click.option('--partial-unc-band', is_flag=True, help='Plot only the partial uncertainty band corresponding to the systematics specified as the argument `only_syst`', required=False)
+@click.option('-ns','--no-syst', is_flag=True, help='Do not include systematics', required=False)
 @click.option('--overwrite', '--over', is_flag=True, help='Overwrite plots in output folder', required=False)
 @click.option('--log', is_flag=True, help='Set y-axis scale to log', required=False)
 @click.option('--density', is_flag=True, help='Set density parameter to have a normalized plot', required=False)
 @click.option('-v', '--verbose', type=int, default=1, help='Verbose level for debugging. Higher the number more stuff is printed.', required=False)
 def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfile,
-               workers, only_cat, only_syst, exclude_hist, only_hist, split_systematics, partial_unc_band, overwrite, log, density, verbose):
+               workers, only_cat, only_syst, exclude_hist, only_hist, split_systematics, partial_unc_band, no_syst, overwrite, log, density, verbose):
     '''Plot histograms produced by PocketCoffea processors'''
 
     # Using the `input_dir` argument, read the default config and coffea files (if not set with argparse):
@@ -86,6 +87,11 @@ def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfile,
     else:
         log = False
 
+    if args.no_syst:
+        do_syst = False
+    else:
+        do_syst = True
+
     plotter = PlotManager(
         variables=variables,
         hist_objs=hist_objs,
@@ -101,7 +107,7 @@ def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfile,
     )
 
     print("Started plotting.  Please wait...")
-    plotter.plot_datamc_all(syst=True, spliteras=False)
+    plotter.plot_datamc_all(syst=do_syst, spliteras=False)
 
     print("Output plots are saved at: ", outputdir)
 

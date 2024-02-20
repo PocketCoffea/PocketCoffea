@@ -16,12 +16,6 @@ title = """[dodger_blue1]
 
 """
 
-# class CustomGroup(click.Group):
-#     def invoke(self, ctx):
-#         click.echo(title)
-#         super().invoke(ctx)
-
-
 @click.group(invoke_without_command=True)
 @click.pass_context
 @click.option("-v","--version", default=False, help="Print PocketCoffea package version")

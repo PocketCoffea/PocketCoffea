@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import inspect
 import awkward as ak
+import numpy as np
 from collections.abc import Callable
 from collections import defaultdict
 
@@ -81,6 +82,7 @@ class WeightsManager:
         return set(
             [
                 'genWeight',
+                'signOf_genWeight',
                 'lumi',
                 'XS',
                 'pileup',
@@ -222,6 +224,8 @@ class WeightsManager:
         '''
         if weight_name == "genWeight":
             return [('genWeight', events.genWeight)]
+        if weight_name == "signOf_genWeight":
+            return [('signOf_genWeight', np.sign(events.genWeight))]
         elif weight_name == 'lumi':
             return [
                 (
