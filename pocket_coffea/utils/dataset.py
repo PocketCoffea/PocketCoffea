@@ -43,6 +43,8 @@ def do_dataset(key, config, local_prefix, whitelist_sites, blacklist_sites, rege
 
     return dataset
 
+
+
 def build_datasets(cfg, keys=None, overwrite=False, download=False, check=False, split_by_year=False, local_prefix=None,
                    whitelist_sites=None, blacklist_sites=None, regex_sites=None, parallelize=4):
 
@@ -53,7 +55,7 @@ def build_datasets(cfg, keys=None, overwrite=False, download=False, check=False,
     args = {arg : value for arg, value in locals().items() if arg != "keys"}
 
     with Pool(parallelize) as pool:
-        print(keys)
+        print("Dataset keys:", list(keys))
         datasets = pool.map(partial(do_dataset, **args), keys)
 
     for dataset in datasets:
