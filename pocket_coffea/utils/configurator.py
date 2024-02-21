@@ -63,7 +63,7 @@ class Configurator:
         except Exception as e:
             print("Error during resolution of OmegaConf parameters magic, please check your parameters files.")
             raise(e)
-        
+
         self.save_skimmed_files = save_skimmed_files
         # Save
         # Load dataset
@@ -116,17 +116,22 @@ class Configurator:
             s: {
                 "weights": {c: [] for c in self.categories.keys()},
                 "shape": {c: [] for c in self.categories.keys()},
+                "norm": {c: [] for c in self.categories.keys()},
             }
             for s in self.samples
         }
         if "shape" not in variations:
             variations["shape"] = {"common": {"inclusive": []}}
+        if "norm" not in variations:
+            variations["norm"] = {"common": {"inclusive": []}}
 
         self.load_variations_config(variations["weights"], variation_type="weights")
         self.load_variations_config(variations["shape"], variation_type="shape")
-        # Collecting overall list of available weights and shape variations per sample
+        self.load_variations_config(variations["norm"], variation_type="norm")
+        # Collecting overall list of available weights, shape and norm variations per sample
         self.available_weights_variations = {s: ["nominal"] for s in self.samples}
         self.available_shape_variations = {s: [] for s in self.samples}
+        self.available_norm_variations = {s: [] for s in self.samples}
         for sample in self.samples:
             # Weights variations
             for cat, vars in self.variations_config[sample]["weights"].items():
@@ -134,6 +139,9 @@ class Configurator:
             # Shape variations
             for cat, vars in self.variations_config[sample]["shape"].items():
                 self.available_shape_variations[sample] += vars
+            # Norm variations
+            for cat, vars in self.variations_config[sample]["norm"].items():
+                self.available_norm_variations[sample] += vars
             # make them unique
             self.available_weights_variations[sample] = list(
                 set(self.available_weights_variations[sample])
@@ -141,6 +149,14 @@ class Configurator:
             self.available_shape_variations[sample] = list(
                 set(self.available_shape_variations[sample])
             )
+            self.available_norm_variations[sample] = list(
+                set(self.available_norm_variations[sample])
+            )
+
+            print("self.available_weights_variations", self.available_weights_variations)
+            print("self.available_shape_variations", self.available_shape_variations)
+            print("self.available_norm_variations", self.available_norm_variations)
+
 
         # Column accumulator config
         self.columns = {}
@@ -149,7 +165,7 @@ class Configurator:
         # Check the jet_calibration and create the file if needed
         if not os.path.exists(self.parameters.jets_calibration.factory_file):
             build_jets_calibrator.build(self.parameters.jets_calibration)
-        
+
         # Load workflow passing the Configurator self object
         self.load_workflow()
 
@@ -191,7 +207,7 @@ class Configurator:
                 if 'era' in m.keys():
                     if (m["era"]) not in self.eras:
                         self.eras.append(m["era"])
-                        
+
 
     def load_subsamples(self):
         # subsamples configuration
@@ -342,16 +358,20 @@ class Configurator:
             print("Variation configuration error: missing 'common' weights key")
             raise Exception("Wrong variation configuration")
         # common/inclusive variations
+
         for w in wcfg["common"]["inclusive"]:
             if isinstance(w, str):
                 if w not in available_variations:
                     print(f"Variation {w} not available in the workflow")
                     raise Exception("Wrong variation configuration")
             # do now check if the variations is not string but custom
+            print("self.variations_config.values()", self.variations_config.values(), self.variations_config)
             for wsample in self.variations_config.values():
                 # add the variation to all the categories and samples
+                print("wsample[variation_type].values()", wsample[variation_type].values())
                 for wcat in wsample[variation_type].values():
                     wcat.append(w)
+                    print("wcat", wcat)
 
         if "bycategory" in wcfg["common"]:
             for cat, variations in wcfg["common"]["bycategory"].items():
@@ -397,6 +417,7 @@ class Configurator:
                             self.variations_config[sample][variation_type][cat].append(
                                 w
                             )
+        print("self.variations_config", self.variations_config)
 
     def load_columns_config(self, wcfg):
         if wcfg == None:
@@ -434,7 +455,7 @@ class Configurator:
                     raise Exception("Wrong columns configuration")
                 if "inclusive" in s_wcfg:
                     for w in s_wcfg["inclusive"]:
-                        # If the the sample 
+                        # If the the sample
                         if sample not in self.subsamples_list:
                             # the sample name is not a subsample, we need to check if it has subsamples
                             if not self.has_subsamples[sample]:
@@ -442,7 +463,7 @@ class Configurator:
                                 for wcat in self.columns[sample].values():
                                     if w not in wcat:
                                         wcat.append(w)
-                                       
+
                             else: # the sample has subsamples
                                 # If it was added to the general one: include in all subsamples
                                 for subs in self.subsamples[sample]:
@@ -467,9 +488,9 @@ class Configurator:
                             else:
                                 self.columns[sample][cat].append(w)
         #prune the empty categories
-        
 
-    
+
+
 
     def filter_dataset(self, nfiles):
         filtered_filesets = {}
@@ -584,7 +605,8 @@ class Configurator:
             f"  - Variables:  {format(list(self.variables.keys()))}",
             f"  - Columns: {format(self.columns)}",
             f"  - available weights variations: {format(self.available_weights_variations)} ",
-            f"  - available shape variations: {format(self.available_shape_variations)}",            
+            f"  - available shape variations: {format(self.available_shape_variations)}",
+            f"  - available norm variations: {format(self.available_norm_variations)}",
         ]
         return "\n".join(s)
 
