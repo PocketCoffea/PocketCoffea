@@ -15,6 +15,7 @@ from .scale_factors import (
     sf_mu,
     sf_btag,
     sf_btag_calib,
+    sf_ctag,
     sf_jet_puId,
     sf_L1prefiring,
     sf_pileup_reweight,
@@ -94,6 +95,7 @@ class WeightsManager:
                 'sf_mu_trigger',
                 'sf_btag',
                 'sf_btag_calib',
+                'sf_ctag',
                 'sf_jet_puId',
                 'sf_L1prefiring',
             ]
@@ -116,6 +118,7 @@ class WeightsManager:
             "sf_jet_puId",
             "sf_L1prefiring",
             "sf_btag",
+            "sf_ctag"
         ]
         return set(out)
 
@@ -289,7 +292,6 @@ class WeightsManager:
             ]
 
         elif weight_name == 'sf_btag':
-
             # Get all the nominal and variation SF
             if shape_variation == "nominal":
                 btag_vars = self.params.systematic_variations.weight_variations.sf_btag[
@@ -322,7 +324,7 @@ class WeightsManager:
                 )
 
             else:
-                # Only the nominal if there is a shape variation
+                # Only the nominal if there are no shape variations
                 btagsf = sf_btag(
                     self.params,
                     events.JetGood,
@@ -345,6 +347,46 @@ class WeightsManager:
                     ),
                 )
             ]
+
+        elif weight_name == 'sf_ctag':
+            print("Doing ctag SFs", shape_variation)
+
+            if shape_variation == "nominal":
+                ctag_vars = self.params.systematic_variations.weight_variations.sf_ctag[
+                    self._year
+                ]
+                ctagsf = sf_ctag(
+                    self.params,
+                    events.JetGood,
+                    self._year,
+                    njets=events.nJetGood,
+                    variations=["central"] + ctag_vars,
+                )
+
+                #print(ctagsf)
+                for var in ctag_vars:
+                    #print("ctag_var", var)
+                    #print(ctagsf[var])
+                    # Rescale the up and down variation by the central one to
+                    # avoid double counting of the central SF when adding the weights
+                    # as separate entries in the Weights object.
+                    ctagsf[var][1] = ctagsf[var][1] / ctagsf["central"][0]
+                    ctagsf[var][2] = ctagsf[var][2] / ctagsf["central"][0]
+
+
+            else:
+                # Only the nominal if there are no shape variations
+                ctagsf = sf_ctag(
+                    self.params,
+                    events.JetGood,
+                    self._year,
+                    njets=events.nJetGood,
+                    variations=["central"],
+                )
+
+            # return the nominal and everything
+            print([(f"sf_ctag_{var}", *weights) for var, weights in ctagsf.items()])
+            return [(f"sf_ctag_{var}", *weights) for var, weights in ctagsf.items()]
 
         elif weight_name == 'sf_jet_puId':
             return [
