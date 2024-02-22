@@ -281,14 +281,29 @@ class Configurator:
             self.categories = categories
 
     def norm_weight_var(self, norm_n, v_norm):
-        return lambda params, events, size, metadata, shape_variation: [
-            (
-                norm_n,
-                np.ones(size),
-                np.ones(size) * v_norm,
-                np.ones(size) / v_norm,
-            ),
-        ]
+        if isinstance(v_norm, float):
+            return lambda params, events, size, metadata, shape_variation: [
+                (
+                    norm_n,
+                    np.ones(size),
+                    np.ones(size) * v_norm,
+                    np.ones(size) / v_norm,
+                ),
+            ]
+        elif isinstance(v_norm, list) and len(v_norm) == 2:
+            return lambda params, events, size, metadata, shape_variation: [
+                (
+                    norm_n,
+                    np.ones(size),
+                    np.ones(size) * v_norm[0],
+                    np.ones(size) * v_norm[1],
+                ),
+            ]
+        else:
+            print(
+                f"Wrong norm variation definition for {norm_n} in the configuration"
+            )
+            raise Exception("Wrong norm variation definition")
 
     def add_norm_var_to_weights(self, wcfg, vars_norm):
         # add norm variations to the weights dict
