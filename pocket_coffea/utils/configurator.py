@@ -312,18 +312,24 @@ class Configurator:
             w_custom = WeightCustom(norm_name, func_norm)
             wcfg["common"]["inclusive"].append(w_custom)
         if "bycategory" in vars_norm["common"]:
+            if "bycategory" not in wcfg["common"]:
+                wcfg["common"]["bycategory"] = {}
             for cat, vars in vars_norm["common"]["bycategory"].items():
                 for norm_name, var_norm in vars.items():
                     func_norm = self.norm_weight_var(norm_n=norm_name, v_norm=var_norm)
                     w_custom = WeightCustom(norm_name, func_norm)
                     wcfg["common"]["bycategory"][cat].append(w_custom)
         if "bysample" in vars_norm:
+            if "bysample" not in wcfg:
+                wcfg["bysample"] = {}
             for sample, s_wcfg in vars_norm["bysample"].items():
                 if sample not in self.samples:
                     print(
                         f"Requested missing sample {sample} in the variations configuration"
                     )
                     raise Exception("Wrong variation configuration")
+                if sample not in wcfg["bysample"]:
+                    wcfg["bysample"][sample] = {"inclusive": [], "bycategory": {}}
                 if "inclusive" in s_wcfg:
                     for norm_name, var_norm in s_wcfg["inclusive"].items():
                         # append only to the specific sample
@@ -334,6 +340,8 @@ class Configurator:
                         wcfg["bysample"][sample]["inclusive"].append(w_custom)
                 if "bycategory" in s_wcfg:
                     for cat, variation in s_wcfg["bycategory"].items():
+                        if  cat not in wcfg["bysample"][sample]["bycategory"]:
+                            wcfg["bysample"][sample]["bycategory"][cat] = []
                         for norm_name, var_norm in variation.items():
                             func_norm = self.norm_weight_var(
                                 norm_n=norm_name, v_norm=var_norm
