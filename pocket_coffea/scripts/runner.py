@@ -7,6 +7,7 @@ import logging
 import yaml
 from yaml import Loader, Dumper
 import click
+from contextlib import nullcontext
 
 from coffea.util import save
 from coffea import processor
@@ -158,56 +159,60 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     
     # Instantiate the executor
     executor = executor_factory.get()
-        
-    if full:
-        # Running on all datasets at once
-        fileset = config.filesets
-        logging.info(f"Working on samples: {list(fileset.keys())}")
 
-        run = Runner(
-            executor=executor,
-            chunksize=run_options["chunksize"],
-            maxchunks=run_options["limit-chunks"],
-            skipbadfiles=run_options['skip-bad-files'],
-            schema=processor.NanoAODSchema,
-            format="root",
-        )
-        output = run(fileset, treename="Events",
-                     processor_instance=config.processor_instance)
+    # Get the dask performance_report context from the exectuor attribute if it exists, otherwise get a nullcontext()
+    performance_report = executor_factory.__dict__.get("performance_report", nullcontext())
 
-        print(f"Saving output to {outfile.format('all')}")
-        save(output, outfile.format("all") )
-        
-    else:
-        # Running separately on each dataset
-        for sample, files in config.filesets.items():
-            logging.info(f"Working on sample: {sample}")
-            fileset = {sample:files}
-
-            n_events_tot = int(files["metadata"]["nevents"])
-            n_workers_max = n_events_tot / run_options["chunksize"]
-            
-            # If the number of available workers exceeds the maximum number of workers for a given sample,
-            # the chunksize is reduced so that all the workers are used to process the given sample
-            if (run_options["scaleout"] > n_workers_max):
-                adapted_chunksize = int(n_events_tot / run_options["scaleout"])
-                logging.info(f"Reducing chunksize from {run_options['chunksize']} to {adapted_chunksize} for sample {sample}")
-            else:
-                adapted_chunksize = run_options["chunksize"]
+    with performance_report:
+        if full:
+            # Running on all datasets at once
+            fileset = config.filesets
+            logging.info(f"Working on samples: {list(fileset.keys())}")
 
             run = Runner(
                 executor=executor,
-                chunksize=adapted_chunksize,
+                chunksize=run_options["chunksize"],
                 maxchunks=run_options["limit-chunks"],
                 skipbadfiles=run_options['skip-bad-files'],
                 schema=processor.NanoAODSchema,
                 format="root",
             )
             output = run(fileset, treename="Events",
-                         processor_instance=config.processor_instance)
-            print(f"Saving output to {outfile.format(sample)}")
-            save(output, outfile.format(sample))
-         
+                        processor_instance=config.processor_instance)
+
+            print(f"Saving output to {outfile.format('all')}")
+            save(output, outfile.format("all") )
+
+        else:
+            # Running separately on each dataset
+            for sample, files in config.filesets.items():
+                logging.info(f"Working on sample: {sample}")
+                fileset = {sample:files}
+
+                n_events_tot = int(files["metadata"]["nevents"])
+                n_workers_max = n_events_tot / run_options["chunksize"]
+
+                # If the number of available workers exceeds the maximum number of workers for a given sample,
+                # the chunksize is reduced so that all the workers are used to process the given sample
+                if (run_options["scaleout"] > n_workers_max):
+                    adapted_chunksize = int(n_events_tot / run_options["scaleout"])
+                    logging.info(f"Reducing chunksize from {run_options['chunksize']} to {adapted_chunksize} for sample {sample}")
+                else:
+                    adapted_chunksize = run_options["chunksize"]
+
+                run = Runner(
+                    executor=executor,
+                    chunksize=adapted_chunksize,
+                    maxchunks=run_options["limit-chunks"],
+                    skipbadfiles=run_options['skip-bad-files'],
+                    schema=processor.NanoAODSchema,
+                    format="root",
+                )
+                output = run(fileset, treename="Events",
+                            processor_instance=config.processor_instance)
+                print(f"Saving output to {outfile.format(sample)}")
+                save(output, outfile.format(sample))
+
     # Closing the executor if needed
     executor_factory.close()
 
