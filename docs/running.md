@@ -110,7 +110,7 @@ respectively).
 | Site | Supported executor | Executor string|
 |------|--------------------|----------------|
 |lxplus| dask               | dask@lxplus    |
-|T3_PSI_CH| dask               | dask@T3_PSI_CH    |
+|T3_CH_PSI| dask               | dask@T3_CH_PSI    |
 
 
 ---------------------------------------
@@ -118,7 +118,7 @@ respectively).
 ## Executors setup
 The analysis processors is handled by **executors**. The setup of the executor can vary between sites. A set of
 predefined executors has been prepared and configured with default options for tested analysis facilties (lxplus,
-T3_PSI_CH). More sites are being included, please send us a PR when you have successfully run PocketCoffea at your
+T3_CH_PSI). More sites are being included, please send us a PR when you have successfully run PocketCoffea at your
 facility!
 
 The preconfigured executors are located in the
