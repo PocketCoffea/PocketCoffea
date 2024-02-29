@@ -12,10 +12,10 @@ pocket\_coffea.executors.executors\_DESY\_NAF module
    :undoc-members:
    :show-inheritance:
 
-pocket\_coffea.executors.executors\_T3\_PSI\_CH module
+pocket\_coffea.executors.executors\_T3\_CH\_PSI module
 ------------------------------------------------------
 
-.. automodule:: pocket_coffea.executors.executors_T3_PSI_CH
+.. automodule:: pocket_coffea.executors.executors_T3_CH_PSI
    :members:
    :undoc-members:
    :show-inheritance:

@@ -1,7 +1,7 @@
 # METFilter flags
 
 event_flags :
-  "2018": 
+  "2018":
     - "goodVertices"
     - "globalSuperTightHalo2016Filter"
     - "HBHENoiseFilter"
@@ -9,7 +9,7 @@ event_flags :
     - "EcalDeadCellTriggerPrimitiveFilter"
     - "BadPFMuonFilter"
       # "BadChargedCandidateFilter "EcalBadCalibFilter
-  "2017": 
+  "2017":
     - "goodVertices"
     - "globalSuperTightHalo2016Filter"
     - "HBHENoiseFilter"
@@ -19,7 +19,7 @@ event_flags :
       # "BadChargedCandidateFilter "EcalBadCalibFilter
     # N.B.: The values for the 2016 pre/post VFP have been copied from the previous 2016 key.
     # These values need to be checked.
-  "2016_PostVFP": 
+  "2016_PostVFP":
     - "goodVertices"
     - "globalSuperTightHalo2016Filter"
     - "HBHENoiseFilter"
@@ -27,7 +27,7 @@ event_flags :
     - "EcalDeadCellTriggerPrimitiveFilter"
     - "BadPFMuonFilter"
       # "BadChargedCandidateFilter" "ecalBadCalibFilter
-  "2016_PreVFP": 
+  "2016_PreVFP":
     - "goodVertices"
     - "globalSuperTightHalo2016Filter"
     - "HBHENoiseFilter"
@@ -36,8 +36,36 @@ event_flags :
     - "BadPFMuonFilter"
      # "BadChargedCandidateFilter" "ecalBadCalibFilter
 
+  "2022_preEE":
+    - "goodVertices"
+    - "globalSuperTightHalo2016Filter"
+    - "HBHENoiseFilter"
+    - "HBHENoiseIsoFilter"
+    - "EcalDeadCellTriggerPrimitiveFilter"
+    - "BadPFMuonFilter"
+  "2022_postEE":
+    - "goodVertices"
+    - "globalSuperTightHalo2016Filter"
+    - "HBHENoiseFilter"
+    - "HBHENoiseIsoFilter"
+    - "EcalDeadCellTriggerPrimitiveFilter"
+    - "BadPFMuonFilter"
+  "2023_preBPix":
+    - "goodVertices"
+    - "globalSuperTightHalo2016Filter"
+    - "HBHENoiseFilter"
+    - "HBHENoiseIsoFilter"
+    - "EcalDeadCellTriggerPrimitiveFilter"
+    - "BadPFMuonFilter"
+  "2023_postBPix":
+    - "goodVertices"
+    - "globalSuperTightHalo2016Filter"
+    - "HBHENoiseFilter"
+    - "HBHENoiseIsoFilter"
+    - "EcalDeadCellTriggerPrimitiveFilter"
+    - "BadPFMuonFilter"
 
-event_flags_data: 
+event_flags_data:
   "2018":
     - "eeBadScFilter"
   "2017":
@@ -46,4 +74,11 @@ event_flags_data:
     - "eeBadScFilter"
   "2016_PreVFP":
     - "eeBadScFilter"
-
+  "2022_preEE":
+    - "eeBadScFilter"
+  "2022_postEE":
+    - "eeBadScFilter"
+  "2023_preBPix":
+    - "eeBadScFilter"
+  "2023_postBPix":
+    - "eeBadScFilter"

@@ -19,6 +19,7 @@ from coffea import processor
 
 from pocket_coffea.utils.configurator import Configurator
 from pocket_coffea.utils import utils
+from pocket_coffea.utils.network import get_proxy_path
 from pocket_coffea.utils.logging import setup_logging
 
 def load_run_options(cfg):
@@ -52,7 +53,7 @@ if __name__ == '__main__':
     parser.add_argument("-e","--executor", type=str,
                         help="Overwrite executor from config (to be used only with the --test options)" )
     parser.add_argument("-s","--scaleout", type=int, help="Overwrite scalout config" )
-    parser.add_argument("-ll","--loglevel", type=str, help="Logging level", default="INFO" )
+    parser.add_argument("-ll","--loglevel", type=str, help="Console logging level", default="INFO" )
     parser.add_argument("-f","--full", action="store_true", help="Process all datasets at the same time", default=False )
     args = parser.parse_args()
 
@@ -62,10 +63,10 @@ if __name__ == '__main__':
     outfile = os.path.join(
         args.outputdir, "output_{}.coffea"
     )
-
+    logfile = os.path.join(args.outputdir, "logfile.log")
     # Prepare logging
     if (not setup_logging(console_log_output="stdout", console_log_level=args.loglevel, console_log_color=True,
-                        logfile_file="last_run.log", logfile_log_level="info", logfile_log_color=False,
+                        logfile_file=logfile, logfile_log_level="info", logfile_log_color=False,
                         log_line_template="%(color_on)s[%(levelname)-8s] %(message)s%(color_off)s")):
         print("Failed to setup logging, aborting.")
         exit(1)
@@ -139,6 +140,7 @@ if __name__ == '__main__':
             f'cd {os.getcwd()}',
             f'source {os.environ["HOME"]}/.bashrc', # Conda should be setup by .bashrc for this to work
             f'conda activate {os.environ["CONDA_PREFIX"]}',
+            'echo "Conda has been activated, hopefylly... We are ready to roll!"'
         ]
 
     env_extra.append(f'export PYTHONPATH={os.path.dirname(args.cfg)}:$PYTHONPATH')
@@ -152,6 +154,9 @@ if __name__ == '__main__':
         os.environ["XRD_RUNFORKHANDLER"] = "1"
         os.environ["X509_USER_PROXY"] = _x509_path
 
+        #for k in config.filesets.keys():
+        #    print(k, config.filesets[k]['files'])
+        
         if run_options['executor'] == 'iterative':
             _exec = processor.iterative_executor
         else:
@@ -181,8 +186,10 @@ if __name__ == '__main__':
         from parsl.executors import HighThroughputExecutor
         from parsl.launchers import SrunLauncher, SingleNodeLauncher
         from parsl.addresses import address_by_hostname, address_by_query
-        #parsl.set_stream_logger(name='PARSL', level=logging.ERROR, stream=sys.stdout)
 
+        # Setting Console loglevel to ERROR in order to avoid logs from Parsl
+        logging.getLogger().handlers[0].setLevel("ERROR")
+        
         if 'slurm' in run_options['executor']:
             slurm_htex = Config(
                 executors=[
@@ -190,7 +197,7 @@ if __name__ == '__main__':
                         label="coffea_parsl_slurm",
                         address=address_by_hostname(),
                         prefetch_capacity=0,
-                        mem_per_worker=run_options['mem_per_worker'],
+                        mem_per_worker=run_options.get("mem_per_worker_parsl", 2),
                         provider=SlurmProvider(
                             channel=LocalChannel(script_dir='logs_parsl'),
                             launcher=SrunLauncher(),
@@ -238,7 +245,7 @@ if __name__ == '__main__':
                             nodes_per_block=1,
                             cores_per_slot=run_options["workers"],
                             #channel=LocalChannel(script_dir='logs_parsl'),
-                            mem_per_slot=run_options["mem_per_worker"],
+                            mem_per_slot=run_options.get("mem_per_worker_parsl", 2),
                             init_blocks=run_options["scaleout"],
                             max_blocks=(run_options["scaleout"]) + 5,
                             worker_init="\n".join(condor_extra),
@@ -261,7 +268,7 @@ if __name__ == '__main__':
                             label="coffea_parsl_condor",
                             address=address_by_query(),
                             max_workers=1,
-                            worker_debug=True,
+                            worker_debug=False,
                             provider=CondorProvider(
                                 nodes_per_block=1,
                                 cores_per_slot=run_options["workers"],
@@ -275,26 +282,50 @@ if __name__ == '__main__':
                         )
                     ],
                     retries=run_options["retries"],
+                    run_dir="/tmp/"+getpass.getuser()+"/parsl_runinfo",
                 )
 
 
 
             dfk = parsl.load(condor_htex)
             print('Ready to run with parsl')
-            output = processor.run_uproot_job(config.filesets,
-                                        treename='Events',
-                                        processor_instance=config.processor_instance,
-                                        executor=processor.parsl_executor,
-                                        executor_args={
-                                            'skipbadfiles': run_options.get('skipbadfiles', False),
-                                            'schema': processor.NanoAODSchema,
-                                            'config': None,
-                                        },
-                                        chunksize=run_options['chunk'], maxchunks=run_options.get('max', None)
-                                        )
-            save(output, outfile.format("all"))
-            print(f"Saving output to {outfile.format('all')}")
 
+            if args.full:
+                # Running on all datasets at once
+                fileset = config.filesets
+                logging.info(f"Working on samples: {list(fileset.keys())}")
+                output = processor.run_uproot_job(fileset,
+                                                  treename='Events',
+                                                  processor_instance=config.processor_instance,
+                                                  executor=processor.parsl_executor,
+                                                  executor_args={
+                                                      'skipbadfiles': run_options.get('skipbadfiles', False),
+                                                      'schema': processor.NanoAODSchema,
+                                                      'config': None,
+                                                  },
+                                                  chunksize=run_options['chunk'], maxchunks=run_options.get('max', None)
+                                                  )
+                print(f"Saving output to {outfile.format('all')}")
+                save(output, outfile.format("all"))
+            else:
+                # Running separately on each dataset
+                for sample, files in config.filesets.items():
+                    logging.info(f"Working on sample: {sample}")
+                    print(f"Working on sample: {sample}")
+                    fileset = {sample:files}
+                    output = processor.run_uproot_job(fileset,
+                                                      treename='Events',
+                                                      processor_instance=config.processor_instance,
+                                                      executor=processor.parsl_executor,
+                                                      executor_args={
+                                                          'skipbadfiles': run_options.get('skipbadfiles', False),
+                                                          'schema': processor.NanoAODSchema,
+                                                          'config': None,
+                                                      },
+                                                      chunksize=run_options['chunk'], maxchunks=run_options.get('max', None)
+                                                      )
+                    print(f"Saving output to {outfile.format(sample)}")
+                    save(output, outfile.format(sample))
 
     # DASK runners
     elif 'dask' in run_options['executor']:
@@ -421,3 +452,12 @@ if __name__ == '__main__':
     else:
         print(f"Executor {run_options['executor']} not defined!")
         exit(1)
+
+
+    #print("Logger handlers:", logging.getLogger().handlers )
+    log_file = logging.getLogger().handlers[1].baseFilename
+    #print("Logfile is saved at:", log_file)
+    # Copying logfile also to last_run.log
+    import shutil
+    shutil.copyfile(log_file, 'last_run.log')
+        

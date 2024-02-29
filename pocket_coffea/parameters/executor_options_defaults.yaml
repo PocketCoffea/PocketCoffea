@@ -22,7 +22,7 @@ dask@lxplus:
   conda-env: false
   local-virtualenv: false
 
-dask@T3_PSI_CH:
+dask@T3_CH_PSI:
   scaleout: 10
   cores-per-worker: 1
   mem-per-worker: "4GB"
@@ -34,7 +34,6 @@ dask@T3_PSI_CH:
   custom-setup-commands: null
   conda-env: false
   local-virtualenv: false
-
 
 parsl-condor@NAF_DESY:
   scaleout: 10
