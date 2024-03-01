@@ -217,9 +217,28 @@ def jet_selection(events, jet_type, params, leptons_collection=""):
         mask_lepton_cleaning = ak.prod(dR_jets_lep > cuts["dr_lepton"], axis=2) == 1
 
     if jet_type == "Jet":
-        # Selection on PUid. Only available in Run2 UL, thus we need to determine which sample we run over:
-        if events.metadata["year"] in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
-            mask_jetpuid = (jets.puId >= cuts["puId"]["value"]) | (
+        # Selection on PUid. Only available in Run2 UL, thus we need to determine which sample we run over;
+        # Due to bug in JetPUid production, values are different for 2016 
+        # (see here https://twiki.cern.ch/twiki/bin/view/CMS/PileupJetIDUL#Trainings)
+        jetPuID_values = {
+			"UL16": {
+				"L": 1,
+				"M": 3,
+				"T": 7
+			},
+			"UL17/18": {
+				"L": 4,
+				"M": 6,
+				"T": 7
+			}
+		}
+			
+        if events.metadata["year"] in ['2016_PreVFP', '2016_PostVFP']:
+            mask_jetpuid = (jets.puId >= jetPuID_values["UL16"][cuts["puId"]["wp"]]) | (
+                jets.pt >= cuts["puId"]["maxpt"]
+            )
+        elif events.metadata["year"] in ['2017','2018']:
+            mask_jetpuid = (jets.puId >= jetPuID_values["UL17/18"][cuts["puId"]["wp"]]) | (
                 jets.pt >= cuts["puId"]["maxpt"]
             )
         else:
