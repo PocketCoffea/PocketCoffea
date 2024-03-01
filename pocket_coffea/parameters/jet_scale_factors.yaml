@@ -33,3 +33,23 @@ jet_scale_factors:
         file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2018_UL/jmar.json.gz
         name: PUJetID_eff
 
+  jet_puId_WPs:
+      # Jet PU ID working points for different periods, due to bug values are different for 2016 
+      # (see here https://twiki.cern.ch/twiki/bin/view/CMS/PileupJetIDUL#Trainings)
+      '2016_PreVFP':
+        'L': 1
+        'M': 3
+        'T': 7
+      '2016_PostVFP':
+        'L': 1
+        'M': 3
+        'T': 7
+      '2017':
+        'L': 4
+        'M': 6
+        'T': 7
+      '2018':
+        'L': 4
+        'M': 6
+        'T': 7
+
