@@ -44,7 +44,7 @@ class ttHbbBaseProcessor(BaseProcessorABC):
             self.events, "Jet", self.params, "LeptonGood"
         )
         self.events["BJetGood"] = btagging(
-            self.events["JetGood"], self.params.btagging.working_point[self._year]
+            self.events["JetGood"], self.params.btagging.working_point[self._year], wp="M"
         )
 
         # self.events["FatJetGood"], self.jetGoodMask = jet_selection(
