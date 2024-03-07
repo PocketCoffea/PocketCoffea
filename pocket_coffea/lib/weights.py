@@ -1,20 +1,9 @@
 from dataclasses import dataclass
 import inspect
-import awkward as ak
 import numpy as np
-from collections.abc import Callable
 from collections import defaultdict
-from abc import ABC, abstractmethod
-
-class WeightWrapperMeta(type):
-    # Metaclass to store the dictionary
-    # of all the weight classes
-    weight_classes = {}
-    def __new__(metacls, name, bases, clsdict):
-        cls = super().__new__(metacls, name, bases, clsdict)
-        if name not in metacls.weight_classes:
-            metacls.weight_classes[name] = cls
-        return cls
+from abc import ABC, ABCMeta, abstractmethod
+from typing import ClassVar, Callable, Any, List, Union
 
 
 ### Dataclasses to represent the weights to be passed to the WeightsManager
@@ -29,9 +18,48 @@ class WeightData:
 class WeightDataMultiVariation:
     name: str
     nominal: np.ndarray
-    variations: list[str]
-    up: list[np.ndarray]
-    down: list[np.ndarray] = None
+    variations: List[str]
+    up: List[np.ndarray]
+    down: List[np.ndarray] = None
+
+### Metaclass to store the dictionary of all the weight classes
+class WeightWrapperMeta(ABCMeta):
+    # Metaclass to store the dictionary
+    # of all the weight classes
+    weight_classes = {}
+    _lambda_index = 0
+    def __new__(metacls, name, bases, clsdict):
+        cls = super().__new__(metacls, name, bases, clsdict)
+        if name == "WeightLambda":
+            return cls
+        # Register the class name if it is a subclass of WeightWrapper 
+        for base in bases:
+            if base.__name__ == "WeightWrapper":
+                # only save the subclasses of WeightWrapper
+                weight_name = clsdict["name"]
+                if weight_name not in metacls.weight_classes:
+                    metacls.weight_classes[weight_name] = cls
+                else:
+                    raise ValueError(f"Weight with name {weight_name} already registered. Please use a different name.")
+        return cls
+
+
+    def wrap_func(cls, name:str,
+                  function: Callable[[Any, int, str], Union[WeightData,WeightDataMultiVariation]],
+                  has_variations, variations):
+        # Create a new class with the compute method
+        attrs = {'_function': function,
+                 'name': name,
+                 'has_variations': has_variations,
+                 '__module__': cls.__module__
+                 }
+        metacls = cls.__class__
+        class_name = f"WeightLambda_{metacls._lambda_index+1}"
+        new_class = metacls.__new__(metacls, class_name, (cls,), attrs)
+        # increase lambda index if successfull
+        metacls._lambda_index += 1
+        return new_class
+  
 
     
 class WeightWrapper(ABC, metaclass=WeightWrapperMeta):
@@ -42,30 +70,33 @@ class WeightWrapper(ABC, metaclass=WeightWrapperMeta):
     WeightWrapper instances are passed to the WeightsManager and stored.
     During the processing, the processor object creates a WeightsManager
     object which uses the WeightWrapper object to get the weights.
-    In that step, the `prepare` function is called to customize the
+    In that step, the constructor function is called to customize the
     weights computation depending on the current parameters and chunk metadata
     (like era, year, isMC, isData..).
     The variations are dynamically computed by the WeightWrapper object.
+    The variations can be customized by parameters and metadata with the WeightWrapper.
+    Doing so different years can have different names for the variations for example. 
     The HistManager will ask the WeightsManager to have the available weights
     variations for the current chunk and will store them in the output file.
-    The variations can be then customized by parameters and metadata.
-  
+
+    The `name` class attribute is used in the configuration to define the weight.
+    The metaclass registration mechanism checks if the user defines more than once
+    the same weight class.  
     '''
-    def __init__(self, name: str,
-                 has_variations: bool):
-        self.name = name
-        self.has_variations = has_variations        
+    name: ClassVar[str] = "base_weight"
+    has_variations: ClassVar[bool] = False
+         
+    
+    def __init__(self, params=None, metadata=None):
+        self._params = params
+        self._metadata = metadata
         self._variations = []
 
-    def prepare(self, params, metadata) -> None:
+    @abstractmethod
+    def compute(self, events, size, shape_variation):
         # setup things for specific year for example
         pass
 
-    @abstractmethod
-    def __call__(self, events, size,
-                 shape_variation,
-                 params=None, metadata=None) -> WeightData | WeightDataMultiVariation:
-        pass
 
     @property
     def variations(self):
@@ -86,43 +117,21 @@ class WeightWrapper(ABC, metaclass=WeightWrapperMeta):
         return out
 
 
-
-class WeightLamba(WeightWrapper):
+class WeightLambda(WeightWrapper):
     '''
-    WeightLambda is a WeightWrapper object for a lambda function that returns a weight.
-    It is useful for quick definition of a weights without the need of defining a new derived class from WeightWrapper. 
-
-    - name: name of the weight
-    - function:  function defining the weights of the events chunk.
-                 signuture (params, events, size, metadata:dict, shape_variation:str)
-    - has_variations: if the function returns variations
-    - variations: list of variations that the function returns
-
-    The function must return the weights as WeightData or WeightDataMultiVariation objects.
+    Class to create a weight using a lambda function.
+    The lambda function should take as input the parameters and the metadata
+    and return a WeightData or WeightDataMultiVariation object.
+    The lambda function should be able to handle the variations.
     '''
+    # Function that should take [params, metadata, events, size, shape_variationss]
+    @property
+    @abstractmethod
+    def _function(self): #Callable[[Any, Any, Any, int, str], WeightData | WeightDataMultiVariation] = None
+        pass
 
-    def __init__(self, name: str, function: Callable,
-                 has_variations:  bool = False,
-                 variations: list[str] = []):
-        super().__init__(name, has_variations)
-        self.function = function
-        self._variations = variations
-
-    def __call__(self, events, size,
-                    shape_variation,
-                    params=None, metadata=None) -> WeightData | WeightDataMultiVariation:
-        return self.function(events, size, shape_variation, params, metadata)
     
-    def serialize(self, src_code=False):
-        out = {
-            "name": self.name,
-            "function": {
-                "name": self.function.__name__,
-                "module": self.function.__module__,
-                "src_file": inspect.getsourcefile(self.function),
-                "f_hash": hash(self.function),
-            },
-        }
-        if src_code: #to be tested
-            out["function"]["src_code"] = inspect.getsource(self.function)
-        return out
+    def compute(self, events, size, shape_variation):
+        return self._function(self._params, self._metadata, events, size, shape_variation)
+
+ 
