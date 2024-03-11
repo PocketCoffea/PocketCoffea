@@ -219,7 +219,7 @@ def jet_selection(events, jet_type, params, leptons_collection=""):
     if jet_type == "Jet":
         # Selection on PUid. Only available in Run2 UL, thus we need to determine which sample we run over;
         if events.metadata["year"] in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
-            mask_jetpuid = (jets.puId >= params.jet_scale_factors.jet_puId_WPs[events.metadata["year"]][cuts["puId"]["wp"]]) | (
+            mask_jetpuid = (jets.puId >= params.jet_scale_factors.jet_puId[events.metadata["year"]]["working_point"][cuts["puId"]["wp"]]) | (
                 jets.pt >= cuts["puId"]["maxpt"]
             )
         else:
