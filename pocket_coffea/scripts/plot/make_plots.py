@@ -24,9 +24,9 @@ import click
 @click.option('-oh', '--only-hist', type=str, multiple=True, default=None, help='Filter histograms with a list of regular expression strings', required=False)
 @click.option('--split-systematics', is_flag=True, help='Split systematic uncertainties in the ratio plot', required=False)
 @click.option('--partial-unc-band', is_flag=True, help='Plot only the partial uncertainty band corresponding to the systematics specified as the argument `only_syst`', required=False)
-@click.option('-ns','--no-syst', is_flag=True, help='Do not include systematics', required=False)
+@click.option('-ns','--no-syst', is_flag=True, help='Do not include systematics', required=False, default=False)
 @click.option('--overwrite', '--over', is_flag=True, help='Overwrite plots in output folder', required=False)
-@click.option('--log', is_flag=True, help='Set y-axis scale to log', required=False)
+@click.option('--log', is_flag=True, help='Set y-axis scale to log', required=False, default=False)
 @click.option('--density', is_flag=True, help='Set density parameter to have a normalized plot', required=False)
 @click.option('-v', '--verbose', type=int, default=1, help='Verbose level for debugging. Higher the number more stuff is printed.', required=False)
 def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfile,
@@ -47,9 +47,8 @@ def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfile,
     else:
         raise Exception("The input file format is not valid. The config file should be a in .yaml format.")
 
-
     # Overwrite plotting parameters
-    if overwrite_parameters == parser.get_default("overwrite_parameters"):
+    if not overwrite_parameters:
         parameters = parameters_dump
     else:
         parameters = defaults.merge_parameters_from_files(parameters_dump, *overwrite_parameters, update=True)
@@ -63,7 +62,6 @@ def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfile,
 
     style_cfg = parameters['plotting_style']
 
-
     if os.path.isfile( inputfile ): accumulator = load(inputfile)
     else: sys.exit(f"Input file '{inputfile}' does not exist")
 
@@ -75,22 +73,13 @@ def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfile,
         os.makedirs(outputdir)
 
     variables = accumulator['variables'].keys()
-    if exclude_hist != None:
+    
+    if exclude_hist:
         variables_to_exclude = [s for s in variables if any([re.search(p, s) for p in exclude_hist])]
         variables = [s for s in variables if s not in variables_to_exclude]
-    if only_hist != None:
+    if only_hist:
         variables = [s for s in variables if any([re.search(p, s) for p in only_hist])]
     hist_objs = { v : accumulator['variables'][v] for v in variables }
-
-    if log:
-        log = True
-    else:
-        log = False
-
-    if args.no_syst:
-        do_syst = False
-    else:
-        do_syst = True
 
     plotter = PlotManager(
         variables=variables,
@@ -107,7 +96,7 @@ def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfile,
     )
 
     print("Started plotting.  Please wait...")
-    plotter.plot_datamc_all(syst=do_syst, spliteras=False)
+    plotter.plot_datamc_all(syst=(not no_syst), spliteras=False)
 
     print("Output plots are saved at: ", outputdir)
 
