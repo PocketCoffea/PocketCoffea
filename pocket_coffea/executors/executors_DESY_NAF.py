@@ -92,7 +92,6 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
         args = super().customized_args()
         # in the futures executor Nworkers == N scalout
         args["treereduction"] = self.run_options["tree-reduction"]
-        args["skip-bad-files"] = self.run_options["skip-bad-files"]
         return args
 
     def close(self):
