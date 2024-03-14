@@ -97,7 +97,6 @@ class DaskExecutorFactory(ExecutorFactoryABC):
         args["client"] = self.dask_client
         args["treereduction"] = self.run_options["tree-reduction"]
         args["retries"] = self.run_options["retries"]
-        args["skip-bad-files"] = self.run_options["skip-bad-files"]
         return args
 
     def close(self):

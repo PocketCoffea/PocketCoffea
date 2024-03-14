@@ -111,7 +111,6 @@ class DaskExecutorFactory(ExecutorFactoryABC):
         # in the futures executor Nworkers == N scalout
         args["client"] = self.dask_client
         args["treereduction"] = self.run_options["tree-reduction"]
-        args["skip-bad-files"] = self.run_options["skip-bad-files"]
         args["retries"] = self.run_options["retries"]
         return args
 
