@@ -99,7 +99,9 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
         return args
 
     def close(self):
-        self.condor_cluster.close()
+        # ~ self.condor_cluster.close()
+        # ~ self.condor_cluster.close()
+        parsl.clear()
 
 
 
