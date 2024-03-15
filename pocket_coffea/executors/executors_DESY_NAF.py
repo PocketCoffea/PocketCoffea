@@ -37,13 +37,9 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
         # Adding list of custom setup commands from user defined run options
         if self.run_options.get("custom-setup-commands", None):
             env_worker += self.run_options["custom-setup-commands"]
-        if True:
-            print("#"*50+"\n"+os.environ['CONDA_DEFAULT_ENV'])
-            # ~ env_worker.append(f'export PATH={os.environ["CONDA_PREFIX"]}/bin:$PATH')
-            env_worker.append(f'source {os.environ["HOME"]}/.zshrc')
-            env_worker.append(f'micromamba activate pocket-coffea')
-            # ~ print(os.environ['CONDA_DEFAULT_ENV'])
-            # ~ print(os.environ['CONDA_DEFAULT_ENV'])
+            
+        env_worker.append(f'source {os.environ["HOME"]}/.zshrc')
+        env_worker.append(f'micromamba activate pocket-coffea')
         # Now checking for conda environment  conda-env:true
         if self.run_options.get("conda-env", False):
             print("TEST in conda-env")
