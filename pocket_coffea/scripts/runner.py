@@ -98,11 +98,9 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         run_options.update(run_options_defaults[executor_name])
     if f"{executor_name}@{site}" in run_options_defaults:
         run_options.update(run_options_defaults[f"{executor_name}@{site}"])
-
     # Now merge on top the user defined run_options
     if custom_run_options:
         run_options = parameters_utils.merge_parameters_from_files(run_options, custom_run_options)
-
     if limit_files!=None:
         run_options["limit-files"] = limit_files
         config.filter_dataset(run_options["limit-files"])
@@ -126,7 +124,6 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         run_options["limit-files"] = limit_files if limit_files else 2
         run_options["limit-chunks"] = limit_chunks if limit_chunks else 2
         config.filter_dataset(run_options["limit-files"])
-   
 
     # The user can provide a custom executor factory module
     if executor_custom_setup:
@@ -145,6 +142,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     elif site == "purdue":
         from pocket_coffea.executors import executors_purdue as executors_lib
     elif site == "DESY_NAF":
+        print("right")
         from pocket_coffea.executors import executors_DESY_NAF as executors_lib
     elif site == "casa":
         from pocket_coffea.executors import executors_casa as executors_lib

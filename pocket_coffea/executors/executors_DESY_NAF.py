@@ -30,16 +30,23 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
             'export XRD_RUNFORKHANDLER=1',
             'export MALLOC_TRIM_THRESHOLD_=0',
             f'export X509_USER_PROXY={self.x509_path}',
-            'ulimit -u unlimited',
+            'ulimit -u 32768',
             'export PYTHONPATH=$PYTHONPATH:$PWD'
             ]
         
         # Adding list of custom setup commands from user defined run options
         if self.run_options.get("custom-setup-commands", None):
             env_worker += self.run_options["custom-setup-commands"]
-
+        if True:
+            print("#"*50+"\n"+os.environ['CONDA_DEFAULT_ENV'])
+            # ~ env_worker.append(f'export PATH={os.environ["CONDA_PREFIX"]}/bin:$PATH')
+            env_worker.append(f'source {os.environ["HOME"]}/.zshrc')
+            env_worker.append(f'micromamba activate pocket-coffea')
+            # ~ print(os.environ['CONDA_DEFAULT_ENV'])
+            # ~ print(os.environ['CONDA_DEFAULT_ENV'])
         # Now checking for conda environment  conda-env:true
         if self.run_options.get("conda-env", False):
+            print("TEST in conda-env")
             env_worker.append(f'export PATH={os.environ["CONDA_PREFIX"]}/bin:$PATH')
             if "CONDA_ROOT_PREFIX" in os.environ:
                 env_worker.append(f"{os.environ['CONDA_ROOT_PREFIX']} activate {os.environ['CONDA_DEFAULT_ENV']}")
@@ -59,7 +66,7 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
     def setup(self):
         ''' Start the slurm cluster here'''
         self.setup_proxyfile()
-
+        print(self.run_options.keys())
         condor_htex = Config(
                 executors=[
                     HighThroughputExecutor(
@@ -91,8 +98,8 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
     def customized_args(self):
         args = super().customized_args()
         # in the futures executor Nworkers == N scalout
-        args["treereduction"] = self.run_options["tree-reduction"]
-        args["skip-bad-files"] = self.run_options["skip-bad-files"]
+        # ~ args["treereduction"] = self.run_options["tree-reduction"]
+        # ~ args["skip-bad-files"] = self.run_options["skip-bad-files"]
         return args
 
     def close(self):
@@ -108,3 +115,4 @@ def get_executor_factory(executor_name, **kwargs):
         return FuturesExecutorFactory(**kwargs)
     elif  executor_name == "parsl-condor":
         return ParslCondorExecutorFactory(**kwargs)
+    print(executor_name)
