@@ -458,8 +458,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
     def define_column_accumulators(self):
         '''
-        Define the ColumsManagers to handle the requested columns from the configuration.
-        If Subsamples are defined a columnsmager is created for each of them.
+        Define the ColumnsManagers to handle the requested columns from the configuration.
+        If Subsamples are defined a columnsmanager is created for each of them.
         '''
         self.column_managers = {}
         for subs in self._subsamples[self._sample].keys():
@@ -504,8 +504,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                         + ".parquet")
                     for category, akarr in out_arrays.items():
                         # building the file name
-                        subdirs = [self._dataset, sub, category]
-                        dump_ak_array(akarray, fname, self.workflow_options["dump_columns_as_arrays_per_chunk"]+"/", subdirs)
+                        subdirs = [self._dataset, subs, category]
+                        dump_ak_array(akarr, fname, self.workflow_options["dump_columns_as_arrays_per_chunk"]+"/", subdirs)
 
 
                 else:
