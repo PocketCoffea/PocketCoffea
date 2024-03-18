@@ -191,6 +191,11 @@ def get_dataset_files(
 def get_dataset_files_from_dbs(
         dataset_name: str,
         dbs_instance: str = "prod/global"):
+    '''
+    This function queries the DBS server to get information about the location
+    of each block in a CMS dataset.
+    It is used instead of the rucio replica query when the dataset is not available in rucio.
+    '''
 
     # Get the site of the blocks
     proxy = get_proxy_path()
