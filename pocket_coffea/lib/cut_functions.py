@@ -201,7 +201,7 @@ def nBtagMin(events, params, year, processor_params, **kwargs):
                 ak.sum(
                     (
                         events[params["coll"]][btagparam["btagging_algorithm"]]
-                        > btagparam["btagging_WP"]
+                        > btagparam["btagging_WP"][params["wp"]]
                     )
                     & (events[params["coll"]].pt >= params["minpt"]),
                     axis=1,
@@ -213,7 +213,7 @@ def nBtagMin(events, params, year, processor_params, **kwargs):
                 ak.sum(
                     (
                         events[params["coll"]][btagparam["btagging_algorithm"]]
-                        > btagparam["btagging_WP"]
+                        > btagparam["btagging_WP"][params["wp"]]
                     ),
                     axis=1,
                 )
@@ -241,7 +241,7 @@ def nBtagEq(events, params, year, processor_params, **kwargs):
                 ak.sum(
                     (
                         events[params["coll"]][btagparam["btagging_algorithm"]]
-                        > btagparam["btagging_WP"]
+                        > btagparam["btagging_WP"][params["wp"]]
                     )
                     & (events[params["coll"]].pt >= params["minpt"]),
                     axis=1,
@@ -253,7 +253,7 @@ def nBtagEq(events, params, year, processor_params, **kwargs):
                 ak.sum(
                     (
                         events[params["coll"]][btagparam["btagging_algorithm"]]
-                        > btagparam["btagging_WP"]
+                        > btagparam["btagging_WP"][params["wp"]]
                     ),
                     axis=1,
                 )
@@ -285,19 +285,19 @@ def nMuon(events, params, year, **kwargs):
 ## Factory methods
 
 
-def get_nBtagMin(N, minpt=0, coll="BJetGood", name=None):
+def get_nBtagMin(N, minpt=0, coll="BJetGood", wp="M", name=None):
     if name == None:
         name = f"n{coll}_btagMin{N}_pt{minpt}"
     return Cut(
-        name=name, params={"N": N, "coll": coll, "minpt": minpt}, function=nBtagMin
+        name=name, params={"N": N, "coll": coll, "minpt": minpt, "wp": wp}, function=nBtagMin
     )
 
 
-def get_nBtagEq(N, minpt=0, coll="BJetGood", name=None):
+def get_nBtagEq(N, minpt=0, coll="BJetGood", wp="M", name=None):
     if name == None:
         name = f"n{coll}_btagEq{N}_pt{minpt}"
     return Cut(
-        name=name, params={"N": N, "coll": coll, "minpt": minpt}, function=nBtagEq
+        name=name, params={"N": N, "coll": coll, "minpt": minpt, "wp": wp}, function=nBtagEq
     )
 
 

@@ -8,7 +8,7 @@ import awkward as ak
 class ColOut:
     collection: str  # Collection
     columns: List[str]  # list of columns to export
-    flatten: bool = True  # Flatten by defaul
+    flatten: bool = True  # Flatten by default
     store_size: bool = True
     fill_none: bool = True
     fill_value: float = -999.0  # by default the None elements are filled
@@ -61,7 +61,7 @@ class ColumnsManager:
                 # Applying mask after getting the collection
                 if(outarray.collection=="events"):
                     data = events[mask]
-                else:    
+                else:
                     data = events[outarray.collection][mask]
 
                 # Filtering the position in the collection if needed
@@ -136,7 +136,10 @@ class ColumnsManager:
                             while exporting collection {outarray.collection}! Please check your categorization"
                         )
                 # Applying mask after getting the collection
-                data = events[outarray.collection][mask]
+                if(outarray.collection=="events"):
+                    data = events[mask]
+                else:
+                    data = events[outarray.collection][mask]
 
                 # Filtering the position in the collection if needed
                 if outarray.pos_start and outarray.pos_end:
@@ -146,8 +149,9 @@ class ColumnsManager:
                 elif not outarray.pos_start and outarray.pos_end:
                     data = data[:, : outarray.pos_end]
 
-                # if outarray.store_size and data.ndim > 1:
-                #     out_by_cat[f"{outarray.collection}_N"] = ak.num(data)
+                if outarray.store_size and data.ndim > 1:
+                    N = ak.num(data)
+                    out_by_cat[f"{outarray.collection}_N"] = N
 
                 # looping on the columns
                 for col in outarray.columns:
