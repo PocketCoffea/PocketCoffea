@@ -140,10 +140,14 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     # if site is known we can load the corresponding module
     elif site == "lxplus":
         from pocket_coffea.executors import executors_lxplus as executors_lib
-    elif site == "T3_PSI_CH":
-        from pocket_coffea.executors import executors_T3_PSI_CH as executors_lib
+    elif site == "T3_CH_PSI":
+        from pocket_coffea.executors import executors_T3_CH_PSI as executors_lib
     elif site == "purdue":
         from pocket_coffea.executors import executors_purdue as executors_lib
+    elif site == "DESY_NAF":
+        from pocket_coffea.executors import executors_DESY_NAF as executors_lib
+    elif site == "casa":
+        from pocket_coffea.executors import executors_casa as executors_lib
     else:
         from pocket_coffea.executors import executors_base as executors_lib
 
