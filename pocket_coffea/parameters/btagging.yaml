@@ -35,7 +35,7 @@ btagging:
       bbtagSF_DDBvL_M1_hiPt_up: 0.97
       bbtagSF_DDBvL_M1_hiPt_down: 0.82
     '2017':
-    reference:
+      reference:
         btagging_WP: https://btv-wiki.docs.cern.ch/ScaleFactors/UL2017/
       btagging_algorithm: btagDeepFlavB
       btagging_WP:
