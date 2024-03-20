@@ -97,10 +97,10 @@ class DaskExecutorFactory(ExecutorFactoryABC):
         self.dask_client.wait_for_workers(1)
         print(">> You can connect to the Dask viewer at http://localhost:8787")
 
-        # if self.run_options["performance-report"]:
-        #     self.performance_report_path = os.path.join(self.outputdir, f"{log_folder}/dask-report.html")
-        #     print(f"Saving performance report to {self.performance_report_path}")
-        #     self.performance_report(filename=performance_report_path):
+        if self.run_options["performance-report"]:
+            self.performance_report_path = os.path.join(self.outputdir, "dask_log/dask-report.html")
+            print(f"Saving performance report to {self.performance_report_path}")
+            self.performance_report = performance_report(filename=self.performance_report_path)
 
         
     def get(self):

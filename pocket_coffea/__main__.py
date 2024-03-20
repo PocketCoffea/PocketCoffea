@@ -18,7 +18,7 @@ title = """[dodger_blue1]
 
 @click.group(invoke_without_command=True)
 @click.pass_context
-@click.option("-v","--version", default=False, help="Print PocketCoffea package version")
+@click.option("-v","--version", is_flag=True, default=False, help="Print PocketCoffea package version")
 def cli(ctx, version):
     print(title)
 
