@@ -21,46 +21,6 @@ from .scale_factors import (
 )
 
 
-@dataclass
-class WeightCustom:
-    '''
-    User-defined weight
-
-    Custom Weights can be created by the user in the configuration
-    by using a WeightCustom object.
-
-    - name: name of the weight
-    - function:  function defining the weights of the events chunk.
-                 signuture (params, events, size, metadata:dict, shape_variation:str)
-    - variations: list of variations
-
-    The function must return the weights in the following format::
-
-        [(name:str, nominal, up, down),
-         (name:str, nominal, up, down)]
-    Variations modifiers will have the format `nameUp/nameDown`
-
-    Multiple weights can be produced by a single WeightCustom object.
-    '''
-
-    name: str
-    function: Callable  # The function to call
-
-    def serialize(self, src_code=False):
-        out = {
-            "name": self.name,
-            "function": {
-                "name": self.function.__name__,
-                "module": self.function.__module__,
-                "src_file": inspect.getsourcefile(self.function),
-                "f_hash": hash(self.function),
-            },
-        }
-        if src_code:
-            out["function"]["src_code"] = inspect.getsource(self.function)
-        return out
-
-
 class WeightsManager:
     '''
     The WeightManager class handles the
