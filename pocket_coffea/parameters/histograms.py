@@ -440,7 +440,6 @@ collection_fields = {
         "phi",
         "mass",
         "msoftdrop",
-        "tau21",
         "btagDDBvLV2",
         "btagDDCvLV2",
         "btagDDCvBV2",

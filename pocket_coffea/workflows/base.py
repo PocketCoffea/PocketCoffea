@@ -458,8 +458,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
     def define_column_accumulators(self):
         '''
-        Define the ColumsManagers to handle the requested columns from the configuration.
-        If Subsamples are defined a columnsmager is created for each of them.
+        Define the ColumnsManagers to handle the requested columns from the configuration.
+        If Subsamples are defined a columnsmanager is created for each of them.
         '''
         self.column_managers = {}
         for subs in self._subsamples[self._sample].keys():
@@ -504,8 +504,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                         + ".parquet")
                     for category, akarr in out_arrays.items():
                         # building the file name
-                        subdirs = [self._dataset, sub, category]
-                        dump_ak_array(akarray, fname, self.workflow_options["dump_columns_as_arrays_per_chunk"]+"/", subdirs)
+                        subdirs = [self._dataset, subs, category]
+                        dump_ak_array(akarr, fname, self.workflow_options["dump_columns_as_arrays_per_chunk"]+"/", subdirs)
 
 
                 else:
@@ -812,10 +812,12 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # rescale each variable
 
         for var, vardata in output["variables"].items():
-            for sample, dataset_in_sample in vardata.items():
+            for samplename, dataset_in_sample in vardata.items():
                 for dataset, histo in dataset_in_sample.items():
                     # First, determine whether we must use the sum_signOf_genweights or sum_genweights for rescaling.
                     # This information is taken from a weights config file for each _sample_
+                    # Getting the original sample name to check weights config
+                    sample = self.cfg.subsamples_reversed_map[samplename] #needed for subsamples
                     wei = self.cfg.weights_config[sample]['inclusive']
                     if 'signOf_genWeight' in wei and 'genWeight' not in wei:
                         sumgenw_dict = output["sum_signOf_genweights"]
@@ -829,6 +831,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # rescale sumw
         for cat, catdata in output["sumw"].items():
             for dataset, dataset_data in catdata.items():
+                # Getting the first sample for the dataset in the "sumw" output
+                # it is working also for subsamples before the first sample key is the primary sample
                 sample_from_dataset = list(dataset_data.keys())[0]
                 wei = self.cfg.weights_config[sample_from_dataset]['inclusive']
                 if 'signOf_genWeight' in wei and 'genWeight' not in wei:
@@ -869,9 +873,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         To add additional customatizaion redefine the `postprocessing` function,
         but remember to include a super().postprocess() call.
         '''
-        if not self.workflow_options.get("donotscale_sumgenweights", False):
-            self.rescale_sumgenweights(accumulator)
-
+       
         # Saving dataset metadata directly in the output file reading from the config
         dmeta = accumulator["datasets_metadata"] = {
             "by_datataking_period": {},
@@ -893,5 +895,10 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     dmeta["by_datataking_period"][year][f"{sample}__{subsam}"].add(dataset)
             else:
                 dmeta["by_datataking_period"][year][sample].add(dataset)
+
+        # Rescale the histograms and sumw using the sum of the genweights
+        if not self.workflow_options.get("donotscale_sumgenweights", False):
+            self.rescale_sumgenweights(accumulator)
+
 
         return accumulator

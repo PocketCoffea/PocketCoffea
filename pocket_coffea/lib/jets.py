@@ -235,8 +235,8 @@ def jet_selection(events, jet_type, params, leptons_collection=""):
     return jets[mask_good_jets], mask_good_jets
 
 
-def btagging(Jet, btag):
-    return Jet[Jet[btag["btagging_algorithm"]] > btag["btagging_WP"]]
+def btagging(Jet, btag, wp):
+    return Jet[Jet[btag["btagging_algorithm"]] > btag["btagging_WP"][wp]]
 
 
 def CvsLsorted(jets, ctag):
