@@ -31,15 +31,13 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
             'export MALLOC_TRIM_THRESHOLD_=0',
             f'export X509_USER_PROXY={self.x509_path}',
             'ulimit -u 32768',
-            'export PYTHONPATH=$PYTHONPATH:$PWD',
             'source /cvmfs/grid.desy.de/etc/profile.d/grid-ui-env.sh'
             ]
-        
+
         # Adding list of custom setup commands from user defined run options
         if self.run_options.get("custom-setup-commands", None):
             env_worker += self.run_options["custom-setup-commands"]
-            
-        # Now checking for conda environment  conda-env:true
+
         if self.run_options.get("conda-env", False):
             env_worker.append(f'export PATH={os.environ["CONDA_PREFIX"]}/bin:$PATH')
             if "CONDA_ROOT_PREFIX" in os.environ:
