@@ -30,21 +30,20 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
             'export XRD_RUNFORKHANDLER=1',
             'export MALLOC_TRIM_THRESHOLD_=0',
             f'export X509_USER_PROXY={self.x509_path}',
-            'ulimit -u unlimited',
-            'export PYTHONPATH=$PYTHONPATH:$PWD'
+            'ulimit -u 32768',
+            'source /cvmfs/grid.desy.de/etc/profile.d/grid-ui-env.sh'
             ]
-        
+
         # Adding list of custom setup commands from user defined run options
         if self.run_options.get("custom-setup-commands", None):
             env_worker += self.run_options["custom-setup-commands"]
 
-        # Now checking for conda environment  conda-env:true
         if self.run_options.get("conda-env", False):
             env_worker.append(f'export PATH={os.environ["CONDA_PREFIX"]}/bin:$PATH')
             if "CONDA_ROOT_PREFIX" in os.environ:
                 env_worker.append(f"{os.environ['CONDA_ROOT_PREFIX']} activate {os.environ['CONDA_DEFAULT_ENV']}")
             elif "MAMBA_ROOT_PREFIX" in os.environ:
-                env_worker.append(f"{os.environ['MAMBA_ROOT_PREFIX']} activate {os.environ['CONDA_DEFAULT_ENV']}")
+                env_worker.append(f"{os.environ['MAMBA_EXE']} activate {os.environ['CONDA_DEFAULT_ENV']}")
             else:
                 raise Exception("CONDA prefix not found in env! Something is wrong with your conda installation if you want to use conda in the dask cluster.")
 
@@ -59,7 +58,6 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
     def setup(self):
         ''' Start the slurm cluster here'''
         self.setup_proxyfile()
-
         condor_htex = Config(
                 executors=[
                     HighThroughputExecutor(
@@ -91,11 +89,14 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
     def customized_args(self):
         args = super().customized_args()
         # in the futures executor Nworkers == N scalout
-        args["treereduction"] = self.run_options["tree-reduction"]
+        # ~ args["treereduction"] = self.run_options.get("tree-reduction", None)
+        # ~ args["skip-bad-files"] = self.run_options.get("skip-bad-files", None)
         return args
 
     def close(self):
-        self.condor_cluster.close()
+        # ~ self.condor_cluster.close()
+        # ~ self.condor_cluster.close()
+        parsl.clear()
 
 
 
@@ -107,3 +108,5 @@ def get_executor_factory(executor_name, **kwargs):
         return FuturesExecutorFactory(**kwargs)
     elif  executor_name == "parsl-condor":
         return ParslCondorExecutorFactory(**kwargs)
+    else:
+        print("Chosen executor not implemented")

@@ -38,6 +38,7 @@ dask@T3_CH_PSI:
 parsl-condor@DESY_NAF:
   scaleout: 10
   cores-per-worker: 1
-  mem-per-worker: "4GB"
+  mem-per-worker: 4
   logs-dir: logs_parsl
   queue: ""
+  walltime: "12:00:00"
