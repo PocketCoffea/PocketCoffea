@@ -18,6 +18,7 @@ class ExecutorFactoryABC(ABC):
         self.set_env()
 
     def setup_proxyfile(self):
+        if self.run_options['ignore-grid-certificate']: return
         if self.run_options.get('voms-proxy', None) is not None:
              self.x509_path = self.run_options['voms-proxy']
         else:
@@ -32,8 +33,9 @@ class ExecutorFactoryABC(ABC):
         vars= {
             "XRD_RUNFORKHANDLER": "1",
             "MALLOC_TRIM_THRESHOLD_" : "0",
-            "X509_USER_PROXY": self.x509_path
         }
+        if not self.run_options['ignore-grid-certificate']:
+            vars["X509_USER_PROXY"] = self.x509_path
         for k,v in vars.items():
             os.environ[k] = v
 

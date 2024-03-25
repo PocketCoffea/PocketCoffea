@@ -21,6 +21,7 @@ dask@lxplus:
   custom-setup-commands: null
   conda-env: false
   local-virtualenv: false
+  ignore-grid-certificate: false
 
 dask@T3_CH_PSI:
   scaleout: 10
