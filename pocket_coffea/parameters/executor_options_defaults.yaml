@@ -43,3 +43,12 @@ parsl-condor@DESY_NAF:
   logs-dir: logs_parsl
   queue: ""
   walltime: "12:00:00"
+
+parsl-condor@RWTH:
+  scaleout: 1
+  mem_per_worker: 2 # GB
+  logs-dir: logs_parsl
+  local-virtualenv: false
+  cores-per-worker: 1
+  walltime: "12:00:00"
+  ignore-grid-certificate: false
