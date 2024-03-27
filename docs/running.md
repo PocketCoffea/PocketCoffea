@@ -1,4 +1,5 @@
-# CLI interface
+# Running the analysis
+## CLI interface
 Once installed in your software environemnt, either by using an apptainer image or a custom python environment,
 PocketCoffea exposes different scripts and utilities with a command-line-interface (CLI)
 
@@ -40,7 +41,7 @@ The `run` command is the one used to execute the analysis workflow on the datase
 `pocket-coffea run` script, but it has the same user interface.
 
 
-# Running the analysis
+# Executors
 
 The PocketCoffea analysis can be runned in different ways, locally or sending out jobs to a cluster throught the Dask
 scheduling system. 
