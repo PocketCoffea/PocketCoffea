@@ -143,6 +143,8 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         from pocket_coffea.executors import executors_purdue as executors_lib
     elif site == "DESY_NAF":
         from pocket_coffea.executors import executors_DESY_NAF as executors_lib
+    elif site == "RWTH":
+        from pocket_coffea.executors import executors_RWTH as executors_lib
     elif site == "casa":
         from pocket_coffea.executors import executors_casa as executors_lib
     else:
