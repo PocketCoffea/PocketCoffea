@@ -340,7 +340,12 @@ def sf_btag_calib(params, sample, year, njets, jetsHt):
 
 def sf_ctag(params, jets, year, njets, variations=["central"]):
     '''
-    Scale factors for charm jet tagging
+    Shape correction scale factors for DepJet charm tagger
+    https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/summaries/BTV_2017_UL_ctagging.html
+    SF is obtained per jet, then multiples to obtain an overall weight per event.
+    Note: this SF does not preserve the normalization of MC samples. 
+    One have to re-normalize the MC samples using sf_ctag_calib() method. The norm calibration corrections are phase-space/analysis dependant. 
+    Therefore one has to derive them for each analysis separately. 
     '''
     # print("Doing sf_ctag", year)
 
@@ -358,8 +363,6 @@ def sf_ctag(params, jets, year, njets, variations=["central"]):
     flav = ak.to_numpy(ak.flatten(jets.hadronFlavour))
     CvL = ak.to_numpy(ak.flatten(jets.btagDeepCvL))
     CvB = ak.to_numpy(ak.flatten(jets.btagDeepCvB))
-
-    #discr = ak.to_numpy(ak.flatten(jets[ctagger]))
 
     central_SF_byjet = corr.evaluate("central", flav, CvL, CvB)
     
@@ -388,9 +391,11 @@ def sf_ctag(params, jets, year, njets, variations=["central"]):
 
 
 def sf_ctag_calib(params, dataset, year, njets, jetsHt):
-    '''Same as for btagSF calib method, but for ctagSF shapes.
-    Correction to ctagSF computing by comparing the inclusive shape without ctagSF and with ctagSF in 2D:
-    njets-JetsHT bins. Each sample/year has a different correction stored in the correctionlib format.'''
+    '''
+    Same as for btagSF calib method, but for ctagSF shapes.
+    Correction to normalization of every dataset was computed by comparing the inclusive shape with and without ctagSF in 2D:
+    njets-JetsHT bins. Each sample/year has a different correction stored in the correctionlib format.
+    '''
     ctagSF = params.jet_scale_factors.ctagSF[year]
     cset = correctionlib.CorrectionSet.from_file(ctagSF.Calib_file)
     #print("cset of ctag(btag)", cset)
