@@ -346,12 +346,12 @@ def sf_ctag(params, jets, year, njets, variations=["central"]):
 
     ctagSF = params.jet_scale_factors.ctagSF[year]
     ctagger = params.ctagging.working_point[year]["tagger"]
-    corrset = correctionlib.CorrectionSet.from_file(ctagSF.file)
+    cset = correctionlib.CorrectionSet.from_file(ctagSF.SF_file)
 
-    #print(list(corrset.keys()))
-    #print(list(corrset.items()))
+    #print(list(cset.keys()))
+    #print(list(cset.items()))
     
-    corr = corrset[ctagSF.name]
+    corr = cset[ctagSF.name]
 
     #print(corr)
     
@@ -385,7 +385,29 @@ def sf_ctag(params, jets, year, njets, variations=["central"]):
             ]
             
     return output
-    
+
+
+def sf_ctag_calib(params, dataset, year, njets, jetsHt):
+    '''Same as for btagSF calib method, but for ctagSF shapes.
+    Correction to ctagSF computing by comparing the inclusive shape without ctagSF and with ctagSF in 2D:
+    njets-JetsHT bins. Each sample/year has a different correction stored in the correctionlib format.'''
+    ctagSF = params.jet_scale_factors.ctagSF[year]
+    cset = correctionlib.CorrectionSet.from_file(ctagSF.Calib_file)
+    #print("cset of ctag(btag)", cset)
+    #print(list(cset.keys()))
+    #print(list(cset.items()))
+    corr = cset["ctagSF_norm_correction"]
+    #print("corr = ", corr)
+    #print("corr: ", corr.description)
+    #print("corr: ", corr.name)
+    #print("corr: ", list(corr.inputs))
+    #dataset = dataset
+    #print("Dataset = ", dataset)
+    w = corr.evaluate(dataset, ak.to_numpy(njets), ak.to_numpy(jetsHt))
+    #print("w in sf_ctag_calib:", w)
+    return w
+
+
 def sf_jet_puId(params, jets, year, njets):
     # The SF is applied only on jets passing the preselection (JetGood), pt < maxpt, and matched to a GenJet.
     # In other words the SF is not applied on jets not passing the Jet Pu ID SF.

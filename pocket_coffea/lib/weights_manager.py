@@ -16,6 +16,7 @@ from .scale_factors import (
     sf_btag,
     sf_btag_calib,
     sf_ctag,
+    sf_ctag_calib,
     sf_jet_puId,
     sf_L1prefiring,
     sf_pileup_reweight,
@@ -96,6 +97,7 @@ class WeightsManager:
                 'sf_btag',
                 'sf_btag_calib',
                 'sf_ctag',
+                'sf_ctag_calib',
                 'sf_jet_puId',
                 'sf_L1prefiring',
             ]
@@ -134,6 +136,7 @@ class WeightsManager:
     ):
         self.params = params
         self._sample = metadata["sample"]
+        self._dataset = metadata["dataset"]
         self._year = metadata["year"]
         self._xsec = metadata["xsec"]
         self._shape_variation = shape_variation
@@ -349,7 +352,7 @@ class WeightsManager:
             ]
 
         elif weight_name == 'sf_ctag':
-            print("Doing ctag SFs", shape_variation)
+            #print("Doing ctag SFs", shape_variation)
 
             if shape_variation == "nominal":
                 ctag_vars = self.params.systematic_variations.weight_variations.sf_ctag[
@@ -384,9 +387,21 @@ class WeightsManager:
                     variations=["central"],
                 )
 
-            # return the nominal and everything
-            print([(f"sf_ctag_{var}", *weights) for var, weights in ctagsf.items()])
+            #print([(f"sf_ctag_{var}", *weights) for var, weights in ctagsf.items()])
             return [(f"sf_ctag_{var}", *weights) for var, weights in ctagsf.items()]
+
+        elif weight_name == 'sf_ctag_calib':
+            # This variable needs to be defined in another method
+            jetsHt = ak.sum(abs(events.JetGood.pt), axis=1)
+            return [
+                (
+                    "sf_ctag_calib",
+                    sf_ctag_calib(
+                        self.params, self._dataset, self._year, events.nJetGood, jetsHt
+                    ),
+                )
+            ]
+
 
         elif weight_name == 'sf_jet_puId':
             return [

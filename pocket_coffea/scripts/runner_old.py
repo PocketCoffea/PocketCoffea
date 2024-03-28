@@ -240,6 +240,7 @@ if __name__ == '__main__':
                         address=address_by_hostname(),
                         max_workers=1,
                         worker_debug=False,
+                        #worker_debug=True,
                         prefetch_capacity=0,
                         provider=CondorProvider(
                             nodes_per_block=1,

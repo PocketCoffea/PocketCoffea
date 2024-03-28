@@ -337,6 +337,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 metadata={
                     "year": self._year,
                     "sample": self._sample,
+                    "dataset": self._dataset,
                     "part": self._samplePart,
                     "xsec": self._xsec,
                 },
