@@ -7,6 +7,7 @@ general:
   tree-reduction: 20
   skip-bad-files: false
   voms-proxy: null
+  ignore-grid-certificate: false
 
 dask@lxplus:
   scaleout: 10
@@ -21,7 +22,7 @@ dask@lxplus:
   custom-setup-commands: null
   conda-env: false
   local-virtualenv: false
-  ignore-grid-certificate: false
+  
 
 dask@T3_CH_PSI:
   scaleout: 10
@@ -51,4 +52,3 @@ parsl-condor@RWTH:
   local-virtualenv: false
   cores-per-worker: 1
   walltime: "12:00:00"
-  ignore-grid-certificate: false
