@@ -327,7 +327,7 @@ class WeightsManager:
                 )
 
             else:
-                # Only the nominal if there are no shape variations
+                # Only the nominal if there is a shape variation (?)
                 btagsf = sf_btag(
                     self.params,
                     events.JetGood,
@@ -366,7 +366,6 @@ class WeightsManager:
                     variations=["central"] + ctag_vars,
                 )
 
-                #print(ctagsf)
                 for var in ctag_vars:
                     #print("ctag_var", var)
                     #print(ctagsf[var])
@@ -376,9 +375,7 @@ class WeightsManager:
                     ctagsf[var][1] = ctagsf[var][1] / ctagsf["central"][0]
                     ctagsf[var][2] = ctagsf[var][2] / ctagsf["central"][0]
 
-
             else:
-                # Only the nominal if there are no shape variations
                 ctagsf = sf_ctag(
                     self.params,
                     events.JetGood,
@@ -387,11 +384,9 @@ class WeightsManager:
                     variations=["central"],
                 )
 
-            #print([(f"sf_ctag_{var}", *weights) for var, weights in ctagsf.items()])
             return [(f"sf_ctag_{var}", *weights) for var, weights in ctagsf.items()]
 
         elif weight_name == 'sf_ctag_calib':
-            # This variable needs to be defined in another method
             jetsHt = ak.sum(abs(events.JetGood.pt), axis=1)
             return [
                 (
