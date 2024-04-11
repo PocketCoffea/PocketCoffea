@@ -17,7 +17,7 @@ import mplhep as hep
 from omegaconf import OmegaConf
 from pocket_coffea.parameters.defaults import merge_parameters
 
-np.seterr(divide="ignore", invalid="ignore")
+np.seterr(divide="ignore", invalid="ignore", over="ignore")
 class Style:
     '''This class manages all the style options for Data/MC plots.'''
 

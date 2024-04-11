@@ -338,6 +338,76 @@ def sf_btag_calib(params, sample, year, njets, jetsHt):
     return w
 
 
+def sf_ctag(params, jets, year, njets, variations=["central"]):
+    '''
+    Shape correction scale factors (SF) for DepJet charm tagger, taken from:
+    https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/summaries/BTV_201X_UL_ctagging.html
+    SFs are obtained per jet, then multiplied to obtain an overall weight per event.
+    Note: this SF does not preserve the normalization of the MC samples!
+     One has to re-normalize the MC samples using the sf_ctag_calib() method.
+     The norm. calibration corrections are phase-space/analysis dependant.
+     Therefore one has to derive them for each analysis separately.
+    '''
+    # print("Doing sf_ctag", year)
+
+    ctagSF = params.jet_scale_factors.ctagSF[year]
+    ctagger = params.ctagging.working_point[year]["tagger"]
+    cset = correctionlib.CorrectionSet.from_file(ctagSF.SF_file)
+
+    #print(list(cset.keys()))
+    #print(list(cset.items()))
+
+    corr = cset[ctagSF.name]
+
+    #print(corr)
+
+    flav = ak.to_numpy(ak.flatten(jets.hadronFlavour))
+    CvL = ak.to_numpy(ak.flatten(jets.btagDeepCvL))
+    CvB = ak.to_numpy(ak.flatten(jets.btagDeepCvB))
+
+    central_SF_byjet = corr.evaluate("central", flav, CvL, CvB)
+
+    #print(central_SF_byjet)
+    #print("Unflatt=", ak.unflatten(central_SF_byjet, njets))
+    #print("Prod:", ak.prod(ak.unflatten(central_SF_byjet, njets), axis=1))
+
+    output = {}
+    for variation in variations:
+        if variation == "central":
+            output[variation] = [ak.prod(ak.unflatten(central_SF_byjet, njets), axis=1)]
+        else:
+            # Nominal sf==1
+            nominal = np.ones(ak.num(njets, axis=0))
+            # Systematic variations
+            up_variation_SF_byjet = corr.evaluate(f"up_{variation}", flav, CvL, CvB)
+            down_variation_SF_byjet = corr.evaluate(f"down_{variation}", flav, CvL, CvB)
+
+            output[variation] = [
+                nominal,
+                ak.prod(ak.unflatten(up_variation_SF_byjet,njets), axis=1),
+                ak.prod(ak.unflatten(down_variation_SF_byjet,njets), axis=1)
+            ]
+
+    return output
+
+
+def sf_ctag_calib(params, dataset, year, njets, jetsHt):
+    '''
+    These are correctiosn to normalization of every dataset after application of the ctag_sf shape correction.
+    It was computed in V+2J selection by comparing the inclusive shape with and without ctagSF in 2D:
+    in nJets-JetsHT bins. Each sample/year has a different correction stored in the correctionlib format.
+    Note: the correction  file in parameters/ctagSF_calibrationSF.json is uesd by default here,
+    which was  derived for V+2J phase space. It may not be suitable for other analyses.
+    '''
+    ctagSF = params.jet_scale_factors.ctagSF[year]
+    cset = correctionlib.CorrectionSet.from_file(ctagSF.Calib_file)
+
+    corr = cset["ctagSF_norm_correction"]
+    w = corr.evaluate(dataset, ak.to_numpy(njets), ak.to_numpy(jetsHt))
+
+    return w
+
+
 def sf_jet_puId(params, jets, year, njets):
     # The SF is applied only on jets passing the preselection (JetGood), pt < maxpt, and matched to a GenJet.
     # In other words the SF is not applied on jets not passing the Jet Pu ID SF.
