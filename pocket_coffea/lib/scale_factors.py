@@ -19,9 +19,10 @@ def get_ele_sf(
         map_name = electronSF.JSONfiles[year]["name"]
 
         if key == 'reco':
-            sfname = electronSF["reco"][pt_region]
+            sfname = electronSF.JSONfiles[year]["reco"][pt_region]
         elif key == 'id':
-            sfname = electronSF["id"]
+            print(params.object_preselection["Electron"]["id"])
+            sfname = electronSF["id"][params.object_preselection["Electron"]["id"]]
 
         # translate the `year` key into the corresponding key in the correction file provided by the EGM-POG
         year_pog = electronSF["era_mapping"][year]
@@ -86,16 +87,27 @@ def get_mu_sf(params, year, pt, eta, counts, key=''):
     )
     sfName = muonSF.sf_name[year][key]
 
-    year_pog = muonSF.era_mapping[year]
-    sf = muon_correctionset[sfName].evaluate(
-        year_pog, np.abs(eta.to_numpy()), pt.to_numpy(), "sf"
-    )
-    sfup = muon_correctionset[sfName].evaluate(
-        year_pog, np.abs(eta.to_numpy()), pt.to_numpy(), "systup"
-    )
-    sfdown = muon_correctionset[sfName].evaluate(
-        year_pog, np.abs(eta.to_numpy()), pt.to_numpy(), "systdown"
-    )
+    if year in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
+        year_pog = muonSF.era_mapping[year]
+        sf = muon_correctionset[sfName].evaluate(
+            year_pog, np.abs(eta.to_numpy()), pt.to_numpy(), "sf"
+        )
+        sfup = muon_correctionset[sfName].evaluate(
+            year_pog, np.abs(eta.to_numpy()), pt.to_numpy(), "systup"
+        )
+        sfdown = muon_correctionset[sfName].evaluate(
+            year_pog, np.abs(eta.to_numpy()), pt.to_numpy(), "systdown"
+        )
+    else: 
+        sf = muon_correctionset[sfName].evaluate(
+            np.abs(eta.to_numpy()), pt.to_numpy(), "nominal"
+        )
+        sfup = muon_correctionset[sfName].evaluate(
+            np.abs(eta.to_numpy()), pt.to_numpy(), "systup"
+        )
+        sfdown = muon_correctionset[sfName].evaluate(
+            np.abs(eta.to_numpy()), pt.to_numpy(), "systdown"
+        )
 
     # The unflattened arrays are returned in order to have one row per event.
     return (
@@ -106,6 +118,61 @@ def get_mu_sf(params, year, pt, eta, counts, key=''):
 
 
 def sf_ele_reco(params, events, year):
+    '''
+    This function computes the per-electron reco SF and returns the corresponding per-event SF, obtained by multiplying the per-electron SF in each event.
+    Additionally, also the up and down variations of the SF are returned.
+    Electrons are split into two categories based on a pt cut depending on the Run preiod, so that the proper SF is applied.
+    '''
+    ele_pt = events.ElectronGood.pt
+    ele_eta = events.ElectronGood.etaSC
+
+    pt_ranges = []
+    if year in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
+        pt_ranges += [("pt_lt_20", (ele_pt < 20)), 
+                      ("pt_gt_20", (ele_pt >= 20))]
+    elif year in ["2022_preEE", "2022_postEE"]:
+        pt_ranges += [("pt_lt_20", (ele_pt < 20)), 
+                      ("pt_gt_20_lt_75", (ele_pt >= 20) & (ele_pt <75)), 
+                      ("pt_gt_75", (ele_pt >= 75))]
+    else:
+        raise Exception("For chosen year "+year+" sf_ele_reco are not implemented yet")
+    
+    sf_reco, sfup_reco, sfdown_reco = [], [], []
+
+    for pt_range_key, pt_range in pt_ranges:
+        ele_pt_inPtRange = ak.flatten(ele_pt[pt_range])
+        ele_eta_inPtRange = ak.flatten(ele_eta[pt_range])
+        ele_counts_inPtRange = ak.num(ele_pt[pt_range])
+
+        sf_reco_inPtRange, sfup_reco_inPtRange, sfdown_reco_inPtRange = get_ele_sf(
+            params,
+            year,
+            ele_pt_inPtRange,
+            ele_eta_inPtRange,
+            ele_counts_inPtRange,
+            'reco',
+            pt_range_key,
+        )
+        sf_reco.append(sf_reco_inPtRange)
+        sfup_reco.append(sfup_reco_inPtRange)
+        sfdown_reco.append(sfdown_reco_inPtRange)
+
+    sf_reco = ak.prod(
+        ak.concatenate(sf_reco, axis=1), axis=1
+    )
+    sfup_reco = ak.prod(
+        ak.concatenate(sfup_reco, axis=1), axis=1
+    )
+    sfdown_reco = ak.prod(
+        ak.concatenate(sfdown_reco, axis=1), axis=1
+    )
+
+    return sf_reco, sfup_reco, sfdown_reco
+
+
+
+
+def sf_ele_reco_old(params, events, year):
     '''
     This function computes the per-electron reco SF and returns the corresponding per-event SF, obtained by multiplying the per-electron SF in each event.
     Additionally, also the up and down variations of the SF are returned.

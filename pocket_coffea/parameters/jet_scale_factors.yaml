@@ -99,3 +99,29 @@ jet_scale_factors:
                 M: 6
                 T: 7
             name: PUJetID_eff
+        '2022_preEE':
+            file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2022_Summer22/jetvetomaps.json.gz
+            name: "deepJet_shape"
+        '2022_postEE':
+            file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2022_Summer22EE/jetvetomaps.json.gz
+            name: "deepJet_shape"
+        '2023_preBPIX':
+            file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2023_Summer23/jetvetomaps.json.gz
+            name: "deepJet_shape"
+        '2023_postBPIX':
+            file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2023_Summer23BPix/jetvetomaps.json.gz
+            name: "deepJet_shape"
+
+    vetomaps:
+        '2022_preEE':
+            file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2022_Summer22/jetvetomaps.json.gz
+            name: "Summer22_23Sep2023_RunCD_V1"
+        '2022_postEE':
+            file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2022_Summer22EE/jetvetomaps.json.gz
+            name: "Summer22EE_23Sep2023_RunEFG_V1"
+        '2023_preBPIX':
+            file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2023_Summer23/jetvetomaps.json.gz
+            name: "Summer23Prompt23_RunC_V1"
+        '2023_postBPIX':
+            file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2023_Summer23BPix/jetvetomaps.json.gz
+            name: "Summer23BPixPrompt23_RunD_V1"
