@@ -129,33 +129,6 @@ lepton_scale_factors:
       '2022_postEE':
           file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2022EE_27Jun2023/muon_Z.json.gz
     
-    iso_mapping:
-      "tightId":
-        id: NUM_TightID_DEN_TrackerMuons
-        iso: 
-          "TightPFIso": 
-            name: NUM_TightPFIso_DEN_TightID
-          "LoosePFIso":
-            name: NUM_LoosePFIso_DEN_TightID
-      "mediumId":
-        id: NUM_MediumID_DEN_TrackerMuons
-        iso: 
-          "TightPFIso": 
-            name: NUM_TightPFIso_DEN_MediumID
-          "LoosePFIso":
-            name: NUM_LoosePFIso_DEN_MediumID
-      "mediumPromptId":
-        id: NUM_MediumPromptID_DEN_TrackerMuons
-        iso: 
-          "TightPFIso": 
-            name: NUM_TightPFIso_DEN_MediumPromptID
-          "LoosePFIso":
-            name: NUM_LoosePFIso_DEN_MediumPromptID
-      "looseId":
-        id: NUM_LooseID_DEN_TrackerMuons
-        iso: 
-          "LoosePFIso":
-            name: NUM_LoosePFIso_DEN_LooseID
         
 
     era_mapping:
