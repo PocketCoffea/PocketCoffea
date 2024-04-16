@@ -4,6 +4,9 @@ lepton_scale_factors:
   electron_sf:
 
     id: 
+    # mapping of the electron id working point of NanoAOD 
+    # to the name of the corresponding scale factors
+    # in the correction set provided by EGM 
       mvaIso_WP80: wp80iso
       mvaIso_WP90: wp90iso
       mvaNoIso_WP80: wp80noiso
