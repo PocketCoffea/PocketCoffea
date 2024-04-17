@@ -36,34 +36,43 @@ event_flags :
     - "BadPFMuonFilter"
      # "BadChargedCandidateFilter" "ecalBadCalibFilter
 
+# "HBHENoiseFilter" and "HBHENoiseIsoFilter" no longer recommended for Run 3
   "2022_preEE":
     - "goodVertices"
     - "globalSuperTightHalo2016Filter"
-    - "HBHENoiseFilter"
-    - "HBHENoiseIsoFilter"
     - "EcalDeadCellTriggerPrimitiveFilter"
     - "BadPFMuonFilter"
+    - "BadPFMuonDzFilter"
+    - "hfNoisyHitsFilter"
+    - "eeBadScFilter"
+    - "ecalBadCalibFilter"
   "2022_postEE":
     - "goodVertices"
     - "globalSuperTightHalo2016Filter"
-    - "HBHENoiseFilter"
-    - "HBHENoiseIsoFilter"
     - "EcalDeadCellTriggerPrimitiveFilter"
     - "BadPFMuonFilter"
+    - "BadPFMuonDzFilter"
+    - "hfNoisyHitsFilter"
+    - "eeBadScFilter"
+    - "ecalBadCalibFilter"
   "2023_preBPix":
     - "goodVertices"
     - "globalSuperTightHalo2016Filter"
-    - "HBHENoiseFilter"
-    - "HBHENoiseIsoFilter"
     - "EcalDeadCellTriggerPrimitiveFilter"
     - "BadPFMuonFilter"
+    - "BadPFMuonDzFilter"
+    - "hfNoisyHitsFilter"
+    - "eeBadScFilter"
+    - "ecalBadCalibFilter"
   "2023_postBPix":
     - "goodVertices"
     - "globalSuperTightHalo2016Filter"
-    - "HBHENoiseFilter"
-    - "HBHENoiseIsoFilter"
     - "EcalDeadCellTriggerPrimitiveFilter"
     - "BadPFMuonFilter"
+    - "BadPFMuonDzFilter"
+    - "hfNoisyHitsFilter"
+    - "eeBadScFilter"
+    - "ecalBadCalibFilter"
 
 event_flags_data:
   "2018":
