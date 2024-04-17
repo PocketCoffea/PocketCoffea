@@ -30,11 +30,18 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
             'export XRD_RUNFORKHANDLER=1',
             f'export X509_USER_PROXY={self.x509_path}',
             f'export PYTHONPATH=$PYTHONPATH:{os.getcwd()}',
+            'ulimit -u 32768',
             f'cd {os.getcwd()}',
-            f'source {os.environ["HOME"]}/.bashrc', # Conda should be setup by .bashrc for this to work
-            f'conda activate {os.environ["CONDA_PREFIX"]}'
             ]
-        
+
+        if self.run_options.get("conda-env", False):
+            env_worker.append(f'export PATH={os.environ["CONDA_PREFIX"]}/bin:$PATH')
+            if "CONDA_ROOT_PREFIX" in os.environ:
+                env_worker.append(f"{os.environ['CONDA_ROOT_PREFIX']} activate {os.environ['CONDA_DEFAULT_ENV']}")
+            elif "MAMBA_ROOT_PREFIX" in os.environ:
+                env_worker.append(f"{os.environ['MAMBA_EXE']} activate {os.environ['CONDA_DEFAULT_ENV']}")
+            else:
+                raise Exception("CONDA prefix not found in env! Something is wrong with your conda installation if you want to use conda in the dask cluster.")
         # Adding list of custom setup commands from user defined run options
         if self.run_options.get("custom-setup-commands", None):
             env_worker += self.run_options["custom-setup-commands"]
@@ -87,6 +94,7 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
         return args
     
     def close(self):
+        parsl.dfk().cleanup()
         parsl.clear()
 
 
