@@ -14,7 +14,7 @@ from parsl.config import Config
 from parsl.executors import HighThroughputExecutor
 from parsl.launchers import SrunLauncher, SingleNodeLauncher
 from parsl.addresses import address_by_hostname, address_by_query
-    
+
 
 class ParslCondorExecutorFactory(ExecutorFactoryABC):
     '''
@@ -27,6 +27,8 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
 
     def get_worker_env(self):
         env_worker = [
+            'echo \"Current date and time: `date`"',
+            'echo "Hostname=`hostname`"',
             'export XRD_RUNFORKHANDLER=1',
             f'export X509_USER_PROXY={self.x509_path}',
             f'export PYTHONPATH=$PYTHONPATH:{os.getcwd()}',
@@ -35,22 +37,28 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
             ]
 
         if self.run_options.get("conda-env", False):
-            env_worker.append(f'export PATH={os.environ["CONDA_PREFIX"]}/bin:$PATH')
-            if "CONDA_ROOT_PREFIX" in os.environ:
+            if "CONDA_PREFIX" in os.environ:
+                env_worker.append(f'export PATH={os.environ["CONDA_PREFIX"]}/bin:$PATH')
+            elif "CONDA_ROOT_PREFIX" in os.environ:
                 env_worker.append(f"{os.environ['CONDA_ROOT_PREFIX']} activate {os.environ['CONDA_DEFAULT_ENV']}")
             elif "MAMBA_ROOT_PREFIX" in os.environ:
                 env_worker.append(f"{os.environ['MAMBA_EXE']} activate {os.environ['CONDA_DEFAULT_ENV']}")
             else:
-                raise Exception("CONDA prefix not found in env! Something is wrong with your conda installation if you want to use conda in the dask cluster.")
+                raise Exception("CONDA prefix not found in env! Something is wrong with your conda installation if you want to use conda on the cluster.")
+            env_worker.append('echo "Conda has been activated, hopefylly... We are ready to roll!"')
+
         # Adding list of custom setup commands from user defined run options
         if self.run_options.get("custom-setup-commands", None):
+            'echo "Executing custom commands below"'
             env_worker += self.run_options["custom-setup-commands"]
 
         return env_worker
-    
-        
+
+
     def setup(self):
-        ''' Start the slurm cluster here'''
+        print("All run_options:", self.run_options)
+        
+        ''' Start Condor cluster here'''
         self.setup_proxyfile()
 
         condor_htex = Config(
@@ -63,8 +71,7 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
                         prefetch_capacity=0,
                         provider=CondorProvider(
                             nodes_per_block=1,
-                            cores_per_slot=self.run_options["cores-per-worker"],
-                            #channel=LocalChannel(script_dir='logs_parsl'),
+                            cores_per_slot=self.run_options.get("cores-per-worker", 1),
                             mem_per_slot=self.run_options.get("mem_per_worker_parsl", 2),
                             init_blocks=self.run_options["scaleout"],
                             max_blocks=(self.run_options["scaleout"]) + 5,
@@ -77,13 +84,13 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
                         ),
                     )
                 ],
-                retries=self.run_options["retries"],
-	        #run_dir="/tmp/"+getpass.getuser()+"/parsl_runinfo",
+            retries=self.run_options["retries"],
+	    run_dir="/tmp/"+getpass.getuser()+"/parsl_runinfo",
             )
 
         self.condor_cluster = parsl.load(condor_htex)
         print('Ready to run with parsl')
-        
+
     def get(self):
         return coffea_processor.parsl_executor(**self.customized_args())
 
@@ -92,11 +99,10 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
         # in the futures executor Nworkers == N scalout
         #args["treereduction"] = self.run_options["tree-reduction"]
         return args
-    
+
     def close(self):
         parsl.dfk().cleanup()
         parsl.clear()
-
 
 
 
@@ -105,5 +111,7 @@ def get_executor_factory(executor_name, **kwargs):
         return IterativeExecutorFactory(**kwargs)
     elif executor_name == "futures":
         return FuturesExecutorFactory(**kwargs)
-    elif  executor_name == "parsl-condor":
+    elif  "parsl-condor" in executor_name:
         return ParslCondorExecutorFactory(**kwargs)
+    else:
+        print("The executor is not recognized!\n available executors are: iterative, futures, parsl-condor")

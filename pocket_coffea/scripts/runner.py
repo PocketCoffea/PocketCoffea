@@ -78,8 +78,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         config = cloudpickle.load(open(cfg,"rb"))
     else:
         raise sys.exit("Please provide a .py/.pkl configuration file")
-
-
+    
     # Now loading the executor or from the set of predefined ones, or from the
     # user defined script
     if "@" in executor:
@@ -103,6 +102,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     # Now merge on top the user defined run_options
     if custom_run_options:
         run_options = parameters_utils.merge_parameters_from_files(run_options, custom_run_options)
+    
     if limit_files!=None:
         run_options["limit-files"] = limit_files
         config.filter_dataset(run_options["limit-files"])
@@ -160,6 +160,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     # Check the type of the executor_factory
     if not isinstance(executor_factory, executors_base.ExecutorFactoryABC):
         print("The user defined executor factory lib is not of type BaseExecturoABC!", executor_name, site)
+        
         exit(1)
 
     # Instantiate the executor
@@ -187,7 +188,9 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     else:
         # Running separately on each dataset
         for sample, files in config.filesets.items():
+            print(f"Working on sample: {sample}")
             logging.info(f"Working on sample: {sample}")
+            
             fileset = {sample:files}
 
             n_events_tot = int(files["metadata"]["nevents"])
