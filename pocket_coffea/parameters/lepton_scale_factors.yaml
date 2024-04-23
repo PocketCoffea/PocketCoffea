@@ -11,6 +11,10 @@ lepton_scale_factors:
       mvaIso_WP90: wp90iso
       mvaNoIso_WP80: wp80noiso
       mvaNoIso_WP90: wp90noiso
+      mvaFall17V2Iso_WP80: wp80iso
+      mvaFall17V2Iso_WP90: wp90iso
+      mvaFall17V2noIso_WP80: wp80noiso
+      mvaFall17V2noIso_WP90: wp90noiso
 
     JSONfiles: 
       '2016_PreVFP':
