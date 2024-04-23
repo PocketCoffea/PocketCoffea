@@ -45,7 +45,7 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
                 env_worker.append(f"{os.environ['MAMBA_EXE']} activate {os.environ['CONDA_DEFAULT_ENV']}")
             else:
                 raise Exception("CONDA prefix not found in env! Something is wrong with your conda installation if you want to use conda on the cluster.")
-            env_worker.append('echo "Conda has been activated, hopefylly... We are ready to roll!"')
+            env_worker.append('echo "Conda has been activated, hopefully... We are ready to roll!"')
 
         # Adding list of custom setup commands from user defined run options
         if self.run_options.get("custom-setup-commands", None):
@@ -111,7 +111,7 @@ def get_executor_factory(executor_name, **kwargs):
         return IterativeExecutorFactory(**kwargs)
     elif executor_name == "futures":
         return FuturesExecutorFactory(**kwargs)
-    elif  "parsl-condor" in executor_name:
+    elif  executor_name == "parsl-condor":
         return ParslCondorExecutorFactory(**kwargs)
     else:
         print("The executor is not recognized!\n available executors are: iterative, futures, parsl-condor")
