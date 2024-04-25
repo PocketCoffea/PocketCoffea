@@ -49,6 +49,7 @@ def load_config(cfg, outputdir):
 @click.option("-ll","--loglevel", type=str, help="Console logging level", default="INFO" )
 @click.option("-f","--full", is_flag=True, help="Process all datasets at the same time", default=False )
 @click.option("--executor-custom-setup", type=str, help="Python module to be loaded as custom executor setup")
+
 def run(cfg,  custom_run_options, outputdir, test, limit_files,
            limit_chunks, executor, scaleout, chunksize,
            queue, loglevel, full, executor_custom_setup):
@@ -77,8 +78,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         config = cloudpickle.load(open(cfg,"rb"))
     else:
         raise sys.exit("Please provide a .py/.pkl configuration file")
-
-
+    
     # Now loading the executor or from the set of predefined ones, or from the
     # user defined script
     if "@" in executor:
@@ -87,6 +87,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     else:
         executor_name = executor
         site = None
+    print("Running with executor", executor_name, site)
 
     # Getting the default run_options
     run_options_defaults = parameters_utils.get_default_run_options()
@@ -101,6 +102,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     # Now merge on top the user defined run_options
     if custom_run_options:
         run_options = parameters_utils.merge_parameters_from_files(run_options, custom_run_options)
+    
     if limit_files!=None:
         run_options["limit-files"] = limit_files
         config.filter_dataset(run_options["limit-files"])
@@ -117,7 +119,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     if queue!=None:
         run_options["queue"] = queue
 
-        
+
     ## Default config for testing: iterative executor, with 2 file and 2 chunks
     if test:
         executor = executor if executor else "iterative"
@@ -150,16 +152,20 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     else:
         from pocket_coffea.executors import executors_base as executors_lib
 
+    if "parsl" in executor_name:
+        logging.getLogger().handlers[0].setLevel("ERROR")
+        
     # Load the executor class from the lib and instantiate it
     executor_factory = executors_lib.get_executor_factory(executor_name, run_options=run_options, outputdir=outputdir)
     # Check the type of the executor_factory
     if not isinstance(executor_factory, executors_base.ExecutorFactoryABC):
-        print("The user defined executor factory lib is not of type BaseExecturoABC!")
+        print("The user defined executor factory lib is not of type BaseExecturoABC!", executor_name, site)
+        
         exit(1)
-    
+
     # Instantiate the executor
     executor = executor_factory.get()
-        
+
     if full:
         # Running on all datasets at once
         fileset = config.filesets
@@ -178,16 +184,18 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
 
         print(f"Saving output to {outfile.format('all')}")
         save(output, outfile.format("all") )
-        
+
     else:
         # Running separately on each dataset
         for sample, files in config.filesets.items():
+            print(f"Working on sample: {sample}")
             logging.info(f"Working on sample: {sample}")
+            
             fileset = {sample:files}
 
             n_events_tot = int(files["metadata"]["nevents"])
             n_workers_max = n_events_tot / run_options["chunksize"]
-            
+
             # If the number of available workers exceeds the maximum number of workers for a given sample,
             # the chunksize is reduced so that all the workers are used to process the given sample
             if (run_options["scaleout"] > n_workers_max):
@@ -208,7 +216,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
                          processor_instance=config.processor_instance)
             print(f"Saving output to {outfile.format(sample)}")
             save(output, outfile.format(sample))
-         
+
     # Closing the executor if needed
     executor_factory.close()
 
