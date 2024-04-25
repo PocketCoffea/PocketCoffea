@@ -50,6 +50,7 @@ parsl-condor@RWTH:
   mem_per_worker: 2 # GB
   logs-dir: logs_parsl
   local-virtualenv: false
+  conda-env: True
   cores-per-worker: 1
   walltime: "12:00:00"
 
