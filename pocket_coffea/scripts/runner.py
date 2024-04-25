@@ -139,8 +139,8 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         from pocket_coffea.executors import executors_lxplus as executors_lib
     elif site == "T3_CH_PSI":
         from pocket_coffea.executors import executors_T3_CH_PSI as executors_lib
-    elif site == "purdue":
-        from pocket_coffea.executors import executors_purdue as executors_lib
+    elif site == "purdue-af":
+        from pocket_coffea.executors import executors_purdue_af as executors_lib
     elif site == "DESY_NAF":
         from pocket_coffea.executors import executors_DESY_NAF as executors_lib
     elif site == "RWTH":

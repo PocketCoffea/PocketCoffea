@@ -113,6 +113,7 @@ respectively).
 |lxplus| dask               | dask@lxplus    |
 |T3_CH_PSI| dask               | dask@T3_CH_PSI    |
 |T2_RWTH_Aachen| parsl         | parsl-condor@RWTH |
+|[Purdue Analysis Facility](https://analysis-facility.physics.purdue.edu)| dask | dask@purdue-af |
 
 
 ---------------------------------------
