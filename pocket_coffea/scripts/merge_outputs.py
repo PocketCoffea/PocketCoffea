@@ -1,6 +1,7 @@
 from coffea.util import load, save
 from coffea.processor import accumulate 
 import click
+from glob import glob
 
 
 @click.command()
@@ -20,8 +21,9 @@ import click
     help="Output file",
 )
 def merge_outputs(inputfiles, outputfile):
-    files = [load(f) for f in inputfiles]
-
+    files = []
+    for f in inputfiles:
+        files += glob(f)
     out = accumulate(files)
     save(out, outputfile)
 
