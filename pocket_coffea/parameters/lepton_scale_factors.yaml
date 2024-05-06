@@ -136,13 +136,3 @@ lepton_scale_factors:
       '2022_postEE':
           file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2022EE_27Jun2023/muon_Z.json.gz
     
-        
-
-    era_mapping:
-        # this is needed because the correction set provided by MUO
-        # have a fixed set of era labels, different from ours
-        "2016_PreVFP": "2016preVFP_UL"
-        "2016_PostVFP": "2016postVFP_UL"
-        "2017": "2017_UL"
-        "2018": "2018_UL"
-  #####################################################################
