@@ -84,30 +84,19 @@ def get_mu_sf(params, year, pt, eta, counts, key=''):
     muon_correctionset = correctionlib.CorrectionSet.from_file(
         muonSF.JSONfiles[year]['file']
     )
+    
     sfName = muonSF.sf_name[year][key]
-
-    if year in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
-        year_pog = muonSF.era_mapping[year]
-        sf = muon_correctionset[sfName].evaluate(
-            year_pog, np.abs(eta.to_numpy()), pt.to_numpy(), "sf"
-        )
-        sfup = muon_correctionset[sfName].evaluate(
-            year_pog, np.abs(eta.to_numpy()), pt.to_numpy(), "systup"
-        )
-        sfdown = muon_correctionset[sfName].evaluate(
-            year_pog, np.abs(eta.to_numpy()), pt.to_numpy(), "systdown"
-        )
-    else: 
-        sf = muon_correctionset[sfName].evaluate(
-            np.abs(eta.to_numpy()), pt.to_numpy(), "nominal"
-        )
-        sfup = muon_correctionset[sfName].evaluate(
-            np.abs(eta.to_numpy()), pt.to_numpy(), "systup"
-        )
-        sfdown = muon_correctionset[sfName].evaluate(
-            np.abs(eta.to_numpy()), pt.to_numpy(), "systdown"
-        )
-
+    
+    sf = muon_correctionset[sfName].evaluate(
+        np.abs(eta.to_numpy()), pt.to_numpy(), "nominal"
+    )
+    sfup = muon_correctionset[sfName].evaluate(
+        np.abs(eta.to_numpy()), pt.to_numpy(), "systup"
+    )
+    sfdown = muon_correctionset[sfName].evaluate(
+        np.abs(eta.to_numpy()), pt.to_numpy(), "systdown"
+    )
+    
     # The unflattened arrays are returned in order to have one row per event.
     return (
         ak.unflatten(sf, counts),
