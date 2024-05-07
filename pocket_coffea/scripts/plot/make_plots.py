@@ -29,6 +29,7 @@ import click
 @click.option('--log', is_flag=True, help='Set y-axis scale to log', required=False, default=False)
 @click.option('--density', is_flag=True, help='Set density parameter to have a normalized plot', required=False)
 @click.option('-v', '--verbose', type=int, default=1, help='Verbose level for debugging. Higher the number more stuff is printed.', required=False)
+
 def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfile,
                workers, only_cat, only_syst, exclude_hist, only_hist, split_systematics, partial_unc_band, no_syst, overwrite, log, density, verbose):
     '''Plot histograms produced by PocketCoffea processors'''

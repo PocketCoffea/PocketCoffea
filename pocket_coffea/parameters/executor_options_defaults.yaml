@@ -50,5 +50,15 @@ parsl-condor@RWTH:
   mem_per_worker: 2 # GB
   logs-dir: logs_parsl
   local-virtualenv: false
+  conda-env: True
   cores-per-worker: 1
   walltime: "12:00:00"
+
+dask@purdue-af:
+  gateway-address: "http://dask-gateway-k8s.geddes.rcac.purdue.edu/"
+  gateway-proxy-address: "traefik-dask-gateway-k8s.cms.geddes.rcac.purdue.edu:8786"
+  scaleout: 100
+  adaptive: true
+  cores-per-worker: 1
+  mem-per-worker: 4 # GB
+  
