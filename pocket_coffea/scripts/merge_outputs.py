@@ -21,6 +21,7 @@ from glob import glob
     help="Output file",
 )
 def merge_outputs(inputfiles, outputfile):
+    '''Merge coffea output files'''
     files = []
     for f in inputfiles:
         files += glob(f)
