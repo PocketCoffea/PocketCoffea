@@ -108,7 +108,7 @@ def _get_pfn_for_site(path, rules):
                 return pfn
     else:
         # not adding any slash as the path usually starts with it
-        return rules + "/" + path if not path.startswith("/") else rules + path
+        return rules + "/" + path if not rules.endswith("/") else rules + path
 
 def get_dataset_files_replicas(
     dataset,
@@ -163,6 +163,7 @@ def get_dataset_files_replicas(
            Metadata counting the coverage of the dataset by site
 
     """
+    print("CIAOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
     sites_xrootd_prefix = get_xrootd_sites_map()
     client = client if client else get_rucio_client()
     outsites = []
@@ -265,109 +266,6 @@ def get_dataset_files_replicas(
 
     return outfiles, outsites, sites_counts
 
-
-
-def get_dataset_files(
-    dataset,
-    whitelist_sites=None,
-    blacklist_sites=None,
-    regex_sites=None,
-    output="first",
-):
-    '''
-    This function queries the Rucio server to get information about the location
-    of all the replicas of the files in a CMS dataset.
-
-    The sites can be filtered in 3 different ways:
-    - `whilist_sites`: list of sites to select from. If the file is not found there, raise an Expection.
-    - `blacklist_sites`: list of sites to avoid. If the file has no left site, raise an Exception
-    - `regex_sites`: regex expression to restrict the list of sites.
-
-    The function can return all the possible sites for each file (`output="all"`)
-    or the first site found for each file (`output="first"`, by default)
-    '''
-    sites_xrootd_prefix = get_xrootd_sites_map()
-    client = get_rucio_client()
-    outsites = []
-    outfiles = []
-    for filedata in client.list_replicas([{"scope": "cms", "name": dataset}]):
-        outfile = []
-        outsite = []
-        rses = filedata["rses"]
-        found = False
-        if whitelist_sites:
-            for site in whitelist_sites:
-                if site in rses:
-                    # Check actual availability
-                    meta = filedata["pfns"][rses[site][0]]
-                    if (
-                        meta["type"] != "DISK"
-                        or meta["volatile"] == True
-                        or filedata["states"][site] != "AVAILABLE"
-                        or site not in sites_xrootd_prefix
-                    ):
-                        continue
-                    outfile.append(_get_pfn_for_site(filedata["name"], sites_xrootd_prefix[site]))
-                    outsite.append(site)
-
-                    found = True
-
-            if not found:
-                raise Exception(
-                    f"No SITE available in the whitelist for file {filedata['name']}"
-                )
-        else:
-            possible_sites = list(rses.keys())
-            if blacklist_sites:
-                possible_sites = list(
-                    filter(lambda key: key not in blacklist_sites, possible_sites)
-                )
-
-            if len(possible_sites) == 0:
-                raise Exception(f"No SITE available for file {filedata['name']}")
-
-            # now check for regex
-            for site in possible_sites:
-                if regex_sites:
-                    if re.match(regex_sites, site):
-                        # Check actual availability
-                        meta = filedata["pfns"][rses[site][0]]
-                        if (
-                            meta["type"] != "DISK"
-                            or meta["volatile"] == True
-                            or filedata["states"][site] != "AVAILABLE"
-                            or site not in sites_xrootd_prefix
-                        ):
-                            continue
-                        outfile.append(_get_pfn_for_site(filedata["name"], sites_xrootd_prefix[site]))
-                        outsite.append(site)
-                        found = True
-                else:
-                    # Just take the first one
-                    # Check actual availability
-                    meta = filedata["pfns"][rses[site][0]]
-                    if (
-                        meta["type"] != "DISK"
-                        or meta["volatile"] == True
-                        or filedata["states"][site] != "AVAILABLE"
-                        or site not in sites_xrootd_prefix
-                    ):
-                        continue
-                    outfile.append(_get_pfn_for_site(filedata["name"], sites_xrootd_prefix[site]))
-                    outsite.append(site)
-                    found = True
-
-        if not found:
-            raise Exception(f"No SITE available for file {filedata['name']}")
-        else:
-            if output == "all":
-                outfiles.append(outfile)
-                outsites.append(outsite)
-            elif output == "first":
-                outfiles.append(outfile[0])
-                outsites.append(outsite[0])
-
-    return outfiles, outsites
 
 
 def get_dataset_files_from_dbs(
