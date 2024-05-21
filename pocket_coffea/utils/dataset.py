@@ -18,7 +18,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from .network import get_proxy_path
 from . import rucio
 
-def do_dataset(key, config, local_prefix, whitelist_sites, blacklist_sites, regex_sites, **kwargs):
+def do_dataset(key, config, local_prefix, allowlist_sites, blocklist_sites, regex_sites, **kwargs):
     print("*" * 40)
     print("> Working on dataset: ", key)
     if key not in config:
@@ -154,12 +154,12 @@ class Sample:
 
             if self.metadata.get("dbs_instance", "prod/global") == "prod/global":
                 # Now query rucio to get the concrete dataset passing the sites filtering options
-                files_replicas, sites = rucio.get_dataset_files_replicas(
+                files_replicas, sites, sites_counts = rucio.get_dataset_files_replicas(
                     das_name, **self.sites_cfg, mode="first"
                 )
             else:
                 # Use DBS to get the site
-                files_replicas, sites = rucio.get_dataset_files_from_dbs(das_name, self.metadata["dbs_instance"])
+                files_replicas, sites, sites_counts = rucio.get_dataset_files_from_dbs(das_name, self.metadata["dbs_instance"])
                 
             self.fileslist_concrete += files_replicas
 

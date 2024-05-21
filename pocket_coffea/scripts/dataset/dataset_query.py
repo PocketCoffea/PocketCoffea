@@ -116,7 +116,6 @@ class DataDiscoveryCLI:
             "replicas",
             "list-replicas",
             "save",
-            "preprocess",
             "allow-sites",
             "block-sites",
             "regex-sites",

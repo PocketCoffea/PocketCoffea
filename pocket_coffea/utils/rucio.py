@@ -163,7 +163,6 @@ def get_dataset_files_replicas(
            Metadata counting the coverage of the dataset by site
 
     """
-    print("CIAOOOOOOOOOOOOOOOOOOOOOOOOOOOOO")
     sites_xrootd_prefix = get_xrootd_sites_map()
     client = client if client else get_rucio_client()
     outsites = []
