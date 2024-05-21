@@ -5,7 +5,7 @@ import os
 import random
 from collections import defaultdict
 from typing import List
-
+import copy
 import yaml
 import click
 from rich import print
@@ -141,7 +141,7 @@ Some basic commands:
   - [bold cyan]allow-sites[/]: Restrict the grid sites available for replicas query only to the requested list
   - [bold cyan]block-sites[/]: Exclude grid sites from the available sites for replicas query
   - [bold cyan]regex-sites[/]: Select sites with a regex for replica queries: e.g.  "T[123]_(FR|IT|BE|CH|DE)_\w+"
-  - [bold cyan]save[/]: Save the replicas query results to file (json or yaml) for further processing
+  - [bold cyan]save[/]: Save the selected datasets as a dataset definition file and also the replicas query results to file (json or yaml) for further processing
   - [bold cyan]help[/]: Print this help message
             """
                 )
@@ -246,7 +246,14 @@ Some basic commands:
                 if metadata:
                     self.selected_datasets_metadata.append(metadata)
                 else:
-                    self.selected_datasets_metadata.append({})
+                    self.selected_datasets_metadata.append({
+                        "year": "",
+                        "isMC": True,
+                        "primaryDataset": "",
+                        "part": "",
+                        "era": "",
+                        "xsec": 1.0
+                    })
                 print(f"- ({s+1}) {self.last_query_list[s]}")
             else:
                 print(
@@ -417,7 +424,7 @@ Some basic commands:
         self.final_output = {}
         for fileset, files in self.replica_results.items():
             self.final_output[fileset] = {
-                "files": {f: "Events" for f in files},
+                "files": [f for f in files],
                 "metadata": self.replica_results_metadata[fileset],
             }
         return self.final_output
@@ -501,7 +508,7 @@ Some basic commands:
             self.console.print(tree)
 
     def do_save(self, filename=None):
-        """Save the replica information in yaml format"""
+        """Save the replica information in yaml format"""        
         if not filename:
             filename = Prompt.ask(
                 "[yellow bold]Output file name (.yaml or .json)", default="output.json"
@@ -509,12 +516,57 @@ Some basic commands:
         format = os.path.splitext(filename)[1]
         if not format:
             raise Exception("[red] Please use a .json or .yaml filename for the output")
-        with open(filename, "w") as file:
-            if format == ".yaml":
-                yaml.dump(self.final_output, file, default_flow_style=False)
-            elif format == ".json":
-                json.dump(self.final_output, file, indent=2)
+
+        # First save the datasets in the format of the PocketCoffea metadata
+        groups = defaultdict(list)
+        for dataset in self.selected_datasets:
+            group, name, tier = dataset[1:].split("/")
+            groups[group].append(dataset)
+        output_definition = defaultdict(dict)
+        output_definition_withreplicas = defaultdict(dict)
+        for group, datasets in groups.items():
+            dataset_info = {
+                "sample": group,
+                "json_output": f"datasets/{group}.json",
+                "files": []
+            }
+            for dataset in datasets:
+                dataset_info["files"].append({
+                "das_names": [dataset],
+                "metadata": self.selected_datasets_metadata[self.selected_datasets.index(dataset)]
+                })
+            output_definition[group] = dataset_info
+            # now replica info
+            ireplicas = 0
+            for dataset in datasets:
+                if dataset in self.replica_results:
+                    dataset_info_withreplicas = {
+                        "sample": group,
+                        "json_output": f"datasets/{group}.json",
+                    }
+                    dataset_info_withreplicas.update(self.final_output[dataset])
+                    dataset_info_withreplicas["metadata"]["das_names"] = [dataset]
+                    output_definition_withreplicas[f"{group}_{ireplicas}"] = dataset_info_withreplicas
+                    ireplicas += 1
+
+
+        if format == ".yaml":
+            with open(filename.replace(".yaml","_replicas.yaml") , "w") as file:
+                yaml.dump(output_definition_withreplicas,
+                          file,
+                          default_flow_style=False)
+            with open(filename, "w") as file:
+                yaml.dump(output_definition, file, default_flow_style=False)
+
+        elif format == ".json":
+            with open(filename.replace(".json","_replicas.json") , "w") as file:
+                json.dump(output_definition_withreplicas, file, indent=2)
+            with open(filename, "w") as file:
+                json.dump(output_definition, file, indent=2)
+               
         print(f"[green]File {filename} saved!")
+        
+        
     def load_dataset_definition(
         self,
         dataset_definition,
