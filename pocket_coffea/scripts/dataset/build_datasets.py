@@ -47,20 +47,20 @@ from pocket_coffea.utils import dataset
 @click.option("-l", "--local-prefix", type=str, default=None)
 @click.option(
     "-ws",
-    "--whitelist-sites",
+    "--allowlist-sites",
     type=str,
     multiple=True,
 )
 @click.option(
     "-bs",
-    "--blacklist-sites",
+    "--blocklist-sites",
     type=str,
     multiple=True,
 )
 @click.option("-rs", "--regex-sites", type=str)
 @click.option("-p", "--parallelize", type=int, default=4)
 def build_datasets(cfg, keys, download, overwrite, check,
-         split_by_year, local_prefix, whitelist_sites, blacklist_sites, regex_sites, parallelize):
+         split_by_year, local_prefix, allowlist_sites, blocklist_sites, regex_sites, parallelize):
     '''Build dataset fileset in json format'''
     dataset.build_datasets(cfg=cfg,
                            keys=keys,
@@ -69,8 +69,8 @@ def build_datasets(cfg, keys, download, overwrite, check,
                            check=check,
                            split_by_year=split_by_year,
                            local_prefix=local_prefix,
-                           whitelist_sites=whitelist_sites,
-                           blacklist_sites=blacklist_sites,
+                           allowlist_sites=allowlist_sites,
+                           blocklist_sites=blocklist_sites,
                            regex_sites=regex_sites,
                            parallelize=parallelize)
 
