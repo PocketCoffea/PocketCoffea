@@ -54,6 +54,28 @@ analysis can be run directly.
 If a specific image is needed for a computing environment, more flavours of the docker/apptainer image can be
 built. Please get in touch!
 
+:::{tip}
+You can test if the environment has been properly setup by running the `pocket-coffea` CLI. 
+
+```bash
+$> pocket-coffea 
+pocket-coffea 
+
+    ____             __        __  ______      ________
+   / __ \____  _____/ /_____  / /_/ ____/___  / __/ __/__  ____ _
+  / /_/ / __ \/ ___/ //_/ _ \/ __/ /   / __ \/ /_/ /_/ _ \/ __ `/
+ / ____/ /_/ / /__/ ,< /  __/ /_/ /___/ /_/ / __/ __/  __/ /_/ /
+/_/    \____/\___/_/|_|\___/\__/\____/\____/_/ /_/  \___/\__,_/
+
+
+Running PocketCoffea version 0.8.0
+- Documentation page:  https://pocketcoffea.readthedocs.io/
+- Repository:          https://github.com/PocketCoffea/PocketCoffea
+
+Run with --help option for the list of available commands 
+```
+:::
+
 ### Using Apptainer for local development
 
 If the user needs to modify locally the central PocketCoffea code, the apptainer image can still be used as a baseline

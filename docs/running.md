@@ -1,4 +1,47 @@
 # Running the analysis
+## CLI interface
+Once installed in your software environemnt, either by using an apptainer image or a custom python environment,
+PocketCoffea exposes different scripts and utilities with a command-line-interface (CLI)
+
+```bash
+$> pocket-coffea 
+
+    ____             __        __  ______      ________
+   / __ \____  _____/ /_____  / /_/ ____/___  / __/ __/__  ____ _
+  / /_/ / __ \/ ___/ //_/ _ \/ __/ /   / __ \/ /_/ /_/ _ \/ __ `/
+ / ____/ /_/ / /__/ ,< /  __/ /_/ /___/ /_/ / __/ __/  __/ /_/ /
+/_/    \____/\___/_/|_|\___/\__/\____/\____/_/ /_/  \___/\__,_/
+
+
+Running PocketCoffea version 0.8.0
+- Documentation page:  https://pocketcoffea.readthedocs.io/
+- Repository:          https://github.com/PocketCoffea/PocketCoffea
+
+Run with --help option for the list of available commands
+
+```
+
+The commands and their options can be explored directly with the CLI: 
+```bash
+$> pocket-coffea  --help
+Usage: pocket-coffea [OPTIONS] COMMAND [ARGS]...
+
+Options:
+  -v, --version BOOLEAN  Print PocketCoffea package version
+  --help                 Show this message and exit.
+
+Commands:
+  build-datasets      Build dataset fileset in json format
+  hadd-skimmed-files  Regroup skimmed datasets by joining different files...
+  make-plots          Plot histograms produced by PocketCoffea processors
+  run                 Run an analysis on NanoAOD files using PocketCoffea...
+```
+
+The `run` command is the one used to execute the analysis workflow on the datasets. This is replacing the previous
+`pocket-coffea run` script, but it has the same user interface.
+
+
+# Executors
 
 The PocketCoffea analysis can be runned in different ways, locally or sending out jobs to a cluster throught the Dask
 scheduling system. 
@@ -14,10 +57,11 @@ scheduling system.
     Scale the processor to hundreds of workers in HTCondor through the Dask scheduler.
     Automatic handling of jobs submissions and results aggregation.
   
-Assuming that PocketCoffea is installed (for example inside the singularity machine), to run the analysis just use the `runner.py` script:
+Assuming that PocketCoffea is installed (for example inside the singularity machine), to run the analysis just use the
+`pocket-coffea run` command:
 
 ```bash
-$ runner.py --help
+$> pocket-coffea run --help
 
     ____             __        __  ______      ________
    / __ \____  _____/ /_____  / /_/ ____/___  / __/ __/__  ____ _
@@ -26,42 +70,35 @@ $ runner.py --help
 /_/    \____/\___/_/|_|\___/\__/\____/\____/_/ /_/  \___/\__,_/
 
 
-usage: runner.py [-h] --cfg CFG [-ro RUN_OPTIONS] -o OUTPUTDIR [-t] [-lf LIMIT_FILES] [-lc LIMIT_CHUNKS] -e EXECUTOR [-s SCALEOUT] [-c CHUNKSIZE] [-q QUEUE] [-ll LOGLEVEL] [-f] [--executor-custom-setup EXECUTOR_CUSTOM_SETUP]
+Usage: pocket-coffea run [OPTIONS]
 
-Run analysis on NanoAOD files using PocketCoffea processors
+  Run an analysis on NanoAOD files using PocketCoffea processors
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --cfg CFG             Config file with parameters specific to the current run
-  -ro RUN_OPTIONS, --run-options RUN_OPTIONS
-                        User provided run options .yaml file
-  -o OUTPUTDIR, --outputdir OUTPUTDIR
-                        Output folder
-  -t, --test            Run with limit 1 interactively
-  -lf LIMIT_FILES, --limit-files LIMIT_FILES
-                        Limit number of files
-  -lc LIMIT_CHUNKS, --limit-chunks LIMIT_CHUNKS
-                        Limit number of chunks
-  -e EXECUTOR, --executor EXECUTOR
-                        Overwrite executor from config (to be used only with the --test options)
-  -s SCALEOUT, --scaleout SCALEOUT
-                        Overwrite scalout config
-  -c CHUNKSIZE, --chunksize CHUNKSIZE
-                        Overwrite chunksize config
-  -q QUEUE, --queue QUEUE
-                        Overwrite queue config
-  -ll LOGLEVEL, --loglevel LOGLEVEL
-                        Console logging level
-  -f, --full            Process all datasets at the same time
-  --executor-custom-setup EXECUTOR_CUSTOM_SETUP
-                        Python module to be loaded as custom executor setup
+Options:
+  --cfg TEXT                      Config file with parameters specific to the
+                                  current run  [required]
+  -ro, --custom-run-options TEXT  User provided run options .yaml file
+  -o, --outputdir TEXT            Output folder  [required]
+  -t, --test                      Run with limit 1 interactively
+  -lf, --limit-files INTEGER      Limit number of files
+  -lc, --limit-chunks INTEGER     Limit number of chunks
+  -e, --executor TEXT             Overwrite executor from config (to be used
+                                  only with the --test options)
+  -s, --scaleout INTEGER          Overwrite scalout config
+  -c, --chunksize INTEGER         Overwrite chunksize config
+  -q, --queue TEXT                Overwrite queue config
+  -ll, --loglevel TEXT            Console logging level
+  -f, --full                      Process all datasets at the same time
+  --executor-custom-setup TEXT    Python module to be loaded as custom
+                                  executor setup
+  --help                          Show this message and exit.
 
 ```
 
-To run with a predefined executor just pass the `--executor` option string when calling the `runner.py` string:
+To run with a predefined executor just pass the `--executor` option string when calling the the `run` command
 
 ```bash
-$> runner.py --cfg analysis_config.py -o output --executor dask@lxplus
+$> pocket-coffea run --cfg analysis_config.py -o output --executor dask@lxplus
 ```
 Have a look below for more details about the available executor setups.
 
@@ -75,6 +112,8 @@ respectively).
 |------|--------------------|----------------|
 |lxplus| dask               | dask@lxplus    |
 |T3_CH_PSI| dask               | dask@T3_CH_PSI    |
+|T2_RWTH_Aachen| parsl         | parsl-condor@RWTH |
+|[Purdue Analysis Facility](https://analysis-facility.physics.purdue.edu)| dask | dask@purdue-af |
 
 
 ---------------------------------------
@@ -121,7 +160,7 @@ dask@lxplus:
 
 ### Executor options
 The dataset splitting (chunksize), the number of workers, and the other options, which may be executor-specific, must be
-configured by the user passing to `runner.py` a .yaml file containing options. These options are overwritten over the
+configured by the user passing to `pocket-coffea run` a .yaml file containing options. These options are overwritten over the
 default options for the requested executor. 
 
 For example:
@@ -135,14 +174,14 @@ queue: "espresso"
 mem-per-worker: 6GB
 
 
-$> runner.py  --cfg analysis_config.py -o output --executor dask@lxplus  --run-options my_run_options.yaml
+$> pocket-coffea run  --cfg analysis_config.py -o output --executor dask@lxplus  --custom-run-options my_run_options.yaml
 ```
 
-The user can also modify on the fly some run options using arguments of the `runner.py` script. For example by limiting
+The user can also modify on the fly some run options using arguments of the `pocket-coffea run` script. For example by limiting
 the number of files or number of chunks to analyse (for testing purposes)
 
 ```bash
-$> runner.py  --cfg analysis_config.py -o output --executor dask@lxplus \
+$> pocket-coffea run  --cfg analysis_config.py -o output --executor dask@lxplus \
               --limit-files 10  --limit-chunks 10 \
               --chunksize 150000 --queue espresso
 ```
@@ -156,7 +195,7 @@ In particular if the user is using a `virtual environment` or `conda` to develop
 image, there is an option to make the remote executors pickup the correct python env.
 
 Just specify  `local-virtualenv: true` in the custom run options for virtualenv inside the singularity or `conda-env:
-true` for using the conda (or mamba/micromamba) env activated where the `runner.py` script is run.
+true` for using the conda (or mamba/micromamba) env activated where the `pocket-coffea run` script is run.
 
 :::{admonition} Local environment support
 :class: warning
@@ -179,7 +218,7 @@ custom-setup-commands:
 ```
 
 ## Dask scheduler on lxplus
-The dask scheduler started by the `runner.py` script needs to stay alive in the user interactive session. 
+The dask scheduler started by the `pocket-coffea run` script needs to stay alive in the user interactive session. 
 This means that if you start a runner process directly in the lxplus machine (in a singularity session) you cannot
 logout from the session. 
 
@@ -203,25 +242,25 @@ your running session are visible with `tmux ls`. To reconnect do `tmux a -t your
 
 ## Easy debugging
 
-The easiest way to debug a new processor is to run locally on a single process. The `runner()` script has
+The easiest way to debug a new processor is to run locally on a single process. The `run` command has
 the `--test` options which enables the `iterative` processor independently from the running configuration specified in
 the configuration file. The processor is run on a file of each input dataset.
 
 ```bash
-$ runner.py --cfg config.py --test
+$ pocket-coffea run --cfg config.py --test
 ```
 
 If you want to run locally with multiple processes for a fixed number of chunks just use the options:
 
 ```bash
-$ runner.py --cfg config.py --test -e futures -s 4 --limit-files 10 --limit-chunks 10 
+$ pocket-coffea run --cfg config.py --test -e futures -s 4 --limit-files 10 --limit-chunks 10 
 ```
 
 
 ## Adding support for a new executor/site
 
 If you want to run PocketCoffea in a analysis environment that is still not centrally implemented you can implement a
-custom `ExecutorFactory` and pass it to the `runner.py` script on the fly. In practice, this means that the user is free
+custom `ExecutorFactory` and pass it to the `pocket-coffea run` script on the fly. In practice, this means that the user is free
 to define from scratch the configuration of its cluster for running with Dask for example. 
 
 Have a look at
@@ -280,7 +319,7 @@ The user's module must implement a `get_executor_factory(string, run_options)` m
 The module is then used like this:
 
 ```bash
-$> runner.py --cfg analysis_config.py -o output --executor dask  --executor-custom-setup my_custom_executor.py
+$> pocket-coffea run --cfg analysis_config.py -o output --executor dask  --executor-custom-setup my_custom_executor.py
 --run-options my_run_options.py
 ```
 

@@ -17,7 +17,7 @@ import mplhep as hep
 from omegaconf import OmegaConf
 from pocket_coffea.parameters.defaults import merge_parameters
 
-np.seterr(divide="ignore", invalid="ignore")
+np.seterr(divide="ignore", invalid="ignore", over="ignore")
 class Style:
     '''This class manages all the style options for Data/MC plots.'''
 
@@ -182,7 +182,6 @@ class PlotManager:
             for shape in shape_names:
                 self.plot_datamc(shape, syst=syst, spliteras=spliteras)
 
-
 class Shape:
     '''This class handles the plotting of 1D data/MC histograms.
     The constructor requires as arguments:
@@ -224,7 +223,6 @@ class Shape:
         self.exclude_samples()
         self.rescale_samples()
         self.load_attributes()
-        self.syst_manager = SystManager(self, self.style)
 
     def load_attributes(self):
         '''Loads the attributes from the dictionary of histograms.'''
@@ -239,19 +237,30 @@ class Shape:
             assert len(
                 set([self.h_dict[s].ndim for s in self.samples_mc])
             ), f"{self.name}: Not all the MC histograms have the same dimension."
+            # Load categorical axes for MC histograms
+            for ax in self.categorical_axes_mc:
+                setattr(
+                    self,
+                    {'year': 'years', 'cat': 'categories', 'variation': 'variations'}[
+                        ax.name
+                    ],
+                    self.get_axis_items(ax.name, is_mc=True),
+                )
+            self.syst_manager = SystManager(self, self.style)
         if not self.is_mc_only:
             assert len(
                 set([self.h_dict[s].ndim for s in self.samples_data])
             ), f"{self.name}: Not all the data histograms have the same dimension."
+            # Load categorical axes for data histograms
+            for ax in self.categorical_axes_data:
+                setattr(
+                    self,
+                    {'year': 'years', 'cat': 'categories'}[
+                        ax.name
+                    ],
+                    self.get_axis_items(ax.name, is_mc=False),
+                )
 
-        for ax in self.categorical_axes_mc:
-            setattr(
-                self,
-                {'year': 'years', 'cat': 'categories', 'variation': 'variations'}[
-                    ax.name
-                ],
-                self.get_axis_items(ax.name),
-            )
         xaxis = self.dense_axes[0]
         self.style.update(
             {
@@ -294,10 +303,10 @@ class Shape:
 
         return dense_axes
 
-    def _categorical_axes(self, mc=True):
+    def _categorical_axes(self, is_mc=True):
         '''Returns the list of categorical axes of a histogram.'''
         # Since MC and data have different categorical axes, the argument mc needs to specified
-        if mc:
+        if is_mc:
             d = {s: v for s, v in self.h_dict.items() if s in self.samples_mc}
         else:
             d = {s: v for s, v in self.h_dict.items() if s in self.samples_data}
@@ -309,7 +318,7 @@ class Shape:
                     categorical_axes_dict[s].append(ax)
         categorical_axes = list(categorical_axes_dict.values())
         error_msg = f"The Shape object `{self.name}` contains histograms with different categorical axes in the %1 datasets.\nMismatching axes:\n"
-        if mc:
+        if is_mc:
             error_msg = error_msg.replace("%1", "MC")
         else:
             error_msg = error_msg.replace("%1", "Data")
@@ -325,32 +334,32 @@ class Shape:
     @property
     def categorical_axes_mc(self):
         '''Returns the list of categorical axes of a MC histogram.'''
-        return self._categorical_axes(mc=True)
+        return self._categorical_axes(is_mc=True)
 
     @property
     def categorical_axes_data(self):
         '''Returns the list of categorical axes of a data histogram.'''
-        return self._categorical_axes(mc=False)
+        return self._categorical_axes(is_mc=False)
 
     @property
     def dense_dim(self):
         '''Returns the number of dense axes of a histogram.'''
         return len(self.dense_axes)
 
-    def get_axis_items(self, axis_name, mc=True):
+    def get_axis_items(self, axis_name, is_mc):
         '''Returns the list of values contained in a Hist axis.'''
-        if mc:
+        if is_mc:
             axis = [ax for ax in self.categorical_axes_mc if ax.name == axis_name][0]
         else:
             axis = [ax for ax in self.categorical_axes_data if ax.name == axis_name][0]
         return list(axis.value(range(axis.size)))
 
-    def _stack_sum(self, cat=None, mc=None, stack=None):
+    def _stack_sum(self, cat=None, is_mc=None, stack=None):
         '''Returns the sum histogram of a stack (`hist.stack.Stack`) of histograms.'''
         if not stack:
             if not cat:
                 raise Exception("The category `cat` should be passed when the `stack` option is not specified.")
-            if mc:
+            if is_mc:
                 stack = self._stacksCache[cat]["mc"]
             else:
                 stack = self._stacksCache[cat]["data"]
@@ -365,12 +374,12 @@ class Shape:
     @property
     def stack_sum_data(self, cat):
         '''Returns the sum histogram of a stack (`hist.stack.Stack`) of data histograms.'''
-        return self._stack_sum(cat, mc=False)
+        return self._stack_sum(cat, is_mc=False)
 
     @property
     def stack_sum_mc_nominal(self, cat):
         '''Returns the sum histogram of a stack (`hist.stack.Stack`) of MC histograms.'''
-        return self._stack_sum(cat, mc=True)
+        return self._stack_sum(cat, is_mc=True)
 
     @property
     def samples(self):
@@ -479,43 +488,44 @@ class Shape:
         distinguish between data samples from different data-taking eras.'''
         if not cat in self._stacksCache:
             stacks = {}
-            slicing_mc = {'cat': cat}
-            slicing_mc_nominal = {'cat': cat, 'variation': 'nominal'}
-            h_dict_mc = {d: self.h_dict[d][slicing_mc] for d in self.samples_mc}
-            h_dict_mc_nominal = {
-                d: self.h_dict[d][slicing_mc_nominal] for d in self.samples_mc
-            }
-            # Store number of weighted MC events
-            self.nevents = {
-                d: round(sum(h_dict_mc_nominal[d].values()), 1)
-                for d in self.samples_mc
-            }
-            
-            # Order the events dictionary by decreasing number of events if linear scale, increasing if log scale
-            reverse = True
-            if self.log:
-                reverse = False
-            self.nevents = dict(
-                sorted(self.nevents.items(), key=lambda x: x[1], reverse=reverse)
-            )
-            color = iter(cm.gist_rainbow(np.linspace(0, 1, len(self.nevents.keys()))))
-            # Assign random colors to each sample
-            self.colors = [next(color) for d in self.nevents.keys()]
-            if hasattr(self.style, "colors_mc"):
-                # Initialize random colors
-                for i, d in enumerate(self.nevents.keys()):
-                    # If the color for a corresponding sample exists in the dictionary, assign the color to the sample
-                    if d in self.style.colors_mc:
-                        self.colors[i] = self.style.colors_mc[d]
-            # Order the MC dictionary by number of events
-            h_dict_mc = {d: h_dict_mc[d] for d in self.nevents.keys()}
-            h_dict_mc_nominal = {
-                d: h_dict_mc_nominal[d] for d in self.nevents.keys()
-            }
-            # Build MC stack with variations and nominal MC stack
-            stacks["mc"] = hist.Stack.from_dict(h_dict_mc)
-            stacks["mc_nominal"] = hist.Stack.from_dict(h_dict_mc_nominal)
-            stacks["mc_nominal_sum"] = self._stack_sum(stack = stacks["mc_nominal"])
+            if not self.is_data_only:
+                slicing_mc = {'cat': cat}
+                slicing_mc_nominal = {'cat': cat, 'variation': 'nominal'}
+                h_dict_mc = {d: self.h_dict[d][slicing_mc] for d in self.samples_mc}
+                h_dict_mc_nominal = {
+                    d: self.h_dict[d][slicing_mc_nominal] for d in self.samples_mc
+                }
+                # Store number of weighted MC events
+                self.nevents = {
+                    d: round(sum(h_dict_mc_nominal[d].values()), 1)
+                    for d in self.samples_mc
+                }
+
+                # Order the events dictionary by decreasing number of events if linear scale, increasing if log scale
+                reverse = True
+                if self.log:
+                    reverse = False
+                self.nevents = dict(
+                    sorted(self.nevents.items(), key=lambda x: x[1], reverse=reverse)
+                )
+                color = iter(cm.gist_rainbow(np.linspace(0, 1, len(self.nevents.keys()))))
+                # Assign random colors to each sample
+                self.colors = [next(color) for d in self.nevents.keys()]
+                if hasattr(self.style, "colors_mc"):
+                    # Initialize random colors
+                    for i, d in enumerate(self.nevents.keys()):
+                        # If the color for a corresponding sample exists in the dictionary, assign the color to the sample
+                        if d in self.style.colors_mc:
+                            self.colors[i] = self.style.colors_mc[d]
+                # Order the MC dictionary by number of events
+                h_dict_mc = {d: h_dict_mc[d] for d in self.nevents.keys()}
+                h_dict_mc_nominal = {
+                    d: h_dict_mc_nominal[d] for d in self.nevents.keys()
+                }
+                # Build MC stack with variations and nominal MC stack
+                stacks["mc"] = hist.Stack.from_dict(h_dict_mc)
+                stacks["mc_nominal"] = hist.Stack.from_dict(h_dict_mc_nominal)
+                stacks["mc_nominal_sum"] = self._stack_sum(stack = stacks["mc_nominal"])
 
             if not self.is_mc_only:
                 # Sum over eras if specified as extra argument
@@ -537,7 +547,8 @@ class Shape:
                 stacks["data"] = hist.Stack.from_dict(self.h_dict_data)
                 stacks["data_sum"] = self._stack_sum(stack = stacks["data"])
             self._stacksCache[cat] = stacks
-            self.syst_manager.update()
+            if not self.is_data_only:
+                self.syst_manager.update()
         return self._stacksCache[cat]
 
     def _is_empty(self, cat):
@@ -691,7 +702,7 @@ class Shape:
         '''Plots the data histogram as an errorbar plot.'''
         stacks = self._get_stacks(cat)
         if self.dense_dim > 1:
-            print(f"WARNING: cannot plot data/MC for histogram {self.name} with dimension {self.dense_dim}.")
+            print(f"WARNING: cannot plot data for histogram {self.name} with dimension {self.dense_dim}.")
             print("The method `plot_data` will be skipped.")
             return
 

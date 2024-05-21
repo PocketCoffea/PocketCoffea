@@ -3,6 +3,7 @@ import os
 import getpass
 import re
 import json
+import requests
 from rucio.client import Client
 from collections import defaultdict
 
@@ -185,3 +186,40 @@ def get_dataset_files(
                 outsites.append(outsite[0])
 
     return outfiles, outsites
+
+
+def get_dataset_files_from_dbs(
+        dataset_name: str,
+        dbs_instance: str = "prod/global"):
+    '''
+    This function queries the DBS server to get information about the location
+    of each block in a CMS dataset.
+    It is used instead of the rucio replica query when the dataset is not available in rucio.
+    '''
+
+    # Get the site of the blocks
+    proxy = get_proxy_path()
+    sites_xrootd_prefix = get_xrootd_sites_map()
+    link = f"https://cmsweb.cern.ch:8443/dbs/{dbs_instance}/DBSReader/blocks?dataset={dataset_name}&detail=True"
+    r = requests.get(link, cert=proxy, verify=False)
+    outputfiles, outputsites = [], []
+
+    if r.status_code == 200:
+        data = r.json()
+    
+        for block in data:
+            #now query for files
+            link = f"https://cmsweb.cern.ch:8443/dbs/{dbs_instance}/DBSReader/files?block_name={block['block_name'].replace('#', '%23')}"
+            rfiles = requests.get( link,  cert=proxy, verify=False)
+            site = block["origin_site_name"]
+
+            for f in rfiles.json():
+                outputfiles.append(_get_pfn_for_site(f["logical_file_name"], sites_xrootd_prefix[site]))
+                outputsites.append(site)
+            
+    else:
+        raise Exception(f"Dataset {dataset_name} not found on dbs_instance {dbs_instance}")
+    
+    return outputfiles, outputsites
+
+

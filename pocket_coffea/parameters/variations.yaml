@@ -24,6 +24,25 @@ systematic_variations:
       '2017': "${.2016_PreVFP}"
       '2018': "${.2016_PreVFP}"
 
+    sf_ctag:
+      '2016_PreVFP':
+        - Extrap
+        - Interp
+        - LHEScaleWeight_muF
+        - LHEScaleWeight_muR
+        - PSWeightFSR
+        - PSWeightISR
+        - PUWeight
+        - Stat
+        - XSec_BRUnc_DYJets_b
+        - XSec_BRUnc_DYJets_c
+        - XSec_BRUnc_WJets_c
+        - jer
+        - jesTotal
+      '2016_PostVFP': "${.2016_PreVFP}"
+      '2017': "${.2016_PreVFP}"
+      '2018': "${.2016_PreVFP}"
+
   shape_variations:
     JES:
 

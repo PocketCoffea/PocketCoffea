@@ -12,8 +12,7 @@ RUN echo "=======================================" && \
     echo "=======================================" && \
     if [[ ${CLUSTER} == "lxplus" ]]; then \
         echo "Fixing dependencies in the image" && \
-        conda install -y numba>=0.57.0 llvmlite==0.40.0 numpy>=1.22.0 && \
-        pip install --upgrade dask-lxplus; \
+        conda install -y numba>=0.57.0 llvmlite==0.40.0 numpy>=1.22.0 ; \
     fi && \
     echo "Installing PocketCoffea" && \
     pip3 install .

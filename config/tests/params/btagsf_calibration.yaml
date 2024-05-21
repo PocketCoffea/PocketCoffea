@@ -1,0 +1,14 @@
+
+btagSF_calibration:
+    '2016_PreVFP':
+      file : ???
+      name: btagSF_norm_correction
+    '2016_PostVFP':
+      file : ???
+      name: btagSF_norm_correction
+    '2017':
+      file: "${config_dir:}/btag_calibration/btagSF_calibrationSF_2017UL.json"
+      name: btagSF_norm_correction
+    '2018':
+      file: "${config_dir:}/btag_calibration/btagSF_calibrationSF_2018UL.json"
+      name: btagSF_norm_correction

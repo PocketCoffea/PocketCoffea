@@ -75,6 +75,7 @@ class Configurator:
 
         self.subsamples = {}
         self.subsamples_list = []  # List of subsamples (for internal checks)
+        self.subsamples_reversed_map = {}  # Map of subsample: sample
         self.total_samples_list = []  # List of subsamples and inclusive samples names
         self.has_subsamples = {}
 
@@ -212,6 +213,8 @@ class Configurator:
         for sample in self.samples:
             if sample in subsamples_dict:
                 subscfg = subsamples_dict[sample]
+                self.subsamples_reversed_map.update({f"{sample}__{subsam}": sample for subsam in subscfg.keys()})
+                    
                 if isinstance(subscfg, dict):
                     # Convert it to StandardSelection
                     self.subsamples[sample] = StandardSelection(subscfg)
@@ -224,6 +227,7 @@ class Configurator:
                 # this is useful in the processor to have always a subsample
                 # the name is == the name of the sample
                 self.subsamples[sample] = StandardSelection({sample: [passthrough]})
+                self.subsamples_reversed_map.update({sample: sample})
 
     def load_cuts_and_categories(self, skim: list, preselections: list, categories):
         '''This function loads the list of cuts and groups them in categories.

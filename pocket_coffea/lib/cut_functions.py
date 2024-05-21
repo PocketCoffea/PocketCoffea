@@ -1,6 +1,8 @@
 import awkward as ak
 from .cut_definition import Cut
 from .triggers import get_trigger_mask
+import correctionlib
+import numpy as np
 
 
 def passthrough_f(events, **kargs):
@@ -49,6 +51,36 @@ def get_HLTsel(primaryDatasets=None, invert=False):
         function=_get_trigger_mask_proxy,
     )
 
+###########################
+## Implementation of JetVetoMaps 
+## (Recommended for Run 3, see https://cms-jerc.web.cern.ch/Recommendations/#jet-veto-maps)
+
+def get_JetVetoMap(name="JetVetoMaps"):
+    return Cut(
+        name=name, params={}, function=get_JetVetoMap_Mask
+    )
+       
+def get_JetVetoMap_Mask(events, params, year, processor_params, sample, isMC, **kwargs):
+    jets = events.Jet
+    mask_for_VetoMap = (
+        ((jets.jetId & 2)==2) # Must fulfill tight jetId
+        & (abs(jets.eta) < 5.19) # Must be within HCal acceptance
+        & (jets.pt*(1-jets.muonSubtrFactor) > 15.) # May no be Muons misreconstructed as jets
+        & ((jets["neEmEF"]+jets["chEmEF"])<0.9) # Energy fraction not dominated by ECal
+    )
+    jets = jets[mask_for_VetoMap]
+    cset = correctionlib.CorrectionSet.from_file(
+        processor_params.jet_scale_factors.vetomaps[year]["file"]
+    )
+    corr = cset[processor_params.jet_scale_factors.vetomaps[year]["name"]]
+    etaFlat, phiFlat, etaCounts = ak.flatten(jets.eta), ak.flatten(jets.phi), ak.num(jets.eta)
+    phiFlat = np.clip(phiFlat, -3.14159, 3.14159) # Needed since no overflow included in phi binning
+    weight = ak.unflatten(
+        corr.evaluate("jetvetomap", etaFlat, phiFlat),
+        counts=etaCounts,
+    )
+    eventMask = ak.sum(weight, axis=-1)==0 # if at least one jet is vetoed, reject it event
+    return ak.where(ak.is_none(eventMask), False, eventMask)
 
 ###########################
 ## Functions to count objects
@@ -201,7 +233,7 @@ def nBtagMin(events, params, year, processor_params, **kwargs):
                 ak.sum(
                     (
                         events[params["coll"]][btagparam["btagging_algorithm"]]
-                        > btagparam["btagging_WP"]
+                        > btagparam["btagging_WP"][params["wp"]]
                     )
                     & (events[params["coll"]].pt >= params["minpt"]),
                     axis=1,
@@ -213,7 +245,7 @@ def nBtagMin(events, params, year, processor_params, **kwargs):
                 ak.sum(
                     (
                         events[params["coll"]][btagparam["btagging_algorithm"]]
-                        > btagparam["btagging_WP"]
+                        > btagparam["btagging_WP"][params["wp"]]
                     ),
                     axis=1,
                 )
@@ -241,7 +273,7 @@ def nBtagEq(events, params, year, processor_params, **kwargs):
                 ak.sum(
                     (
                         events[params["coll"]][btagparam["btagging_algorithm"]]
-                        > btagparam["btagging_WP"]
+                        > btagparam["btagging_WP"][params["wp"]]
                     )
                     & (events[params["coll"]].pt >= params["minpt"]),
                     axis=1,
@@ -253,7 +285,7 @@ def nBtagEq(events, params, year, processor_params, **kwargs):
                 ak.sum(
                     (
                         events[params["coll"]][btagparam["btagging_algorithm"]]
-                        > btagparam["btagging_WP"]
+                        > btagparam["btagging_WP"][params["wp"]]
                     ),
                     axis=1,
                 )
@@ -285,19 +317,19 @@ def nMuon(events, params, year, **kwargs):
 ## Factory methods
 
 
-def get_nBtagMin(N, minpt=0, coll="BJetGood", name=None):
+def get_nBtagMin(N, minpt=0, coll="BJetGood", wp="M", name=None):
     if name == None:
         name = f"n{coll}_btagMin{N}_pt{minpt}"
     return Cut(
-        name=name, params={"N": N, "coll": coll, "minpt": minpt}, function=nBtagMin
+        name=name, params={"N": N, "coll": coll, "minpt": minpt, "wp": wp}, function=nBtagMin
     )
 
 
-def get_nBtagEq(N, minpt=0, coll="BJetGood", name=None):
+def get_nBtagEq(N, minpt=0, coll="BJetGood", wp="M", name=None):
     if name == None:
         name = f"n{coll}_btagEq{N}_pt{minpt}"
     return Cut(
-        name=name, params={"N": N, "coll": coll, "minpt": minpt}, function=nBtagEq
+        name=name, params={"N": N, "coll": coll, "minpt": minpt, "wp": wp}, function=nBtagEq
     )
 
 

@@ -1,0 +1,30 @@
+HLT_triggers:
+  2016_PreVFP:
+    SingleEle:
+       - Ele27_WPTight_Gsf
+
+    SingleMuon:
+        - IsoMu24
+        - IsoTkMu24
+
+  2016_PostVFP:
+    SingleEle:
+        - Ele27_WPTight_Gsf
+    SingleMuon:
+        - IsoMu24
+        - IsoTkMu24
+
+  "2017":
+    SingleEle:
+        - Ele32_WPTight_Gsf_L1DoubleEG
+        - Ele28_eta2p1_WPTight_Gsf_HT150
+    SingleMuon: 
+        - IsoMu27
+
+  "2018":
+    SingleEle:
+        - Ele32_WPTight_Gsf
+        - Ele28_eta2p1_WPTight_Gsf_HT150
+
+    SingleMuon:
+        - IsoMu24
