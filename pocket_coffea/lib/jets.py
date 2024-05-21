@@ -217,9 +217,14 @@ def jet_selection(events, jet_type, params, leptons_collection=""):
         mask_lepton_cleaning = ak.prod(dR_jets_lep > cuts["dr_lepton"], axis=2) == 1
 
     if jet_type == "Jet":
-        mask_jetpuid = (jets.puId >= cuts["puId"]["value"]) | (
-            jets.pt >= cuts["puId"]["maxpt"]
-        )
+        # Selection on PUid. Only available in Run2 UL, thus we need to determine which sample we run over;
+        if events.metadata["year"] in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
+            mask_jetpuid = (jets.puId >= params.jet_scale_factors.jet_puId[events.metadata["year"]]["working_point"][cuts["puId"]["wp"]]) | (
+                jets.pt >= cuts["puId"]["maxpt"]
+            )
+        else:
+            mask_jetpuid = True
+  
         mask_good_jets = mask_presel & mask_lepton_cleaning & mask_jetpuid
 
     elif jet_type == "FatJet":
@@ -230,8 +235,8 @@ def jet_selection(events, jet_type, params, leptons_collection=""):
     return jets[mask_good_jets], mask_good_jets
 
 
-def btagging(Jet, btag):
-    return Jet[Jet[btag["btagging_algorithm"]] > btag["btagging_WP"]]
+def btagging(Jet, btag, wp):
+    return Jet[Jet[btag["btagging_algorithm"]] > btag["btagging_WP"][wp]]
 
 
 def CvsLsorted(jets, ctag):

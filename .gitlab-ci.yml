@@ -22,7 +22,9 @@ variables:
   only:
     - pushes
     - merge_requests
-
+    - coffea_2023
+    - main
+    - stable
 #--------------------------------------------------------------------
 # Build images and tag with short commit SHA
 build_docker_infn_facility:
@@ -30,14 +32,19 @@ build_docker_infn_facility:
   variables:
     BUILD_ARGS: "FROM_IMAGE=dciangot/jlab-rclone:v7 CLUSTER=INFN"
     REGISTRY_IMAGE_PATH: ${CI_REGISTRY_IMAGE}:infn-${CI_COMMIT_SHORT_SHA}
-    # TO_COMMIT: ${CI_REGISTRY_IMAGE}:infn-latest
 
 build_docker_lxplus:
   extends: .build_docker_template
   variables:
     BUILD_ARGS: "FROM_IMAGE=gitlab-registry.cern.ch/batch-team/dask-lxplus/lxdask-cc7:latest CLUSTER=lxplus"
     REGISTRY_IMAGE_PATH: ${CI_REGISTRY_IMAGE}:lxplus-${CI_COMMIT_SHORT_SHA}
-    # TO_COMMIT: ${CI_REGISTRY_IMAGE}:lxplus-cc7-latest
+
+
+build_docker_swan:
+  extends: .build_docker_template
+  variables:
+    BUILD_ARGS: "FROM_IMAGE=gitlab-registry.cern.ch/swan/docker-images/jupyter/swan-cern:v0.0.2 CLUSTER=swan"
+    REGISTRY_IMAGE_PATH: ${CI_REGISTRY_IMAGE}:swan-${CI_COMMIT_SHORT_SHA}
 
 #--------------------------------------------------------------------
 # Tag images on default branch as latest
@@ -57,7 +64,14 @@ build_docker_lxplus_latest:
     IMAGE_ORIGIN_TAG: ${CI_REGISTRY_IMAGE}:lxplus-${CI_COMMIT_SHORT_SHA}
     IMAGE_DESTINATION_TAG: ${CI_REGISTRY_IMAGE}:lxplus-cc7-latest
 
-
+build_docker_swan_main:
+  extends: .tag_skopeo
+  rules:
+   - if: '$CI_COMMIT_REF_NAME == "main"'
+  variables:
+    IMAGE_ORIGIN_TAG: ${CI_REGISTRY_IMAGE}:swan-${CI_COMMIT_SHORT_SHA}
+    IMAGE_DESTINATION_TAG: ${CI_REGISTRY_IMAGE}/swan:v0.0.2
+    
 #-----------------------------
 # Tag images on stable branch
 build_docker_infn_facility_stable:
@@ -75,6 +89,19 @@ build_docker_lxplus_stable:
   variables:
     IMAGE_ORIGIN_TAG: ${CI_REGISTRY_IMAGE}:lxplus-${CI_COMMIT_SHORT_SHA}
     IMAGE_DESTINATION_TAG: ${CI_REGISTRY_IMAGE}:lxplus-cc7-stable
+
+
+#----------------------------------
+# Tag images on coffea2023 branch
+
+build_docker_lxplus_coffea2023:
+  extends: .tag_skopeo
+  rules:
+   - if: '$CI_COMMIT_REF_NAME == "coffea_2023"'
+  variables:
+    IMAGE_ORIGIN_TAG: ${CI_REGISTRY_IMAGE}:lxplus-${CI_COMMIT_SHORT_SHA}
+    IMAGE_DESTINATION_TAG: ${CI_REGISTRY_IMAGE}:lxplus-cc7-coffea2023
+
 
 
 #-------------------------------------------------------------------

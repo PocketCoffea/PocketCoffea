@@ -8,12 +8,13 @@ The goal of the framework is to define an HEP analysis in a declarative way wher
 configuration file), and with python code where customization is needed (by defining new coffea processors).
 
 PocketCoffea defines a customizable structure to process NanoAOD events and define weights, categories, histograms. This
-is done thanks to a `BaseProcessor` class which defines a `workflow` of operations to go from Raw NanoAOD to histograms.
+is done thanks to a `BaseProcessor` class which defines a `workflow` of operations to go from NanoAOD to histograms.
 The user can customize the process from the confguration file or by redefining well-defined steps in the workflow.
 
 
 :::{tip}
 - If you wish to jump into practice have a look at the [full analyses example](./analysis_example.md). 
+- Installation instructions are available [here](./installation.md)
 - If you want a broader introduction to the components of PocketCoffea have a look at [Concepts](./concepts.md).
 - Looking for the configuration manual? [Configuration](./configuration.md)
 :::
@@ -22,8 +23,8 @@ The user can customize the process from the confguration file or by redefining w
 :titlesonly:
 changelog.md
 installation.md
-analysis_example.md
 running.md
+analysis_example.md
 plots.md
 concepts.md
 configuration.md

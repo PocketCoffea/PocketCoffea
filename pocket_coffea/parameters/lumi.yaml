@@ -26,9 +26,28 @@ lumi:
       D: 31839.492009
       tot: 59832.47534
 
+    "2022_preEE":
+      C: 5010.4
+      D: 2970.0
+      tot: 7980.4
+    "2022_postEE":
+      E: 5807.0 
+      F: 17781.9
+      G: 3082.8
+      tot: 26671.7
+    "2023_preBPix": 
+      C: 17650 
+      tot: 17650
+    "2023_postBPix":
+      D: 9451  
+      tot: 9451
+      
   goldenJSON:
-    2016_PreVFP: "${default_params_dir:}/datacert/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt"
-    2016_PostVFP: "${default_params_dir:}/datacert/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt"
+    '2016_PreVFP': "${default_params_dir:}/datacert/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt"
+    '2016_PostVFP': "${default_params_dir:}/datacert/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt"
     '2017': "${default_params_dir:}/datacert/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt"
     '2018': "${default_params_dir:}/datacert/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt"
-
+    '2022_preEE': "${default_params_dir:}/datacert/Cert_Collisions2022_355100_362760_Golden.json"
+    '2022_postEE': "${default_params_dir:}/datacert/Cert_Collisions2022_355100_362760_Golden.json"
+    '2023_preBPix': "${default_params_dir:}/datacert/Cert_Collisions2023_366442_370790_Golden.json"
+    '2023_postBPix': "${default_params_dir:}/datacert/Cert_Collisions2023_366442_370790_Golden.json"

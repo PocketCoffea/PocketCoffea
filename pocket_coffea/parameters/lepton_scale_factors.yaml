@@ -2,36 +2,76 @@
 lepton_scale_factors:
   ####################################################################################################
   electron_sf:
-    reco:
-      pt_gt_20: RecoAbove20
-      pt_lt_20: RecoBelow20
 
-    id: wp80iso
+    id: 
+    # mapping of the electron id working point of NanoAOD 
+    # to the name of the corresponding scale factors
+    # in the correction set provided by EGM 
+      mvaIso_WP80: wp80iso
+      mvaIso_WP90: wp90iso
+      mvaNoIso_WP80: wp80noiso
+      mvaNoIso_WP90: wp90noiso
+      mvaFall17V2Iso_WP80: wp80iso
+      mvaFall17V2Iso_WP90: wp90iso
+      mvaFall17V2noIso_WP80: wp80noiso
+      mvaFall17V2noIso_WP90: wp90noiso
 
     JSONfiles: 
       '2016_PreVFP':
         file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016preVFP_UL/electron.json.gz
         name: UL-Electron-ID-SF
+        reco:
+          pt_lt_20: RecoBelow20
+          pt_gt_20: RecoAbove20
   
       '2016_PostVFP':
         file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016postVFP_UL/electron.json.gz
         name: UL-Electron-ID-SF    
+        reco:
+          pt_lt_20: RecoBelow20
+          pt_gt_20: RecoAbove20
 
       '2017':
         file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2017_UL/electron.json.gz
         name: UL-Electron-ID-SF
+        reco:
+          pt_lt_20: RecoBelow20
+          pt_gt_20: RecoAbove20
 
       '2018':
         file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2018_UL/electron.json.gz
         name: UL-Electron-ID-SF
+        reco:
+          pt_lt_20: RecoBelow20
+          pt_gt_20: RecoAbove20
+
+      '2022_preEE':
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/electron.json.gz
+        fileSS: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/electronSS.json.gz
+        name: Electron-ID-SF
+        reco:
+          pt_lt_20: RecoBelow20
+          pt_gt_20_lt_75: Reco20to75
+          pt_gt_75: RecoAbove75
+
+      '2022_postEE':
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electron.json.gz
+        fileSS: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electronSS.json.gz
+        name: Electron-ID-SF
+        reco:
+          pt_lt_20: RecoBelow20
+          pt_gt_20_lt_75: Reco20to75
+          pt_gt_75: RecoAbove75
 
     era_mapping:
-      # this is needed because egamma provided correction
-      #set have a fixed set of era labels, different from ours
+      # this is needed because the correction set provided by EGM
+      # have a fixed set of era labels, different from ours
       "2016_PreVFP": "2016preVFP"
       "2016_PostVFP": "2016postVFP"
       "2017": "2017"
       "2018": "2018"
+      "2022_preEE": "2022Re-recoBCD"
+      "2022_postEE": "2022Re-recoE+PromptFG"
     
     # The trigger SF configuration is expected to have this structure
     # needs to be provided by the user.
@@ -71,6 +111,17 @@ lepton_scale_factors:
           id: NUM_TightID_DEN_TrackerMuons
           iso: NUM_LooseRelIso_DEN_TightIDandIPCut
           trigger: NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight
+
+      '2022_preEE':
+          id: NUM_TightID_DEN_TrackerMuons
+          iso: NUM_LoosePFIso_DEN_TightID
+          # trigger: NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight
+
+      '2022_postEE':
+          id: NUM_TightID_DEN_TrackerMuons
+          iso: NUM_LoosePFIso_DEN_TightID
+          # trigger: NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight
+
     JSONfiles:
       '2016_PreVFP':
           file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2016preVFP_UL/muon_Z.json.gz
@@ -80,12 +131,8 @@ lepton_scale_factors:
           file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2017_UL/muon_Z.json.gz
       '2018':
           file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2018_UL/muon_Z.json.gz
-
-    era_mapping:
-        # this is needed because egamma provided correction
-        #set have a fixed set of era labels, different from ours
-        "2016_PreVFP": "2016preVFP_UL"
-        "2016_PostVFP": "2016postVFP_UL"
-        "2017": "2017_UL"
-        "2018": "2018_UL"
-  #####################################################################
+      '2022_preEE':
+          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2022_Summer22/muon_Z.json.gz
+      '2022_postEE':
+          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2022_Summer22EE/muon_Z.json.gz
+    

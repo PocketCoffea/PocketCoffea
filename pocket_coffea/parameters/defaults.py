@@ -63,6 +63,10 @@ def get_default_parameters():
     )
     return all
 
+def get_default_run_options():
+    basedir = os.path.dirname(__file__)
+    run_options = OmegaConf.load(os.path.join(basedir, "executor_options_defaults.yaml"))
+    return run_options
 
 def get_defaults_and_compose(*files: List[str]):
     default_params = get_default_parameters()

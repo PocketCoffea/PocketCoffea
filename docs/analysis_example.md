@@ -29,23 +29,39 @@ guide [Installation guide](https://pocketcoffea.readthedocs.io/en/latest/install
 If you want to test it on lxplus just use the singularity image: 
 
 ```bash
-apptainer shell --bind /afs -B /cvmfs/cms.cern.ch \
-                --bind /tmp  --bind /eos/cms/ \
-    --env KRB5CCNAME=$KRB5CCNAME --bind /etc/sysconfig/ngbauth-submit  \
-    /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-stable
+apptainer shell  -B /afs -B /cvmfs/cms.cern.ch -B /tmp  -B /eos/cms/  \
+                 -B /etc/sysconfig/ngbauth-submit  \
+                 -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME=${XDG_RUNTIME_DIR}/krb5cc 
+                 /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-stable
 ```
 
-If instead you want to install it from source, to contribute to the core framework code:
+
+:::{tip}
+If you want just to test the analysis example or to work on an analysis configuration without modifying the central
+code, you **don't need any other setup step**!
+:::
+
+If instead you want to install it from source, in order to be able to modify and contribute to the core framework code
+you need to create a virtual environment. The recommended way of doing it is inside the singularity image as described
+in [`Installation`](./installation.md).
 
 ```bash
+git clone https://github.com/PocketCoffea/PocketCoffea.git
+cd PocketCoffea
 python -m venv myenv
 source myenv/bin/activate
 
-git clone https://github.com/PocketCoffea/PocketCoffea.git
-cd PocketCoffea
 pip install -e .  
 #-e installs it in "editable" mode so that the modified files are included dynamically in the package.
 ```
+
+:::{admonition} Setup the job submission with local core changes
+:class: warning
+**N.B.**: In order to properly propagated the local environment and local code changes to jobs running on condor through
+Dask the user needs to setup the executor options properly with the `local-virtualenv: true` options. Checkout the
+running instructions for more details [`Running`](./running.md).
+:::
+
 
 ## Configuration files
 
@@ -57,7 +73,7 @@ Have a look at the [Configuration](./configuration.md) page for more detailed ex
 :::
 
 A dedicated repository  [`AnalysisConfigs`](https://github.com/PocketCoffea/AnalysisConfigs) collects the config files for
-different analysis. Clone the repository:
+different analysis. Some analysis configs have been included in the main PocketCoffea repository for reference. 
 
 ```bash
 # Now downloading the example configuration
@@ -375,6 +391,8 @@ object_preselection:
       wp: L
       value: 4
       maxpt: 50.0
+    btag:
+      wp: M
 
 ```
 
@@ -605,50 +623,54 @@ to clusters:
 - ``iterative`` execution runs single thread locally and it useful for debugging
 - ``futures`` execute the processor in multiple threads locally and it can be usefull for fast processing of a small
   amount of file.
-- ``dask/lxplus`` uses the dask scheduler with lxplus the configuration to send out workers on HTCondor jobs.
-  
-We can now test the setup on ``lxplus` but more sites can also be included later.
+- ``dask@lxplus`` uses the dask scheduler with lxplus the configuration to send out workers on HTCondor jobs.
+
+The executors are configured in `pocket_coffea/executors` module for a set of predefined grid-sites. Please get in
+contact with the developers and open a PR if you want to include your specific site to the supported list. 
+
+
+:::{tip}
+Have a look at [`Running`](./running.md) for more details about the configuration of the different execturos.
+:::
+
+In this tutorial we **assume the use of lxplus**, but the example should work fine also on other sites with the
+`iterative` or `futures` setup.  The Dask scheduler execution needs to be configured properly to send out jobs in your facility.
+
 
 ```bash
-# read all information from the config file
-runner.py --cfg example_config.py --full  -o output_v1
+## First let's test the running locally with  --test for iterative processor with ``--limit-chunks/-lc``(default:2) and ``--limit-files/-lf``(default:1)
+runner.py --cfg example_config.py --test  -o output_test
+```
 
-# iterative run is also possible
-## run --test for iterative processor with ``--limit-chunks/-lc``(default:2) and ``--limit-files/-lf``(default:1)
-runner.py --cfg example_config.py  --full --test -lf 1 -lc  2 -o output_v1
+We can now submit the full processing on the HTcondor cluster with dask:
 
+```bash
 ## change the --executor and numbers of jobs with -s/--scaleout
-runner.py --cfg example_config.py  --full --executor futures -s 10 -o output_v1
+
+runner.py --cfg example_config.py  --full --executor dask@lxplus  --scaleout 10  -o output_dask
 ```
 
 The scaleout configurations really depends on cluster and schedulers with different sites(lxplus, LPC, naf-desy).
+The default options for the executor `dask@lxplus` are contained [here](https://github.com/PocketCoffea/PocketCoffea/tree/main/pocket_coffea/parameters/executor_options_defaults.yaml). 
+But the user can add more custom run options with a .yaml file: 
 
-```python
-
-## Example for CERN HTCondor submission
-run_options = {
-        "executor"       : "dask/lxplus",
-        "env"            : "singularity",
-        "workers"        : 1,
-        "scaleout"       : 50,
-        "worker_image"   : "/cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-stable",
-        "queue"          : "microcentury",
-        "walltime"       : "00:40:00",
-        "mem_per_worker" : "4GB", # GB
-        "disk_per_worker" : "1GB", # GB
-        "exclusive"      : False,
-        "chunk"          : 400000,
-        "retries"        : 50,
-        "treereduction"  : 20,
-        "adapt"          : False,
-        
-    }
+```bash
+$> cat custom_run_options.yaml
+queue: espresso
+chunksize: 200000
+scaleout: 20
 ```
+
+Try now to run with custom options: 
+```bash
+runner.py --cfg example_config.py  --full --executor dask@lxplus --run-options custom_run_options.yaml  -o output_dask
+```
+
 
 The output of the script will be similar to 
 
 ```bash
-$ runner.py --cfg example_config.py -o output_all
+$ runner.py --cfg example_config.py  --executor dask@lxplus --run-options custom_run_options.yaml  -o output_dask
 
     ____             __        __  ______      ________          
    / __ \____  _____/ /_____  / /_/ ____/___  / __/ __/__  ____ _
@@ -702,17 +724,17 @@ To produce plots, for each category and variable defined in the configuration a 
 ```bash
 $ make_plots.py --help
 
-usage: make_plots.py [-h] [--input_dir INPUT_DIR] [--cfg CFG] [-op OVERWRITE_PARAMETERS [OVERWRITE_PARAMETERS ...]] [-o OUTPUTDIR] [-i INPUTFILE] [-j WORKERS] [-oc ONLY_CAT [ONLY_CAT ...]] [-os ONLY_SYST [ONLY_SYST ...]] [-e EXCLUDE_HIST [EXCLUDE_HIST ...]]
-                     [-oh ONLY_HIST [ONLY_HIST ...]] [--split_systematics] [--partial_unc_band] [--overwrite] [--log] [--density] [-v VERBOSE]
+usage: make_plots.py [-h] [--input-dir INPUT_DIR] [--cfg CFG] [-op OVERWRITE_PARAMETERS [OVERWRITE_PARAMETERS ...]] [-o OUTPUTDIR] [-i INPUTFILE] [-j WORKERS] [-oc ONLY_CAT [ONLY_CAT ...]] [-os ONLY_SYST [ONLY_SYST ...]] [-e EXCLUDE_HIST [EXCLUDE_HIST ...]] [-oh ONLY_HIST [ONLY_HIST ...]] [--split-systematics] [--partial-unc-band]
+                     [--overwrite] [--log] [--density] [-v VERBOSE]
 
 Plot histograms from coffea file
 
 optional arguments:
   -h, --help            show this help message and exit
-  --input_dir INPUT_DIR
+  --input-dir INPUT_DIR
                         Directory with cofea files and parameters
   --cfg CFG             YAML file with all the analysis parameters
-  -op OVERWRITE_PARAMETERS [OVERWRITE_PARAMETERS ...], --overwrite_parameters OVERWRITE_PARAMETERS [OVERWRITE_PARAMETERS ...]
+  -op OVERWRITE_PARAMETERS [OVERWRITE_PARAMETERS ...], --overwrite-parameters OVERWRITE_PARAMETERS [OVERWRITE_PARAMETERS ...]
                         YAML file with plotting parameters to overwrite default parameters
   -o OUTPUTDIR, --outputdir OUTPUTDIR
                         Output folder
@@ -720,22 +742,21 @@ optional arguments:
                         Input file
   -j WORKERS, --workers WORKERS
                         Number of parallel workers to use for plotting
-  -oc ONLY_CAT [ONLY_CAT ...], --only_cat ONLY_CAT [ONLY_CAT ...]
+  -oc ONLY_CAT [ONLY_CAT ...], --only-cat ONLY_CAT [ONLY_CAT ...]
                         Filter categories with string
-  -os ONLY_SYST [ONLY_SYST ...], --only_syst ONLY_SYST [ONLY_SYST ...]
+  -os ONLY_SYST [ONLY_SYST ...], --only-syst ONLY_SYST [ONLY_SYST ...]
                         Filter systematics with a list of strings
-  -e EXCLUDE_HIST [EXCLUDE_HIST ...], --exclude_hist EXCLUDE_HIST [EXCLUDE_HIST ...]
+  -e EXCLUDE_HIST [EXCLUDE_HIST ...], --exclude-hist EXCLUDE_HIST [EXCLUDE_HIST ...]
                         Exclude histograms with a list of regular expression strings
-  -oh ONLY_HIST [ONLY_HIST ...], --only_hist ONLY_HIST [ONLY_HIST ...]
+  -oh ONLY_HIST [ONLY_HIST ...], --only-hist ONLY_HIST [ONLY_HIST ...]
                         Filter histograms with a list of regular expression strings
-  --split_systematics   Split systematic uncertainties in the ratio plot
-  --partial_unc_band    Plot only the partial uncertainty band corresponding to the systematics specified as the argument `only_syst`
+  --split-systematics   Split systematic uncertainties in the ratio plot
+  --partial-unc-band    Plot only the partial uncertainty band corresponding to the systematics specified as the argument `only_syst`
   --overwrite, --over   Overwrite plots in output folder
   --log                 Set y-axis scale to log
   --density             Set density parameter to have a normalized plot
   -v VERBOSE, --verbose VERBOSE
                         Verbose level for debugging. Higher the number more stuff is printed.
-
 ```
 
 
@@ -756,5 +777,5 @@ $ make_plots.py -i output_all.coffea --cfg parameters_dump.yaml -o plots -op plo
 ```
 
 More instructions on how to customize the plotting parameters in `plotting_style.yaml` can be found in the [Plotting](https://pocketcoffea.readthedocs.io/en/latest/plots.html) section.
-
+ 
 ![](./images/mll_2018_baseline.png)

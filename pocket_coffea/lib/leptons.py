@@ -17,7 +17,9 @@ def lepton_selection(events, lepton_flavour, params):
         # Requirements on SuperCluster eta, isolation and id
         etaSC = abs(leptons.deltaEtaSC + leptons.eta)
         passes_SC = np.invert((etaSC >= 1.4442) & (etaSC <= 1.5660))
-        passes_iso = leptons.pfRelIso03_all < cuts["iso"]
+        passes_iso = True
+        if "iso" in cuts.keys():
+            passes_iso = leptons.pfRelIso03_all < cuts["iso"]
         passes_id = leptons[cuts['id']] == True
 
         good_leptons = passes_eta & passes_pt & passes_SC & passes_iso & passes_id
