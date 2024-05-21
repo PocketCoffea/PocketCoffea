@@ -3,8 +3,13 @@
 btagging:
   working_point:
     2016_PreVFP:
+      reference:
+        btagging_WP: https://btv-wiki.docs.cern.ch/ScaleFactors/UL2016preVFP/
       btagging_algorithm: btagDeepFlavB
-      btagging_WP: 0.3093
+      btagging_WP:
+        L: 0.0508
+        M: 0.2598
+        H: 0.6502
       bbtagging_algorithm: btagDDBvL
       bbtagging_WP: 0.86
       bbtagSF_DDBvL_M1_loPt: 0.86
@@ -14,8 +19,13 @@ btagging:
       bbtagSF_DDBvL_M1_hiPt_up: 0.97
       bbtagSF_DDBvL_M1_hiPt_down: 0.82
     2016_PostVFP:
+      reference:
+        btagging_WP: https://btv-wiki.docs.cern.ch/ScaleFactors/UL2016postVFP/
       btagging_algorithm: btagDeepFlavB
-      btagging_WP: 0.3093
+      btagging_WP:
+        L: 0.0816
+        M: 0.3657
+        H: 0.7565
       bbtagging_algorithm: btagDDBvL
       bbtagging_WP: 0.86
       bbtagSF_DDBvL_M1_loPt: 0.86
@@ -25,8 +35,13 @@ btagging:
       bbtagSF_DDBvL_M1_hiPt_up: 0.97
       bbtagSF_DDBvL_M1_hiPt_down: 0.82
     '2017':
+      reference:
+        btagging_WP: https://btv-wiki.docs.cern.ch/ScaleFactors/UL2017/
       btagging_algorithm: btagDeepFlavB
-      btagging_WP: 0.3033
+      btagging_WP:
+        L: 0.0532
+        M: 0.3040
+        H: 0.7476
       bbtagging_algorithm: btagDDBvL
       bbtagging_WP: 0.86
       bbtagSF_DDBvL_M1_loPt: 0.82
@@ -36,8 +51,13 @@ btagging:
       bbtagSF_DDBvL_M1_hiPt_up: 0.83
       bbtagSF_DDBvL_M1_hiPt_down: 0.67
     '2018':
+      reference:
+        btagging_WP: https://btv-wiki.docs.cern.ch/ScaleFactors/UL2018/
       btagging_algorithm: btagDeepFlavB
-      btagging_WP: 0.277
+      btagging_WP:
+        L: 0.0490
+        M: 0.2783
+        H: 0.7100
       bbtagging_algorithm: btagDDBvL
       bbtagging_WP: 0.86
       bbtagSF_DDBvL_M1_loPt: 0.81
@@ -48,8 +68,15 @@ btagging:
       bbtagSF_DDBvL_M1_hiPt_down: 0.71
 
     '2022_preEE':
+      reference:
+        btagging_WP: https://btv-wiki.docs.cern.ch/ScaleFactors/Run3Summer22/#ak4-b-tagging
       btagging_algorithm: btagDeepFlavB
-      btagging_WP: 0.277
+      btagging_WP:
+        L: 0.0583
+        M: 0.3086
+        T: 0.7183
+        XT: 0.8111
+        XXT: 0.9512
       bbtagging_algorithm: btagDDBvL
       bbtagging_WP: 0.86
       bbtagSF_DDBvL_M1_loPt: 0.81
@@ -59,8 +86,15 @@ btagging:
       bbtagSF_DDBvL_M1_hiPt_up: 0.82
       bbtagSF_DDBvL_M1_hiPt_down: 0.71
     '2022_postEE':
+      reference:
+        btagging_WP: https://btv-wiki.docs.cern.ch/ScaleFactors/Run3Summer22EE/
       btagging_algorithm: btagDeepFlavB
-      btagging_WP: 0.277
+      btagging_WP:
+        L: 0.0614
+        M: 0.3196
+        T: 0.7300
+        XT: 0.8184
+        XXT: 0.9542
       bbtagging_algorithm: btagDDBvL
       bbtagging_WP: 0.86
       bbtagSF_DDBvL_M1_loPt: 0.81
@@ -70,8 +104,15 @@ btagging:
       bbtagSF_DDBvL_M1_hiPt_up: 0.82
       bbtagSF_DDBvL_M1_hiPt_down: 0.71
     '2023_preBPix':
+      reference:
+        btagging_WP: https://btv-wiki.docs.cern.ch/ScaleFactors/Run3Summer23/
       btagging_algorithm: btagDeepFlavB
-      btagging_WP: 0.277
+      btagging_WP:
+        L: 0.0479
+        M: 0.2431
+        T: 0.6553
+        XT: 0.7667
+        XXT: 0.9459
       bbtagging_algorithm: btagDDBvL
       bbtagging_WP: 0.86
       bbtagSF_DDBvL_M1_loPt: 0.81
@@ -81,8 +122,15 @@ btagging:
       bbtagSF_DDBvL_M1_hiPt_up: 0.82
       bbtagSF_DDBvL_M1_hiPt_down: 0.71
     '2023_postBPix':
+      reference:
+        btagging_WP: https://btv-wiki.docs.cern.ch/ScaleFactors/Run3Summer23BPix/
       btagging_algorithm: btagDeepFlavB
-      btagging_WP: 0.277
+      btagging_WP:
+        L: 0.048
+        M: 0.2435
+        T: 0.6563
+        XT: 0.7671
+        XXT: 0.9483
       bbtagging_algorithm: btagDDBvL
       bbtagging_WP: 0.86
       bbtagSF_DDBvL_M1_loPt: 0.81

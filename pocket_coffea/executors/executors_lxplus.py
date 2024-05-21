@@ -18,9 +18,10 @@ class DaskExecutorFactory(ExecutorFactoryABC):
         env_worker = [
             'export XRD_RUNFORKHANDLER=1',
             'export MALLOC_TRIM_THRESHOLD_=0',
-            f'export X509_USER_PROXY={self.x509_path}',
             'ulimit -u unlimited',
             ]
+        if not self.run_options['ignore-grid-certificate']:
+            env_worker.append(f'export X509_USER_PROXY={self.x509_path}')
         
         # Adding list of custom setup commands from user defined run options
         if self.run_options.get("custom-setup-commands", None):
@@ -34,8 +35,7 @@ class DaskExecutorFactory(ExecutorFactoryABC):
             elif "MAMBA_ROOT_PREFIX" in os.environ:
                 env_worker.append(f"{os.environ['MAMBA_ROOT_PREFIX']} activate {os.environ['CONDA_DEFAULT_ENV']}")
             else:
-                print("CONDA prefix not found in env! Something is wrong with your conda installation if you want to use conda in the dask cluster.")
-                exit(1)
+                raise Exception("CONDA prefix not found in env! Something is wrong with your conda installation if you want to use conda in the dask cluster.")
 
         # if local-virtual-env: true the dask job is configured to pickup
         # the local virtual environment. 

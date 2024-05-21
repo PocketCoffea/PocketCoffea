@@ -27,20 +27,20 @@ lumi:
       tot: 59832.47534
 
     "2022_preEE":
-      C: 4953
-      D: 2922
-      tot: 7875
+      C: 5010.4
+      D: 2970.0
+      tot: 7980.4
     "2022_postEE":
-      E: 5672
-      F: 17610
-      G: 3055
-      tot: 26337
+      E: 5807.0 
+      F: 17781.9
+      G: 3082.8
+      tot: 26671.7
     "2023_preBPix": 
-      C: 17981
-      tot: 17981
+      C: 17650 
+      tot: 17650
     "2023_postBPix":
-      D: 9516 
-      tot: 9516
+      D: 9451  
+      tot: 9451
       
   goldenJSON:
     '2016_PreVFP': "${default_params_dir:}/datacert/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt"

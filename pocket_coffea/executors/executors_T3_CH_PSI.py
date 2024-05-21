@@ -11,7 +11,7 @@ from pocket_coffea.parameters.dask_env import setup_dask
 
 class DaskExecutorFactory(ExecutorFactoryABC):
     '''
-    At T3_PSI_CH the dask executor is based on slurm
+    At T3_CH_PSI the dask executor is based on slurm
     '''
 
     def __init__(self, run_options, outputdir, **kwargs):
@@ -38,8 +38,7 @@ class DaskExecutorFactory(ExecutorFactoryABC):
             elif "MAMBA_ROOT_PREFIX" in os.environ:
                 env_worker.append(f"{os.environ['MAMBA_ROOT_PREFIX']} activate {os.environ['CONDA_DEFAULT_ENV']}")
             else:
-                print("CONDA prefix not found in env! Something is wrong with your conda installation if you want to use conda in the dask cluster.")
-                exit(1)
+                raise Exception("CONDA prefix not found in env! Something is wrong with your conda installation if you want to use conda in the dask cluster.")
 
         # if local-virtual-env: true the dask job is configured to pickup
         # the local virtual environment. 

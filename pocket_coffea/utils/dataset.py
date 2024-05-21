@@ -18,7 +18,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from .network import get_proxy_path
 from . import rucio
 
-def do_dataset(key, config, local_prefix, whitelist_sites, blacklist_sites, regex_sites, **kwargs):
+def do_dataset(key, config, local_prefix, allowlist_sites, blocklist_sites, regex_sites, **kwargs):
     print("*" * 40)
     print("> Working on dataset: ", key)
     if key not in config:
@@ -33,8 +33,8 @@ def do_dataset(key, config, local_prefix, whitelist_sites, blacklist_sites, rege
             name=key,
             cfg=dataset_cfg,
             sites_cfg={
-                "whitelist_sites": whitelist_sites,
-                "blacklist_sites": blacklist_sites,
+                "allowlist_sites": allowlist_sites,
+                "blocklist_sites": blocklist_sites,
                 "regex_sites": regex_sites,
             },
         )
@@ -46,7 +46,7 @@ def do_dataset(key, config, local_prefix, whitelist_sites, blacklist_sites, rege
 
 
 def build_datasets(cfg, keys=None, overwrite=False, download=False, check=False, split_by_year=False, local_prefix=None,
-                   whitelist_sites=None, blacklist_sites=None, regex_sites=None, parallelize=4):
+                   allowlist_sites=None, blocklist_sites=None, regex_sites=None, parallelize=4):
 
     config = json.load(open(cfg))
 
@@ -60,8 +60,8 @@ def build_datasets(cfg, keys=None, overwrite=False, download=False, check=False,
         "check": check,
         "split_by_year": split_by_year,
         "local_prefix": local_prefix,
-        "whitelist_sites": whitelist_sites,
-        "blacklist_sites": blacklist_sites,
+        "allowlist_sites": allowlist_sites,
+        "blocklist_sites": blocklist_sites,
         "regex_sites": regex_sites,
         "parallelize": parallelize
     }
@@ -92,7 +92,7 @@ class Sample:
          -- year
          -- isMC: true/false
          -- era: A/B/C/D (only for data)
-        - sites_cfg is a dictionary contaning whitelist, blacklist and regex to filter the SITES
+        - sites_cfg is a dictionary contaning allowlist, blocklist and regex to filter the SITES
         '''
         self.name = name
         self.das_names = das_names
@@ -154,12 +154,12 @@ class Sample:
 
             if self.metadata.get("dbs_instance", "prod/global") == "prod/global":
                 # Now query rucio to get the concrete dataset passing the sites filtering options
-                files_replicas, sites = rucio.get_dataset_files(
-                    das_name, **self.sites_cfg, output="first"
+                files_replicas, sites, sites_counts = rucio.get_dataset_files_replicas(
+                    das_name, **self.sites_cfg, mode="first"
                 )
             else:
                 # Use DBS to get the site
-                files_replicas, sites = rucio.get_dataset_files_from_dbs(das_name, self.metadata["dbs_instance"])
+                files_replicas, sites, sites_counts = rucio.get_dataset_files_from_dbs(das_name, self.metadata["dbs_instance"])
                 
             self.fileslist_concrete += files_replicas
 
@@ -228,8 +228,8 @@ class Dataset:
             sites_cfg
             if sites_cfg
             else {
-                "whitelist_sites": None,
-                "blacklist_sites": None,
+                "allowlist_sites": None,
+                "blocklist_sites": None,
                 "regex_sites": None,
             }
         )

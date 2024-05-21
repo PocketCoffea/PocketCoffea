@@ -392,6 +392,8 @@ object_preselection:
       wp: L
       value: 4
       maxpt: 50.0
+    btag:
+      wp: M
 
 ```
 

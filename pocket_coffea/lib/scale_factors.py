@@ -19,9 +19,9 @@ def get_ele_sf(
         map_name = electronSF.JSONfiles[year]["name"]
 
         if key == 'reco':
-            sfname = electronSF["reco"][pt_region]
+            sfname = electronSF.JSONfiles[year]["reco"][pt_region]
         elif key == 'id':
-            sfname = electronSF["id"]
+            sfname = electronSF["id"][params.object_preselection["Electron"]["id"]]
 
         # translate the `year` key into the corresponding key in the correction file provided by the EGM-POG
         year_pog = electronSF["era_mapping"][year]
@@ -84,19 +84,19 @@ def get_mu_sf(params, year, pt, eta, counts, key=''):
     muon_correctionset = correctionlib.CorrectionSet.from_file(
         muonSF.JSONfiles[year]['file']
     )
+    
     sfName = muonSF.sf_name[year][key]
-
-    year_pog = muonSF.era_mapping[year]
+    
     sf = muon_correctionset[sfName].evaluate(
-        year_pog, np.abs(eta.to_numpy()), pt.to_numpy(), "sf"
+        np.abs(eta.to_numpy()), pt.to_numpy(), "nominal"
     )
     sfup = muon_correctionset[sfName].evaluate(
-        year_pog, np.abs(eta.to_numpy()), pt.to_numpy(), "systup"
+        np.abs(eta.to_numpy()), pt.to_numpy(), "systup"
     )
     sfdown = muon_correctionset[sfName].evaluate(
-        year_pog, np.abs(eta.to_numpy()), pt.to_numpy(), "systdown"
+        np.abs(eta.to_numpy()), pt.to_numpy(), "systdown"
     )
-
+    
     # The unflattened arrays are returned in order to have one row per event.
     return (
         ak.unflatten(sf, counts),
@@ -109,54 +109,50 @@ def sf_ele_reco(params, events, year):
     '''
     This function computes the per-electron reco SF and returns the corresponding per-event SF, obtained by multiplying the per-electron SF in each event.
     Additionally, also the up and down variations of the SF are returned.
-    Electrons are split into two categories based on a pt cut at 20 GeV, so that the proper SF is applied.
+    Electrons are split into two categories based on a pt cut depending on the Run preiod, so that the proper SF is applied.
     '''
-
     ele_pt = events.ElectronGood.pt
     ele_eta = events.ElectronGood.etaSC
 
-    Above20 = ele_pt >= 20
-    Below20 = ele_pt < 20
+    pt_ranges = []
+    if year in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
+        pt_ranges += [("pt_lt_20", (ele_pt < 20)), 
+                      ("pt_gt_20", (ele_pt >= 20))]
+    elif year in ["2022_preEE", "2022_postEE"]:
+        pt_ranges += [("pt_lt_20", (ele_pt < 20)), 
+                      ("pt_gt_20_lt_75", (ele_pt >= 20) & (ele_pt <75)), 
+                      ("pt_gt_75", (ele_pt >= 75))]
+    else:
+        raise Exception("For chosen year "+year+" sf_ele_reco are not implemented yet")
+    
+    sf_reco, sfup_reco, sfdown_reco = [], [], []
 
-    # Since `correctionlib` does not support jagged arrays as an input, the pt and eta arrays are flattened.
-    ele_pt_Above20, ele_counts_Above20 = ak.flatten(ele_pt[Above20]), ak.num(
-        ele_pt[Above20]
-    )
-    ele_eta_Above20 = ak.flatten(ele_eta[Above20])
+    for pt_range_key, pt_range in pt_ranges:
+        ele_pt_inPtRange = ak.flatten(ele_pt[pt_range])
+        ele_eta_inPtRange = ak.flatten(ele_eta[pt_range])
+        ele_counts_inPtRange = ak.num(ele_pt[pt_range])
 
-    ele_pt_Below20, ele_counts_Below20 = ak.flatten(ele_pt[Below20]), ak.num(
-        ele_pt[Below20]
-    )
-    ele_eta_Below20 = ak.flatten(ele_eta[Below20])
+        sf_reco_inPtRange, sfup_reco_inPtRange, sfdown_reco_inPtRange = get_ele_sf(
+            params,
+            year,
+            ele_pt_inPtRange,
+            ele_eta_inPtRange,
+            ele_counts_inPtRange,
+            'reco',
+            pt_range_key,
+        )
+        sf_reco.append(sf_reco_inPtRange)
+        sfup_reco.append(sfup_reco_inPtRange)
+        sfdown_reco.append(sfdown_reco_inPtRange)
 
-    sf_reco_Above20, sfup_reco_Above20, sfdown_reco_Above20 = get_ele_sf(
-        params,
-        year,
-        ele_pt_Above20,
-        ele_eta_Above20,
-        ele_counts_Above20,
-        'reco',
-        'pt_gt_20',
-    )
-    sf_reco_Below20, sfup_reco_Below20, sfdown_reco_Below20 = get_ele_sf(
-        params,
-        year,
-        ele_pt_Below20,
-        ele_eta_Below20,
-        ele_counts_Below20,
-        'reco',
-        'pt_lt_20',
-    )
-
-    # The SF arrays corresponding to the electrons with pt above and below 20 GeV are concatenated and multiplied along the electron axis in order to obtain a per-event scale factor.
     sf_reco = ak.prod(
-        ak.concatenate((sf_reco_Above20, sf_reco_Below20), axis=1), axis=1
+        ak.concatenate(sf_reco, axis=1), axis=1
     )
     sfup_reco = ak.prod(
-        ak.concatenate((sfup_reco_Above20, sfup_reco_Below20), axis=1), axis=1
+        ak.concatenate(sfup_reco, axis=1), axis=1
     )
     sfdown_reco = ak.prod(
-        ak.concatenate((sfdown_reco_Above20, sfdown_reco_Below20), axis=1), axis=1
+        ak.concatenate(sfdown_reco, axis=1), axis=1
     )
 
     return sf_reco, sfup_reco, sfdown_reco
@@ -335,6 +331,76 @@ def sf_btag_calib(params, sample, year, njets, jetsHt):
     )
     corr = cset[params.btagSF_calibration[year]["name"]]
     w = corr.evaluate(sample, year, ak.to_numpy(njets), ak.to_numpy(jetsHt))
+    return w
+
+
+def sf_ctag(params, jets, year, njets, variations=["central"]):
+    '''
+    Shape correction scale factors (SF) for DepJet charm tagger, taken from:
+    https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/summaries/BTV_201X_UL_ctagging.html
+    SFs are obtained per jet, then multiplied to obtain an overall weight per event.
+    Note: this SF does not preserve the normalization of the MC samples!
+     One has to re-normalize the MC samples using the sf_ctag_calib() method.
+     The norm. calibration corrections are phase-space/analysis dependant.
+     Therefore one has to derive them for each analysis separately.
+    '''
+    # print("Doing sf_ctag", year)
+
+    ctagSF = params.jet_scale_factors.ctagSF[year]
+    ctagger = params.ctagging.working_point[year]["tagger"]
+    cset = correctionlib.CorrectionSet.from_file(ctagSF.SF_file)
+
+    #print(list(cset.keys()))
+    #print(list(cset.items()))
+
+    corr = cset[ctagSF.name]
+
+    #print(corr)
+
+    flav = ak.to_numpy(ak.flatten(jets.hadronFlavour))
+    CvL = ak.to_numpy(ak.flatten(jets.btagDeepCvL))
+    CvB = ak.to_numpy(ak.flatten(jets.btagDeepCvB))
+
+    central_SF_byjet = corr.evaluate("central", flav, CvL, CvB)
+
+    #print(central_SF_byjet)
+    #print("Unflatt=", ak.unflatten(central_SF_byjet, njets))
+    #print("Prod:", ak.prod(ak.unflatten(central_SF_byjet, njets), axis=1))
+
+    output = {}
+    for variation in variations:
+        if variation == "central":
+            output[variation] = [ak.prod(ak.unflatten(central_SF_byjet, njets), axis=1)]
+        else:
+            # Nominal sf==1
+            nominal = np.ones(ak.num(njets, axis=0))
+            # Systematic variations
+            up_variation_SF_byjet = corr.evaluate(f"up_{variation}", flav, CvL, CvB)
+            down_variation_SF_byjet = corr.evaluate(f"down_{variation}", flav, CvL, CvB)
+
+            output[variation] = [
+                nominal,
+                ak.prod(ak.unflatten(up_variation_SF_byjet,njets), axis=1),
+                ak.prod(ak.unflatten(down_variation_SF_byjet,njets), axis=1)
+            ]
+
+    return output
+
+
+def sf_ctag_calib(params, dataset, year, njets, jetsHt):
+    '''
+    These are correctiosn to normalization of every dataset after application of the ctag_sf shape correction.
+    It was computed in V+2J selection by comparing the inclusive shape with and without ctagSF in 2D:
+    in nJets-JetsHT bins. Each sample/year has a different correction stored in the correctionlib format.
+    Note: the correction  file in parameters/ctagSF_calibrationSF.json is uesd by default here,
+    which was  derived for V+2J phase space. It may not be suitable for other analyses.
+    '''
+    ctagSF = params.jet_scale_factors.ctagSF[year]
+    cset = correctionlib.CorrectionSet.from_file(ctagSF.Calib_file)
+
+    corr = cset["ctagSF_norm_correction"]
+    w = corr.evaluate(dataset, ak.to_numpy(njets), ak.to_numpy(jetsHt))
+
     return w
 
 
