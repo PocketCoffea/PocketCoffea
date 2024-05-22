@@ -56,7 +56,10 @@ exclude = ["tests/*","docs/*","datasets/*","config/*"]
 include-package-data = true
 
 [tool.setuptools.package-data]
-pocket_coffea = ["*.txt", "*.yaml", "*.json","*.txt.gz"]
+pocket_coffea = ["pockect_coffea/*.txt",
+              "pockect_coffea/*.yaml",
+              "pockect_coffea/*.json",
+              "pockect_coffea/*.txt.gz"]
 
 [project.scripts]
 pocket-coffea="pocket_coffea.__main__:cli"
