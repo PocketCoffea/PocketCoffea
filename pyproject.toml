@@ -47,13 +47,16 @@ dev = ["snakeviz", "memray", "flake8", "black", "pytest>=6", "pytest-cov>=3", "p
 docs = ["sphinx>=4.0", "myst-parser>=0.13", "sphinx-book-theme>=0.1.0", "sphinx-copybutton", "sphinx-markdown-tables", "nox"]
 test = ["pytest>=6", "pytest-cov>=3"]
 
+[tool.setuptools.packages.find]
+include = ["pocket_coffea*"]
+exclude = ["tests/*","docs/*","datasets/*","config/*"]
+
+
 [tool.setuptools]
 include-package-data = true
 
-
-[tool.setuptools.packages.find]
-include = ["pocket_coffea*"]
-exclude = ["tests/*","docs/*","datasets/*"]
+[tool.setuptools.package-data]
+pocket_coffea = ["*.txt", "*.yaml", "*.json","*.txt.gz"]
 
 [project.scripts]
 pocket-coffea="pocket_coffea.__main__:cli"
