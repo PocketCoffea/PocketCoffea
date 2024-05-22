@@ -6,6 +6,8 @@ PocketCoffea: Configurable analysis framework based on Coffea for CMS NanoAOD ev
 
 from __future__ import annotations
 
-__version__ = "0.9.0"
+# provisioning imports
+from pocket_coffea.__meta__ import __version__
 
-__all__ = ("__version__",)
+__all__ = ["__version__"]
+
