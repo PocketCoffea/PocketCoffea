@@ -1,0 +1,8 @@
+recursive-include pocket_coffea/ *.json
+recursive-include pocket_coffea/ *.txt
+recursive-include pocket_coffea/ *.yaml
+recursive-include pocket_coffea/ *.txt.gz
+prune notebooks
+prune config
+prune docs
+prune datasets
