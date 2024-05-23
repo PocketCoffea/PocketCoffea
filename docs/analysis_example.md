@@ -29,18 +29,10 @@ guide [Installation guide](https://pocketcoffea.readthedocs.io/en/latest/install
 If you want to test it on lxplus just use the singularity image: 
 
 ```bash
-<<<<<<< HEAD
-apptainer shell --bind /afs -B /cvmfs/cms.cern.ch \
-                --bind /tmp  --bind /eos/cms/ \
-    --env KRB5CCNAME=$KRB5CCNAME --bind /etc/sysconfig/ngbauth-submit  \
-    /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-stable
-=======
 apptainer shell  -B /afs -B /cvmfs/cms.cern.ch -B /tmp  -B /eos/cms/  \
                  -B /etc/sysconfig/ngbauth-submit  \
                  -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME=${XDG_RUNTIME_DIR}/krb5cc 
                  /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-stable
-
->>>>>>> main
 ```
 
 
@@ -656,10 +648,9 @@ But the user can add more custom run options with a .yaml file:
 
 ```bash
 $> cat custom_run_options.yaml
-
 queue: espresso
-chunksize: 50000
-scaleout: 10
+chunksize: 200000
+scaleout: 20
 ```
 
 Try now to run with custom options: 
