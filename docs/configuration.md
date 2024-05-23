@@ -254,8 +254,11 @@ cfg = Configurator(
 ```python
 from pocket_coffea.workflows.tthbb_base_processor import ttHbbBaseProcessor
 
-"workflow" : ttHbbBaseProcessor,
-"worflow_options" : {},
+cfg = Configurator(
+    workflow : ttHbbBaseProcessor,
+    worflow_options : {},
+    ....
+)
 ```
 
 - `workflow` key specifies directly the class to use.
@@ -292,6 +295,13 @@ The same `Cut` object can be used in different points of the configuration.
 The `Cut` objects are defined in `pocket_coffea.lib.cut_definition`.
 Have a look at the documentation about the [Cut object](./concepts.md#cut-object) and its
 [API](pocket_coffea.lib.cut_definition). 
+
+
+:::{tip}
+Custom functions and modules, defined locally by the user and not part of the central PocketCoffea core, 
+must be registered in a special way to be available to the Dask workers. 
+Have a look at the [Register user defined custom modules](./configuration.md#register-user-defined-custom-modules) section. 
+:::
 
 PocketCoffea implements a set of **factory methods** for common cut functions: they are defined in [cut_functions](pocket_coffea.lib.cut_functions).
 
@@ -460,6 +470,21 @@ custom_w = WeightCustom(
 :::{tip}
 The user can create a library of custom weights and include them in the configuration.
 :::
+
+## Register user defined custom modules
+Users can define modules, library and functions locally in their configuration folder and import then in the
+PocketCoffea configuration and workflows. In order to make them available to the dask workers, without being included in
+the PocketCoffea core library, it is sufficient to register the modules with `cloudpickle`. 
+
+Add this code in the configuration file. 
+```python
+
+import cloudpickle
+cloudpickle.register_pickle_by_value(workflow) # just an example of user defined modules for processors and cuts
+cloudpickle.register_pickle_by_value(custom_cut_functions)
+cloudpickle.register_pickle_by_value(custom_cuts)
+
+```
 
 ## Variations
 

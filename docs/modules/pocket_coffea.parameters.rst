@@ -60,14 +60,6 @@ pocket\_coffea.parameters.lumi module
    :undoc-members:
    :show-inheritance:
 
-pocket\_coffea.parameters.plotting module
------------------------------------------
-
-.. automodule:: pocket_coffea.parameters.plotting
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Module contents
 ---------------
 
