@@ -207,10 +207,10 @@ our Drell-Yan and SingleMuon datasets should be the following:
 # if you are using singularity, create the ticket outside of it.
 voms-proxy-init -voms cms -rfc --valid 168:0
 
-build_datasets.py --cfg datasets/dataset_definitions.json -o
+pocket-coffea build-dataset --cfg datasets/dataset_definitions.json -o
 
 # if you are running at CERN it is useful to restrict the data sources to Tiers closer to CERN
-build_datasets.py --cfg datasets/datasets_definitions.json -o -rs 'T[123]_(FR|IT|BE|CH|DE)_\w+'
+pocket-coffea build-dataset --cfg datasets/datasets_definitions.json -o -rs 'T[123]_(FR|IT|BE|CH|DE)_\w+'
 ```
 
 Four ``json`` files are produced as output, two for each dataset: a version includes file paths with a specific prefix
@@ -237,35 +237,27 @@ There are more options to specify a regex to filter CMS Tiers or options to whit
 output jsons can be split automatically by year or kept together. 
 
 ```bash
-(pocket-coffea) ➜  zmumu git:(main) ✗ build_datasets.py -h
+(pocket-coffea) ➜  zmumu git:(main) ✗ pocket-coffea build-datasets  -h
+Usage: pocket-coffea build-datasets [OPTIONS]
 
-   ___       _ __   _____       __               __ 
-  / _ )__ __(_) /__/ / _ \___ _/ /____ ____ ___ / /_
- / _  / // / / / _  / // / _ `/ __/ _ `(_-</ -_) __/
-/____/\_,_/_/_/\_,_/____/\_,_/\__/\_,_/___/\__/\__/ 
-                                                   
+  Build dataset fileset in json format
 
-usage: build_datasets.py [-h] [--cfg CFG] [-k KEYS [KEYS ...]] [-d] [-o] [-c] [-s] [-l LOCAL_PREFIX] [-ws WHITELIST_SITES [WHITELIST_SITES ...]] [-bs BLACKLIST_SITES [BLACKLIST_SITES ...]] [-rs REGEX_SITES]
-
-Build dataset fileset in json format
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --cfg CFG             Config file with parameters specific to the current run
-  -k KEYS [KEYS ...], --keys KEYS [KEYS ...]
-                        Dataset keys to select
-  -d, --download        Download dataset files on local machine
-  -o, --overwrite       Overwrite existing file definition json
-  -c, --check           Check file existance in the local prefix
-  -s, --split-by-year   Split output files by year
-  -l LOCAL_PREFIX, --local-prefix LOCAL_PREFIX
-                        Local prefix
-  -ws WHITELIST_SITES [WHITELIST_SITES ...], --whitelist-sites WHITELIST_SITES [WHITELIST_SITES ...]
-                        List of sites in the whitelist
-  -bs BLACKLIST_SITES [BLACKLIST_SITES ...], --blacklist-sites BLACKLIST_SITES [BLACKLIST_SITES ...]
-                        List of sites in the blacklist
-  -rs REGEX_SITES, --regex-sites REGEX_SITES
-                        Regex to filter sites
+Options:
+  --cfg TEXT                   Config file with parameters specific to the
+                               current run  [required]
+  -k, --keys TEXT              Keys of the datasets to be created. If None,
+                               the keys are read from the datasets definition
+                               file.
+  -d, --download               Download datasets from DAS
+  -o, --overwrite              Overwrite existing .json datasets
+  -c, --check                  Check existence of the datasets
+  -s, --split-by-year          Split datasets by year
+  -l, --local-prefix TEXT
+  -ws, --allowlist-sites TEXT
+  -bs, --blocklist-sites TEXT
+  -rs, --regex-sites TEXT
+  -p, --parallelize INTEGER
+  --help                       Show this message and exit.
 ```
 
 
@@ -314,7 +306,7 @@ This class groups all the information about skimming, categorization, datasets, 
 The next sections of the tutorial briefly describes how to configure it for the Zmumu analysis.
 
 The configurator instance is created inside the main configuration file `example_config.py` and assied to a variable
-called `cfg`. This special name is used by the framework when the file is passed to the `runner.py` script to be
+called `cfg`. This special name is used by the framework when the file is passed to the `pocket-coffea run` script to be
 executed. 
 
 
@@ -640,7 +632,7 @@ In this tutorial we **assume the use of lxplus**, but the example should work fi
 
 ```bash
 ## First let's test the running locally with  --test for iterative processor with ``--limit-chunks/-lc``(default:2) and ``--limit-files/-lf``(default:1)
-runner.py --cfg example_config.py --test  -o output_test
+pocket-coffea run --cfg example_config.py --test  -o output_test
 ```
 
 We can now submit the full processing on the HTcondor cluster with dask:
@@ -648,7 +640,7 @@ We can now submit the full processing on the HTcondor cluster with dask:
 ```bash
 ## change the --executor and numbers of jobs with -s/--scaleout
 
-runner.py --cfg example_config.py  --full --executor dask@lxplus  --scaleout 10  -o output_dask
+pocket-coffea run --cfg example_config.py  --full --executor dask@lxplus  --scaleout 10  -o output_dask
 ```
 
 The scaleout configurations really depends on cluster and schedulers with different sites(lxplus, LPC, naf-desy).
@@ -666,14 +658,14 @@ scaleout: 10
 
 Try now to run with custom options: 
 ```bash
-runner.py --cfg example_config.py  --full --executor dask@lxplus --custom-run-options custom_run_options.yaml  -o output_dask
+pocket-coffea run --cfg example_config.py  --full --executor dask@lxplus --custom-run-options custom_run_options.yaml  -o output_dask
 ```
 
 
 The output of the script will be similar to 
 
 ```bash
-$ runner.py --cfg example_config.py  --executor dask@lxplus --custom-run-options custom_run_options.yaml  -o output_dask
+$ pocket-coffea run --cfg example_config.py  --executor dask@lxplus --custom-run-options custom_run_options.yaml  -o output_dask
 
     ____             __        __  ______      ________          
    / __ \____  _____/ /_____  / /_/ ____/___  / __/ __/__  ____ _
@@ -722,12 +714,12 @@ total 146M
 The parameters used in the processing are dumped, as well as a human-readable version of the config file in json format,
 and a machine-readable `Configurator` object in `cloudpickle` format.
 
-To produce plots, for each category and variable defined in the configuration a `make_plots.py` script is available:
+To produce plots, for each category and variable defined in the configuration a `pocket-coffea make-plots` script is available:
 
 ```bash
-$ make_plots.py --help
+$ pocket-coffea make-plots --help
 
-usage: make_plots.py [-h] [--input-dir INPUT_DIR] [--cfg CFG] [-op OVERWRITE_PARAMETERS [OVERWRITE_PARAMETERS ...]] [-o OUTPUTDIR] [-i INPUTFILE] [-j WORKERS] [-oc ONLY_CAT [ONLY_CAT ...]] [-os ONLY_SYST [ONLY_SYST ...]] [-e EXCLUDE_HIST [EXCLUDE_HIST ...]] [-oh ONLY_HIST [ONLY_HIST ...]] [--split-systematics] [--partial-unc-band]
+usage: pocket-coffea make-plots [-h] [--input-dir INPUT_DIR] [--cfg CFG] [-op OVERWRITE_PARAMETERS [OVERWRITE_PARAMETERS ...]] [-o OUTPUTDIR] [-i INPUTFILE] [-j WORKERS] [-oc ONLY_CAT [ONLY_CAT ...]] [-os ONLY_SYST [ONLY_SYST ...]] [-e EXCLUDE_HIST [EXCLUDE_HIST ...]] [-oh ONLY_HIST [ONLY_HIST ...]] [--split-systematics] [--partial-unc-band]
                      [--overwrite] [--log] [--density] [-v VERBOSE]
 
 Plot histograms from coffea file
@@ -767,7 +759,7 @@ By running:
 
 ```bash
 $ cd output
-$ make_plots.py -i output_all.coffea --cfg parameters_dump.yaml -o plots
+$ pocket-coffea make-plots -i output_all.coffea --cfg parameters_dump.yaml -o plots
 ```
 
 all the plots are created in the `plots` folder.  The structure of the output and the dataset metadata dictionary
@@ -776,7 +768,7 @@ contained in the output file are used to compose the samples list forming the st
 Additionally, one can customize the plotting style by passing a custom yaml file with the desired plotting options an additional argument:
 
 ```bash
-$ make_plots.py -i output_all.coffea --cfg parameters_dump.yaml -o plots -op plotting_style.yaml
+$ pocket-coffea make-plots -i output_all.coffea --cfg parameters_dump.yaml -o plots -op plotting_style.yaml
 ```
 
 More instructions on how to customize the plotting parameters in `plotting_style.yaml` can be found in the [Plotting](https://pocketcoffea.readthedocs.io/en/latest/plots.html) section.

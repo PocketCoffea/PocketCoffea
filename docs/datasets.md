@@ -144,19 +144,19 @@ For example:
 Restricting the dataset source in Europe (recommended for working from lxplus)
 
 ```bash
-build_dataset.py --cfg datasets/datasets_definitions.json -o -rs 'T[123]_(FR|IT|DE|BE|CH|UK)_\w+' 
+pocket-coffea build-datasets --cfg datasets/datasets_definitions.json -o -rs 'T[123]_(FR|IT|DE|BE|CH|UK)_\w+' 
 ```
 
 Restricting the dataset source to two possible whitelisted sites
 
 ```bash
-build_dataset.py --cfg datasets/datasets_definitions.json -o -ws T3_CH_PSI T2_CH_CSCS
+pocket-coffea build-datasets --cfg datasets/datasets_definitions.json -o -ws T3_CH_PSI T2_CH_CSCS
 ```
 
 Blacklisting datasets at CERN and requesting the dataset in CH.
 
 ```bash 
-build_dataset.py --cfg datasets/datasets_definitions.json -o -bs T0_CH_CERN 'T[123]_CH_\w+' 
+pocket-coffea build-datasets --cfg datasets/datasets_definitions.json -o -bs T0_CH_CERN 'T[123]_CH_\w+' 
 ```
 
 
