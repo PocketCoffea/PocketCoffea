@@ -666,14 +666,14 @@ scaleout: 10
 
 Try now to run with custom options: 
 ```bash
-runner.py --cfg example_config.py  --full --executor dask@lxplus --run-options custom_run_options.yaml  -o output_dask
+runner.py --cfg example_config.py  --full --executor dask@lxplus --custom-run-options custom_run_options.yaml  -o output_dask
 ```
 
 
 The output of the script will be similar to 
 
 ```bash
-$ runner.py --cfg example_config.py  --executor dask@lxplus --run-options custom_run_options.yaml  -o output_dask
+$ runner.py --cfg example_config.py  --executor dask@lxplus --custom-run-options custom_run_options.yaml  -o output_dask
 
     ____             __        __  ______      ________          
    / __ \____  _____/ /_____  / /_/ ____/___  / __/ __/__  ____ _
