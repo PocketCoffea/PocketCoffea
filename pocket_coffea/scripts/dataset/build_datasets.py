@@ -3,6 +3,7 @@ import sys
 import json
 import argparse
 import click
+from rich import print
 
 from pocket_coffea.utils import dataset
 
@@ -62,6 +63,18 @@ from pocket_coffea.utils import dataset
 def build_datasets(cfg, keys, download, overwrite, check,
          split_by_year, local_prefix, allowlist_sites, blocklist_sites, regex_sites, parallelize):
     '''Build dataset fileset in json format'''
+    # Check for comma separated values
+    if len(allowlist_sites)>0 and "," in allowlist_sites[0]:
+        allowlist_sites = allowlist_sites[0].split(",")
+    if len(blocklist_sites)>0 and "," in blocklist_sites[0]:
+        blocklist_sites = blocklist_sites[0].split(",")
+
+    print("Building datasets...")
+    print("[green]Allowlist sites:[/]")
+    print(allowlist_sites)
+    print("[red]Blocklist sites:[/]")
+    print(blocklist_sites)
+        
     dataset.build_datasets(cfg=cfg,
                            keys=keys,
                            download=download,
