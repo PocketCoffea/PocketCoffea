@@ -97,7 +97,7 @@ We have to look for the corresponding [DAS](https://cmsweb.cern.ch/das/) keys:
 - `/SingleMuon/Run2018C-UL2018_MiniAODv2_NanoAODv9-v2/NANOAOD`
 
 The list of datasets has to be written in a structured dictionary together with the corresponding metadata in a json
-file.  This json file is then read by the ``builds_datasets.py`` script to produce the actual json datasets that are
+file.  This json file is then read by the ``builds-datasets`` command to produce the actual json datasets that are
 passed as input to the Coffea processor. 
 
 :::{tip}
@@ -209,7 +209,7 @@ voms-proxy-init -voms cms -rfc --valid 168:0
 pocket-coffea build-dataset --cfg datasets/dataset_definitions.json -o
 
 # if you are running at CERN it is useful to restrict the data sources to Tiers closer to CERN
-pocket-coffea build-dataset --cfg datasets/datasets_definitions.json -o -rs 'T[123]_(FR|IT|BE|CH|DE)_\w+'
+pocket-coffea build-datasets --cfg datasets/datasets_definitions.json -o -rs 'T[123]_(FR|IT|BE|CH|DE)_\w+'
 ```
 
 Four ``json`` files are produced as output, two for each dataset: a version includes file paths with a specific prefix
@@ -355,7 +355,7 @@ The selections are performed at two levels:
 ## Object preselection
 
 To select the objects entering the final analysis, we need to specify a series of cut parameters for the leptons and
-jets in the file `params/object_preselection.yaml`. These selections include the $p_T$, $\n$
+jets in the file `params/object_preselection.yaml`. These selections include the $p_T$, $\eta$
 acceptance cuts, the object identification working points, the muon isolation, the b-tagging working point, etc.
 
 For the $Z\rightarrow \mu\mu$ analysis, we just use the standard definitions for the muon, electron and jet objects:
@@ -700,7 +700,7 @@ Saving config file to output_all/config.json
 Once the processing is done, the output folder looks like
 
 ```bash
-(pocket-coffea) ➜  output_folder git:(main) ✗ lrt
+(pocket-coffea) ➜  output_folder git:(main) ✗ ls -lrt
 total 146M
 -rw-r--r-- 1 user group  31K Jun 19 11:34 parameters_dump.yaml
 -rw-r--r-- 1 user group 126K Jun 19 11:34 config.json
