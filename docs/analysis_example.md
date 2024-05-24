@@ -631,7 +631,7 @@ In this tutorial we **assume the use of lxplus**, but the example should work fi
 
 ```bash
 ## First let's test the running locally with  --test for iterative processor with ``--limit-chunks/-lc``(default:2) and ``--limit-files/-lf``(default:1)
-pocket-coffea run --cfg example_config.py --test  -o output_test
+pocket-coffea run --cfg example_config.py --test --process-separately  -o output_test
 ```
 
 We can now submit the full processing on the HTcondor cluster with dask:
@@ -639,7 +639,7 @@ We can now submit the full processing on the HTcondor cluster with dask:
 ```bash
 ## change the --executor and numbers of jobs with -s/--scaleout
 
-pocket-coffea run --cfg example_config.py  --full --executor dask@lxplus  --scaleout 10  -o output_dask
+pocket-coffea run --cfg example_config.py  --executor dask@lxplus  --scaleout 10  -o output_dask
 ```
 
 The scaleout configurations really depends on cluster and schedulers with different sites(lxplus, LPC, naf-desy).
@@ -655,7 +655,7 @@ scaleout: 20
 
 Try now to run with custom options: 
 ```bash
-pocket-coffea run --cfg example_config.py  --full --executor dask@lxplus --custom-run-options custom_run_options.yaml  -o output_dask
+pocket-coffea run --cfg example_config.py --executor dask@lxplus --custom-run-options custom_run_options.yaml  -o output_dask
 ```
 
 
