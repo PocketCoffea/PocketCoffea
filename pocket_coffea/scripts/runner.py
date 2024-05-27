@@ -47,12 +47,12 @@ def load_config(cfg, outputdir):
 @click.option("-c","--chunksize", type=int, help="Overwrite chunksize config" )
 @click.option("-q","--queue", type=str, help="Overwrite queue config" )
 @click.option("-ll","--loglevel", type=str, help="Console logging level", default="INFO" )
-@click.option("-f","--full", is_flag=True, help="Process all datasets at the same time", default=False )
+@click.option("-ps","--process-separately", is_flag=True, help="Process each dataset separately", default=False )
 @click.option("--executor-custom-setup", type=str, help="Python module to be loaded as custom executor setup")
 
 def run(cfg,  custom_run_options, outputdir, test, limit_files,
            limit_chunks, executor, scaleout, chunksize,
-           queue, loglevel, full, executor_custom_setup):
+           queue, loglevel, process_separately, executor_custom_setup):
     '''Run an analysis on NanoAOD files using PocketCoffea processors'''
 
     # Setting up the output dir
@@ -166,7 +166,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     # Instantiate the executor
     executor = executor_factory.get()
 
-    if full:
+    if not process_separately:
         # Running on all datasets at once
         fileset = config.filesets
         logging.info(f"Working on samples: {list(fileset.keys())}")
