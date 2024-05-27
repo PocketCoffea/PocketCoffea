@@ -64,8 +64,8 @@ lepton_scale_factors:
           pt_gt_75: RecoAbove75
 
       '2023_preBPix':
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/NOT_IMPLEMENTED_YET/electron.json.gz
-        fileSS: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/NOT_IMPLEMENTED_YET/electronSS.json.gz
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electron.json.gz
+        fileSS: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electronSS.json.gz
         name: Electron-ID-SF
         reco:
           pt_lt_20: RecoBelow20
@@ -73,8 +73,8 @@ lepton_scale_factors:
           pt_gt_75: RecoAbove75
 
       '2023_postBPix':
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/NOT_IMPLEMENTED_YET/electron.json.gz
-        fileSS: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/NOT_IMPLEMENTED_YET/electronSS.json.gz
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electron.json.gz
+        fileSS: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electronSS.json.gz
         name: Electron-ID-SF
         reco:
           pt_lt_20: RecoBelow20
@@ -90,6 +90,9 @@ lepton_scale_factors:
       "2018": "2018"
       "2022_preEE": "2022Re-recoBCD"
       "2022_postEE": "2022Re-recoE+PromptFG"
+      "2023_preBPix": "2023PromptC"
+      "2023_postBPix": "2023PromptD"
+      
     
     # The trigger SF configuration is expected to have this structure
     # needs to be provided by the user.
