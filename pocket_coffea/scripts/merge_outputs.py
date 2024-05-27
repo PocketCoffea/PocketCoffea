@@ -17,6 +17,7 @@ from rich import print
     type=str,
     help="Output file",
 )
+
 def merge_outputs(inputfiles, outputfile):
     '''Merge coffea output files'''
     print(f"[blue]Merging files into {outputfile}[/]")

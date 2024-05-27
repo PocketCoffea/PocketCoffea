@@ -19,13 +19,19 @@ def add_jec_variables(jets, event_rho):
 
 def load_jet_factory(params):
     #read the factory file from params and load it
+    #print("DBG. Loading jet factory:", params.jets_calibration.factory_file)
+    
     with gzip.open(params.jets_calibration.factory_file) as fin:
         return cloudpickle.load(fin)
         
 
 def jet_correction(params, events, jets, factory, jet_type,  year, cache):
+    if events.metadata["year"] in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
+        rho = events.fixedGridRhoFastjetAll
+    else:
+        rho = events.Rho.fixedGridRhoFastjetAll
     return factory[jet_type][year].build(
-        add_jec_variables(jets, events.fixedGridRhoFastjetAll), cache
+        add_jec_variables(jets, rho), cache
     )
 
 def met_correction(params, MET, jets):

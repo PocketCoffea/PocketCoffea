@@ -3,6 +3,7 @@ default_jets_calibration:
     JetPt: pt
     JetMass: mass
     JetEta: eta
+    JetPhi: phi
     JetA: area
     ptGenJet: pt_gen
     ptRaw: pt_raw
@@ -10,7 +11,6 @@ default_jets_calibration:
     Rho: event_rho
     METpt: pt
     METphi: phi
-    JetPhi: phi
     UnClusteredEnergyDeltaX: MetUnclustEnUpDeltaX
     UnClusteredEnergyDeltaY: MetUnclustEnUpDeltaY
 
@@ -76,6 +76,7 @@ default_jets_calibration:
           - "${default_params_dir:}/jec/Summer19UL18_V5_MC_L2Relative_AK4PFchs.jec.txt.gz"
           - "${default_params_dir:}/jec/Summer19UL18_JRV2_MC_PtResolution_AK4PFchs.jr.txt.gz"
           - "${default_params_dir:}/jec/Summer19UL18_JRV2_MC_SF_AK4PFchs.jersf.txt.gz"
+
 
       #################################################################################       
       JES_noJER:
@@ -197,7 +198,25 @@ default_jets_calibration:
 
     
       
-        
+    AK4PFPuppi:
+      JES_JER_Syst:
+        2022_preEE:
+          - "${default_params_dir:}/jec/Summer22/Summer22_V1_MC_L1FastJet_AK4PFPuppi.jec.txt"
+          - "${default_params_dir:}/jec/Summer22/Summer22_V1_MC_L2Relative_AK4PFPuppi.jec.txt"
+          - "${default_params_dir:}/jec/Summer22/Summer22_V1_MC_UncertaintySources_AK4PFPuppi.junc.txt"
+          - "${default_params_dir:}/jec/Summer22/Summer22_V1_MC_Uncertainty_AK4PFPuppi.junc.txt"
+          - "${default_params_dir:}/jec/Summer22/Summer22Run3_V1_MC_PtResolution_AK4PFPuppi.jr.txt"
+          - "${default_params_dir:}/jec/Summer22/Summer22Run3_V1_MC_SF_AK4PFPuppi.jersf.txt"
+
+        2022_postEE:
+          - "${default_params_dir:}/jec/Summer22EE/Summer22EE_V1_MC_L1FastJet_AK4PFPuppi.jec.txt"
+          - "${default_params_dir:}/jec/Summer22EE/Summer22EE_V1_MC_L2Relative_AK4PFPuppi.jec.txt"
+          - "${default_params_dir:}/jec/Summer22EE/Summer22EE_V1_MC_UncertaintySources_AK4PFPuppi.junc.txt"
+          - "${default_params_dir:}/jec/Summer22EE/Summer22EE_V1_MC_Uncertainty_AK4PFPuppi.junc.txt"
+          - "${default_params_dir:}/jec/Summer22EE/Summer22EEPrompt22_JRV1_MC_PtResolution_AK4PFPuppi.jr.txt"
+          - "${default_params_dir:}/jec/Summer22EE/Summer22EEPrompt22_JRV1_MC_SF_AK4PFPuppi.jersf.txt"
+
+          
 #####################################################################################
 # Default jets calibration for the user used by the processor
 # The user can overwrite `jets_calibration` to get the desired factory.
@@ -207,8 +226,12 @@ jets_calibration:
   factory_file: "./jets_calibrator_JES_JER_Syst.pkl.gz"
   jet_types:
     AK4PFchs: "${default_jets_calibration.factory_configuration.AK4PFchs.JES_JER_Syst}" 
+    AK4PFPuppi: "${default_jets_calibration.factory_configuration.AK4PFPuppi.JES_JER_Syst}" 
     AK8PFPuppi: "${default_jets_calibration.factory_configuration.AK8PFPuppi.JES_JER_Syst}"
   collection:  # this is needed to know which collection is corrected with which jet factory
     AK4PFchs: "Jet"
     AK8PFPuppi: "FatJet"
+    # Note: in Run3 Jet is Puppi by default, but not in Run2
+    AK4PFPuppi: "Jet"
+    
   jec_name_map: "${default_jets_calibration.jec_name_map}"
