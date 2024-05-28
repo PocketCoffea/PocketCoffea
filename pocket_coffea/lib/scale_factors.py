@@ -28,20 +28,20 @@ def get_ele_sf(
         
         if year in ["2023_preBPix", "2023_postBPix"]:
             # Starting from 2023 SFs require the phi:
-            # It appears that also eta should be positive (absolute value). Not clear if that is correct...
-            
-            #print("eta:", eta.to_numpy())
-            #print("pt:", pt.to_numpy())
-            #print("phi:", phi.to_numpy())
-            
+            if key == 'reco' and pt_region == 'pt_lt_20':
+                # It also appears that for RecoBelow20 SFs the eta must be positive (absolute value).
+                eta_np = np.abs(eta.to_numpy())
+            else:
+                eta_np = eta.to_numpy()
+                
             sf = electron_correctionset[map_name].evaluate(
-                year_pog, "sf", sfname, np.abs(eta.to_numpy()), pt.to_numpy(),  phi.to_numpy()
+                year_pog, "sf", sfname, eta_np, pt.to_numpy(),  phi.to_numpy()
             )
             sfup = electron_correctionset[map_name].evaluate(
-                year_pog, "sfup", sfname, np.abs(eta.to_numpy()), pt.to_numpy(), phi.to_numpy()
+                year_pog, "sfup", sfname, eta_np, pt.to_numpy(), phi.to_numpy()
             )
             sfdown = electron_correctionset[map_name].evaluate(
-                year_pog, "sfdown", sfname, np.abs(eta.to_numpy()), pt.to_numpy(), phi.to_numpy()
+                year_pog, "sfdown", sfname, eta_np, pt.to_numpy(), phi.to_numpy()
             )
         else:
             # All other eras do not need phi:    
