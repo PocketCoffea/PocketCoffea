@@ -265,7 +265,12 @@ def get_dijet(jets):
         )
 
     fields["deltaR"] = ak.where( (njet >= 2), jets[:,0].delta_r(jets[:,1]), -1)
-
+    fields["deltaPhi"] = ak.where( (njet >= 2), abs(jets[:,0].delta_phi(jets[:,1])), -1)
+    fields["deltaEta"] = ak.where( (njet >= 2), abs(jets[:,0].eta - jets[:,1].eta), -1)
+    fields["j1Phi"] = ak.where( (njet >= 2), jets[:,0].phi, -1)
+    fields["j2Phi"] = ak.where( (njet >= 2), jets[:,1].phi, -1)
+    
+    
     dijet = ak.zip(fields, with_name="PtEtaPhiMCandidate")
 
     return dijet
