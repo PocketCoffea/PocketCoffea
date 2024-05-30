@@ -159,7 +159,7 @@ class Sample:
                 )
             else:
                 # Use DBS to get the site
-                files_replicas, sites, sites_counts = rucio.get_dataset_files_from_dbs(das_name, self.metadata["dbs_instance"])
+                files_replicas, sites = rucio.get_dataset_files_from_dbs(das_name, self.metadata["dbs_instance"])
                 
             self.fileslist_concrete += files_replicas
 
