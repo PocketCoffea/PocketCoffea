@@ -115,6 +115,7 @@ def _get_pfn_for_site(path, rules):
 def get_dataset_files_replicas(
     dataset,
     allowlist_sites=None,
+    use_infn=False,
     blocklist_sites=None,
     regex_sites=None,
     mode="full",
@@ -191,11 +192,19 @@ def get_dataset_files_replicas(
                     )
                     outsite.append(site)
                     found = True
+                    
+            if not found and use_infn:
+                # The file was not found at any of the allowed sites
+                # But with this option we add the INFN redirector prefix
+                if len(list(rses.keys())) != 0:
+                    # Only makes sense if the file exists at least somewhere
+                    outfile.append(
+                        _get_pfn_for_site(filedata["name"], "root://xrootd-cms.infn.it//")
+                    )
+                    outsite.append('INFN')
+                    print("\t WARNING! The file was NOT found at any of the allowed sites. Setting its prefix to INFN! \n ", outfile)
+                    found = True
 
-            if not found and not partial_allowed:
-                raise Exception(
-                    f"No SITE available in the allowlist for file {filedata['name']}"
-                )
         else:
             possible_sites = list(rses.keys())
             if blocklist_sites:
@@ -243,8 +252,9 @@ def get_dataset_files_replicas(
                     outsite.append(site)
                     found = True
 
+                    
         if not found and not partial_allowed:
-            raise Exception(f"No SITE available for file {filedata['name']}")
+            raise Exception(f"No SITE available for file: \n {filedata['name']}")
         else:
             if mode == "full":
                 outfiles.append(outfile)

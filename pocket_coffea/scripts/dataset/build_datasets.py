@@ -49,8 +49,13 @@ from pocket_coffea.utils import dataset
 @click.option(
     "-ws",
     "--allowlist-sites",
-    type=str,
     multiple=True,
+)
+@click.option(
+    "--use-infn",
+    is_flag=True,
+    default=False,
+    help="In case -ws option is used but a file is not found on any of the allowed sites, the INFN redirector prefix will be used instead, when this option is specified."
 )
 @click.option(
     "-bs",
@@ -60,8 +65,9 @@ from pocket_coffea.utils import dataset
 )
 @click.option("-rs", "--regex-sites", type=str)
 @click.option("-p", "--parallelize", type=int, default=4)
-def build_datasets(cfg, keys, download, overwrite, check,
-         split_by_year, local_prefix, allowlist_sites, blocklist_sites, regex_sites, parallelize):
+
+def build_datasets(cfg, keys, download, overwrite, check, split_by_year, local_prefix,
+                   allowlist_sites, use_infn, blocklist_sites, regex_sites, parallelize):
     '''Build dataset fileset in json format'''
     # Check for comma separated values
     if len(allowlist_sites)>0 and "," in allowlist_sites[0]:
@@ -83,6 +89,7 @@ def build_datasets(cfg, keys, download, overwrite, check,
                            split_by_year=split_by_year,
                            local_prefix=local_prefix,
                            allowlist_sites=allowlist_sites,
+                           use_infn=use_infn,
                            blocklist_sites=blocklist_sites,
                            regex_sites=regex_sites,
                            parallelize=parallelize)
