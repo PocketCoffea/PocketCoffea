@@ -571,6 +571,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         vars = WeightsManager.available_variations()
         available_jet_types = [
             "AK4PFchs",
+            "AK4PFPuppi",
             "AK8PFPuppi"
         ]
         available_jet_variations = [
@@ -607,6 +608,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # This can be useless or suboptimal, working on it
         nominal_events = self.events
 
+        #print("Variations:", variations)
         # Define flags to know if the variations include JES or JER
         has_jes = any(["JES" in v for v in variations])
         has_jer = any(["JER" in v for v in variations])
