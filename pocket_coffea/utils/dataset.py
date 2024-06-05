@@ -157,7 +157,7 @@ class Sample:
             if self.metadata.get("dbs_instance", "prod/global") == "prod/global":
                 # Now query rucio to get the concrete dataset passing the sites filtering options
                 files_replicas, sites, sites_counts = rucio.get_dataset_files_replicas(
-                    das_name, **self.sites_cfg, mode="first",
+                    das_name, **self.sites_cfg, mode="first"
                 )
             else:
                 # Use DBS to get the site
