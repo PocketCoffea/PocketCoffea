@@ -50,6 +50,18 @@ from pocket_coffea.utils import dataset
     "-ws",
     "--allowlist-sites",
     multiple=True,
+    help="List of sites in whitelist"
+)
+@click.option(
+    "-bs",
+    "--blocklist-sites",
+    type=str,
+    multiple=True,
+    help="List of sites in blacklist"
+)
+@click.option(
+    "-rs", "--regex-sites", type=str,
+    help="example: -rs 'T[123]_(FR|IT|DE|BE|CH|UK)_\w+' to serve data from sites in Europe."
 )
 @click.option(
     "-ir",
@@ -58,13 +70,6 @@ from pocket_coffea.utils import dataset
     default=False,
     help="Use the redirector path if no site is available after the specified whitelist, blacklist and regexes are applied for sites."
 )
-@click.option(
-    "-bs",
-    "--blocklist-sites",
-    type=str,
-    multiple=True,
-)
-@click.option("-rs", "--regex-sites", type=str)
 @click.option("-p", "--parallelize", type=int, default=4)
 
 def build_datasets(cfg, keys, download, overwrite, check, split_by_year, local_prefix,

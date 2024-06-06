@@ -49,7 +49,7 @@ if __name__ == "__main__":
 
     params = OmegaConf.load(sys.argv[1])
     if 'jets_calibration' not in params or 'default_jets_calibration' not in params:
-        raise Expection("The provided configuration file does not contain the jey 'jets_calibration' or 'default_jets_calibration' defaults")
+        raise Expection("The provided configuration file does not contain the key 'jets_calibration' or 'default_jets_calibration' defaults")
 
     #building all the configurations
     jet_types = list(params.default_jets_calibration.factory_configuration.keys())
