@@ -163,7 +163,7 @@ Blacklisting datasets at CERN and requesting the dataset in CH.
 ```bash 
 pocket-coffea build-datasets --cfg datasets/datasets_definitions.json -o -bs T0_CH_CERN -bs 'T[123]_CH_\w+' 
 ```
-It could happen that the files does not exist on any of the whitelisted sites. In this case the script would raise and Exception and crash.
+It could happen that some files do not exist on any of the whitelisted sites. In this case the script would raise an Exception and crash.
 To avoid this, one could use the `-ir` (`--include-redirector`) option. With this option the redirector prefix will be used in cases when files are not found on any of the whitelisted sites. A warning will be printed as well.
 
 
