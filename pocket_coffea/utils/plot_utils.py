@@ -858,7 +858,7 @@ class Shape:
                     filepath = os.path.join(plot_dir, f"{self.name}_{cat}.png")
                 if self.verbose>0:
                     print("Saving", filepath)
-                plt.savefig(filepath, dpi=150, format="png")
+                plt.savefig(filepath, dpi=150, format="png", bbox_inches="tight")
             else:
                 plt.show(self.fig)
             plt.close(self.fig)
