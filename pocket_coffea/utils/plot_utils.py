@@ -53,6 +53,11 @@ class Style:
         if not hasattr(self, "fontsize"):
             self.fontsize = 22
 
+        # default experiment label location: upper left inside plot
+        # https://twiki.cern.ch/twiki/bin/viewauth/CMS/Internal/FigGuidelines
+        if not hasattr(self, "experiment_label_loc"):
+            self.experiment_label_loc = 2
+
     def update(self, style_cfg):
         '''Updates the style options with a new dictionary.'''
         if not type(style_cfg) in [dict, defaultdict]:
@@ -600,14 +605,14 @@ class Shape:
             hep.cms.text(
                 "Simulation Preliminary",
                 fontsize=self.style.fontsize,
-                loc=0,
+                loc=self.style.experiment_label_loc,
                 ax=self.ax,
             )
         else:
             hep.cms.text(
                 "Preliminary",
                 fontsize=self.style.fontsize,
-                loc=0,
+                loc=self.style.experiment_label_loc,
                 ax=self.ax,
             )
         if self.toplabel:
@@ -1049,7 +1054,10 @@ class SystUnc:
             self.ax = ax
             self.fig = self.ax.get_figure
         hep.cms.text(
-            "Simulation Preliminary", fontsize=self.style.fontsize, loc=0, ax=self.ax
+            "Simulation Preliminary",
+            fontsize=self.style.fontsize,
+            loc=self.style.experiment_label_loc,
+            ax=self.ax,
         )
         # hep.cms.lumitext(text=f'{self.lumi[year]}' + r' fb$^{-1}$, 13 TeV,' + f' {year}', fontsize=self.style.fontsize, ax=self.ax)
         self.ax.hist(
