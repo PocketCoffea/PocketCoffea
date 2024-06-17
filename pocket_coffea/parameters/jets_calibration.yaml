@@ -16,7 +16,7 @@ default_jets_calibration:
 
   factory_files_dir: ${default_params_dir:}/jec/
 
-  factory_configuration:
+  factory_configuration_MC:
     AK4PFchs:
       JES_JER_Syst:
         2016_PreVFP:
@@ -231,7 +231,52 @@ default_jets_calibration:
           - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_JRV1_MC_PtResolution_AK4PFPuppi.jr.txt"
           - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_JRV1_MC_SF_AK4PFPuppi.jersf.txt"
 
+
+  factory_configuration_Data:
+    AK4PFPuppi:
+      JES:
+        2022_preEE:
+          C:
+            - "${default_params_dir:}/jec/Summer22/Summer22_22Sep2023_RunCD_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz",
+            - "${default_params_dir:}/jec/Summer22/Summer22_22Sep2023_RunCD_V2_DATA_L2Relative_AK4PFPuppi.txt.gz",
+            - "${default_params_dir:}/jec/Summer22/Summer22_22Sep2023_RunCD_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
+
+          D: "${default_jets_calibration.factory_configuration_Data.AK4PFPuppi.JES.2022_preEE.C}"
+                 
+        2022_postEE:
+          E:
+            - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_RunE_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz",
+            - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_RunE_V2_DATA_L2Relative_AK4PFPuppi.txt.gz",
+            - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_RunE_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
+          F:
+            - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_RunF_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz",
+            - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_RunF_V2_DATA_L2Relative_AK4PFPuppi.txt.gz",
+            - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_RunF_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
+          G:
+            - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_RunG_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz",
+            - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_RunG_V2_DATA_L2Relative_AK4PFPuppi.txt.gz",
+            - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_RunG_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
+
+        2023_preBPix:
+          Cv1:
+            - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L1FastJet_AK4PFPuppi.txt.gz",
+            - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L2Relative_AK4PFPuppi.txt.gz",
+            - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
+          Cv2: "${default_jets_calibration.factory_configuration_Data.AK4PFPuppi.JES.2023_preBPix.Cv1}"
+          Cv3: "${default_jets_calibration.factory_configuration_Data.AK4PFPuppi.JES.2023_preBPix.Cv1}"
+          Cv4
+            - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_RunCv4_V1_DATA_L1FastJet_AK4PFPuppi.txt.gz",
+            - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_RunCv4_V1_DATA_L2Relative_AK4PFPuppi.txt.gz",
+            - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_RunCv4_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
           
+
+        2023_postBPix:
+          D:
+            - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_RunD_V1_DATA_L1FastJet_AK4PFPuppi.txt.gz",
+            - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_RunD_V1_DATA_L2Relative_AK4PFPuppi.txt.gz",
+            - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_RunD_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
+
+
 #####################################################################################
 # Default jets calibration for the user used by the processor
 # The user can overwrite `jets_calibration` to get the desired factory.
@@ -240,9 +285,15 @@ default_jets_calibration:
 jets_calibration:
   factory_file: "./jets_calibrator_JES_JER_Syst.pkl.gz"
   jet_types:
-    AK4PFchs: "${default_jets_calibration.factory_configuration.AK4PFchs.JES_JER_Syst}" 
-    AK4PFPuppi: "${default_jets_calibration.factory_configuration.AK4PFPuppi.JES_JER_Syst}" 
-    AK8PFPuppi: "${default_jets_calibration.factory_configuration.AK8PFPuppi.JES_JER_Syst}"
+    MC: 
+      AK4PFchs: "${default_jets_calibration.factory_configuration_MC.AK4PFchs.JES_JER_Syst}" 
+      AK4PFPuppi: "${default_jets_calibration.factory_configuration_MC.AK4PFPuppi.JES_JER_Syst}" 
+      AK8PFPuppi: "${default_jets_calibration.factory_configuration_MC.AK8PFPuppi.JES_JER_Syst}"
+    Data:
+      #AK4PFchs: "${default_jets_calibration.factory_configuration_Data.AK4PFchs.JES_JER_Syst}" 
+      AK4PFPuppi: "${default_jets_calibration.factory_configuration_Data.AK4PFPuppi.JES_JER_Syst}" 
+      #Ak8PFPuppi: "${default_jets_calibration.factory_configuration_Data.AK4PFPuppi.JES_JER_Syst}" 
+    
   collection:  # this is needed to know which collection is corrected with which jet factory
     AK4PFchs: "Jet"
     AK8PFPuppi: "FatJet"
@@ -250,3 +301,4 @@ jets_calibration:
     AK4PFPuppi: "Jet"
     
   jec_name_map: "${default_jets_calibration.jec_name_map}"
+  apply_jec_nominal: False
