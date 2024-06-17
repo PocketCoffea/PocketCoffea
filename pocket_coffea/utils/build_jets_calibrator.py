@@ -25,13 +25,22 @@ def build(params):
     Build the factory objects from the list of JEC files for each era
     for ak4 and ak8 jets and same them on disk in cloudpikle format
     '''
-    factories = {}
-    for jet_type, eras in params.jet_types.items():
-        factories[jet_type] = {}
-        for era, files in eras.items():
-            print(f"Creating {jet_type} jet calibrator for {era}")
-            factories[jet_type][era] = _jet_factory_factory(files, params.jec_name_map)
+    factories = {"MC": {}, "Data": {}}
+    for jet_type, years in params.jet_types["MC"].items():
+        factories["MC"][jet_type] = {}
+        for year, files in years.items():
+            print(f"Creating {jet_type} jet calibrator for {year}")
+            factories["MC"][jet_type][year] = _jet_factory_factory(files, params.jec_name_map)
+    # For data the corrections are by ERA
+    for jet_type, years in params.jet_types["Data"].items():
+        factories["Data"][jet_type] = {}
+        for year, eras in years.items():
+            factories["Data"][jet_type][year] = {}
+            for era, files in eras.items(): 
+                print(f"Creating {jet_type} jet calibrator for {year} in era: {era}")
+                factories["Data"][jet_type][year][era] = _jet_factory_factory(files, params.jec_name_map)
 
+            
     os.makedirs(os.path.dirname(os.path.abspath(params.factory_file)), exist_ok=True)
     with gzip.open(params.factory_file, "wb") as fout:
         cloudpickle.dump(factories, fout)

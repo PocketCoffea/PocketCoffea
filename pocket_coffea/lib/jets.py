@@ -25,11 +25,22 @@ def load_jet_factory(params):
         return cloudpickle.load(fin)
         
 
-def jet_correction(params, events, jets, factory, jet_type,  year, cache):
-    if events.metadata["year"] in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
+def jet_correction(params, events, jets, factory, jet_type, chunk_metadata, cache):
+    if chunk_metadata["year"] in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
         rho = events.fixedGridRhoFastjetAll
     else:
         rho = events.Rho.fixedGridRhoFastjetAll
+
+    if chunk_metadata["isMC"]:
+        return factory[jet_type][chunk_metadata["year"]].build(
+            add_jec_variables(jets, rho), cache
+        )
+    else:
+        if chunk_metadata["era"] not in factory[jet_type][chunk_metadata["year"]]:
+            raise Exception(f"Factory for {jet_type} in {chunk_metadata['year']} and era {chunk_metadata['era']} not found. Check your jet calibration files.")
+        return factory[jet_type][chunk_metadata["year"]][chunk_metadata["era"]].build(
+            add_jec_variables(jets, rho), cache
+        )
     return factory[jet_type][year].build(
         add_jec_variables(jets, rho), cache
     )
