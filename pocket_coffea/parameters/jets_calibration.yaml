@@ -231,7 +231,7 @@ default_jets_calibration:
           - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_JRV1_MC_PtResolution_AK4PFPuppi.jr.txt.gz"
           - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_JRV1_MC_SF_AK4PFPuppi.jersf.txt.gz"
 
-  #a######################### Data ########################################
+  ########################## Data ########################################
   factory_configuration_Data:
     AK4PFPuppi:
       JES:
@@ -299,10 +299,10 @@ jets_calibration:
     2016_PostVFP:
       AK4PFchs: "Jet"
       AK8PFPuppi: "FatJet"
-    2017:
+    "2017":
       AK4PFchs: "Jet"
       AK8PFPuppi: "FatJet"
-    2018:
+    "2018":
       AK4PFchs: "Jet"
       AK8PFPuppi: "FatJet"
     2022_preEE:
@@ -319,11 +319,11 @@ jets_calibration:
       AK8PFPuppi: "FastJet"
     
   jec_name_map: "${default_jets_calibration.jec_name_map}"
-  apply_jec_nominal:
+  apply_jec_nominal:  # this is needed to know which collection is corrected with which jet factory
     2016_PreVFP: False
     2016_PostVFP: False
-    2017: False
-    2018: False
+    "2017": False
+    "2018": False
     2022_preEE: True
     2022_postEE: True
     2023_preBPix: True

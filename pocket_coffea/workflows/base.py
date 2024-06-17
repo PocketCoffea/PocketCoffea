@@ -619,7 +619,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         caches = []
         jet_calib_params= self.params.jets_calibration
         if has_jes or has_jer or jet_calib_params.apply_jec_nominal[self._year]:
-            for jet_type, jet_coll_name in jet_calib_params.collection[self._year]:
+            for jet_type, jet_coll_name in jet_calib_params.collection[self._year].items():
                 cache = cachetools.Cache(np.inf)
                 caches.append(cache)
                 jets_calibrated[jet_coll_name] = jet_correction(
