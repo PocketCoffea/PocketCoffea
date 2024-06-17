@@ -1,11 +1,24 @@
 default_jets_calibration:
-  jec_name_map:
+  jec_name_map_MC:
     JetPt: pt
     JetMass: mass
     JetEta: eta
     JetPhi: phi
     JetA: area
     ptGenJet: pt_gen
+    ptRaw: pt_raw
+    massRaw: mass_raw
+    Rho: event_rho
+    METpt: pt
+    METphi: phi
+    UnClusteredEnergyDeltaX: MetUnclustEnUpDeltaX
+    UnClusteredEnergyDeltaY: MetUnclustEnUpDeltaY
+  jec_name_map_Data:
+    JetPt: pt
+    JetMass: mass
+    JetEta: eta
+    JetPhi: phi
+    JetA: area
     ptRaw: pt_raw
     massRaw: mass_raw
     Rho: event_rho
@@ -237,25 +250,25 @@ default_jets_calibration:
       JES:
         2022_preEE:
           C:
-            - "${default_params_dir:}/jec/Summer22/Summer22_22Sep2023_RunCD_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer22/Summer22_22Sep2023_RunCD_V2_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer22/Summer22_22Sep2023_RunCD_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
+            - "${default_params_dir:}/jec/Summer22/Summer22-22Sep2023_RunCD_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz"
+            - "${default_params_dir:}/jec/Summer22/Summer22-22Sep2023_RunCD_V2_DATA_L2Relative_AK4PFPuppi.txt.gz"
+            - "${default_params_dir:}/jec/Summer22/Summer22-22Sep2023_RunCD_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
 
           D: "${default_jets_calibration.factory_configuration_Data.AK4PFPuppi.JES.2022_preEE.C}"
                  
         2022_postEE:
           E:
-            - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_RunE_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_RunE_V2_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_RunE_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
+            - "${default_params_dir:}/jec/Summer22EE/Summer22EE-22Sep2023_RunE_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz"
+            - "${default_params_dir:}/jec/Summer22EE/Summer22EE-22Sep2023_RunE_V2_DATA_L2Relative_AK4PFPuppi.txt.gz"
+            - "${default_params_dir:}/jec/Summer22EE/Summer22EE-22Sep2023_RunE_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
           F:
-            - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_RunF_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_RunF_V2_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_RunF_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
+            - "${default_params_dir:}/jec/Summer22EE/Summer22EE-22Sep2023_RunF_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz"
+            - "${default_params_dir:}/jec/Summer22EE/Summer22EE-22Sep2023_RunF_V2_DATA_L2Relative_AK4PFPuppi.txt.gz"
+            - "${default_params_dir:}/jec/Summer22EE/Summer22EE-22Sep2023_RunF_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
           G:
-            - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_RunG_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_RunG_V2_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_RunG_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
+            - "${default_params_dir:}/jec/Summer22EE/Summer22EE-22Sep2023_RunG_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz"
+            - "${default_params_dir:}/jec/Summer22EE/Summer22EE-22Sep2023_RunG_V2_DATA_L2Relative_AK4PFPuppi.txt.gz"
+            - "${default_params_dir:}/jec/Summer22EE/Summer22EE-22Sep2023_RunG_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
 
         2023_preBPix:
           Cv1:
@@ -307,18 +320,19 @@ jets_calibration:
       AK8PFPuppi: "FatJet"
     2022_preEE:
       AK4PFPuppi: "Jet"
-      AK8PFPuppi: "FastJet"
+      #AK8PFPuppi: "FastJet"
     2022_postEE:
       AK4PFPuppi: "Jet"
-      AK8PFPuppi: "FastJet"
+      #AK8PFPuppi: "FastJet"
     2023_preBPix:
       AK4PFPuppi: "Jet"
-      AK8PFPuppi: "FastJet"
+      #AK8PFPuppi: "FastJet"
     2023_postBPix:
       AK4PFPuppi: "Jet"
-      AK8PFPuppi: "FastJet"
+      #AK8PFPuppi: "FastJet"
     
-  jec_name_map: "${default_jets_calibration.jec_name_map}"
+  jec_name_map_MC: "${default_jets_calibration.jec_name_map_MC}"
+  jec_name_map_Data: "${default_jets_calibration.jec_name_map_Data}"
   apply_jec_nominal:  # this is needed to know which collection is corrected with which jet factory
     2016_PreVFP: False
     2016_PostVFP: False

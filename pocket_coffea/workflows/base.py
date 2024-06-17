@@ -618,6 +618,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         jets_calibrated = {}
         caches = []
         jet_calib_params= self.params.jets_calibration
+        # Only apply JEC if variations are asked or if the nominal JEC is requested
         if has_jes or has_jer or jet_calib_params.apply_jec_nominal[self._year]:
             for jet_type, jet_coll_name in jet_calib_params.collection[self._year].items():
                 cache = cachetools.Cache(np.inf)

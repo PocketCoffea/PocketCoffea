@@ -16,7 +16,6 @@ def _jet_factory_factory(files,jec_name_map):
     ext = extractor()
     ext.add_weight_sets([f"* * {file}" for file in files])
     ext.finalize()
-    breakpoint()
     jec_stack = JECStack(ext.make_evaluator())
     return CorrectedJetsFactory(jec_name_map, jec_stack)
 
@@ -31,7 +30,7 @@ def build(params):
         factories["MC"][jet_type] = {}
         for year, files in years.items():
             print(f"Creating {jet_type} jet calibrator for {year} (MC)")
-            factories["MC"][jet_type][year] = _jet_factory_factory(files, params.jec_name_map)
+            factories["MC"][jet_type][year] = _jet_factory_factory(files, params.jec_name_map_MC)
     # For data the corrections are by ERA
     for jet_type, years in params.jet_types["Data"].items():
         factories["Data"][jet_type] = {}
@@ -39,7 +38,7 @@ def build(params):
             factories["Data"][jet_type][year] = {}
             for era, files in eras.items(): 
                 print(f"Creating {jet_type} jet calibrator for {year} in era: {era} (DATA)")
-                factories["Data"][jet_type][year][era] = _jet_factory_factory(files, params.jec_name_map)
+                factories["Data"][jet_type][year][era] = _jet_factory_factory(files, params.jec_name_map_Data)
 
             
     os.makedirs(os.path.dirname(os.path.abspath(params.factory_file)), exist_ok=True)

@@ -10,17 +10,16 @@ from coffea.jetmet_tools import  CorrectedMETFactory
 from ..lib.deltaR_matching import get_matching_pairs_indices, object_matching
 
 
-def add_jec_variables(jets, event_rho):
+def add_jec_variables(jets, event_rho, isMC=True):
     jets["pt_raw"] = (1 - jets.rawFactor) * jets.pt
     jets["mass_raw"] = (1 - jets.rawFactor) * jets.mass
-    jets["pt_gen"] = ak.values_astype(ak.fill_none(jets.matched_gen.pt, 0), np.float32)
     jets["event_rho"] = ak.broadcast_arrays(event_rho, jets.pt)[0]
+    if isMC:
+        jets["pt_gen"] = ak.values_astype(ak.fill_none(jets.matched_gen.pt, 0), np.float32)
     return jets
 
 def load_jet_factory(params):
     #read the factory file from params and load it
-    #print("DBG. Loading jet factory:", params.jets_calibration.factory_file)
-    
     with gzip.open(params.jets_calibration.factory_file) as fin:
         return cloudpickle.load(fin)
         
@@ -32,22 +31,19 @@ def jet_correction(params, events, jets, factory, jet_type, chunk_metadata, cach
         rho = events.Rho.fixedGridRhoFastjetAll
 
     if chunk_metadata["isMC"]:
-        print(factory.keys())
-        return factory[jet_type][chunk_metadata["year"]].build(
-            add_jec_variables(jets, rho), cache
+        return factory["MC"][jet_type][chunk_metadata["year"]].build(
+            add_jec_variables(jets, rho, isMC=True), cache
         )
     else:
-        if chunk_metadata["era"] not in factory[jet_type][chunk_metadata["year"]]:
+        if chunk_metadata["era"] not in factory["Data"][jet_type][chunk_metadata["year"]]:
             raise Exception(f"Factory for {jet_type} in {chunk_metadata['year']} and era {chunk_metadata['era']} not found. Check your jet calibration files.")
-        return factory[jet_type][chunk_metadata["year"]][chunk_metadata["era"]].build(
-            add_jec_variables(jets, rho), cache
+
+        return factory["Data"][jet_type][chunk_metadata["year"]][chunk_metadata["era"]].build(
+            add_jec_variables(jets, rho, isMC=False), cache
         )
-    return factory[jet_type][year].build(
-        add_jec_variables(jets, rho), cache
-    )
 
 def met_correction(params, MET, jets):
-    met_factory = CorrectedMETFactory(params.jet_calibration.jec_name_map)
+    met_factory = CorrectedMETFactory(params.jet_calibration.jec_name_map) # to be fixed
     return met_factory.build(MET, jets, {})
 
 
