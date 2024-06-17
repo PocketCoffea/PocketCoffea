@@ -32,6 +32,7 @@ def jet_correction(params, events, jets, factory, jet_type, chunk_metadata, cach
         rho = events.Rho.fixedGridRhoFastjetAll
 
     if chunk_metadata["isMC"]:
+        print(factory.keys())
         return factory[jet_type][chunk_metadata["year"]].build(
             add_jec_variables(jets, rho), cache
         )
