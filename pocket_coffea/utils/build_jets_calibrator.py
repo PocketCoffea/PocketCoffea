@@ -16,6 +16,7 @@ def _jet_factory_factory(files,jec_name_map):
     ext = extractor()
     ext.add_weight_sets([f"* * {file}" for file in files])
     ext.finalize()
+    breakpoint()
     jec_stack = JECStack(ext.make_evaluator())
     return CorrectedJetsFactory(jec_name_map, jec_stack)
 
@@ -29,7 +30,7 @@ def build(params):
     for jet_type, years in params.jet_types["MC"].items():
         factories["MC"][jet_type] = {}
         for year, files in years.items():
-            print(f"Creating {jet_type} jet calibrator for {year}")
+            print(f"Creating {jet_type} jet calibrator for {year} (MC)")
             factories["MC"][jet_type][year] = _jet_factory_factory(files, params.jec_name_map)
     # For data the corrections are by ERA
     for jet_type, years in params.jet_types["Data"].items():
@@ -37,7 +38,7 @@ def build(params):
         for year, eras in years.items():
             factories["Data"][jet_type][year] = {}
             for era, files in eras.items(): 
-                print(f"Creating {jet_type} jet calibrator for {year} in era: {era}")
+                print(f"Creating {jet_type} jet calibrator for {year} in era: {era} (DATA)")
                 factories["Data"][jet_type][year][era] = _jet_factory_factory(files, params.jec_name_map)
 
             
@@ -61,18 +62,31 @@ if __name__ == "__main__":
         raise Expection("The provided configuration file does not contain the key 'jets_calibration' or 'default_jets_calibration' defaults")
 
     #building all the configurations
-    jet_types = list(params.default_jets_calibration.factory_configuration.keys())
-    print("Available jet types ",jet_types )
+    jet_types_MC = list(params.default_jets_calibration.factory_configuration_MC.keys())
+    jet_types_Data = list(params.default_jets_calibration.factory_configuration_Data.keys())
+    print("Available jet types MC ",jet_types_MC )
+    print("Available jet types Data ",jet_types_Data )
 
     # We assume to have the same set of labels for all the type of jets
     # this assumption is used only to create a default set of factory files.
     # The user can mix the calibration labels/types for each jet type in the specific config
-    for label in params.default_jets_calibration.factory_configuration[jet_types[0]]:
-        print(f"Preparing configurator label: {label}")
+    for label in params.default_jets_calibration.factory_configuration_MC[jet_types[0]]:
+        print(f"Preparing configurator MC: {label}")
         conf = {
             "factory_file": f"{params.default_jets_calibration.factory_files_dir}/jets_calibrator_{label}.pkl.gz",
             "jet_types": {
-                k: params.default_jets_calibration.factory_configuration[k][label] for k in jet_types
+                k: params.default_jets_calibration.factory_configuration_MC[k][label] for k in jet_types
+            },
+            "jec_name_map": params.default_jets_calibration.jec_name_map
+            }
+        build(OmegaConf.create(conf))
+
+    for label in params.default_jets_calibration.factory_configuration_Data[jet_types[0]]:
+        print(f"Preparing configurator Data: {label}")
+        conf = {
+            "factory_file": f"{params.default_jets_calibration.factory_files_dir}/jets_calibrator_{label}.pkl.gz",
+            "jet_types": {
+                k: params.default_jets_calibration.factory_configuration_Data[k][label] for k in jet_types
             },
             "jec_name_map": params.default_jets_calibration.jec_name_map
             }
