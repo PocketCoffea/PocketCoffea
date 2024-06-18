@@ -11,5 +11,5 @@ __credits__ = ["Davide Valsecchi", "Matteo Marchegiani"]
 __contact__ = "https://github.com/PocketCoffea/PocketCoffea"
 __license__ = "BSD-3-Clause"
 __status__ = "Development"
-__version__ = "0.9.3"
+__version__ = "0.9.4"
 __all__ = []
