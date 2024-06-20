@@ -4,20 +4,32 @@ from coffea import processor as coffea_processor
 from dask.distributed import Client, PipInstall, WorkerPlugin
 from distributed.diagnostics.plugin import UploadFile
 
+def set_proxy(dask_worker):
+    import os
+    import shutil
+    working_dir = dask_worker.local_directory
+    print(working_dir)
+    os.environ['X509_USER_PROXY'] = working_dir + '/proxy'
+    os.environ['X509_CERT_DIR']="/cvmfs/grid.cern.ch/etc/grid-security/certificates/"
+    os.chmod(working_dir + '/proxy', 0o400)
+    return os.environ.get("X509_USER_PROXY")
+
 class DaskExecutorFactory(ExecutorFactoryABC):
 
     def __init__(self, run_options, sched_port, proxy_path, outputdir, **kwargs):
         self.outputdir = outputdir
         self.sched_port = sched_port
+        self.proxy_path = proxy_path
         super().__init__(run_options, **kwargs)
         
     def setup(self):
         ''' Start the DASK cluster here'''
-        # At coffea-casa we have preconfigured Dask HTCondor cluster for you, please just use it available at tls://localhost:8786
+        # At INFN AF, the best way to handle DASK clusters is to create them via the Dask labextension and then connect the client to it in your code
         from distributed import Client
         self.dask_client = Client(address="tcp://127.0.0.1:"+str(self.sched_port))
         self.dask_client.restart()
-        self.dask_client.register_worker_plugin(UploadFile(proxy_path))
+        self.dask_client.register_worker_plugin(UploadFile(self.proxy_path))
+        self.dask_client.run(set_proxy)
         
     def customized_args(self):
         args = super().customized_args()
