@@ -25,7 +25,6 @@ class DaskExecutorFactory(ExecutorFactoryABC):
     def setup(self):
         ''' Start the DASK cluster here'''
         # At INFN AF, the best way to handle DASK clusters is to create them via the Dask labextension and then connect the client to it in your code
-        from distributed import Client
         self.dask_client = Client(address="tcp://127.0.0.1:"+str(self.sched_port))
         self.dask_client.restart()
         self.dask_client.register_worker_plugin(UploadFile(self.proxy_path))
