@@ -13,9 +13,9 @@ from rich.console import Console
 from rich.prompt import Confirm, IntPrompt, Prompt
 from rich.table import Table
 from rich.tree import Tree
-
+import re
 from pocket_coffea.utils import rucio as rucio_utils
-
+from pocket_coffea.parameters.xsection import xsection
 def print_dataset_query(query, dataset_list, console, selected=[]):
     table = Table(title=f"Query: [bold red]{query}")
     table.add_column("Name", justify="left", style="cyan", no_wrap=True)
@@ -221,6 +221,62 @@ Some basic commands:
             )
         else:
             print("First [bold red]query (Q)[/] for a dataset")
+    
+    def generate_default_metadata(self, dataset):
+        year = self.extract_year_from_dataset_name(dataset)
+        isMC = self.is_mc_dataset(dataset)
+        xsec = self.extract_xsec_from_dataset_name(dataset)
+        primary_dataset,year_data,era_data = self.extract_era_from_dataset_name(dataset)
+        if isMC == True:
+            return {
+                "year": year,
+                "isMC": isMC,
+                "xsec": xsec
+            }
+        else:
+            return {
+                "year": year_data,
+                "isMC": isMC,
+                "primaryDataset": primary_dataset,
+                "era": era_data
+            }
+
+    def extract_year_from_dataset_name(self, dataset_name):
+        pattern = r'\/([^\/]+)NanoAOD'
+        match = re.search(pattern, dataset_name)
+    
+        if match:
+            return match.group(1)
+        else:
+            return ""
+    
+    def extract_era_from_dataset_name(self, dataset_name):
+        pattern = r'/([^/]+)/Run(\d{4})([A-Z])'
+        match = re.search(pattern, dataset_name)
+        
+        if match:
+            primary_dataset = match.group(1)
+            year = match.group(2)
+            era = match.group(3)
+            return primary_dataset, year, era
+        else:
+            return "", "", ""
+    
+    def is_mc_dataset(self, dataset_name):
+        parts = dataset_name.split('/')
+        if len(parts) > 0 and 'SIM' in parts[-1]:
+            return True
+        else:
+            return False
+
+    def extract_xsec_from_dataset_name(self, dataset_name):
+        parts = dataset_name.split('/')
+        if len(parts) > 0:
+            parts =  parts[1]
+        for entry in xsection:
+            if entry['process_name'] in parts:
+                return entry['cross_section']
+        return None 
 
     def do_select(self, selection=None, metadata=None):
         """Selected the datasets from the list of query results. Input a list of indices
@@ -246,14 +302,15 @@ Some basic commands:
                 if metadata:
                     self.selected_datasets_metadata.append(metadata)
                 else:
-                    self.selected_datasets_metadata.append({
-                        "year": "",
-                        "isMC": True,
-                        "primaryDataset": "",
-                        "part": "",
-                        "era": "",
-                        "xsec": 1.0
-                    })
+                    self.selected_datasets_metadata.append(self.generate_default_metadata(self.last_query_list[s]))
+                    #self.selected_datasets_metadata.append({
+                    #    "year": "",
+                    #    "isMC": True,
+                    #    "primaryDataset": "",
+                    #    "part": "",
+                    #    "era": "",
+                    #    "xsec": 1.0
+                    #})
                 print(f"- ({s+1}) {self.last_query_list[s]}")
             else:
                 print(
