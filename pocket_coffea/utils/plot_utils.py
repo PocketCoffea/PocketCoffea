@@ -158,7 +158,7 @@ class PlotManager:
                 if not os.path.exists(plot_dir):
                     os.makedirs(plot_dir)
 
-    def plot_datamc(self, name, syst=True, spliteras=False):
+    def plot_datamc(self, name, syst=True, spliteras=False, format="png"):
         '''Plots one histogram, for all years and categories.'''
         if self.verbose>0:
             print("Plotting: ", name)
@@ -173,19 +173,19 @@ class PlotManager:
             ratio = False
         else:
             ratio = True
-        shape.plot_datamc_all(ratio, syst, spliteras=spliteras, save=self.save)
+        shape.plot_datamc_all(ratio, syst, spliteras=spliteras, save=self.save, format=format)
 
-    def plot_datamc_all(self, syst=True,  spliteras=False):
+    def plot_datamc_all(self, syst=True,  spliteras=False, format="png"):
         '''Plots all the histograms contained in the dictionary, for all years and categories.'''
         shape_names = list(self.shape_objects.keys())
         if self.workers > 1:
             with Pool(processes=self.workers) as pool:
                 # Parallel calls of plot_datamc() on different shape objects
-                pool.map(partial(self.plot_datamc, syst=syst, spliteras=spliteras), shape_names)
+                pool.map(partial(self.plot_datamc, syst=syst, spliteras=spliteras, format=format), shape_names)
                 pool.close()
         else:
             for shape in shape_names:
-                self.plot_datamc(shape, syst=syst, spliteras=spliteras)
+                self.plot_datamc(shape, syst=syst, spliteras=spliteras, format=format)
 
 class Shape:
     '''This class handles the plotting of 1D data/MC histograms.
@@ -834,7 +834,7 @@ class Shape:
 
         self.format_figure(cat, ratio=ratio)
 
-    def plot_datamc_all(self, ratio=True, syst=True, spliteras=False, save=True):
+    def plot_datamc_all(self, ratio=True, syst=True, spliteras=False, save=True, format='png'):
         '''Plots the data and MC histograms for each year and category contained in the histograms.
         If ratio is True, also the Data/MC ratio plot is plotted.
         If syst is True, also the total systematic uncertainty is plotted.'''
@@ -853,12 +853,12 @@ class Shape:
             if save:
                 plot_dir = os.path.join(self.plot_dir, cat)
                 if self.log:
-                    filepath = os.path.join(plot_dir, f"log_{self.name}_{cat}.png")
+                    filepath = os.path.join(plot_dir, f"log_{self.name}_{cat}.{format}")
                 else:
-                    filepath = os.path.join(plot_dir, f"{self.name}_{cat}.png")
+                    filepath = os.path.join(plot_dir, f"{self.name}_{cat}.{format}")
                 if self.verbose>0:
                     print("Saving", filepath)
-                plt.savefig(filepath, dpi=150, format="png", bbox_inches="tight")
+                plt.savefig(filepath, dpi=150, format=format, bbox_inches="tight")
             else:
                 plt.show(self.fig)
             plt.close(self.fig)
