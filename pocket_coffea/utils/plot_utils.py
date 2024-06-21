@@ -13,6 +13,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
 import mplhep as hep
+from cycler import cycler
 
 from omegaconf import OmegaConf
 from pocket_coffea.parameters.defaults import merge_parameters
@@ -513,9 +514,10 @@ class Shape:
                 self.nevents = dict(
                     sorted(self.nevents.items(), key=lambda x: x[1], reverse=reverse)
                 )
-                color = iter(cm.gist_rainbow(np.linspace(0, 1, len(self.nevents.keys()))))
-                # Assign random colors to each sample
-                self.colors = [next(color) for d in self.nevents.keys()]
+                # create cycler from the colormap and instantiate it to get iterator
+                color = cycler("color", hep.styles.cms.cmap_petroff)()
+                # Assign colors from cycle to samples
+                self.colors = [next(color)["color"] for d in self.nevents.keys()]
                 if hasattr(self.style, "colors_mc"):
                     # Initialize random colors
                     for i, d in enumerate(self.nevents.keys()):
@@ -590,7 +592,9 @@ class Shape:
     def define_figure(self, ratio=True):
         '''Defines the figure for the Data/MC plot.
         If ratio is True, a subplot is defined to include the Data/MC ratio plot.'''
-        plt.style.use([hep.style.ROOT, {'font.size': self.style.fontsize}])
+        # load CMS plotting style
+        # https://cms-analysis.docs.cern.ch/guidelines/plotting/
+        hep.style.use("CMS")
         plt.rcParams.update({'font.size': self.style.fontsize})
         if ratio:
             self.fig, (self.ax, self.rax) = plt.subplots(
