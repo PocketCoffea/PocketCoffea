@@ -599,13 +599,13 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
         Generator for shape variations.
         '''
-        if not self._isMC:
-            yield "nominal"
-            return
-        # nominal is assumed to be the first
-        variations = ["nominal"] + self.cfg.available_shape_variations[self._sample]
-        # TO be understood if a copy is needed
-        # This can be useless or suboptimal, working on it
+        if self._isMC:
+            # nominal is assumed to be the first
+            variations = ["nominal"] + self.cfg.available_shape_variations[self._sample]
+        else:
+            variations = ["nominal"]
+
+        # This is useless. Events is just a point and we are not doing any copies
         nominal_events = self.events
 
         #print("Variations:", variations)
@@ -613,33 +613,27 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         has_jes = any(["JES" in v for v in variations])
         has_jer = any(["JER" in v for v in variations])
 
-        # Extract the jet type to calibrate from the variation name
-        # Expected format: `JES_Total_AK4PFchs`
-        jet_types_to_calibrate = []
-        if has_jes:
-            jet_types_to_calibrate += set([v.split("_")[-1] for v in variations if "JES" in v])
-        if has_jer:
-            jet_types_to_calibrate += set([v.split("_")[-1] for v in variations if "JER" in v])
-        jet_types_to_calibrate = set(jet_types_to_calibrate)
 
         # Calibrating Jets: only the ones in the jet_types in the params.jet_calibration config
         jets_calibrated = {}
         caches = []
         jet_calib_params= self.params.jets_calibration
-        if has_jes or has_jer:
-            for jet_type, factory in jet_calib_params.jet_types.items():
-                # If the jet_type read from the parameters is not included in the variations, we skip it
-                if not jet_type in jet_types_to_calibrate: continue
+        # Only apply JEC if variations are asked or if the nominal JEC is requested
+        if has_jes or has_jer or jet_calib_params.apply_jec_nominal[self._year]:
+            for jet_type, jet_coll_name in jet_calib_params.collection[self._year].items():
                 cache = cachetools.Cache(np.inf)
                 caches.append(cache)
-                jet_coll_name = jet_calib_params.collection[jet_type]
                 jets_calibrated[jet_coll_name] = jet_correction(
                     params=self.params,
                     events=nominal_events,
                     jets=nominal_events[jet_coll_name],
                     factory=self.jmefactory,
                     jet_type = jet_type,
-                    year=self._year,
+                    chunk_metadata={
+                        "year": self._year,
+                        "isMC": self._isMC,
+                        "era": self._era,
+                    },
                     cache=cache
                 )
 
@@ -651,7 +645,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             # If not we would need to restore the nominal events doing a copy at the beginning
             # very costly!
 
-            if variation == "nominal":
+            if variation == "nominal" or not self._isMC:  #only nominal for data
                 self.events = nominal_events
                 # Just assign the nominal calibration
                 for jet_coll_name, jet_coll in jets_calibrated.items():
@@ -671,7 +665,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 # This way, we vary independently the different jet types
                 # e.g. `JES_Total_AK4PFchs` will vary only the `AK4PFchs` jets,
                 # while `JES_Total_AK8PFPuppi` will vary only the `AK8PFPuppi` jets
-                jet_coll_name = jet_calib_params.collection[jet_type]
+                jet_coll_name = jet_calib_params.collection[self._year][jet_type]
                 self.events[jet_coll_name] = jets_calibrated[jet_coll_name][variation_name].up
 
                 yield variation + "Up"

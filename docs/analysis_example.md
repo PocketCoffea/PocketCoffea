@@ -19,19 +19,19 @@ The main steps that need to be performed are the following:
 ### Install PocketCoffea
 
 PocketCoffea can be installed from pip or directly from the sources. The latter is needed if you wish to contribute to
-the core of the framework code and to get the latest under development features. 
+the core of the framework code and to get the latest under development features.
 
 :::{tip}
 The environment needs to be set differently depending on the cluster where you want to run. Please refer to the detailed
-guide [Installation guide](https://pocketcoffea.readthedocs.io/en/latest/installation.html). 
+guide [Installation guide](https://pocketcoffea.readthedocs.io/en/latest/installation.html).
 :::
 
-If you want to test it on lxplus just use the singularity image: 
+If you want to test it on lxplus just use the singularity image:
 
 ```bash
 apptainer shell  -B /afs -B /cvmfs/cms.cern.ch -B /tmp  -B /eos/cms/  \
                  -B /etc/sysconfig/ngbauth-submit  \
-                 -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME=${XDG_RUNTIME_DIR}/krb5cc 
+                 -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME=${XDG_RUNTIME_DIR}/krb5cc
                  /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-stable
 ```
 
@@ -51,7 +51,7 @@ cd PocketCoffea
 python -m venv myenv
 source myenv/bin/activate
 
-pip install -e .  
+pip install -e .
 #-e installs it in "editable" mode so that the modified files are included dynamically in the package.
 ```
 
@@ -65,7 +65,7 @@ running instructions for more details [`Running`](./running.md).
 
 ## Configuration files
 
-The parameters specific to the analysis have to be specified in the configuration file. 
+The parameters specific to the analysis have to be specified in the configuration file.
 This file contains a pure python dictionary named ``cfg`` that is read and manipulated by the ``Configurator`` module.
 
 :::{tip}
@@ -73,7 +73,7 @@ Have a look at the [Configuration](./configuration.md) page for more detailed ex
 :::
 
 A dedicated repository  [`AnalysisConfigs`](https://github.com/PocketCoffea/AnalysisConfigs) collects the config files for
-different analysis. Some analysis configs have been included in the main PocketCoffea repository for reference. 
+different analysis. Some analysis configs have been included in the main PocketCoffea repository for reference.
 
 ```bash
 # Now downloading the example configuration
@@ -90,7 +90,7 @@ workflows files and possibly extra files with parameters that are needed for thi
 ## Dataset preparation
 ### Build datasets metadata
 
-The datasets of this analysis include a Drell-Yan Monte Carlo dataset and a ``SingleMuon`` dataset. 
+The datasets of this analysis include a Drell-Yan Monte Carlo dataset and a ``SingleMuon`` dataset.
 We have to look for the corresponding [DAS](https://cmsweb.cern.ch/das/) keys:
 
 - `/DYJetsToLL_M-50_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM`
@@ -98,7 +98,7 @@ We have to look for the corresponding [DAS](https://cmsweb.cern.ch/das/) keys:
 
 The list of datasets has to be written in a structured dictionary together with the corresponding metadata in a json
 file.  This json file is then read by the ``builds-datasets`` command to produce the actual json datasets that are
-passed as input to the Coffea processor. 
+passed as input to the Coffea processor.
 
 :::{tip}
 For a more detailed discussion about datasets, samples and their meaning in PocketCoffea,
@@ -116,7 +116,7 @@ The general idea is the following:
 
 * The **dataset** key uniquely identifies a dataset.
 * The **sample** key is the one used internally in the framework to categorize the type of the events contained in the
-  dataset. 
+  dataset.
 * The **json_output** key defines the path of the destination json file which will store the list of files.
 * Several **files** entries can be defined for each dataset, including a list of DAS names and a dedicated metadata dictionary.
 * The **metadata** keys should include:
@@ -143,7 +143,7 @@ our Drell-Yan and SingleMuon datasets should be the following:
                   "year":"2018",
                   "isMC": true,
 		          "xsec": 6077.22,
-                  "part": "" 
+                  "part": ""
                   }
             }
         ]
@@ -233,7 +233,7 @@ total 129K
 ```
 
 There are more options to specify a regex to filter CMS Tiers or options to whitelist or blacklist sites. Moreover the
-output jsons can be split automatically by year or kept together. 
+output jsons can be split automatically by year or kept together.
 
 ```bash
 (pocket-coffea) ➜  zmumu git:(main) ✗ pocket-coffea build-datasets  -h
@@ -252,9 +252,13 @@ Options:
   -c, --check                  Check existence of the datasets
   -s, --split-by-year          Split datasets by year
   -l, --local-prefix TEXT
-  -ws, --allowlist-sites TEXT
-  -bs, --blocklist-sites TEXT
-  -rs, --regex-sites TEXT
+  -ws, --allowlist-sites TEXT  List of sites in whitelist
+  -bs, --blocklist-sites TEXT  List of sites in blacklist
+  -rs, --regex-sites TEXT      example: -rs 'T[123]_(FR|IT|DE|BE|CH|UK)_\w+'
+                               to serve data from sites in Europe.
+  -ir, --include-redirector    Use the redirector path if no site is available
+                               after the specified whitelist, blacklist and
+                               regexes are applied for sites.
   -p, --parallelize INTEGER
   --help                       Show this message and exit.
 ```
@@ -264,19 +268,19 @@ Options:
 
 ### Parameters
 
-PocketCoffea distinguishes between parameters for the analysis and specific runs configuration. 
+PocketCoffea distinguishes between parameters for the analysis and specific runs configuration.
   - A *parameter* is considered something defining more in general a specific analysis and it is usually common between
-different runs: e.g. HLT triggers, scale factors working points, JES/JER configuration. 
+different runs: e.g. HLT triggers, scale factors working points, JES/JER configuration.
   - A configuration is considered specific for a run of the analysis where the users applied selections, cleans objects
-    and output histograms or arrays. 
-    
+    and output histograms or arrays.
+
 :::{tip}
 Parameters are handled as *yaml* files with the [OmegaConf](https://omegaconf.readthedocs.io/en/latest/index.html)
 utility library. A set of common and defaults are defined centrally by PocketCoffea and then the user can overwrite,
 replace and add analysis specific configurations.  Have a look at the [Parameters](./parameters.md) page.
 :::
 
-This is done usually in the preamble of the analysis config file: 
+This is done usually in the preamble of the analysis config file:
 
 ```python
 import os
@@ -295,18 +299,18 @@ parameters = defaults.merge_parameters_from_files(default_parameters,
 ```
 
 The `parameters` object can be manipualted freely by the user and then passed to the `Configurator` class to be used in
-the analysis. The parameters are then **dumped** along with the analysis output to preserve them. 
+the analysis. The parameters are then **dumped** along with the analysis output to preserve them.
 
 ## Configuration
 
 A specific analysis *run* is defined in PocketCoffea using an instance of a `Configurator`
-[code](https://github.com/PocketCoffea/PocketCoffea/blob/main/pocket_coffea/utils/configurator.py#L20) class. 
-This class groups all the information about skimming, categorization, datasets, and outputs. 
+[code](https://github.com/PocketCoffea/PocketCoffea/blob/main/pocket_coffea/utils/configurator.py#L20) class.
+This class groups all the information about skimming, categorization, datasets, and outputs.
 The next sections of the tutorial briefly describes how to configure it for the Zmumu analysis.
 
 The configurator instance is created inside the main configuration file `example_config.py` and assied to a variable
 called `cfg`. This special name is used by the framework when the file is passed to the `pocket-coffea run` script to be
-executed. 
+executed.
 
 
 ```python
@@ -336,7 +340,7 @@ cfg = Configurator(
     workflow = ZmumuBaseProcessor,
 ```
 
-Datasets are specified by passing the list of json to be used and they can be filtered by year of sample type. 
+Datasets are specified by passing the list of json to be used and they can be filtered by year of sample type.
 
 Parameters are also passed to the Configurator as well as the **workflow** class to be used in the processing.
 This class is user defined in the `workflow.py` file locally in the folder.
@@ -388,7 +392,7 @@ object_preselection:
 
 ```
 
-This parameters are used by the functions which filters the object collections in the `workflow.py` file. 
+This parameters are used by the functions which filters the object collections in the `workflow.py` file.
 
 
 ## Event selection
@@ -405,20 +409,20 @@ only on the events passing the skim selection, while the others are discarded fr
 reducing the computational load on the processor.  In the config file, we specify two skim cuts: one is selecting events
 with at least one 18 GeV muon and the second is requiring the HLT ``SingleMuon`` path.
 
-Triggers are specified in a parameter yaml files under the `params` dir (but the localtion is up to the user). 
-The parameters are then loadedand added to the default parameters in the preamble of the config file. 
+Triggers are specified in a parameter yaml files under the `params` dir (but the localtion is up to the user).
+The parameters are then loadedand added to the default parameters in the preamble of the config file.
 
 
 In the preamble of `example_config.py`,  which we pass as an argument to the factory function ``get_HLTsel()``:
 
 ```python
 cfg = Configurator(
-    # .....   
-    
+    # .....
+
     skim = [get_nObj_min(1, 18., "Muon"),
             # Asking only SingleMuon triggers since we are only using SingleMuon PD data
-            get_HLTsel(primaryDatasets=["SingleMuon"])], 
-    
+            get_HLTsel(primaryDatasets=["SingleMuon"])],
+
 ```
 
 
@@ -465,8 +469,8 @@ The ``preselections`` field in the config file is updated accordingly:
 
 ```python
 cfg = Configurator(
-    # .....   
-    
+    # .....
+
     preselections = [dimuon_presel],
 ```
 
@@ -477,11 +481,11 @@ defined with the ``passthrough`` factory cut that is just passing the events thr
 
 ```python
 cfg = Configurator(
-    # .....   
-    
+    # .....
+
     categories = {
         "baseline": [passthrough],
-    }, 
+    },
 ```
 
 If for example $Z\rightarrow ee$ events were also included in the analysis, one could have defined a more general "dilepton"
@@ -544,7 +548,7 @@ cfg = Configurator(
                 }
             },
         "bysample": {
-        }    
+        }
         },
     },
 
@@ -560,7 +564,7 @@ In PocketCoffea histograms can be defined directly from the configuration:  look
 Histograms are defined with the options specified in
 [`hist_manager.py`](https://github.com/PocketCoffea/PocketCoffea/blob/main/pocket_coffea/lib/hist_manager.py#L30). An
 histogram is a collection of `Axis` objects with additional options for excluding/including variables, samples, and
-systematic variations. 
+systematic variations.
 
 :::{tip}
 Histogram configuration is described in details [here](./configuration.md#histograms-configuration)
@@ -572,13 +576,13 @@ In order to create a user defined histogram add `Axis` as a list (1 element for 
 
 cfg = Configurator(
     # .....
-    
+
    variables : {
-       
+
            # 1D plots
-           "mll" : HistConf( [Axis(coll="ll", field="mass", bins=100, start=50, stop=150, label=r"$M_{\ell\ell}$ [GeV]")] 
+           "mll" : HistConf( [Axis(coll="ll", field="mass", bins=100, start=50, stop=150, label=r"$M_{\ell\ell}$ [GeV]")]
     },
-	
+
 	# coll : collection/objects under events
 	# field: fields under collections
 	# bins, start, stop: # bins, axis-min, axis-max
@@ -587,16 +591,16 @@ cfg = Configurator(
 
 The `collection` is the name used to access the fields of the `events` main dataset (the NanoAOD Events tree). The `field` specifies the specific
 array to use. If a field is global in the `events`, e.g. a user defined arrays in events, just use `coll=events`. Please
-refer to the `Axis` [code](https://github.com/PocketCoffea/PocketCoffea/blob/main/pocket_coffea/lib/hist_manager.py#L12) for a complete description of the options. 
+refer to the `Axis` [code](https://github.com/PocketCoffea/PocketCoffea/blob/main/pocket_coffea/lib/hist_manager.py#L12) for a complete description of the options.
 
 
-- There are some predefined `hist` dictionaries ready to be built for the user: 
+- There are some predefined `hist` dictionaries ready to be built for the user:
 
 ```python
 
 cfg = Configurator(
     # .....
-    
+
    variables : {
         **count_hist(name="nJets", coll="JetGood",bins=8, start=0, stop=8),
 	    # Muon kinematics
@@ -604,10 +608,10 @@ cfg = Configurator(
 	    # Jet kinematics
         **jet_hists(coll="JetGood", pos=0),
     },
-       
+
 ```
 
-	
+
 ## Run the processor
 
 Run the coffea processor to get ``.coffea`` output files. The ``coffea`` processor can be run locally or be scaled out
@@ -618,7 +622,7 @@ to clusters:
 - ``dask@lxplus`` uses the dask scheduler with lxplus the configuration to send out workers on HTCondor jobs.
 
 The executors are configured in `pocket_coffea/executors` module for a set of predefined grid-sites. Please get in
-contact with the developers and open a PR if you want to include your specific site to the supported list. 
+contact with the developers and open a PR if you want to include your specific site to the supported list.
 
 
 :::{tip}
@@ -643,8 +647,8 @@ pocket-coffea run --cfg example_config.py  --executor dask@lxplus  --scaleout 10
 ```
 
 The scaleout configurations really depends on cluster and schedulers with different sites(lxplus, LPC, naf-desy).
-The default options for the executor `dask@lxplus` are contained [here](https://github.com/PocketCoffea/PocketCoffea/tree/main/pocket_coffea/parameters/executor_options_defaults.yaml). 
-But the user can add more custom run options with a .yaml file: 
+The default options for the executor `dask@lxplus` are contained [here](https://github.com/PocketCoffea/PocketCoffea/tree/main/pocket_coffea/parameters/executor_options_defaults.yaml).
+But the user can add more custom run options with a .yaml file:
 
 ```bash
 $> cat custom_run_options.yaml
@@ -653,28 +657,28 @@ chunksize: 200000
 scaleout: 20
 ```
 
-Try now to run with custom options: 
+Try now to run with custom options:
 ```bash
 pocket-coffea run --cfg example_config.py --executor dask@lxplus --custom-run-options custom_run_options.yaml  -o output_dask
 ```
 
 
-The output of the script will be similar to 
+The output of the script will be similar to
 
 ```bash
 $ pocket-coffea run --cfg example_config.py  --executor dask@lxplus --custom-run-options custom_run_options.yaml  -o output_dask
 
-    ____             __        __  ______      ________          
+    ____             __        __  ______      ________
    / __ \____  _____/ /_____  / /_/ ____/___  / __/ __/__  ____ _
   / /_/ / __ \/ ___/ //_/ _ \/ __/ /   / __ \/ /_/ /_/ _ \/ __ `/
- / ____/ /_/ / /__/ ,< /  __/ /_/ /___/ /_/ / __/ __/  __/ /_/ / 
-/_/    \____/\___/_/|_|\___/\__/\____/\____/_/ /_/  \___/\__,_/  
-                                                                 
+ / ____/ /_/ / /__/ ,< /  __/ /_/ /___/ /_/ / __/ __/  __/ /_/ /
+/_/    \____/\___/_/|_|\___/\__/\____/\____/_/ /_/  \___/\__,_/
+
 
 Loading the configuration file...
 [INFO    ] Configurator instance:
   - Workflow: <class 'workflow.ZmumuBaseProcessor'>
-  - N. datasets: 5 
+  - N. datasets: 5
    -- Dataset: DATA_SingleMuon_2018_EraA,  Sample: DATA_SingleMuon, N. files: 92, N. events: 241608232
    -- Dataset: DATA_SingleMuon_2018_EraB,  Sample: DATA_SingleMuon, N. files: 51, N. events: 119918017
    -- Dataset: DATA_SingleMuon_2018_EraC,  Sample: DATA_SingleMuon, N. files: 56, N. events: 109986009
@@ -687,7 +691,7 @@ Loading the configuration file...
   - Preselection: ['dilepton']
   - Categories: StandardSelection ['baseline'], (1 categories)
   - Variables:  ['MuonGood_eta_1', 'MuonGood_pt_1', 'MuonGood_phi_1', 'nElectronGood', 'nMuonGood', 'nJets', 'nBJets', 'JetGood_eta_1', 'JetGood_pt_1', 'JetGood_phi_1', 'JetGood_btagDeepFlavB_1', 'JetGood_eta_2', 'JetGood_pt_2', 'JetGood_phi_2', 'JetGood_btagDeepFlavB_2', 'mll']
-  - available weights variations: {'DATA_SingleMuon': ['nominal', 'sf_mu_iso', 'pileup', 'sf_mu_id'], 'DYJetsToLL': ['nominal', 'sf_mu_iso', 'pileup', 'sf_mu_id']} 
+  - available weights variations: {'DATA_SingleMuon': ['nominal', 'sf_mu_iso', 'pileup', 'sf_mu_id'], 'DYJetsToLL': ['nominal', 'sf_mu_iso', 'pileup', 'sf_mu_id']}
   - available shape variations: {'DATA_SingleMuon': [], 'DYJetsToLL': []}
 Saving config file to output_all/config.json
 
@@ -752,7 +756,7 @@ optional arguments:
 ```
 
 
-By running: 
+By running:
 
 ```bash
 $ cd output
@@ -760,7 +764,7 @@ $ pocket-coffea make-plots -i output_all.coffea --cfg parameters_dump.yaml -o pl
 ```
 
 all the plots are created in the `plots` folder.  The structure of the output and the dataset metadata dictionary
-contained in the output file are used to compose the samples list forming the stack of histograms. 
+contained in the output file are used to compose the samples list forming the stack of histograms.
 
 Additionally, one can customize the plotting style by passing a custom yaml file with the desired plotting options an additional argument:
 
@@ -769,5 +773,5 @@ $ pocket-coffea make-plots -i output_all.coffea --cfg parameters_dump.yaml -o pl
 ```
 
 More instructions on how to customize the plotting parameters in `plotting_style.yaml` can be found in the [Plotting](https://pocketcoffea.readthedocs.io/en/latest/plots.html) section.
- 
+
 ![](./images/mll_2018_baseline.png)
