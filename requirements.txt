@@ -16,4 +16,4 @@ rich
 rucio-clients
 omegaconf
 law
-click>=8.0.4
+click<8

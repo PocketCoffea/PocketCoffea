@@ -626,8 +626,8 @@ Some basic commands:
 @click.option("--dataset-definition", help="Dataset definition file", type=str, required=False)
 @click.option("--output", help="Output name for dataset discovery output (no fileset preprocessing)", type=str, required=False, default="output_dataset.json")
 @click.option("--fileset-output", help="Output name for fileset", type=str, required=False, default="output_fileset")
-@click.option("--allow-sites", help="List of sites to be allowlisted", nargs="+", type=str)
-@click.option("--block-sites", help="List of sites to be blocklisted", nargs="+", type=str)
+@click.option("--allow-sites", help="List of sites to be allowlisted", type=str)
+@click.option("--block-sites", help="List of sites to be blocklisted",  type=str)
 @click.option("--regex-sites", help="Regex string to be used to filter the sites", type=str)
 @click.option("--query-results-strategy", help="Mode for query results selection: [all|manual]", type=str, default="all")
 @click.option("--replicas-strategy", help="Mode for selecting replicas for datasets: [manual|round-robin|first|choose]", default="round-robin", required=False)
@@ -636,9 +636,9 @@ def dataset_discovery_cli(dataset_definition, output, fileset_output, allow_site
     cli = DataDiscoveryCLI()
 
     if allow_sites:
-        cli.sites_allowlist = allow_sites
+        cli.sites_allowlist = allow_sites.split(",")
     if block_sites:
-        cli.sites_blocklist = block_sites
+        cli.sites_blocklist = block_sites.split(",")
     if regex_sites:
         cli.sites_regex = regex_sites
 
