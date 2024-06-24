@@ -7,17 +7,16 @@ from distributed.diagnostics.plugin import UploadFile
 
 class DaskExecutorFactory(ExecutorFactoryABC):
 
-    def __init__(self, run_options, sched_port, proxy_path, outputdir, **kwargs):
-        self.outputdir = outputdir
-        self.sched_port = sched_port
-        self.proxy_path = proxy_path
+    def __init__(self, run_options, outputdir, **kwargs):
+        if "sched_url" not in run_options:
+            raise Exception("Dask scheduler url not provided in the custom run options!")
+        self.sched_url = run_options["sched_url"]
         super().__init__(run_options, **kwargs)
         
     def setup(self):
         ''' Start the DASK cluster here'''
         # At INFN AF, the best way to handle DASK clusters is to create them via the Dask labextension and then connect the client to it in your code
-        self.dask_client = Client(address="tcp://127.0.0.1:"+str(self.sched_port))
-        self.dask_client.restart()
+        self.dask_client = Client(address=self.sched_url)
         
     def customized_args(self):
         args = super().customized_args()
