@@ -28,7 +28,6 @@ XS = WeightLambda.wrap_func(
 
 
 
-
 # List with default classes for Run2 UL weights
 run2_weights = [
     genWeight,

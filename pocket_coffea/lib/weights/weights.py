@@ -98,7 +98,7 @@ class WeightWrapper(ABC, metaclass=WeightWrapperMeta):
     
     def __init__(self, params=None, metadata=None):
         self._params = params
-        self._metadata = metadata
+        self._metadata = metadata # chunk specific metadata
         # The user can setup the variations here depending on the params
         
     @abstractmethod
