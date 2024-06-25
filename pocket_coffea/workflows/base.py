@@ -807,7 +807,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
     def rescale_sumgenweights(self, output):
         # rescale each variable
-
         for var, vardata in output["variables"].items():
             for samplename, dataset_in_sample in vardata.items():
                 for dataset, histo in dataset_in_sample.items():
@@ -816,14 +815,19 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     # Getting the original sample name to check weights config
                     sample = self.cfg.subsamples_reversed_map[samplename] #needed for subsamples
                     wei = self.cfg.weights_config[sample]['inclusive']
+                    rescale = True
                     if 'signOf_genWeight' in wei and 'genWeight' not in wei:
                         sumgenw_dict = output["sum_signOf_genweights"]
                     elif "genWeight" in wei and not "signOf_genWeight":
                         sumgenw_dict = output["sum_genweights"]
+                    elif "genWeight" in wei and "signOf_genWeight" in wei:
+                        print("!!! Both genWeight and signOf_genWeight are present in the weights config. This is not allowed.")
+                        print("Using sum_genweights for rescaling by default")
+                        sumgenw_dict = output["sum_genweights"]
                     else:
-                        sumgenw_dict = 1.0
+                        rescale = False
                     
-                    if dataset in sumgenw_dict:
+                    if rescale and dataset in sumgenw_dict:
                         scaling = 1/sumgenw_dict[dataset]
                         # it  means that's a MC sample
                         histo *= scaling
@@ -835,14 +839,19 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 # it is working also for subsamples before the first sample key is the primary sample
                 sample_from_dataset = list(dataset_data.keys())[0]
                 wei = self.cfg.weights_config[sample_from_dataset]['inclusive']
+                rescale = True
                 if 'signOf_genWeight' in wei and 'genWeight' not in wei:
                     sumgenw_dict = output["sum_signOf_genweights"]
                 elif "genWeight" in wei and not "signOf_genWeight":
                     sumgenw_dict = output["sum_genweights"]
+                elif "genWeight" in wei and "signOf_genWeight" in wei:
+                    print("!!! Both genWeight and signOf_genWeight are present in the weights config. This is not allowed.")
+                    print("Using sum_genweights for rescaling by default")
+                    sumgenw_dict = output["sum_genweights"]
                 else:
-                    sumgenw_dict = 1.0
+                    rescale = False
                     
-                if dataset in sumgenw_dict:
+                if rescale and dataset in sumgenw_dict:
                     scaling = 1/sumgenw_dict[dataset]
                     for sample in dataset_data.keys():
                         dataset_data[sample] *= scaling
@@ -852,14 +861,19 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             for dataset, dataset_data in catdata.items():
                 sample_from_dataset = list(dataset_data.keys())[0]
                 wei = self.cfg.weights_config[sample_from_dataset]['inclusive']
+                rescale = True
                 if 'signOf_genWeight' in wei and 'genWeight' not in wei:
                     sumgenw_dict = output["sum_signOf_genweights"]
                 elif "genWeight" in wei and not "signOf_genWeight":
                     sumgenw_dict = output["sum_genweights"]
+                elif "genWeight" in wei and "signOf_genWeight" in wei:
+                    print("!!! Both genWeight and signOf_genWeight are present in the weights config. This is not allowed.")
+                    print("Using sum_genweights for rescaling by default")
+                    sumgenw_dict = output["sum_genweights"]
                 else:
-                    sumgenw_dict = 1.0
-                    
-                if dataset in sumgenw_dict:
+                    rescale = False
+                     
+                if rescale and dataset in sumgenw_dict:
                     scaling = 1/sumgenw_dict[dataset]**2
                     for sample in dataset_data.keys():
                         dataset_data[sample] *= scaling
