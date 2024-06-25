@@ -818,8 +818,11 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     wei = self.cfg.weights_config[sample]['inclusive']
                     if 'signOf_genWeight' in wei and 'genWeight' not in wei:
                         sumgenw_dict = output["sum_signOf_genweights"]
-                    else:
+                    elif "genWeight" in wei and not "signOf_genWeight":
                         sumgenw_dict = output["sum_genweights"]
+                    else:
+                        sumgenw_dict = 1.0
+                    
                     if dataset in sumgenw_dict:
                         scaling = 1/sumgenw_dict[dataset]
                         # it  means that's a MC sample
@@ -834,9 +837,11 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 wei = self.cfg.weights_config[sample_from_dataset]['inclusive']
                 if 'signOf_genWeight' in wei and 'genWeight' not in wei:
                     sumgenw_dict = output["sum_signOf_genweights"]
-                else:
+                elif "genWeight" in wei and not "signOf_genWeight":
                     sumgenw_dict = output["sum_genweights"]
-
+                else:
+                    sumgenw_dict = 1.0
+                    
                 if dataset in sumgenw_dict:
                     scaling = 1/sumgenw_dict[dataset]
                     for sample in dataset_data.keys():
@@ -849,8 +854,11 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 wei = self.cfg.weights_config[sample_from_dataset]['inclusive']
                 if 'signOf_genWeight' in wei and 'genWeight' not in wei:
                     sumgenw_dict = output["sum_signOf_genweights"]
-                else:
+                elif "genWeight" in wei and not "signOf_genWeight":
                     sumgenw_dict = output["sum_genweights"]
+                else:
+                    sumgenw_dict = 1.0
+                    
                 if dataset in sumgenw_dict:
                     scaling = 1/sumgenw_dict[dataset]**2
                     for sample in dataset_data.keys():
