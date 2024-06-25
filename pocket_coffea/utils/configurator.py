@@ -154,6 +154,9 @@ class Configurator:
         # Load workflow passing the Configurator self object
         self.load_workflow()
 
+        # Some self consistency checks
+        self.perform_checks()
+
 
     def load_datasets(self):
         for json_dataset in self.datasets_cfg["jsons"]:
@@ -472,9 +475,12 @@ class Configurator:
                                 self.columns[sample][cat].append(w)
         #prune the empty categories
         
-
+    def perform_checks(self):
+        # Check if two weights are defined inclusively
+        for sample, wcfg in self.weights_config.items():
+            if "genWeight" in wcfg["inclusive"] and "signOf_genWeight" in wcfg["inclusive"]:
+                raise Exception("genWeight and signOf_genWeight cannot be used together\nPlease fix your weights configuration")
     
-
     def filter_dataset(self, nfiles):
         filtered_filesets = {}
         filtered_datasets = []
