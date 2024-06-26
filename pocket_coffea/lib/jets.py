@@ -19,13 +19,19 @@ def add_jec_variables(jets, event_rho):
 
 def load_jet_factory(params):
     #read the factory file from params and load it
+    #print("DBG. Loading jet factory:", params.jets_calibration.factory_file)
+    
     with gzip.open(params.jets_calibration.factory_file) as fin:
         return cloudpickle.load(fin)
         
 
 def jet_correction(params, events, jets, factory, jet_type,  year, cache):
+    if events.metadata["year"] in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
+        rho = events.fixedGridRhoFastjetAll
+    else:
+        rho = events.Rho.fixedGridRhoFastjetAll
     return factory[jet_type][year].build(
-        add_jec_variables(jets, events.fixedGridRhoFastjetAll), cache
+        add_jec_variables(jets, rho), cache
     )
 
 def met_correction(params, MET, jets):
@@ -243,7 +249,7 @@ def CvsLsorted(jets, ctag):
     return jets[ak.argsort(jets[ctag["tagger"]], axis=1, ascending=False)]
 
 
-def get_dijet(jets):
+def get_dijet(jets, tagger = False):
     
     fields = {
         "pt": 0.,
@@ -269,6 +275,14 @@ def get_dijet(jets):
     fields["deltaEta"] = ak.where( (njet >= 2), abs(jets[:,0].eta - jets[:,1].eta), -1)
     fields["j1Phi"] = ak.where( (njet >= 2), jets[:,0].phi, -1)
     fields["j2Phi"] = ak.where( (njet >= 2), jets[:,1].phi, -1)
+    fields["j1pt"] = ak.where( (njet >= 2), jets[:,0].pt, -1)
+    fields["j2pt"] = ak.where( (njet >= 2), jets[:,1].pt, -1)
+    if tagger:
+        fields["j1CvsL"] = ak.where( (njet >= 2), jets[:,0].btagDeepFlavCvL, -1)
+        fields["j2CvsL"] = ak.where( (njet >= 2), jets[:,1].btagDeepFlavCvL, -1)
+        fields["j1CvsB"] = ak.where( (njet >= 2), jets[:,0].btagDeepFlavCvB, -1)
+        fields["j2CvsB"] = ak.where( (njet >= 2), jets[:,1].btagDeepFlavCvB, -1)
+        
     
     
     dijet = ak.zip(fields, with_name="PtEtaPhiMCandidate")
