@@ -3,6 +3,8 @@ from .cut_definition import Cut
 from .triggers import get_trigger_mask
 import correctionlib
 import numpy as np
+from coffea.lumi_tools import LumiMask
+
 
 
 def passthrough_f(events, **kargs):
@@ -81,6 +83,45 @@ def get_JetVetoMap_Mask(events, params, year, processor_params, sample, isMC, **
     )
     eventMask = ak.sum(weight, axis=-1)==0 # if at least one jet is vetoed, reject it event
     return ak.where(ak.is_none(eventMask), False, eventMask)
+
+
+
+#########################
+# Event flags
+def apply_event_flags(events, params, year, processor_params, sample, isMC, **kwargs):
+    '''
+    Apply the event flags to the events
+    '''
+    mask = np.ones(len(events), dtype=bool)
+    flags = processor_params.event_flags[year]
+    if not isMC:
+        flags += processor_params.event_flags_data[year]
+    for flag in flags:
+        mask &= getattr(events.Flag, flag).to_numpy()
+        
+    return mask
+
+eventFlags = Cut(
+    name="event_flags",
+    params={},
+    function=apply_event_flags
+    )
+
+###########################
+# Golden JSON
+
+def apply_golden_json(events, params, year, processor_params, sample, isMC, **kwargs):
+    if not isMC:
+        return LumiMask(processor_params.lumi.goldenJSON[year])(
+                events.run, events.luminosityBlock)
+    else:
+        return np.ones(len(events), dtype=bool)
+
+goldenJson = Cut(
+    name="golden_json_lumi",
+    params={},
+    function=apply_golden_json
+    )
 
 ###########################
 ## Functions to count objects
@@ -351,3 +392,12 @@ def get_nMuon(N, minpt=0, coll="MuonGood", name=None):
     if name == None:
         name = f"n{coll}_{N}_pt{minpt}"
     return Cut(name=name, params={"N": N, "coll": coll, "minpt": minpt}, function=nMuon)
+
+
+def get_nPVgood(N, name=None):
+    if name == None:
+        name = f"nPVgood_{N}"
+    return Cut(name=name, params={"N": N},
+               function=lambda events, params, **kwargs: events.PV.npvsGood >= params["N"])
+
+
