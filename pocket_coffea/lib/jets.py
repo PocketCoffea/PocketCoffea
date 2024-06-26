@@ -290,7 +290,6 @@ def get_dijet(jets, tagger = False):
         fields["j2CvsL"] = ak.where( (njet >= 2), jets[:,1].btagDeepFlavCvL, -1)
         fields["j1CvsB"] = ak.where( (njet >= 2), jets[:,0].btagDeepFlavCvB, -1)
         fields["j2CvsB"] = ak.where( (njet >= 2), jets[:,1].btagDeepFlavCvB, -1)
-        
     
     
     dijet = ak.zip(fields, with_name="PtEtaPhiMCandidate")
