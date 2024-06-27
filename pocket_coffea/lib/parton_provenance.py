@@ -1,4 +1,159 @@
 from numba import njit
+import numpy as np 
+
+
+
+@njit
+def reverse_index_array(idxGs, firstgenpart_idxG_numpy,
+                        genparts_offsets, nevents):
+    '''
+    Convert the global index array (no masks) to a global index array
+    considering masked events.
+
+    - idxGs: array of global indices
+    - firstgenpart_idxG_numpy: array of the global index of the first genpart of the array
+    - genparts_offsets: array of the offsets of the genparts array in the masked array
+    - nevents: number of events
+    '''
+    out = np.zeros(len(idxGs), dtype="int64")
+    for i, idxG in enumerate(idxGs):
+        event_idex = 0
+        genpart_idx = 0
+        found = False
+        for j in range(nevents-1):
+            if (firstgenpart_idxG_numpy[j+1] - idxG)>0:
+                genpart_idx = idxG - firstgenpart_idxG_numpy[j]
+                out[i] = genparts_offsets[j] + genpart_idx
+                found=True
+                break
+        if not found:
+            genpart_idx = idxG - firstgenpart_idxG_numpy[nevents-1]
+            out[i] = genparts_offsets[nevents-1] + genpart_idx
+
+    return out
+
+
+@njit
+def analyze_W_flat(W_idx, children_idx, genparts_statusFlags, genparts_pdgId,
+                    firstgenpart_idxG_numpy, genparts_offsets, nevents):
+    '''
+    Get the W decay products for each W in the array.
+    - W_idx: array of the global indices of the Ws
+    - children_idx: array of the children global indices (no masks)
+    - genparts_statusFlags/pdgId: array of genparts
+    - firstgenpart_idxG_numpy: array of the global index of the first genpart of the array
+    - genparts_offsets: array of the offsets of the genparts array in the masked array
+    - nevents: number of events
+
+    Returns:
+    - is_leptonic: array of booleans, True if the W decayed leptonically
+    - idx_children: array of the global indices of the children of the Ws (indices in the flat genparts array)
+    '''
+    
+    is_leptonic = np.zeros(len(W_idx), dtype="bool")
+    idx_children = np.zeros((len(W_idx),2), dtype="int")
+    # We don't have a events, structure, using only flat collections
+    
+    # First go to children until don't find anymore the same copy
+    for iev, W_id in enumerate(W_idx):
+        #print("-----\nevent: ", iev)
+        current_part = W_id # start from the W
+        while True:
+            #print(iev, current_part, genparts[current_part].pdgId)
+            if genparts_statusFlags[current_part] & 1<<13:  # is lastCopy
+                break
+            else:
+                current_part = reverse_index_array(children_idx[current_part],
+                                                   firstgenpart_idxG_numpy,
+                                                   genparts_offsets,
+                                                   nevents)[0]
+                #print(current)
+                # ASSUMING THAT THE FIRST CHILDREN IS THE COPY
+#                 if abs(genparts[current_part].pdgId) != 24:
+#                     print("BIG ERROR")
+        
+            
+        # We have now at least 2 children, checking if they are leptonic
+        for ich,  cidx in enumerate(reverse_index_array(children_idx[current_part],
+                                                        firstgenpart_idxG_numpy,
+                                                        genparts_offsets,
+                                                        nevents)):
+            if 11<= abs(genparts_pdgId[cidx]) <= 16:
+                #print("Found leptonic")
+                is_leptonic[iev] = True
+            idx_children[iev, ich] = cidx
+        
+    return is_leptonic, idx_children
+
+
+@njit
+def analyze_parton_decays_flat_nomesons(parts_idx, children_idx,
+                                        genparts_eta, genparts_phi, genparts_pt, genparts_pdgId,
+                                        max_deltaR,
+                                        firstgenpart_idxG_numpy,
+                                        genparts_offsets, nevents):
+    '''
+    Analyze the decay of the partons in the array. Excludes mesons and only looking for quakrs and gluons after FSR.
+    Inputs:
+    - parts_idx: array of the global indices of the partons
+    - children_idx: array of the children global indices (no masks)
+    - genparts_eta/phi/pt/pdgId: array of genparts
+    - max_deltaR: maximum deltaR to consider a decay
+    - firstgenpart_idxG_numpy: array of the global index of the first genpart of the array
+    - genparts_offsets: array of the offsets of the genparts array in the masked array
+    - nevents: number of events
+    
+    Expects parts_idx in global index (with maskes).
+
+    Returns:
+    - out: array of the global indices of the children of the partons (indices in the flat genparts array)
+    '''
+    
+    out = np.zeros(parts_idx.shape, dtype="int64")
+    
+    for iev in range(parts_idx.shape[0]):
+        
+    #for iev, (gp, ch_idx) in enumerate(zip(genparts, children_idx)):
+        for ipart in range(parts_idx.shape[1]):
+            p_id = parts_idx[iev][ipart]
+            eta_original = genparts_eta[p_id]
+            phi_original = genparts_phi[p_id]
+            
+            
+            # Take all the children and consider the one with the highest pt. 
+            max_pt = -1
+            max_pt_idx = -1
+            childr_idxs = reverse_index_array(children_idx[p_id],
+                                              firstgenpart_idxG_numpy,
+                                              genparts_offsets, nevents)
+            
+            for r_ich in childr_idxs:
+                genp_eta = genparts_eta[r_ich]
+                genp_phi = genparts_phi[r_ich]
+                # Do no consider mesons
+                if abs(genparts_pdgId[r_ich]) > 21:
+                    continue
+                
+                if np.sqrt((eta_original-genp_eta)**2 + (phi_original-genp_phi)**2 ) > max_deltaR:
+                    continue
+                    
+                child_pt = genparts_pt[r_ich]
+                
+                #print(child_pt)
+                if child_pt > max_pt:
+                    max_pt_idx = r_ich
+                    max_pt = child_pt
+            if max_pt == -1:
+                max_pt_idx = p_id
+            
+            out[iev, ipart] = max_pt_idx
+        
+    return out
+
+#############################################################
+#############################################################
+
+
 
 
 @njit

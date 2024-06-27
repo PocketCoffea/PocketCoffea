@@ -88,7 +88,7 @@ Options:
   -c, --chunksize INTEGER         Overwrite chunksize config
   -q, --queue TEXT                Overwrite queue config
   -ll, --loglevel TEXT            Console logging level
-  -f, --full                      Process all datasets at the same time
+  -ps, --process-separately       Process each dataset separately
   --executor-custom-setup TEXT    Python module to be loaded as custom
                                   executor setup
   --help                          Show this message and exit.
@@ -244,7 +244,7 @@ your running session are visible with `tmux ls`. To reconnect do `tmux a -t your
 
 The easiest way to debug a new processor is to run locally on a single process. The `run` command has
 the `--test` options which enables the `iterative` processor independently from the running configuration specified in
-the configuration file. The processor is run on a file of each input dataset.
+the configuration file. The processor is run on a file of each input dataset. If you set the `--process-separately` flag, the datasets are processed separately. Otherwise all datasets are processed at once.
 
 ```bash
 $ pocket-coffea run --cfg config.py --test
