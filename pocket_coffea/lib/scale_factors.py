@@ -104,6 +104,9 @@ def get_mu_sf(params, year, pt, eta, counts, key=''):
     muon_correctionset = correctionlib.CorrectionSet.from_file(
         muonSF.JSONfiles[year]['file']
     )
+
+    if key not in ["id","iso","trigger"]:
+        raise Exception(f"Muon SF key {key} not recognized")
     
     sfName = muonSF.sf_name[year][key]
     
