@@ -69,6 +69,7 @@ build_datasets="pocket_coffea.scripts.dataset.build_datasets:build_datasets"
 dataset_discovery_cli="pocket_coffea.scripts.dataset:dataset_discovery_cli"
 hadd_skimmed_files="pocket_coffea.scripts.hadd_skimmed_files:hadd_skimmed_files"
 merge_outputs="pocket_coffea.scripts.merge_outputs:merge_outputs"
+print_parameters="pocket_coffea.scripts.print_parameters:print_parameters"
 
 # [tool.flake8]
 # extend-ignore = ["E203", "E501", "E722", "B950"]
