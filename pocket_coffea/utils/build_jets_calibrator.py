@@ -20,7 +20,7 @@ def _jet_factory_factory(files,jec_name_map):
     return CorrectedJetsFactory(jec_name_map, jec_stack)
 
 
-def build(params):
+def build(params, filter_years=None):
     '''
     Build the factory objects from the list of JEC files for each era
     for ak4 and ak8 jets and same them on disk in cloudpikle format
@@ -29,12 +29,16 @@ def build(params):
     for jet_type, years in params.jet_types["MC"].items():
         factories["MC"][jet_type] = {}
         for year, files in years.items():
+            if filter_years and year not in filter_years:
+                continue
             print(f"Creating {jet_type} jet calibrator for {year} (MC)")
             factories["MC"][jet_type][year] = _jet_factory_factory(files, params.jec_name_map_MC)
     # For data the corrections are by ERA
     for jet_type, years in params.jet_types["Data"].items():
         factories["Data"][jet_type] = {}
         for year, eras in years.items():
+            if filter_years and year not in filter_years:
+                continue
             factories["Data"][jet_type][year] = {}
             for era, files in eras.items(): 
                 print(f"Creating {jet_type} jet calibrator for {year} in era: {era} (DATA)")
