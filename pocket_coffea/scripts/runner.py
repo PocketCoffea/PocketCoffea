@@ -23,6 +23,8 @@ def load_config(cfg, outputdir):
     config_module =  utils.path_import(cfg)
     try:
         config = config_module.cfg
+        # Load the configuration
+        config.load()
         logging.info(config)
         config.save_config(outputdir)
     except AttributeError as e:
