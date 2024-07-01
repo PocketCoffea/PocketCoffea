@@ -6,12 +6,14 @@ from rich.prompt import Prompt
 import yaml
 
 from pocket_coffea.utils.utils import load_config
+from pocket_coffea.parameters import defaults
 
 @click.command()
 @click.option(
     '-c',
     '--cfg',
     type=str,
+    required=False,
     help='Config file',
 )
 @click.option(
@@ -40,8 +42,13 @@ from pocket_coffea.utils.utils import load_config
 
 def print_parameters(cfg, dump, list_keys,  key, cli):
     '''Print the parameters from the PocketCoffea configuration'''
-    cfg = load_config(cfg, do_load=False, do_logging=False, save_config=False)
-    params_dict = cfg.parameters
+    if cfg is not None:
+        cfg = load_config(cfg, do_load=False, do_logging=False, save_config=False)
+        params_dict = cfg.parameters
+    else:
+        # Take the default parameters
+        print("[red]No configuration file provided, using the [bold]DEFAULT[/bold] parameters[/]")
+        params_dict = defaults.get_default_parameters()
     
     if key is not None:
         try:
@@ -78,7 +85,7 @@ def print_parameters(cfg, dump, list_keys,  key, cli):
                 print(f"[red]Key {key} not found in the configuration[/]")
     else:
         #just print what has been selected
-        pprint(params_dictOmegaConf.to_container(params_dict, resolve=True), indent_guides=True)
+        pprint(OmegaConf.to_container(params_dict, resolve=True), indent_guides=True)
         
     if dump:
         with open(dump, "w") as f:
