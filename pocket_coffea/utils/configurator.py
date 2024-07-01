@@ -12,7 +12,6 @@ from omegaconf import OmegaConf
 from ..lib.cut_definition import Cut
 from ..lib.categorization import StandardSelection, CartesianSelection
 from ..parameters.cuts import passthrough
-from ..lib.weights_manager import WeightCustom
 from ..lib.hist_manager import Axis, HistConf
 from ..utils import build_jets_calibrator
 
@@ -30,11 +29,13 @@ class Configurator:
     - skims, preselections, categorization
     - output: variables and columns
     - datasets
-    - weights and variations
+    - weights and variations and the objects proving them
     - workflow
     - analysis parameters
 
     The running environment configuration is not part of the Configurator class.
+
+    The available Weights are taken from the list of weights classes passed to the Configurator.
     '''
 
     def __init__(
@@ -46,6 +47,7 @@ class Configurator:
         preselections,
         categories,
         weights,
+        weights_classes,
         variations,
         variables,
         columns=None,
@@ -97,9 +99,10 @@ class Configurator:
         self.skim = []
         self.preselections = []
 
-        self.weights_cfg = weights
         ## Weights configuration
-    
+        self.weights_cfg = weights
+        self.weights_classes = weights_classes
+     
         self.variations_cfg = variations
        
         # Column accumulator config
@@ -129,6 +132,12 @@ class Configurator:
             }
             for s in self.samples
         }
+        ## Defining the available weight strings
+        # The list of strings is taken from the names of the list of weights classes
+        # passed to the configurator.
+        self.available_weights = []
+        for w in self.weights_classes:
+            self.available_weights.append(w.name)
          
         self.load_weights_config(self.weights_cfg)
 
@@ -165,7 +174,7 @@ class Configurator:
             )
             self.available_shape_variations[sample] = list(
                 set(self.available_shape_variations[sample])
-            )
+            ) 
             
         # Columns configuration
         self.load_columns_config(self.columns_cfg)
@@ -296,18 +305,15 @@ class Configurator:
     def load_weights_config(self, wcfg):
         '''This function loads the weights definition and prepares a list of
         weights to be applied for each sample and category'''
-        # Get the list of statically available weights defined in the workflow
-        available_weights = self.workflow.available_weights()
         # Read the config and save the list of weights names for each sample (and category if needed)
         if "common" not in wcfg:
             print("Weights configuration error: missing 'common' weights key")
             raise Exception("Wrong weight configuration")
         # common/inclusive weights
         for w in wcfg["common"]["inclusive"]:
-            if isinstance(w, str):
-                if w not in available_weights:
-                    print(f"Weight {w} not available in the workflow")
-                    raise Exception("Wrong weight configuration")
+            if w not in self.available_weights:
+                print(f"Weight {w} not available in the workflow")
+                raise Exception("Wrong weight configuration")
             # do now check if the weights is not string but custom
             for wsample in self.weights_config.values():
                 # add the weight to all the categories and samples
@@ -316,10 +322,9 @@ class Configurator:
         if "bycategory" in wcfg["common"]:
             for cat, weights in wcfg["common"]["bycategory"].items():
                 for w in weights:
-                    if isinstance(w, str):
-                        if w not in available_weights:
-                            print(f"Weight {w} not available in the workflow")
-                            raise Exception("Wrong weight configuration")
+                    if w not in self.available_weights:
+                        print(f"Weight {w} not available in the workflow")
+                        raise Exception("Wrong weight configuration")
                     for wsample in self.weights_config.values():
                         wsample["is_split_bycat"] = True
                         # looping on all the samples for this category
@@ -341,20 +346,18 @@ class Configurator:
 
                 if "inclusive" in s_wcfg:
                     for w in s_wcfg["inclusive"]:
-                        if isinstance(w, str):
-                            if w not in available_weights:
-                                print(f"Weight {w} not available in the workflow")
-                                raise Exception("Wrong weight configuration")
+                        if w not in self.available_weights:
+                            print(f"Weight {w} not available in the workflow")
+                            raise Exception("Wrong weight configuration")
                         # append only to the specific sample
                         self.weights_config[sample]["inclusive"].append(w)
 
                 if "bycategory" in s_wcfg:
                     for cat, weights in s_wcfg["bycategory"].items():
                         for w in weights:
-                            if isinstance(w, str):
-                                if w not in available_weights:
-                                    print(f"Weight {w} not available in the workflow")
-                                    raise Exception("Wrong weight configuration")
+                            if w not in self.available_weights:
+                                print(f"Weight {w} not available in the workflow")
+                                raise Exception("Wrong weight configuration")
                             if w in self.weights_config[sample]["inclusive"]:
                                 raise Exception(
                                     f"""Error! Trying to include weight {w}
@@ -564,15 +567,9 @@ class Configurator:
             for cat, catw in weights["bycategory"].items():
                 out["bycategory"][cat] = []
                 for w in catw:
-                    if isinstance(w, WeightCustom):
-                        out["bycategory"][cat].append(w.serialize())
-                    else:
-                        out["bycategory"][cat].append(w)
+                    out["bycategory"][cat].append(w)
             for w in weights["inclusive"]:
-                if isinstance(w, WeightCustom):
-                    out["inclusive"].append(w.serialize())
-                else:
-                    out["inclusive"].append(w)
+                out["inclusive"].append(w)
             ocfg["weights"][sample] = out
 
         ocfg["variations"] = self.variations_config
