@@ -7,6 +7,7 @@ from pocket_coffea.scripts.dataset.dataset_query import dataset_discovery_cli
 from pocket_coffea.scripts.plot.make_plots import make_plots
 from pocket_coffea.scripts.hadd_skimmed_files import hadd_skimmed_files
 from pocket_coffea.scripts.merge_outputs import merge_outputs
+from pocket_coffea.scripts.print_parameters import print_parameters
 
 title = """[dodger_blue1]
     ____             __        __  ______      ________
@@ -38,6 +39,7 @@ cli.add_command(run)
 cli.add_command(make_plots)
 cli.add_command(hadd_skimmed_files)
 cli.add_command(merge_outputs)
+cli.add_command(print_parameters)
 
 if __name__ == '__main__':
     cli()
