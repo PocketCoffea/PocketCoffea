@@ -79,7 +79,15 @@ class ColumnsManager:
                     ] = column_accumulator(ak.to_numpy(N, allow_missing=False))
                 # looping on the columns
                 for col in outarray.columns:
-                    if outarray.flatten and data.ndim > 1:
+                    if data.ndim > 1 and not outarray.flatten:
+                        # Check if the array is regular or not
+                        # Cannot export to numpy irregular array --> need to be flattened!
+                        if (isinstance(data[col].layout, ak.layout.ListOffsetArray64)
+                            or isinstance(data[col].layout, ak.layout.ListArray64)):
+                            raise Exception(
+                                f"Trying to export a multidimensional column {col} without flattening it! Please check your configuration"
+                            )
+                    if data.ndim > 1 and outarray.flatten:
                         if outarray.fill_none:
                             out = ak.fill_none(
                                 ak.flatten(data[col]),

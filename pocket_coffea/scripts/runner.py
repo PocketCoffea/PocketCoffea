@@ -13,25 +13,10 @@ from coffea import processor
 from coffea.processor import Runner
 
 from pocket_coffea.utils.configurator import Configurator
-from pocket_coffea.utils import utils
+from pocket_coffea.utils.utils import load_config
 from pocket_coffea.utils.logging import setup_logging
 from pocket_coffea.parameters import defaults as parameters_utils
 from pocket_coffea.executors import executors_base
-
-def load_config(cfg, outputdir):
-    ''' Helper function to load a Configurator instance from a user defined python module'''
-    config_module =  utils.path_import(cfg)
-    try:
-        config = config_module.cfg
-        logging.info(config)
-        config.save_config(outputdir)
-    except AttributeError as e:
-        print("Error: ", e)
-        raise("The provided configuration module does not contain a `cfg` attribute of type Configurator. Please check your configuration!")
-
-    if not isinstance(config, Configurator):
-        raise("The configuration module attribute `cfg` is not of type Configurator. Please check yuor configuration!")
-    return config
 
 
 @click.command()
@@ -47,12 +32,12 @@ def load_config(cfg, outputdir):
 @click.option("-c","--chunksize", type=int, help="Overwrite chunksize config" )
 @click.option("-q","--queue", type=str, help="Overwrite queue config" )
 @click.option("-ll","--loglevel", type=str, help="Console logging level", default="INFO" )
-@click.option("-f","--full", is_flag=True, help="Process all datasets at the same time", default=False )
+@click.option("-ps","--process-separately", is_flag=True, help="Process each dataset separately", default=False )
 @click.option("--executor-custom-setup", type=str, help="Python module to be loaded as custom executor setup")
 
 def run(cfg,  custom_run_options, outputdir, test, limit_files,
            limit_chunks, executor, scaleout, chunksize,
-           queue, loglevel, full, executor_custom_setup):
+           queue, loglevel, process_separately, executor_custom_setup):
     '''Run an analysis on NanoAOD files using PocketCoffea processors'''
 
     # Setting up the output dir
@@ -71,7 +56,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     print("Loading the configuration file...")
     if cfg[-3:] == ".py":
         # Load the script
-        config = load_config(cfg, outputdir)
+        config = load_config(cfg, save_config=True, outputdir=outputdir)
 
     elif cfg[-4:] == ".pkl":
         # WARNING: This has to be tested!!
@@ -139,6 +124,8 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     # if site is known we can load the corresponding module
     elif site == "lxplus":
         from pocket_coffea.executors import executors_lxplus as executors_lib
+    elif site == "swan":
+        from pocket_coffea.executors import executors_cern_swan as executors_lib
     elif site == "T3_CH_PSI":
         from pocket_coffea.executors import executors_T3_CH_PSI as executors_lib
     elif site == "purdue-af":
@@ -166,7 +153,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     # Instantiate the executor
     executor = executor_factory.get()
 
-    if full:
+    if not process_separately:
         # Running on all datasets at once
         fileset = config.filesets
         logging.info(f"Working on samples: {list(fileset.keys())}")

@@ -3,6 +3,7 @@ import sys
 import json
 import argparse
 import click
+from rich import print
 
 from pocket_coffea.utils import dataset
 
@@ -48,20 +49,44 @@ from pocket_coffea.utils import dataset
 @click.option(
     "-ws",
     "--allowlist-sites",
-    type=str,
     multiple=True,
+    help="List of sites in whitelist"
 )
 @click.option(
     "-bs",
     "--blocklist-sites",
     type=str,
     multiple=True,
+    help="List of sites in blacklist"
 )
-@click.option("-rs", "--regex-sites", type=str)
+@click.option(
+    "-rs", "--regex-sites", type=str,
+    help="example: -rs 'T[123]_(FR|IT|DE|BE|CH|UK)_\w+' to serve data from sites in Europe."
+)
+@click.option(
+    "-ir",
+    "--include-redirector",
+    is_flag=True,
+    default=False,
+    help="Use the redirector path if no site is available after the specified whitelist, blacklist and regexes are applied for sites."
+)
 @click.option("-p", "--parallelize", type=int, default=4)
-def build_datasets(cfg, keys, download, overwrite, check,
-         split_by_year, local_prefix, allowlist_sites, blocklist_sites, regex_sites, parallelize):
+
+def build_datasets(cfg, keys, download, overwrite, check, split_by_year, local_prefix,
+                   allowlist_sites, include_redirector, blocklist_sites, regex_sites, parallelize):
     '''Build dataset fileset in json format'''
+    # Check for comma separated values
+    if len(allowlist_sites)>0 and "," in allowlist_sites[0]:
+        allowlist_sites = allowlist_sites[0].split(",")
+    if len(blocklist_sites)>0 and "," in blocklist_sites[0]:
+        blocklist_sites = blocklist_sites[0].split(",")
+
+    print("Building datasets...")
+    print("[green]Allowlist sites:[/]")
+    print(allowlist_sites)
+    print("[red]Blocklist sites:[/]")
+    print(blocklist_sites)
+        
     dataset.build_datasets(cfg=cfg,
                            keys=keys,
                            download=download,
@@ -70,6 +95,7 @@ def build_datasets(cfg, keys, download, overwrite, check,
                            split_by_year=split_by_year,
                            local_prefix=local_prefix,
                            allowlist_sites=allowlist_sites,
+                           include_redirector=include_redirector,
                            blocklist_sites=blocklist_sites,
                            regex_sites=regex_sites,
                            parallelize=parallelize)
