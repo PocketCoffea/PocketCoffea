@@ -4,6 +4,7 @@ import numpy as np
 from collections import defaultdict
 from abc import ABC, ABCMeta, abstractmethod
 from typing import ClassVar, Callable, Any, List, Union
+import awkward as ak
 
 
 ### Dataclasses to represent the weights to be passed to the WeightsManager
@@ -166,9 +167,16 @@ class WeightLambda(WeightWrapper):
         elif isinstance(out, WeightDataMultiVariation):
             out.name = self.name
             return out
-        elif len(out) == 3:
+        #check if the output is of type numpy array of akward array
+        elif isinstance(out, np.ndarray):
+            return WeightData(self.name, out)
+        elif isinstance(out, ak.Array):
+            return WeightData(self.name, out)
+        elif isinstance(out, list) and len(out) == 1:
+            return WeightData(self.name, out)
+        elif isinstance(out, list) and len(out) == 3:
             return WeightData(self.name, *out)
-        elif len(out) == 4:
+        elif isinstance(out, list) and len(out) == 4:
             if not isinstance(out[1], list) or not isinstance(out[2], list) or not isinstance(out[3], list):
                 raise ValueError("The output of the lambda function should be a tuple with 3 arrays or 1 array, 3 lists of arrays (variations_name, up, down) ")
             return WeightDataMultiVariation(self.name, *out)
