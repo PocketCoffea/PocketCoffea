@@ -11,7 +11,6 @@ import os
 import logging
 
 from coffea import processor
-from coffea.lumi_tools import LumiMask
 from coffea.analysis_tools import PackedSelection
 
 from ..lib.weights_manager import WeightsManager
@@ -154,24 +153,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         define the cut at the preselection level, not at skim level.
         '''
         self._skim_masks = PackedSelection()
-        mask_flags = np.ones(self.nEvents_initial, dtype=bool)
-        flags = self.params.event_flags[self._year]
-        if not self._isMC:
-            flags += self.params.event_flags_data[self._year]
-        for flag in flags:
-            mask_flags &= getattr(self.events.Flag, flag).to_numpy()
-        self._skim_masks.add("event_flags", mask_flags)
-
-        # Primary vertex requirement
-        self._skim_masks.add("PVgood", self.events.PV.npvsGood > 0)
-
-        # In case of data: check if event is in golden lumi file
-        if not self._isMC:
-            # mask_lumi = lumimask(self.events.run, self.events.luminosityBlock)
-            mask_lumi = LumiMask(self.params.lumi.goldenJSON[self._year])(
-                self.events.run, self.events.luminosityBlock
-            )
-            self._skim_masks.add("lumi_golden", mask_lumi)
 
         for skim_func in self._skim:
             # Apply the skim function and add it to the mask

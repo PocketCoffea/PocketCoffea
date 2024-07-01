@@ -410,23 +410,35 @@ reducing the computational load on the processor.  In the config file, we specif
 with at least one 18 GeV muon and the second is requiring the HLT ``SingleMuon`` path.
 
 Triggers are specified in a parameter yaml files under the `params` dir (but the localtion is up to the user).
-The parameters are then loadedand added to the default parameters in the preamble of the config file.
+The parameters are then loaded and added to the default parameters in the preamble of `example_config.py`,  which we pass as an argument to the factory function ``get_HLTsel()``.
 
 
-In the preamble of `example_config.py`,  which we pass as an argument to the factory function ``get_HLTsel()``:
+Moreover, standard selections as the following should be applied at the skim stage: 
+- event flags for MC and Data
+- number of primary vertex selection
+- application of the golden JSON selection to Data lumisections
+
+:::{warning}
+The above skimming was applied by default until PocketCoffea v0.9.4. After that the user has to specify the skim cuts,
+with Cut objects provided by the library.
+:::
+
 
 ```python
+from pocket_coffea.lib.cut_functions import get_nObj_min, get_HLTsel, eventFlags, get_nPVgood, goldenJson
+
 cfg = Configurator(
     # .....
 
-    skim = [get_nObj_min(1, 18., "Muon"),
+    skim = [
+            eventFlags,
+            goldenJson,
+            get_nPVgood(1),
+            get_nObj_min(1, 18., "Muon"),
             # Asking only SingleMuon triggers since we are only using SingleMuon PD data
             get_HLTsel(primaryDatasets=["SingleMuon"])],
 
 ```
-
-
-
 
 ### Event preselection
 
