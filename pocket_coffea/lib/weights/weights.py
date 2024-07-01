@@ -9,7 +9,7 @@ from typing import ClassVar, Callable, Any, List, Union
 ### Dataclasses to represent the weights to be passed to the WeightsManager
 @dataclass
 class WeightData:
-    name: str
+    name: str 
     nominal: np.ndarray
     up: np.ndarray = None
     down: np.ndarray = None
@@ -44,10 +44,16 @@ class WeightWrapperMeta(ABCMeta):
 
 
     def wrap_func(cls, name:str,
-                  function: Callable[[Any, int, str], Union[WeightData,WeightDataMultiVariation]],
+                  function: Callable[[Any, int, str], Any],
                   has_variations=False, variations=None):
         '''
         Method to create a new WeightLambda class with the given function.
+        The lambda function takes as input the parameters, metadata, events, size and shape_variations.
+        The output can be:
+        - WeightData or WeightDataMultiVariation object: in that case the name is overwritten by the framework
+        - 3 arrays (nominal, up, down) -> WeightData is created
+        - 1 array (nominal), list of variations [str] , 2 lists of arrays (up, down) -> WeightDataMultiVariation is created
+        
         '''
         # Create a new class with the compute method
         attrs = {'_function': function,
@@ -90,7 +96,8 @@ class WeightWrapper(ABC, metaclass=WeightWrapperMeta):
 
     The `name` class attribute is used in the configuration to define the weight.
     The metaclass registration mechanism checks if the user defines more than once
-    the same weight class.  
+    the same weight class.
+
     '''
     name: ClassVar[str] = "base_weight"
     has_variations: ClassVar[bool] = False
@@ -129,17 +136,42 @@ class WeightWrapper(ABC, metaclass=WeightWrapperMeta):
 class WeightLambda(WeightWrapper):
     '''
     Class to create a weight using a lambda function.
-    The lambda function should take as input the parameters and the metadata
-    and return a WeightData or WeightDataMultiVariation object.
-    The lambda function should be able to handle the variations.
+    The lambda function takes as input the parameters, metadata, events, size and shape_variations.
+
+    The output can be:
+    - WeightData or WeightDataMultiVariation object: in that case the name is overwritten by the framework
+    - 3 arrays (nominal, up, down) -> WeightData is created
+    - 1 array (nominal), list of variations [str] , 2 lists of arrays (up, down) -> WeightDataMultiVariation is created
     '''
-    # Function that should take [params, metadata, events, size, shape_variations]
+    #Function that should take [params, metadata, events, size, shape_variations]
     @property
     @abstractmethod
-    def _function(self): #Callable[[Any, Any, Any, int, str], WeightData | WeightDataMultiVariation] = None
+    def _function(): #Callable[[Any, Any, Any, int, str], WeightData | WeightDataMultiVariation] = None
         pass
 
     def compute(self, events, size, shape_variation):
-        return self._function(self._params, self._metadata, events, size, shape_variation)
+        '''
+        Method to compute the weights for the given events.
+        The method calls the lambda function with the given parameters.
+        The output can be:
+        - WeightData or WeightDataMultiVariation object: in that case the name is overwritten by the framework
+        - 3 arrays (nominal, up, down) -> WeightData is created
+        - 1 array (nominal), list of variations [str] , 2 lists of arrays (up, down) -> WeightDataMultiVariation is created
+        '''
+        out = type(self)._function(self._params, self._metadata, events, size, shape_variation)
 
+        if isinstance(out, WeightData):
+            out.name = self.name
+            return out
+        elif isinstance(out, WeightDataMultiVariation):
+            out.name = self.name
+            return out
+        elif len(out) == 3:
+            return WeightData(self.name, *out)
+        elif len(out) == 4:
+            if not isinstance(out[1], list) or not isinstance(out[2], list) or not isinstance(out[3], list):
+                raise ValueError("The output of the lambda function should be a tuple with 3 arrays or 1 array, 3 lists of arrays (variations_name, up, down) ")
+            return WeightDataMultiVariation(self.name, *out)
+        else:
+            raise ValueError("The output of the lambda function should be a tuple with 3 arrays or 1 array, 3 lists of arrays (variations_name, up, down) ")
  

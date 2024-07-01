@@ -8,9 +8,9 @@ genWeight = WeightLambda.wrap_func(
     )
 
 signOfGenWeight = WeightLambda.wrap_func(
-    name="signOfGenWeight",
+    name="signOf_genWeight",
     function=lambda params, metadata, events, size, shape_variations:
-    WeightData("signOfGenWeight", np.sign(events.genWeight)),
+    WeightData("signOf_genWeight", np.sign(events.genWeight)),
     )
 
 lumi = WeightLambda.wrap_func(

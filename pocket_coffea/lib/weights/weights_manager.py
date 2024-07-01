@@ -6,7 +6,7 @@ from collections.abc import Callable
 from collections import defaultdict
 
 from coffea.analysis_tools import Weights
-
+from weights import WeightData, WeightDataMultiVariation
 
 
 class WeightsManager:
