@@ -47,12 +47,20 @@ class WeightsManager:
         #load the weights objects from the wrappers
         self._weightsObj = {}
         for w in weightsWrappers:
+            # this allows to have variations depending on the metadata
             self._weightsObj[w.name] = w(params, metadata)
         # Store the available variations for the weights
         self._available_weights = list(self._weightsObj.keys())
-        self._available_modifiers = {}
+        self._available_modifiers_byweight = {}
         for w in self._available_weights:
-            self._available_modifiers[w] = self._weightsObj[w].variations
+            # the variations are customized by parameters and metadata
+            if self._weightsObj[w].has_variations:
+                vars = self._weightsObj[w].variations
+                if len(vars) == 0:
+                    # only Up and Down variations
+                    self._available_modifiers_byweight[w] = ["Up", "Down"]
+                else:
+                    self._available_modifiers_byweight[w] = [v + var for v in vars for var in ["Up", "Down"]]
             
         
         self.storeIndividual = storeIndividual
@@ -67,9 +75,10 @@ class WeightsManager:
         self._available_modifiers_bycat = defaultdict(list)
 
         
-    def load(self):
+    def compute(self):
         '''
-        Load the weights for the current chunk. 
+        Load the weights for the current chunk following the user configuration.
+        This created different Weights objects for the inclusive and bycategory weights.
         '''
         _weightsCache = {}
 
@@ -129,6 +138,24 @@ class WeightsManager:
         # Clear the cache once the Weights objects have been added
         _weightsCache.clear()
 
+    def get_available_modifiers_byweight(self, weight:str):
+        '''
+        Return the available modifiers for the specific weight
+        '''
+        if weight in self._available_modifiers_byweight:
+            return self._available_modifiers_byweight[weight]
+        else:
+            raise ValueError(f"Weight {weight} not available in the WeightsManager")
+
+    def get_available_modifiers_bycategory(self, category=None):
+        '''
+        Return the available modifiers for the specific category
+        '''
+        if category == None:
+            return self._available_modifiers_inclusive
+        elif category in self._available_modifiers_bycat:
+            return self._available_modifiers_bycat[category] + self._available_modifiers_inclusive
+        
     def _compute_weight(self, weight_name, events, shape_variation):
         '''
         Predefined common weights.

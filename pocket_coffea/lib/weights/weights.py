@@ -99,6 +99,8 @@ class WeightWrapper(ABC, metaclass=WeightWrapperMeta):
     The metaclass registration mechanism checks if the user defines more than once
     the same weight class.
 
+    If the Weight has a single variation:  has_variations = True, _variations is empty.
+
     '''
     name: ClassVar[str] = "base_weight"
     has_variations: ClassVar[bool] = False

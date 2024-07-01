@@ -60,6 +60,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
         # Weights configuration
         self.weights_config_allsamples = self.cfg.weights_config
+        self.weights_classes = self.cfg.weights_classes
 
         # Load the jet calibration factory once for all chunks
         self.jmefactory = load_jet_factory(self.params)
@@ -308,14 +309,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
         pass
 
-    @classmethod
-    def available_weights(cls):
-        '''
-        Identifiers of the weights available thorugh this processor.
-        By default they are all the weights defined in the WeightsManager
-        '''
-        return WeightsManager.available_weights()
-
     def compute_weights(self, variation):
         '''
         Function which define weights (called after preselection).
@@ -330,6 +323,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self.weights_manager = WeightsManager(
                 self.params,
                 self.weights_config_allsamples[self._sample],
+                self.weights_classes,
                 self.nEvents_after_presel,
                 self.events,  # to compute weights
                 storeIndividual=False,
@@ -342,6 +336,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     "xsec": self._xsec,
                 },
             )
+            # Compute the weights
+            self.weights_manager.compute()
 
     def compute_weights_extra(self, variation):
         '''Function that can be defined by user processors
@@ -408,6 +404,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self._categories,
             variations_config=self.cfg.variations_config[self._sample],
             processor_params=self.params,
+            weights_manager=self.weights_manager,
             custom_axes=self.custom_axes,
             isMC=self._isMC,
         )
@@ -432,7 +429,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Calling hist manager with the subsample masks
         self.hists_managers.fill_histograms(
             self.events,
-            self.weights_manager,
             self._categories,
             subsamples=self._subsamples[self._sample],
             shape_variation=variation,
@@ -568,7 +564,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         Identifiers of the weights variabtions available thorugh this processor.
         By default they are all the weights defined in the WeightsManager
         '''
-        vars = WeightsManager.available_variations()
+        vars = []
         available_jet_types = [
             "AK4PFchs",
             "AK4PFPuppi",
