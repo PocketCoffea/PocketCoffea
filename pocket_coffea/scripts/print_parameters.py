@@ -91,3 +91,7 @@ def print_parameters(cfg, dump, list_keys,  key, cli):
         with open(dump, "w") as f:
             yaml.dump(params_dict, f)
             print(f"[green]Parameters saved to {dump}[/]")
+
+
+if __name__ == "__main__":
+    print_parameters()
