@@ -15,6 +15,9 @@ from pocket_coffea.lib.scale_factors import (
     sf_pileup_reweight,
 )
 
+
+### Simple WeightWrappers from functions defined in the lib
+
 genWeight = WeightLambda.wrap_func(
     name="genWeight",
     function=lambda params, metadata, events, size, shape_variations:
@@ -53,35 +56,35 @@ pileup = WeightLambda.wrap_func(
     )
 
 
-sf_ele_reco = WeightLambda.wrap_func(
+SF_ele_reco = WeightLambda.wrap_func(
     name="sf_ele_reco",
     function=lambda params, metadata, events, size, shape_variations:
         sf_ele_reco(params, events, metadata["year"]),
     has_variations=True
     )
 
-sf_ele_id = WeightLambda.wrap_func(
+SF_ele_id = WeightLambda.wrap_func(
     name="sf_ele_id",
     function=lambda params, metadata, events, size, shape_variations:
         sf_ele_id(params, events, metadata["year"]),
     has_variations=True
     )
 
-sf_mu_id = WeightLambda.wrap_func(
+SF_mu_id = WeightLambda.wrap_func(
     name="sf_mu_id",
     function=lambda params, metadata, events, size, shape_variations:
         sf_mu(params, events, metadata["year"], 'id'),
     has_variations=True
     )
 
-sf_mu_iso = WeightLambda.wrap_func(
+SF_mu_iso = WeightLambda.wrap_func(
     name="sf_mu_iso",
     function=lambda params, metadata, events, size, shape_variations:
         sf_mu(params, events, metadata["year"], 'iso'),
     has_variations=True
     )
 
-sf_mu_trigger = WeightLambda.wrap_func(
+SF_mu_trigger = WeightLambda.wrap_func(
     name="sf_mu_trigger",
     function=lambda params, metadata, events, size, shape_variations:
         sf_mu(params, events, metadata["year"], 'trigger'),
@@ -89,6 +92,102 @@ sf_mu_trigger = WeightLambda.wrap_func(
     )
 
 
+########################################################################
+# More complicated WeightWrapper defining dynamic variations depending
+# on the data taking period
+
+class SF_ele_trigger(WeightWrapper):
+    name = "sf_ele_trigger"
+    has_variations = True
+
+    def __init__(self, params, metadata):
+        super().__init__(params, metadata)
+        # Getting the variations from the parameters depending on the year
+        self._variations = params.systematic_variations.weight_variations.sf_ele_trigger[metadata["year"]]
+
+    def compute(self, events, size, shape_variation):
+        if shape_variation == "nominal":
+            out = sf_ele_trigger(self._params, events, self._metadata["year"],
+                             variations= ["nominal"] + self._variations,
+                             )
+            # This is a dict with variation: [nom, up, down]
+            return WeightDataMultiVariation(
+                 name = self.name,
+                 nominal = out["nominal"][0],
+                 variations = self._variations,
+                 up = [out[var][1] for var in self._variations],
+                 down = [out[var][2] for var in self._variations]
+            )
+
+        else:
+            out = sf_ele_trigger(self._params, events, self._metadata["year"],
+                             variations= ["nominal"] )
+            return WeightData(
+                name = self.name,
+                nominal = out["nominal"][0]
+            )
+        
+########################################
+# Btag scale factors have weights depending on the shape_variation
+
+class SF_btag(WeightWrapper):
+    name = "sf_btag"
+    has_variations = True
+
+    def __init__(self, params, metadata):
+        super().__init__(params, metadata)
+        # Getting the variations from the parameters depending on the year
+        self._variations = params.systematic_variations.weight_variations.sf_btag[metadata["year"]]
+        self.jet_coll = params.jet_scale_factors.jet_collection.btag
+
+    def compute(self, events, size, shape_variation):
+        
+        if shape_variation == "nominal":
+            out = sf_btag(self._params,
+                          events[self.jet_coll],
+                          self._metadata["year"],
+                          # Assuming n*JetCollection* is defined
+                          njets=events[f"n{self.jet_coll}"],
+                          variations=["central"] + self._variations,
+                          )
+            # This is a dict with variation: [nom, up, down]
+            return WeightDataMultiVariation(
+                name = self.name,
+                nominal = out["central"][0],
+                variations = self._variations,
+                up = [out[var][1] for var in self._variations],
+                down = [out[var][2] for var in self._variations]
+            )
+
+
+        elif "JES_" in shape_variation:
+            out = sf_btag_calib(self._params,
+                                events[self.jet_coll],
+                                self._metadata["year"],
+                                # Assuming n*JetCollection* is defined
+                                njets=events[f"n{self.jet_coll}"],
+                                variations=[shape_variation],
+                                )
+            return WeightData(
+                name = self.name,
+                nominal = out[shape_variation][0]
+                )       
+            
+        else:
+            out = sf_btag(self._params,
+                          events[self.jet_coll],
+                          self._metadata["year"],
+                          # Assuming n*JetCollection* is defined
+                          njets=events[f"n{self.jet_coll}"],
+                          variations=["central"],
+                          )
+            return WeightData(
+                name = self.name,
+                nominal = out["central"][0]
+            )
+        
+        
+    
 # List with default classes for common weights
 common_weights = [
     genWeight,
@@ -96,10 +195,11 @@ common_weights = [
     lumi,
     XS,
     pileup,
-    sf_ele_reco,
-    sf_ele_id,
-    sf_mu_id,
-    sf_mu_iso
+    SF_ele_reco,
+    SF_ele_id,
+    SF_mu_id,
+    SF_mu_iso,
+    SF_ele_trigger
 ]
 
 
