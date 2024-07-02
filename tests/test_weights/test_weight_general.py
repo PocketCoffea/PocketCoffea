@@ -5,11 +5,11 @@ import awkward as ak
 
 def test_weight_name_redefinition():
     # It is not possible to redefine the name of a weight
-    w1 = WeightLambda.wrap_func(name="genWeight",
+    w1 = WeightLambda.wrap_func(name="genWeight_test",
                                 function=None)
 
     with pytest.raises(ValueError):
-        w2 = WeightLambda.wrap_func(name="genWeight",
+        w2 = WeightLambda.wrap_func(name="genWeight_test",
                                 function=None)
 
 

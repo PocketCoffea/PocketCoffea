@@ -67,15 +67,18 @@ class WeightWrapperMeta(ABCMeta):
         class_name = f"WeightLambda_{name}"
         new_class = metacls.__new__(metacls, class_name, (WeightLambda,), attrs)
         # We add a getter for variations directly to the class
-        if has_variations and variations is None:
-            raise ValueError("WeightLambda is requested to have variations but the variations names list is empty!")
         if not variations is None and len(variations)>0:
             if not has_variations:
                 raise ValueError("Variations are defined but has_variations is False")
             # Setting class level variations
             new_class._variations = variations
         return new_class
-  
+
+    def get_weight_class_from_name(cls, weight_name:str):
+        '''Retrieve the WeightWrapper class defining the requested weight_name'''
+        if weight_name not in cls.weight_classes:
+            raise ValueError(f"Weight with name {weight_name} not found.")
+        return cls.weight_classes[weight_name]
 
     
 class WeightWrapper(ABC, metaclass=WeightWrapperMeta):
@@ -104,7 +107,7 @@ class WeightWrapper(ABC, metaclass=WeightWrapperMeta):
     '''
     name: ClassVar[str] = "base_weight"
     has_variations: ClassVar[bool] = False
-    _variations: List[str] = [] # default empty variation
+    _variations: List[str] = [] # default empty variation == "Up"/Down  
     
     def __init__(self, params=None, metadata=None):
         self._params = params
@@ -174,11 +177,11 @@ class WeightLambda(WeightWrapper):
             return WeightData(self.name, out)
         elif isinstance(out, ak.Array):
             return WeightData(self.name, out)
-        elif isinstance(out, list) and len(out) == 1:
+        elif isinstance(out, list) or isinstance(out, tuple) and len(out) == 1:
             return WeightData(self.name, out)
-        elif isinstance(out, list) and len(out) == 3:
+        elif isinstance(out, list) or isinstance(out, tuple) and len(out) == 3:
             return WeightData(self.name, *out)
-        elif isinstance(out, list) and len(out) == 4:
+        elif isinstance(out, list) or isinstance(out, tuple) and len(out) == 4:
             if not isinstance(out[1], list) or not isinstance(out[2], list) or not isinstance(out[3], list):
                 raise ValueError("The output of the lambda function should be a tuple with 3 arrays or 1 array, 3 lists of arrays (variations_name, up, down) ")
             return WeightDataMultiVariation(self.name, *out)

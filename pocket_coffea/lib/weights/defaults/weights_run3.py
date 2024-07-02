@@ -1,2 +1,4 @@
-from ../weights import WeightWrapper, WeightLambda, WeightData, WeightDataMultiVariation
+from ..weights import WeightWrapper, WeightLambda, WeightData, WeightDataMultiVariation
+
+
 

@@ -185,7 +185,7 @@ class WeightsManager:
             return [('XS', ak.full_like(events.genWeight, self._xsec))]
         elif weight_name == 'pileup':
             # Pileup reweighting with nominal, up and down variations
-            return [('pileup', *sf_pileup_reweight(self.params, events, self._year))]
+            return [('pileup', *sf_pileup_reweight(self.params, events, self._year))] 
         elif weight_name == 'sf_ele_reco':
             # Electron reco and id SF with nominal, up and down variations
             return [('sf_ele_reco', *sf_ele_reco(self.params, events, self._year))]
