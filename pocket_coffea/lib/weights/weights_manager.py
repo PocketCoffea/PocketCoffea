@@ -6,128 +6,32 @@ from collections.abc import Callable
 from collections import defaultdict
 
 from coffea.analysis_tools import Weights
-
-# Scale factors functions
-from .scale_factors import (
-    sf_ele_reco,
-    sf_ele_id,
-    sf_ele_trigger,
-    sf_mu,
-    sf_btag,
-    sf_btag_calib,
-    sf_ctag,
-    sf_ctag_calib,
-    sf_jet_puId,
-    sf_L1prefiring,
-    sf_pileup_reweight,
-)
-
-
-@dataclass
-class WeightCustom:
-    '''
-    User-defined weight
-
-    Custom Weights can be created by the user in the configuration
-    by using a WeightCustom object.
-
-    - name: name of the weight
-    - function:  function defining the weights of the events chunk.
-                 signuture (params, events, size, metadata:dict, shape_variation:str)
-    - variations: list of variations
-
-    The function must return the weights in the following format::
-
-        [(name:str, nominal, up, down),
-         (name:str, nominal, up, down)]
-    Variations modifiers will have the format `nameUp/nameDown`
-
-    Multiple weights can be produced by a single WeightCustom object.
-    '''
-
-    name: str
-    function: Callable  # The function to call
-
-    def serialize(self, src_code=False):
-        out = {
-            "name": self.name,
-            "function": {
-                "name": self.function.__name__,
-                "module": self.function.__module__,
-                "src_file": inspect.getsourcefile(self.function),
-                "f_hash": hash(self.function),
-            },
-        }
-        if src_code:
-            out["function"]["src_code"] = inspect.getsource(self.function)
-        return out
+from weights import WeightData, WeightDataMultiVariation
 
 
 class WeightsManager:
     '''
     The WeightManager class handles the
-    weights defined by the framework and custom weights created
-    by the user in the processor or by configuration.
-
+    weights.  Both centrally defined weights and user-defined weights
+    are handled by the WeightWrapper class. 
+    
     It handles inclusive or bycategory weights for each sample.
     Weights can be inclusive or by category.
     Moreover, different samples can have different weights, as defined in the weights_configuration.
-    The name of the weights available in the current workflow are defined in the class methods "available_weights"
+
+    Each WeightWrapper object defines the available variation for the weights depending on the sample,
+    datataking period and other parameters.
+
+    The configuration of samples/categories is handled by the configuration, but the availability of the
+    weight is defined in the WeightWrapper class.
 
     '''
-
-    @classmethod
-    def available_weights(cls):
-        '''
-        Predefine weights for CMS Run2 UL analysis.
-        '''
-        return set(
-            [
-                'genWeight',
-                'signOf_genWeight',
-                'lumi',
-                'XS',
-                'pileup',
-                'sf_ele_reco',
-                'sf_ele_id',
-                'sf_ele_trigger',
-                'sf_mu_id',
-                'sf_mu_iso',
-                'sf_mu_trigger',
-                'sf_btag',
-                'sf_btag_calib',
-                'sf_ctag',
-                'sf_ctag_calib',
-                'sf_jet_puId',
-                'sf_L1prefiring',
-            ]
-        )
-
-    @classmethod
-    def available_variations(cls):
-        '''
-        Predefine weights variations for CMS Run2 UL analysis.
-        '''
-        out = [
-            "nominal",
-            "pileup",
-            "sf_ele_reco",
-            "sf_ele_id",
-            "sf_ele_trigger",
-            "sf_mu_id",
-            "sf_mu_iso",
-            "sf_mu_trigger",
-            "sf_jet_puId",
-            "sf_L1prefiring",
-            "sf_btag",
-            "sf_ctag"
-        ]
-        return set(out)
 
     def __init__(
         self,
         params,
         weightsConf,
+        weightsWrappers,
         size,
         events,
         shape_variation,
@@ -138,9 +42,27 @@ class WeightsManager:
         self._sample = metadata["sample"]
         self._dataset = metadata["dataset"]
         self._year = metadata["year"]
-        self._xsec = metadata["xsec"]
         self._shape_variation = shape_variation
         self.weightsConf = weightsConf
+        #load the weights objects from the wrappers
+        self._weightsObj = {}
+        for w in weightsWrappers:
+            # this allows to have variations depending on the metadata
+            self._weightsObj[w.name] = w(params, metadata)
+        # Store the available variations for the weights
+        self._available_weights = list(self._weightsObj.keys())
+        self._available_modifiers_byweight = {}
+        for w in self._available_weights:
+            # the variations are customized by parameters and metadata
+            if self._weightsObj[w].has_variations:
+                vars = self._weightsObj[w].variations
+                if len(vars) == 0:
+                    # only Up and Down variations
+                    self._available_modifiers_byweight[w] = ["Up", "Down"]
+                else:
+                    self._available_modifiers_byweight[w] = [v + var for v in vars for var in ["Up", "Down"]]
+            
+        
         self.storeIndividual = storeIndividual
         self.size = size
         # looping on the weights configuration to create the
@@ -152,39 +74,39 @@ class WeightsManager:
         self._available_modifiers_inclusive = []
         self._available_modifiers_bycat = defaultdict(list)
 
+        
+    def compute(self):
+        '''
+        Load the weights for the current chunk following the user configuration.
+        This created different Weights objects for the inclusive and bycategory weights.
+        '''
         _weightsCache = {}
 
         def __add_weight(w, weight_obj):
             installed_modifiers = []
-            # If the Weight is a name look into the predefined weights
-            if isinstance(w, str):
-                if w not in WeightsManager.available_weights():
-                    # it means that the weight is defined in a processor.
-                    # The configurator has already checked that it is defined somewhere.
-                    # DO nothing
-                    return
-                if w not in _weightsCache:
-                    _weightsCache[w] = self._compute_weight(
-                        w, events, self._shape_variation
-                    )
-                for we in _weightsCache[w]:
-                    weight_obj.add(*we)
-                    if len(we) > 2:
-                        # the weights has variations
-                        installed_modifiers += [we[0] + "Up", we[0] + "Down"]
-            # If the Weight is a Custom weight just run the function
-            elif isinstance(w, WeightCustom):
-                if w.name not in _weightsCache:
-                    _weightsCache[w.name] = w.function(
-                        self.params, events, self.size, metadata, self._shape_variation
-                    )
-                for we in _weightsCache[w.name]:
-                    # print(we)
-                    weight_obj.add(*we)
-                    if len(we) > 2:
-                        # the weights has variations
-                        installed_modifiers += [we[0] + "Up", we[0] + "Down"]
+            if w not in self._available_weights:
+                # it means that the weight is defined in a processor.
+                # The configurator has already checked that it is defined somewhere.
+                # DO nothing
+                return
+            if w not in _weightsCache:
+                out = self._weightsObj[w].compute(
+                    events, self.size, self._shape_variation
+                )
+                # the output is a WeightData or WeightDataMultiVariation object
+                _weightsCache[w] = out
+                if isinstance(out, WeightData):
+                    weight_obj.add(out.name, out.nominal, out.up, out.down)
+                    if self._weightsObj[w].has_variations:
+                        installed_modifiers.append(out.name + "Up")
+                        installed_modifiers.append(out.name + "Down")
+                elif isinstance(out, WeightDataMultiVariation):
+                    weight_obj.add_multivariation(out.name, out.nominal, out.variations, out.up, out.down)
+                    installed_modifiers += [out.name + v + var for v in out.variations for var in ["Up", "Down"]]
+                else:
+                    raise ValueError("The WeightWrapper must return a WeightData or WeightDataMultiVariation object")
             return installed_modifiers
+            
 
         # Compute first the inclusive weights
         for w in self.weightsConf["inclusive"]:
@@ -216,6 +138,24 @@ class WeightsManager:
         # Clear the cache once the Weights objects have been added
         _weightsCache.clear()
 
+    def get_available_modifiers_byweight(self, weight:str):
+        '''
+        Return the available modifiers for the specific weight
+        '''
+        if weight in self._available_modifiers_byweight:
+            return self._available_modifiers_byweight[weight]
+        else:
+            raise ValueError(f"Weight {weight} not available in the WeightsManager")
+
+    def get_available_modifiers_bycategory(self, category=None):
+        '''
+        Return the available modifiers for the specific category
+        '''
+        if category == None:
+            return self._available_modifiers_inclusive
+        elif category in self._available_modifiers_bycat:
+            return self._available_modifiers_bycat[category] + self._available_modifiers_inclusive
+        
     def _compute_weight(self, weight_name, events, shape_variation):
         '''
         Predefined common weights.
@@ -245,7 +185,7 @@ class WeightsManager:
             return [('XS', ak.full_like(events.genWeight, self._xsec))]
         elif weight_name == 'pileup':
             # Pileup reweighting with nominal, up and down variations
-            return [('pileup', *sf_pileup_reweight(self.params, events, self._year))]
+            return [('pileup', *sf_pileup_reweight(self.params, events, self._year))] 
         elif weight_name == 'sf_ele_reco':
             # Electron reco and id SF with nominal, up and down variations
             return [('sf_ele_reco', *sf_ele_reco(self.params, events, self._year))]
