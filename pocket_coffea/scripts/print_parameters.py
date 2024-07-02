@@ -43,7 +43,7 @@ from pocket_coffea.parameters import defaults
 def print_parameters(cfg, dump, list_keys,  key, cli):
     '''Print the parameters from the PocketCoffea configuration'''
     if cfg is not None:
-        cfg = load_config(cfg, do_load=False, do_logging=False, save_config=False)
+        cfg = load_config(cfg, do_load=False, save_config=False)
         params_dict = cfg.parameters
     else:
         # Take the default parameters

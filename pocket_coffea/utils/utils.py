@@ -32,7 +32,7 @@ def path_import(absolute_path):
         return module
 
     
-def load_config(cfg, do_load=False, do_logging=True, save_config=True, outputdir=None):
+def load_config(cfg, do_load=True, save_config=True, outputdir=None):
     ''' Helper function to load a Configurator instance from a user defined python module'''
     config_module =  path_import(cfg)
     try:
@@ -40,8 +40,6 @@ def load_config(cfg, do_load=False, do_logging=True, save_config=True, outputdir
         # Load the configuration
         if do_load:
             config.load()
-        if do_logging:
-            logging.info(config)
         if save_config and outputdir is not None:
             config.save_config(outputdir)
     except AttributeError as e:
