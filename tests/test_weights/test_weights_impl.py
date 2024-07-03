@@ -118,3 +118,5 @@ def test_sf_btag(events, params):
     for i in range(len(defined_variations)):
         assert ak.all(w.up[i] == sf_btag(params, events["JetGood"], "2018", njets=events.nJetGood, variations=["central"]+defined_variations)[defined_variations[i]][1])
         assert ak.all(w.down[i] == sf_btag(params, events["JetGood"], "2018", njets=events.nJetGood, variations=["central"]+defined_variations)[defined_variations[i]][2])
+
+   

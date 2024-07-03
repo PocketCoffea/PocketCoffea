@@ -170,7 +170,6 @@ class WeightLambda(WeightWrapper):
         - 1 array (nominal), list of variations [str] , 2 lists of arrays (up, down) -> WeightDataMultiVariation is created
         '''
         out = type(self)._function(self._params, self._metadata, events, size, shape_variation)
-
         if isinstance(out, WeightData):
             out.name = self.name
             return out
@@ -182,11 +181,11 @@ class WeightLambda(WeightWrapper):
             return WeightData(self.name, out)
         elif isinstance(out, ak.Array):
             return WeightData(self.name, out)
-        elif isinstance(out, list) or isinstance(out, tuple) and len(out) == 1:
+        elif (isinstance(out, list) or isinstance(out, tuple)) and len(out) == 1:
             return WeightData(self.name, out)
-        elif isinstance(out, list) or isinstance(out, tuple) and len(out) == 3:
+        elif (isinstance(out, list) or isinstance(out, tuple)) and len(out) == 3:
             return WeightData(self.name, *out)
-        elif isinstance(out, list) or isinstance(out, tuple) and len(out) == 4:
+        elif (isinstance(out, list) or isinstance(out, tuple)) and len(out) == 4:
             if not isinstance(out[1], list) or not isinstance(out[2], list) or not isinstance(out[3], list):
                 raise ValueError("The output of the lambda function should be a tuple with 3 arrays or 1 array, 3 lists of arrays (variations_name, up, down) ")
             return WeightDataMultiVariation(self.name, *out)
