@@ -43,7 +43,7 @@ lumi = WeightLambda.wrap_func(
 XS = WeightLambda.wrap_func(
     name = "XS",
     function = lambda params, metadata, events, size, shape_variations:
-         np.ones(len(events)) * metadata["xsec"],
+        np.ones(len(events)) * float(metadata["xsec"]),
     has_variations=False
 )
 

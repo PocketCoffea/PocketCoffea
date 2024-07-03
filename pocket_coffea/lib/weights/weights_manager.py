@@ -32,7 +32,6 @@ class WeightsManager:
         params,
         weightsConf,
         weightsWrappers,
-        size,
         metadata,
         storeIndividual=False,
     ):
@@ -68,7 +67,8 @@ class WeightsManager:
         # Compute first the inclusive weights
         for w in self.weightsConf["inclusive"]:
             # Save the list of availbale modifiers
-            self._available_modifiers_inclusive += self._available_modifiers_byweight[w]
+            if w in self._available_modifiers_byweight:
+                self._available_modifiers_inclusive += self._available_modifiers_byweight[w]
 
         # Now weights for dedicated categories
         if self.weightsConf["is_split_bycat"]:
@@ -97,7 +97,7 @@ class WeightsManager:
 
          # Weights object for the current chunk and shape variation
         # Inclusive weights
-        self._weightsIncl = Weights(size, storeIndividual)
+        self._weightsIncl = Weights(size, self.storeIndividual)
         self._weightsByCat = {}
         self._installed_modifiers_inclusive = []
         self._installed_modifiers_bycat = defaultdict(list)

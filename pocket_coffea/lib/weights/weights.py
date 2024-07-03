@@ -36,6 +36,13 @@ class WeightWrapperMeta(ABCMeta):
         for base in bases:
             if base.__name__ in ["WeightWrapper", "WeightLambda"]:
                 # only save the subclasses of WeightWrapper
+                if clsdict.get("name") is None:
+                    # This happens when the class is reloaded by cloudpickle.
+                    # If the name attribute is missing we skip the validation of the name
+                    # and do not register the class.
+                    # It is fine because the classes are checked at definition time, before
+                    # cloudpickle is used.
+                    return cls
                 weight_name = clsdict["name"]
                 if weight_name not in metacls.weight_classes:
                     metacls.weight_classes[weight_name] = cls

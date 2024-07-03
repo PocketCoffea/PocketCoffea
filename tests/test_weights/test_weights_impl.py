@@ -39,7 +39,7 @@ def test_genWeight(events):
     assert isinstance(w, WeightData)
     assert ak.all(w.nominal == events.genWeight)
 
-def test_lumi(events):
+def test_XS(events):
     from pocket_coffea.lib.weights.common import common_weights
     XS = WeightWrapper.get_weight_class_from_name("XS")(metadata={"xsec": 10.})
     w = XS.compute(events, 1000, "nominal")

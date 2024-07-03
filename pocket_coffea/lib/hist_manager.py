@@ -152,7 +152,7 @@ class HistManager:
                     vars = self.weights_manager.get_available_modifiers_byweight(weight)
                     self.available_weights_varations += vars
                     self.available_weights_variations_bycat[cat] += vars
-
+            
             # Shape variations
             for cat, vars in self.variations_config["shape"].items():
                 for var in vars:
@@ -217,7 +217,7 @@ class HistManager:
             # Variation axes
             if hcfg.variations:
                 # Get all the variation
-                allvariat = self.available_weights_variations + self.available_shape_variations
+                allvariat = self.available_weights_variations.union(self.available_shape_variations)
                 
                 if hcfg.only_variations != None:
                     # filtering the variation list with the available ones
