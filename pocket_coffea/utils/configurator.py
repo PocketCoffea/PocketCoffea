@@ -170,9 +170,6 @@ class Configurator:
         # Columns configuration
         self.load_columns_config(self.columns_cfg)
 
-        # Load the workflow
-        self.load_workflow()
-
          # Some self consistency checks
         self.perform_checks()
 
@@ -180,6 +177,9 @@ class Configurator:
         if not os.path.exists(self.parameters.jets_calibration.factory_file):
             build_jets_calibrator.build(self.parameters.jets_calibration,
                                         filter_years=self.years)
+
+        # Load the workflow as the last thing
+        self.load_workflow()
 
         # Mark the configurator as loaded
         self.loaded = True
