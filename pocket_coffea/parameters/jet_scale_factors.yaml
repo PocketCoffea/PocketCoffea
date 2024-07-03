@@ -9,6 +9,7 @@ jet_scale_factors:
     jet_collection:
       btag: JetGood
       ctag: JetGood
+      puId: JetGood
       
     btagSF:
         # DeepJet AK4 tagger shape SF

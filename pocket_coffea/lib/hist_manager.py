@@ -273,6 +273,11 @@ class HistManager:
         return self.histograms[subsample][name]
 
     def __prefetch_weights(self, category, shape_variation):
+        '''
+        Prefetch the weights for the category and the shape variation.
+        - When processing the nominal shape variation we prefetch all the weights variations
+        - When processing a shape variation we prefetch only the nominal weights
+        '''
         weights = {}
         if shape_variation == "nominal":
             for variation in self.available_weights_variations_bycat[category]:

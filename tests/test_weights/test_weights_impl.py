@@ -21,26 +21,26 @@ from pocket_coffea.lib.scale_factors import (
 )
 from pocket_coffea.lib.objects import lepton_selection, jet_selection
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def events():
     #filename = "root://xrootd-cms.infn.it///store/mc/RunIISummer20UL18NanoAODv9/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/106X_upgrade2018_realistic_v16_L1v1-v2/2500000/6BF93845-49D5-2547-B860-4F7601074715.root"
     filename = "test_file.root"
     events = NanoEventsFactory.from_root(filename, schemaclass=NanoAODSchema, entry_stop=1000).events()
     return events
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def params():
     return get_default_parameters()
 
 def test_genWeight(events):
-    from pocket_coffea.lib.weights.defaults.common import common_weights
+    from pocket_coffea.lib.weights.common import common_weights
     genWeight = WeightWrapper.get_weight_class_from_name("genWeight")()
     w = genWeight.compute(events, 1000, "nominal")
     assert isinstance(w, WeightData)
     assert ak.all(w.nominal == events.genWeight)
 
 def test_lumi(events):
-    from pocket_coffea.lib.weights.defaults.common import common_weights
+    from pocket_coffea.lib.weights.common import common_weights
     XS = WeightWrapper.get_weight_class_from_name("XS")(metadata={"xsec": 10.})
     w = XS.compute(events, 1000, "nominal")
     assert isinstance(w, WeightData)
@@ -48,7 +48,7 @@ def test_lumi(events):
 
 
 def test_pileup(events, params):
-    from pocket_coffea.lib.weights.defaults.common import common_weights
+    from pocket_coffea.lib.weights.common import common_weights
     pileup = WeightWrapper.get_weight_class_from_name("pileup")(params, metadata={"year": "2018"})
     pileup_here = sf_pileup_reweight(params, events, "2018")
     w = pileup.compute(events, 1000, "nominal")
@@ -57,7 +57,7 @@ def test_pileup(events, params):
 
 
 def test_sf_ele_id(events, params):
-    from pocket_coffea.lib.weights.defaults.common import common_weights
+    from pocket_coffea.lib.weights.common import common_weights
     events["Electron"] = ak.with_field(
             events.Electron,
             events.Electron.eta+events.Electron.deltaEtaSC, "etaSC"
@@ -76,7 +76,7 @@ def test_sf_ele_id(events, params):
 
 
 def test_sf_ele_trigger(events, params):
-    from pocket_coffea.lib.weights.defaults.common import common_weights
+    from pocket_coffea.lib.weights.common import common_weights
     events["Electron"] = ak.with_field(
             events.Electron,
             events.Electron.eta+events.Electron.deltaEtaSC, "etaSC"
@@ -94,7 +94,7 @@ def test_sf_ele_trigger(events, params):
 
 
 def test_sf_btag(events, params):
-    from pocket_coffea.lib.weights.defaults.common import common_weights
+    from pocket_coffea.lib.weights.common import common_weights
     params["object_preselection"] = {
         "Jet":
         {

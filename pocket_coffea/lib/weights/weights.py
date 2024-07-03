@@ -98,6 +98,11 @@ class WeightWrapper(ABC, metaclass=WeightWrapperMeta):
     The HistManager will ask the WeightsManager to have the available weights
     variations for the current chunk and will store them in the output file.
 
+    The variations should be the ones available when running over the nominal shape_variation.
+    The HistManager will ask the WeightsManager only the nominal weights when shape_variation!="nominal".
+    The WeightsManager will load the WeightsWrappers, then the histManager
+    will use the available_weight_variations to create the histogram axis. 
+
     The `name` class attribute is used in the configuration to define the weight.
     The metaclass registration mechanism checks if the user defines more than once
     the same weight class.
