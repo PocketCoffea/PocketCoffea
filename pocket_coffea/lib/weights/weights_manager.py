@@ -6,7 +6,7 @@ from collections.abc import Callable
 from collections import defaultdict
 
 from coffea.analysis_tools import Weights
-from weights import WeightData, WeightDataMultiVariation
+from .weights import WeightData, WeightDataMultiVariation
 
 
 class WeightsManager:
@@ -173,47 +173,6 @@ class WeightsManager:
         elif category in self._available_modifiers_bycat:
             return self._available_modifiers_bycat[category] + self._available_modifiers_inclusive
 
-        
-    def _compute_weight(self, weight_name, events, shape_variation):
-        '''
-        Predefined common weights.
-        The function return a list of tuples containing a
-        weighs and its variations in each tuple::
-
-                [("name", nominal, up, donw),
-                 ("name", nominal, up, down)]
-
-        Each variation is then added to the Weights object by the caller
-        in the constructor.
-        '''
-
-
-        elif weight_name == 'sf_ctag_calib':
-            jetsHt = ak.sum(abs(events.JetGood.pt), axis=1)
-            return [
-                (
-                    "sf_ctag_calib",
-                    sf_ctag_calib(
-                        self.params, self._dataset, self._year, events.nJetGood, jetsHt
-                    ),
-                )
-            ]
-
-
-        elif weight_name == 'sf_jet_puId':
-            return [
-                (
-                    'sf_jet_puId',
-                    *sf_jet_puId(
-                        self.params,
-                        events.JetGood,
-                        self._year,
-                        njets=events.nJetGood,
-                    ),
-                )
-            ]
-        elif weight_name == 'sf_L1prefiring':
-            return [('sf_L1prefiring', *sf_L1prefiring(events))]
 
     def add_weight(self, name, nominal, up=None, down=None, category=None):
         '''

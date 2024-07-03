@@ -14,7 +14,7 @@ from coffea import processor
 from coffea.lumi_tools import LumiMask
 from coffea.analysis_tools import PackedSelection
 
-from ..lib.weights_manager import WeightsManager
+from ..lib.weights.weights_manager import WeightsManager
 from ..lib.columns_manager import ColumnsManager
 from ..lib.hist_manager import HistManager
 from ..lib.jets import jet_correction, met_correction, load_jet_factory
@@ -596,7 +596,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Here we define the naming scheme for the jet variations
         # For each jet type, we define the variations names as `{variation}_{jet_type}`
         available_jet_variations = [f"{v}_{jt}" for v in available_jet_variations for jt in available_jet_types]
-        vars.update(available_jet_variations)
+        vars += available_jet_variations
         return vars
 
     def get_shape_variations(self):
