@@ -58,7 +58,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         # Load the script
         config = load_config(cfg, save_config=True, outputdir=outputdir)
         logging.info(config)
-
+    
     elif cfg[-4:] == ".pkl":
         # WARNING: This has to be tested!!
         config = cloudpickle.load(open(cfg,"rb"))

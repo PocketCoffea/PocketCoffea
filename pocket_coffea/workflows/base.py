@@ -824,7 +824,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     rescale = True
                     if 'signOf_genWeight' in wei and 'genWeight' not in wei:
                         sumgenw_dict = output["sum_signOf_genweights"]
-                    elif "genWeight" in wei and not "signOf_genWeight":
+                    elif "genWeight" in wei and "signOf_genWeight" not in wei:
                         sumgenw_dict = output["sum_genweights"]
                     elif "genWeight" in wei and "signOf_genWeight" in wei:
                         print("!!! Both genWeight and signOf_genWeight are present in the weights config. This is not allowed.")
@@ -848,7 +848,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 rescale = True
                 if 'signOf_genWeight' in wei and 'genWeight' not in wei:
                     sumgenw_dict = output["sum_signOf_genweights"]
-                elif "genWeight" in wei and not "signOf_genWeight":
+                elif "genWeight" in wei and "signOf_genWeight" not in wei:
                     sumgenw_dict = output["sum_genweights"]
                 elif "genWeight" in wei and "signOf_genWeight" in wei:
                     print("!!! Both genWeight and signOf_genWeight are present in the weights config. This is not allowed.")
@@ -870,7 +870,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 rescale = True
                 if 'signOf_genWeight' in wei and 'genWeight' not in wei:
                     sumgenw_dict = output["sum_signOf_genweights"]
-                elif "genWeight" in wei and not "signOf_genWeight":
+                elif "genWeight" in wei and "signOf_genWeight" not in wei:
                     sumgenw_dict = output["sum_genweights"]
                 elif "genWeight" in wei and "signOf_genWeight" in wei:
                     print("!!! Both genWeight and signOf_genWeight are present in the weights config. This is not allowed.")
