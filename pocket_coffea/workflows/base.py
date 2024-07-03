@@ -319,7 +319,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         The Histmanager will ask the WeightsManager to have the available weights
         variations to create histograms axis.
         '''
-        if self.isMC:
+        if self._isMC:
             # Creating the WeightsManager with all the configured weights
             self.weights_manager = WeightsManager(
                 self.params,
