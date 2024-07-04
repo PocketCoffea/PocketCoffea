@@ -13,25 +13,10 @@ from coffea import processor
 from coffea.processor import Runner
 
 from pocket_coffea.utils.configurator import Configurator
-from pocket_coffea.utils import utils
+from pocket_coffea.utils.utils import load_config
 from pocket_coffea.utils.logging import setup_logging
 from pocket_coffea.parameters import defaults as parameters_utils
 from pocket_coffea.executors import executors_base
-
-def load_config(cfg, outputdir):
-    ''' Helper function to load a Configurator instance from a user defined python module'''
-    config_module =  utils.path_import(cfg)
-    try:
-        config = config_module.cfg
-        logging.info(config)
-        config.save_config(outputdir)
-    except AttributeError as e:
-        print("Error: ", e)
-        raise("The provided configuration module does not contain a `cfg` attribute of type Configurator. Please check your configuration!")
-
-    if not isinstance(config, Configurator):
-        raise("The configuration module attribute `cfg` is not of type Configurator. Please check yuor configuration!")
-    return config
 
 
 @click.command()
@@ -71,8 +56,8 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     print("Loading the configuration file...")
     if cfg[-3:] == ".py":
         # Load the script
-        config = load_config(cfg, outputdir)
-
+        config = load_config(cfg, save_config=True, outputdir=outputdir)
+        logging.info(config)
     elif cfg[-4:] == ".pkl":
         # WARNING: This has to be tested!!
         config = cloudpickle.load(open(cfg,"rb"))
