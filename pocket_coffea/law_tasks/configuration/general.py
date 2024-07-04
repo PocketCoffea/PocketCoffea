@@ -118,3 +118,11 @@ class plottingconfig(luigi.Config):
     plot_format = luigi.Parameter(
         description="Output format of the plots", default="pdf"
     )
+    variables = law.CSVParameter(
+        description="List of variables to plot", default=()
+    )
+
+class plottingsystematicsconfig(luigi.Config):
+    ratio = luigi.BoolParameter(
+        default=True, description="Plot the ratio of the systematic shifts"
+    )

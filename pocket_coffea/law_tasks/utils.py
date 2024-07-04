@@ -3,6 +3,7 @@
 import importlib
 import json
 import os
+import re
 import typing
 import warnings
 from collections import Counter
@@ -22,6 +23,28 @@ from pocket_coffea.utils.configurator import Configurator
 
 # Type aliases
 FileName = Union[str, os.PathLike]
+
+
+def filter_items_by_regex(
+    regex: str, items: typing.Iterable[str], match: bool = True
+) -> list:
+    """
+    Apply a regular expression on an iterable.
+
+    :param regex: The regular expression to match.
+    :type regex: str
+    :param items: The iterable of items to match the regular expression on.
+    :type items: typing.Iterable[str]
+    :param match: Flag indicating whether to match the regular expression (True)
+        or not (False). Default is True.
+    :type match: bool, optional
+    :return: The list of items that match (or do not match) the regular expression.
+    :rtype: list[str]
+    """
+    if match:
+        return [item for item in items if re.match(regex, item)]
+    else:
+        return [item for item in items if not re.match(regex, item)]
 
 
 def extract_executor_and_site(executor: str) -> tuple:
