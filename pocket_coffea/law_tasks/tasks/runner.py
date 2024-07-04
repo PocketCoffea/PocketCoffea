@@ -44,7 +44,6 @@ class Runner(law.Task):
 
     # init class attributes
     config = None
-    processor_instance = None
 
     def requires(self):
         return {

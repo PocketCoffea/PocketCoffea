@@ -187,7 +187,9 @@ def modify_dataset_output_path(
     return dataset_definition
 
 
-def load_analysis_config(cfg: FileName, output_dir: FileName, save: bool=True) -> tuple:
+def load_analysis_config(
+    cfg: FileName, output_dir: FileName, save: bool = True
+) -> tuple:
     """
     Load the analysis config.
 
@@ -318,7 +320,7 @@ def get_executor(executor: str, run_options: dict, output_dir: FileName):
         )
 
     executor_factory = executor_module.get_executor_factory(
-        executor, run_options=run_options, output_dir=output_dir
+        executor, run_options=run_options, outputdir=output_dir
     )
 
     if not isinstance(executor_factory, executors_base.ExecutorFactoryABC):
