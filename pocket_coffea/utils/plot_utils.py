@@ -5,6 +5,8 @@ from collections import defaultdict
 from functools import partial
 
 import math
+import decimal
+from decimal import Decimal
 import numpy as np
 import awkward as ak
 import hist
@@ -1055,6 +1057,30 @@ class SystUnc:
         return np.where(self.nominal != 0, self.down / self.nominal, 1)
 
     @property
+    def yaxis_ratio_limit(self) -> tuple:
+        """
+        Calculate the limits for the y-axis in the ratio plot.
+
+        :return: A tuple containing the lower and upper limits for the y-axis.
+        :rtype: tuple
+        """
+        # get the maximum deviation from nominal
+        max_deviation = max(
+            abs(self.ratio_down.min() - 1.0), abs(self.ratio_up.max() - 1.0)
+        )
+        # add white space, so lines do not line up with axis limits
+        white_space = max_deviation * 0.25
+        max_deviation += white_space
+        # get first digit different from 0, to get the order of magnitude
+        # math.floor is used to get the integer part of the logarithm, e.g. -1.3 --> -2
+        n_digits = math.floor(math.log10(white_space))
+        # round to desired decimal places
+        precision = Decimal(10) ** n_digits
+        # maximum deviation + white space, symmetric around 1
+        limits = Decimal(max_deviation).quantize(precision, decimal.ROUND_UP)
+        return (1 - float(limits), 1 + float(limits))
+
+    @property
     def nsyst(self):
         return len(self.syst_list)
 
@@ -1128,7 +1154,6 @@ class SystUnc:
             self.err2_up += err2_up_combined
             self.err2_down += err2_down_combined
 
-    
     def define_figure(self, ratio=True, toplabel=None):
         """Defines the figure for the systematic shifts plot.
 
@@ -1178,7 +1203,7 @@ class SystUnc:
                 (0.01, 10 ** (math.floor(math.log(self.nominal.max(), 10)) + 3))
             )
         else:
-            self.ax.set_ylim((0, 1.5*self.nominal.max()))
+            self.ax.set_ylim((0, 1.5 * self.nominal.max()))
 
         if ratio:
             self.rax.set_xlabel(
@@ -1188,7 +1213,7 @@ class SystUnc:
             self.rax.yaxis.set_label_coords(-0.075, 1)
             self.rax.tick_params(axis="x", labelsize=self.style.fontsize)
             self.rax.tick_params(axis="y", labelsize=self.style.fontsize)
-            self.rax.set_ylim((0.5, 1.5))
+            self.rax.set_ylim(self.yaxis_ratio_limit)
 
         if self.style.has_labels:
             handles, labels = self.ax.get_legend_handles_labels()
@@ -1197,14 +1222,16 @@ class SystUnc:
             for i, label in enumerate(labels):
                 # If additional scale is provided, plot it on the legend:
                 scale_str = ""
-                if self.style.has_rescale_samples and label in self.style.rescale_samples:
+                if (
+                    self.style.has_rescale_samples
+                    and label in self.style.rescale_samples
+                ):
                     scale_str = f" x{self.style.rescale_samples[label]:.2f}"
                 if label in self.style.labels_mc:
-                    
-                    labels_new.append(f"{self.style.labels_mc[label]}"+scale_str)
+                    labels_new.append(f"{self.style.labels_mc[label]}" + scale_str)
                 else:
-                    labels_new.append(label+scale_str)
-                    
+                    labels_new.append(label + scale_str)
+
                 handles_new.append(handles[i])
             labels = labels_new
             handles = handles_new
@@ -1212,7 +1239,7 @@ class SystUnc:
                 handles,
                 labels,
                 fontsize=self.style.fontsize,
-                ncol=2,
+                ncol=1,
                 loc="upper right",
             )
 
@@ -1222,7 +1249,7 @@ class SystUnc:
         # setup figure and corresponding axes
         self.log = log
         self.define_figure(ratio=ratio, toplabel=toplabel)
-        
+
         # plot histograms
         # https://stackoverflow.com/a/65935165
         self.ax.hist(
@@ -1253,20 +1280,8 @@ class SystUnc:
         # plot ratio
         if ratio:
             self.rax.axhline(1, color="gray", linestyle="--")
-            self.rax.hist(
-                self.bins[:-1],
-                self.bins,
-                weights=self.ratio_up,
-                histtype="step",
-                **self.style.opts_syst["up"],
-            )
-            self.rax.hist(
-                self.bins[:-1],
-                self.bins,
-                weights=self.ratio_down,
-                histtype="step",
-                **self.style.opts_syst["down"],
-            )
+            self.rax.stairs(self.ratio_up, self.bins, **self.style.opts_syst["up"])
+            self.rax.stairs(self.ratio_down, self.bins, **self.style.opts_syst["down"])
 
         # format figure
         self.format_figure(ratio=ratio)
