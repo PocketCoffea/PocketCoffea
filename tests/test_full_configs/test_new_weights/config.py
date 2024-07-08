@@ -56,7 +56,8 @@ cfg = Configurator(
         "common": {
             "inclusive": ["genWeight","lumi","XS","pileup",
                           "sf_ele_id","sf_ele_reco",
-                          "sf_mu_id","sf_mu_iso","sf_mu_trigger"
+                          "sf_mu_id","sf_mu_iso","sf_mu_trigger",
+                          "sf_btag"
                           ],
             "bycategory": {
                           },
@@ -76,7 +77,7 @@ cfg = Configurator(
                 "inclusive": [ "pileup",
                                "sf_ele_id", "sf_ele_reco",
                                "sf_mu_id", "sf_mu_iso",
-                               "sf_mu_trigger",
+                               "sf_mu_trigger", "sf_btag"
                                ],
                 "bycategory" : {
                 }

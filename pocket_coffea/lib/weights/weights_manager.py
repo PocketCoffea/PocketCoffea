@@ -54,9 +54,9 @@ class WeightsManager:
                 vars = self._weightsObj[w].variations
                 if len(vars) == 0:
                     # only Up and Down variations
-                    self._available_modifiers_byweight[w] = ["Up", "Down"]
+                    self._available_modifiers_byweight[w] = [w+"Up", w+"Down"]
                 else:
-                    self._available_modifiers_byweight[w] = [v + var for v in vars for var in ["Up", "Down"]]
+                    self._available_modifiers_byweight[w] = [f"{w}_{v}{var}" for v in vars for var in ["Up", "Down"]]
             
         
         self.storeIndividual = storeIndividual
@@ -122,7 +122,7 @@ class WeightsManager:
                         installed_modifiers.append(out.name + "Down")
                 elif isinstance(out, WeightDataMultiVariation):
                     weight_obj.add_multivariation(out.name, out.nominal, out.variations, out.up, out.down)
-                    installed_modifiers += [out.name + v + var for v in out.variations for var in ["Up", "Down"]]
+                    installed_modifiers += [f"{out.name}_{v}{var}" for v in out.variations for var in ["Up", "Down"]]
                 else:
                     raise ValueError("The WeightWrapper must return a WeightData or WeightDataMultiVariation object")
             return installed_modifiers

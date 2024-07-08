@@ -45,6 +45,5 @@ def test_new_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_
     assert output is not None
     
     # Check the output
-    output = load(outputdir / "output_all.coffea")
 
     

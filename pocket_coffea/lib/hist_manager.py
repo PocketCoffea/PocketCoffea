@@ -135,7 +135,7 @@ class HistManager:
         self.variations_config = variations_config
         self.categories_config = categories_config
         self.available_categories = set(self.categories_config.keys())
-        self.available_weights_variations = ["nominal"]
+        self.available_weights_variations = []
         self.available_shape_variations = []
 
         # We take the variations config and we build the available variations
@@ -150,7 +150,7 @@ class HistManager:
                 for weight in weights:
                     # Ask the WeightsManager the available variations
                     vars = self.weights_manager.get_available_modifiers_byweight(weight)
-                    self.available_weights_varations += vars
+                    self.available_weights_variations += vars
                     self.available_weights_variations_bycat[cat] += vars
             
             # Shape variations

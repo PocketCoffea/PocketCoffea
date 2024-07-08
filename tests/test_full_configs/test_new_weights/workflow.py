@@ -36,8 +36,11 @@ class BasicProcessor(BaseProcessorABC):
             self.events, "Jet", self.params, "LeptonGood"
         )
 
-        
-
+        self.events["BJetGood"] = btagging(
+            self.events["JetGood"],
+            self.params.btagging.working_point[self._year],
+            wp=self.params.object_preselection.Jet["btag"]["wp"]
+        )
 
     def count_objects(self, variation):
         '''The function counts the number of objects in the events.
@@ -49,7 +52,7 @@ class BasicProcessor(BaseProcessorABC):
         self.events["nElectronGood"] = ak.num(self.events.ElectronGood)
         self.events["nMuonGood"] = ak.num(self.events.MuonGood)
         self.events["nJetGood"] = ak.num(self.events.JetGood)
-        
+        self.events["nBJetGood"] = ak.num(self.events.BJetGood)
 
     def define_common_variables_before_presel(self, variation):
         '''The function defines variables before applying the preselection cuts.
