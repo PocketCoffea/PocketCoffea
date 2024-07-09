@@ -175,8 +175,7 @@ class Configurator:
 
         # Alway run the jet calibration builder
         if not os.path.exists(self.parameters.jets_calibration.factory_file):
-            build_jets_calibrator.build(self.parameters.jets_calibration,
-                                        filter_years=self.years)
+            build_jets_calibrator.build(self.parameters.jets_calibration)
 
         # Load the workflow as the last thing
         self.load_workflow()
