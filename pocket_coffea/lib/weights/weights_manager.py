@@ -142,7 +142,7 @@ class WeightsManager:
             for cat, ws in self.weightsConf["bycategory"].items():
                 if len(ws) == 0:
                     continue
-                self._weightsByCat[cat] = Weights(size, storeIndividual)
+                self._weightsByCat[cat] = Weights(size, self.storeIndividual)
                 for w in ws:
                     modifiers = __add_weight(w, self._weightsByCat[cat])
                     self._installed_modifiers_bycat[cat] += modifiers
