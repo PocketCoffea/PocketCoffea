@@ -115,16 +115,22 @@ class WeightsManager:
                 )
                 # the output is a WeightData or WeightDataMultiVariation object
                 _weightsCache[w] = out
-                if isinstance(out, WeightData):
-                    weight_obj.add(out.name, out.nominal, out.up, out.down)
-                    if self._weightsObj[w].has_variations:
-                        installed_modifiers.append(out.name + "Up")
-                        installed_modifiers.append(out.name + "Down")
-                elif isinstance(out, WeightDataMultiVariation):
-                    weight_obj.add_multivariation(out.name, out.nominal, out.variations, out.up, out.down)
-                    installed_modifiers += [f"{out.name}_{v}{var}" for v in out.variations for var in ["Up", "Down"]]
-                else:
-                    raise ValueError("The WeightWrapper must return a WeightData or WeightDataMultiVariation object")
+            else:
+                out = _weightsCache[w]
+                
+            if isinstance(out, WeightData):
+                weight_obj.add(out.name, out.nominal, out.up, out.down)
+                if self._weightsObj[w].has_variations:
+                    installed_modifiers.append(out.name + "Up")
+                    installed_modifiers.append(out.name + "Down")
+            elif isinstance(out, WeightDataMultiVariation):
+                weight_obj.add_multivariation(out.name, out.nominal,
+                                              out.variations,
+                                              out.up, out.down)
+                installed_modifiers += [f"{out.name}_{v}{var}" for v in out.variations for var in ["Up", "Down"]]
+            else:
+                raise ValueError("The WeightWrapper must return a WeightData or WeightDataMultiVariation object")
+
             return installed_modifiers
             
 
@@ -146,6 +152,7 @@ class WeightsManager:
                 for w in ws:
                     modifiers = __add_weight(w, self._weightsByCat[cat])
                     self._installed_modifiers_bycat[cat] += modifiers
+                    print(self._installed_modifiers_bycat)
 
         # make the variations unique
         self._installed_modifiers_inclusive = set(self._installed_modifiers_inclusive)

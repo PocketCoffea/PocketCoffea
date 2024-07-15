@@ -50,22 +50,28 @@ cfg = Configurator(
     preselections = [passthrough],
     categories = {
         "baseline": [passthrough],
+        "1btag": [get_nObj_min(1, coll="BJetGood")],
+        "2btag": [get_nObj_min(2, coll="BJetGood")],
     },
 
     weights = {
         "common": {
             "inclusive": ["genWeight","lumi","XS","pileup",
                           "sf_ele_id","sf_ele_reco",
-                          "sf_mu_id","sf_mu_iso","sf_mu_trigger",
-                          "sf_btag"
+                          "sf_mu_id","sf_mu_iso",
                           ],
             "bycategory": {
+                "1btag": ["sf_mu_trigger"],
+                "2btag": ["sf_mu_trigger"],
                           },
        },
-        "bycategory" : {
-                       },
-        
         "bysample": {
+            "TTToSemiLeptonic": {
+                "bycategory": {
+                    "1btag": ["sf_btag"],
+                    "2btag": ["sf_btag"],
+                }
+            }
         }
     },
     # Passing a list of WeightWrapper objects
@@ -77,15 +83,19 @@ cfg = Configurator(
                 "inclusive": [ "pileup",
                                "sf_ele_id", "sf_ele_reco",
                                "sf_mu_id", "sf_mu_iso",
-                               "sf_mu_trigger", "sf_btag"
                                ],
                 "bycategory" : {
+                    "1btag": ["sf_btag"],
+                    "2btag": ["sf_btag"],
                 }
             },
-        "bysample": {
-                    },
-        "bycategory": {
+            "bysample": {
+                "TTToSemiLeptonic": {
+                    "bycategory": {
+                        "1btag": ["sf_mu_trigger"]
                     }
+            }
+            }
         },
     },
 
