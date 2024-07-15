@@ -32,8 +32,15 @@ class BasicProcessor(BaseProcessorABC):
             self.events, "Muon", self.params
         )
 
+        leptons = ak.with_name(
+            ak.concatenate((self.events.MuonGood, self.events.ElectronGood), axis=1),
+            name='PtEtaPhiMCandidate',
+        )
+        self.events["LeptonGood"] = leptons[ak.argsort(leptons.pt, ascending=False)]
+
         self.events["JetGood"], self.jetGoodMask = jet_selection(
-            self.events, "Jet", self.params, "LeptonGood"
+            self.events, "Jet", self.params,
+            self._year, leptons_collection="LeptonGood"
         )
 
         self.events["BJetGood"] = btagging(

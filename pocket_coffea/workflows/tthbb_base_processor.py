@@ -41,7 +41,8 @@ class ttHbbBaseProcessor(BaseProcessorABC):
         self.events["LeptonGood"] = leptons[ak.argsort(leptons.pt, ascending=False)]
 
         self.events["JetGood"], self.jetGoodMask = jet_selection(
-            self.events, "Jet", self.params, self._year, "LeptonGood"
+            self.events, "Jet", self.params,
+            self._year, leptons_collection="LeptonGood"
         )
         self.events["BJetGood"] = btagging(
             self.events["JetGood"], self.params.btagging.working_point[self._year], wp=self.params.object_preselection.Jet["btag"]["wp"]

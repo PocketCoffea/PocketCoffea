@@ -152,7 +152,6 @@ class WeightsManager:
                 for w in ws:
                     modifiers = __add_weight(w, self._weightsByCat[cat])
                     self._installed_modifiers_bycat[cat] += modifiers
-                    print(self._installed_modifiers_bycat)
 
         # make the variations unique
         self._installed_modifiers_inclusive = set(self._installed_modifiers_inclusive)

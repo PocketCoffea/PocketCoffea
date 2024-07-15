@@ -6,7 +6,8 @@ from pathlib import Path
 from pocket_coffea.executors import executors_base as executors_lib
 from coffea import processor
 from coffea.processor import Runner
-from coffea.util import load
+from coffea.util import load, save
+import numpy as np
 
 @pytest.fixture
 def base_path() -> Path:
@@ -41,9 +42,30 @@ def test_new_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_
     )
     output = run(config.filesets, treename="Events",
                  processor_instance=config.processor_instance)
-
+    save(output, outputdir / "output_all.coffea")
+    
     assert output is not None
     
     # Check the output
+    old_output = load("legacy_output/output_all.coffea")
 
+    for cat, data in old_output["sumw"].items():
+        assert cat in output["sumw"]
+        for dataset, _data in data.items():
+            assert dataset in output["sumw"][cat]
+            for sample, sumw in _data.items():
+                print(cat, dataset, sample, sumw, output["sumw"][cat][dataset][sample])
+                assert np.isclose(sumw, output["sumw"][cat][dataset][sample], rtol=1e-5)
+
+    # Testing cutflow
+    for cat, data in old_output["cutflow"].items():
+        assert cat in output["cutflow"]
+        for dataset, _data in data.items():
+            assert dataset in output["cutflow"][cat]
+            if cat in ["initial", "skim", "presel"]:
+                assert np.allclose(_data, output["cutflow"][cat][dataset], rtol=1e-5)
+                continue
+            for sample, cutflow in _data.items():
+                assert np.allclose(cutflow, output["cutflow"][cat][dataset][sample], rtol=1e-5)
+                    
     

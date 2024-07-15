@@ -89,7 +89,9 @@ def print_parameters(cfg, dump, list_keys,  key, cli):
         
     if dump:
         with open(dump, "w") as f:
-            yaml.dump(params_dict, f)
+            yaml.dump(OmegaConf.to_container(params_dict, resolve=True),
+                      f,
+                      indent=2,)
             print(f"[green]Parameters saved to {dump}[/]")
 
 
