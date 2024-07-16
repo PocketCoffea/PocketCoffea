@@ -7,12 +7,13 @@ import re
 import typing
 import warnings
 from collections import Counter
+from types import ModuleType
 from typing import Union
 
 import coffea
 import law
 from coffea.nanoevents.schemas.base import BaseSchema
-from coffea.processor import NanoAODSchema
+from coffea.processor import NanoAODSchema, accumulate
 from coffea.processor import Runner as CoffeaRunner
 from coffea.processor.executor import ExecutorBase
 from omegaconf import OmegaConf
@@ -187,24 +188,7 @@ def modify_dataset_output_path(
     return dataset_definition
 
 
-def load_analysis_config(
-    cfg: FileName, output_dir: FileName, save: bool = True
-) -> tuple:
-    """
-    Load the analysis config.
-
-    :param cfg: Path to the config file.
-    :type cfg: FileName
-    :param output_dir: The output directory to save the configuration and parameters.
-    :type output_dir: FileName
-    :param save: Flag indicating whether to save the configuration and parameters.
-        Default is True.
-    :type save: bool, optional
-    :raises AttributeError: If the config file does not have the attribute `cfg`.
-    :raises TypeError: If `cfg` is not of type Configurator (pocket_coffea).
-    :return: A tuple containing the Configurator and run_options (if defined in config).
-    :rtype: tuple
-    """
+def import_analysis_config(cfg: FileName) -> tuple[Configurator, ModuleType]:
     config_module = pocket_utils.path_import(cfg)
 
     try:
@@ -222,6 +206,28 @@ def load_analysis_config(
             "Please check your configuration."
         )
 
+    return config, config_module
+
+
+def load_analysis_config(
+    cfg: FileName, output_dir: FileName, save: bool = True
+) -> tuple[Configurator, dict]:
+    """
+    Load the analysis config.
+
+    :param cfg: Path to the config file.
+    :type cfg: FileName
+    :param output_dir: The output directory to save the configuration and parameters.
+    :type output_dir: FileName
+    :param save: Flag indicating whether to save the configuration and parameters.
+        Default is True.
+    :type save: bool, optional
+    :raises AttributeError: If the config file does not have the attribute `cfg`.
+    :raises TypeError: If `cfg` is not of type Configurator (pocket_coffea).
+    :return: A tuple containing the Configurator and run_options (if defined in config).
+    :rtype: tuple
+    """
+    config, config_module = import_analysis_config(cfg)
     config.load()
 
     if save:
@@ -342,9 +348,47 @@ def process_datasets(
     file_format: str = "root",
 ):
     if process_separately:
-        raise NotImplementedError(
-            "separate processing for each dataset is not yet implemented"
-        )
+        # raise NotImplementedError(
+        #     "separate processing for each dataset is not yet implemented"
+        # )
+        outputs = []
+        for sample, files in config.filesets.items():
+            # If the number of available workers exceeds the maximum number of workers
+            # for a given sample, the chunksize is reduced so that all the workers are
+            # used to process the given sample
+            n_events_tot = int(files["metadata"]["nevents"])
+            n_workers_max = n_events_tot / run_options["chunksize"]
+
+            if run_options["scaleout"] > n_workers_max:
+                adapted_chunksize = n_events_tot // run_options["scaleout"]
+            else:
+                adapted_chunksize = run_options["chunksize"]
+
+            fileset = {sample: files}
+
+            run = CoffeaRunner(
+                executor=coffea_executor,
+                chunksize=adapted_chunksize,
+                maxchunks=run_options["limit-chunks"],
+                skipbadfiles=run_options["skip-bad-files"],
+                schema=schema,
+                format=file_format,
+            )
+
+            print(f"Working on sample: {sorted(sample)}")
+            output = run(
+                fileset, treename="Events", processor_instance=processor_instance
+            )
+            outputs.append(output)
+
+            if output_path is not None:
+                head, tail = os.path.split(output_path)
+                split_output = os.path.join(head, "separate_output")
+                os.makedirs(split_output, exist_ok=True)
+                coffea.util.save(output, os.path.join(split_output, f"{sample}_{tail}"))
+
+        # accumulate separate files
+        output = accumulate(outputs)
 
     else:
         fileset = config.filesets
@@ -358,12 +402,13 @@ def process_datasets(
             format=file_format,
         )
 
+        print(f"Working on samples: {list(fileset.keys())}")
         output = run(fileset, treename="Events", processor_instance=processor_instance)
 
-        if output_path is not None:
-            coffea.util.save(output, output_path)
-        else:
-            return output
+    if output_path is not None:
+        coffea.util.save(output, output_path)
+    else:
+        return output
 
 
 def load_plotting_style(params_file: FileName, custom_plot_style: FileName = None):

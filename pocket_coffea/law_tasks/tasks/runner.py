@@ -7,6 +7,7 @@ from pocket_coffea.law_tasks.configuration.general import baseconfig, runnerconf
 from pocket_coffea.law_tasks.tasks.datasets import CreateDatasets
 from pocket_coffea.law_tasks.utils import (
     get_executor,
+    import_analysis_config,
     load_analysis_config,
     load_run_options,
     process_datasets,
@@ -22,15 +23,13 @@ class JetCalibration(law.Task):
     def __init__(self, *args, **kwargs):
         # initialize task and all parameters
         super().__init__(*args, **kwargs)
-        self.config, _ = load_analysis_config(
-            self.cfg, output_dir=self.output_dir, save=False
-        )
+        self.config, _ = import_analysis_config(self.cfg)
         self.factory_file = self.config.parameters.jets_calibration.factory_file
         self.jets_calibration = self.config.parameters.jets_calibration
 
     def output(self):
         # output file for jets calibration as defined in parameters
-        return law.LocalFileTarget(self.factory_file)
+        return law.LocalFileTarget(os.path.abspath(self.factory_file))
 
     def run(self):
         build_jets_calibrator.build(self.jets_calibration)
