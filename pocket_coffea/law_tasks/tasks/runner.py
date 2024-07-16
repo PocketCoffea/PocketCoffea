@@ -63,6 +63,8 @@ class Runner(law.Task):
             for key, filename in [
                 ("coffea", self.coffea_output),
                 ("parameters", "parameters_dump.yaml"),
+                ("config", "config.json"),
+                ("configurator", "configurator.pkl"),
             ]
         }
 
