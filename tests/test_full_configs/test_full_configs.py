@@ -54,7 +54,6 @@ def test_new_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_
         for dataset, _data in data.items():
             assert dataset in output["sumw"][cat]
             for sample, sumw in _data.items():
-                print(cat, dataset, sample, sumw, output["sumw"][cat][dataset][sample])
                 assert np.isclose(sumw, output["sumw"][cat][dataset][sample], rtol=1e-5)
 
     # Testing cutflow
@@ -67,5 +66,14 @@ def test_new_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_
                 continue
             for sample, cutflow in _data.items():
                 assert np.allclose(cutflow, output["cutflow"][cat][dataset][sample], rtol=1e-5)
-                    
-    
+
+    categories = list(output["sumw"].keys())
+
+    for variables, data in old_output["variables"].items():
+        assert variables in output["variables"]
+        for dataset, _data in data.items():
+            assert dataset in output["variables"][variables]
+            for sample, hist in _data.items():
+                assert np.allclose(hist.values(),
+                                   output["variables"][variables][dataset][sample].values(),
+                                   rtol=1e-5)

@@ -8,6 +8,7 @@ from collections import defaultdict
 import inspect
 import logging
 from omegaconf import OmegaConf
+from warnings import warn
 
 from ..lib.cut_definition import Cut
 from ..lib.categorization import StandardSelection, CartesianSelection
@@ -47,9 +48,9 @@ class Configurator:
         preselections,
         categories,
         weights,
-        weights_classes,
         variations,
         variables,
+        weights_classes=None,    
         columns=None,
         workflow_options=None,
         save_skimmed_files=None,
@@ -133,6 +134,16 @@ class Configurator:
             for s in self.samples
         }
         ## Defining the available weight strings
+        ## If the users hasn't passed a list of WeightWrapper classes, the configurator
+        # loads the common_weight one and emits a Warning
+        if self.weights_classes == None:
+            print("No weights classes passed to the configurator, using the default ones")
+            from pocket_coffea.lib.weights.common import common
+            self.weights_classes = common.common_weights
+            # Emitting a warning
+            warn("No weights classes passed to the configurator with `weight_classes=[]`, using the ones defined in `lib.weights.common.common`. ",
+                 DeprecationWarning, stacklevel=2)
+        
         # The list of strings is taken from the names of the list of weights classes
         # passed to the configurator.
         self.available_weights = []
