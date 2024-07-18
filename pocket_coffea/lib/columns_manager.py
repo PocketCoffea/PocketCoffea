@@ -99,7 +99,7 @@ class ColumnsManager:
         for cat in categories:
             self.cfg[cat].append(cfg)
 
-    def fill_columns_accumulators(self, events, cuts_masks, subsample_mask=None, weights_manager=None, shape_variation="nominal"):
+    def fill_columns_accumulators(self, events, cuts_masks, subsample_mask=None, weights_manager=None, shape_variation="nominal", save_variations=False):
         self.output = {}
         for category, outarrays in self.cfg.items():
             self.output[category] = {}
@@ -110,7 +110,7 @@ class ColumnsManager:
 
             # Getting the weights
             if weights_manager:
-                if shape_variation=="nominal":
+                if shape_variation=="nominal" and save_variations:
                     for variation in self.available_weights_variations_bycat[category]:
                         if variation == "nominal":
                             self.output[category][f"weight_{variation}"] = column_accumulator(                                                                                                                                                              ak.to_numpy(weights_manager.get_weight(category)[mask], allow_missing=False))
@@ -119,7 +119,7 @@ class ColumnsManager:
                             self.output[category][f"weight_{variation}"] = column_accumulator(                                                                                                                                                              ak.to_numpy(weights_manager.get_weight(category, modifier=variation)[mask], allow_missing=False))
                 else:
                     # Save only the nominal weights if a shape variation is being processed
-                    self.output[category][f"weight_{variation}"] = column_accumulator(
+                    self.output[category]["weight"] = column_accumulator(
                     ak.to_numpy(weights_manager.get_weight(category)[mask], allow_missing=False))
                     
                 

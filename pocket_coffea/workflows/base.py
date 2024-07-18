@@ -481,7 +481,10 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
 
     def fill_column_accumulators(self, variation):
-            
+        
+        if (not self.params.columns_config['save_variations']) and (variation != "nominal"):
+            return
+        
         if len(self.column_managers) == 0:
             return
 
@@ -517,7 +520,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                                                    self._categories,
                                                    subsample_mask=self._subsamples[self._sample].get_mask(subs),
                                                    weights_manager=self.weights_manager,
-                                                   shape_variation=variation
+                                                   shape_variation=variation,
+                                                   save_variations=self.params.columns_config['save_variations']
                                                    )
                     }
         else:
@@ -544,7 +548,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     self._categories,
                     subsample_mask = None,
                     weights_manager=self.weights_manager,
-                    shape_variation=variation
+                    shape_variation=variation,
+                    save_variations=self.params.columns_config['save_variations']
                 ) }
 
     def fill_column_accumulators_extra(self, variation):
@@ -608,7 +613,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # This is useless. Events is just a point and we are not doing any copies
         nominal_events = self.events
 
-        #print("Variations:", variations)
         # Define flags to know if the variations include JES or JER
         has_jes = any(["JES" in v for v in variations])
         has_jer = any(["JER" in v for v in variations])
