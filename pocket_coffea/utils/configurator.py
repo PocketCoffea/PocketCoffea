@@ -52,6 +52,10 @@ class Configurator:
         workflow_options=None,
         save_skimmed_files=None,
     ):
+        '''
+        Constructur of the Configurator class.
+        It saves the configuration of the analysis and the workflow to be used to load
+        the internal objects in the load() method.'''
 
         # Save the workflow object and its options
         self.workflow = workflow
@@ -82,23 +86,41 @@ class Configurator:
         self.years = []
         self.eras = []
 
-        self.load_datasets()
-        self.load_subsamples()
-
         # Load histogram settings
         # No manipulation is needed, maybe some check can be added
         self.variables = variables
+
+        self.skim_cfg = skim
+        self.preselections_cfg = preselections
+        self.categories_cfg = categories
+
+        self.skim = []
+        self.preselections = []
+
+        self.weights_cfg = weights
+        ## Weights configuration
+    
+        self.variations_cfg = variations
+       
+        # Column accumulator config
+        self.columns = {}
+        self.columns_cfg = columns
+
+        self.loaded = False
+
+    def load(self):
+        '''This function loads the configuration for samples/weights/variations and creates
+        the necessary objects for the processor to use. It also loads the workflow'''
+        self.load_datasets()
+        self.load_subsamples()
 
         # Categories: object handling categorization
         # - StandardSelection
         # - CartesianSelection
         ## Call the function which transforms the dictionary in the cfg
         # in the objects needed in the processors
-        self.skim = []
-        self.preselections = []
-        self.load_cuts_and_categories(skim, preselections, categories)
+        self.load_cuts_and_categories(self.skim_cfg, self.preselections_cfg, self.categories_cfg)
 
-        ## Weights configuration
         self.weights_config = {
             s: {
                 "inclusive": [],
@@ -107,7 +129,8 @@ class Configurator:
             }
             for s in self.samples
         }
-        self.load_weights_config(weights)
+         
+        self.load_weights_config(self.weights_cfg)
 
         ## Variations configuration
         # The structure is very similar to the weights one,
@@ -120,11 +143,12 @@ class Configurator:
             }
             for s in self.samples
         }
-        if "shape" not in variations:
-            variations["shape"] = {"common": {"inclusive": []}}
+        if "shape" not in self.variations_cfg:
+            self.variations_cfg["shape"] = {"common": {"inclusive": []}}
 
-        self.load_variations_config(variations["weights"], variation_type="weights")
-        self.load_variations_config(variations["shape"], variation_type="shape")
+        self.load_variations_config(self.variations_cfg["weights"], variation_type="weights")
+        self.load_variations_config(self.variations_cfg["shape"], variation_type="shape")
+            
         # Collecting overall list of available weights and shape variations per sample
         self.available_weights_variations = {s: ["nominal"] for s in self.samples}
         self.available_shape_variations = {s: [] for s in self.samples}
@@ -142,21 +166,23 @@ class Configurator:
             self.available_shape_variations[sample] = list(
                 set(self.available_shape_variations[sample])
             )
+            
+        # Columns configuration
+        self.load_columns_config(self.columns_cfg)
 
-        # Column accumulator config
-        self.columns = {}
-        self.load_columns_config(columns)
-
-        # Check the jet_calibration and create the file if needed
-        if not os.path.exists(self.parameters.jets_calibration.factory_file):
-            build_jets_calibrator.build(self.parameters.jets_calibration)
-        
-        # Load workflow passing the Configurator self object
-        self.load_workflow()
-
-        # Some self consistency checks
+         # Some self consistency checks
         self.perform_checks()
 
+        # Alway run the jet calibration builder
+        if not os.path.exists(self.parameters.jets_calibration.factory_file):
+            build_jets_calibrator.build(self.parameters.jets_calibration)
+
+        # Load the workflow as the last thing
+        self.load_workflow()
+
+        # Mark the configurator as loaded
+        self.loaded = True
+        
 
     def load_datasets(self):
         for json_dataset in self.datasets_cfg["jsons"]:
@@ -269,7 +295,6 @@ class Configurator:
     def load_weights_config(self, wcfg):
         '''This function loads the weights definition and prepares a list of
         weights to be applied for each sample and category'''
-
         # Get the list of statically available weights defined in the workflow
         available_weights = self.workflow.available_weights()
         # Read the config and save the list of weights names for each sample (and category if needed)
@@ -495,6 +520,9 @@ class Configurator:
         self.processor_instance = self.workflow(cfg=self)
 
     def save_config(self, output):
+        if not self.loaded:
+            print("The configurator is not loaded yet, please load it before saving the configuration")
+            return
         ocfg = {}
         ocfg["datasets"] = {
             "names": self.datasets,
@@ -573,6 +601,13 @@ class Configurator:
         # dump also the parameters
 
     def __repr__(self):
+        if not self.loaded:
+            s = [
+            'Configurator instance (not loaded yet):',
+            f"  - Workflow: {self.workflow}",
+            f"  - Workflow options: {self.workflow_options}"]
+            return "\n".join(s)
+
         s = [
             'Configurator instance:',
             f"  - Workflow: {self.workflow}",
