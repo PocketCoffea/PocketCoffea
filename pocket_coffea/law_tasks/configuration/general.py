@@ -126,3 +126,17 @@ class plottingsystematicsconfig(luigi.Config):
     ratio = luigi.BoolParameter(
         default=True, description="Plot the ratio of the systematic shifts"
     )
+
+class datacardconfig(luigi.Config):
+    datacard_name = luigi.Parameter(
+        default="datacard.txt", description="Name of the datacard file"
+    )
+    shapes_name = luigi.Parameter(
+        default="shapes.root", description="Name of the shapes file"
+    )
+    datacard_dir = luigi.Parameter(
+        default="datacards", description="Output folder for datacards"
+    )
+    transfer = luigi.BoolParameter(
+        default=False, description="Transfer datacards to EOS"
+    )
