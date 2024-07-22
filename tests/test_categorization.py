@@ -10,7 +10,7 @@ def events():
     return events
 
 
-def test_mask_storage_1D():
+def test_mask_storage_1D(events):
     #count the number of jets
     mask = ak.sum(events.Jet.pt > 10, axis=1)>3
 

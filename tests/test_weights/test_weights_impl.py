@@ -139,7 +139,8 @@ def test_sfbtag_coffea_multivariations(events, params):
     w = sf.compute(events, 1000, "nominal")
 
     defined_variations = params.systematic_variations.weight_variations.sf_btag["2018"]
-    raw_SF = sf_btag(params, events["JetGood"], "2018", njets=events.nJetGood, variations=["central"]+defined_variations)
+    raw_SF = sf_btag(params, events["JetGood"], "2018", njets=events.nJetGood,
+                     variations=["central"]+defined_variations)
 
     assert isinstance(w, WeightDataMultiVariation)
 
@@ -147,11 +148,16 @@ def test_sfbtag_coffea_multivariations(events, params):
     weights1 = Weights(len(events))
     weights2 = Weights(len(events))
 
-    weights1.add_multivariation("sf_btag", w.nominal, w.variations, w.up, w.down)
+    from copy import deepcopy
+    w_copy = deepcopy(w)
+    weights1.add_multivariation("sf_btag",
+                                w_copy.nominal, w_copy.variations,
+                                w_copy.up, w_copy.down)
     # Using the old "trick" of rescaling the variations
     weights2.add("sf_btag", w.nominal)
     for i in range(len(w.variations)):
-        weights2.add(f"sf_btag_{w.variations[i]}", np.ones(1000) , w.up[i]/w.nominal, w.down[i]/w.nominal) 
+        weights2.add(f"sf_btag_{w.variations[i]}", np.ones(1000),
+                     w.up[i]/w.nominal, w.down[i]/w.nominal) 
 
     # Check with raw SF values
     for var in w.variations:

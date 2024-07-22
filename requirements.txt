@@ -17,3 +17,4 @@ rucio-clients
 omegaconf
 law
 click>=8.0.4
+correctionlib>=2.6.1
