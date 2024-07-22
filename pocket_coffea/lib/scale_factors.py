@@ -92,6 +92,8 @@ def get_ele_sf(
                 output[variation][i] = ak.unflatten(sf, counts)
 
         return output
+    else:
+        raise Exception(f"Invalid key `{key}` for get_ele_sf. Available keys are 'reco', 'id', 'trigger'.")
 
 
 def get_mu_sf(params, year, pt, eta, counts, key=''):
@@ -226,8 +228,9 @@ def sf_ele_trigger(params, events, year, variations=["nominal"]):
         year,
         ele_pt_flat,
         ele_eta_flat,
-        ele_counts,
-        'trigger',
+        phi=None,
+        counts=ele_counts,
+        key='trigger',
         variations=variations,
     )
 
