@@ -4,7 +4,7 @@ import awkward as ak
 import numpy as np
 from collections.abc import Callable
 from collections import defaultdict
-
+from copy import deepcopy
 from coffea.analysis_tools import Weights
 
 # Scale factors functions
@@ -168,7 +168,7 @@ class WeightsManager:
                         w, events, self._shape_variation
                     )
                 for we in _weightsCache[w]:
-                    weight_obj.add(*we)
+                    weight_obj.add(*deepcopy(we))
                     if len(we) > 2:
                         # the weights has variations
                         installed_modifiers += [we[0] + "Up", we[0] + "Down"]
