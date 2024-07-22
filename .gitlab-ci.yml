@@ -1,6 +1,8 @@
 stages:
   - build
+  - test
   - tag
+  - publish
 
 include:
   - project: 'cms-analysis/general/container-image-ci-templates'
@@ -83,8 +85,31 @@ build_docker_lxplus_el9_stable:
 
 
 #----------------------------------
-# Tag images on coffea2023 branch
+# Run tests
 
+tests_lxplus_el9_latest:
+  stage: test
+  id_tokens:
+    MY_JOB_JWT: # this is needed, it specifies the aud from which the proxy is requested. 
+        aud: "cms-cat-grid-proxy-service.app.cern.ch"
+  tags:
+    - cvmfs
+  image:
+    name: "gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-${CI_COMMIT_SHORT_SHA}"
+  before_script:
+    - 'proxy=$(curl --fail-with-body -H "Authorization: ${MY_JOB_JWT}" "https://cms-cat-grid-proxy-service.app.cern.ch/api" | tr -d \")'
+  script:
+    - printf $proxy | base64 -d > myproxy
+    - export X509_USER_PROXY=$(pwd)/myproxy
+    - export X509_CERT_DIR=/cvmfs/grid.cern.ch/etc/grid-security/certificates/
+    - export XRD_RUNFORKHANDLER=1
+    - voms-proxy-info
+    - pip install pytest>=6
+    - pytest tests
+
+
+#----------------------------------
+# Tag images on coffea2023 branch
 build_docker_lxplus_coffea2023:
   extends: .tag_skopeo
   rules:
@@ -97,7 +122,6 @@ build_docker_lxplus_coffea2023:
 
 #-------------------------------------------------------------------
 # Tag images using git tag
-    
 build_docker_lxplus_tagged:
   extends: .tag_skopeo
   rules:

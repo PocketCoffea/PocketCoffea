@@ -24,7 +24,6 @@ from pocket_coffea.lib.objects import lepton_selection, jet_selection
 @pytest.fixture(scope="module")
 def events():
     filename = "root://xrootd-cms.infn.it///store/mc/RunIISummer20UL18NanoAODv9/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/106X_upgrade2018_realistic_v16_L1v1-v2/2500000/6BF93845-49D5-2547-B860-4F7601074715.root"
-    #filename = "test_file.root"
     events = NanoEventsFactory.from_root(filename, schemaclass=NanoAODSchema, entry_stop=1000).events()
     return events
 
