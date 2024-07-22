@@ -495,7 +495,7 @@ class Configurator:
                                 self.columns[sample][cat].append(w)
                             elif self.has_subsamples[sample]:
                                 for subs in self.subsamples[sample].keys():
-                                    self.columns[subs][cat].append(w)
+                                    self.columns[f"{sample}__{subs}"][cat].append(w)
                             else:
                                 self.columns[sample][cat].append(w)
         #prune the empty categories
