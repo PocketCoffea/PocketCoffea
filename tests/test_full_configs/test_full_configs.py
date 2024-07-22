@@ -74,6 +74,8 @@ def test_new_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_
         for dataset, _data in data.items():
             assert dataset in output["variables"][variables]
             for sample, hist in _data.items():
-                assert np.allclose(hist.values(),
-                                   output["variables"][variables][dataset][sample].values(),
-                                   rtol=1e-5)
+                variations = list([hist.axes[1].value(i) for i in range(hist.axes[1].size)])
+                for variation in variations:
+                    assert np.allclose(hist[{"variation":variation}].values(),
+                                   output["variables"][variables][dataset][sample][{"variation":variation}].values(),
+                                       rtol=1e-5)

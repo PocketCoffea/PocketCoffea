@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import inspect
 import awkward as ak
 import numpy as np
+import copy
 from collections.abc import Callable
 from collections import defaultdict
 
@@ -117,6 +118,10 @@ class WeightsManager:
                 _weightsCache[w] = out
             else:
                 out = _weightsCache[w]
+
+            # Copy the WeightData object to avoid modifying the original
+            # FIXME: there is a coffea bug which modifies in place the weight variation array
+            out = copy.deepcopy(out)
                 
             if isinstance(out, WeightData):
                 weight_obj.add(out.name, out.nominal, out.up, out.down)
