@@ -410,7 +410,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self._sample,
             self._subsamples[self._sample].keys(),
             self._categories,
-            variations_config=self.cfg.variations_config[self._sample],
+            variations_config=self.cfg.variations_config[self._sample] if self._isMC else None,
             processor_params=self.params,
             weights_manager=self.weights_manager if self._isMC else None,
             custom_axes=self.custom_axes,
@@ -732,7 +732,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self.output['sum_genweights'][self._dataset] = ak.sum(self.events.genWeight)
             self.output['sum_signOf_genweights'][self._dataset] = ak.sum(np.sign(self.events.genWeight))
 
-        self.weights_config = self.weights_config_allsamples[self._sample]
         ########################
         # Then the first skimming happens.
         # Events that are for sure useless are removed.
@@ -820,6 +819,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     # This information is taken from a weights config file for each _sample_
                     # Getting the original sample name to check weights config
                     sample = self.cfg.subsamples_reversed_map[samplename] #needed for subsamples
+                    if not self.cfg.samples_metadata[sample]['isMC']:
+                        continue
                     wei = self.cfg.weights_config[sample]['inclusive']
                     rescale = True
                     if 'signOf_genWeight' in wei and 'genWeight' not in wei:
@@ -844,6 +845,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 # Getting the first sample for the dataset in the "sumw" output
                 # it is working also for subsamples before the first sample key is the primary sample
                 sample_from_dataset = list(dataset_data.keys())[0]
+                if not self.cfg.samples_metadata[sample_from_dataset]['isMC']:
+                    continue
                 wei = self.cfg.weights_config[sample_from_dataset]['inclusive']
                 rescale = True
                 if 'signOf_genWeight' in wei and 'genWeight' not in wei:
@@ -866,6 +869,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         for cat, catdata in output["sumw2"].items():
             for dataset, dataset_data in catdata.items():
                 sample_from_dataset = list(dataset_data.keys())[0]
+                if not self.cfg.samples_metadata[sample_from_dataset]['isMC']:
+                    continue
                 wei = self.cfg.weights_config[sample_from_dataset]['inclusive']
                 rescale = True
                 if 'signOf_genWeight' in wei and 'genWeight' not in wei:

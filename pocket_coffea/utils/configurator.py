@@ -115,6 +115,7 @@ class Configurator:
     def load(self):
         '''This function loads the configuration for samples/weights/variations and creates
         the necessary objects for the processor to use. It also loads the workflow'''
+        self.samples_metadata = {}
         self.load_datasets()
         self.load_subsamples()
 
@@ -132,12 +133,13 @@ class Configurator:
                 "is_split_bycat": False,
             }
             for s in self.samples
+            if self.samples_metadata[s]["isMC"]
         }
         ## Defining the available weight strings
         ## If the users hasn't passed a list of WeightWrapper classes, the configurator
         # loads the common_weight one and emits a Warning
         if self.weights_classes == None:
-            print("No weights classes passed to the configurator, using the default ones")
+            print("WARNING: No weights classes passed to the configurator, using the default ones")
             from pocket_coffea.lib.weights.common import common
             self.weights_classes = common.common_weights
             # Emitting a warning
@@ -162,7 +164,9 @@ class Configurator:
                 "shape": {c: [] for c in self.categories.keys()},
             }
             for s in self.samples
+            if self.samples_metadata[s]["isMC"]
         }
+        
         if "shape" not in self.variations_cfg:
             self.variations_cfg["shape"] = {"common": {"inclusive": []}}
 
@@ -173,6 +177,9 @@ class Configurator:
         self.available_weights_variations = {s: ["nominal"] for s in self.samples}
         self.available_shape_variations = {s: [] for s in self.samples}
         for sample in self.samples:
+            # skipping variations for data
+            if not self.samples_metadata[sample]["isMC"]:
+                continue
             # Weights variations
             for cat, vars in self.variations_config[sample]["weights"].items():
                 self.available_weights_variations[sample] += vars
@@ -241,6 +248,9 @@ class Configurator:
                 if 'era' in m.keys():
                     if (m["era"]) not in self.eras:
                         self.eras.append(m["era"])
+                self.samples_metadata[m["sample"]] = {
+                    "isMC": m["isMC"] =="True",
+                }
                         
 
     def load_subsamples(self):

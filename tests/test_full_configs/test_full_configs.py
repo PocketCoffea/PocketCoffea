@@ -67,17 +67,24 @@ def test_new_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_
             for sample, cutflow in _data.items():
                 assert np.allclose(cutflow, output["cutflow"][cat][dataset][sample], rtol=1e-5)
 
+    metadata = output["datasets_metadata"]["by_dataset"]
     # Testing variables
     for variables, data in old_output["variables"].items():
         assert variables in output["variables"]
-        for dataset, _data in data.items():
-            assert dataset in output["variables"][variables]
-            for sample, hist in _data.items():
-                variations = list([hist.axes[1].value(i) for i in range(hist.axes[1].size)])
-                cats = list([hist.axes[0].value(i) for i in range(hist.axes[0].size)])
-                for variation in variations:
-                    for cat in cats:
-                        print(f"Checking {variables} {dataset} {sample} {variation}")
-                        assert np.allclose(hist[{"variation":variation, "cat":cat}].values(),
-                                   output["variables"][variables][dataset][sample][{"variation":variation, "cat":cat}].values(),
+        for sample, _data in data.items():
+            assert sample in output["variables"][variables]
+            for dataset, hist in _data.items():
+                if metadata[dataset]["isMC"] == "True":
+                    variations = list([hist.axes[1].value(i) for i in range(hist.axes[1].size)])
+                    cats = list([hist.axes[0].value(i) for i in range(hist.axes[0].size)])
+                    for variation in variations:
+                        for cat in cats:
+                            print(f"Checking {variables} {dataset} {sample} {variation}")
+                            assert np.allclose(hist[{"variation":variation, "cat":cat}].values(),
+                                   output["variables"][variables][sample][dataset][{"variation":variation, "cat":cat}].values(),
                                        rtol=1e-5)
+                else:
+                    assert np.allclose(hist.values(),
+                                       output["variables"][variables][sample][dataset].values(),
+                                       rtol=1e-5)
+                            
