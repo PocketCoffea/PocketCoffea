@@ -412,7 +412,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self._categories,
             variations_config=self.cfg.variations_config[self._sample],
             processor_params=self.params,
-            weights_manager=self.weights_manager,
+            weights_manager=self.weights_manager if self._isMC else None,
             custom_axes=self.custom_axes,
             isMC=self._isMC,
         )

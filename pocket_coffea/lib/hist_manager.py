@@ -141,9 +141,10 @@ class HistManager:
         # We take the variations config and we build the available variations
         # for each category and for the whole sample (if MC)
         # asking to the WeightsManager the available variations for the current specific chunk and metadata.
+        self.available_weights_variations_bycat = defaultdict(list)
+        self.available_shape_variations_bycat = defaultdict(list)
+            
         if self.isMC:
-            self.available_weights_variations_bycat = defaultdict(list)
-            self.available_shape_variations_bycat = defaultdict(list)
             # Weights variations
             for cat, weights in self.variations_config["weights"].items():
                 self.available_weights_variations_bycat[cat].append("nominal")
@@ -181,9 +182,9 @@ class HistManager:
                         vv = [f"{var}Up", f"{var}Down"]
                         self.available_shape_variations += vv
                         self.available_shape_variations_bycat[cat] += vv
-            # Reduce to set over all the categories
-            self.available_weights_variations = set(self.available_weights_variations)
-            self.available_shape_variations = set(self.available_shape_variations)
+        # Reduce to set over all the categories
+        self.available_weights_variations = set(self.available_weights_variations)
+        self.available_shape_variations = set(self.available_shape_variations)
         # Prepare the variations Axes summing all the required variations
         # The variation config is organized as the weights one, by sample and by category
 

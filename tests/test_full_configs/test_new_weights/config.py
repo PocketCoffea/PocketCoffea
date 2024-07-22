@@ -33,9 +33,9 @@ parameters = defaults.merge_parameters_from_files(default_parameters,
 cfg = Configurator(
     parameters = parameters,
     datasets = {
-        "jsons": ['datasets/ttbar_redirector.json'],
+        "jsons": ['datasets/datasets_redirector.json'],
         "filter" : {
-            "samples": ['TTToSemiLeptonic'],
+            "samples": ['TTToSemiLeptonic', "DATA_SingleMuon"],
             "samples_exclude" : [],
             "year": ['2018']
         }
