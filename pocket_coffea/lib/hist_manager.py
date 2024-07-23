@@ -135,9 +135,11 @@ class HistManager:
         self.available_categories = set(self.categories_config.keys())
         self.available_weights_variations = ["nominal"]
         self.available_shape_variations = []
+        # variations that are expanded in the parameters
+        self.wildcard_variations = {}
+        self.available_weights_variations_bycat = defaultdict(list)
+        self.available_shape_variations_bycat = defaultdict(list)
         if self.isMC:
-            self.available_weights_variations_bycat = defaultdict(list)
-            self.available_shape_variations_bycat = defaultdict(list)
             # weights variations
             for cat, vars in self.variations_config["weights"].items():
                 self.available_weights_variations_bycat[cat].append("nominal")
@@ -155,6 +157,7 @@ class HistManager:
                         ][
                             self.year
                         ]:
+                            self.wildcard_variations[var] = f"{var}_{subvariation}"
                             self.available_weights_variations += [
                                 f"{var}_{subvariation}Up",
                                 f"{var}_{subvariation}Down",
@@ -167,7 +170,6 @@ class HistManager:
                         vv = [f"{var}Up", f"{var}Down"]
                         self.available_weights_variations += vv
                         self.available_weights_variations_bycat[cat] += vv
-
             # Shape variations
             for cat, vars in self.variations_config["shape"].items():
                 for var in vars:
@@ -184,6 +186,7 @@ class HistManager:
                         ][
                             self.year
                         ]:
+                            self.wildcard_variations[var] = f"{var}_{subvariation}"
                             self.available_weights_variations += [
                                 f"{var}_{subvariation}Up",
                                 f"{var}_{subvariation}Down",
@@ -196,9 +199,9 @@ class HistManager:
                         vv = [f"{var}Up", f"{var}Down"]
                         self.available_shape_variations += vv
                         self.available_shape_variations_bycat[cat] += vv
-            # Reduce to set over all the categories
-            self.available_weights_variations = set(self.available_weights_variations)
-            self.available_shape_variations = set(self.available_shape_variations)
+        # Reduce to set over all the categories
+        self.available_weights_variations = set(self.available_weights_variations)
+        self.available_shape_variations = set(self.available_shape_variations)
         # Prepare the variations Axes summing all the required variations
         # The variation config is organized as the weights one, by sample and by category
 
@@ -235,27 +238,36 @@ class HistManager:
                 allvariat = []
                 for c in cats:
                     # Summing all the variations for all the categories
-                    allvariat += self.variations_config["weights"][c]
-                    allvariat += self.variations_config["shape"][c]
-                allvariat = set(allvariat)
+                    allvariat += self.available_weights_variations_bycat[c]
+                    allvariat += self.available_shape_variations_bycat[c]
+
                 if hcfg.only_variations != None:
+                    # expand wild card and Up/Down
+                    only_variations = []
+                    for var in hcfg.only_variations:
+                        if var in self.wildcard_variations:
+                            only_variations += [
+                                f"{self.wildcard_variations[var]}Up",
+                                f"{self.wildcard_variations[var]}Down",
+                            ]
+                        else:
+                            only_variations += [
+                                f"{var}Up",
+                                f"{var}Down",
+                            ]
                     # filtering the variation list with the available ones
                     allvariat = set(
-                        filter(lambda v: v in hcfg.only_variations, allvariat)
+                        filter(lambda v: v in only_variations, allvariat)
                     )
 
-                hcfg.only_variations = ["nominal"] + list(
-                    sorted(
-                        [var + "Up" for var in allvariat]
-                        + [var + "Down" for var in allvariat]
-                    )
-                )
+                hcfg.only_variations = list(sorted(set(allvariat)))
             else:
                 hcfg.only_variations = ["nominal"]
             # Defining the variation axis
             var_ax = hist.axis.StrCategory(
                 hcfg.only_variations, name="variation", label="Variation", growth=False
             )
+
             # Axis in the configuration + custom axes
             if self.isMC:
                 all_axes = [cat_ax, var_ax]
