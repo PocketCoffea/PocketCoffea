@@ -260,7 +260,7 @@ class HistManager:
                         filter(lambda v: v in only_variations, allvariat)
                     )
 
-                hcfg.only_variations = list(set(sorted(allvariat)))
+                hcfg.only_variations = list(sorted(set(allvariat)))
             else:
                 hcfg.only_variations = ["nominal"]
             # Defining the variation axis
