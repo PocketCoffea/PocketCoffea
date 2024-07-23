@@ -175,8 +175,7 @@ class Configurator:
 
         # Alway run the jet calibration builder
         if not os.path.exists(self.parameters.jets_calibration.factory_file):
-            build_jets_calibrator.build(self.parameters.jets_calibration,
-                                        filter_years=self.years)
+            build_jets_calibrator.build(self.parameters.jets_calibration)
 
         # Load the workflow as the last thing
         self.load_workflow()
@@ -496,7 +495,7 @@ class Configurator:
                                 self.columns[sample][cat].append(w)
                             elif self.has_subsamples[sample]:
                                 for subs in self.subsamples[sample].keys():
-                                    self.columns[subs][cat].append(w)
+                                    self.columns[f"{sample}__{subs}"][cat].append(w)
                             else:
                                 self.columns[sample][cat].append(w)
         #prune the empty categories

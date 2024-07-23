@@ -21,6 +21,24 @@ from omegaconf import OmegaConf
 from pocket_coffea.parameters.defaults import merge_parameters
 
 np.seterr(divide="ignore", invalid="ignore", over="ignore")
+
+# colormaps according to CMS guidelines
+# https://cms-analysis.docs.cern.ch/guidelines/plotting/colors/#categorical-data-eg-1d-stackplots
+CMAP_6 = hep.styles.cms.cmap_petroff
+CMAP_10 = [
+    "#3f90da",
+    "#ffa90e",
+    "#bd1f01",
+    "#94a4a2",
+    "#832db6",
+    "#a96b59",
+    "#e76300",
+    "#b9ac70",
+    "#717581",
+    "#92dadd",
+]
+
+
 class Style:
     '''This class manages all the style options for Data/MC plots.'''
 
@@ -541,7 +559,13 @@ class Shape:
                     for d in self.samples_mc
                 }
                 # create cycler from the colormap and instantiate it to get iterator
-                color = cycler("color", hep.styles.cms.cmap_petroff)()
+                cmap = CMAP_6 if len(self.nevents) <= 6 else CMAP_10
+                if len(self.nevents) > 10:
+                    print(
+                        "Warning: more than 10 samples to plot. "
+                        "No official CMS colormap for that case"
+                    )
+                color = cycler("color", cmap)()
                 # Assign colors from cycle to samples
                 self.colors = {sample: next(color)["color"] for sample in self.nevents}
 
