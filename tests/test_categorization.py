@@ -1,14 +1,8 @@
 import pytest
 from pocket_coffea.lib.categorization import MaskStorage
-from coffea.nanoevents import NanoEventsFactory, NanoAODSchema
+
 import awkward as ak
-
-@pytest.fixture(scope="module")
-def events():
-    filename = "root://xrootd-cms.infn.it///store/mc/RunIISummer20UL18NanoAODv9/ttHTobb_M125_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/106X_upgrade2018_realistic_v16_L1v1-v2/2500000/6BF93845-49D5-2547-B860-4F7601074715.root"
-    events = NanoEventsFactory.from_root(filename, schemaclass=NanoAODSchema, entry_stop=1000).events()
-    return events
-
+from utils import events
 
 def test_mask_storage_1D(events):
     #count the number of jets

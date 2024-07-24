@@ -1,16 +1,16 @@
 {
 "TTToSemiLeptonic_2018": {
         "metadata": {
-          "das_names": "['/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM']",
-          "sample": "TTToSemiLeptonic",
+          "das_names": "['/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM']",
+          "sample": "TTTo2L2Nu",
           "year": "2018",
           "isMC": "True",
-          "xsec": "366.2852",
-          "nevents": "476408000",
-          "size": "1030792999916"
+          "xsec": "88.29",
+          "nevents": "xxxx",
+          "size": "xxx"
         },
         "files": [
-          "root://cmsdcache-kit-disk.gridka.de:1094//store/mc/RunIISummer20UL18NanoAODv9/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/106X_upgrade2018_realistic_v16_L1v1-v1/120000/87DEE912-70CF-A549-B10B-1A229B256E88.root"
+          "root://eoscms.cern.ch//eos/cms/store/mc/RunIISummer20UL18NanoAODv9/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/106X_upgrade2018_realistic_v16_L1v1-v1/280000/01881676-C30A-2142-B3B2-7A8449DAF8EF.root"
         ]
 },
 
@@ -26,6 +26,6 @@
             "size": "211774345140"
         },
         "files": [
-            "root://xrootd-cms.infn.it///store/data/Run2018A/SingleMuon/NANOAOD/UL2018_MiniAODv2_NanoAODv9-v2/2550000/AA26E054-373D-5241-A1B8-66F0D9D76632.root"]
+            "root://eoscms.cern.ch//eos/cms/store/data/Run2018A/SingleMuon/NANOAOD/UL2018_MiniAODv2_NanoAODv9-v2/2550000/C1FD87EB-3052-524A-8DAD-1C95A6EABBF0.root"]
      }
 }
