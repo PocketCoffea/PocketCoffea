@@ -91,6 +91,8 @@ def get_ele_sf(
                 output[variation][i] = ak.unflatten(sf, counts)
 
         return output
+    else:
+        raise Exception(f"Invalid key `{key}` for get_ele_sf. Available keys are 'reco', 'id', 'trigger'.")
 
 
 def get_mu_sf(params, year, pt, eta, counts, key=''):

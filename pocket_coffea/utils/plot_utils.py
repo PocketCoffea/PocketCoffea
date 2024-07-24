@@ -19,6 +19,24 @@ from omegaconf import OmegaConf
 from pocket_coffea.parameters.defaults import merge_parameters
 
 np.seterr(divide="ignore", invalid="ignore", over="ignore")
+
+# colormaps according to CMS guidelines
+# https://cms-analysis.docs.cern.ch/guidelines/plotting/colors/#categorical-data-eg-1d-stackplots
+CMAP_6 = hep.styles.cms.cmap_petroff
+CMAP_10 = [
+    "#3f90da",
+    "#ffa90e",
+    "#bd1f01",
+    "#94a4a2",
+    "#832db6",
+    "#a96b59",
+    "#e76300",
+    "#b9ac70",
+    "#717581",
+    "#92dadd",
+]
+
+
 class Style:
     '''This class manages all the style options for Data/MC plots.'''
 
@@ -506,6 +524,16 @@ class Shape:
                     d: round(sum(h_dict_mc_nominal[d].values()), 1)
                     for d in self.samples_mc
                 }
+                # create cycler from the colormap and instantiate it to get iterator
+                cmap = CMAP_6 if len(self.nevents) <= 6 else CMAP_10
+                if len(self.nevents) > 10:
+                    print(
+                        "Warning: more than 10 samples to plot. "
+                        "No official CMS colormap for that case"
+                    )
+                color = cycler("color", cmap)()
+                # Assign colors from cycle to samples
+                self.colors = {sample: next(color)["color"] for sample in self.nevents}
 
                 # Order the events dictionary by decreasing number of events if linear scale, increasing if log scale
                 reverse = True
@@ -514,16 +542,19 @@ class Shape:
                 self.nevents = dict(
                     sorted(self.nevents.items(), key=lambda x: x[1], reverse=reverse)
                 )
-                # create cycler from the colormap and instantiate it to get iterator
-                color = cycler("color", hep.styles.cms.cmap_petroff)()
-                # Assign colors from cycle to samples
-                self.colors = [next(color)["color"] for d in self.nevents.keys()]
+                # order colors accordingly
+                self.colors = {sample: self.colors[sample] for sample in self.nevents}
+
                 if hasattr(self.style, "colors_mc"):
                     # Initialize random colors
-                    for i, d in enumerate(self.nevents.keys()):
+                    for d in self.nevents:
                         # If the color for a corresponding sample exists in the dictionary, assign the color to the sample
                         if d in self.style.colors_mc:
-                            self.colors[i] = self.style.colors_mc[d]
+                            self.colors[d] = self.style.colors_mc[d]
+                # once the colors are setup, we can convert it to a list
+                # (to be used in hist.plot)
+                self.colors = list(self.colors.values())
+                
                 # Order the MC dictionary by number of events
                 h_dict_mc = {d: h_dict_mc[d] for d in self.nevents.keys()}
                 h_dict_mc_nominal = {
