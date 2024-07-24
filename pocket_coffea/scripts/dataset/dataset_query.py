@@ -519,7 +519,8 @@ Some basic commands:
             )
         format = os.path.splitext(filename)[1]
         if not format:
-            raise Exception("[red] Please use a .json or .yaml filename for the output")
+            print("[red] Please use a .json or .yaml filename for the output")
+            return
 
         # First save the datasets in the format of the PocketCoffea metadata
         groups = defaultdict(list)
