@@ -5,6 +5,8 @@ from collections import defaultdict
 from functools import partial
 
 import math
+import decimal
+from decimal import Decimal
 import numpy as np
 import awkward as ak
 import hist
@@ -206,6 +208,38 @@ class PlotManager:
             for shape in shape_names:
                 self.plot_datamc(shape, syst=syst, spliteras=spliteras, format=format)
 
+    
+    def plot_systematic_shifts(self, shape, format="png", ratio=True):
+        """Plots the systematic shifts for all the variations."""
+        if self.verbose > 0:
+            print("Plotting systematic shifts for:", shape.name)
+        if shape.dense_dim > 1:
+            print(
+                f"WARNING: cannot plot systematic shifts for histogram {shape.name}"
+                f"with dimension {shape.dense_dim}."
+            )
+            print("The method `plot_systematic_shifts` will be skipped.")
+            return
+        if shape.is_data_only:
+            raise Exception(
+                "The systematic shifts cannot be plotted if the histogram is Data only."
+            )
+        shape.plot_systematic_shifts_all(ratio=ratio, format=format)
+
+    def plot_systematic_shifts_all(self, format="png", ratio=True):
+        """Plots the systematic shifts for all the shape objects."""
+        if self.workers > 1:
+            with Pool(processes=self.workers) as pool:
+                # Parallel calls of plot_systematic_shifts() on different shape objects
+                pool.map(
+                    partial(self.plot_systematic_shifts, format=format, ratio=ratio),
+                    self.shape_objects.values(),
+                )
+                pool.close()
+        else:
+            for shape in self.shape_objects.values():
+                self.plot_systematic_shifts(shape, format=format, ratio=ratio)
+
 class Shape:
     '''This class handles the plotting of 1D data/MC histograms.
     The constructor requires as arguments:
@@ -254,8 +288,8 @@ class Shape:
             print(self.h_dict)
             print("samples:", self.samples_mc)
         
-        self.is_mc_only = True if len(self.samples_data) == 0 else False
-        self.is_data_only = True if len(self.samples_mc) == 0 else False
+        self.is_mc_only = len(self.samples_data) == 0
+        self.is_data_only = len(self.samples_mc) == 0
 
         if not self.is_data_only:
             assert len(
@@ -437,7 +471,7 @@ class Shape:
                         isMC = isMC_d
                         self.sample_is_MC[sample] = isMC
                     elif isMC != isMC_d:
-                        raise Exception(f"You are collapsing together data and MC histogram!")
+                        raise Exception("You are collapsing together data and MC histogram!")
 
         else:
             raise NotImplementedError("Plotting histograms without collapsing is still not implemented")
@@ -898,6 +932,54 @@ class Shape:
                 plt.show(self.fig)
             plt.close(self.fig)
 
+    def plot_systematic_shifts(
+        self, cat, syst_name, ratio=True, format="png", save=True
+    ):
+        """Plots the systematic shifts (up/down) of a given systematic uncertainty.
+        The systematic shifts are plotted as a ratio plot if ratio is set to True."""
+        if self.dense_dim > 1:
+            print(
+                f"WARNING: cannot plot data/MC for histogram {self.name} with dimension"
+                f"{self.dense_dim}"
+            )
+
+        if self.is_data_only:
+            raise Exception("Cannot plot systematic shifts for a data-only histogram.")
+
+        # we need to call this to update the histograms in the syst_manager
+        self._get_stacks(cat)
+        systematic = self.syst_manager.get_syst(syst_name, cat)
+        systematic.plot(log=self.log, toplabel=self.toplabel, ratio=ratio)
+
+        if save:
+            plot_dir = os.path.join(self.plot_dir, cat, syst_name)
+            os.makedirs(plot_dir, exist_ok=True)
+
+            filename = f"{self.name}_{cat}_{syst_name}"
+            if self.log:
+                filename = f"log_{filename}"
+
+            filepath = os.path.join(plot_dir, f"{filename}.{format}")
+            if self.verbose > 0:
+                print("Saving", filepath)
+            plt.savefig(filepath, dpi=150, format=format, bbox_inches="tight")
+        else:
+            plt.show(systematic.fig)
+        plt.close(systematic.fig)
+
+    def plot_systematic_shifts_all(self, ratio=True, format="png", save=True):
+        """Plots the systematic shifts (up/down) of all the systematic uncertainties
+        for a given category."""
+        for syst_name in self.syst_manager.systematics:
+            for cat in self.categories:
+                if self.only_cat and cat not in self.only_cat:
+                    continue
+                if self.verbose > 1:
+                    print("Plotting systematic:", syst_name, "for category:", cat)
+                self.plot_systematic_shifts(
+                    cat, syst_name, ratio=ratio, format=format, save=save
+                )
+
 
 class SystManager:
     '''This class handles the systematic uncertainties of 1D MC histograms.'''
@@ -969,7 +1051,7 @@ class SystUnc:
             self._get_err2(stacks)
             # Full nominal MC including all MC samples
             self.h_mc_nominal = stacks["mc_nominal_sum"]
-            self.nominal = stacks["mc_nominal_sum"].values()
+            self.nominal, self.bins = stacks["mc_nominal_sum"].to_numpy()
         elif syst_list:
             self.syst_list = syst_list
             assert (
@@ -1004,6 +1086,30 @@ class SystUnc:
     @property
     def ratio_down(self):
         return np.where(self.nominal != 0, self.down / self.nominal, 1)
+
+    @property
+    def yaxis_ratio_limit(self) -> tuple:
+        """
+        Calculate the limits for the y-axis in the ratio plot.
+
+        :return: A tuple containing the lower and upper limits for the y-axis.
+        :rtype: tuple
+        """
+        # get the maximum deviation from nominal
+        max_deviation = max(
+            abs(self.ratio_down.min() - 1.0), abs(self.ratio_up.max() - 1.0)
+        )
+        # add white space, so lines do not line up with axis limits
+        white_space = max_deviation * 0.25
+        max_deviation += white_space
+        # get first digit different from 0, to get the order of magnitude
+        # math.floor is used to get the integer part of the logarithm, e.g. -1.3 --> -2
+        n_digits = math.floor(math.log10(white_space))
+        # round to desired decimal places
+        precision = Decimal(10) ** n_digits
+        # maximum deviation + white space, symmetric around 1
+        limits = Decimal(max_deviation).quantize(precision, decimal.ROUND_UP)
+        return (1 - float(limits), 1 + float(limits))
 
     @property
     def nsyst(self):
@@ -1079,44 +1185,134 @@ class SystUnc:
             self.err2_up += err2_up_combined
             self.err2_down += err2_down_combined
 
-    def plot(self, ax=None):
-        '''Plots the nominal, up and down systematic variations on the same plot.'''
-        plt.style.use([hep.style.ROOT, {'font.size': self.style.fontsize}])
-        plt.rcParams.update({'font.size': self.style.fontsize})
-        if not ax:
-            self.fig, self.ax = plt.subplots(1, 1, **self.style.opts_figure["systematics"])
+    def define_figure(self, ratio=True, toplabel=None):
+        """Defines the figure for the systematic shifts plot.
+
+        :param ratio: plot ratio of shifts and nominal, defaults to True
+        :type ratio: bool, optional
+        """
+
+        plt.style.use(hep.style.CMS)
+        plt.rcParams.update({"font.size": self.style.fontsize})
+        if ratio:
+            self.fig, (self.ax, self.rax) = plt.subplots(
+                2, 1, **self.style.opts_figure["systematics_ratio"]
+            )
+            self.fig.subplots_adjust(hspace=0.06)
+            axes = (self.ax, self.rax)
         else:
-            self.ax = ax
-            self.fig = self.ax.get_figure
+            self.fig, self.ax = plt.subplots(
+                1, 1, **self.style.opts_figure["systematics"]
+            )
+            axes = self.ax
         hep.cms.text(
             "Simulation Preliminary",
             fontsize=self.style.fontsize,
             loc=self.style.experiment_label_loc,
             ax=self.ax,
         )
-        # hep.cms.lumitext(text=f'{self.lumi[year]}' + r' fb$^{-1}$, 13 TeV,' + f' {year}', fontsize=self.style.fontsize, ax=self.ax)
+        if toplabel:
+            hep.cms.lumitext(
+                text=toplabel,
+                fontsize=self.style.fontsize,
+                ax=self.ax,
+            )
+        return self.fig, axes
+
+    def format_figure(self, ratio=True):
+        """Formats the figure's axes, labels, ticks, xlim and ylim."""
+        self.ax.set_ylabel("Counts", fontsize=self.style.fontsize)
+        self.ax.legend(fontsize=self.style.fontsize, ncol=2, loc="upper right")
+        self.ax.tick_params(axis="x", labelsize=self.style.fontsize)
+        self.ax.tick_params(axis="y", labelsize=self.style.fontsize)
+        self.ax.set_xlim(
+            self.style.opts_axes["xedges"][0], self.style.opts_axes["xedges"][-1]
+        )
+        if self.log:
+            self.ax.set_yscale("log")
+            self.ax.set_ylim(
+                (0.01, 10 ** (math.floor(math.log(self.nominal.max(), 10)) + 3))
+            )
+        else:
+            self.ax.set_ylim((0, 1.5 * self.nominal.max()))
+
+        if ratio:
+            self.rax.set_xlabel(
+                self.style.opts_axes["xlabel"], fontsize=self.style.fontsize
+            )
+            self.rax.set_ylabel("Shift / Nominal", fontsize=self.style.fontsize)
+            self.rax.yaxis.set_label_coords(-0.075, 1)
+            self.rax.tick_params(axis="x", labelsize=self.style.fontsize)
+            self.rax.tick_params(axis="y", labelsize=self.style.fontsize)
+            self.rax.set_ylim(self.yaxis_ratio_limit)
+
+        if self.style.has_labels:
+            handles, labels = self.ax.get_legend_handles_labels()
+            labels_new = []
+            handles_new = []
+            for i, label in enumerate(labels):
+                # If additional scale is provided, plot it on the legend:
+                scale_str = ""
+                if (
+                    self.style.has_rescale_samples
+                    and label in self.style.rescale_samples
+                ):
+                    scale_str = f" x{self.style.rescale_samples[label]:.2f}"
+                if label in self.style.labels_mc:
+                    labels_new.append(f"{self.style.labels_mc[label]}" + scale_str)
+                else:
+                    labels_new.append(label + scale_str)
+
+                handles_new.append(handles[i])
+            labels = labels_new
+            handles = handles_new
+            self.ax.legend(
+                handles,
+                labels,
+                fontsize=self.style.fontsize,
+                ncol=1,
+                loc="upper right",
+            )
+
+    def plot(self, ratio=True, toplabel=None, log=False):
+        """Plots the nominal, up and down systematic variations on the same plot."""
+
+        # setup figure and corresponding axes
+        self.log = log
+        self.define_figure(ratio=ratio, toplabel=toplabel)
+
+        # plot histograms
+        # https://stackoverflow.com/a/65935165
         self.ax.hist(
-            self.style.opts_axes["xcenters"],
+            self.bins[:-1],
+            self.bins,
             weights=self.nominal,
             histtype="step",
             label="nominal",
             **self.style.opts_syst["nominal"],
         )
         self.ax.hist(
-            self.style.opts_axes["xcenters"],
+            self.bins[:-1],
+            self.bins,
             weights=self.up,
             histtype="step",
             label=f"{self.name} up",
             **self.style.opts_syst["up"],
         )
         self.ax.hist(
-            self.style.opts_axes["xcenters"],
+            self.bins[:-1],
+            self.bins,
             weights=self.down,
             histtype="step",
             label=f"{self.name} down",
             **self.style.opts_syst["down"],
         )
-        self.ax.set_xlabel(self.style.opts_axes["xlabel"])
-        self.ax.set_ylabel("Counts")
-        self.ax.legend()
-        return self.fig, self.ax
+
+        # plot ratio
+        if ratio:
+            self.rax.axhline(1, color="gray", linestyle="--")
+            self.rax.stairs(self.ratio_up, self.bins, **self.style.opts_syst["up"])
+            self.rax.stairs(self.ratio_down, self.bins, **self.style.opts_syst["down"])
+
+        # format figure
+        self.format_figure(ratio=ratio)

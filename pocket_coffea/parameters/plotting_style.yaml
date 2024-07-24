@@ -21,7 +21,12 @@ plotting_style:
         sharex: true
 
       systematics:
-        figsize: [9,9]
+        figsize: [12,9]
+      systematics_ratio:
+        figsize: [12,12]
+        gridspec_kw:
+          height_ratios: [3,1]
+        sharex: true
 
     opts_data:
       color: black

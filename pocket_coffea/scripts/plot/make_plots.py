@@ -30,9 +30,11 @@ import click
 @click.option('--density', is_flag=True, help='Set density parameter to have a normalized plot', required=False)
 @click.option('-v', '--verbose', type=int, default=1, help='Verbose level for debugging. Higher the number more stuff is printed.', required=False)
 @click.option('--format', type=str, default='png', help='File format of the output plots', required=False)
+@click.option('--systematics-shifts', is_flag=True, help='Plot the shifts for the systematic uncertainties', required=False, default=False)
+@click.option('--no-systematics-ratio', is_flag=True, help='Plot the ratio of the shifts for the systematic uncertainties', required=False, default=False)
 
 def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfile,
-               workers, only_cat, only_syst, exclude_hist, only_hist, split_systematics, partial_unc_band, no_syst, overwrite, log, density, verbose, format):
+               workers, only_cat, only_syst, exclude_hist, only_hist, split_systematics, partial_unc_band, no_syst, overwrite, log, density, verbose, format, systematics_shifts, no_systematics_ratio):
     '''Plot histograms produced by PocketCoffea processors'''
 
     # Using the `input_dir` argument, read the default config and coffea files (if not set with argparse):
@@ -98,7 +100,12 @@ def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfile,
     )
 
     print("Started plotting.  Please wait...")
-    plotter.plot_datamc_all(syst=(not no_syst), spliteras=False, format=format)
+    if systematics_shifts:
+        plotter.plot_systematic_shifts_all(
+            format=format, ratio=(not no_systematics_ratio)
+        )
+    else:
+        plotter.plot_datamc_all(syst=(not no_syst), spliteras=False, format=format)
 
     print("Output plots are saved at: ", outputdir)
 
