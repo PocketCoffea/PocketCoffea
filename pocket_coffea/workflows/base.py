@@ -120,7 +120,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self._samplePart = self.events.metadata.get("part", None) # this is the (optional) name of the part of the sample
 
         self._year = self.events.metadata["year"]
-        self._isMC = self.events.metadata["isMC"] == "True" # for some reason this get to a string WIP
+        self._isMC = ((self.events.metadata["isMC"] in ["True", "true"])
+                      or (self.events.metadata["isMC"] == True))
+        # for some reason this get to a string WIP
         if self._isMC:
             self._era = "MC"
             self._xsec = self.events.metadata["xsec"]
