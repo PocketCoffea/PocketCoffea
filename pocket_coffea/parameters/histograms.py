@@ -1,6 +1,7 @@
 from copy import deepcopy
 from ..lib.hist_manager import Axis, HistConf
 import math
+from typing import List
 
 default_axis_settings = {
     'muon_pt': {
@@ -568,3 +569,91 @@ def count_hist(coll, bins=10, start=0, stop=9, label=None, name=None, **kwargs):
             **kwargs
         )
     }
+
+
+def processing_metadata_hists(only_cats : List, chunk_size):
+    return {
+        "events_per_chunk_initial" : HistConf(
+               axes=[
+                   Axis(name='nevents', field=None,
+                        bins=max([int(chunk_size/500), 30]), start=0, stop=chunk_size,                       
+                        label="Number of events in the chunk",
+                        ), 
+               ],
+            storage="int64",
+            autofill=False,
+            metadata_hist = True,
+            no_weights=True,
+            only_categories=only_cats,
+            variations=False
+        ),
+        "events_per_chunk_skim" : HistConf(
+               axes=[
+                   Axis(name='nevents', field=None,
+                        bins=max([int(chunk_size/500), 30]), start=0, stop=chunk_size,                       
+                        label="Number of events in the chunk",
+                        )
+               ],
+            storage="int64",
+            autofill=False,
+            metadata_hist = True,
+            no_weights=True,
+            only_categories=only_cats,
+            variations=False
+        ),
+        "events_per_chunk_presel" : HistConf(
+               axes=[
+                   Axis(name='nevents', field=None,
+                        bins=max([int(chunk_size/500), 30]), start=0, stop=chunk_size,                       
+                        label="Number of events in the chunk",
+                        )
+               ],
+            storage="int64",
+            autofill=False,
+            metadata_hist = True,
+            no_weights=True,
+            only_categories=only_cats,
+            variations=False
+        ),
+        "throughput_per_chunk_initial" : HistConf(
+               axes=[
+                   Axis(name='throughput', field=None,
+                        bins=200, start=0, stop=50000,                       
+                        label="N. events/s processed in the chunk",
+                        )
+               ],
+            storage="int64",
+            autofill=False,
+            metadata_hist = True,
+            no_weights=True,
+            only_categories=only_cats,
+            variations=False,
+        ),
+        "throughput_per_chunk_skim" : HistConf(
+               axes=[
+                   Axis(name='throughput', field=None,
+                        bins=200, start=0, stop=50000,                       
+                        label="N. events/s processed in the chunk",
+                        )
+               ],
+            storage="int64",
+            autofill=False,
+            metadata_hist = True,
+            no_weights=True,
+            only_categories=only_cats,
+            variations=False,
+        ),
+        "throughput_per_chunk_presel" : HistConf(
+               axes=[
+                   Axis(name='throughput', field=None,
+                        bins=200, start=0, stop=50000,                       
+                        label="N. events/s processed in the chunk",
+                        )
+               ],
+            storage="int64",
+            autofill=False,
+            metadata_hist = True,
+            no_weights=True,
+            only_categories=only_cats,
+            variations=False,
+        )}

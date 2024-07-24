@@ -7,6 +7,7 @@ import logging
 import yaml
 from yaml import Loader, Dumper
 import click
+import time
 
 from coffea.util import save
 from coffea import processor
@@ -17,7 +18,7 @@ from pocket_coffea.utils.utils import load_config
 from pocket_coffea.utils.logging import setup_logging
 from pocket_coffea.parameters import defaults as parameters_utils
 from pocket_coffea.executors import executors_base
-
+from pocket_coffea.utils.benchmarking import print_processing_stats
 
 @click.command()
 @click.option('--cfg', required=True, type=str,
@@ -153,6 +154,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
 
     # Instantiate the executor
     executor = executor_factory.get()
+    start_time = time.time()
 
     if not process_separately:
         # Running on all datasets at once
@@ -169,9 +171,10 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         )
         output = run(fileset, treename="Events",
                      processor_instance=config.processor_instance)
-
+        
         print(f"Saving output to {outfile.format('all')}")
         save(output, outfile.format("all") )
+        print_processing_stats(output, start_time, run_options["scaleout"])
 
     else:
         # Running separately on each dataset
@@ -204,7 +207,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
                          processor_instance=config.processor_instance)
             print(f"Saving output to {outfile.format(sample)}")
             save(output, outfile.format(sample))
-
+            print_processing_stats(output, start_time, run_options["scaleout"])
     # Closing the executor if needed
     executor_factory.close()
 
