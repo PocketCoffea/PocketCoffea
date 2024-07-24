@@ -1,0 +1,349 @@
+{
+  "datasets": {
+    "names": [
+      "TTToSemiLeptonic_2018"
+    ],
+    "samples": [
+      "TTToSemiLeptonic"
+    ],
+    "filesets": {
+      "TTToSemiLeptonic_2018": {
+        "metadata": {
+          "das_names": "['/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM']",
+          "sample": "TTToSemiLeptonic",
+          "year": "2018",
+          "isMC": "True",
+          "xsec": "366.2852",
+          "nevents": "476408000",
+          "size": "1030792999916"
+        },
+        "files": [
+          "root://xrootd-cms.infn.it///store/mc/RunIISummer20UL18NanoAODv9/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/106X_upgrade2018_realistic_v16_L1v1-v1/120000/87DEE912-70CF-A549-B10B-1A229B256E88.root"
+        ]
+      }
+    },
+    "subsamples": {
+      "TTToSemiLeptonic": {
+        "type": "StandardSelection",
+        "categories": {
+          "TTToSemiLeptonic": [
+            {
+              "name": "passthrough",
+              "params": {},
+              "collection": "events",
+              "function": {
+                "name": "passthrough_f",
+                "module": "pocket_coffea.lib.cut_functions",
+                "src_file": "/usr/local/lib/python3.9/site-packages/pocket_coffea/lib/cut_functions.py",
+                "f_hash": 8775389770168
+              },
+              "id": "passthrough__7035195497912454814"
+            }
+          ]
+        },
+        "is_multidim": false,
+        "multidim_collection": null
+      }
+    }
+  },
+  "skim": [
+    {
+      "name": "passthrough",
+      "params": {},
+      "collection": "events",
+      "function": {
+        "name": "passthrough_f",
+        "module": "pocket_coffea.lib.cut_functions",
+        "src_file": "/usr/local/lib/python3.9/site-packages/pocket_coffea/lib/cut_functions.py",
+        "f_hash": 8775389770168
+      },
+      "id": "passthrough__7035195497912454814"
+    }
+  ],
+  "preselections": [
+    {
+      "name": "passthrough",
+      "params": {},
+      "collection": "events",
+      "function": {
+        "name": "passthrough_f",
+        "module": "pocket_coffea.lib.cut_functions",
+        "src_file": "/usr/local/lib/python3.9/site-packages/pocket_coffea/lib/cut_functions.py",
+        "f_hash": 8775389770168
+      },
+      "id": "passthrough__7035195497912454814"
+    }
+  ],
+  "categories": {
+    "type": "StandardSelection",
+    "categories": {
+      "baseline": [
+        {
+          "name": "passthrough",
+          "params": {},
+          "collection": "events",
+          "function": {
+            "name": "passthrough_f",
+            "module": "pocket_coffea.lib.cut_functions",
+            "src_file": "/usr/local/lib/python3.9/site-packages/pocket_coffea/lib/cut_functions.py",
+            "f_hash": 8775389770168
+          },
+          "id": "passthrough__7035195497912454814"
+        }
+      ],
+      "1btag": [
+        {
+          "name": "nBJetGood_min1",
+          "params": {
+            "N": 1,
+            "coll": "BJetGood"
+          },
+          "collection": "events",
+          "function": {
+            "name": "min_nObj",
+            "module": "pocket_coffea.lib.cut_functions",
+            "src_file": "/usr/local/lib/python3.9/site-packages/pocket_coffea/lib/cut_functions.py",
+            "f_hash": 8775389779222
+          },
+          "id": "nBJetGood_min1__-2327387632595337149"
+        }
+      ],
+      "2btag": [
+        {
+          "name": "nBJetGood_min2",
+          "params": {
+            "N": 2,
+            "coll": "BJetGood"
+          },
+          "collection": "events",
+          "function": {
+            "name": "min_nObj",
+            "module": "pocket_coffea.lib.cut_functions",
+            "src_file": "/usr/local/lib/python3.9/site-packages/pocket_coffea/lib/cut_functions.py",
+            "f_hash": 8775389779222
+          },
+          "id": "nBJetGood_min2__8516565931017806814"
+        }
+      ]
+    },
+    "is_multidim": false,
+    "multidim_collection": null
+  },
+  "workflow": {
+    "name": "BasicProcessor",
+    "workflow_options": {},
+    "srcfile": "/work/dvalsecc/ttHbb/PocketCoffea/tests/test_full_configs/test_new_weights/workflow.py"
+  },
+  "weights": {
+    "TTToSemiLeptonic": {
+      "bycategory": {
+        "baseline": [],
+        "1btag": [
+          "sf_mu_trigger",
+          "sf_btag"
+        ],
+        "2btag": [
+          "sf_mu_trigger",
+          "sf_btag"
+        ]
+      },
+      "inclusive": [
+        "genWeight",
+        "lumi",
+        "XS",
+        "pileup",
+        "sf_ele_id",
+        "sf_ele_reco",
+        "sf_mu_id",
+        "sf_mu_iso"
+      ]
+    }
+  },
+  "variations": {
+    "TTToSemiLeptonic": {
+      "weights": {
+        "baseline": [
+          "pileup",
+          "sf_ele_id",
+          "sf_ele_reco",
+          "sf_mu_id",
+          "sf_mu_iso"
+        ],
+        "1btag": [
+          "pileup",
+          "sf_ele_id",
+          "sf_ele_reco",
+          "sf_mu_id",
+          "sf_mu_iso",
+          "sf_btag",
+          "sf_mu_trigger"
+        ],
+        "2btag": [
+          "pileup",
+          "sf_ele_id",
+          "sf_ele_reco",
+          "sf_mu_id",
+          "sf_mu_iso",
+          "sf_btag"
+        ]
+      },
+      "shape": {
+        "baseline": [],
+        "1btag": [],
+        "2btag": []
+      }
+    }
+  },
+  "variables": {
+    "ElectronGood_eta": {
+      "axes": [],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "ElectronGood_pt": {
+      "axes": [],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "ElectronGood_phi": {
+      "axes": [],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "ElectronGood_etaSC": {
+      "axes": [],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "JetGood_eta": {
+      "axes": [],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "JetGood_pt": {
+      "axes": [],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "JetGood_phi": {
+      "axes": [],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "JetGood_btagDeepFlavB": {
+      "axes": [],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "JetGood_btagDeepFlavCvL": {
+      "axes": [],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "JetGood_btagDeepFlavCvB": {
+      "axes": [],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "nJetGood": {
+      "axes": [],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    }
+  },
+  "columns": {
+    "TTToSemiLeptonic": {
+      "baseline": [],
+      "1btag": [],
+      "2btag": []
+    }
+  }
+}

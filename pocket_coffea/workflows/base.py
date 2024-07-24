@@ -13,7 +13,7 @@ import logging
 from coffea import processor
 from coffea.analysis_tools import PackedSelection
 
-from ..lib.weights_manager import WeightsManager
+from ..lib.weights.weights_manager import WeightsManager
 from ..lib.columns_manager import ColumnsManager
 from ..lib.hist_manager import HistManager
 from ..lib.jets import jet_correction, met_correction, load_jet_factory
@@ -59,6 +59,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
         # Weights configuration
         self.weights_config_allsamples = self.cfg.weights_config
+        self.weights_classes = self.cfg.weights_classes
 
         # Load the jet calibration factory once for all chunks
         self.jmefactory = load_jet_factory(self.params)
@@ -289,32 +290,23 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
         pass
 
-    @classmethod
-    def available_weights(cls):
+    def define_weights(self):
         '''
-        Identifiers of the weights available thorugh this processor.
-        By default they are all the weights defined in the WeightsManager
-        '''
-        return WeightsManager.available_weights()
-
-    def compute_weights(self, variation):
-        '''
-        Function which define weights (called after preselection).
         The WeightsManager is build only for MC, not for data.
         The user processor can redefine this function to customize the
         weights computation object.
+        The WeightManager loads the weights configuration and precomputed
+        the available weights variations for the current chunk.
+        The Histmanager will ask the WeightsManager to have the available weights
+        variations to create histograms axis.
         '''
-        if not self._isMC:
-            self.weights_manager = None
-        else:
+        if self._isMC:
             # Creating the WeightsManager with all the configured weights
             self.weights_manager = WeightsManager(
                 self.params,
                 self.weights_config_allsamples[self._sample],
-                self.nEvents_after_presel,
-                self.events,  # to compute weights
+                self.weights_classes,
                 storeIndividual=False,
-                shape_variation=variation,
                 metadata={
                     "year": self._year,
                     "sample": self._sample,
@@ -323,6 +315,18 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     "xsec": self._xsec,
                 },
             )
+    
+    def compute_weights(self, variation):
+        '''
+        Function which computed the weights (called after preselection).
+        The current shape variation is passed to be used for the weights
+        calculation. 
+        '''
+        if self._isMC:
+            # Compute the weights
+            self.weights_manager.compute(self.events,
+                                         size=self.nEvents_after_presel,
+                                         shape_variation=variation)
 
     def compute_weights_extra(self, variation):
         '''Function that can be defined by user processors
@@ -387,8 +391,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self._sample,
             self._subsamples[self._sample].keys(),
             self._categories,
-            variations_config=self.cfg.variations_config[self._sample],
+            variations_config=self.cfg.variations_config[self._sample] if self._isMC else None,
             processor_params=self.params,
+            weights_manager=self.weights_manager if self._isMC else None,
             custom_axes=self.custom_axes,
             isMC=self._isMC,
         )
@@ -413,7 +418,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Calling hist manager with the subsample masks
         self.hists_managers.fill_histograms(
             self.events,
-            self.weights_manager,
             self._categories,
             subsamples=self._subsamples[self._sample],
             shape_variation=variation,
@@ -549,7 +553,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         Identifiers of the weights variabtions available thorugh this processor.
         By default they are all the weights defined in the WeightsManager
         '''
-        vars = WeightsManager.available_variations()
+        vars = []
         available_jet_types = [
             "AK4PFchs",
             "AK4PFPuppi",
@@ -573,7 +577,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Here we define the naming scheme for the jet variations
         # For each jet type, we define the variations names as `{variation}_{jet_type}`
         available_jet_variations = [f"{v}_{jt}" for v in available_jet_variations for jt in available_jet_types]
-        vars.update(available_jet_variations)
+        vars += available_jet_variations
         return vars
 
     def get_shape_variations(self):
@@ -709,7 +713,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self.output['sum_genweights'][self._dataset] = ak.sum(self.events.genWeight)
             self.output['sum_signOf_genweights'][self._dataset] = ak.sum(np.sign(self.events.genWeight))
 
-        self.weights_config = self.weights_config_allsamples[self._sample]
         ########################
         # Then the first skimming happens.
         # Events that are for sure useless are removed.
@@ -734,6 +737,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         #########################
 
         self.process_extra_after_skim()
+        # Define and load the weights manager
+        self.define_weights()
         # Create the HistManager and ColumnManager before systematic variations
         self.define_custom_axes_extra()
         self.define_histograms()
@@ -795,6 +800,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     # This information is taken from a weights config file for each _sample_
                     # Getting the original sample name to check weights config
                     sample = self.cfg.subsamples_reversed_map[samplename] #needed for subsamples
+                    if not self.cfg.samples_metadata[sample]['isMC']:
+                        continue
                     wei = self.cfg.weights_config[sample]['inclusive']
                     rescale = True
                     if 'signOf_genWeight' in wei and 'genWeight' not in wei:
@@ -819,6 +826,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 # Getting the first sample for the dataset in the "sumw" output
                 # it is working also for subsamples before the first sample key is the primary sample
                 sample_from_dataset = list(dataset_data.keys())[0]
+                if not self.cfg.samples_metadata[sample_from_dataset]['isMC']:
+                    continue
                 wei = self.cfg.weights_config[sample_from_dataset]['inclusive']
                 rescale = True
                 if 'signOf_genWeight' in wei and 'genWeight' not in wei:
@@ -841,6 +850,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         for cat, catdata in output["sumw2"].items():
             for dataset, dataset_data in catdata.items():
                 sample_from_dataset = list(dataset_data.keys())[0]
+                if not self.cfg.samples_metadata[sample_from_dataset]['isMC']:
+                    continue
                 wei = self.cfg.weights_config[sample_from_dataset]['inclusive']
                 rescale = True
                 if 'signOf_genWeight' in wei and 'genWeight' not in wei:

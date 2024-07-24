@@ -55,10 +55,10 @@ cfg = Configurator(
             "inclusive": ["genWeight","lumi","XS",
                           "pileup"],
             "bycategory": {
-                          }
+                          },
        },
         "bycategory" : {
-                       }
+                       },
         
         "bysample": {
         }
@@ -72,7 +72,7 @@ cfg = Configurator(
                 }
             },
         "bysample": {
-                    }
+                    },
         "bycategory": {
                     }
         },

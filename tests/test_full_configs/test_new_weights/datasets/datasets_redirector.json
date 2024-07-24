@@ -1,0 +1,31 @@
+{
+"TTToSemiLeptonic_2018": {
+        "metadata": {
+          "das_names": "['/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM']",
+          "sample": "TTToSemiLeptonic",
+          "year": "2018",
+          "isMC": "True",
+          "xsec": "366.2852",
+          "nevents": "476408000",
+          "size": "1030792999916"
+        },
+        "files": [
+          "root://xrootd-cms.infn.it///store/mc/RunIISummer20UL18NanoAODv9/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/106X_upgrade2018_realistic_v16_L1v1-v1/120000/87DEE912-70CF-A549-B10B-1A229B256E88.root"
+        ]
+},
+
+     "DATA_SingleMuon_2018_EraA": {
+        "metadata": {
+            "das_names": "['/SingleMuon/Run2018A-UL2018_MiniAODv2_NanoAODv9-v2/NANOAOD']",
+            "sample": "DATA_SingleMuon",
+            "year": "2018",
+            "isMC": "False",
+            "primaryDataset": "SingleMuon",
+            "era": "A",
+            "nevents": "241608232",
+            "size": "211774345140"
+        },
+        "files": [
+            "root://xrootd-cms.infn.it///store/data/Run2018A/SingleMuon/NANOAOD/UL2018_MiniAODv2_NanoAODv9-v2/2550000/AA26E054-373D-5241-A1B8-66F0D9D76632.root"]
+     }
+}
