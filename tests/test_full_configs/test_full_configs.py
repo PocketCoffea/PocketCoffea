@@ -15,6 +15,7 @@ def base_path() -> Path:
     return Path(__file__).parent
 
 
+reference_commit = "98fcca4c"
 
 def test_new_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_new_weights" )
@@ -47,7 +48,7 @@ def test_new_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_
     assert output is not None
     
     # Check the output
-    old_output = load("legacy_output/output_all.coffea")
+    old_output = load(f"output_{reference_commit}/output_all.coffea")
 
     for cat, data in old_output["sumw"].items():
         assert cat in output["sumw"]

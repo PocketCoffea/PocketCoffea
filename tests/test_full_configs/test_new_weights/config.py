@@ -35,7 +35,7 @@ cfg = Configurator(
     datasets = {
         "jsons": ['datasets/datasets_redirector.json'],
         "filter" : {
-            "samples": ['TTToSemiLeptonic', "DATA_SingleMuon"],
+            "samples": ['TTTo2L2Nu', "DATA_SingleMuon"],
             "samples_exclude" : [],
             "year": ['2018']
         }
@@ -64,7 +64,7 @@ cfg = Configurator(
                           },
        },
         "bysample": {
-            "TTToSemiLeptonic": {
+            "TTTo2L2Nu": {
                 "bycategory": {
                     "1btag": ["sf_btag"],
                     "2btag": ["sf_btag"],
@@ -88,7 +88,7 @@ cfg = Configurator(
                 }
             },
             "bysample": {
-                "TTToSemiLeptonic": {
+                "TTTo2L2Nu": {
                     "bycategory": {
                         "1btag": ["sf_mu_trigger"]
                     }

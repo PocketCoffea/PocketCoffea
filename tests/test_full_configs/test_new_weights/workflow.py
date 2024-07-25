@@ -40,7 +40,8 @@ class BasicProcessor(BaseProcessorABC):
 
         self.events["JetGood"], self.jetGoodMask = jet_selection(
             self.events, "Jet", self.params,
-            self._year, leptons_collection="LeptonGood"
+            self._year, 
+            leptons_collection="LeptonGood"
         )
 
         self.events["BJetGood"] = btagging(
