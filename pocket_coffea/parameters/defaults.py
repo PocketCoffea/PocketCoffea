@@ -31,7 +31,8 @@ def get_default_parameters():
     - lumi
     - jet_scale_factors: btagSF, jetPuID
     - btagging
-    - lepton_scale_factors.
+    - lepton_scale_factors
+    - column configuration.
 
     The use can use this function to get a basic set of parameters to customize
     in each analysis.
@@ -49,7 +50,8 @@ def get_default_parameters():
     )
     syst_variations = OmegaConf.load(os.path.join(basedir, 'variations.yaml'))
     plotting_style = OmegaConf.load(os.path.join(basedir, 'plotting_style.yaml'))
-
+    columns_config = OmegaConf.load(os.path.join(basedir, 'columns_config.yaml'))
+    
     all = OmegaConf.merge(
         pileup,
         event_flags,
@@ -59,7 +61,8 @@ def get_default_parameters():
         btagging,
         lepton_scale_factors,
         syst_variations,
-        plotting_style
+        plotting_style,
+        columns_config
     )
     # resolve the config to catch problems
     OmegaConf.resolve(all)
