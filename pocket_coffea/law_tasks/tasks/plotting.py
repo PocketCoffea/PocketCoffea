@@ -6,6 +6,7 @@ from pocket_coffea.law_tasks.configuration.general import (
     plottingsystematicsconfig,
 )
 from pocket_coffea.law_tasks.tasks.base import BaseTask
+from pocket_coffea.law_tasks.tasks.base import BaseTask
 from pocket_coffea.law_tasks.tasks.runner import Runner
 from pocket_coffea.law_tasks.utils import (
     exclude_samples_from_plotting,
@@ -26,11 +27,6 @@ class PlotterBase(BaseTask):
 
     def requires(self):
         return Runner.req(self)
-
-    def store_parts(self) -> tuple[str]:
-        if self.test:
-            return super().store_parts() + ("test",)
-        return super().store_parts()
 
     def setup_plot_manager(self):
         inp = self.input()
@@ -82,8 +78,6 @@ class Plotter(PlotterBase):
     def output(self):
         blind_str = "blind" if self.blind else "data-mc"
         yscale_str = "log" if self.log_scale else "lin"
-        if self.plot_dir != law.NO_STR:
-            return self.local_file_target(self.plot_dir, blind_str, yscale_str, ".plots_done")
         return self.local_file_target(blind_str, yscale_str, ".plots_done")
 
     def run(self):
@@ -102,9 +96,7 @@ class PlotSystematics(PlotterBase):
     def output(self):
         syst_str = "systematics_ratio" if self.ratio else "systematics"
         yscale_str = "log" if self.log_scale else "lin"
-        if self.plot_dir != law.NO_STR:
-            return self.local_file_target(self.plot_dir, syst_str, yscale_str, ".plots_done")
-        return self.local_file_target(syst_str, yscale_str, ".plots_done")
+        return (syst_str, yscale_str)
 
     def run(self):
         plot_manager = self.setup_plot_manager()
