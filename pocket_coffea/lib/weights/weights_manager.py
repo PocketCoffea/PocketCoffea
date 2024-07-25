@@ -58,8 +58,9 @@ class WeightsManager:
                     self._available_modifiers_byweight[w] = [w+"Up", w+"Down"]
                 else:
                     self._available_modifiers_byweight[w] = [f"{w}_{v}{var}" for v in vars for var in ["Up", "Down"]]
+            else:
+                self._available_modifiers_byweight[w] = []
             
-        
         self.storeIndividual = storeIndividual
         # Dictionary keeping track of which modifier can be applied to which region
         self._available_modifiers_inclusive = []
