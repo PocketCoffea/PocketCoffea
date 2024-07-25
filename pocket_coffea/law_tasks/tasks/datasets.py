@@ -9,6 +9,7 @@ import luigi.util
 from pocket_coffea.law_tasks.configuration.general import (
     datasetconfig,
 )
+from pocket_coffea.law_tasks.tasks.base import BaseTask
 from pocket_coffea.law_tasks.utils import (
     create_datasets_paths,
     merge_datasets_definition,
@@ -81,8 +82,10 @@ from pocket_coffea.utils.dataset import build_datasets
 
 # @luigi.util.requires(MergeDatasetsDefinition)
 @luigi.util.inherits(datasetconfig)
-class CreateDatasets(law.Task):
+class CreateDatasets(BaseTask):
     """Create dataset json files"""
+    # datasets are independent of the version
+    version = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -93,7 +96,7 @@ class CreateDatasets(law.Task):
             raise FileNotFoundError(
                 law.util.colored(
                     "No datasets definition file found."
-                    "Check the path to the datasets definition file:"
+                    "Check the path to the datasets definition file: "
                     f"{self.dataset_definition}",
                     color="light red",
                 ),
@@ -109,12 +112,10 @@ class CreateDatasets(law.Task):
 
         # make sure, that the dataset_dir is full path in the datasets definition
         # so that the build_datasets function saves it at the correct path
-        self.merged_dataset_file = os.path.join(
-            self.dataset_dir, "datasets_merged.json"
-        )
+        self.merged_dataset_file = self.local_path("datasets_merged.json")
         self.merged_datasets = modify_dataset_output_path(
             dataset_definition=self.merged_datasets,
-            output_dir=self.dataset_dir,
+            output_dir=self.merged_dataset_file.parent,
             filename=self.merged_dataset_file,
         )
 
@@ -124,7 +125,7 @@ class CreateDatasets(law.Task):
             law.LocalFileTarget(dataset)
             for dataset in create_datasets_paths(
                 datasets=self.merged_datasets,
-                output_dir=self.dataset_dir,
+                output_dir=self.merged_dataset_file.parent,
                 split_by_year=self.split_by_year,
             )
         ]

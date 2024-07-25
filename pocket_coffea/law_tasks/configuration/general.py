@@ -11,10 +11,10 @@ class baseconfig(luigi.Config):
         description="Config file with parameters specific to the current run",
         default=os.path.join(os.getcwd(), "config.py"),
     )
-    output_dir = luigi.Parameter(
-        description="Output directory for the coffea processor and plots",
-        default=os.path.join(os.getcwd(), "output"),
-    )
+    # output_dir = luigi.Parameter(
+    #     description="Output directory for the coffea processor and plots",
+    #     default=os.path.join(os.getcwd(), "output"),
+    # )
 
 
 class datasetconfig(luigi.Config):

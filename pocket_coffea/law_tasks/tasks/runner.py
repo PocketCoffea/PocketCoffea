@@ -4,6 +4,7 @@ import law
 import law.contrib
 import luigi
 from pocket_coffea.law_tasks.configuration.general import baseconfig, runnerconfig
+from pocket_coffea.law_tasks.tasks.base import BaseTask
 from pocket_coffea.law_tasks.tasks.datasets import CreateDatasets
 from pocket_coffea.law_tasks.utils import (
     get_executor,
@@ -19,7 +20,12 @@ law.contrib.load("coffea")
 
 
 @luigi.util.inherits(baseconfig)
-class JetCalibration(law.Task):
+class JetCalibration(BaseTask):
+    # set version to None, Jet calibration is independend of analysis or version
+    version = None
+    # skip output removal if not interactively
+    skip_output_removal = True
+
     def __init__(self, *args, **kwargs):
         # initialize task and all parameters
         super().__init__(*args, **kwargs)
@@ -36,7 +42,7 @@ class JetCalibration(law.Task):
 
 
 @luigi.util.inherits(baseconfig, runnerconfig)
-class Runner(law.Task):
+class Runner(BaseTask):
     """Run the analysis with pocket_coffea
     requires CreateDatasets task
     """
@@ -56,9 +62,7 @@ class Runner(law.Task):
 
     def output(self):
         return {
-            key: law.LocalFileTarget(
-                os.path.join(os.path.abspath(self.output_dir), filename)
-            )
+            key: self.local_file_target(filename)
             for key, filename in [
                 ("coffea", self.coffea_output),
                 ("parameters", "parameters_dump.yaml"),
@@ -69,11 +73,12 @@ class Runner(law.Task):
 
     def run(self):
         # create output folder if it does not exist
-        self.output()["coffea"].parent.touch()
+        output = self.output()["coffea"]
+        output.parent.touch()
 
         # load analysis configuration
         self.config, run_options = load_analysis_config(
-            self.cfg, output_dir=self.output_dir
+            self.cfg, output_dir=self.local_path()
         )
         run_options, self.config = load_run_options(
             run_options=run_options,
@@ -85,15 +90,13 @@ class Runner(law.Task):
             limit_chunks=self.limit_chunks,
         )
 
-        executor = get_executor(
-            self.executor, run_options, self.output()["coffea"].parent
-        )
+        executor = get_executor(self.executor, run_options, output.parent.path)
 
         process_datasets(
             coffea_executor=executor,
             config=self.config,
             run_options=run_options,
             processor_instance=self.config.processor_instance,
-            output_path=self.output()["coffea"].path,
+            output_path=output.path,
             process_separately=self.process_separately,
         )
