@@ -134,7 +134,7 @@ def count_objects_gt(events, params, **kwargs):
     return ak.where(ak.is_none(mask), False, mask)
 
 
-def count_objects_lt(events, params, year, sample):
+def count_objects_lt(events, params, **kwargs):
     '''
     Count the number of objects in `params["object"]` and
     keep only events with smaller (<) amount than `params["value"]`.
@@ -143,7 +143,7 @@ def count_objects_lt(events, params, year, sample):
     return ak.where(ak.is_none(mask), False, mask)
 
 
-def count_objects_eq(events, params, year, sample):
+def count_objects_eq(events, params, **kwargs):
     '''
     Count the number of objects in `params["object"]` and
     keep only events with same (==) amount than `params["value"]`.
