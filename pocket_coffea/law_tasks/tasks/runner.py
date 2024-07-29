@@ -25,7 +25,7 @@ class JetCalibration(BaseTask):
     version = None
     # skip output removal if not interactively
     skip_output_removal = True
-    
+
     def __init__(self, *args, **kwargs):
         # initialize task and all parameters
         super().__init__(*args, **kwargs)
@@ -67,7 +67,8 @@ class Runner(BaseTask):
 
     def output(self):
         return {
-            key: self.local_file_target(filename) for key, filename in [
+            key: self.local_file_target(filename)
+            for key, filename in [
                 ("coffea", self.coffea_output),
                 ("parameters", "parameters_dump.yaml"),
                 ("config", "config.json"),

@@ -6,7 +6,6 @@ from pocket_coffea.law_tasks.configuration.general import (
     plottingsystematicsconfig,
 )
 from pocket_coffea.law_tasks.tasks.base import BaseTask
-from pocket_coffea.law_tasks.tasks.base import BaseTask
 from pocket_coffea.law_tasks.tasks.runner import Runner
 from pocket_coffea.law_tasks.utils import (
     exclude_samples_from_plotting,
@@ -39,7 +38,9 @@ class PlotterBase(BaseTask):
             inp["parameters"].abspath, self.plot_style
         )
         if self.blind:
-            data_samples = load_sample_names(inp["config"].path, prefix="DATA")
+            data_samples = load_sample_names(
+                inp["config"].path, prefix="DATA"
+            )
             plotting_parameters = exclude_samples_from_plotting(
                 plotting_parameters, data_samples
             )
