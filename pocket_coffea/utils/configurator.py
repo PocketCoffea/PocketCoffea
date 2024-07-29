@@ -149,11 +149,15 @@ class Configurator:
         # The list of strings is taken from the names of the list of weights classes
         # passed to the configurator.
         self.available_weights = []
+        self.requested_weights = []
         for w in self.weights_classes:
             self.available_weights.append(w.name)
          
         self.load_weights_config(self.weights_cfg)
-
+        # keeping a unique list of requested weight to load
+        self.requested_weights = list(set(self.requested_weights))
+        self.weights_classes = list(filter(lambda x: x.name in self.requested_weights, self.weights_classes))
+        
         ## Variations configuration
         # The structure is very similar to the weights one,
         # but the common and inclusive collections are fully flattened on a
@@ -333,6 +337,7 @@ class Configurator:
             if w not in self.available_weights:
                 print(f"Weight {w} not available in the workflow")
                 raise Exception("Wrong weight configuration")
+            self.requested_weights.append(w)
             # do now check if the weights is not string but custom
             for wsample in self.weights_config.values():
                 # add the weight to all the categories and samples
@@ -344,6 +349,7 @@ class Configurator:
                     if w not in self.available_weights:
                         print(f"Weight {w} not available in the workflow")
                         raise Exception("Wrong weight configuration")
+                    self.requested_weights.append(w)
                     for wsample in self.weights_config.values():
                         wsample["is_split_bycat"] = True
                         # looping on all the samples for this category
@@ -368,6 +374,7 @@ class Configurator:
                         if w not in self.available_weights:
                             print(f"Weight {w} not available in the workflow")
                             raise Exception("Wrong weight configuration")
+                        self.requested_weights.append(w)
                         # append only to the specific sample
                         self.weights_config[sample]["inclusive"].append(w)
 
@@ -382,6 +389,7 @@ class Configurator:
                                     f"""Error! Trying to include weight {w}
                                 by category, but it is already included inclusively!"""
                                 )
+                            self.requested_weights.append(w)
                             self.weights_config[sample]["bycategory"][cat].append(w)
                             self.weights_config[sample]["is_split_bycat"] = True
 
