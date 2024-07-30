@@ -16,10 +16,14 @@ def set_proxy(dask_worker):
 
 class DaskExecutorFactory(ExecutorFactoryABC):
 
-    def __init__(self, run_options, sched_port, proxy_path, outputdir, **kwargs):
+    def __init__(self, run_options, outputdir, **kwargs):
         self.outputdir = outputdir
-        self.sched_port = sched_port
-        self.proxy_path = proxy_path
+        if "sched-port" not in run_options:
+            raise Exception("User need to specify `sched-port` in the custom run options!")
+        self.sched_port = run_options["sched-port"]
+        if "proxy-path" not in run_options:
+            raise Exception("User need to specify `proxy-path` in the custom run options!")
+        self.proxy_path = run_options["proxy-path"]
         super().__init__(run_options, **kwargs)
         
     def setup(self):
@@ -33,6 +37,8 @@ class DaskExecutorFactory(ExecutorFactoryABC):
     def customized_args(self):
         args = super().customized_args()
         args["client"] = self.dask_client
+        args["treereduction"] = self.run_options["tree-reduction"]
+        args["retries"] = self.run_options["retries"]
         return args
     
     def get(self):
