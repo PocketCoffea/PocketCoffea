@@ -151,8 +151,8 @@ def create_datasets_paths(
 
 def modify_dataset_output_path(
     dataset_definition: Union[FileName, dict],
-    output_dir: FileName,
-    filename: str = None,
+    dataset_configuration: dict,
+    output_file: FileName = None,
 ) -> dict:
     """
     Modify the dataset definition file to include the full output path
@@ -161,27 +161,31 @@ def modify_dataset_output_path(
     :param dataset_definition: The path to the dataset definition file or
         the dataset definition as a dictionary.
     :type dataset_definition: Union[FileName, dict]
-    :param output_paths: The output directory.
-    :type output_paths: str or os.PathLike
-    :param filename: The name of the output file. If provided, the modified
+    :param dataset_configuration: The configuration for the datasets from the configurator.
+    :type dataset_configuration: dict
+    :param output_file: The name of the output file. If provided, the modified
         dataset definition will be saved with this filename in the output directory.
         If not provided, the modified dataset definition will not be saved.
         Default is None.
-    :type filename: str, optional
+    :type output_file: str or os.PathLike
     :return: The modified dataset definition as a dictionary.
     :rtype: dict
     """
     if any(isinstance(dataset_definition, inst) for inst in typing.get_args(FileName)):
         dataset_definition = read_datasets_definition(dataset_definition)
 
+    # get json outputs from configuration
+    jsons = dataset_configuration["jsons"]
     for dataset in dataset_definition.values():
-        dataset["json_output"] = os.path.join(output_dir, dataset["json_output"])
+        dataset_json = dataset["json_output"]
+        # check for matching filenames
+        for json_output in jsons:
+            json_output = str(json_output)
+            if json_output.endswith(dataset_json):
+                dataset["json_output"] = json_output
 
-    if filename is not None:
-        output_file = os.path.join(
-            output_dir,
-            filename,
-        )
+    if output_file is not None:
+        output_dir = os.path.dirname(output_file)
         if not os.path.exists(output_dir):
             os.makedirs(output_dir, exist_ok=True)
         with open(output_file, "w") as f:

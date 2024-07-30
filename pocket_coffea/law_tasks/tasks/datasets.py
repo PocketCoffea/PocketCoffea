@@ -6,12 +6,11 @@ import os
 import law
 import luigi
 import luigi.util
-from pocket_coffea.law_tasks.configuration.general import (
-    datasetconfig,
-)
+from pocket_coffea.law_tasks.configuration.general import baseconfig, datasetconfig
 from pocket_coffea.law_tasks.tasks.base import BaseTask
 from pocket_coffea.law_tasks.utils import (
     create_datasets_paths,
+    import_analysis_config,
     merge_datasets_definition,
     modify_dataset_output_path,
 )
@@ -81,9 +80,11 @@ from pocket_coffea.utils.dataset import build_datasets
 
 
 # @luigi.util.requires(MergeDatasetsDefinition)
+@luigi.util.inherits(baseconfig)
 @luigi.util.inherits(datasetconfig)
 class CreateDatasets(BaseTask):
     """Create dataset json files"""
+
     # datasets are independent of the version
     version = None
 
@@ -102,6 +103,10 @@ class CreateDatasets(BaseTask):
                 ),
             )
 
+        # load config and get dataset configuration
+        self.config, _ = import_analysis_config(self.cfg)
+        self.dataset_config = self.config.datasets_cfg
+
         # load the datasets definition files and merge them into one
         self.merged_datasets = merge_datasets_definition(
             [
@@ -113,10 +118,10 @@ class CreateDatasets(BaseTask):
         # make sure, that the dataset_dir is full path in the datasets definition
         # so that the build_datasets function saves it at the correct path
         self.merged_dataset_file = self.local_path("datasets_merged.json")
+        # modify paths but do not save them yet, only in run method
         self.merged_datasets = modify_dataset_output_path(
             dataset_definition=self.merged_datasets,
-            output_dir=self.merged_dataset_file.parent,
-            filename=self.merged_dataset_file,
+            dataset_configuration=self.dataset_config,
         )
 
     def output(self):
@@ -131,6 +136,13 @@ class CreateDatasets(BaseTask):
         ]
 
     def run(self):
+        # modify paths and save the definition in merged output file
+        modify_dataset_output_path(
+            dataset_definition=self.merged_datasets,
+            dataset_configuration=self.dataset_config,
+            output_file=self.merged_dataset_file,
+        )
+
         # build the dataset json file
         build_datasets(
             cfg=self.merged_dataset_file,
