@@ -6,9 +6,7 @@ import os
 import law
 import luigi
 import luigi.util
-from pocket_coffea.law_tasks.configuration.general import (
-    datasetconfig,
-)
+from pocket_coffea.law_tasks.configuration.general import baseconfig, datasetconfig
 from pocket_coffea.law_tasks.tasks.base import BaseTask
 from pocket_coffea.law_tasks.utils import (
     create_datasets_paths,
@@ -82,9 +80,11 @@ from pocket_coffea.utils.dataset import build_datasets
 
 
 # @luigi.util.requires(MergeDatasetsDefinition)
+@luigi.util.inherits(baseconfig)
 @luigi.util.inherits(datasetconfig)
 class CreateDatasets(BaseTask):
     """Create dataset json files"""
+
     # datasets are independent of the version
     version = None
 
@@ -122,6 +122,7 @@ class CreateDatasets(BaseTask):
         # make sure, that the dataset_dir is full path in the datasets definition
         # so that the build_datasets function saves it at the correct path
         self.merged_dataset_file = self.local_path("datasets_merged.json")
+        # modify paths but do not save them yet, only in run method
         self.merged_datasets = modify_dataset_output_path(
             dataset_definition=self.merged_datasets,
             dataset_configuration=self.dataset_config,
