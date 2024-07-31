@@ -64,7 +64,7 @@ def test_custom_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_pa
     run_options = defaults.get_default_run_options()["general"]
     run_options["limit-files"] = 1
     run_options["limit-chunks"] = 1
-    run_options["chunksize"] = 10000
+    run_options["chunksize"] = 500
     config.filter_dataset(run_options["limit-files"])
 
     executor_factory = executors_lib.get_executor_factory("iterative",
@@ -120,7 +120,7 @@ def test_cartesian_categorization(base_path: Path, monkeypatch: pytest.MonkeyPat
     run_options = defaults.get_default_run_options()["general"]
     run_options["limit-files"] = 1
     run_options["limit-chunks"] = 1
-    run_options["chunksize"] = 10000
+    run_options["chunksize"] = 500
     config.filter_dataset(run_options["limit-files"])
 
     executor_factory = executors_lib.get_executor_factory("iterative",
@@ -144,6 +144,8 @@ def test_cartesian_categorization(base_path: Path, monkeypatch: pytest.MonkeyPat
     assert H[{ "cat": "3j_0b", "variation": "nominal"}].values()[1:].sum() == 0.
 
 
+## ------------------------------------------------------------------------------------
+
 def test_subsamples(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_categorization" )
     outputdir = tmp_path_factory.mktemp("test_categorization_subsamples")
@@ -164,7 +166,7 @@ def test_subsamples(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_f
     run_options = defaults.get_default_run_options()["general"]
     run_options["limit-files"] = 1
     run_options["limit-chunks"] = 1
-    run_options["chunksize"] = 10000
+    run_options["chunksize"] = 500
     config.filter_dataset(run_options["limit-files"])
 
     executor_factory = executors_lib.get_executor_factory("iterative",
@@ -182,35 +184,86 @@ def test_subsamples(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_f
     output = run(config.filesets, treename="Events",
                  processor_instance=config.processor_instance)
     save(output, outputdir / "output_all.coffea")
-    
- 
+
     assert output is not None
     assert output["cutflow"] == {
-        'initial': {'DATA_EGamma_2018_EraA': 10004,
-                    'DATA_SingleMuon_2018_EraA': 10010,
-                    'TTTo2L2Nu_2018': 10000},
-        'skim': {'DATA_EGamma_2018_EraA': 6514,
-                 'DATA_SingleMuon_2018_EraA': 8157,
-                 'TTTo2L2Nu_2018': 6220},
-        'presel': {'DATA_EGamma_2018_EraA': 6514,
-                   'DATA_SingleMuon_2018_EraA': 8157,
-                   'TTTo2L2Nu_2018': 6220},
-        'baseline': {'DATA_EGamma_2018_EraA': {'DATA_SingleEle': 6514},
-                     'DATA_SingleMuon_2018_EraA': {'DATA_SingleMuon': 8157,
-                                                   'DATA_SingleMuon__clean': 8149},
-                     'TTTo2L2Nu_2018': {'TTTo2L2Nu': 6220,
-                                        'TTTo2L2Nu__ele': 1900,
-                                        'TTTo2L2Nu__mu': 2911}},
-        '1btag': {'DATA_EGamma_2018_EraA': {'DATA_SingleEle': 342},
-                  'DATA_SingleMuon_2018_EraA': {'DATA_SingleMuon': 754,
-                                                'DATA_SingleMuon__clean': 750},
-                  'TTTo2L2Nu_2018': {'TTTo2L2Nu': 5174,
-                                     'TTTo2L2Nu__ele': 1594,
-                                     'TTTo2L2Nu__mu': 2414}},
-        '2btag': {'DATA_EGamma_2018_EraA': {'DATA_SingleEle': 30},
-                  'DATA_SingleMuon_2018_EraA': {'DATA_SingleMuon': 103,
-                                                'DATA_SingleMuon__clean': 100},
-                  'TTTo2L2Nu_2018': {'TTTo2L2Nu': 2285,
-                                     'TTTo2L2Nu__ele': 691,
-                                     'TTTo2L2Nu__mu': 1074}}}
+        'initial': {'DATA_EGamma_2018_EraA': 501,
+                    'DATA_SingleMuon_2018_EraA': 501,
+                    'TTTo2L2Nu_2018': 500},
+        'skim': {'DATA_EGamma_2018_EraA': 333,
+                 'DATA_SingleMuon_2018_EraA': 421,
+                 'TTTo2L2Nu_2018': 326},
+        'presel': {'DATA_EGamma_2018_EraA': 333,
+                   'DATA_SingleMuon_2018_EraA': 421,
+                   'TTTo2L2Nu_2018': 326},
+        'baseline': {'DATA_EGamma_2018_EraA': {'DATA_SingleEle': 333},
+                     'DATA_SingleMuon_2018_EraA': {'DATA_SingleMuon': 421,
+                                                   'DATA_SingleMuon__clean': 421},
+                     'TTTo2L2Nu_2018': {'TTTo2L2Nu': 326,
+                                        'TTTo2L2Nu__ele': 107,
+                                        'TTTo2L2Nu__mu': 156}},
+        '1btag': {'DATA_EGamma_2018_EraA': {'DATA_SingleEle': 16},
+                  'DATA_SingleMuon_2018_EraA': {'DATA_SingleMuon': 50,
+                                                'DATA_SingleMuon__clean': 50},
+                  'TTTo2L2Nu_2018': {'TTTo2L2Nu': 279,
+                                     'TTTo2L2Nu__ele': 89,
+                                     'TTTo2L2Nu__mu': 138}},
+        '2btag': {'DATA_EGamma_2018_EraA': {'DATA_SingleEle': 2},
+                  'DATA_SingleMuon_2018_EraA': {'DATA_SingleMuon': 5,
+                                                'DATA_SingleMuon__clean': 5},
+                  'TTTo2L2Nu_2018': {'TTTo2L2Nu': 115,
+                                     'TTTo2L2Nu__ele': 39,
+                                     'TTTo2L2Nu__mu': 55}}}
+
     
+
+# ----------------------------------------------------------------------------------------
+
+def test_skimming(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
+    monkeypatch.chdir(base_path / "test_skimming" )
+    outputdir = tmp_path_factory.mktemp("test_skimming")
+    outputdir_skim = tmp_path_factory.mktemp("test_skimming_skim")
+    config = load_config("config.py", save_config=True, outputdir=outputdir)
+    assert isinstance(config, Configurator)
+
+    # Check the subsamples config
+    assert config.save_skimmed_files != None
+    config.save_skimmed_files = outputdir_skim.as_posix()
+    # this means that the processing will stop at the skimming step
+
+    run_options = defaults.get_default_run_options()["general"]
+    run_options["limit-files"] = 1
+    run_options["limit-chunks"] = 1
+    run_options["chunksize"] = 10
+    config.filter_dataset(run_options["limit-files"])
+
+    executor_factory = executors_lib.get_executor_factory("iterative",
+                                                          run_options=run_options,
+                                                          outputdir=outputdir)
+
+    executor = executor_factory.get()
+
+    run = Runner(
+        executor=executor,
+        chunksize=run_options["chunksize"],
+        maxchunks=run_options["limit-chunks"],
+        schema=processor.NanoAODSchema,
+        format="root"
+    )
+    output = run(config.filesets, treename="Events",
+                 processor_instance=config.processor_instance)
+    save(output, outputdir / "output_all.coffea")
+    
+    assert output is not None
+
+    assert "skimmed_files" in output
+    assert "nskimmed_events" in output
+    for dataset, files in output["skimmed_files"].items():
+        for file in files:
+            assert Path(file).exists()
+    for dataset, nevents in output["nskimmed_events"].items():
+        if output["datasets_metadata"]["by_dataset"][dataset]["isMC"] == "True":
+            assert output["sum_genweights"][dataset] > 0
+        for nevent in nevents:
+            assert nevent > 0
+            
