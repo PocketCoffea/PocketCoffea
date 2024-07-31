@@ -335,7 +335,7 @@ class Configurator:
         # common/inclusive weights
         for w in wcfg["common"]["inclusive"]:
             if w not in self.available_weights:
-                print(f"Weight {w} not available in the workflow")
+                print(f"Weight {w} not available in the configuration. Did you add it in the weights_classes?")
                 raise Exception("Wrong weight configuration")
             self.requested_weights.append(w)
             # do now check if the weights is not string but custom
@@ -347,7 +347,7 @@ class Configurator:
             for cat, weights in wcfg["common"]["bycategory"].items():
                 for w in weights:
                     if w not in self.available_weights:
-                        print(f"Weight {w} not available in the workflow")
+                        print(f"Weight {w} not available in the configuration. Did you add it in the weights_classes?")
                         raise Exception("Wrong weight configuration")
                     self.requested_weights.append(w)
                     for wsample in self.weights_config.values():
@@ -372,7 +372,7 @@ class Configurator:
                 if "inclusive" in s_wcfg:
                     for w in s_wcfg["inclusive"]:
                         if w not in self.available_weights:
-                            print(f"Weight {w} not available in the workflow")
+                            print(f"Weight {w} not available in the configuration. Did you add it in the weights_classes?")
                             raise Exception("Wrong weight configuration")
                         self.requested_weights.append(w)
                         # append only to the specific sample
@@ -382,7 +382,7 @@ class Configurator:
                     for cat, weights in s_wcfg["bycategory"].items():
                         for w in weights:
                             if w not in self.available_weights:
-                                print(f"Weight {w} not available in the workflow")
+                                print(f"Weight {w} not available in the configuration. Did you add it in the weights_classes?")
                                 raise Exception("Wrong weight configuration")
                             if w in self.weights_config[sample]["inclusive"]:
                                 raise Exception(
