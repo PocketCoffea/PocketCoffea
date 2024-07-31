@@ -41,6 +41,7 @@ class DaskExecutorFactory(ExecutorFactoryABC):
         # the local virtual environment. 
         if self.run_options.get("local-virtualenv", False):
             env_worker.append(f"source {sys.prefix}/bin/activate")
+            env_worker.append(f"export PYTHONPATH={sys.prefix}/lib:$PYTHONPATH")
 
         return env_worker
     
