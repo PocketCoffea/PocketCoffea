@@ -269,8 +269,9 @@ class Configurator:
                 self.has_subsamples[sample] = False
 
         # Complete list of samples and subsamples
-        self.total_samples_list = list(set(self.samples + self.subsamples_list))
-
+        self.total_samples_list = list(sorted(set(self.samples + self.subsamples_list)))
+        self.subsamples_list = list(sorted(set(self.subsamples_list)))
+        
         # Now saving the subsamples definition cuts
         for sample in self.samples:
             if sample in subsamples_dict:

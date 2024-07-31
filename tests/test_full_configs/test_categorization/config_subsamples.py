@@ -43,54 +43,45 @@ cfg = Configurator(
     datasets = {
         "jsons": ['datasets/datasets_cern.json'],
         "filter" : {
-            "samples": ['TTTo2L2Nu', "DATA_SingleMuon"],
+            "samples": ['TTTo2L2Nu', "DATA_SingleMuon", "DATA_SingleEle"],
             "samples_exclude" : [],
             "year": ['2018']
+        },
+        "subsamples": {
+            "TTTo2L2Nu": {
+                "ele": [get_nObj_min(1, coll="ElectronGood"), get_nObj_eq(0, coll="MuonGood")],
+                "mu":  [get_nObj_eq(0, coll="ElectronGood"), get_nObj_min(1, coll="MuonGood")],
+            },
+            "DATA_SingleMuon": {
+                "clean": [get_HLTsel(primaryDatasets=["SingleEle"], invert=True)], # crosscleaning SingleELe trigger on SIngleMuon
+            }
         }
     },
 
     workflow = BasicProcessor,
 
-    skim = [get_nPVgood(1), eventFlags, goldenJson], 
+    skim = [get_nPVgood(1), eventFlags, goldenJson,
+            get_HLTsel(primaryDatasets=["SingleMuon", "SingleEle"])], 
 
     preselections = [passthrough],
-    categories = CartesianSelection(
-        multicuts = [
-            MultiCut(name="Njets",
-                     cuts=[
-                         get_nObj_eq(1, 30., "JetGood"),
-                         get_nObj_eq(2, 30., "JetGood"),
-                         get_nObj_min(3, 30., "JetGood"),
-                     ],
-                     cuts_names=["1j","2j","3j"]),
-            MultiCut(name="Nbjet",
-                    cuts=[
-                         get_nObj_eq(0, 15., "BJetGood"),
-                         get_nObj_eq(1, 15., "BJetGood"),
-                         get_nObj_eq(2, 15., "BJetGood"),
-                         get_nObj_min(3, coll="BJetGood"),
-                     ],
-                     cuts_names=["0b","1b","2b","3b"])
-        ],
-        common_cats = {
-            "inclusive": [passthrough],
-            "4jets_40pt" : [get_nObj_min(4, 40., "JetGood")]
-        }
-    ),
+    categories = {
+        "baseline": [passthrough],
+        "1btag": [get_nObj_min(1, coll="BJetGood")],
+        "2btag": [get_nObj_min(2, coll="BJetGood")],
+    },
 
     weights = {
         "common": {
             "inclusive": ["genWeight","lumi","XS","pileup",
                           "sf_ele_id","sf_ele_reco",
-                          "sf_mu_id","sf_mu_iso",
-                          ]
+                          "sf_mu_id","sf_mu_iso"
+                          ],
+            "bycategory": {
+                "1btag": ["sf_btag"],
+                "2btag": ["sf_btag"],
+            },
        },
         "bysample": {
-            "TTTo2L2Nu": {
-                "bycategory": {
-                    "2j_2b": ["sf_btag"],
-                }
-            }
         }
     },
     # Passing a list of WeightWrapper objects
@@ -102,15 +93,15 @@ cfg = Configurator(
                 "inclusive": [ "pileup",
                                "sf_ele_id", "sf_ele_reco",
                                "sf_mu_id", "sf_mu_iso",
-                               ],  
+                               ],
+                "bycategory" : {
+                    "1btag": ["sf_btag"],
+                    "2btag": ["sf_btag"],
+                }
             },
             "bysample": {
-                "TTTo2L2Nu": {
-                    "bycategory": {
-                        "2j_2b": ["sf_btag"]
-                    }
             }
-            }
+        
         },
     },
 
