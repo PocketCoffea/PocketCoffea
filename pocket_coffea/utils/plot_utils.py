@@ -64,6 +64,13 @@ class Style:
         self.has_rescale_samples=False
         if "rescale_samples" in style_cfg:
             self.has_rescale_samples = True
+
+        self.has_blind_hists = False
+        if "blind_hists" in style_cfg:
+            if 'categories' in style_cfg["blind_hists"] and 'histograms' in style_cfg["blind_hists"]:
+                if len(style_cfg["blind_hists"]["categories"])!=0 and len(style_cfg["blind_hists"]["histograms"])!=0:
+                    self.has_blind_hists = True
+            
         self.set_defaults()
 
         #print("Style config:\n", style_cfg)
@@ -771,7 +778,7 @@ class Shape:
             ax=self.ax, color=self.colors, density=self.density, **self.style.opts_mc
         )
         self.format_figure(cat, ratio=False)
-
+    
     def plot_data(self, cat, ax=None):
         '''Plots the data histogram as an errorbar plot.'''
         stacks = self._get_stacks(cat)
@@ -792,6 +799,24 @@ class Shape:
             y_overflow = stacks["data_sum"][hist.overflow].value
             y[0] += y_underflow
             y[-1] += y_overflow
+
+        # Blinding data for certain variables (if defined in plotting config)
+        if self.style.has_blind_hists and cat in self.style.blind_hists.categories:
+            for blind_hname, blind_range in self.style.blind_hists.histograms.items():
+                if not self.name.startswith(blind_hname):
+                    continue
+                else:
+                    if self.verbose>0:
+                        print("Blinding histogram:", self.name, "in category:", cat, 'in range', blind_range)
+                    if len(blind_range)!=2:
+                        if self.verbose>0:
+                            print("WARNING: The range for blinding region is not correct:", blind_hname, blind_range)
+                        continue
+                    hist_edges = stacks["data_sum"].axes[0].edges
+                    bins_to_zero = (hist_edges[:-1] >= blind_range[0]) & (hist_edges[:-1] < blind_range[1])
+                    y[bins_to_zero] = 0
+                  
+                               
         yerr = np.sqrt(y)
         integral = sum(y) * np.array(self.style.opts_axes["xbinwidth"])
         if self.density:
