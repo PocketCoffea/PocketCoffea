@@ -11,6 +11,8 @@ def get_ele_sf(
     If 'reco', the appropriate corrections are chosen by using the argument `pt_region`.
     '''
     electronSF = params["lepton_scale_factors"]["electron_sf"]
+    # translate the `year` key into the corresponding key in the correction file provided by the EGM-POG
+    year_pog = electronSF["era_mapping"][year]
 
     if key in ['reco', 'id']:
         electron_correctionset = correctionlib.CorrectionSet.from_file(
@@ -22,9 +24,6 @@ def get_ele_sf(
             sfname = electronSF.JSONfiles[year]["reco"][pt_region]
         elif key == 'id':
             sfname = electronSF["id"][params.object_preselection["Electron"]["id"]]
-
-        # translate the `year` key into the corresponding key in the correction file provided by the EGM-POG
-        year_pog = electronSF["era_mapping"][year]
         
         if year in ["2023_preBPix", "2023_postBPix"]:
             # Starting from 2023 SFs require the phi:
@@ -67,11 +66,16 @@ def get_ele_sf(
         map_name = electronSF.trigger_sf[year]["name"]
 
         output = {}
+        trigger_path = electronSF.trigger_sf[year]["path"]
         for variation in variations:
             if variation == "nominal":
                 output[variation] = [
                     electron_correctionset[map_name].evaluate(
-                        variation, pt.to_numpy(), eta.to_numpy()
+                        year_pog,
+                        "sf",
+                        trigger_path,
+                        eta.to_numpy(),
+                        pt.to_numpy(),
                     )
                 ]
             else:
@@ -81,10 +85,18 @@ def get_ele_sf(
                 output[variation] = [
                     nominal,
                     electron_correctionset[map_name].evaluate(
-                        f"{variation}Up", pt.to_numpy(), eta.to_numpy()
+                        year_pog,
+                        f"{variation}up",
+                        trigger_path,
+                        eta.to_numpy(),
+                        pt.to_numpy(),
                     ),
                     electron_correctionset[map_name].evaluate(
-                        f"{variation}Down", pt.to_numpy(), eta.to_numpy()
+                        year_pog,
+                        f"{variation}down",
+                        electronSF.trigger_sf[year]["path"],
+                        eta.to_numpy(),
+                        pt.to_numpy(),
                     ),
                 ]
             for i, sf in enumerate(output[variation]):
