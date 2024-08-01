@@ -91,7 +91,7 @@ class Style:
             self.experiment_label_loc = 2
 
         if not hasattr(self, "print_info"):
-            self.print_info = {"category": False, "era": False}
+            self.print_info = {"category": False, "year": False}
 
 
     def update(self, style_cfg):
@@ -751,7 +751,6 @@ class Shape:
             labels_new = []
             handles_new = []
             for i, l in enumerate(labels):
-                print
                 # If additional scale is provided, plot it on the legend:
                 scale_str = ""
                 if self.style.has_rescale_samples and l in self.style.rescale_samples.keys():
@@ -779,9 +778,9 @@ class Shape:
                 loc="upper right",
             )
 
-        if self.style.print_info.year:
+        if self.style.print_info["year"]:
             self.ax.text(0.04, 0.75, f'Year: {self.year}', fontsize=12, transform=self.ax.transAxes)
-        if self.style.print_info.category:
+        if self.style.print_info["category"]:
             self.ax.text(0.04, 0.70, f'Cat: {cat}', fontsize=12, transform=self.ax.transAxes)
 
     def plot_mc(self, cat, ax=None):
@@ -856,7 +855,6 @@ class Shape:
                     hist_edges = stacks["data_sum"].axes[0].edges
                     bins_to_zero = (hist_edges[:-1] >= blind_range[0]) & (hist_edges[:-1] < blind_range[1])
                     y[bins_to_zero] = 0
-
 
         yerr = np.sqrt(y)
         integral = sum(y) * np.array(self.style.opts_axes["xbinwidth"])
