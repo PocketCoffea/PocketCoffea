@@ -76,6 +76,12 @@ plotting_style:
             mjj: [100, 150]
             DNN: [0.7, 1]
 
+    signal_samples:
+        ZH_Hto2C_Zto2L: 10000
+
+    print_info:
+        category: True
+        year: True
 
 ```
 
@@ -96,3 +102,11 @@ The `blind_hists` would remove points from `data` distributions in a
 given range (set those bins to zero). One needs to specify a list of
 categories where blinding should be implemented and the names of the histograms, as
 shown in the example above.
+
+With the `signal_samples` options one can define a list of samples
+that are considered signals.  Then these samples would be also drawn
+as a separate histogram (in addiotion to the stack MC hist). The
+histogram is rescaled by the number specified.  
+
+The `print_info` options would print a text on the plots for category
+name and the year (era period).
