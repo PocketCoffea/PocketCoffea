@@ -3,6 +3,7 @@ from copy import deepcopy
 from multiprocessing import Pool
 from collections import defaultdict
 from functools import partial
+from warnings import warn
 
 import math
 import decimal
@@ -1161,8 +1162,17 @@ class SystUnc:
         """
         # get the maximum deviation from nominal
         max_deviation = max(
-            abs(self.ratio_down.min() - 1.0), abs(self.ratio_up.max() - 1.0)
+            abs(self.ratio_down.min() - 1.0),
+            abs(self.ratio_up.max() - 1.0),
+            abs(self.ratio_down.max() - 1.0),
+            abs(self.ratio_up.min() - 1.0),
         )
+        if max_deviation == 0.0:
+            warn(
+                f"The ratio plot for {self.name} is flat. "
+                "The y-axis limits will be set to 0.5 and 1.5."
+            )
+            return (0.5, 1.5)
         # add white space, so lines do not line up with axis limits
         white_space = max_deviation * 0.25
         max_deviation += white_space
