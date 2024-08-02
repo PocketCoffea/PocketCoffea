@@ -726,7 +726,7 @@ class Shape:
                 exp = math.floor(math.log(max(stacks["mc_nominal_sum"].values()), 10))
             else:
                 exp = math.floor(math.log(max(stacks["data_sum"].values()), 10))
-            self.ax.set_ylim((0.01, 10 ** (exp + 3)))
+            self.ax.set_ylim((0.01, 10 ** (exp*1.75)))
         else:
             if self.is_mc_only:
                 reference_shape = stacks["mc_nominal_sum"].values()
