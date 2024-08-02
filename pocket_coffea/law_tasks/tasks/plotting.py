@@ -38,9 +38,7 @@ class PlotterBase(BaseTask):
             inp["parameters"].abspath, self.plot_style
         )
         if self.blind:
-            data_samples = load_sample_names(
-                inp["config"].path, prefix="DATA"
-            )
+            data_samples = load_sample_names(inp["config"].path, prefix="DATA")
             plotting_parameters = exclude_samples_from_plotting(
                 plotting_parameters, data_samples
             )
@@ -97,7 +95,7 @@ class PlotSystematics(PlotterBase):
     def output(self):
         syst_str = "systematics_ratio" if self.ratio else "systematics"
         yscale_str = "log" if self.log_scale else "lin"
-        return (syst_str, yscale_str)
+        return self.local_file_target(syst_str, yscale_str, ".plots_done")
 
     def run(self):
         plot_manager = self.setup_plot_manager()
