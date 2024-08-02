@@ -887,6 +887,7 @@ class Shape:
             self.style.opts_axes["xcenters"], ratio, yerr=ratio_unc, **self.style.opts_data
         )
         self.format_figure(cat, ratio=True)
+        self.rax.axhline(1.0, color="black", linestyle="--")
 
     def plot_systematic_uncertainty(self, cat, ratio=False, ax=None):
         '''Plots the asymmetric systematic uncertainty band on top of the MC stack, if `ratio` is set to False.
