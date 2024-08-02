@@ -21,8 +21,7 @@ class datasetconfig(luigi.Config):
     """Paramters for dataset creation"""
 
     dataset_definition = luigi.Parameter(
-        description="json file containing the datasets definitions"
-            "(wildcard supported)",
+        description="json file containing the datasets definitions (wildcard supported)",
         default=os.path.join(os.getcwd(), "datasets", "datasets_definitions.json"),
     )
     dataset_dir = luigi.Parameter(
@@ -118,14 +117,14 @@ class plottingconfig(luigi.Config):
     plot_format = luigi.Parameter(
         description="Output format of the plots", default="pdf"
     )
-    variables = law.CSVParameter(
-        description="List of variables to plot", default=()
-    )
+    variables = law.CSVParameter(description="List of variables to plot", default=())
+
 
 class plottingsystematicsconfig(luigi.Config):
     ratio = luigi.BoolParameter(
         default=True, description="Plot the ratio of the systematic shifts"
     )
+
 
 class datacardconfig(luigi.Config):
     datacard_name = luigi.Parameter(

@@ -381,7 +381,7 @@ def process_datasets(
                 format=file_format,
             )
 
-            print(f"Working on sample: {sorted(sample)}")
+            print(f"Working on sample: {sample}")
             output = run(
                 fileset, treename="Events", processor_instance=processor_instance
             )

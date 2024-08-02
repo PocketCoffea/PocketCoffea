@@ -96,9 +96,8 @@ class BaseTask(law.Task):
         :return: Task class name and version
         :rtype: tuple[str]
         """
-        parts = (
-            self.__class__.__name__,)
+        parts = (self.__class__.__name__,)
         if self.version is not None:
             parts = (self.version, *parts)
-            
+
         return parts
