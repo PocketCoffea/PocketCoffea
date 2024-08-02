@@ -759,9 +759,9 @@ class Shape:
                     # Note: the l[:-4] strips away the potential '_sig' str from the name (added in plot_mc function).
                     scale_str = " x%i"%self.style.signal_samples[l[:-4]]
 
-                if l in self.style.labels_mc:
+                if self.style.has_labels and l in self.style.labels_mc:
                     labels_new.append(f"{self.style.labels_mc[l]}"+scale_str)
-                elif l[:-4] in self.style.labels_mc:
+                elif self.style.has_labels and l[:-4] in self.style.labels_mc:
                     labels_new.append(f"{self.style.labels_mc[l[:-4]]}"+scale_str)
                 else:
                     labels_new.append(l+scale_str)
