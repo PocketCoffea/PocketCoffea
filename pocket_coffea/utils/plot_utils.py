@@ -44,7 +44,7 @@ class Style:
 
     def __init__(self, style_cfg) -> None:
         self.style_cfg = style_cfg
-        self._required_keys = ["opts_figure", "opts_mc", "opts_data", "opts_unc"]
+        self._required_keys = ["opts_figure", "opts_mc", "opts_sig", "opts_data", "opts_unc"]
         for key in self._required_keys:
             assert (
                 key in style_cfg
@@ -70,7 +70,11 @@ class Style:
             if 'categories' in style_cfg["blind_hists"] and 'histograms' in style_cfg["blind_hists"]:
                 if len(style_cfg["blind_hists"]["categories"])!=0 and len(style_cfg["blind_hists"]["histograms"])!=0:
                     self.has_blind_hists = True
-            
+
+        self.has_signal_samples = []
+        if "signal_samples" in self.style_cfg:
+            self.has_signal_samples = True
+
         self.set_defaults()
 
         #print("Style config:\n", style_cfg)
@@ -85,6 +89,10 @@ class Style:
         # https://twiki.cern.ch/twiki/bin/viewauth/CMS/Internal/FigGuidelines
         if not hasattr(self, "experiment_label_loc"):
             self.experiment_label_loc = 2
+
+        if not hasattr(self, "print_info"):
+            self.print_info = {"category": False, "year": False}
+
 
     def update(self, style_cfg):
         '''Updates the style options with a new dictionary.'''
@@ -169,6 +177,7 @@ class PlotManager:
                     log=self.log,
                     density=self.density,
                     toplabel=toplabel_to_use,
+                    year=year,
                     verbose=self.verbose
                 )
         if self.save:
@@ -215,7 +224,7 @@ class PlotManager:
             for shape in shape_names:
                 self.plot_datamc(shape, syst=syst, spliteras=spliteras, format=format)
 
-    
+
     def plot_systematic_shifts(self, shape, format="png", ratio=True):
         """Plots the systematic shifts for all the variations."""
         if self.verbose > 0:
@@ -265,6 +274,7 @@ class Shape:
         only_cat=None,
         log=False,
         density=False,
+        year = None,
         verbose=1,
     ) -> None:
         self.h_dict = h_dict
@@ -279,6 +289,7 @@ class Shape:
         self.density = density
         self.datasets_metadata=datasets_metadata
         self.sample_is_MC = {}
+        self.year=year
         self.verbose = verbose
         self._stacksCache = defaultdict(dict)
         assert (
@@ -294,9 +305,12 @@ class Shape:
         if self.verbose>1:
             print(self.h_dict)
             print("samples:", self.samples_mc)
-        
+
         self.is_mc_only = len(self.samples_data) == 0
         self.is_data_only = len(self.samples_mc) == 0
+
+        #self.signal_samples =  self.style.signal_samples
+
 
         if not self.is_data_only:
             assert len(
@@ -505,7 +519,7 @@ class Shape:
                 if self.verbose>=1:
                     print("WARNING. The list of samples to group is empty!  Group name:", sample_new)
                 continue
-            
+
             h_dict_grouped[sample_new] = self._stack_sum(
                 stack=hist.Stack.from_dict(
                     {s: h for s, h in self.h_dict.items() if s in samples_list}
@@ -545,7 +559,7 @@ class Shape:
                 if self.verbose>0:
                     print("Warning: the rescaling sample is not among the samples in the histograms. Nothing will be rescaled! ")
                     print("\t Rescale requested for:", sample, ";  hists exist:", self.h_dict.keys())
-                    
+
     def _get_stacks(self, cat, spliteras=False):
         '''Builds the data and MC stacks, applying a slicing by category.
         The stacks are cached in a dictionary so that they are not recomputed every time.
@@ -592,10 +606,7 @@ class Shape:
                         # If the color for a corresponding sample exists in the dictionary, assign the color to the sample
                         if d in self.style.colors_mc:
                             self.colors[d] = self.style.colors_mc[d]
-                # once the colors are setup, we can convert it to a list
-                # (to be used in hist.plot)
-                self.colors = list(self.colors.values())
-                
+
                 # Order the MC dictionary by number of events
                 h_dict_mc = {d: h_dict_mc[d] for d in self.nevents.keys()}
                 h_dict_mc_nominal = {
@@ -735,7 +746,7 @@ class Shape:
             self.rax.tick_params(axis='x', labelsize=self.style.fontsize)
             self.rax.tick_params(axis='y', labelsize=self.style.fontsize)
             self.rax.set_ylim((0.5, 1.5))
-        if self.style.has_labels:
+        if self.style.has_labels or self.style.has_signal_samples:
             handles, labels = self.ax.get_legend_handles_labels()
             labels_new = []
             handles_new = []
@@ -744,13 +755,19 @@ class Shape:
                 scale_str = ""
                 if self.style.has_rescale_samples and l in self.style.rescale_samples.keys():
                     scale_str = " x%.2f"%self.style.rescale_samples[l]
+                if self.style.has_signal_samples and len(l)>=4 and l[:-4] in self.style.signal_samples.keys():
+                    # Note: the l[:-4] strips away the potential '_sig' str from the name (added in plot_mc function).
+                    scale_str = " x%i"%self.style.signal_samples[l[:-4]]
+
                 if l in self.style.labels_mc:
-                    
                     labels_new.append(f"{self.style.labels_mc[l]}"+scale_str)
+                elif l[:-4] in self.style.labels_mc:
+                    labels_new.append(f"{self.style.labels_mc[l[:-4]]}"+scale_str)
                 else:
                     labels_new.append(l+scale_str)
-                    
+
                 handles_new.append(handles[i])
+
             labels = labels_new
             handles = handles_new
             self.ax.legend(
@@ -761,6 +778,11 @@ class Shape:
                 loc="upper right",
             )
 
+        if self.style.print_info["year"]:
+            self.ax.text(0.04, 0.75, f'Year: {self.year}', fontsize=12, transform=self.ax.transAxes)
+        if self.style.print_info["category"]:
+            self.ax.text(0.04, 0.70, f'Cat: {cat}', fontsize=12, transform=self.ax.transAxes)
+
     def plot_mc(self, cat, ax=None):
         '''Plots the MC histograms as a stacked plot.'''
         stacks = self._get_stacks(cat)
@@ -769,16 +791,34 @@ class Shape:
             print("The method `plot_mc` will be skipped.")
             return
 
+        # Converting dictionary of colors to a list (to be used in hist.plot)
+        colors_list = list(self.colors.values())
+
         if ax:
             self.ax = ax
         else:
             if not hasattr(self, "ax"):
                 self.define_figure(ratio=False)
         stacks["mc_nominal"].plot(
-            ax=self.ax, color=self.colors, density=self.density, **self.style.opts_mc
-        )
+            ax=self.ax, color=colors_list, density=self.density, **self.style.opts_mc)
+
+        if self.style.has_signal_samples:
+            for sig in self.style.signal_samples.keys():
+                if sig in self.h_dict.keys():
+                    scale_sig = self.style.signal_samples[sig]
+                    if self.verbose>1:
+                        print("Plotting signal sample:", sig, "scale=", scale_sig, "cat=", cat, "hist=", self.name)
+
+                    h_sig = scale_sig*self.h_dict[sig][{'cat': cat, 'variation': 'nominal'}]
+                    h_sig.plot(ax=self.ax, color=self.colors[sig], density=self.density, **self.style.opts_sig, label=sig+'_sig')
+                    # Note: '_sig' str is added to the label of the signal sample, in order to distinguish it
+                    # from the same label present in a mc stack histograms.
+                else:
+                    if self.verbose>0:
+                        print("WARNING. Signal sample does not exist amoung the histograms", sig, cat, self.name)
+
         self.format_figure(cat, ratio=False)
-    
+
     def plot_data(self, cat, ax=None):
         '''Plots the data histogram as an errorbar plot.'''
         stacks = self._get_stacks(cat)
@@ -815,8 +855,7 @@ class Shape:
                     hist_edges = stacks["data_sum"].axes[0].edges
                     bins_to_zero = (hist_edges[:-1] >= blind_range[0]) & (hist_edges[:-1] < blind_range[1])
                     y[bins_to_zero] = 0
-                  
-                               
+
         yerr = np.sqrt(y)
         integral = sum(y) * np.array(self.style.opts_axes["xbinwidth"])
         if self.density:
