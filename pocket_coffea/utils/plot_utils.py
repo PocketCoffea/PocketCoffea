@@ -3,6 +3,7 @@ from copy import deepcopy
 from multiprocessing import Pool
 from collections import defaultdict
 from functools import partial
+from warnings import warn
 
 import math
 import decimal
@@ -725,7 +726,7 @@ class Shape:
                 exp = math.floor(math.log(max(stacks["mc_nominal_sum"].values()), 10))
             else:
                 exp = math.floor(math.log(max(stacks["data_sum"].values()), 10))
-            self.ax.set_ylim((0.01, 10 ** (exp + 3)))
+            self.ax.set_ylim((0.01, 10 ** (exp*1.75)))
         else:
             if self.is_mc_only:
                 reference_shape = stacks["mc_nominal_sum"].values()
@@ -886,6 +887,7 @@ class Shape:
             self.style.opts_axes["xcenters"], ratio, yerr=ratio_unc, **self.style.opts_data
         )
         self.format_figure(cat, ratio=True)
+        self.rax.axhline(1.0, color="black", linestyle="--")
 
     def plot_systematic_uncertainty(self, cat, ratio=False, ax=None):
         '''Plots the asymmetric systematic uncertainty band on top of the MC stack, if `ratio` is set to False.
@@ -1161,8 +1163,17 @@ class SystUnc:
         """
         # get the maximum deviation from nominal
         max_deviation = max(
-            abs(self.ratio_down.min() - 1.0), abs(self.ratio_up.max() - 1.0)
+            abs(self.ratio_down.min() - 1.0),
+            abs(self.ratio_up.max() - 1.0),
+            abs(self.ratio_down.max() - 1.0),
+            abs(self.ratio_up.min() - 1.0),
         )
+        if max_deviation == 0.0:
+            warn(
+                f"The ratio plot for {self.name} is flat. "
+                "The y-axis limits will be set to 0.5 and 1.5."
+            )
+            return (0.5, 1.5)
         # add white space, so lines do not line up with axis limits
         white_space = max_deviation * 0.25
         max_deviation += white_space
