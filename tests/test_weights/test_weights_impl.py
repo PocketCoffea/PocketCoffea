@@ -25,7 +25,7 @@ from coffea.nanoevents import NanoEventsFactory, NanoAODSchema
 @pytest.fixture(scope="session")
 def events():
     filename = "root://eoscms.cern.ch//eos/cms/store/mc/RunIISummer20UL18NanoAODv9/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/106X_upgrade2018_realistic_v16_L1v1-v1/280000/01881676-C30A-2142-B3B2-7A8449DAF8EF.root"
-    events = NanoEventsFactory.from_root(filename, schemaclass=NanoAODSchema, entry_stop=1000).events()
+    events = NanoEventsFactory.from_root(filename, schemaclass=NanoAODSchema, entry_stop=100).events()
     return events
 
 
@@ -36,14 +36,14 @@ def params():
 def test_genWeight(events):
     from pocket_coffea.lib.weights.common import common_weights
     genWeight = WeightWrapper.get_weight_class_from_name("genWeight")()
-    w = genWeight.compute(events, 1000, "nominal")
+    w = genWeight.compute(events, 100, "nominal")
     assert isinstance(w, WeightData)
     assert ak.all(w.nominal == events.genWeight)
 
 def test_XS(events):
     from pocket_coffea.lib.weights.common import common_weights
     XS = WeightWrapper.get_weight_class_from_name("XS")(metadata={"xsec": 10.})
-    w = XS.compute(events, 1000, "nominal")
+    w = XS.compute(events, 100, "nominal")
     assert isinstance(w, WeightData)
     assert np.all(w.nominal == 10.)
 
@@ -52,7 +52,7 @@ def test_pileup(events, params):
     from pocket_coffea.lib.weights.common import common_weights
     pileup = WeightWrapper.get_weight_class_from_name("pileup")(params, metadata={"year": "2018"})
     pileup_here = sf_pileup_reweight(params, events, "2018")
-    w = pileup.compute(events, 1000, "nominal")
+    w = pileup.compute(events, 100, "nominal")
     assert isinstance(w, WeightData)
     assert ak.all(w.nominal == pileup_here[0])
 
@@ -71,7 +71,7 @@ def test_sf_ele_id(events, params):
     
     sf = WeightWrapper.get_weight_class_from_name("sf_ele_id")(params, metadata={"year": "2018"})
     sf_here = sf_ele_id(params, events, "2018")
-    w = sf.compute(events, 1000, "nominal")
+    w = sf.compute(events, 100, "nominal")
     assert isinstance(w, WeightData)    
     assert ak.all(w.nominal == sf_here[0])
 
@@ -91,7 +91,7 @@ def test_sf_ele_trigger(events, params):
 
     # by default we should get a missing file expection
     with pytest.raises(omegaconf.errors.MissingMandatoryValue):
-        w = sf.compute(events, 1000, "nominal")
+        w = sf.compute(events, 100, "nominal")
 
 
 def test_sf_btag(events, params):
@@ -110,7 +110,7 @@ def test_sf_btag(events, params):
     events["nJetGood"] = ak.num(events.JetGood)
     sf = WeightWrapper.get_weight_class_from_name("sf_btag")(params, metadata={"year": "2018"})
 
-    w = sf.compute(events, 1000, "nominal")
+    w = sf.compute(events, 100, "nominal")
     assert isinstance(w, WeightDataMultiVariation)
     defined_variations = params.systematic_variations.weight_variations.sf_btag["2018"]
     assert w.variations == defined_variations
@@ -137,7 +137,7 @@ def test_sfbtag_coffea_multivariations(events, params):
     events["nJetGood"] = ak.num(events.JetGood)
     sf = WeightWrapper.get_weight_class_from_name("sf_btag")(params, metadata={"year": "2018"})
 
-    w = sf.compute(events, 1000, "nominal")
+    w = sf.compute(events, 100, "nominal")
 
     defined_variations = params.systematic_variations.weight_variations.sf_btag["2018"]
     raw_SF = sf_btag(params, events["JetGood"], "2018", njets=events.nJetGood,
@@ -157,7 +157,7 @@ def test_sfbtag_coffea_multivariations(events, params):
     # Using the old "trick" of rescaling the variations
     weights2.add("sf_btag", w.nominal)
     for i in range(len(w.variations)):
-        weights2.add(f"sf_btag_{w.variations[i]}", np.ones(1000),
+        weights2.add(f"sf_btag_{w.variations[i]}", np.ones(100),
                      w.up[i]/w.nominal, w.down[i]/w.nominal) 
 
     # Check with raw SF values

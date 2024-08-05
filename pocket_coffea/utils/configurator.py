@@ -269,8 +269,9 @@ class Configurator:
                 self.has_subsamples[sample] = False
 
         # Complete list of samples and subsamples
-        self.total_samples_list = list(set(self.samples + self.subsamples_list))
-
+        self.total_samples_list = list(sorted(set(self.samples + self.subsamples_list)))
+        self.subsamples_list = list(sorted(set(self.subsamples_list)))
+        
         # Now saving the subsamples definition cuts
         for sample in self.samples:
             if sample in subsamples_dict:
@@ -335,7 +336,7 @@ class Configurator:
         # common/inclusive weights
         for w in wcfg["common"]["inclusive"]:
             if w not in self.available_weights:
-                print(f"Weight {w} not available in the workflow")
+                print(f"Weight {w} not available in the configuration. Did you add it in the weights_classes?")
                 raise Exception("Wrong weight configuration")
             self.requested_weights.append(w)
             # do now check if the weights is not string but custom
@@ -347,7 +348,7 @@ class Configurator:
             for cat, weights in wcfg["common"]["bycategory"].items():
                 for w in weights:
                     if w not in self.available_weights:
-                        print(f"Weight {w} not available in the workflow")
+                        print(f"Weight {w} not available in the configuration. Did you add it in the weights_classes?")
                         raise Exception("Wrong weight configuration")
                     self.requested_weights.append(w)
                     for wsample in self.weights_config.values():
@@ -372,7 +373,7 @@ class Configurator:
                 if "inclusive" in s_wcfg:
                     for w in s_wcfg["inclusive"]:
                         if w not in self.available_weights:
-                            print(f"Weight {w} not available in the workflow")
+                            print(f"Weight {w} not available in the configuration. Did you add it in the weights_classes?")
                             raise Exception("Wrong weight configuration")
                         self.requested_weights.append(w)
                         # append only to the specific sample
@@ -382,7 +383,7 @@ class Configurator:
                     for cat, weights in s_wcfg["bycategory"].items():
                         for w in weights:
                             if w not in self.available_weights:
-                                print(f"Weight {w} not available in the workflow")
+                                print(f"Weight {w} not available in the configuration. Did you add it in the weights_classes?")
                                 raise Exception("Wrong weight configuration")
                             if w in self.weights_config[sample]["inclusive"]:
                                 raise Exception(
