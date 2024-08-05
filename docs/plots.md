@@ -69,8 +69,30 @@ plotting_style:
     rescale_samples:
 	    ttbar: 1.12
 	    DY_LO: 1.33
+		
+    blind_hists:
+        categories: [SignalRegion1, SignalRegion2]
+        histograms:
+            mjj: [100, 150]
+            DNN: [0.7, 1]
+
 
 ```
 
-User can define custom labels for the MC samples and a custom coloring scheme. Additionally, the Data and MC samples can be merged between each other by specifying a dictionary of samples in the `samples_groups` key. In the example above, a single sample `ttbar` will be plotted by merging the samples `TTTo2L2Nu` and `TTToSemiLeptonic`. Certain samples can be excluded from plotting with `exclude_samples` key.
-One could also rescale certain samples by a multiplicative factor, using the `rescale_samples` keys.
+With `labels_mc` and `colors_mc` settings the user can define custom
+labels for the MC samples and a custom coloring scheme.  
+
+The `samples_groups` option allows for MC sub-samples to be merged
+into a common sample by specifying a dictionary of those sub-samples.
+In the example above, a single sample `ttbar` will be plotted by
+merging the samples `TTTo2L2Nu` and `TTToSemiLeptonic`.  
+
+Certain samples can be excluded from plotting with `exclude_samples` key.  
+
+One could also rescale certain samples by a multiplicative factor,
+using the `rescale_samples` keys.  
+
+The `blind_hists` would remove points from `data` distributions in a
+given range (set those bins to zero). One needs to specify a list of
+categories where blinding should be implemented and the names of the histograms, as
+shown in the example above.

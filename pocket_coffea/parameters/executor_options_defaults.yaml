@@ -61,4 +61,8 @@ dask@purdue-af:
   adaptive: true
   cores-per-worker: 1
   mem-per-worker: 4 # GB
+
+dask@infn-af:
+  adaptive: false
+  
   
