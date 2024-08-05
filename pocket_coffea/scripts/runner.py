@@ -13,7 +13,7 @@ from coffea import processor
 from coffea.processor import Runner
 
 from pocket_coffea.utils.configurator import Configurator
-from pocket_coffea.utils.utils import load_config
+from pocket_coffea.utils.utils import load_config, path_import
 from pocket_coffea.utils.logging import setup_logging
 from pocket_coffea.parameters import defaults as parameters_utils
 from pocket_coffea.executors import executors_base
@@ -115,7 +115,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     # The user can provide a custom executor factory module
     if executor_custom_setup:
         # The user is providing a custom python module that acts as an executor factory.
-        executors_lib =  utils.path_import(executor_custom_setup)
+        executors_lib =  path_import(executor_custom_setup)
         if "get_executor_factory" not in executors_lib.__dict__.keys():
             print(f"The user defined executor setup module {executor_custom_setup}"
                   "does not define a `get_executor_factory` function!")
