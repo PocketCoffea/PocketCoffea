@@ -110,3 +110,27 @@ histogram is rescaled by the number specified.
 
 The `print_info` options would print a text on the plots for category
 name and the year (era period).
+
+## Default color scheme
+
+The default color scheme adopted for plotting is the one recommended by
+the [CMS guidelines](https://cms-analysis.docs.cern.ch/guidelines/plotting/colors/#categorical-data-eg-1d-stackplots).
+Two color schemes with 6 and 10 colors respectively are used depending on the number of samples.
+
+A set of user-friendly aliases is defined such that the user can use the colors recommended
+by CMS just by an alias string, with no need to know the hexadecimal color codes.
+The aliases are indicated in the figure below on top of the corresponding color:
+
+![](./images/color_scheme.png)
+
+Usage in the `.yaml` config file:
+```
+plotting_style:
+
+    colors_mc:
+        TTTo2L2Nu: CMS_red
+        TTToSemiLeptonic: CMS_blue
+```
+
+If no alias or default `matplotlib` color corresponds to the string specified by the user,
+an exception is raised.
