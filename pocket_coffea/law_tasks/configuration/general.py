@@ -88,7 +88,7 @@ class runnerconfig(luigi.Config):
         ),
         default="iterative",
     )
-    scaleout = luigi.IntParameter(description="Overwrite scalout config", default=None)
+    scaleout = luigi.IntParameter(description="Overwrite scaleout config", default=10)
     process_separately = luigi.BoolParameter(
         description="Process each dataset separately", default=False
     )

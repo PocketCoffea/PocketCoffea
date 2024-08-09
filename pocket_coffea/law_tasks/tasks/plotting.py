@@ -27,6 +27,11 @@ class PlotterBase(BaseTask):
     def requires(self):
         return Runner.req(self)
 
+    def store_parts(self) -> tuple[str]:
+        if self.test:
+            return super().store_parts() + ("test",)
+        return super().store_parts()
+
     def setup_plot_manager(self):
         inp = self.input()
 

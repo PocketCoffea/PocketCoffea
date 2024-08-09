@@ -56,6 +56,11 @@ class Runner(BaseTask):
             "jets_calibration": JetCalibration.req(self),
         }
 
+    def store_parts(self) -> tuple[str]:
+        if self.test:
+            return super().store_parts() + ("test",)
+        return super().store_parts()
+
     @property
     def skip_output_removal(self):
         return not self.test
