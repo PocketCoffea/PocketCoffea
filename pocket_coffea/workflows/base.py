@@ -319,6 +319,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     "xsec": self._xsec,
                 },
             )
+        else:
+            self.weights_manager = None
     
     def compute_weights(self, variation):
         '''
