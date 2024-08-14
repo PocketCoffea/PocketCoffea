@@ -31,7 +31,9 @@ def get_rucio_client(proxy=None) -> Client:
     try:
         if not proxy:
             proxy = get_proxy_path()
-        nativeClient = Client()
+        nativeClient = Client(
+            account=getpass.getuser()
+        )
         return nativeClient
 
     except Exception as e:
