@@ -77,8 +77,7 @@ class Style:
         self.has_rescale_samples=False
         if "rescale_samples" in style_cfg:
             self.has_rescale_samples = True
-        if "colors_mc" in style_cfg:
-            self.has_colors_mc = True
+        self.has_colors_mc = "colors_mc" in style_cfg
 
         self.has_blind_hists = False
         if "blind_hists" in style_cfg:
