@@ -27,11 +27,11 @@ import click
 @click.option('-ns','--no-syst', is_flag=True, help='Do not include systematics', required=False, default=False)
 @click.option('--overwrite', '--over', is_flag=True, help='Overwrite plots in output folder', required=False)
 @click.option('--log', is_flag=True, help='Set y-axis scale to log', required=False, default=False)
-@click.option('--density', is_flag=True, help='Set density parameter to have a normalized plot', required=False)
+@click.option('--density', is_flag=True, help='Set density parameter to have a normalized plot', required=False, default=False)
 @click.option('-v', '--verbose', type=int, default=1, help='Verbose level for debugging. Higher the number more stuff is printed.', required=False)
 @click.option('--format', type=str, default='png', help='File format of the output plots', required=False)
 @click.option('--systematics-shifts', is_flag=True, help='Plot the shifts for the systematic uncertainties', required=False, default=False)
-@click.option('--no-ratio', is_flag=True, help='Dont plot ratio', required=False, default=False)
+@click.option('--no-ratio', is_flag=True, help='Dont plot the ratio', required=False, default=False)
 @click.option('--no-systematics-ratio', is_flag=True, help='Plot the ratio of the shifts for the systematic uncertainties', required=False, default=False)
 @click.option('--compare', is_flag=True, help='Plot comparison of the samples, instead of data/MC', required=False, default=False)
 

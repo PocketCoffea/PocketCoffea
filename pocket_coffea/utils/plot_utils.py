@@ -75,10 +75,10 @@ class Style:
         if "signal_samples" in self.style_cfg:
             self.has_signal_samples = True
 
-        self.compare_ref = False
+        self.has_compare_ref = None
         if "compare" in self.style_cfg:
             if "ref" in self.style_cfg["compare"]:
-                self.compare_ref = True
+                self.has_compare_ref = True
 
         self.set_defaults()
 
@@ -684,31 +684,30 @@ class Shape:
     def get_datamc_ratio(self, cat):
         '''Computes the data/MC ratio and the corresponding uncertainty.'''
         stacks = self._get_stacks(cat)
-        num = stacks["data_sum"].values()
-
-        den = stacks["mc_nominal_sum"].values()
-
-        if np.any(den <0 ):
-            if self.verbose>0:
-                print(f"WARNING: negative bins in MC of shape {self.name}. BE CAREFUL! Putting negative bins to 0 for plotting..")
-        den[den < 0] = 0
+        hnum = stacks["data_sum"]
+        hden = stacks["mc_nominal_sum"]
 
         if self.density:
-            num_integral = sum(num) * np.array(self.style.opts_axes["xbinwidth"])
-            num = num / num_integral
-            den_integral = sum(den) * np.array(self.style.opts_axes["xbinwidth"])
-            den = den / den_integral
+            num_integral = sum(hnum.values() * np.array(self.style.opts_axes["xbinwidth"]) )
+            if num_integral>0:
+                hnum = hnum * (1./num_integral)
+            den_integral = sum(hden.values() * np.array(self.style.opts_axes["xbinwidth"]) )
+            if den_integral>0:
+                hden = hden * (1./den_integral)        
+        
+        ratio = hnum.values()/hden.values()
+        # Total uncertainy of num x den :
+        #ratio_variance = np.power(ratio,2)*( hnum.variances()*np.power(hnum.values(), -2) + hden.variances()*np.power(hden.values(), -2))
+        # Only the uncertainty of hnum (DATA) propagated:
+        ratio_variance = hnum.variances()*np.power(hden.values(), -2)
 
-        ratio = num / den
-        # TO DO: Implement Poisson interval valid also for num~0
-        # np.sqrt(num) is just an approximation of the uncertainty valid at large num
-        ratio_unc = np.sqrt(num) / den
-        ratio_unc[np.isnan(ratio_unc)] = np.inf
+        print(dir(hep))
+        ratio_uncert = np.abs(hep.error_estimation.poisson_interval(ratio, ratio_variance) - ratio)
+        ratio_uncert[np.isnan(ratio_uncert)] = np.inf
+        
+        return ratio, ratio_uncert
 
-        return ratio, ratio_unc
-
-
-    def get_ref_ratios(self, cat, ref='data_sum'):
+    def get_ref_ratios(self, cat, ref=None):
         '''Computes the ratios and the corresponding uncertainty between two processes.'''
         stacks = self._get_stacks(cat)
 
@@ -716,51 +715,48 @@ class Shape:
         print("\t mc_nominal:", stacks['mc_nominal'])
 
         if ref=='data_sum':
-            num = stacks['data_sum'].values()
+            hnum = stacks['data_sum']
         elif ref=='mc_nominal_sum':
-            num = stacks['mc_nominal_sum'].values()
+            hnum = stacks['mc_nominal_sum']
         else:
-            num = stacks['mc_nominal'][ref].values()
-
+            hnum = stacks['mc_nominal'][ref]
 
         if self.density:
-            num_integral = sum(num) * np.array(self.style.opts_axes["xbinwidth"])
-            num = num / num_integral
+            
+            #print("Numerator values:", hnum.values())
+            #print("Sum = ", sum(hnum.values()))
+            #print("xbinwidth",  self.style.opts_axes["xbinwidth"])
+            num_integral = sum(hnum.values() * np.array(self.style.opts_axes["xbinwidth"]) )
 
+            print("Integral = ", num_integral)
+            if num_integral>0:
+                hnum = hnum * (1./num_integral)
+            
 
         ratios = {}
         ratios_unc = {}
 
         # Create ratios for all MC hist compared to the reference
-        for proc in stacks['mc_nominal']:
-            print("Process:", proc.name)
-            den = proc.values()
-
-            if np.any(den <0 ):
-                if self.verbose>0:
-                    print(f"WARNING: negative bins in MC of shape {self.name}. BE CAREFUL! Putting negative bins to 0 for plotting..")
-            den[den < 0] = 0
-
-
+        for hden in stacks['mc_nominal']:
+            print("Process:", hden.name)
+            
             if self.density:
-                den_integral = sum(den) * np.array(self.style.opts_axes["xbinwidth"])
-                den = den / den_integral
+                den_integral = sum(hden.values() * np.array(self.style.opts_axes["xbinwidth"]) )
+                hden = hden * (1./den_integral)
 
-            ratio = num / den
-
-            # TO DO: Implement Poisson interval valid also for num~0
-            # np.sqrt(num) is just an approximation of the uncertainty valid at large num
-            # Need to do this for REAL!
-
-            ratio_unc = np.sqrt(num) / den
-
-            if self.density:
-                ratio_unc = 0.001* np.sqrt(num) / den
-
-            ratio_unc[np.isnan(ratio_unc)] = np.inf
-
-            ratios[proc.name] = ratio
-            ratios_unc[proc.name] = ratio_unc
+            with np.errstate(divide="ignore", invalid="ignore"):
+                ratio = hnum.values()/hden.values()
+            with np.errstate(divide="ignore", invalid="ignore"):
+                # Total uncertainy of num x den :
+                #ratio_variance = np.power(ratio,2)*( hnum.variances()*np.power(hnum.values(), -2) + hden.variances()*np.power(hden.values(), -2))
+                # Only the uncertaintu of den propagated. the reference hist uncertainty ignored
+                ratio_variance = np.power(ratio,2)*hden.variances()*np.power(hden.values(), -2)
+                
+            ratio_uncert = np.abs(hep.error_estimation.poisson_interval(ratio, ratio_variance) - ratio)
+            ratio_uncert[np.isnan(ratio_uncert)] = np.inf
+            
+            ratios[hden.name] = ratio
+            ratios_unc[hden.name] = ratio_uncert
 
         return ratios, ratios_unc
 
@@ -804,7 +800,6 @@ class Shape:
 
     def format_figure(self, cat, ratio=True, ref=None):
         '''Formats the figure's axes, labels, ticks, xlim and ylim.'''
-        print("Doing figure format.    ref=", ref)
         stacks = self._get_stacks(cat)
         ylabel = "Counts" if not self.density else "A.U."
         self.ax.set_ylabel(ylabel, fontsize=self.style.fontsize)
@@ -835,7 +830,7 @@ class Shape:
             self.ax.set_xlabel("")
             self.rax.set_xlabel(self.style.opts_axes["xlabel"], fontsize=self.style.fontsize)
             if ref:
-                self.rax.set_ylabel("Ratio / Ref", fontsize=self.style.fontsize)
+                self.rax.set_ylabel("Ref / Others", fontsize=self.style.fontsize)
             else:
                 self.rax.set_ylabel("Data / MC", fontsize=self.style.fontsize)
             self.rax.yaxis.set_label_coords(-0.075, 1)
@@ -1003,11 +998,24 @@ class Shape:
             np.nan_to_num(ratios[proc], copy=False)
             np.nan_to_num(ratios_unc[proc], copy=False)
 
-            self.rax.errorbar(
-                self.style.opts_axes["xcenters"], ratios[proc], yerr=ratios_unc[proc], **self.style.opts_ratio, color=self.colors[proc]
-            )
+            if ref==proc:
+                unity = np.ones_like(ratios_unc[proc])
+                down = unity[0] - ratios_unc[proc][0]
+                up = unity[1] + ratios_unc[proc][1]
+                print("Ratio unc:", ratios_unc[proc])
+                print("Up:", up)
+                print("Edges", self.style.opts_axes["xedges"])
+                self.rax.stairs(down, baseline=up, edges=self.style.opts_axes["xedges"],
+                                color=self.colors[proc], alpha=0.4, linewidth=0, hatch='////')
+            else:
+                self.rax.errorbar(self.style.opts_axes["xcenters"], ratios[proc], yerr=ratios_unc[proc],
+                                  **self.style.opts_ratios, color=self.colors[proc])
 
-        #self.format_figure(cat, ratio=True, ref=ref)
+        ref_label = ref
+        if ref_label in self.style.labels_mc:
+            ref_label = self.style.labels_mc[ref_label]
+        self.rax.text(0.04, 0.85, f'Ref: {ref_label}', fontsize=12, transform=self.rax.transAxes)
+
 
     def plot_systematic_uncertainty(self, cat, ratio=False, ax=None):
         '''Plots the asymmetric systematic uncertainty band on top of the MC stack, if `ratio` is set to False.
@@ -1138,8 +1146,8 @@ class Shape:
             self.plot_data(cat)
 
 
-        if self.style.compare_ref:
-            ref=self.style.compare.ref
+        if self.style.has_compare_ref:
+            ref = self.style.compare.ref
         else:
             raise("There is no reference to compare to")
         
