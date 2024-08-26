@@ -694,18 +694,17 @@ class Shape:
                 hnum = hnum * (1./num_integral)
             den_integral = sum(hden.values() * np.array(self.style.opts_axes["xbinwidth"]) )
             if den_integral>0:
-                hden = hden * (1./den_integral)        
-        
+                hden = hden * (1./den_integral)
+
         ratio = hnum.values()/hden.values()
         # Total uncertainy propagation of num / den :
         # ratio_variance = np.power(ratio,2)*( hnum.variances()*np.power(hnum.values(), -2) + hden.variances()*np.power(hden.values(), -2))
         # Only the uncertainty of num (DATA) propagated:
         ratio_variance = hnum.variances()*np.power(hden.values(), -2)
 
-        print(dir(hep))
-        ratio_uncert = np.abs(hep.error_estimation.poisson_interval(ratio, ratio_variance) - ratio)
+        ratio_uncert = np.abs(poisson_interval(ratio, ratio_variance) - ratio)
         ratio_uncert[np.isnan(ratio_uncert)] = np.inf
-        
+
         return ratio, ratio_uncert
 
     def get_ref_ratios(self, cat, ref=None):
@@ -715,49 +714,54 @@ class Shape:
         print("Everything in the Stack:", stacks.keys())
         print("\t mc_nominal:", stacks['mc_nominal'])
 
+        # den and hden refer to the numerator, which is the reference histogram
+        # num and hnum refer to the numerator
+
         if ref=='data_sum':
-            hnum = stacks['data_sum']
+            hden = stacks['data_sum']
         elif ref=='mc_nominal_sum':
-            hnum = stacks['mc_nominal_sum']
+            hden = stacks['mc_nominal_sum']
         else:
-            hnum = stacks['mc_nominal'][ref]
+            hden = stacks['mc_nominal'][ref]
 
         if self.density:
-            
+
             #print("Numerator values:", hnum.values())
             #print("Sum = ", sum(hnum.values()))
             #print("xbinwidth",  self.style.opts_axes["xbinwidth"])
-            num_integral = sum(hnum.values() * np.array(self.style.opts_axes["xbinwidth"]) )
+            den_integral = sum(hden.values() * np.array(self.style.opts_axes["xbinwidth"]) )
 
-            print("Integral = ", num_integral)
-            if num_integral>0:
-                hnum = hnum * (1./num_integral)
-            
+            print("Integral = ", den_integral)
+            if den_integral>0:
+                hden = hden * (1./den_integral)
+
 
         ratios = {}
         ratios_unc = {}
 
         # Create ratios for all MC hist compared to the reference
-        for hden in stacks['mc_nominal']:
-            print("Process:", hden.name)
-            
-            if self.density:
-                den_integral = sum(hden.values() * np.array(self.style.opts_axes["xbinwidth"]) )
-                hden = hden * (1./den_integral)
+        for hnum in stacks['mc_nominal']:
+            # print("Process:", hnum.name)
 
-            with np.errstate(divide="ignore", invalid="ignore"):
-                ratio = hnum.values()/hden.values()
-            with np.errstate(divide="ignore", invalid="ignore"):
-                # Total uncertainy of num x den :
-                #ratio_variance = np.power(ratio,2)*( hnum.variances()*np.power(hnum.values(), -2) + hden.variances()*np.power(hden.values(), -2))
-                # Only the uncertaintu of den propagated. the reference hist uncertainty ignored
-                ratio_variance = np.power(ratio,2)*hden.variances()*np.power(hden.values(), -2)
-                
-            ratio_uncert = np.abs(hep.error_estimation.poisson_interval(ratio, ratio_variance) - ratio)
+            if self.density:
+                num_integral = sum(hnum.values() * np.array(self.style.opts_axes["xbinwidth"]) )
+                hnum = hnum * (1./num_integral)
+
+            ratio = hnum.values()/hden.values()
+            # Total uncertainy of num x den :
+            # ratio_variance = np.power(ratio,2)*( hnum.variances()*np.power(hnum.values(), -2) + hden.variances()*np.power(hden.values(), -2))
+
+            # Only the uncertainty of numirator is propagated, the reference hist uncertainty is ignored
+            ratio_variance = np.power(ratio,2)*hnum.variances()*np.power(hnum.values(), -2)
+
+            # Only the uncertainty of the denominator is propagated:
+            # ratio_variance = np.power(ratio,2)*hden.variances()*np.power(hden.values(), -2)
+
+            ratio_uncert = np.abs(poisson_interval(ratio, ratio_variance) - ratio)
             ratio_uncert[np.isnan(ratio_uncert)] = np.inf
-            
-            ratios[hden.name] = ratio
-            ratios_unc[hden.name] = ratio_uncert
+
+            ratios[hnum.name] = ratio
+            ratios_unc[hnum.name] = ratio_uncert
 
         return ratios, ratios_unc
 
@@ -831,7 +835,7 @@ class Shape:
             self.ax.set_xlabel("")
             self.rax.set_xlabel(self.style.opts_axes["xlabel"], fontsize=self.style.fontsize)
             if ref:
-                self.rax.set_ylabel("Ref / Others", fontsize=self.style.fontsize)
+                self.rax.set_ylabel("Others / Ref", fontsize=self.style.fontsize)
             else:
                 self.rax.set_ylabel("Data / MC", fontsize=self.style.fontsize)
             self.rax.yaxis.set_label_coords(-0.075, 1)
@@ -1003,9 +1007,7 @@ class Shape:
                 unity = np.ones_like(ratios_unc[proc])
                 down = unity[0] - ratios_unc[proc][0]
                 up = unity[1] + ratios_unc[proc][1]
-                print("Ratio unc:", ratios_unc[proc])
-                print("Up:", up)
-                print("Edges", self.style.opts_axes["xedges"])
+                #print("Ratio unc:", ratios_unc[proc])
                 self.rax.stairs(down, baseline=up, edges=self.style.opts_axes["xedges"],
                                 color=self.colors[proc], alpha=0.4, linewidth=0, hatch='////')
             else:
@@ -1015,7 +1017,7 @@ class Shape:
         ref_label = ref
         if ref_label in self.style.labels_mc:
             ref_label = self.style.labels_mc[ref_label]
-        self.rax.text(0.04, 0.85, f'Ref: {ref_label}', fontsize=12, transform=self.rax.transAxes)
+        self.rax.text(0.04, 0.85, f'Ref = {ref_label}', fontsize=12, transform=self.rax.transAxes)
 
 
     def plot_systematic_uncertainty(self, cat, ratio=False, ax=None):
@@ -1134,6 +1136,9 @@ class Shape:
             print("The method `plot_comprison` will be skipped.")
             return
 
+        self.style.opts_mc["stack"] = False
+        self.style.opts_mc["histtype"] = "step"
+
         if ax:
             self.ax = ax
         if rax:
@@ -1151,10 +1156,10 @@ class Shape:
             ref = self.style.compare.ref
         else:
             raise("There is no reference to compare to")
-        
+
         if ratio:
             self.plot_compare_ratios(cat, ref=ref)
-        
+
         self.format_figure(cat, ratio=ratio, ref=ref)
 
 

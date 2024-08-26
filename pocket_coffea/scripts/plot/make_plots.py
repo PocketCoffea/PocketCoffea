@@ -69,11 +69,6 @@ def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfile,
 
     style_cfg = parameters['plotting_style']
 
-    if compare:
-        print(style_cfg)
-        style_cfg["opts_mc"]["stack"] = False
-        style_cfg["opts_mc"]["histtype"] = "step"
-
     if os.path.isfile( inputfile ): accumulator = load(inputfile)
     else: sys.exit(f"Input file '{inputfile}' does not exist")
 
