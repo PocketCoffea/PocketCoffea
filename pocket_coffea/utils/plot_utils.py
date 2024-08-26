@@ -15,6 +15,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
 import mplhep as hep
+from mplhep.error_estimation import poisson_interval
 from cycler import cycler
 
 from omegaconf import OmegaConf
@@ -696,9 +697,9 @@ class Shape:
                 hden = hden * (1./den_integral)        
         
         ratio = hnum.values()/hden.values()
-        # Total uncertainy of num x den :
-        #ratio_variance = np.power(ratio,2)*( hnum.variances()*np.power(hnum.values(), -2) + hden.variances()*np.power(hden.values(), -2))
-        # Only the uncertainty of hnum (DATA) propagated:
+        # Total uncertainy propagation of num / den :
+        # ratio_variance = np.power(ratio,2)*( hnum.variances()*np.power(hnum.values(), -2) + hden.variances()*np.power(hden.values(), -2))
+        # Only the uncertainty of num (DATA) propagated:
         ratio_variance = hnum.variances()*np.power(hden.values(), -2)
 
         print(dir(hep))
