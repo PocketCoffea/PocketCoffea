@@ -475,9 +475,13 @@ class Shape:
         if len(stack) == 1:
             return stack[0]
         else:
-            htot =hist.Hist(stack[0])
+            htot = hist.Hist(stack[0])
             for h in stack[1:]:
                 htot = htot + h
+            if is_mc:
+                htot.name = 'mc_sum'
+            else:
+                htot.name = 'data_sum'
             return htot
 
     @property
@@ -711,8 +715,8 @@ class Shape:
         '''Computes the ratios and the corresponding uncertainty between two processes.'''
         stacks = self._get_stacks(cat)
 
-        print("Everything in the Stack:", stacks.keys())
-        print("\t mc_nominal:", stacks['mc_nominal'])
+        #print("Everything in the Stack:", stacks.keys())
+        #print("\t mc_nominal:", stacks['mc_nominal'])
 
         # den and hden refer to the numerator, which is the reference histogram
         # num and hnum refer to the numerator
@@ -740,8 +744,11 @@ class Shape:
         ratios_unc = {}
 
         # Create ratios for all MC hist compared to the reference
-        for hnum in stacks['mc_nominal']:
-            # print("Process:", hnum.name)
+        histograms_list = [h for h in stacks['mc_nominal'] ]
+    
+        histograms_list.append(stacks['data_sum'])
+        for hnum in histograms_list:
+            #print("Process:", hnum.name, type(hnum))
 
             if self.density:
                 num_integral = sum(hnum.values() * np.array(self.style.opts_axes["xbinwidth"]) )
@@ -751,7 +758,7 @@ class Shape:
             # Total uncertainy of num x den :
             # ratio_variance = np.power(ratio,2)*( hnum.variances()*np.power(hnum.values(), -2) + hden.variances()*np.power(hden.values(), -2))
 
-            # Only the uncertainty of numirator is propagated, the reference hist uncertainty is ignored
+            # Only the uncertainty of numerator is propagated, the reference hist uncertainty is ignored
             ratio_variance = np.power(ratio,2)*hnum.variances()*np.power(hnum.values(), -2)
 
             # Only the uncertainty of the denominator is propagated:
@@ -1010,6 +1017,9 @@ class Shape:
                 #print("Ratio unc:", ratios_unc[proc])
                 self.rax.stairs(down, baseline=up, edges=self.style.opts_axes["xedges"],
                                 color=self.colors[proc], alpha=0.4, linewidth=0, hatch='////')
+            elif proc=='data_sum':
+                self.rax.errorbar(self.style.opts_axes["xcenters"], ratios[proc], yerr=ratios_unc[proc],
+                                  **self.style.opts_data)
             else:
                 self.rax.errorbar(self.style.opts_axes["xcenters"], ratios[proc], yerr=ratios_unc[proc],
                                   **self.style.opts_ratios, color=self.colors[proc])
@@ -1152,16 +1162,14 @@ class Shape:
             self.plot_data(cat)
 
 
-        if self.style.has_compare_ref:
+        ref=None
+        if ratio and self.style.has_compare_ref:
             ref = self.style.compare.ref
-        else:
-            raise("There is no reference to compare to")
-
-        if ratio:
             self.plot_compare_ratios(cat, ref=ref)
-
-        self.format_figure(cat, ratio=ratio, ref=ref)
-
+            self.format_figure(cat, ratio=ratio, ref=ref)
+        else:
+            self.format_figure(cat, ratio=False)
+            
 
     def plot_comparison_all(self, ratio=True, save=True, format='png'):
         ''' '''
