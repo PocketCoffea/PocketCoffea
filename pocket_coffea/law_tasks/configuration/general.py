@@ -11,18 +11,17 @@ class baseconfig(luigi.Config):
         description="Config file with parameters specific to the current run",
         default=os.path.join(os.getcwd(), "config.py"),
     )
-    output_dir = luigi.Parameter(
-        description="Output directory for the coffea processor and plots",
-        default=os.path.join(os.getcwd(), "output"),
-    )
+    # output_dir = luigi.Parameter(
+    #     description="Output directory for the coffea processor and plots",
+    #     default=os.path.join(os.getcwd(), "output"),
+    # )
 
 
 class datasetconfig(luigi.Config):
     """Paramters for dataset creation"""
 
     dataset_definition = luigi.Parameter(
-        description="json file containing the datasets definitions"
-            "(wildcard supported)",
+        description="json file containing the datasets definitions (wildcard supported)",
         default=os.path.join(os.getcwd(), "datasets", "datasets_definitions.json"),
     )
     dataset_dir = luigi.Parameter(
@@ -89,7 +88,7 @@ class runnerconfig(luigi.Config):
         ),
         default="iterative",
     )
-    scaleout = luigi.IntParameter(description="Overwrite scalout config", default=None)
+    scaleout = luigi.IntParameter(description="Overwrite scaleout config", default=10)
     process_separately = luigi.BoolParameter(
         description="Process each dataset separately", default=False
     )
@@ -118,14 +117,14 @@ class plottingconfig(luigi.Config):
     plot_format = luigi.Parameter(
         description="Output format of the plots", default="pdf"
     )
-    variables = law.CSVParameter(
-        description="List of variables to plot", default=()
-    )
+    variables = law.CSVParameter(description="List of variables to plot", default=())
+
 
 class plottingsystematicsconfig(luigi.Config):
     ratio = luigi.BoolParameter(
         default=True, description="Plot the ratio of the systematic shifts"
     )
+
 
 class datacardconfig(luigi.Config):
     datacard_name = luigi.Parameter(
