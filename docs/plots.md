@@ -114,8 +114,8 @@ histogram is rescaled by the number specified.
 The `print_info` options would print a text on the plots for category
 name and the year (era period).
 
-
 ## Produce shape comparison plots
+
 Oftentimes one wants to compare shapes of various MC samples, not the
 Data/MC. The `make_plots.py` script is able to do this with a
 `--compare` option. Note that in most cases it makes sense to use it
@@ -134,3 +134,28 @@ In this example the `ttbar` sample would be used as a reference when
 making ratios, and all Ref/Others will be added in the ratio panel.
 If this config is ommitted, the ratios are not drawn (an empty ratio panel
 will be drawn, unless the `--no-ratio` option is explicitely provided).
+
+
+## Default color scheme
+
+The default color scheme adopted for plotting is the one recommended by
+the [CMS guidelines](https://cms-analysis.docs.cern.ch/guidelines/plotting/colors/#categorical-data-eg-1d-stackplots).
+Two color schemes with 6 and 10 colors respectively are used depending on the number of samples.
+
+A set of user-friendly aliases is defined such that the user can use the colors recommended
+by CMS just by an alias string, with no need to know the hexadecimal color codes.
+The aliases are indicated in the figure below on top of the corresponding color:
+
+![](./images/color_scheme.png)
+
+Usage in the `.yaml` config file:
+```
+plotting_style:
+
+    colors_mc:
+        TTTo2L2Nu: CMS_red
+        TTToSemiLeptonic: CMS_blue
+```
+
+If no alias or default `matplotlib` color corresponds to the string specified by the user,
+an exception is raised.

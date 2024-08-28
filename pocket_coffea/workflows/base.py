@@ -189,12 +189,11 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             )
             + ".root"
         )
-        # TODO Generalize skimming output temporary location
-        with uproot.recreate(f"/scratch/{filename}") as fout:
+        with uproot.recreate(f"{filename}") as fout:
             fout["Events"] = uproot_writeable(self.events)
         # copy the file
         copy_file(
-            filename, "/scratch", self.cfg.save_skimmed_files, subdirs=[self._dataset]
+            filename, "./", self.cfg.save_skimmed_files, subdirs=[self._dataset]
         )
         # save the new file location for the new dataset definition
         self.output["skimmed_files"] = {
@@ -202,7 +201,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 os.path.join(self.cfg.save_skimmed_files, self._dataset, filename)
             ]
         }
-        self.output["nskimmed_files"] = {self._dataset: [self.nEvents_after_skim]}
+        self.output["nskimmed_events"] = {self._dataset: [self.nEvents_after_skim]}
 
     @abstractmethod
     def apply_object_preselection(self, variation):
@@ -320,6 +319,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     "xsec": self._xsec,
                 },
             )
+        else:
+            self.weights_manager = None
     
     def compute_weights(self, variation):
         '''
