@@ -52,7 +52,7 @@ def print_parameters(cfg, dump, list_keys,  key, cli):
     
     if key is not None:
         try:
-            params_dict = OmegaConf.select(cfg.parameters, key)
+            params_dict = OmegaConf.select(params_dict, key, throw_on_missing=True)
         except:
             print(f"[red]Key {key} not found in the configuration[/]")
             return
@@ -72,24 +72,26 @@ def print_parameters(cfg, dump, list_keys,  key, cli):
         pprint(list(params_dict.keys()))
         while True:
             # Printing available keys
-            key = Prompt.ask("[bold cyan]Enter the key to print the parameters (or 'q' to quit)[/]")
-            if key == 'q':
+            kkey = Prompt.ask("[bold cyan]Enter the key to print the parameters (or 'q' to quit)[/]")
+            if kkey == 'q':
                 break
             try:
-                selected_params_dict = OmegaConf.select(params_dict, key)
+                selected_params_dict = OmegaConf.select(params_dict, kkey, throw_on_missing=True)
                 pprint(OmegaConf.to_container(selected_params_dict, resolve=True), indent_guides=True)
                 # write available subkeys
                 print(f"[yellow]Available sub-keys in the configuration[/]")
-                pprint([f"{key}.{sub}" for sub in selected_params_dict.keys()])
+                pprint([f"{kkey}.{sub}" for sub in selected_params_dict.keys()])
             except:
-                print(f"[red]Key {key} not found in the configuration[/]")
+                print(f"[red]Key {kkey} not found in the configuration[/]")
     else:
         #just print what has been selected
         pprint(OmegaConf.to_container(params_dict, resolve=True), indent_guides=True)
         
     if dump:
         with open(dump, "w") as f:
-            yaml.dump(params_dict, f)
+            yaml.dump(OmegaConf.to_container(params_dict, resolve=True),
+                      f,
+                      indent=2,)
             print(f"[green]Parameters saved to {dump}[/]")
 
 

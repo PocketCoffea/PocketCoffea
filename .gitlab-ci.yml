@@ -1,6 +1,8 @@
 stages:
   - build
+  - test
   - tag
+  - publish
 
 include:
   - project: 'cms-analysis/general/container-image-ci-templates'
@@ -83,8 +85,52 @@ build_docker_lxplus_el9_stable:
 
 
 #----------------------------------
-# Tag images on coffea2023 branch
+# Run tests
 
+# tests_lxplus_el9_latest:
+#   stage: test
+#   id_tokens:
+#     MY_JOB_JWT: # this is needed, it specifies the aud from which the proxy is requested. 
+#        aud: "cms-cat-ci-datasets.app.cern.ch"
+#   tags:
+#     - cvmfs
+#   image:
+#     name: "gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-${CI_COMMIT_SHORT_SHA}"
+#   variables:
+#     EOSPATH: '/eos/cms/store/group/cat/datasets/NANOAOD/Run2017F-UL2017_MiniAODv2_NanoAODv9-v1/SingleElectron/C68E8C0B-CAE8-D14A-B007-DEC00B15B35C.root'
+#     EOS_MGM_URL: root://eoscms.cern.ch
+    
+#   before_script:
+#     - 'XrdSecsssENDORSEMENT=$(curl --fail-with-body -H "Authorization: ${MY_JOB_JWT}" "https://cms-cat-ci-datasets.app.cern.ch/api?eospath=${EOSPATH}" | tr -d \")'
+#   script:
+#     - pip install pytest>=6
+#     - pytest tests
+
+tests_lxplus_el9_latest:
+  stage: test
+  id_tokens:
+    MY_JOB_JWT: # this is needed, it specifies the aud from which the proxy is requested. 
+       aud: "cms-cat-grid-proxy-service.app.cern.ch"
+  tags:
+    - cvmfs
+  image:
+    name: "gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-${CI_COMMIT_SHORT_SHA}"
+
+  before_script:
+    - 'proxy=$(curl --fail-with-body -H "Authorization: ${MY_JOB_JWT}" "https://cms-cat-grid-proxy-service.app.cern.ch/api" | tr -d \")'
+
+  script:
+    - printf $proxy | base64 -d > myproxy
+    - export X509_USER_PROXY=$(pwd)/myproxy
+    - export X509_CERT_DIR=/cvmfs/grid.cern.ch/etc/grid-security/certificates/
+    - voms-proxy-info # to test it
+    - pip install pytest>=6
+    - pytest tests
+
+
+
+#----------------------------------
+# Tag images on coffea2023 branch
 build_docker_lxplus_coffea2023:
   extends: .tag_skopeo
   rules:
@@ -97,7 +143,6 @@ build_docker_lxplus_coffea2023:
 
 #-------------------------------------------------------------------
 # Tag images using git tag
-    
 build_docker_lxplus_tagged:
   extends: .tag_skopeo
   rules:

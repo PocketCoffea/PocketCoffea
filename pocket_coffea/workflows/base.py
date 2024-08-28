@@ -9,12 +9,12 @@ from copy import deepcopy
 import copy
 import os
 import logging
+import time
 
 from coffea import processor
-from coffea.lumi_tools import LumiMask
 from coffea.analysis_tools import PackedSelection
 
-from ..lib.weights_manager import WeightsManager
+from ..lib.weights.weights_manager import WeightsManager
 from ..lib.columns_manager import ColumnsManager
 from ..lib.hist_manager import HistManager
 from ..lib.jets import jet_correction, met_correction, load_jet_factory
@@ -60,6 +60,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
         # Weights configuration
         self.weights_config_allsamples = self.cfg.weights_config
+        self.weights_classes = self.cfg.weights_classes
 
         # Load the jet calibration factory once for all chunks
         self.jmefactory = load_jet_factory(self.params)
@@ -92,7 +93,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             },
             "columns": {},
             "processing_metadata": {
-                v: {} for v, vcfg in self.cfg.variables.items() if vcfg.metadata_hist
+                v: defaultdict(dict)
+                for v, vcfg in self.cfg.variables.items()
+                if vcfg.metadata_hist
             },
             "datasets_metadata":{ } #year:sample:subsample
         }
@@ -120,7 +123,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self._samplePart = self.events.metadata.get("part", None) # this is the (optional) name of the part of the sample
 
         self._year = self.events.metadata["year"]
-        self._isMC = self.events.metadata["isMC"] == "True" # for some reason this get to a string WIP
+        self._isMC = ((self.events.metadata["isMC"] in ["True", "true"])
+                      or (self.events.metadata["isMC"] == True))
+        # for some reason this get to a string WIP
         if self._isMC:
             self._era = "MC"
             self._xsec = self.events.metadata["xsec"]
@@ -154,24 +159,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         define the cut at the preselection level, not at skim level.
         '''
         self._skim_masks = PackedSelection()
-        mask_flags = np.ones(self.nEvents_initial, dtype=bool)
-        flags = self.params.event_flags[self._year]
-        if not self._isMC:
-            flags += self.params.event_flags_data[self._year]
-        for flag in flags:
-            mask_flags &= getattr(self.events.Flag, flag).to_numpy()
-        self._skim_masks.add("event_flags", mask_flags)
-
-        # Primary vertex requirement
-        self._skim_masks.add("PVgood", self.events.PV.npvsGood > 0)
-
-        # In case of data: check if event is in golden lumi file
-        if not self._isMC:
-            # mask_lumi = lumimask(self.events.run, self.events.luminosityBlock)
-            mask_lumi = LumiMask(self.params.lumi.goldenJSON[self._year])(
-                self.events.run, self.events.luminosityBlock
-            )
-            self._skim_masks.add("lumi_golden", mask_lumi)
 
         for skim_func in self._skim:
             # Apply the skim function and add it to the mask
@@ -202,12 +189,11 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             )
             + ".root"
         )
-        # TODO Generalize skimming output temporary location
-        with uproot.recreate(f"/scratch/{filename}") as fout:
+        with uproot.recreate(f"{filename}") as fout:
             fout["Events"] = uproot_writeable(self.events)
         # copy the file
         copy_file(
-            filename, "/scratch", self.cfg.save_skimmed_files, subdirs=[self._dataset]
+            filename, "./", self.cfg.save_skimmed_files, subdirs=[self._dataset]
         )
         # save the new file location for the new dataset definition
         self.output["skimmed_files"] = {
@@ -215,7 +201,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 os.path.join(self.cfg.save_skimmed_files, self._dataset, filename)
             ]
         }
-        self.output["nskimmed_files"] = {self._dataset: [self.nEvents_after_skim]}
+        self.output["nskimmed_events"] = {self._dataset: [self.nEvents_after_skim]}
 
     @abstractmethod
     def apply_object_preselection(self, variation):
@@ -308,32 +294,23 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
         pass
 
-    @classmethod
-    def available_weights(cls):
+    def define_weights(self):
         '''
-        Identifiers of the weights available thorugh this processor.
-        By default they are all the weights defined in the WeightsManager
-        '''
-        return WeightsManager.available_weights()
-
-    def compute_weights(self, variation):
-        '''
-        Function which define weights (called after preselection).
         The WeightsManager is build only for MC, not for data.
         The user processor can redefine this function to customize the
         weights computation object.
+        The WeightManager loads the weights configuration and precomputed
+        the available weights variations for the current chunk.
+        The Histmanager will ask the WeightsManager to have the available weights
+        variations to create histograms axis.
         '''
-        if not self._isMC:
-            self.weights_manager = None
-        else:
+        if self._isMC:
             # Creating the WeightsManager with all the configured weights
             self.weights_manager = WeightsManager(
                 self.params,
                 self.weights_config_allsamples[self._sample],
-                self.nEvents_after_presel,
-                self.events,  # to compute weights
+                self.weights_classes,
                 storeIndividual=False,
-                shape_variation=variation,
                 metadata={
                     "year": self._year,
                     "sample": self._sample,
@@ -342,6 +319,20 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     "xsec": self._xsec,
                 },
             )
+        else:
+            self.weights_manager = None
+    
+    def compute_weights(self, variation):
+        '''
+        Function which computed the weights (called after preselection).
+        The current shape variation is passed to be used for the weights
+        calculation. 
+        '''
+        if self._isMC:
+            # Compute the weights
+            self.weights_manager.compute(self.events,
+                                         size=self.nEvents_after_presel,
+                                         shape_variation=variation)
 
     def compute_weights_extra(self, variation):
         '''Function that can be defined by user processors
@@ -400,14 +391,15 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         Only one HistManager is created for all the subsamples.
         The subsamples masks are passed to `fill_histogram` and used internally.
         '''
-        self.hists_managers = HistManager(
+        self.hists_manager = HistManager(
             self.cfg.variables,
             self._year,
             self._sample,
             self._subsamples[self._sample].keys(),
             self._categories,
-            variations_config=self.cfg.variations_config[self._sample],
+            variations_config=self.cfg.variations_config[self._sample] if self._isMC else None,
             processor_params=self.params,
+            weights_manager=self.weights_manager if self._isMC else None,
             custom_axes=self.custom_axes,
             isMC=self._isMC,
         )
@@ -430,9 +422,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
         # Filling the autofill=True histogram automatically
         # Calling hist manager with the subsample masks
-        self.hists_managers.fill_histograms(
+        self.hists_manager.fill_histograms(
             self.events,
-            self.weights_manager,
             self._categories,
             subsamples=self._subsamples[self._sample],
             shape_variation=variation,
@@ -446,7 +437,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 name = f"{self._sample}__{subs}"
             else:
                 name = self._sample
-            for var, H in self.hists_managers.get_histograms(subs).items():
+            for var, H in self.hists_manager.get_histograms(subs).items():
                 self.output["variables"][var][name][self._dataset] = H
 
 
@@ -562,13 +553,60 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
     def process_extra_after_presel(self, variation):
         pass
 
+    def save_processing_metadata(self):
+        # Filling the special histograms for processing metadata if they are present
+        total_processing_time = self.stop_time - self.start_time # in seconds
+        add_axes = {"variation":"nominal"} if self._isMC else {}  
+        if self._hasSubsamples:
+            for subs in self._subsamples[self._sample].keys():
+                for k, n in zip(["initial", "skim","presel"],
+                                [self.nEvents_initial, self.nEvents_after_skim, self.nEvents_after_presel ]):
+                    if hepc := self.hists_manager.get_histogram(subs, f"events_per_chunk_{k}"):
+                        hepc.hist_obj.fill(
+                            cat=hepc.only_categories[0],
+                            nevents=n,
+                            **add_axes
+                        )
+                        self.output["processing_metadata"][f"events_per_chunk_{k}"][
+                            f"{self._sample}__{subs}"][self._dataset] = hepc.hist_obj
+                        
+                    if hepc := self.hists_manager.get_histogram(subs, f"throughput_per_chunk_{k}"):
+                        hepc.hist_obj.fill(
+                            cat=hepc.only_categories[0],
+                            throughput=n/total_processing_time,
+                            **add_axes
+                        )
+                        self.output["processing_metadata"][f"throughput_per_chunk_{k}"][
+                            f"{self._sample}__{subs}"][self._dataset] = hepc.hist_obj
+        else:
+            for k, n in zip(["initial", "skim","presel"],
+                            [self.nEvents_initial, self.nEvents_after_skim, self.nEvents_after_presel ]):
+                if hepc := self.hists_manager.get_histogram(self._sample, f"events_per_chunk_{k}"):
+                    hepc.hist_obj.fill(
+                        cat=hepc.only_categories[0],
+                        nevents=n,
+                        **add_axes
+                    )
+                    self.output["processing_metadata"][f"events_per_chunk_{k}"][
+                        self._sample][self._dataset] = hepc.hist_obj
+
+                if hepc := self.hists_manager.get_histogram(self._sample, f"throughput_per_chunk_{k}"):
+                    hepc.hist_obj.fill(
+                        cat=hepc.only_categories[0],
+                        throughput=n/total_processing_time,
+                        **add_axes
+                    )
+                    self.output["processing_metadata"][f"throughput_per_chunk_{k}"][
+                        self._sample][self._dataset] = hepc.hist_obj
+        
+
     @classmethod
     def available_variations(cls):
         '''
         Identifiers of the weights variabtions available thorugh this processor.
         By default they are all the weights defined in the WeightsManager
         '''
-        vars = WeightsManager.available_variations()
+        vars = []
         available_jet_types = [
             "AK4PFchs",
             "AK4PFPuppi",
@@ -592,7 +630,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Here we define the naming scheme for the jet variations
         # For each jet type, we define the variations names as `{variation}_{jet_type}`
         available_jet_variations = [f"{v}_{jt}" for v in available_jet_variations for jt in available_jet_types]
-        vars.update(available_jet_variations)
+        vars += available_jet_variations
         return vars
 
     def get_shape_variations(self):
@@ -709,7 +747,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
           - define histograms
           - count events in each category
         '''
-
+        self.start_time = time.time()
         self.events = events
         # Define the accumulator instance for this chunk
         self.output = copy.deepcopy(self.output_format)
@@ -728,7 +766,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self.output['sum_genweights'][self._dataset] = ak.sum(self.events.genWeight)
             self.output['sum_signOf_genweights'][self._dataset] = ak.sum(np.sign(self.events.genWeight))
 
-        self.weights_config = self.weights_config_allsamples[self._sample]
         ########################
         # Then the first skimming happens.
         # Events that are for sure useless are removed.
@@ -753,6 +790,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         #########################
 
         self.process_extra_after_skim()
+        # Define and load the weights manager
+        self.define_weights()
         # Create the HistManager and ColumnManager before systematic variations
         self.define_custom_axes_extra()
         self.define_histograms()
@@ -802,6 +841,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             if variation == "nominal":
                 self.count_events(variation)
 
+        self.stop_time = time.time()
+        self.save_processing_metadata()
         return self.output
 
 
@@ -814,6 +855,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     # This information is taken from a weights config file for each _sample_
                     # Getting the original sample name to check weights config
                     sample = self.cfg.subsamples_reversed_map[samplename] #needed for subsamples
+                    if not self.cfg.samples_metadata[sample]['isMC']:
+                        continue
                     wei = self.cfg.weights_config[sample]['inclusive']
                     rescale = True
                     if 'signOf_genWeight' in wei and 'genWeight' not in wei:
@@ -838,6 +881,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 # Getting the first sample for the dataset in the "sumw" output
                 # it is working also for subsamples before the first sample key is the primary sample
                 sample_from_dataset = list(dataset_data.keys())[0]
+                if not self.cfg.samples_metadata[sample_from_dataset]['isMC']:
+                    continue
                 wei = self.cfg.weights_config[sample_from_dataset]['inclusive']
                 rescale = True
                 if 'signOf_genWeight' in wei and 'genWeight' not in wei:
@@ -860,6 +905,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         for cat, catdata in output["sumw2"].items():
             for dataset, dataset_data in catdata.items():
                 sample_from_dataset = list(dataset_data.keys())[0]
+                if not self.cfg.samples_metadata[sample_from_dataset]['isMC']:
+                    continue
                 wei = self.cfg.weights_config[sample_from_dataset]['inclusive']
                 rescale = True
                 if 'signOf_genWeight' in wei and 'genWeight' not in wei:
@@ -918,6 +965,5 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Rescale the histograms and sumw using the sum of the genweights
         if not self.workflow_options.get("donotscale_sumgenweights", False):
             self.rescale_sumgenweights(accumulator)
-
 
         return accumulator

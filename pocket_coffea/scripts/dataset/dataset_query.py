@@ -519,7 +519,8 @@ Some basic commands:
             )
         format = os.path.splitext(filename)[1]
         if not format:
-            raise Exception("[red] Please use a .json or .yaml filename for the output")
+            print("[red] Please use a .json or .yaml filename for the output")
+            return
 
         # First save the datasets in the format of the PocketCoffea metadata
         groups = defaultdict(list)
@@ -545,11 +546,11 @@ Some basic commands:
             for dataset in datasets:
                 if dataset in self.replica_results:
                     dataset_info_withreplicas = {
-                        "sample": group,
                         "json_output": f"datasets/{group}.json",
                     }
                     dataset_info_withreplicas.update(self.final_output[dataset])
                     dataset_info_withreplicas["metadata"]["das_names"] = [dataset]
+                    dataset_info_withreplicas["metadata"]["sample"] = group
                     output_definition_withreplicas[f"{group}_{ireplicas}"] = dataset_info_withreplicas
                     ireplicas += 1
 

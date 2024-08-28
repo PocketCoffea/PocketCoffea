@@ -7,6 +7,7 @@ import logging
 import yaml
 from yaml import Loader, Dumper
 import click
+import time
 
 from coffea.util import save
 from coffea import processor
@@ -17,7 +18,7 @@ from pocket_coffea.utils.utils import load_config, path_import
 from pocket_coffea.utils.logging import setup_logging
 from pocket_coffea.parameters import defaults as parameters_utils
 from pocket_coffea.executors import executors_base
-
+from pocket_coffea.utils.benchmarking import print_processing_stats
 
 @click.command()
 @click.option('--cfg', required=True, type=str,
@@ -34,10 +35,12 @@ from pocket_coffea.executors import executors_base
 @click.option("-ll","--loglevel", type=str, help="Console logging level", default="INFO" )
 @click.option("-ps","--process-separately", is_flag=True, help="Process each dataset separately", default=False )
 @click.option("--executor-custom-setup", type=str, help="Python module to be loaded as custom executor setup")
+@click.option("--filter-years", type=str, help="Filter the data taking period of the datasets to be processed (comma separated list)")
 
 def run(cfg,  custom_run_options, outputdir, test, limit_files,
            limit_chunks, executor, scaleout, chunksize,
-           queue, loglevel, process_separately, executor_custom_setup):
+           queue, loglevel, process_separately, executor_custom_setup,
+           filter_years):
     '''Run an analysis on NanoAOD files using PocketCoffea processors'''
 
     # Setting up the output dir
@@ -58,6 +61,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         # Load the script
         config = load_config(cfg, save_config=True, outputdir=outputdir)
         logging.info(config)
+    
     elif cfg[-4:] == ".pkl":
         # WARNING: This has to be tested!!
         config = cloudpickle.load(open(cfg,"rb"))
@@ -136,6 +140,8 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         from pocket_coffea.executors import executors_RWTH as executors_lib
     elif site == "casa":
         from pocket_coffea.executors import executors_casa as executors_lib
+    elif site == "infn-af":
+        from pocket_coffea.executors import executors_infn_af as executors_lib
     else:
         from pocket_coffea.executors import executors_base as executors_lib
 
@@ -152,11 +158,25 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
 
     # Instantiate the executor
     executor = executor_factory.get()
+    start_time = time.time()
 
+    # Filter on the fly the fileset to process by datataking period
+    filesets_to_run = {}
+    filter_years = filter_years.split(",") if filter_years else None
+    if filter_years:
+        for fileset_name, fileset in config.filesets.items():
+            if fileset["metadata"]["year"] in filter_years:
+                filesets_to_run[fileset_name] = fileset
+    else:
+        filesets_to_run = config.filesets
+
+    if len(filesets_to_run) == 0:
+        print("No datasets to process, closing")
+        exit(1)
+        
     if not process_separately:
         # Running on all datasets at once
-        fileset = config.filesets
-        logging.info(f"Working on samples: {list(fileset.keys())}")
+        logging.info(f"Working on samples: {list(filesets_to_run.keys())}")
 
         run = Runner(
             executor=executor,
@@ -166,19 +186,20 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
             schema=processor.NanoAODSchema,
             format="root",
         )
-        output = run(fileset, treename="Events",
+        output = run(filesets_to_run, treename="Events",
                      processor_instance=config.processor_instance)
-
+        
         print(f"Saving output to {outfile.format('all')}")
         save(output, outfile.format("all") )
+        print_processing_stats(output, start_time, run_options["scaleout"])
 
     else:
         # Running separately on each dataset
-        for sample, files in config.filesets.items():
+        for sample, files in config.filesets_to_run.items():
             print(f"Working on sample: {sample}")
             logging.info(f"Working on sample: {sample}")
             
-            fileset = {sample:files}
+            fileset_ = {sample:files}
 
             n_events_tot = int(files["metadata"]["nevents"])
             n_workers_max = n_events_tot / run_options["chunksize"]
@@ -199,11 +220,11 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
                 schema=processor.NanoAODSchema,
                 format="root",
             )
-            output = run(fileset, treename="Events",
+            output = run(fileset_, treename="Events",
                          processor_instance=config.processor_instance)
             print(f"Saving output to {outfile.format(sample)}")
             save(output, outfile.format(sample))
-
+            print_processing_stats(output, start_time, run_options["scaleout"])
     # Closing the executor if needed
     executor_factory.close()
 

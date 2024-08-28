@@ -121,6 +121,7 @@ class HistManager:
         subsamples,
         categories_config,
         variations_config,
+        weights_manager,
         processor_params,
         custom_axes=None,
         isMC=True,
@@ -129,47 +130,30 @@ class HistManager:
         self.isMC = isMC
         self.year = year
         self.subsamples = subsamples
+        self.weights_manager = weights_manager
         self.histograms = defaultdict(dict)
         self.variations_config = variations_config
         self.categories_config = categories_config
         self.available_categories = set(self.categories_config.keys())
         self.available_weights_variations = ["nominal"]
         self.available_shape_variations = []
-        # variations that are expanded in the parameters
-        self.wildcard_variations = {}
+
+        # We take the variations config and we build the available variations
+        # for each category and for the whole sample (if MC)
+        # asking to the WeightsManager the available variations for the current specific chunk and metadata.
         self.available_weights_variations_bycat = defaultdict(list)
         self.available_shape_variations_bycat = defaultdict(list)
+            
         if self.isMC:
-            # weights variations
-            for cat, vars in self.variations_config["weights"].items():
+            # Weights variations
+            for cat, weights in self.variations_config["weights"].items():
                 self.available_weights_variations_bycat[cat].append("nominal")
-                for var in vars:
-                    # Check if the variation is a wildcard and the systematic requested has subvariations
-                    # defined in the parameters
-                    if (
-                        var
-                        in self.processor_params.systematic_variations.weight_variations
-                    ):
-                        for (
-                            subvariation
-                        ) in self.processor_params.systematic_variations.weight_variations[
-                            var
-                        ][
-                            self.year
-                        ]:
-                            self.wildcard_variations[var] = f"{var}_{subvariation}"
-                            self.available_weights_variations += [
-                                f"{var}_{subvariation}Up",
-                                f"{var}_{subvariation}Down",
-                            ]
-                            self.available_weights_variations_bycat[cat] += [
-                                f"{var}_{subvariation}Up",
-                                f"{var}_{subvariation}Down",
-                            ]
-                    else:
-                        vv = [f"{var}Up", f"{var}Down"]
-                        self.available_weights_variations += vv
-                        self.available_weights_variations_bycat[cat] += vv
+                for weight in weights:
+                    # Ask the WeightsManager the available variations
+                    vars = self.weights_manager.get_available_modifiers_byweight(weight)
+                    self.available_weights_variations += vars
+                    self.available_weights_variations_bycat[cat] += vars
+            
             # Shape variations
             for cat, vars in self.variations_config["shape"].items():
                 for var in vars:
@@ -235,12 +219,8 @@ class HistManager:
             # Variation axes
             if hcfg.variations:
                 # Get all the variation
-                allvariat = []
-                for c in cats:
-                    # Summing all the variations for all the categories
-                    allvariat += self.available_weights_variations_bycat[c]
-                    allvariat += self.available_shape_variations_bycat[c]
-
+                allvariat = self.available_weights_variations.union(self.available_shape_variations)
+                
                 if hcfg.only_variations != None:
                     # expand wild card and Up/Down
                     only_variations = []
@@ -257,9 +237,9 @@ class HistManager:
                             ]
                     # filtering the variation list with the available ones
                     allvariat = set(
-                        filter(lambda v: v in only_variations, allvariat)
+                        filter(lambda v: v in only_variations or v == "nominal", allvariat)
                     )
-
+                # sorted is needed to assure to have always the same order for all chunks
                 hcfg.only_variations = list(sorted(set(allvariat)))
             else:
                 hcfg.only_variations = ["nominal"]
@@ -305,17 +285,22 @@ class HistManager:
         }
 
     def get_histogram(self, subsample, name):
-        return self.histograms[subsample][name]
+        return self.histograms[subsample].get(name, None)
 
-    def __prefetch_weights(self, weights_manager, category, shape_variation):
+    def __prefetch_weights(self, category, shape_variation):
+        '''
+        Prefetch the weights for the category and the shape variation.
+        - When processing the nominal shape variation we prefetch all the weights variations
+        - When processing a shape variation we prefetch only the nominal weights
+        '''
         weights = {}
         if shape_variation == "nominal":
             for variation in self.available_weights_variations_bycat[category]:
                 if variation == "nominal":
-                    weights["nominal"] = weights_manager.get_weight(category)
+                    weights["nominal"] = self.weights_manager.get_weight(category)
                 else:
                     # Check if the variation is available in this category
-                    weights[variation] = weights_manager.get_weight(
+                    weights[variation] = self.weights_manager.get_weight(
                         category, modifier=variation
                     )
         else:
@@ -326,7 +311,6 @@ class HistManager:
     def fill_histograms(
         self,
         events,
-        weights_manager,
         categories,
         shape_variation="nominal",
         subsamples=None,  # This is a dictionary with name:ak.Array(bool)
@@ -345,9 +329,7 @@ class HistManager:
         if self.isMC:
             weights = {}
             for category in self.available_categories:
-                weights[category] = self.__prefetch_weights(
-                    weights_manager, category, shape_variation
-                )
+                weights[category] = self.__prefetch_weights(category, shape_variation)
         # Cleaning the weights cache decorator between calls.
         weights_cache.cache_.clear()
 

@@ -2,7 +2,9 @@
 lepton_scale_factors:
   ####################################################################################################
   electron_sf:
-
+    # in PocketCoffea by convention the cleaned collection are called *Good
+    collection: ElectronGood
+    
     id: 
     # mapping of the electron id working point of NanoAOD 
     # to the name of the corresponding scale factors
@@ -112,6 +114,9 @@ lepton_scale_factors:
 
   ##################################################################################################  
   muon_sf:
+     # in PocketCoffea by convention the cleaned collection are called *Good
+    collection: MuonGood
+    
     sf_name:
       '2016_PreVFP':
           id: NUM_TightID_DEN_TrackerMuons
