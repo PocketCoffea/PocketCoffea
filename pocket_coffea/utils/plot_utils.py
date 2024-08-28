@@ -1015,15 +1015,19 @@ class Shape:
                 down = unity[0] - ratios_unc[proc][0]
                 up = unity[1] + ratios_unc[proc][1]
                 #print("Ratio unc:", ratios_unc[proc])
+                if ref=='data_sum':
+                    color = 'black'
+                else:
+                    color = self.colors[proc]
                 self.rax.stairs(down, baseline=up, edges=self.style.opts_axes["xedges"],
-                                color=self.colors[proc], alpha=0.4, linewidth=0, hatch='////')
-            elif proc=='data_sum':
-                self.rax.errorbar(self.style.opts_axes["xcenters"], ratios[proc], yerr=ratios_unc[proc],
-                                  **self.style.opts_data)
+                                color=color, alpha=0.4, linewidth=0, hatch='////')
             else:
+                if proc=='data_sum':
+                    color = 'black'
+                else:
+                    color = self.colors[proc]
                 self.rax.errorbar(self.style.opts_axes["xcenters"], ratios[proc], yerr=ratios_unc[proc],
-                                  **self.style.opts_ratios, color=self.colors[proc])
-
+                                  **self.style.opts_ratios, color=color)
         ref_label = ref
         if ref_label in self.style.labels_mc:
             ref_label = self.style.labels_mc[ref_label]
