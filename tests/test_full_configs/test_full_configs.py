@@ -9,6 +9,7 @@ from coffea.processor import Runner
 from coffea.util import load, save
 from utils import compare_outputs
 import numpy as np
+import awkward as ak
 
 @pytest.fixture
 def base_path() -> Path:
@@ -280,7 +281,7 @@ def test_columns_export(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_pa
     run_options = defaults.get_default_run_options()["general"]
     run_options["limit-files"] = 1
     run_options["limit-chunks"] = 1
-    run_options["chunksize"] = 100
+    run_options["chunksize"] = 50
     config.filter_dataset(run_options["limit-files"])
 
     executor_factory = executors_lib.get_executor_factory("iterative",
@@ -303,3 +304,45 @@ def test_columns_export(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_pa
     assert output is not None
     cls = output["columns"]["TTTo2L2Nu__mu"]["TTTo2L2Nu_2018"]["4jets"]
     assert np.all(cls["JetGood_N"].value >= 4)
+
+def test_columns_export_parquet(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
+    monkeypatch.chdir(base_path / "test_columns" )
+    outputdir = tmp_path_factory.mktemp("test_columns")
+    config = load_config("config_parquet.py", save_config=True, outputdir=outputdir)
+    assert isinstance(config, Configurator)
+
+
+    run_options = defaults.get_default_run_options()["general"]
+    run_options["limit-files"] = 1
+    run_options["limit-chunks"] = 1
+    run_options["chunksize"] = 50
+    config.filter_dataset(run_options["limit-files"])
+
+    executor_factory = executors_lib.get_executor_factory("iterative",
+                                                          run_options=run_options,
+                                                          outputdir=outputdir)
+
+    executor = executor_factory.get()
+
+    run = Runner(
+        executor=executor,
+        chunksize=run_options["chunksize"],
+        maxchunks=run_options["limit-chunks"],
+        schema=processor.NanoAODSchema,
+        format="root"
+    )
+    output = run(config.filesets, treename="Events",
+                 processor_instance=config.processor_instance)
+    save(output, outputdir / "output_all.coffea")
+    
+    assert output is not None
+
+    # build the parquet dataset from output
+    ak.to_parquet.dataset("./columns/TTTo2L2Nu_2018/ele/4jets")
+    ak.to_parquet.dataset("./columns/DATA_EGamma_2018_EraA/2btag")
+    # load the parquet dataset
+    dataset = ak.from_parquet("./columns/TTTo2L2Nu_2018/ele/4jets")
+    assert dataset is not None
+    
+    assert "JetGood_pt" in dataset.fields
+    assert ak.all(ak.num(dataset.JetGood_pt, axis=1) >= 4)
