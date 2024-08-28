@@ -146,9 +146,7 @@ A set of user-friendly aliases is defined such that the user can use the colors 
 by CMS just by an alias string, with no need to know the hexadecimal color codes.
 The aliases are indicated in the figure below on top of the corresponding color:
 
-<div style="text-align: center;">
-    <img src="./images/color_scheme.png" alt="Color Scheme" style="width: 80%;">
-</div>
+![](./images/color_scheme.png)
 
 Usage in the `.yaml` config file:
 ```
