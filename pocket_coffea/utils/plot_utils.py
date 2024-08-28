@@ -16,6 +16,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
 import mplhep as hep
+from mplhep.error_estimation import poisson_interval
 from cycler import cycler
 
 from omegaconf import OmegaConf
@@ -86,9 +87,14 @@ class Style:
                 if len(style_cfg["blind_hists"]["categories"])!=0 and len(style_cfg["blind_hists"]["histograms"])!=0:
                     self.has_blind_hists = True
 
-        self.has_signal_samples = []
+        self.has_signal_samples = False
         if "signal_samples" in self.style_cfg:
             self.has_signal_samples = True
+
+        self.has_compare_ref = None
+        if "compare" in self.style_cfg:
+            if "ref" in self.style_cfg["compare"]:
+                self.has_compare_ref = True
 
         self.set_defaults()
 
@@ -210,7 +216,7 @@ class PlotManager:
                 if not os.path.exists(plot_dir):
                     os.makedirs(plot_dir)
 
-    def plot_datamc(self, name, syst=True, spliteras=False, format="png"):
+    def plot_datamc(self, name, ratio=True, syst=True, spliteras=False, format="png"):
         '''Plots one histogram, for all years and categories.'''
         if self.verbose>0:
             print("Plotting: ", name)
@@ -224,20 +230,44 @@ class PlotManager:
         if ((shape.is_mc_only) | (shape.is_data_only)):
             ratio = False
         else:
-            ratio = True
+            ratio = ratio
         shape.plot_datamc_all(ratio, syst, spliteras=spliteras, save=self.save, format=format)
 
-    def plot_datamc_all(self, syst=True,  spliteras=False, format="png"):
+    def plot_datamc_all(self, ratio=True, syst=True,  spliteras=False, format="png"):
         '''Plots all the histograms contained in the dictionary, for all years and categories.'''
         shape_names = list(self.shape_objects.keys())
         if self.workers > 1:
             with Pool(processes=self.workers) as pool:
                 # Parallel calls of plot_datamc() on different shape objects
-                pool.map(partial(self.plot_datamc, syst=syst, spliteras=spliteras, format=format), shape_names)
+                pool.map(partial(self.plot_datamc, ratio=ratio, syst=syst, spliteras=spliteras, format=format), shape_names)
                 pool.close()
         else:
             for shape in shape_names:
-                self.plot_datamc(shape, syst=syst, spliteras=spliteras, format=format)
+                self.plot_datamc(shape, ratio=ratio, syst=syst, spliteras=spliteras, format=format)
+
+
+    def plot_comparison(self, name, ratio=True, format="png"):
+        '''Plots one histogram, for all years and categories.'''
+        if self.verbose>0:
+            print("Plotting: ", name)
+        shape = self.shape_objects[name]
+        if shape.dense_dim > 1:
+            if self.verbose>0:
+                print(f"WARNING: cannot plot histogram {shape.name} with dimension {shape.dense_dim}. It will be skipped")
+            return
+
+        shape.plot_comparison_all(ratio,  save=self.save, format=format)
+
+    def plot_comparison_all(self, ratio=True, format=format):
+        '''Plots all the histograms contained in the dictionary, for all years and categories.'''
+        shape_names = list(self.shape_objects.keys())
+        if self.workers > 1:
+            with Pool(processes=self.workers) as pool:
+                pool.map(partial(self.plot_comparison, ratio=ratio, format=format), shape_names)
+                pool.close()
+        else:
+            for shape in shape_names:
+                self.plot_comparison(shape, ratio=ratio, syst=syst, spliteras=spliteras, format=format)
 
 
     def plot_systematic_shifts(self, shape, format="png", ratio=True):
@@ -460,9 +490,13 @@ class Shape:
         if len(stack) == 1:
             return stack[0]
         else:
-            htot =hist.Hist(stack[0])
+            htot = hist.Hist(stack[0])
             for h in stack[1:]:
                 htot = htot + h
+            if is_mc:
+                htot.name = 'mc_sum'
+            else:
+                htot.name = 'data_sum'
             return htot
 
     @property
@@ -682,22 +716,88 @@ class Shape:
     def get_datamc_ratio(self, cat):
         '''Computes the data/MC ratio and the corresponding uncertainty.'''
         stacks = self._get_stacks(cat)
-        num = stacks["data_sum"].values()
+        hnum = stacks["data_sum"]
+        hden = stacks["mc_nominal_sum"]
 
-        den = stacks["mc_nominal_sum"].values()
+        if self.density:
+            num_integral = sum(hnum.values() * np.array(self.style.opts_axes["xbinwidth"]) )
+            if num_integral>0:
+                hnum = hnum * (1./num_integral)
+            den_integral = sum(hden.values() * np.array(self.style.opts_axes["xbinwidth"]) )
+            if den_integral>0:
+                hden = hden * (1./den_integral)
 
-        if np.any(den <0 ):
-            if self.verbose>0:
-                print(f"WARNING: negative bins in MC of shape {self.name}. BE CAREFUL! Putting negative bins to 0 for plotting..")
-        den[den < 0] = 0
+        ratio = hnum.values()/hden.values()
+        # Total uncertainy propagation of num / den :
+        # ratio_variance = np.power(ratio,2)*( hnum.variances()*np.power(hnum.values(), -2) + hden.variances()*np.power(hden.values(), -2))
+        # Only the uncertainty of num (DATA) propagated:
+        ratio_variance = hnum.variances()*np.power(hden.values(), -2)
 
-        ratio = num / den
-        # TO DO: Implement Poisson interval valid also for num~0
-        # np.sqrt(num) is just an approximation of the uncertainty valid at large num
-        ratio_unc = np.sqrt(num) / den
-        ratio_unc[np.isnan(ratio_unc)] = np.inf
+        ratio_uncert = np.abs(poisson_interval(ratio, ratio_variance) - ratio)
+        ratio_uncert[np.isnan(ratio_uncert)] = np.inf
 
-        return ratio, ratio_unc
+        return ratio, ratio_uncert
+
+    def get_ref_ratios(self, cat, ref=None):
+        '''Computes the ratios and the corresponding uncertainty between two processes.'''
+        stacks = self._get_stacks(cat)
+
+        #print("Everything in the Stack:", stacks.keys())
+        #print("\t mc_nominal:", stacks['mc_nominal'])
+
+        # den and hden refer to the numerator, which is the reference histogram
+        # num and hnum refer to the numerator
+
+        if ref=='data_sum':
+            hden = stacks['data_sum']
+        elif ref=='mc_nominal_sum':
+            hden = stacks['mc_nominal_sum']
+        else:
+            hden = stacks['mc_nominal'][ref]
+
+        if self.density:
+
+            #print("Numerator values:", hnum.values())
+            #print("Sum = ", sum(hnum.values()))
+            #print("xbinwidth",  self.style.opts_axes["xbinwidth"])
+            den_integral = sum(hden.values() * np.array(self.style.opts_axes["xbinwidth"]) )
+
+            print("Integral = ", den_integral)
+            if den_integral>0:
+                hden = hden * (1./den_integral)
+
+
+        ratios = {}
+        ratios_unc = {}
+
+        # Create ratios for all MC hist compared to the reference
+        histograms_list = [h for h in stacks['mc_nominal'] ]
+    
+        histograms_list.append(stacks['data_sum'])
+        for hnum in histograms_list:
+            #print("Process:", hnum.name, type(hnum))
+
+            if self.density:
+                num_integral = sum(hnum.values() * np.array(self.style.opts_axes["xbinwidth"]) )
+                hnum = hnum * (1./num_integral)
+
+            ratio = hnum.values()/hden.values()
+            # Total uncertainy of num x den :
+            # ratio_variance = np.power(ratio,2)*( hnum.variances()*np.power(hnum.values(), -2) + hden.variances()*np.power(hden.values(), -2))
+
+            # Only the uncertainty of numerator is propagated, the reference hist uncertainty is ignored
+            ratio_variance = np.power(ratio,2)*hnum.variances()*np.power(hnum.values(), -2)
+
+            # Only the uncertainty of the denominator is propagated:
+            # ratio_variance = np.power(ratio,2)*hden.variances()*np.power(hden.values(), -2)
+
+            ratio_uncert = np.abs(poisson_interval(ratio, ratio_variance) - ratio)
+            ratio_uncert[np.isnan(ratio_uncert)] = np.inf
+
+            ratios[hnum.name] = ratio
+            ratios_unc[hnum.name] = ratio_uncert
+
+        return ratios, ratios_unc
 
     def define_figure(self, ratio=True):
         '''Defines the figure for the Data/MC plot.
@@ -737,7 +837,7 @@ class Shape:
             )
         return self.fig, axes
 
-    def format_figure(self, cat, ratio=True):
+    def format_figure(self, cat, ratio=True, ref=None):
         '''Formats the figure's axes, labels, ticks, xlim and ylim.'''
         stacks = self._get_stacks(cat)
         ylabel = "Counts" if not self.density else "A.U."
@@ -768,11 +868,15 @@ class Shape:
         if ratio:
             self.ax.set_xlabel("")
             self.rax.set_xlabel(self.style.opts_axes["xlabel"], fontsize=self.style.fontsize)
-            self.rax.set_ylabel("Data / MC", fontsize=self.style.fontsize)
+            if ref:
+                self.rax.set_ylabel("Others / Ref", fontsize=self.style.fontsize)
+            else:
+                self.rax.set_ylabel("Data / MC", fontsize=self.style.fontsize)
             self.rax.yaxis.set_label_coords(-0.075, 1)
             self.rax.tick_params(axis='x', labelsize=self.style.fontsize)
             self.rax.tick_params(axis='y', labelsize=self.style.fontsize)
             self.rax.set_ylim((0.5, 1.5))
+
         if self.style.has_labels or self.style.has_signal_samples:
             handles, labels = self.ax.get_legend_handles_labels()
             labels_new = []
@@ -915,6 +1019,45 @@ class Shape:
         self.format_figure(cat, ratio=True)
         self.rax.axhline(1.0, color="black", linestyle="--")
 
+    def plot_compare_ratios(self, cat, ref, ax=None):
+        '''Plots the ratios as an errorbar plots.'''
+        if self.dense_dim > 1:
+            print(f"WARNING: cannot plot for histogram {self.name} with dimension {self.dense_dim}.")
+            print("The method `plot_compare_ratios` will be skipped.")
+            return
+
+        ratios, ratios_unc = self.get_ref_ratios(cat, ref=ref)
+        if ax:
+            self.rax = ax
+        else:
+            if not hasattr(self, "rax"):
+                self.define_figure(ratio=True)
+
+        for proc in ratios.keys():
+
+            np.nan_to_num(ratios[proc], copy=False)
+            np.nan_to_num(ratios_unc[proc], copy=False)
+
+            if ref==proc:
+                unity = np.ones_like(ratios_unc[proc])
+                down = unity[0] - ratios_unc[proc][0]
+                up = unity[1] + ratios_unc[proc][1]
+                #print("Ratio unc:", ratios_unc[proc])
+                self.rax.stairs(down, baseline=up, edges=self.style.opts_axes["xedges"],
+                                color=self.colors[proc], alpha=0.4, linewidth=0, hatch='////')
+            elif proc=='data_sum':
+                self.rax.errorbar(self.style.opts_axes["xcenters"], ratios[proc], yerr=ratios_unc[proc],
+                                  **self.style.opts_data)
+            else:
+                self.rax.errorbar(self.style.opts_axes["xcenters"], ratios[proc], yerr=ratios_unc[proc],
+                                  **self.style.opts_ratios, color=self.colors[proc])
+
+        ref_label = ref
+        if ref_label in self.style.labels_mc:
+            ref_label = self.style.labels_mc[ref_label]
+        self.rax.text(0.04, 0.85, f'Ref = {ref_label}', fontsize=12, transform=self.rax.transAxes)
+
+
     def plot_systematic_uncertainty(self, cat, ratio=False, ax=None):
         '''Plots the asymmetric systematic uncertainty band on top of the MC stack, if `ratio` is set to False.
         To plot the systematic uncertainty in a ratio plot, `ratio` has to be set to True and the uncertainty band will be plotted around 1 in the ratio plot.'''
@@ -1023,6 +1166,65 @@ class Shape:
             else:
                 plt.show(self.fig)
             plt.close(self.fig)
+
+    def plot_comparison(self, cat, ratio=True, ax=None, rax=None):
+        '''Plots the comparison of the histograms'''
+        if self.dense_dim > 1:
+            print(f"WARNING: cannot plot for histogram {self.name} with dimension {self.dense_dim}.")
+            print("The method `plot_comprison` will be skipped.")
+            return
+
+        self.style.opts_mc["stack"] = False
+        self.style.opts_mc["histtype"] = "step"
+
+        if ax:
+            self.ax = ax
+        if rax:
+            self.rax = rax
+        if (not self.is_mc_only) & (not self.is_data_only):
+            self.plot_mc(cat)
+            self.plot_data(cat)
+        elif self.is_mc_only:
+            self.plot_mc(cat)
+        elif self.is_data_only:
+            self.plot_data(cat)
+
+
+        ref=None
+        if ratio and self.style.has_compare_ref:
+            ref = self.style.compare.ref
+            self.plot_compare_ratios(cat, ref=ref)
+            self.format_figure(cat, ratio=ratio, ref=ref)
+        else:
+            self.format_figure(cat, ratio=False)
+            
+
+    def plot_comparison_all(self, ratio=True, save=True, format='png'):
+        ''' '''
+        if self.dense_dim > 1:
+            print(f"WARNING: cannot plot histogram {self.name} with dimension {self.dense_dim}. It will be skipped.")
+            return
+
+        for cat in self.categories:
+            if self.verbose>1:
+                print('Plotting category:', cat)
+            if self.only_cat and cat not in self.only_cat:
+                continue
+            self.define_figure(ratio)
+            self.plot_comparison(cat, ratio=ratio)
+            if save:
+                plot_dir = os.path.join(self.plot_dir, cat)
+                if self.log:
+                    filepath = os.path.join(plot_dir, f"log_{self.name}_{cat}.{format}")
+                else:
+                    filepath = os.path.join(plot_dir, f"{self.name}_{cat}.{format}")
+                if self.verbose>0:
+                    print("Saving", filepath)
+                plt.savefig(filepath, dpi=150, format=format, bbox_inches="tight")
+            else:
+                plt.show(self.fig)
+                plt.close(self.fig)
+
 
     def plot_systematic_shifts(
         self, cat, syst_name, ratio=True, format="png", save=True
