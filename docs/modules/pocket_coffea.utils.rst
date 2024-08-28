@@ -4,6 +4,14 @@ pocket\_coffea.utils package
 Submodules
 ----------
 
+pocket\_coffea.utils.benchmarking module
+----------------------------------------
+
+.. automodule:: pocket_coffea.utils.benchmarking
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pocket\_coffea.utils.build\_jets\_calibrator module
 ---------------------------------------------------
 
@@ -56,6 +64,14 @@ pocket\_coffea.utils.plot\_efficiency module
 --------------------------------------------
 
 .. automodule:: pocket_coffea.utils.plot_efficiency
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pocket\_coffea.utils.plot\_functions module
+-------------------------------------------
+
+.. automodule:: pocket_coffea.utils.plot_functions
    :members:
    :undoc-members:
    :show-inheritance:

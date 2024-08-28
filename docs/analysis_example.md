@@ -510,9 +510,12 @@ The application of the nominal value of scale factors and weights is switched on
 by adding the corresponding key in the ``weights`` dictionary:
 
 ```python
+from pocket_coffea.lib.weights.common import common_weights
+
 cfg = Configurator(
     # .....
-
+    weights_classes = common_weights,  # optional
+    
     weights = {
          "common": {
              "inclusive": ["genWeight","lumi","XS",
@@ -524,26 +527,21 @@ cfg = Configurator(
          },
          "bysample": {
          }
-     },cfg = {
-       ...
-       "weights": {
-          "common": {
-             "inclusive": ["genWeight","lumi","XS",
-                           "pileup",
-                           "sf_mu_id","sf_mu_iso",
-                           ],
-             "bycategory" : {
-             }
-         },
-         "bysample": {
-         }
-       },
-       ...
-    }
+     }
+    )
 ```
 
 In our case, we are applying the nominal scaling of Monte Carlo by ``lumi * XS / genWeight`` together with the pileup reweighting and the muon ID and isolation scale factors.
-The reweighting of the events is managed internally by the module ``WeightsManager``.
+The reweighting of the events is managed by the module ``WeightsManager``.
+
+The available weights are defined by the `weights_classes` argument of the Configurator. That is a list of WeightWrapper
+objects that can be taken from the ones defined in the framework, or it can be customized by the users. 
+The common weights defined by the framework are available in `pocket_coffea.lib.weights.common.common_weights`. 
+If the user doesn't provide a list of weight classes, the common ones are used by default. 
+
+:::{tip}
+For more information about Weights customization have a look at the [Configuration](./configuration.md#Weights) docs.
+:::
 
 To store also the up and down systematic variations corresponding to a given weight, one can specify it in the ``variations`` dictionary:
 

@@ -21,7 +21,7 @@ The form of a Coffea processor is completely free: in PocketCoffea we define a `
     consistently for all the users with yaml files, as described in [Parameters](./parameters.md)
 
 :::{tip}
-Have a look at the rest of this page for a detailed description of the default processing steps and of the PocketCoffea configuration. 
+Have a look at the rest of this page for a detailed description of the default processing steps and o the PocketCoffea configuration. 
 :::
 
 ## Base workflow
