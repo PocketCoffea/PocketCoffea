@@ -65,21 +65,12 @@ class Style:
             ), f"The key `{key}` is not defined in the style dictionary."
         for key, item in style_cfg.items():
             setattr(self, key, item)
-        self.has_labels = False
-        self.has_samples_groups = False
         self.has_lumi = False
-        if "labels_mc" in style_cfg:
-            self.has_labels = True
-        if "samples_groups" in style_cfg:
-            self.has_samples_groups = True
-        self.has_exclude_samples=False
-        if "exclude_samples" in style_cfg:
-            self.has_exclude_samples = True
-        self.has_rescale_samples=False
-        if "rescale_samples" in style_cfg:
-            self.has_rescale_samples = True
-        if "colors_mc" in style_cfg:
-            self.has_colors_mc = True
+        self.has_labels = "labels_mc" in style_cfg
+        self.has_samples_groups = "samples_groups" in style_cfg
+        self.has_exclude_samples = "exclude_samples" in style_cfg
+        self.has_rescale_samples = "rescale_samples" in style_cfg
+        self.has_colors_mc = "colors_mc" in style_cfg
 
         self.has_blind_hists = False
         if "blind_hists" in style_cfg:
@@ -101,18 +92,14 @@ class Style:
         #print("Style config:\n", style_cfg)
 
     def set_defaults(self):
-        if not "stack" in self.opts_mc:
-            self.opts_mc["stack"] = True
-        if not hasattr(self, "fontsize"):
-            self.fontsize = 22
+        self.opts_mc["stack"] = "stack" not in self.opts_mc
+        self.fontsize = getattr(self, "fontsize", 22)
 
         # default experiment label location: upper left inside plot
         # https://twiki.cern.ch/twiki/bin/viewauth/CMS/Internal/FigGuidelines
-        if not hasattr(self, "experiment_label_loc"):
-            self.experiment_label_loc = 2
+        self.experiment_label_loc = getattr(self, "experiment_label_loc", 2)
 
-        if not hasattr(self, "print_info"):
-            self.print_info = {"category": False, "year": False}
+        self.print_info = getattr(self, "print_info", {"category": False, "year": False})
 
 
     def update(self, style_cfg):
