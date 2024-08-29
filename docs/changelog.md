@@ -17,6 +17,8 @@ This page keeps track of major and minor changes between versions. Breaking chan
 
 
 #### Breaking changes
+
+##### Default skim
 - Some skimming cuts were included by default in the base workflow and may be unnoticed by the users
 [PR#193](https://github.com/PocketCoffea/PocketCoffea/pull/193). For maximum transparency we have removed those cuts
 from the base workflow and made the cutting functions available to be used in the configuration.  The functions were: 
@@ -36,6 +38,18 @@ cfg = Configurator(
 ```
 
 This change is enough to preserve the same cuts applied before 0.9.5.
+
+##### Jet selection function
+The signature of the jet cleaning function used often in the object preselection step of processor has been changes to
+add explicitely the year argument. 
+
+```python
+- def jet_selection(events, jet_type, params, leptons_collection=""):
++ def jet_selection(events, jet_type, params, *year*, leptons_collection=""):
+```
+
+This signature change can be unnoticed by users using the `leptons_collection` argument. Please cross-check your
+function usage.
 
 
 ## PocketCoffea 0.9.0
