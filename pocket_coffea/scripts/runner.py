@@ -195,7 +195,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
 
     else:
         # Running separately on each dataset
-        for sample, files in config.filesets_to_run.items():
+        for sample, files in filesets_to_run.items():
             print(f"Working on sample: {sample}")
             logging.info(f"Working on sample: {sample}")
             
