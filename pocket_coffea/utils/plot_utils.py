@@ -988,6 +988,14 @@ class Shape:
         y = stacks["data_sum"].values()
         # Add underflow and overflow bins to the first and last bin, respectively
         if self.style.opts_mc["flow"] == "sum":
+            has_underflow = True
+            has_overflow = True
+            try: stacks["data_sum"][hist.underflow]
+            except: has_underflow = False
+            try: stacks["data_sum"][hist.overflow]
+            except: has_overflow = False
+            if not all([has_underflow, has_overflow]):
+                raise NotImplementedError("Both underflow and overflow bins have to be defined. Please set `overflow=True` and `underflow=True` in the constructor of the Axis object, in your configuration.")
             y_underflow = stacks["data_sum"][hist.underflow].value
             y_overflow = stacks["data_sum"][hist.overflow].value
             y[0] += y_underflow
@@ -1370,6 +1378,14 @@ class SystUnc:
             self.nominal, self.bins = stacks["mc_nominal_sum"].to_numpy()
             # Add underflow and overflow bins to the first and last bin, respectively
             if self.style.opts_mc["flow"] == "sum":
+                has_underflow = True
+                has_overflow = True
+                try: stacks["mc_nominal_sum"][hist.underflow]
+                except: has_underflow = False
+                try: stacks["mc_nominal_sum"][hist.overflow]
+                except: has_overflow = False
+                if not all([has_underflow, has_overflow]):
+                    raise NotImplementedError("Both underflow and overflow bins have to be defined. Please set `overflow=True` and `underflow=True` in the constructor of the Axis object, in your configuration.")
                 self.nominal[0] += stacks["mc_nominal_sum"][hist.underflow].value
                 self.nominal[-1] += stacks["mc_nominal_sum"][hist.overflow].value
         elif syst_list:
