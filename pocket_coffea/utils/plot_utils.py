@@ -669,7 +669,7 @@ class Shape:
                 # Sum over eras if specified as extra argument
                 if 'era' in [ax.name for ax in self.categorical_axes_data]:
                     if spliteras:
-                        slicing_data = { 'cat': cat}
+                        slicing_data = {'cat': cat}
                     else:
                         slicing_data = {'cat': cat, 'era': sum}
                 else:
@@ -706,19 +706,37 @@ class Shape:
         hnum = stacks["data_sum"]
         hden = stacks["mc_nominal_sum"]
 
-        if self.density:
-            num_integral = sum(hnum.values() * np.array(self.style.opts_axes["xbinwidth"]) )
-            if num_integral>0:
-                hnum = hnum * (1./num_integral)
-            den_integral = sum(hden.values() * np.array(self.style.opts_axes["xbinwidth"]) )
-            if den_integral>0:
-                hden = hden * (1./den_integral)
+        if self.style.opts_mc["flow"] == "sum":
+            flow = True
+        else:
+            flow = False
+        num = hnum.values(flow=flow)
+        den = hden.values(flow=flow)
+        num_variances = hnum.variances(flow=flow)
+        den_variances = hden.variances(flow=flow)
 
-        ratio = hnum.values()/hden.values()
+        # Sum underflow and overflow bins for the numerator and denominator, to restore an array of the same length
+        if self.style.opts_mc["flow"] == "sum":
+            if (len(num) != (len(hnum.values()) + 2)) | (len(den) != (len(hden.values()) + 2)):
+                raise NotImplementedError("Both underflow and overflow bins have to be defined. Please set `overflow=True` and `underflow=True` in the constructor of the Axis object, in your configuration.")
+            num = np.concatenate([num[0]+num[1], num[2:-2], num[-2]+num[-1]])
+            den = np.concatenate([den[0]+den[1], den[2:-2], den[-2]+den[-1]])
+            num_variances = np.concatenate([num_variances[0]+num_variances[1], num_variances[2:-2], num_variances[-2]+num_variances[-1]])
+            den_variances = np.concatenate([den_variances[0]+den_variances[1], den_variances[2:-2], den_variances[-2]+den_variances[-1]])
+
+        if self.density:
+            num_integral = sum(num * np.array(self.style.opts_axes["xbinwidth"]) )
+            if num_integral>0:
+                num = num * (1./num_integral)
+            den_integral = sum(den * np.array(self.style.opts_axes["xbinwidth"]) )
+            if den_integral>0:
+                den = den * (1./den_integral)
+
+        ratio = num / den
         # Total uncertainy propagation of num / den :
-        # ratio_variance = np.power(ratio,2)*( hnum.variances()*np.power(hnum.values(), -2) + hden.variances()*np.power(hden.values(), -2))
+        # ratio_variance = np.power(ratio,2)*( num_variances*np.power(num, -2) + den_variances*np.power(den, -2))
         # Only the uncertainty of num (DATA) propagated:
-        ratio_variance = hnum.variances()*np.power(hden.values(), -2)
+        ratio_variance = num_variances*np.power(hden, -2)
 
         ratio_uncert = np.abs(poisson_interval(ratio, ratio_variance) - ratio)
         ratio_uncert[np.isnan(ratio_uncert)] = np.inf
@@ -742,17 +760,26 @@ class Shape:
         else:
             hden = stacks['mc_nominal'][ref]
 
-        if self.density:
+        if self.style.opts_mc["flow"] == "sum":
+            flow = True
+        else:
+            flow = False
+        den = hden.values(flow=flow)
+        den_variances = hden.variances(flow=flow)
 
-            #print("Numerator values:", hnum.values())
-            #print("Sum = ", sum(hnum.values()))
-            #print("xbinwidth",  self.style.opts_axes["xbinwidth"])
-            den_integral = sum(hden.values() * np.array(self.style.opts_axes["xbinwidth"]) )
+        # Sum underflow and overflow bins for the denominator, to restore an array of the same length
+        if self.style.opts_mc["flow"] == "sum":
+            if (len(den) != (len(hden.values()) + 2)):
+                raise NotImplementedError("Both underflow and overflow bins have to be defined. Please set `overflow=True` and `underflow=True` in the constructor of the Axis object, in your configuration.")
+            den = np.concatenate([den[0]+den[1], den[2:-2], den[-2]+den[-1]])
+            den_variances = np.concatenate([den_variances[0]+den_variances[1], den_variances[2:-2], den_variances[-2]+den_variances[-1]])
+
+        if self.density:
+            den_integral = sum(den * np.array(self.style.opts_axes["xbinwidth"]) )
 
             print("Integral = ", den_integral)
             if den_integral>0:
-                hden = hden * (1./den_integral)
-
+                den = den * (1./den_integral)
 
         ratios = {}
         ratios_unc = {}
@@ -763,20 +790,28 @@ class Shape:
         histograms_list.append(stacks['data_sum'])
         for hnum in histograms_list:
             #print("Process:", hnum.name, type(hnum))
+            num = hnum.values(flow=flow)
+            num_variances = hnum.variances(flow=flow)
+
+            if self.style.opts_mc["flow"] == "sum":
+                if (len(den) != (len(hden.values()) + 2)):
+                    raise NotImplementedError("Both underflow and overflow bins have to be defined. Please set `overflow=True` and `underflow=True` in the constructor of the Axis object, in your configuration.")
+                num = np.concatenate([num[0]+num[1], num[2:-2], num[-2]+num[-1]])
+                num_variances = np.concatenate([num_variances[0]+num_variances[1], num_variances[2:-2], num_variances[-2]+num_variances[-1]])
 
             if self.density:
-                num_integral = sum(hnum.values() * np.array(self.style.opts_axes["xbinwidth"]) )
-                hnum = hnum * (1./num_integral)
+                num_integral = sum(num * np.array(self.style.opts_axes["xbinwidth"]) )
+                num = num * (1./num_integral)
 
-            ratio = hnum.values()/hden.values()
+            ratio = num / den
             # Total uncertainy of num x den :
-            # ratio_variance = np.power(ratio,2)*( hnum.variances()*np.power(hnum.values(), -2) + hden.variances()*np.power(hden.values(), -2))
+            # ratio_variance = np.power(ratio,2)*( num_variances*np.power(num, -2) + den_variances*np.power(den, -2))
 
             # Only the uncertainty of numerator is propagated, the reference hist uncertainty is ignored
-            ratio_variance = np.power(ratio,2)*hnum.variances()*np.power(hnum.values(), -2)
+            ratio_variance = np.power(ratio,2)*num_variances*np.power(num, -2)
 
             # Only the uncertainty of the denominator is propagated:
-            # ratio_variance = np.power(ratio,2)*hden.variances()*np.power(hden.values(), -2)
+            # ratio_variance = np.power(ratio,2)*den_variances*np.power(den, -2)
 
             ratio_uncert = np.abs(poisson_interval(ratio, ratio_variance) - ratio)
             ratio_uncert[np.isnan(ratio_uncert)] = np.inf
@@ -1333,6 +1368,10 @@ class SystUnc:
             # Full nominal MC including all MC samples
             self.h_mc_nominal = stacks["mc_nominal_sum"]
             self.nominal, self.bins = stacks["mc_nominal_sum"].to_numpy()
+            # Add underflow and overflow bins to the first and last bin, respectively
+            if self.style.opts_mc["flow"] == "sum":
+                self.nominal[0] += stacks["mc_nominal_sum"][hist.underflow].value
+                self.nominal[-1] += stacks["mc_nominal_sum"][hist.overflow].value
         elif syst_list:
             self.syst_list = syst_list
             assert (
