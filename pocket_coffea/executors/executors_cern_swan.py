@@ -21,6 +21,8 @@ class DaskExecutorFactory(ExecutorFactoryABC):
     def customized_args(self):
         args = super().customized_args()
         args["client"] = self.dask_client
+        args["treereduction"] = self.run_options["tree-reduction"]
+        args["retries"] = self.run_options["retries"]
         return args
     
     def get(self):
