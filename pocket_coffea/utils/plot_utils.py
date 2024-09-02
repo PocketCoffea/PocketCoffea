@@ -719,10 +719,10 @@ class Shape:
         if self.style.opts_mc["flow"] == "sum":
             if (len(num) != (len(hnum.values()) + 2)) | (len(den) != (len(hden.values()) + 2)):
                 raise NotImplementedError("Both underflow and overflow bins have to be defined. Please set `overflow=True` and `underflow=True` in the constructor of the Axis object, in your configuration.")
-            num = np.concatenate([num[0]+num[1], num[2:-2], num[-2]+num[-1]])
-            den = np.concatenate([den[0]+den[1], den[2:-2], den[-2]+den[-1]])
-            num_variances = np.concatenate([num_variances[0]+num_variances[1], num_variances[2:-2], num_variances[-2]+num_variances[-1]])
-            den_variances = np.concatenate([den_variances[0]+den_variances[1], den_variances[2:-2], den_variances[-2]+den_variances[-1]])
+            num = np.concatenate([[num[0]+num[1]], num[2:-2], [num[-2]+num[-1]]])
+            den = np.concatenate([[den[0]+den[1]], den[2:-2], [den[-2]+den[-1]]])
+            num_variances = np.concatenate([[num_variances[0]+num_variances[1]], num_variances[2:-2], [num_variances[-2]+num_variances[-1]]])
+            den_variances = np.concatenate([[den_variances[0]+den_variances[1]], den_variances[2:-2], [den_variances[-2]+den_variances[-1]]])
 
         if self.density:
             num_integral = sum(num * np.array(self.style.opts_axes["xbinwidth"]) )
@@ -771,8 +771,8 @@ class Shape:
         if self.style.opts_mc["flow"] == "sum":
             if (len(den) != (len(hden.values()) + 2)):
                 raise NotImplementedError("Both underflow and overflow bins have to be defined. Please set `overflow=True` and `underflow=True` in the constructor of the Axis object, in your configuration.")
-            den = np.concatenate([den[0]+den[1], den[2:-2], den[-2]+den[-1]])
-            den_variances = np.concatenate([den_variances[0]+den_variances[1], den_variances[2:-2], den_variances[-2]+den_variances[-1]])
+            den = np.concatenate([[den[0]+den[1]], den[2:-2], [den[-2]+den[-1]]])
+            den_variances = np.concatenate([[den_variances[0]+den_variances[1]], den_variances[2:-2], [den_variances[-2]+den_variances[-1]]])
 
         if self.density:
             den_integral = sum(den * np.array(self.style.opts_axes["xbinwidth"]) )
@@ -796,8 +796,8 @@ class Shape:
             if self.style.opts_mc["flow"] == "sum":
                 if (len(den) != (len(hden.values()) + 2)):
                     raise NotImplementedError("Both underflow and overflow bins have to be defined. Please set `overflow=True` and `underflow=True` in the constructor of the Axis object, in your configuration.")
-                num = np.concatenate([num[0]+num[1], num[2:-2], num[-2]+num[-1]])
-                num_variances = np.concatenate([num_variances[0]+num_variances[1], num_variances[2:-2], num_variances[-2]+num_variances[-1]])
+                num = np.concatenate([[num[0]+num[1]], num[2:-2], [num[-2]+num[-1]]])
+                num_variances = np.concatenate([[num_variances[0]+num_variances[1]], num_variances[2:-2], [num_variances[-2]+num_variances[-1]]])
 
             if self.density:
                 num_integral = sum(num * np.array(self.style.opts_axes["xbinwidth"]) )
