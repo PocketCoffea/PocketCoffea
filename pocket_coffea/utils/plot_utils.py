@@ -736,7 +736,7 @@ class Shape:
         # Total uncertainy propagation of num / den :
         # ratio_variance = np.power(ratio,2)*( num_variances*np.power(num, -2) + den_variances*np.power(den, -2))
         # Only the uncertainty of num (DATA) propagated:
-        ratio_variance = num_variances*np.power(hden, -2)
+        ratio_variance = num_variances*np.power(den, -2)
 
         ratio_uncert = np.abs(poisson_interval(ratio, ratio_variance) - ratio)
         ratio_uncert[np.isnan(ratio_uncert)] = np.inf
