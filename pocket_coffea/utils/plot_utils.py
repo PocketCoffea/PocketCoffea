@@ -756,9 +756,11 @@ class Shape:
             num_integral = sum(num * np.array(self.style.opts_axes["xbinwidth"]) )
             if num_integral>0:
                 num = num * (1./num_integral)
+                num_variances = num_variances * (1./num_integral)**2
             den_integral = sum(den * np.array(self.style.opts_axes["xbinwidth"]) )
             if den_integral>0:
                 den = den * (1./den_integral)
+                den_variances = den_variances * (1./den_integral)**2
 
         ratio = num / den
         # Total uncertainy propagation of num / den :
@@ -808,6 +810,7 @@ class Shape:
             print("Integral = ", den_integral)
             if den_integral>0:
                 den = den * (1./den_integral)
+                den_variances = den_variances * (1./den_integral)**2
 
         ratios = {}
         ratios_unc = {}
@@ -830,6 +833,7 @@ class Shape:
             if self.density:
                 num_integral = sum(num * np.array(self.style.opts_axes["xbinwidth"]) )
                 num = num * (1./num_integral)
+                num_variances = num_variances * (1./num_integral)**2
 
             ratio = num / den
             # Total uncertainy of num x den :
