@@ -99,6 +99,17 @@ class Style:
                 if subkey not in self.style_cfg[key]:
                     self.style_cfg[key][subkey] = val_default
 
+        # Overwrite the default values with the user-defined values and check if they are valid
+        for key, is_mc in zip(["categorical_axes_data", "categorical_axes_mc"], [False, True]):
+            parameters_categorical_axes = plotting_style_defaults[key]
+            if key in self.style_cfg:
+                parameters_categorical_axes.update(self.style_cfg[key])
+            self.style_cfg[key] = parameters_categorical_axes
+            for subkey, val in self.style_cfg[key].items():
+                if (subkey, val) not in self._available_categorical_axes(is_mc).items():
+                    raise Exception(f"The key `{subkey}` with value `{val}` is not a valid categorical axis for {key}. Available axes: {self._available_categorical_axes(is_mc)}")
+            setattr(self, key, self.style_cfg[key])
+
         self.fontsize = getattr(self, "fontsize", 22)
 
         # default experiment label location: upper left inside plot
@@ -121,6 +132,20 @@ class Style:
         for key, item in style_cfg.items():
             setattr(self, key, item)
 
+    def _available_categorical_axes(self, is_mc=True):
+        '''Returns the list of available categorical axes for MC or data histograms.'''
+        if is_mc:
+            return {
+                "year" : "years",
+                "cat" : "categories",
+                "variation" : "variations"
+            }
+        else:
+            return {
+                "year" : "years",
+                "cat" : "categories",
+                "era" : "eras"
+            }
 
 class PlotManager:
     '''This class manages multiple Shape objects and their plotting.'''
@@ -358,7 +383,7 @@ class Shape:
             for ax in self.categorical_axes_mc:
                 setattr(
                     self,
-                    {'year': 'years', 'cat': 'categories', 'variation': 'variations'}[
+                    self.style.categorical_axes_mc[
                         ax.name
                     ],
                     self.get_axis_items(ax.name, is_mc=True),
@@ -372,7 +397,7 @@ class Shape:
             for ax in self.categorical_axes_data:
                 setattr(
                     self,
-                    {'year': 'years', 'cat': 'categories'}[
+                    self.style.categorical_axes_data[
                         ax.name
                     ],
                     self.get_axis_items(ax.name, is_mc=False),
