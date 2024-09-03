@@ -67,7 +67,6 @@ class Style:
             ), f"The key `{key}` is not defined in the style dictionary."
         for key, item in style_cfg.items():
             setattr(self, key, item)
-        self.has_lumi = False
         self.has_labels = "labels_mc" in style_cfg
         self.has_samples_groups = "samples_groups" in style_cfg
         self.has_exclude_samples = "exclude_samples" in style_cfg
@@ -346,8 +345,6 @@ class Shape:
         self.only_cat = only_cat if only_cat is not None else []
         self.style = Style(style_cfg)
         self.toplabel = toplabel if toplabel else ""
-        if self.style.has_lumi:
-            self.lumi_fraction = {year : l / lumi[year]['tot'] for year, l in self.style.lumi_processed.items()}
         self.log = log
         self.density = density
         self.datasets_metadata=datasets_metadata
