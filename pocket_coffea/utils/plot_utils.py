@@ -20,9 +20,11 @@ from mplhep.error_estimation import poisson_interval
 from cycler import cycler
 
 from omegaconf import OmegaConf
-from pocket_coffea.parameters.defaults import merge_parameters
+from pocket_coffea.parameters.defaults import merge_parameters, get_default_parameters
 
 np.seterr(divide="ignore", invalid="ignore", over="ignore")
+
+plotting_style_defaults = get_default_parameters()["plotting_style"]
 
 # colormaps according to CMS guidelines
 # https://cms-analysis.docs.cern.ch/guidelines/plotting/colors/#categorical-data-eg-1d-stackplots
@@ -92,7 +94,11 @@ class Style:
         #print("Style config:\n", style_cfg)
 
     def set_defaults(self):
-        self.opts_mc["stack"] = "stack" not in self.opts_mc
+        for key in self._required_keys:
+            for subkey, val_default in plotting_style_defaults[key].items():
+                if subkey not in self.style_cfg[key]:
+                    self.style_cfg[key][subkey] = val_default
+
         self.fontsize = getattr(self, "fontsize", 22)
 
         # default experiment label location: upper left inside plot
