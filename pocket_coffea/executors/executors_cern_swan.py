@@ -8,9 +8,9 @@ from distributed.diagnostics.plugin import UploadFile
 class DaskExecutorFactory(ExecutorFactoryABC):
 
     def __init__(self, run_options, outputdir, **kwargs):
-        if "sched_url" not in run_options:
-            raise Exception("Dask scheduler url not provided in the custom run options!")
-        self.sched_url = run_options["sched_url"]
+        if "sched-url" not in run_options or run_options["sched-url"] is None:
+            raise Exception("`sched-url` key not provided in the custom run options! Please provide the URL of the Dask scheduler!")
+        self.sched_url = run_options["sched-url"]
         super().__init__(run_options, **kwargs)
         
     def setup(self):
