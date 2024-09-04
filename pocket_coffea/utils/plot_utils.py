@@ -1145,6 +1145,16 @@ class Shape:
             up = self.syst_manager.total(cat).up
             down = self.syst_manager.total(cat).down
 
+            # If the histogram is in density mode, the systematic uncertainty has to be normalized to the integral of the MC stack
+            if self.density:
+                if self.style.opts_mc["flow"] == "sum":
+                    flow = True
+                else:
+                    flow = False
+                mc_integral = sum(self._get_stacks(cat)["mc_nominal_sum"].values(flow=flow)) * np.array(self.style.opts_axes["xbinwidth"])
+                up = up / mc_integral
+                down = down / mc_integral
+
         unc_band = np.array([down, up])
         ax.fill_between(
             self.style.opts_axes["xedges"],
