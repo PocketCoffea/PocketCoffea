@@ -10,11 +10,24 @@ from coffea.util import load, save
 from utils import compare_outputs
 import numpy as np
 import awkward as ak
+import hist
 
 @pytest.fixture
 def base_path() -> Path:
     """Get the current folder of the test"""
     return Path(__file__).parent
+
+
+def compare_totalweight(output, variables):
+    for variable in variables:        
+        for category, datasets in output["sumw"].items():
+            for dataset, samples in datasets.items():
+                for sample, sumw in samples.items():
+                    if dataset not in output["variables"][variable][sample]:
+                        continue
+                    print(f"Checking {variable} for {category} in {dataset} for {sample}")
+                    print(output["variables"][variable][sample][dataset][hist.loc(category), hist.loc("nominal"), :].sum(flow=True).value, sumw)
+                    assert np.isclose(output["variables"][variable][sample][dataset][hist.loc(category), hist.loc("nominal"), :].sum(flow=True).value, sumw)
 
 
 reference_commit = "98fcca4c"
@@ -53,6 +66,7 @@ def test_new_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_
     old_output = load(f"output_{reference_commit}/output_all.coffea")
 
     compare_outputs(output, old_output)
+    compare_totalweight(output, ["nJetGood"])
 
 
     
@@ -103,7 +117,7 @@ def test_custom_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_pa
     assert np.isclose(H[{"cat":"2jets_D", "variation":"my_custom_weight_multivar_systUp"}].values().sum()/ H[{"cat":"2jets", "variation":"nominal"}].values().sum(), 4.0)
     assert np.isclose(H[{"cat":"2jets_D", "variation":"my_custom_weight_multivar_systDown"}].values().sum()/ H[{"cat":"2jets", "variation":"nominal"}].values().sum(), 0.25)
 
-
+    compare_totalweight(output, ["nJetGood"])
 
     
 def test_cartesian_categorization(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
@@ -143,6 +157,8 @@ def test_cartesian_categorization(base_path: Path, monkeypatch: pytest.MonkeyPat
     assert output is not None
     H = output["variables"]["nBJetGood"]['TTTo2L2Nu']['TTTo2L2Nu_2018']
     assert H[{ "cat": "3j_0b", "variation": "nominal"}].values()[1:].sum() == 0.
+
+    compare_totalweight(output, ["nJetGood"])
 
 
 ## ------------------------------------------------------------------------------------
@@ -215,7 +231,8 @@ def test_subsamples(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_f
                   'TTTo2L2Nu_2018': {'TTTo2L2Nu': 115,
                                      'TTTo2L2Nu__ele': 39,
                                      'TTTo2L2Nu__mu': 55}}}
-
+    
+    compare_totalweight(output, ["nJetGood"])
     
 
 # ----------------------------------------------------------------------------------------
@@ -267,7 +284,6 @@ def test_skimming(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_fac
             assert output["sum_genweights"][dataset] > 0
         for nevent in nevents:
             assert nevent > 0
-            
 
 #-------------------------------------------------------------------
 
