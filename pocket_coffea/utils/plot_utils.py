@@ -90,6 +90,11 @@ class Style:
 
         self.set_defaults()
 
+        if self.opts_mc["flow"] == "sum":
+            self.flow = True
+        else:
+            self.flow = False
+
         #print("Style config:\n", style_cfg)
 
     def set_defaults(self):
@@ -734,17 +739,13 @@ class Shape:
         hnum = stacks["data_sum"]
         hden = stacks["mc_nominal_sum"]
 
-        if self.style.opts_mc["flow"] == "sum":
-            flow = True
-        else:
-            flow = False
-        num = hnum.values(flow=flow)
-        den = hden.values(flow=flow)
-        num_variances = hnum.variances(flow=flow)
-        den_variances = hden.variances(flow=flow)
+        num = hnum.values(flow=self.style.flow)
+        den = hden.values(flow=self.style.flow)
+        num_variances = hnum.variances(flow=self.style.flow)
+        den_variances = hden.variances(flow=self.style.flow)
 
         # Sum underflow and overflow bins for the numerator and denominator, to restore an array of the same length
-        if self.style.opts_mc["flow"] == "sum":
+        if self.style.flow:
             if (len(num) != (len(hnum.values()) + 2)) | (len(den) != (len(hden.values()) + 2)):
                 raise NotImplementedError("Both underflow and overflow bins have to be defined. Please set `overflow=True` and `underflow=True` in the constructor of the Axis object, in your configuration.")
             num = np.concatenate([[num[0]+num[1]], num[2:-2], [num[-2]+num[-1]]])
@@ -790,15 +791,11 @@ class Shape:
         else:
             hden = stacks['mc_nominal'][ref]
 
-        if self.style.opts_mc["flow"] == "sum":
-            flow = True
-        else:
-            flow = False
-        den = hden.values(flow=flow)
-        den_variances = hden.variances(flow=flow)
+        den = hden.values(flow=self.style.flow)
+        den_variances = hden.variances(flow=self.style.flow)
 
         # Sum underflow and overflow bins for the denominator, to restore an array of the same length
-        if self.style.opts_mc["flow"] == "sum":
+        if self.style.flow:
             if (len(den) != (len(hden.values()) + 2)):
                 raise NotImplementedError("Both underflow and overflow bins have to be defined. Please set `overflow=True` and `underflow=True` in the constructor of the Axis object, in your configuration.")
             den = np.concatenate([[den[0]+den[1]], den[2:-2], [den[-2]+den[-1]]])
@@ -824,7 +821,7 @@ class Shape:
             num = hnum.values(flow=flow)
             num_variances = hnum.variances(flow=flow)
 
-            if self.style.opts_mc["flow"] == "sum":
+            if self.style.flow:
                 if (len(den) != (len(hden.values()) + 2)):
                     raise NotImplementedError("Both underflow and overflow bins have to be defined. Please set `overflow=True` and `underflow=True` in the constructor of the Axis object, in your configuration.")
                 num = np.concatenate([[num[0]+num[1]], num[2:-2], [num[-2]+num[-1]]])
@@ -1019,7 +1016,7 @@ class Shape:
                 self.define_figure(ratio=False)
         y = stacks["data_sum"].values()
         # Add underflow and overflow bins to the first and last bin, respectively
-        if self.style.opts_mc["flow"] == "sum":
+        if self.style.flow:
             has_underflow = True
             has_overflow = True
             try: stacks["data_sum"][hist.underflow]
@@ -1147,11 +1144,7 @@ class Shape:
 
             # If the histogram is in density mode, the systematic uncertainty has to be normalized to the integral of the MC stack
             if self.density:
-                if self.style.opts_mc["flow"] == "sum":
-                    flow = True
-                else:
-                    flow = False
-                mc_integral = sum(self._get_stacks(cat)["mc_nominal_sum"].values(flow=flow)) * np.array(self.style.opts_axes["xbinwidth"])
+                mc_integral = sum(self._get_stacks(cat)["mc_nominal_sum"].values(flow=self.style.flow)) * np.array(self.style.opts_axes["xbinwidth"])
                 up = up / mc_integral
                 down = down / mc_integral
 
@@ -1419,7 +1412,7 @@ class SystUnc:
             self.h_mc_nominal = stacks["mc_nominal_sum"]
             self.nominal, self.bins = stacks["mc_nominal_sum"].to_numpy()
             # Add underflow and overflow bins to the first and last bin, respectively
-            if self.style.opts_mc["flow"] == "sum":
+            if self.style.flow:
                 has_underflow = True
                 has_overflow = True
                 try: stacks["mc_nominal_sum"][hist.underflow]
