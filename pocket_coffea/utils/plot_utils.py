@@ -905,10 +905,10 @@ class Shape:
                 exp = math.floor(math.log(max(stacks["data_sum"].values()), 10))
             self.ax.set_ylim((0.01, 10 ** (exp*1.75)))
         else:
-            if self.is_mc_only:
-                reference_shape = stacks["mc_nominal_sum"].values()
-            else:
+            if self.is_data_only:
                 reference_shape = stacks["data_sum"].values()
+            else:
+                reference_shape = stacks["mc_nominal_sum"].values()
             if self.density:
                 integral = sum(reference_shape) * np.array(self.style.opts_axes["xbinwidth"])
                 reference_shape = reference_shape / integral
@@ -1042,7 +1042,7 @@ class Shape:
                         if self.verbose>0:
                             print("WARNING: The range for blinding region is not correct:", blind_hname, blind_range)
                         continue
-                    hist_edges = stacks["data_sum"].axes[0].edges
+                    hist_edges = np.array(self.style.opts_axes["xedges"])
                     bins_to_zero = (hist_edges[:-1] >= blind_range[0]) & (hist_edges[:-1] < blind_range[1])
                     y[bins_to_zero] = 0
 
