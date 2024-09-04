@@ -900,9 +900,12 @@ class Shape:
         if self.log:
             self.ax.set_yscale("log")
             if self.is_data_only:
-                exp = math.floor(math.log(max(stacks["data_sum"].values()), 10))
+                arg_log = max(stacks["data_sum"].values())
+            elif self.is_mc_only:
+                arg_log = max(stacks["mc_nominal_sum"].values())
             else:
-                exp = math.floor(math.log(max(stacks["mc_nominal_sum"].values()), 10))
+                arg_log = 100
+            exp = math.floor(math.log(arg_log, 10))
             self.ax.set_ylim((0.01, 10 ** (exp*1.75)))
         else:
             if self.is_data_only:
