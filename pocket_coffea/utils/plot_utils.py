@@ -904,6 +904,10 @@ class Shape:
             elif self.is_mc_only:
                 arg_log = max(stacks["mc_nominal_sum"].values())
             else:
+                arg_log = max(
+                    max(stacks["data_sum"].values()), max(stacks["mc_nominal_sum"].values())
+                )
+            if arg_log == 0:
                 arg_log = 100
             exp = math.floor(math.log(arg_log, 10))
             self.ax.set_ylim((0.01, 10 ** (exp*1.75)))
