@@ -159,3 +159,17 @@ plotting_style:
 
 If no alias or default `matplotlib` color corresponds to the string specified by the user,
 an exception is raised.
+
+## Additional custom axes
+
+In order to include an additional custom axis in the plotting, one has to specify the dictionary of categorical axes for data and MC separately.
+For example, to include an additional axis for data to keep track of different data-taking eras as an additional category, one can overwrite the custom `.yaml` file as follows:
+
+```
+plotting_style:
+
+    categorical_axes_data:
+        era: eras
+```
+
+where the key (`era`) in the dictionary corresponds to the name of the axis as saved in the histogram, while the value (`eras`) corresponds to the name assigned to the corresponding attribute of the `Shape` object.
