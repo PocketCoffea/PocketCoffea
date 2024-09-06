@@ -781,7 +781,7 @@ class Shape:
         #print("Everything in the Stack:", stacks.keys())
         #print("\t mc_nominal:", stacks['mc_nominal'])
 
-        # den and hden refer to the numerator, which is the reference histogram
+        # den and hden refer to the denomerator, which is the reference histogram for ratios
         # num and hnum refer to the numerator
 
         if ref=='data_sum':
@@ -803,8 +803,6 @@ class Shape:
 
         if self.density:
             den_integral = sum(den * np.array(self.style.opts_axes["xbinwidth"]) )
-
-            print("Integral = ", den_integral)
             if den_integral>0:
                 den = den * (1./den_integral)
                 den_variances = den_variances * (1./den_integral)**2
