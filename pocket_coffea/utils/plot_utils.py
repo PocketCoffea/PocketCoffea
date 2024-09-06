@@ -92,7 +92,8 @@ class Style:
         #print("Style config:\n", style_cfg)
 
     def set_defaults(self):
-        self.opts_mc["stack"] = "stack" not in self.opts_mc
+        if not "stack" in self.opts_mc:
+            self.opts_mc["stack"] = True
         self.fontsize = getattr(self, "fontsize", 22)
 
         # default experiment label location: upper left inside plot
@@ -743,16 +744,12 @@ class Shape:
             hden = stacks['mc_nominal'][ref]
 
         if self.density:
-
             #print("Numerator values:", hnum.values())
             #print("Sum = ", sum(hnum.values()))
             #print("xbinwidth",  self.style.opts_axes["xbinwidth"])
             den_integral = sum(hden.values() * np.array(self.style.opts_axes["xbinwidth"]) )
-
-            print("Integral = ", den_integral)
             if den_integral>0:
                 hden = hden * (1./den_integral)
-
 
         ratios = {}
         ratios_unc = {}
@@ -930,7 +927,7 @@ class Shape:
                     h_sig = scale_sig*self.h_dict[sig][{'cat': cat, 'variation': 'nominal'}]
                     h_sig.plot(ax=self.ax, color=self.colors[sig], density=self.density, **self.style.opts_sig, label=sig+'_sig')
                     # Note: '_sig' str is added to the label of the signal sample, in order to distinguish it
-                    # from the same label present in a mc stack histograms.
+                    # from the same label present in the mc-stack histograms.
                 else:
                     if self.verbose>0:
                         print("WARNING. Signal sample does not exist amoung the histograms", sig, cat, self.name)
