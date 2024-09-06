@@ -127,7 +127,7 @@ class ColumnsManager:
 
             # Getting the weights
             # Only for nominal variation for the moment
-            if weights_manager:
+            if weights_manager: # no present for data
                 out_by_cat["weight"] = weights_manager.get_weight(category)[mask]
             
 
@@ -157,10 +157,6 @@ class ColumnsManager:
                 elif not outarray.pos_start and outarray.pos_end:
                     data = data[:, : outarray.pos_end]
 
-                if outarray.store_size and data.ndim > 1:
-                    N = ak.num(data)
-                    out_by_cat[f"{outarray.collection}_N"] = N
-
                 # looping on the columns
                 for col in outarray.columns:
                     if outarray.flatten and data.ndim > 1:
@@ -183,6 +179,18 @@ class ColumnsManager:
                     out_by_cat[f"{outarray.collection}_{col}"] = out
 
             #zipping all the arrays by cat
+            # Check that all the columns have the same first axis size
+            print(out_by_cat)
+            # get dim from first key
+            dim = len(out_by_cat[list(out_by_cat.keys())[0]])
+            for k, v in out_by_cat.items():
+                if len(v) != dim:
+                    raise Exception(
+                        f"Columns {k} has a different size than the weight column! Please check your configuration. \
+                        When exporting akward arrays all the columns should have flatten=False option to keep the event dimension consistent"
+                    )
+            
             self.output[category] = ak.zip(out_by_cat, depth_limit=1)
+                
         #return full output with all categories
         return self.output

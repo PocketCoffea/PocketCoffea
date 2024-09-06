@@ -64,5 +64,7 @@ dask@purdue-af:
 
 dask@infn-af:
   adaptive: false
+  sched-url: null
   
-  
+dask@swan:
+  sched-url: null

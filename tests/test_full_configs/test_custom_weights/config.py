@@ -43,6 +43,26 @@ my_custom_weight = WeightLambda.wrap_func(
     )
 
 
+my_custom_weight_variations = WeightLambda.wrap_func(
+    name="my_custom_weight_withvar",
+    function=lambda params, metadata, events, size, shape_variations:
+         (np.ones(size) * 2.0, np.ones(size) * 3.0, np.ones(size) * 0.5),
+    has_variations=True
+    )
+
+my_custom_weight_multivariations = WeightLambda.wrap_func(
+    name="my_custom_weight_multivar",
+    function=lambda params, metadata, events, size, shape_variations:
+         (
+             np.ones(size) * 2.0,
+             ["stat", "syst"], # name of the variations
+             [np.ones(size) * 3.0, np.ones(size) * 4.0], # up
+             [np.ones(size) * 0.5, np.ones(size) * 0.25] # down
+          ),
+    has_variations=True,
+    variations=["stat", "syst"]
+    )
+
 
 
 cfg = Configurator(
@@ -67,6 +87,8 @@ cfg = Configurator(
         "2btag": [get_nObj_min(2, coll="BJetGood")],
         "2jets": [get_nObj_min(2, coll="JetGood")],
         "2jets_B": [get_nObj_min(2, coll="JetGood")],
+        "2jets_C": [get_nObj_min(2, coll="JetGood")],
+        "2jets_D": [get_nObj_min(2, coll="JetGood")],
     },
 
     weights = {
@@ -79,6 +101,7 @@ cfg = Configurator(
                 "1btag": ["sf_mu_trigger"],
                 "2btag": ["sf_mu_trigger"],
                 "2jets_B": ["my_custom_weight"],
+                "2jets_C": ["my_custom_weight_withvar"],
                           },
        },
         "bysample": {
@@ -86,12 +109,13 @@ cfg = Configurator(
                 "bycategory": {
                     "1btag": ["sf_btag"],
                     "2btag": ["sf_btag"],
+                    "2jets_D": ["my_custom_weight_multivar"],
                 }
             }
         }
     },
     # Passing a list of WeightWrapper objects
-    weights_classes = common_weights + [my_custom_weight],
+    weights_classes = common_weights + [my_custom_weight, my_custom_weight_variations, my_custom_weight_multivariations],
 
     variations = {
         "weights": {
@@ -103,12 +127,14 @@ cfg = Configurator(
                 "bycategory" : {
                     "1btag": ["sf_btag"],
                     "2btag": ["sf_btag"],
+                    "2jets_C": ["my_custom_weight_withvar"],
                 }
             },
             "bysample": {
                 "TTTo2L2Nu": {
                     "bycategory": {
-                        "1btag": ["sf_mu_trigger"]
+                        "1btag": ["sf_mu_trigger"],
+                        "2jets_D": ["my_custom_weight_multivar"]
                     }
             }
             }

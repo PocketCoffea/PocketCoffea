@@ -1,6 +1,14 @@
 pocket\_coffea.lib package
 ==========================
 
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   pocket_coffea.lib.weights
+
 Submodules
 ----------
 
@@ -104,14 +112,6 @@ pocket\_coffea.lib.triggers module
 ----------------------------------
 
 .. automodule:: pocket_coffea.lib.triggers
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-pocket\_coffea.lib.weights\_manager module
-------------------------------------------
-
-.. automodule:: pocket_coffea.lib.weights_manager
    :members:
    :undoc-members:
    :show-inheritance:
