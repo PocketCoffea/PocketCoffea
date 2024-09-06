@@ -22,7 +22,7 @@ def get_proxy_path() -> str:
     for at least 1 hour.
     If it exists, returns the path of it'''
     try:
-        subprocess.run("voms-proxy-info -exists -hours 1", shell=True, check=True)
+        subprocess.run("voms-proxy-info -exists -valid 0:20", shell=True, check=True)
     except subprocess.CalledProcessError:
         raise Exception(
             "VOMS proxy expirend or non-existing: please run `voms-proxy-init -voms cms -rfc --valid 168:0`"

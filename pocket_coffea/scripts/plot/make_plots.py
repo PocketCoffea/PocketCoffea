@@ -1,7 +1,6 @@
 import os
 import sys
 import re
-import argparse
 
 from omegaconf import OmegaConf
 from coffea.util import load
@@ -27,11 +26,17 @@ import click
 @click.option('-ns','--no-syst', is_flag=True, help='Do not include systematics', required=False, default=False)
 @click.option('--overwrite', '--over', is_flag=True, help='Overwrite plots in output folder', required=False)
 @click.option('--log', is_flag=True, help='Set y-axis scale to log', required=False, default=False)
-@click.option('--density', is_flag=True, help='Set density parameter to have a normalized plot', required=False)
+@click.option('--density', is_flag=True, help='Set density parameter to have a normalized plot', required=False, default=False)
 @click.option('-v', '--verbose', type=int, default=1, help='Verbose level for debugging. Higher the number more stuff is printed.', required=False)
+@click.option('--format', type=str, default='png', help='File format of the output plots', required=False)
+@click.option('--systematics-shifts', is_flag=True, help='Plot the shifts for the systematic uncertainties', required=False, default=False)
+@click.option('--no-ratio', is_flag=True, help='Dont plot the ratio', required=False, default=False)
+@click.option('--no-systematics-ratio', is_flag=True, help='Plot the ratio of the shifts for the systematic uncertainties', required=False, default=False)
+@click.option('--compare', is_flag=True, help='Plot comparison of the samples, instead of data/MC', required=False, default=False)
 
 def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfile,
-               workers, only_cat, only_syst, exclude_hist, only_hist, split_systematics, partial_unc_band, no_syst, overwrite, log, density, verbose):
+               workers, only_cat, only_syst, exclude_hist, only_hist, split_systematics, partial_unc_band, no_syst,
+               overwrite, log, density, verbose, format, systematics_shifts, no_ratio, no_systematics_ratio, compare):
     '''Plot histograms produced by PocketCoffea processors'''
 
     # Using the `input_dir` argument, read the default config and coffea files (if not set with argparse):
@@ -74,7 +79,7 @@ def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfile,
         os.makedirs(outputdir)
 
     variables = accumulator['variables'].keys()
-    
+
     if exclude_hist:
         variables_to_exclude = [s for s in variables if any([re.search(p, s) for p in exclude_hist])]
         variables = [s for s in variables if s not in variables_to_exclude]
@@ -97,7 +102,16 @@ def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfile,
     )
 
     print("Started plotting.  Please wait...")
-    plotter.plot_datamc_all(syst=(not no_syst), spliteras=False)
+
+    if compare:
+        plotter.plot_comparison_all(ratio=(not no_ratio), format=format)
+    else:
+        if systematics_shifts:
+            plotter.plot_systematic_shifts_all(
+                format=format, ratio=(not no_systematics_ratio)
+            )
+        else:
+            plotter.plot_datamc_all(syst=(not no_syst), ratio = (not no_ratio), spliteras=False, format=format)
 
     print("Output plots are saved at: ", outputdir)
 

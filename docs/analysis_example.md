@@ -410,23 +410,35 @@ reducing the computational load on the processor.  In the config file, we specif
 with at least one 18 GeV muon and the second is requiring the HLT ``SingleMuon`` path.
 
 Triggers are specified in a parameter yaml files under the `params` dir (but the localtion is up to the user).
-The parameters are then loadedand added to the default parameters in the preamble of the config file.
+The parameters are then loaded and added to the default parameters in the preamble of `example_config.py`,  which we pass as an argument to the factory function ``get_HLTsel()``.
 
 
-In the preamble of `example_config.py`,  which we pass as an argument to the factory function ``get_HLTsel()``:
+Moreover, standard selections as the following should be applied at the skim stage: 
+- event flags for MC and Data
+- number of primary vertex selection
+- application of the golden JSON selection to Data lumisections
+
+:::{warning}
+The above skimming was applied by default until PocketCoffea v0.9.4. After that the user has to specify the skim cuts,
+with Cut objects provided by the library.
+:::
+
 
 ```python
+from pocket_coffea.lib.cut_functions import get_nObj_min, get_HLTsel, eventFlags, get_nPVgood, goldenJson
+
 cfg = Configurator(
     # .....
 
-    skim = [get_nObj_min(1, 18., "Muon"),
+    skim = [
+            eventFlags,
+            goldenJson,
+            get_nPVgood(1),
+            get_nObj_min(1, 18., "Muon"),
             # Asking only SingleMuon triggers since we are only using SingleMuon PD data
             get_HLTsel(primaryDatasets=["SingleMuon"])],
 
 ```
-
-
-
 
 ### Event preselection
 
@@ -498,9 +510,12 @@ The application of the nominal value of scale factors and weights is switched on
 by adding the corresponding key in the ``weights`` dictionary:
 
 ```python
+from pocket_coffea.lib.weights.common import common_weights
+
 cfg = Configurator(
     # .....
-
+    weights_classes = common_weights,  # optional
+    
     weights = {
          "common": {
              "inclusive": ["genWeight","lumi","XS",
@@ -512,26 +527,21 @@ cfg = Configurator(
          },
          "bysample": {
          }
-     },cfg = {
-       ...
-       "weights": {
-          "common": {
-             "inclusive": ["genWeight","lumi","XS",
-                           "pileup",
-                           "sf_mu_id","sf_mu_iso",
-                           ],
-             "bycategory" : {
-             }
-         },
-         "bysample": {
-         }
-       },
-       ...
-    }
+     }
+    )
 ```
 
 In our case, we are applying the nominal scaling of Monte Carlo by ``lumi * XS / genWeight`` together with the pileup reweighting and the muon ID and isolation scale factors.
-The reweighting of the events is managed internally by the module ``WeightsManager``.
+The reweighting of the events is managed by the module ``WeightsManager``.
+
+The available weights are defined by the `weights_classes` argument of the Configurator. That is a list of WeightWrapper
+objects that can be taken from the ones defined in the framework, or it can be customized by the users. 
+The common weights defined by the framework are available in `pocket_coffea.lib.weights.common.common_weights`. 
+If the user doesn't provide a list of weight classes, the common ones are used by default. 
+
+:::{tip}
+For more information about Weights customization have a look at the [Configuration](./configuration.md#Weights) docs.
+:::
 
 To store also the up and down systematic variations corresponding to a given weight, one can specify it in the ``variations`` dictionary:
 

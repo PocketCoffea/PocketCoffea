@@ -64,11 +64,13 @@ pocket_coffea = ["pockect_coffea/*.txt",
 [project.scripts]
 pocket-coffea="pocket_coffea.__main__:cli"
 runner="pocket_coffea.scripts.runner:run"
-make_plots="pocket_coffea.scripts.plot.make_plots:make_plots"
-build_datasets="pocket_coffea.scripts.dataset.build_datasets:build_datasets"
-dataset_discovery_cli="pocket_coffea.scripts.dataset:dataset_discovery_cli"
-hadd_skimmed_files="pocket_coffea.scripts.hadd_skimmed_files:hadd_skimmed_files"
-merge_outputs="pocket_coffea.scripts.merge_outputs:merge_outputs"
+make-plots="pocket_coffea.scripts.plot.make_plots:make_plots"
+build-datasets="pocket_coffea.scripts.dataset.build_datasets:build_datasets"
+dataset-discovery-cli="pocket_coffea.scripts.dataset:dataset_discovery_cli"
+hadd-skimmed_files="pocket_coffea.scripts.hadd_skimmed_files:hadd_skimmed_files"
+merge-outputs="pocket_coffea.scripts.merge_outputs:merge_outputs"
+print-parameters="pocket_coffea.scripts.print_parameters:print_parameters"
+make-config="pocket_coffea.sripts.make_config:make_config"
 
 # [tool.flake8]
 # extend-ignore = ["E203", "E501", "E722", "B950"]

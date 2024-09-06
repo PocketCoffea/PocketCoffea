@@ -1,0 +1,445 @@
+{
+  "datasets": {
+    "names": [
+      "TTTo2L2Nu_2018",
+      "DATA_SingleMuon_2018_EraA"
+    ],
+    "samples": [
+      "TTTo2L2Nu",
+      "DATA_SingleMuon"
+    ],
+    "filesets": {
+      "TTTo2L2Nu_2018": {
+        "metadata": {
+          "das_names": "['/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM']",
+          "sample": "TTTo2L2Nu",
+          "year": "2018",
+          "isMC": "True",
+          "xsec": "88.29",
+          "nevents": "xxxx",
+          "size": "xxx"
+        },
+        "files": [
+          "root://eoscms.cern.ch//eos/cms/store/mc/RunIISummer20UL18NanoAODv9/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/106X_upgrade2018_realistic_v16_L1v1-v1/280000/01881676-C30A-2142-B3B2-7A8449DAF8EF.root"
+        ]
+      },
+      "DATA_SingleMuon_2018_EraA": {
+        "metadata": {
+          "das_names": "['/SingleMuon/Run2018A-UL2018_MiniAODv2_NanoAODv9-v2/NANOAOD']",
+          "sample": "DATA_SingleMuon",
+          "year": "2018",
+          "isMC": "False",
+          "primaryDataset": "SingleMuon",
+          "era": "A",
+          "nevents": "241608232",
+          "size": "211774345140"
+        },
+        "files": [
+          "root://eoscms.cern.ch//eos/cms/store/data/Run2018A/SingleMuon/NANOAOD/UL2018_MiniAODv2_NanoAODv9-v2/2550000/C1FD87EB-3052-524A-8DAD-1C95A6EABBF0.root"
+        ]
+      }
+    },
+    "subsamples": {
+      "TTTo2L2Nu": {
+        "type": "StandardSelection",
+        "categories": {
+          "TTTo2L2Nu": [
+            {
+              "name": "passthrough",
+              "params": {},
+              "collection": "events",
+              "function": {
+                "name": "passthrough_f",
+                "module": "pocket_coffea.lib.cut_functions",
+                "src_file": "/work/dvalsecc/ttHbb/PocketCoffea/pocket_coffea/lib/cut_functions.py",
+                "f_hash": 8741006688989
+              },
+              "id": "passthrough__-5896082704826476717"
+            }
+          ]
+        },
+        "is_multidim": false,
+        "multidim_collection": null
+      },
+      "DATA_SingleMuon": {
+        "type": "StandardSelection",
+        "categories": {
+          "DATA_SingleMuon": [
+            {
+              "name": "passthrough",
+              "params": {},
+              "collection": "events",
+              "function": {
+                "name": "passthrough_f",
+                "module": "pocket_coffea.lib.cut_functions",
+                "src_file": "/work/dvalsecc/ttHbb/PocketCoffea/pocket_coffea/lib/cut_functions.py",
+                "f_hash": 8741006688989
+              },
+              "id": "passthrough__-5896082704826476717"
+            }
+          ]
+        },
+        "is_multidim": false,
+        "multidim_collection": null
+      }
+    }
+  },
+  "skim": [
+    {
+      "name": "passthrough",
+      "params": {},
+      "collection": "events",
+      "function": {
+        "name": "passthrough_f",
+        "module": "pocket_coffea.lib.cut_functions",
+        "src_file": "/work/dvalsecc/ttHbb/PocketCoffea/pocket_coffea/lib/cut_functions.py",
+        "f_hash": 8741006688989
+      },
+      "id": "passthrough__-5896082704826476717"
+    }
+  ],
+  "preselections": [
+    {
+      "name": "passthrough",
+      "params": {},
+      "collection": "events",
+      "function": {
+        "name": "passthrough_f",
+        "module": "pocket_coffea.lib.cut_functions",
+        "src_file": "/work/dvalsecc/ttHbb/PocketCoffea/pocket_coffea/lib/cut_functions.py",
+        "f_hash": 8741006688989
+      },
+      "id": "passthrough__-5896082704826476717"
+    }
+  ],
+  "categories": {
+    "type": "StandardSelection",
+    "categories": {
+      "baseline": [
+        {
+          "name": "passthrough",
+          "params": {},
+          "collection": "events",
+          "function": {
+            "name": "passthrough_f",
+            "module": "pocket_coffea.lib.cut_functions",
+            "src_file": "/work/dvalsecc/ttHbb/PocketCoffea/pocket_coffea/lib/cut_functions.py",
+            "f_hash": 8741006688989
+          },
+          "id": "passthrough__-5896082704826476717"
+        }
+      ],
+      "1btag": [
+        {
+          "name": "nBJetGood_min1",
+          "params": {
+            "N": 1,
+            "coll": "BJetGood"
+          },
+          "collection": "events",
+          "function": {
+            "name": "min_nObj",
+            "module": "pocket_coffea.lib.cut_functions",
+            "src_file": "/work/dvalsecc/ttHbb/PocketCoffea/pocket_coffea/lib/cut_functions.py",
+            "f_hash": 8741006700827
+          },
+          "id": "nBJetGood_min1__1220886060976285484"
+        }
+      ],
+      "2btag": [
+        {
+          "name": "nBJetGood_min2",
+          "params": {
+            "N": 2,
+            "coll": "BJetGood"
+          },
+          "collection": "events",
+          "function": {
+            "name": "min_nObj",
+            "module": "pocket_coffea.lib.cut_functions",
+            "src_file": "/work/dvalsecc/ttHbb/PocketCoffea/pocket_coffea/lib/cut_functions.py",
+            "f_hash": 8741006700827
+          },
+          "id": "nBJetGood_min2__3559790627193410117"
+        }
+      ]
+    },
+    "is_multidim": false,
+    "multidim_collection": null
+  },
+  "workflow": {
+    "name": "BasicProcessor",
+    "workflow_options": {},
+    "srcfile": "/t3home/dvalsecc/test_new_weights_stable/workflow.py"
+  },
+  "weights": {
+    "TTTo2L2Nu": {
+      "bycategory": {
+        "baseline": [],
+        "1btag": [
+          "sf_mu_trigger",
+          "sf_btag"
+        ],
+        "2btag": [
+          "sf_mu_trigger",
+          "sf_btag"
+        ]
+      },
+      "inclusive": [
+        "genWeight",
+        "lumi",
+        "XS",
+        "pileup",
+        "sf_ele_id",
+        "sf_ele_reco",
+        "sf_mu_id",
+        "sf_mu_iso"
+      ]
+    },
+    "DATA_SingleMuon": {
+      "bycategory": {
+        "baseline": [],
+        "1btag": [
+          "sf_mu_trigger"
+        ],
+        "2btag": [
+          "sf_mu_trigger"
+        ]
+      },
+      "inclusive": [
+        "genWeight",
+        "lumi",
+        "XS",
+        "pileup",
+        "sf_ele_id",
+        "sf_ele_reco",
+        "sf_mu_id",
+        "sf_mu_iso"
+      ]
+    }
+  },
+  "variations": {
+    "TTTo2L2Nu": {
+      "weights": {
+        "baseline": [
+          "pileup",
+          "sf_ele_id",
+          "sf_ele_reco",
+          "sf_mu_id",
+          "sf_mu_iso"
+        ],
+        "1btag": [
+          "pileup",
+          "sf_ele_id",
+          "sf_ele_reco",
+          "sf_mu_id",
+          "sf_mu_iso",
+          "sf_btag",
+          "sf_mu_trigger"
+        ],
+        "2btag": [
+          "pileup",
+          "sf_ele_id",
+          "sf_ele_reco",
+          "sf_mu_id",
+          "sf_mu_iso",
+          "sf_btag"
+        ]
+      },
+      "shape": {
+        "baseline": [],
+        "1btag": [],
+        "2btag": []
+      }
+    },
+    "DATA_SingleMuon": {
+      "weights": {
+        "baseline": [
+          "pileup",
+          "sf_ele_id",
+          "sf_ele_reco",
+          "sf_mu_id",
+          "sf_mu_iso"
+        ],
+        "1btag": [
+          "pileup",
+          "sf_ele_id",
+          "sf_ele_reco",
+          "sf_mu_id",
+          "sf_mu_iso",
+          "sf_btag"
+        ],
+        "2btag": [
+          "pileup",
+          "sf_ele_id",
+          "sf_ele_reco",
+          "sf_mu_id",
+          "sf_mu_iso",
+          "sf_btag"
+        ]
+      },
+      "shape": {
+        "baseline": [],
+        "1btag": [],
+        "2btag": []
+      }
+    }
+  },
+  "variables": {
+    "ElectronGood_eta": {
+      "axes": [],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "ElectronGood_pt": {
+      "axes": [],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "ElectronGood_phi": {
+      "axes": [],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "ElectronGood_etaSC": {
+      "axes": [],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "JetGood_eta": {
+      "axes": [],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "JetGood_pt": {
+      "axes": [],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "JetGood_phi": {
+      "axes": [],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "JetGood_btagDeepFlavB": {
+      "axes": [],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "JetGood_btagDeepFlavCvL": {
+      "axes": [],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "JetGood_btagDeepFlavCvB": {
+      "axes": [],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "nJetGood": {
+      "axes": [],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    }
+  },
+  "columns": {
+    "TTTo2L2Nu": {
+      "baseline": [],
+      "1btag": [],
+      "2btag": []
+    },
+    "DATA_SingleMuon": {
+      "baseline": [],
+      "1btag": [],
+      "2btag": []
+    }
+  }
+}

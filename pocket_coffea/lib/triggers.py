@@ -26,15 +26,15 @@ def get_trigger_mask(events, trigger_dict, year, isMC, primaryDatasets=None, inv
     if primaryDatasets:
         # if primary dataset is passed, take all the requested trigger
         for pd in primaryDatasets:
-            triggers_to_apply += cfg[pd]
+            triggers_to_apply += [t.lstrip("HLT_") for t in cfg[pd]]
     else:
         if isMC:
             # If MC take the OR of all primary datasets
             for pd, trgs in cfg.items():
-                triggers_to_apply += trgs
+                triggers_to_apply += [t.lstrip("HLT_") for t in trgs]
         else:
             # If Data take only the specific pd
-            triggers_to_apply += cfg[events.metadata["primaryDataset"]]
+            triggers_to_apply += [t.lstrip("HLT_") for t in cfg[events.metadata["primaryDataset"]]]
 
     # create the mask
     trigger_mask = np.zeros(len(events), dtype="bool")
@@ -56,7 +56,7 @@ def get_trigger_mask(events, trigger_dict, year, isMC, primaryDatasets=None, inv
             trigger_mask = trigger_mask | (events.HLT[trigger] & flag)
         else:
             if trigger in events.HLT.fields:
-                trigger_mask = trigger_mask | events.HLT[trigger.lstrip("HLT_")]
+                trigger_mask = trigger_mask | events.HLT[trigger]
 
     if invert:
         trigger_mask = ~trigger_mask

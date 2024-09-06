@@ -1,0 +1,46 @@
+[INFO    ] Configurator instance:
+  - Workflow: <class 'workflow.BasicProcessor'>
+  - Workflow options: {}
+  - N. datasets: 2 
+   -- Dataset: TTTo2L2Nu_2018,  Sample: TTTo2L2Nu, N. files: 1, N. events: xxxx
+   -- Dataset: DATA_SingleMuon_2018_EraA,  Sample: DATA_SingleMuon, N. files: 1, N. events: 241608232
+  - Subsamples:
+   -- Sample TTTo2L2Nu: StandardSelection ['TTTo2L2Nu'], (1 categories)
+   -- Sample DATA_SingleMuon: StandardSelection ['DATA_SingleMuon'], (1 categories)
+  - Skim: ['passthrough']
+  - Preselection: ['passthrough']
+  - Categories: StandardSelection ['baseline', '1btag', '2btag'], (3 categories)
+  - Variables:  ['ElectronGood_eta', 'ElectronGood_pt', 'ElectronGood_phi', 'ElectronGood_etaSC',
+'JetGood_eta', 'JetGood_pt', 'JetGood_phi', 'JetGood_btagDeepFlavB',
+'JetGood_btagDeepFlavCvL', 'JetGood_btagDeepFlavCvB', 'nJetGood']
+  - Columns: {'DATA_SingleMuon': {'1btag': [], '2btag': [], 'baseline': []},
+'TTTo2L2Nu': {'1btag': [], '2btag': [], 'baseline': []}}
+  - available weights variations: {'DATA_SingleMuon': ['nominal', 'pileup', 'sf_btag', 'sf_ele_reco', 'sf_ele_id',
+                   'sf_mu_iso', 'sf_mu_id'],
+'TTTo2L2Nu': ['nominal', 'pileup', 'sf_btag', 'sf_ele_reco', 'sf_ele_id',
+             'sf_mu_iso', 'sf_mu_trigger', 'sf_mu_id']} 
+  - available shape variations: {'DATA_SingleMuon': [], 'TTTo2L2Nu': []}
+[INFO    ] Working on samples: ['TTTo2L2Nu_2018', 'DATA_SingleMuon_2018_EraA']
+[INFO    ] Configurator instance:
+  - Workflow: <class 'workflow.BasicProcessor'>
+  - Workflow options: {}
+  - N. datasets: 2 
+   -- Dataset: TTTo2L2Nu_2018,  Sample: TTTo2L2Nu, N. files: 1, N. events: xxxx
+   -- Dataset: DATA_SingleMuon_2018_EraA,  Sample: DATA_SingleMuon, N. files: 1, N. events: 241608232
+  - Subsamples:
+   -- Sample TTTo2L2Nu: StandardSelection ['TTTo2L2Nu'], (1 categories)
+   -- Sample DATA_SingleMuon: StandardSelection ['DATA_SingleMuon'], (1 categories)
+  - Skim: ['passthrough']
+  - Preselection: ['passthrough']
+  - Categories: StandardSelection ['baseline', '1btag', '2btag'], (3 categories)
+  - Variables:  ['ElectronGood_eta', 'ElectronGood_pt', 'ElectronGood_phi', 'ElectronGood_etaSC',
+'JetGood_eta', 'JetGood_pt', 'JetGood_phi', 'JetGood_btagDeepFlavB',
+'JetGood_btagDeepFlavCvL', 'JetGood_btagDeepFlavCvB', 'nJetGood']
+  - Columns: {'DATA_SingleMuon': {'1btag': [], '2btag': [], 'baseline': []},
+'TTTo2L2Nu': {'1btag': [], '2btag': [], 'baseline': []}}
+  - available weights variations: {'DATA_SingleMuon': ['sf_mu_iso', 'nominal', 'sf_ele_id', 'sf_btag', 'sf_mu_id',
+                   'sf_ele_reco', 'pileup'],
+'TTTo2L2Nu': ['sf_mu_iso', 'nominal', 'sf_ele_id', 'sf_btag', 'sf_mu_trigger',
+             'sf_mu_id', 'sf_ele_reco', 'pileup']} 
+  - available shape variations: {'DATA_SingleMuon': [], 'TTTo2L2Nu': []}
+[INFO    ] Working on samples: ['TTTo2L2Nu_2018', 'DATA_SingleMuon_2018_EraA']
