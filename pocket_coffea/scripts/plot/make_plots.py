@@ -1,7 +1,6 @@
 import os
 import sys
 import re
-import argparse
 
 from omegaconf import OmegaConf
 from coffea.util import load

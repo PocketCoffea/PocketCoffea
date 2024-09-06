@@ -102,3 +102,11 @@ plotting_style:
         "2023_preBPix": "${pico_to_femto:${lumi.picobarns.2023_preBPix.tot}}"
         "2023_postBPix": "${pico_to_femto:${lumi.picobarns.2023_postBPix.tot}}"
 
+    categorical_axes_data:
+     year: years
+     cat: categories
+
+    categorical_axes_mc:
+     year: years
+     cat: categories
+     variation: variations

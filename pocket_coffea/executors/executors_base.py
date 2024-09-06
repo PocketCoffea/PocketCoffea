@@ -19,8 +19,8 @@ class ExecutorFactoryABC(ABC):
 
     def setup_proxyfile(self):
         if self.run_options['ignore-grid-certificate']: return
-        if self.run_options.get('voms-proxy', None) is not None:
-             self.x509_path = self.run_options['voms-proxy']
+        if vomsproxy:=self.run_options.get('voms-proxy', None) is not None:
+             self.x509_path = vomsproxy
         else:
              _x509_localpath = get_proxy_path()
              # Copy the proxy to the home from the /tmp to be used by workers
