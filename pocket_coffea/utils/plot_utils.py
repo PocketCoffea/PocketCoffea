@@ -814,15 +814,15 @@ class Shape:
 
         # Create ratios for all MC hist compared to the reference
         histograms_list = [h for h in stacks['mc_nominal'] ]
-    
+
         histograms_list.append(stacks['data_sum'])
         for hnum in histograms_list:
             #print("Process:", hnum.name, type(hnum))
-            num = hnum.values(flow=flow)
-            num_variances = hnum.variances(flow=flow)
+            num = hnum.values(flow=self.style.flow)
+            num_variances = hnum.variances(flow=self.style.flow)
 
             if self.style.flow:
-                if (len(den) != (len(hden.values()) + 2)):
+                if (len(num) != (len(hnum.values()) + 2)):
                     raise NotImplementedError("Both underflow and overflow bins have to be defined. Please set `overflow=True` and `underflow=True` in the constructor of the Axis object, in your configuration.")
                 num = np.concatenate([[num[0]+num[1]], num[2:-2], [num[-2]+num[-1]]])
                 num_variances = np.concatenate([[num_variances[0]+num_variances[1]], num_variances[2:-2], [num_variances[-2]+num_variances[-1]]])
@@ -914,6 +914,13 @@ class Shape:
         else:
             if self.is_data_only:
                 reference_shape = stacks["data_sum"].values()
+            elif ref!=None:
+                if ref=='data_sum':
+                    reference_shape = stacks['data_sum'].values()
+                elif ref=='mc_nominal_sum':
+                    reference_shape = stacks['mc_nominal_sum'].values()
+                else:
+                    reference_shape = stacks['mc_nominal'][ref].values()
             else:
                 reference_shape = stacks["mc_nominal_sum"].values()
             if self.density:
@@ -1273,7 +1280,7 @@ class Shape:
             self.format_figure(cat, ratio=ratio, ref=ref)
         else:
             self.format_figure(cat, ratio=False)
-            
+
 
     def plot_comparison_all(self, ratio=True, save=True, format='png'):
         ''' '''
