@@ -15,7 +15,8 @@ from rich.table import Table
 from rich.tree import Tree
 import re
 from pocket_coffea.utils import rucio as rucio_utils
-from pocket_coffea.parameters.xsection import xsection
+import requests
+#from pocket_coffea.parameters.xsection import xsection
 def print_dataset_query(query, dataset_list, console, selected=[]):
     table = Table(title=f"Query: [bold red]{query}")
     table.add_column("Name", justify="left", style="cyan", no_wrap=True)
@@ -295,10 +296,16 @@ Some basic commands:
         parts = dataset_name.split('/')
         if len(parts) > 0:
             parts =  parts[1]
-        for entry in xsection:
-            if entry['process_name'] in parts:
-                return entry['cross_section']
-        return None 
+        url = 'https://xsdb-temp.app.cern.ch/api/search'
+        response = requests.post(url, json={'process_name': parts})
+        if response.status_code == 200:
+            data = response.json()
+            if isinstance(data, list) and len(data) > 0:
+                return float(data[0]['cross_section'])
+            else:
+                raise ValueError(f"No data found for process_name '{parts}'")
+        else:
+            raise ConnectionError(f"Failed to fetch data for process_name '{parts}'. Status code: {response.status_code}")
 
     def do_select(self, selection=None, metadata=None):
         """Selected the datasets from the list of query results. Input a list of indices
