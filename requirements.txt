@@ -13,7 +13,8 @@ bokeh==2.4.2
 parsl
 matplotlib>=3.7
 rich
-rucio-clients
+rucio-clients>=35.2.1
 omegaconf
 law
 click>=8.0.4
+correctionlib>=2.6.1

@@ -65,6 +65,8 @@ def get_default_parameters():
         syst_variations,
         plotting_style
     )
+    # resolve the config to catch problems
+    OmegaConf.resolve(all)
     return all
 
 def get_default_run_options():

@@ -166,7 +166,7 @@ git clone git@github.com:PocketCoffea/PocketCoffea.git
 
       ```bash
       # Install micromamba
-      curl micro.mamba.pm/install.sh | bash
+      "${SHELL}" <(curl -L micro.mamba.pm/install.sh)
       micromamba create -n pocket-coffea python=3.9 -c conda-forge
       micromamba activate pocket-coffea
       ```

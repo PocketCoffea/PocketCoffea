@@ -6,7 +6,7 @@ from typing import List, Optional
 import awkward
 import pathlib
 import shutil
-
+from .configurator import Configurator
 
 
 @contextmanager
@@ -30,6 +30,25 @@ def path_import(absolute_path):
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         return module
+
+    
+def load_config(cfg, do_load=True, save_config=True, outputdir=None):
+    ''' Helper function to load a Configurator instance from a user defined python module'''
+    config_module =  path_import(cfg)
+    try:
+        config = config_module.cfg
+        # Load the configuration
+        if do_load:
+            config.load()
+        if save_config and outputdir is not None:
+            config.save_config(outputdir)
+    except AttributeError as e:
+        print("Error: ", e)
+        raise("The provided configuration module does not contain a `cfg` attribute of type Configurator. Please check your configuration!")
+
+    if not isinstance(config, Configurator):
+        raise("The configuration module attribute `cfg` is not of type Configurator. Please check yuor configuration!")
+    return config
 
 
 # Function taken from HiggsDNA

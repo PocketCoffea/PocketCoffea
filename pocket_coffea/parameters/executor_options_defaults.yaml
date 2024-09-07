@@ -14,7 +14,7 @@ dask@lxplus:
   cores-per-worker: 1
   mem-per-worker: "2GB"
   disk-per-worker: "2GB"
-  worker-image: /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-latest
+  worker-image: /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-latest
   death-timeout: "3600"
   queue: "microcentury"
   adaptive: false
@@ -61,4 +61,10 @@ dask@purdue-af:
   adaptive: true
   cores-per-worker: 1
   mem-per-worker: 4 # GB
+
+dask@infn-af:
+  adaptive: false
+  sched-url: null
   
+dask@swan:
+  sched-url: null

@@ -2,9 +2,15 @@
 # - btagSF: taking from cvmfs
 # - ctagSF: taking from cvmfs
 # - jetPuID SF
+# - jet veto maps
 
 jet_scale_factors:
-
+    # Collection used to apply btag SF and ctag SF
+    jet_collection:
+      btag: JetGood
+      ctag: JetGood
+      puId: JetGood
+      
     btagSF:
         # DeepJet AK4 tagger shape SF
         '2016_PreVFP':

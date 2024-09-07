@@ -116,6 +116,7 @@ class DataDiscoveryCLI:
             "replicas",
             "list-replicas",
             "save",
+            "clear",
             "allow-sites",
             "block-sites",
             "regex-sites",
@@ -142,6 +143,7 @@ Some basic commands:
   - [bold cyan]block-sites[/]: Exclude grid sites from the available sites for replicas query
   - [bold cyan]regex-sites[/]: Select sites with a regex for replica queries: e.g.  "T[123]_(FR|IT|BE|CH|DE)_\w+"
   - [bold cyan]save[/]: Save the selected datasets as a dataset definition file and also the replicas query results to file (json or yaml) for further processing
+  - [bold cyan]clear[/]: Clear the selected datasets and replicas
   - [bold cyan]help[/]: Print this help message
             """
                 )
@@ -164,6 +166,8 @@ Some basic commands:
                 self.do_list_replicas()
             elif command == "save":
                 self.do_save()
+            elif command == "clear":
+                self.do_clear()
             elif command == "allow-sites":
                 self.do_allowlist_sites()
             elif command == "block-sites":
@@ -590,7 +594,8 @@ Some basic commands:
             )
         format = os.path.splitext(filename)[1]
         if not format:
-            raise Exception("[red] Please use a .json or .yaml filename for the output")
+            print("[red] Please use a .json or .yaml filename for the output")
+            return
 
         # First save the datasets in the format of the PocketCoffea metadata
         groups = defaultdict(list)
@@ -616,11 +621,11 @@ Some basic commands:
             for dataset in datasets:
                 if dataset in self.replica_results:
                     dataset_info_withreplicas = {
-                        "sample": group,
                         "json_output": f"datasets/{group}.json",
                     }
                     dataset_info_withreplicas.update(self.final_output[dataset])
                     dataset_info_withreplicas["metadata"]["das_names"] = [dataset]
+                    dataset_info_withreplicas["metadata"]["sample"] = group
                     output_definition_withreplicas[f"{group}_{ireplicas}"] = dataset_info_withreplicas
                     ireplicas += 1
 
@@ -640,7 +645,28 @@ Some basic commands:
                 json.dump(output_definition, file, indent=2)
                
         print(f"[green]File {filename} saved!")
-        
+        # Ask to reset the selection
+        if Confirm.ask("[red]Do you want to empty your selected samples list?[/]", default=False):
+            self.selected_datasets = []
+            self.selected_datasets_metadata = []
+            self.replica_results = defaultdict(list)
+            self.replica_results_metadata = {}
+            self.replica_results_bysite = {}
+            self.final_output = None
+            print(f"[green]Selected datasets list emptied![/]")
+
+
+    # Define a empty-list function
+    def do_clear(self):
+        if Confirm.ask("[red]Do you want to empty your selected samples list?[/]", default=False):
+          self.selected_datasets = []
+          self.selected_datasets_metadata = []
+          self.replica_results = defaultdict(list)
+          self.replica_results_metadata = {}
+          self.replica_results_bysite = {}
+          self.final_output = None
+          print(f"[green]Selected datasets list emptied![/]")
+
         
     def load_dataset_definition(
         self,
