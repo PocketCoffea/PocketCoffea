@@ -245,8 +245,26 @@ Some basic commands:
         pattern = r'\/([^\/]+)NanoAOD'
         match = re.search(pattern, dataset_name)
     
-        if match:
-            return match.group(1)
+        if match.group(1) == 'Run2016':
+            return '2016'
+        elif match.group(1) == 'Run2017':
+            return '2017'
+        elif match.group(1) == 'Run2018':
+            return '2018'
+        elif match.group(1) == 'Run2022':
+            return '2022'
+        elif match.group(1) == 'Run2023':
+            return '2023'
+        elif match.group(1) == 'Run2016APV':
+            return '2016APV'
+        elif match.group(1) == 'Run3Summer22':
+            return '2022_preEE'
+        elif match.group(1) == 'Run3Summer22EE':
+            return '2022_postEE'
+        elif match.group(1) == 'Run3Summer23':
+            return '2023_preBPix'
+        elif match.group(1) == 'Run3Summer23BPix':
+            return '2023_postBPix'
         else:
             return ""
     
