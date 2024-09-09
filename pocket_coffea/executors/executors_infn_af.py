@@ -46,7 +46,7 @@ class DaskExecutorFactory(ExecutorFactoryABC):
         self.dask_client.restart()
         self.dask_client.register_worker_plugin(UploadFile(self.proxy_path))
         # get file name from path
-        self.dask_client.register_workload_plugin(SetProxyPlugin(proxy_name=self.proxy_path.split("/")[-1]))
+        self.dask_client.register_worker_plugin(SetProxyPlugin(proxy_name=self.proxy_path.split("/")[-1]))
         
     def customized_args(self):
         args = super().customized_args()
