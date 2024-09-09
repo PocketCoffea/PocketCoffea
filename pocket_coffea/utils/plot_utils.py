@@ -20,9 +20,11 @@ from mplhep.error_estimation import poisson_interval
 from cycler import cycler
 
 from omegaconf import OmegaConf
-from pocket_coffea.parameters.defaults import merge_parameters
+from pocket_coffea.parameters.defaults import merge_parameters, get_default_parameters
 
 np.seterr(divide="ignore", invalid="ignore", over="ignore")
+
+plotting_style_defaults = get_default_parameters()["plotting_style"]
 
 # colormaps according to CMS guidelines
 # https://cms-analysis.docs.cern.ch/guidelines/plotting/colors/#categorical-data-eg-1d-stackplots
@@ -65,7 +67,6 @@ class Style:
             ), f"The key `{key}` is not defined in the style dictionary."
         for key, item in style_cfg.items():
             setattr(self, key, item)
-        self.has_lumi = False
         self.has_labels = "labels_mc" in style_cfg
         self.has_samples_groups = "samples_groups" in style_cfg
         self.has_exclude_samples = "exclude_samples" in style_cfg
@@ -89,10 +90,30 @@ class Style:
 
         self.set_defaults()
 
+        if self.opts_mc["flow"] == "sum":
+            self.flow = True
+        else:
+            self.flow = False
+
         #print("Style config:\n", style_cfg)
 
     def set_defaults(self):
-        self.opts_mc["stack"] = "stack" not in self.opts_mc
+        for key in self._required_keys:
+            for subkey, val_default in plotting_style_defaults[key].items():
+                if subkey not in self.style_cfg[key]:
+                    self.style_cfg[key][subkey] = val_default
+
+        # Overwrite the default values with the user-defined values and check if they are valid
+        for key, is_mc in zip(["categorical_axes_data", "categorical_axes_mc"], [False, True]):
+            parameters_categorical_axes = plotting_style_defaults[key]
+            if key in self.style_cfg:
+                parameters_categorical_axes.update(self.style_cfg[key])
+            self.style_cfg[key] = parameters_categorical_axes
+            for subkey, val in self.style_cfg[key].items():
+                if (subkey, val) not in self._available_categorical_axes(is_mc).items():
+                    raise Exception(f"The key `{subkey}` with value `{val}` is not a valid categorical axis for {key}. Available axes: {self._available_categorical_axes(is_mc)}")
+            setattr(self, key, self.style_cfg[key])
+
         self.fontsize = getattr(self, "fontsize", 22)
 
         # default experiment label location: upper left inside plot
@@ -115,6 +136,20 @@ class Style:
         for key, item in style_cfg.items():
             setattr(self, key, item)
 
+    def _available_categorical_axes(self, is_mc=True):
+        '''Returns the list of available categorical axes for MC or data histograms.'''
+        if is_mc:
+            return {
+                "year" : "years",
+                "cat" : "categories",
+                "variation" : "variations"
+            }
+        else:
+            return {
+                "year" : "years",
+                "cat" : "categories",
+                "era" : "eras"
+            }
 
 class PlotManager:
     '''This class manages multiple Shape objects and their plotting.'''
@@ -315,8 +350,6 @@ class Shape:
         self.only_cat = only_cat if only_cat is not None else []
         self.style = Style(style_cfg)
         self.toplabel = toplabel if toplabel else ""
-        if self.style.has_lumi:
-            self.lumi_fraction = {year : l / lumi[year]['tot'] for year, l in self.style.lumi_processed.items()}
         self.log = log
         self.density = density
         self.datasets_metadata=datasets_metadata
@@ -352,7 +385,7 @@ class Shape:
             for ax in self.categorical_axes_mc:
                 setattr(
                     self,
-                    {'year': 'years', 'cat': 'categories', 'variation': 'variations'}[
+                    self.style.categorical_axes_mc[
                         ax.name
                     ],
                     self.get_axis_items(ax.name, is_mc=True),
@@ -366,7 +399,7 @@ class Shape:
             for ax in self.categorical_axes_data:
                 setattr(
                     self,
-                    {'year': 'years', 'cat': 'categories'}[
+                    self.style.categorical_axes_data[
                         ax.name
                     ],
                     self.get_axis_items(ax.name, is_mc=False),
@@ -669,7 +702,7 @@ class Shape:
                 # Sum over eras if specified as extra argument
                 if 'era' in [ax.name for ax in self.categorical_axes_data]:
                     if spliteras:
-                        slicing_data = { 'cat': cat}
+                        slicing_data = {'cat': cat}
                     else:
                         slicing_data = {'cat': cat, 'era': sum}
                 else:
@@ -706,19 +739,35 @@ class Shape:
         hnum = stacks["data_sum"]
         hden = stacks["mc_nominal_sum"]
 
-        if self.density:
-            num_integral = sum(hnum.values() * np.array(self.style.opts_axes["xbinwidth"]) )
-            if num_integral>0:
-                hnum = hnum * (1./num_integral)
-            den_integral = sum(hden.values() * np.array(self.style.opts_axes["xbinwidth"]) )
-            if den_integral>0:
-                hden = hden * (1./den_integral)
+        num = hnum.values(flow=self.style.flow)
+        den = hden.values(flow=self.style.flow)
+        num_variances = hnum.variances(flow=self.style.flow)
+        den_variances = hden.variances(flow=self.style.flow)
 
-        ratio = hnum.values()/hden.values()
+        # Sum underflow and overflow bins for the numerator and denominator, to restore an array of the same length
+        if self.style.flow:
+            if (len(num) != (len(hnum.values()) + 2)) | (len(den) != (len(hden.values()) + 2)):
+                raise NotImplementedError("Both underflow and overflow bins have to be defined. Please set `overflow=True` and `underflow=True` in the constructor of the Axis object, in your configuration.")
+            num = np.concatenate([[num[0]+num[1]], num[2:-2], [num[-2]+num[-1]]])
+            den = np.concatenate([[den[0]+den[1]], den[2:-2], [den[-2]+den[-1]]])
+            num_variances = np.concatenate([[num_variances[0]+num_variances[1]], num_variances[2:-2], [num_variances[-2]+num_variances[-1]]])
+            den_variances = np.concatenate([[den_variances[0]+den_variances[1]], den_variances[2:-2], [den_variances[-2]+den_variances[-1]]])
+
+        if self.density:
+            num_integral = sum(num * np.array(self.style.opts_axes["xbinwidth"]) )
+            if num_integral>0:
+                num = num * (1./num_integral)
+                num_variances = num_variances * (1./num_integral)**2
+            den_integral = sum(den * np.array(self.style.opts_axes["xbinwidth"]) )
+            if den_integral>0:
+                den = den * (1./den_integral)
+                den_variances = den_variances * (1./den_integral)**2
+
+        ratio = num / den
         # Total uncertainy propagation of num / den :
-        # ratio_variance = np.power(ratio,2)*( hnum.variances()*np.power(hnum.values(), -2) + hden.variances()*np.power(hden.values(), -2))
+        # ratio_variance = np.power(ratio,2)*( num_variances*np.power(num, -2) + den_variances*np.power(den, -2))
         # Only the uncertainty of num (DATA) propagated:
-        ratio_variance = hnum.variances()*np.power(hden.values(), -2)
+        ratio_variance = num_variances*np.power(den, -2)
 
         ratio_uncert = np.abs(poisson_interval(ratio, ratio_variance) - ratio)
         ratio_uncert[np.isnan(ratio_uncert)] = np.inf
@@ -732,7 +781,7 @@ class Shape:
         #print("Everything in the Stack:", stacks.keys())
         #print("\t mc_nominal:", stacks['mc_nominal'])
 
-        # den and hden refer to the numerator, which is the reference histogram
+        # den and hden refer to the denomerator, which is the reference histogram for ratios
         # num and hnum refer to the numerator
 
         if ref=='data_sum':
@@ -742,41 +791,54 @@ class Shape:
         else:
             hden = stacks['mc_nominal'][ref]
 
+        den = hden.values(flow=self.style.flow)
+        den_variances = hden.variances(flow=self.style.flow)
+
+        # Sum underflow and overflow bins for the denominator, to restore an array of the same length
+        if self.style.flow:
+            if (len(den) != (len(hden.values()) + 2)):
+                raise NotImplementedError("Both underflow and overflow bins have to be defined. Please set `overflow=True` and `underflow=True` in the constructor of the Axis object, in your configuration.")
+            den = np.concatenate([[den[0]+den[1]], den[2:-2], [den[-2]+den[-1]]])
+            den_variances = np.concatenate([[den_variances[0]+den_variances[1]], den_variances[2:-2], [den_variances[-2]+den_variances[-1]]])
+
         if self.density:
-
-            #print("Numerator values:", hnum.values())
-            #print("Sum = ", sum(hnum.values()))
-            #print("xbinwidth",  self.style.opts_axes["xbinwidth"])
-            den_integral = sum(hden.values() * np.array(self.style.opts_axes["xbinwidth"]) )
-
-            print("Integral = ", den_integral)
+            den_integral = sum(den * np.array(self.style.opts_axes["xbinwidth"]) )
             if den_integral>0:
-                hden = hden * (1./den_integral)
-
+                den = den * (1./den_integral)
+                den_variances = den_variances * (1./den_integral)**2
 
         ratios = {}
         ratios_unc = {}
 
         # Create ratios for all MC hist compared to the reference
         histograms_list = [h for h in stacks['mc_nominal'] ]
-    
+
         histograms_list.append(stacks['data_sum'])
         for hnum in histograms_list:
             #print("Process:", hnum.name, type(hnum))
+            num = hnum.values(flow=self.style.flow)
+            num_variances = hnum.variances(flow=self.style.flow)
+
+            if self.style.flow:
+                if (len(num) != (len(hnum.values()) + 2)):
+                    raise NotImplementedError("Both underflow and overflow bins have to be defined. Please set `overflow=True` and `underflow=True` in the constructor of the Axis object, in your configuration.")
+                num = np.concatenate([[num[0]+num[1]], num[2:-2], [num[-2]+num[-1]]])
+                num_variances = np.concatenate([[num_variances[0]+num_variances[1]], num_variances[2:-2], [num_variances[-2]+num_variances[-1]]])
 
             if self.density:
-                num_integral = sum(hnum.values() * np.array(self.style.opts_axes["xbinwidth"]) )
-                hnum = hnum * (1./num_integral)
+                num_integral = sum(num * np.array(self.style.opts_axes["xbinwidth"]) )
+                num = num * (1./num_integral)
+                num_variances = num_variances * (1./num_integral)**2
 
-            ratio = hnum.values()/hden.values()
+            ratio = num / den
             # Total uncertainy of num x den :
-            # ratio_variance = np.power(ratio,2)*( hnum.variances()*np.power(hnum.values(), -2) + hden.variances()*np.power(hden.values(), -2))
+            # ratio_variance = np.power(ratio,2)*( num_variances*np.power(num, -2) + den_variances*np.power(den, -2))
 
             # Only the uncertainty of numerator is propagated, the reference hist uncertainty is ignored
-            ratio_variance = np.power(ratio,2)*hnum.variances()*np.power(hnum.values(), -2)
+            ratio_variance = np.power(ratio,2)*num_variances*np.power(num, -2)
 
             # Only the uncertainty of the denominator is propagated:
-            # ratio_variance = np.power(ratio,2)*hden.variances()*np.power(hden.values(), -2)
+            # ratio_variance = np.power(ratio,2)*den_variances*np.power(den, -2)
 
             ratio_uncert = np.abs(poisson_interval(ratio, ratio_variance) - ratio)
             ratio_uncert[np.isnan(ratio_uncert)] = np.inf
@@ -835,16 +897,30 @@ class Shape:
         self.ax.set_xlim(self.style.opts_axes["xedges"][0], self.style.opts_axes["xedges"][-1])
         if self.log:
             self.ax.set_yscale("log")
-            if self.is_mc_only:
-                exp = math.floor(math.log(max(stacks["mc_nominal_sum"].values()), 10))
+            if self.is_data_only:
+                arg_log = max(stacks["data_sum"].values())
+            elif self.is_mc_only:
+                arg_log = max(stacks["mc_nominal_sum"].values())
             else:
-                exp = math.floor(math.log(max(stacks["data_sum"].values()), 10))
+                arg_log = max(
+                    max(stacks["data_sum"].values()), max(stacks["mc_nominal_sum"].values())
+                )
+            if arg_log == 0:
+                arg_log = 100
+            exp = math.floor(math.log(arg_log, 10))
             self.ax.set_ylim((0.01, 10 ** (exp*1.75)))
         else:
-            if self.is_mc_only:
-                reference_shape = stacks["mc_nominal_sum"].values()
-            else:
+            if self.is_data_only:
                 reference_shape = stacks["data_sum"].values()
+            elif ref!=None:
+                if ref=='data_sum':
+                    reference_shape = stacks['data_sum'].values()
+                elif ref=='mc_nominal_sum':
+                    reference_shape = stacks['mc_nominal_sum'].values()
+                else:
+                    reference_shape = stacks['mc_nominal'][ref].values()
+            else:
+                reference_shape = stacks["mc_nominal_sum"].values()
             if self.density:
                 integral = sum(reference_shape) * np.array(self.style.opts_axes["xbinwidth"])
                 reference_shape = reference_shape / integral
@@ -930,7 +1006,7 @@ class Shape:
                     h_sig = scale_sig*self.h_dict[sig][{'cat': cat, 'variation': 'nominal'}]
                     h_sig.plot(ax=self.ax, color=self.colors[sig], density=self.density, **self.style.opts_sig, label=sig+'_sig')
                     # Note: '_sig' str is added to the label of the signal sample, in order to distinguish it
-                    # from the same label present in a mc stack histograms.
+                    # from the same label present in the mc-stack histograms.
                 else:
                     if self.verbose>0:
                         print("WARNING. Signal sample does not exist amoung the histograms", sig, cat, self.name)
@@ -952,7 +1028,15 @@ class Shape:
                 self.define_figure(ratio=False)
         y = stacks["data_sum"].values()
         # Add underflow and overflow bins to the first and last bin, respectively
-        if self.style.opts_mc["flow"] == "sum":
+        if self.style.flow:
+            has_underflow = True
+            has_overflow = True
+            try: stacks["data_sum"][hist.underflow]
+            except: has_underflow = False
+            try: stacks["data_sum"][hist.overflow]
+            except: has_overflow = False
+            if not all([has_underflow, has_overflow]):
+                raise NotImplementedError("Both underflow and overflow bins have to be defined. Please set `overflow=True` and `underflow=True` in the constructor of the Axis object, in your configuration.")
             y_underflow = stacks["data_sum"][hist.underflow].value
             y_overflow = stacks["data_sum"][hist.overflow].value
             y[0] += y_underflow
@@ -970,7 +1054,7 @@ class Shape:
                         if self.verbose>0:
                             print("WARNING: The range for blinding region is not correct:", blind_hname, blind_range)
                         continue
-                    hist_edges = stacks["data_sum"].axes[0].edges
+                    hist_edges = np.array(self.style.opts_axes["xedges"])
                     bins_to_zero = (hist_edges[:-1] >= blind_range[0]) & (hist_edges[:-1] < blind_range[1])
                     y[bins_to_zero] = 0
 
@@ -1030,15 +1114,19 @@ class Shape:
                 down = unity[0] - ratios_unc[proc][0]
                 up = unity[1] + ratios_unc[proc][1]
                 #print("Ratio unc:", ratios_unc[proc])
+                if ref=='data_sum':
+                    color = 'black'
+                else:
+                    color = self.colors[proc]
                 self.rax.stairs(down, baseline=up, edges=self.style.opts_axes["xedges"],
-                                color=self.colors[proc], alpha=0.4, linewidth=0, hatch='////')
-            elif proc=='data_sum':
-                self.rax.errorbar(self.style.opts_axes["xcenters"], ratios[proc], yerr=ratios_unc[proc],
-                                  **self.style.opts_data)
+                                color=color, alpha=0.4, linewidth=0, hatch='////')
             else:
+                if proc=='data_sum':
+                    color = 'black'
+                else:
+                    color = self.colors[proc]
                 self.rax.errorbar(self.style.opts_axes["xcenters"], ratios[proc], yerr=ratios_unc[proc],
-                                  **self.style.opts_ratios, color=self.colors[proc])
-
+                                  **self.style.opts_ratios, color=color)
         ref_label = ref
         if ref_label in self.style.labels_mc:
             ref_label = self.style.labels_mc[ref_label]
@@ -1069,6 +1157,12 @@ class Shape:
             ax = self.ax
             up = self.syst_manager.total(cat).up
             down = self.syst_manager.total(cat).down
+
+            # If the histogram is in density mode, the systematic uncertainty has to be normalized to the integral of the MC stack
+            if self.density:
+                mc_integral = sum(self._get_stacks(cat)["mc_nominal_sum"].values(flow=self.style.flow)) * np.array(self.style.opts_axes["xbinwidth"])
+                up = up / mc_integral
+                down = down / mc_integral
 
         unc_band = np.array([down, up])
         ax.fill_between(
@@ -1184,7 +1278,7 @@ class Shape:
             self.format_figure(cat, ratio=ratio, ref=ref)
         else:
             self.format_figure(cat, ratio=False)
-            
+
 
     def plot_comparison_all(self, ratio=True, save=True, format='png'):
         ''' '''
@@ -1333,6 +1427,18 @@ class SystUnc:
             # Full nominal MC including all MC samples
             self.h_mc_nominal = stacks["mc_nominal_sum"]
             self.nominal, self.bins = stacks["mc_nominal_sum"].to_numpy()
+            # Add underflow and overflow bins to the first and last bin, respectively
+            if self.style.flow:
+                has_underflow = True
+                has_overflow = True
+                try: stacks["mc_nominal_sum"][hist.underflow]
+                except: has_underflow = False
+                try: stacks["mc_nominal_sum"][hist.overflow]
+                except: has_overflow = False
+                if not all([has_underflow, has_overflow]):
+                    raise NotImplementedError("Both underflow and overflow bins have to be defined. Please set `overflow=True` and `underflow=True` in the constructor of the Axis object, in your configuration.")
+                self.nominal[0] += stacks["mc_nominal_sum"][hist.underflow].value
+                self.nominal[-1] += stacks["mc_nominal_sum"][hist.overflow].value
         elif syst_list:
             self.syst_list = syst_list
             assert (

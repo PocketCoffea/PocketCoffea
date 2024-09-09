@@ -21,7 +21,7 @@ from rich import print
 def merge_outputs(inputfiles, outputfile):
     '''Merge coffea output files'''
     print(f"[blue]Merging files into {outputfile}[/]")
-    print(inputfiles)
+    print(sorted(inputfiles))
     out = accumulate([load(f) for f in inputfiles])
     save(out, outputfile)
     print(f"[green]Output saved to {outputfile}")
