@@ -1,7 +1,7 @@
 from pocket_coffea.executors.executors_base import ExecutorFactoryABC
 from pocket_coffea.executors.executors_base import IterativeExecutorFactory, FuturesExecutorFactory
 from coffea import processor as coffea_processor
-from dask.distributed import Client, PipInstall, WorkerPlugin
+from dask.distributed import Client, PipInstall, Worker, WorkerPlugin
 from distributed.diagnostics.plugin import UploadFile
 import time
 
