@@ -72,8 +72,14 @@ def metric_pt(obj, obj2):
 def metric_eta(obj, obj2):
     return abs(obj.eta - obj2.eta)
 
+def delta_phi(a, b):
+    """Compute difference in angles between two phi values
+    Returns a value within [-pi, pi)
+    """
+    return (a - b + np.pi) % (2 * np.pi) - np.pi
+
 def metric_phi(obj, obj2):
-    return abs(obj.phi - obj2.phi)
+    return abs(delta_phi(obj.phi,obj2.phi))
 
 
 def object_matching(obj, obj2, dr_min, dpt_max=None, return_indices=False):
