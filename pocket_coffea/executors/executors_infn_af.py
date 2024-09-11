@@ -25,7 +25,10 @@ class SetProxyPlugin(WorkerPlugin):
         working_dir = worker.local_directory
         os.environ['X509_USER_PROXY'] = working_dir + '/' + self.proxy_name
         os.environ['X509_CERT_DIR']="/cvmfs/grid.cern.ch/etc/grid-security/certificates/"
-        os.chmod(working_dir + '/' + self.proxy_name, 0o400)
+        try:
+            os.chmod(working_dir + '/' + self.proxy_name, 0o400)
+        except:
+            print("Unable to modify proxyfile permissions, they may be already modified")
 
 class DaskExecutorFactory(ExecutorFactoryABC):
 
@@ -44,7 +47,10 @@ class DaskExecutorFactory(ExecutorFactoryABC):
         # At INFN AF, the best way to handle DASK clusters is to create them via the Dask labextension and then connect the client to it in your code
         self.dask_client = Client(address=str(self.sched_url))
         self.dask_client.restart()
-        self.dask_client.register_worker_plugin(UploadFile(self.proxy_path))
+        try:
+            self.dask_client.register_worker_plugin(UploadFile(self.proxy_path))
+        except:
+            print("Unable to upload proxyfile, it may be already uploaded")
         # get file name from path
         self.dask_client.register_worker_plugin(SetProxyPlugin(proxy_name=self.proxy_path.split("/")[-1]))
         
