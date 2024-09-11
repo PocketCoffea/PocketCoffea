@@ -3,7 +3,7 @@ import numpy as np
 
 def Gen_leptons(events, lepton_flavour, params):
 
-    cuts = params.object_preselection.GEN
+    cuts = params.object_preselection.GEN_Lep
     particles = events.GenPart
 
     leptons = particles[
@@ -26,11 +26,12 @@ def Gen_leptons(events, lepton_flavour, params):
 
 
 
-def Gen_jets(events, params):
+def Gen_jets(events, GenLepCollName, params):
 
-    jets = events.GenJet[(np.abs(events.GenJet.eta) < 2.5) & (events.GenJet.pt > 25)]
+    cuts = params.object_preselection.GEN_Jet
+    jets = events.GenJet[(np.abs(events.GenJet.eta) < cuts["eta"]) & (events.GenJet.pt > cuts["pt"])]
 
-    dR_jets_lep = jets.metric_table(events["GenLep"])
+    dR_jets_lep = jets.metric_table(events[GenLepCollName])
     mask_lepton_cleaning = ak.prod(dR_jets_lep > 0.4, axis=2) == 1
 
     mask_good_jets = mask_lepton_cleaning

@@ -813,7 +813,8 @@ class Shape:
         # Create ratios for all MC hist compared to the reference
         histograms_list = [h for h in stacks['mc_nominal'] ]
 
-        histograms_list.append(stacks['data_sum'])
+        if not self.is_mc_only:
+            histograms_list.append(stacks['data_sum'])
         for hnum in histograms_list:
             #print("Process:", hnum.name, type(hnum))
             num = hnum.values(flow=self.style.flow)
