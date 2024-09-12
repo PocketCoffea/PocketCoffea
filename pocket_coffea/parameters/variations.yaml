@@ -15,6 +15,11 @@ systematic_variations:
       "2023_preBPix": "${.2022_preEE}"
       "2023_postBPix": "${.2022_preEE}"
 
+      "2022_preEE": "${.2016_PreVFP}"
+      "2022_postEE": "${.2016_PreVFP}"
+      "2023_preBPix": "${.2016_PreVFP}"
+      "2023_postBPix": "${.2016_PreVFP}"
+
     sf_btag:
       '2016_PreVFP':
         - hf
@@ -50,8 +55,10 @@ systematic_variations:
       '2017': "${.2016_PreVFP}"
       '2018': "${.2016_PreVFP}"
 
+      "2022_preEE": "${.2016_PreVFP}"
+      "2022_postEE": "${.2016_PreVFP}"
+      "2023_preBPix": "${.2016_PreVFP}"
+      "2023_postBPix": "${.2016_PreVFP}"
+
   shape_variations:
     JES:
-
-    
-

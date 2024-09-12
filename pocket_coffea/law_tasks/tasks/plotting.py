@@ -1,5 +1,3 @@
-import os
-
 import law
 import luigi
 import luigi.util
@@ -7,6 +5,7 @@ from pocket_coffea.law_tasks.configuration.general import (
     plottingconfig,
     plottingsystematicsconfig,
 )
+from pocket_coffea.law_tasks.tasks.base import BaseTask
 from pocket_coffea.law_tasks.tasks.runner import Runner
 from pocket_coffea.law_tasks.utils import (
     exclude_samples_from_plotting,
@@ -22,17 +21,16 @@ law.contrib.load("coffea")
 
 @luigi.util.inherits(plottingconfig)
 @luigi.util.inherits(Runner)
-class PlotterBase(law.Task):
+class PlotterBase(BaseTask):
     """Base class for plotting tasks"""
-
-    @property
-    def full_output_dir(self): ...
 
     def requires(self):
         return Runner.req(self)
 
-    def output(self):
-        return law.LocalFileTarget(os.path.join(self.full_output_dir, ".plots_done"))
+    def store_parts(self) -> tuple[str]:
+        if self.test:
+            return super().store_parts() + ("test",)
+        return super().store_parts()
 
     def setup_plot_manager(self):
         inp = self.input()
@@ -45,9 +43,7 @@ class PlotterBase(law.Task):
             inp["parameters"].abspath, self.plot_style
         )
         if self.blind:
-            data_samples = load_sample_names(
-                os.path.join(self.output_dir, "config.json"), prefix="DATA"
-            )
+            data_samples = load_sample_names(inp["config"].path, prefix="DATA")
             plotting_parameters = exclude_samples_from_plotting(
                 plotting_parameters, data_samples
             )
@@ -83,13 +79,10 @@ class Plotter(PlotterBase):
     requires Runner task
     """
 
-    @property
-    def full_output_dir(self):
+    def output(self):
         blind_str = "blind" if self.blind else "data-mc"
         yscale_str = "log" if self.log_scale else "lin"
-        return os.path.join(
-            os.path.abspath(self.output_dir), self.plot_dir, blind_str, yscale_str
-        )
+        return self.local_file_target(blind_str, yscale_str, ".plots_done")
 
     def run(self):
         plot_manager = self.setup_plot_manager()
@@ -104,13 +97,10 @@ class Plotter(PlotterBase):
 class PlotSystematics(PlotterBase):
     """Plot the nominal, up and down shift of systematics"""
 
-    @property
-    def full_output_dir(self):
+    def output(self):
         syst_str = "systematics_ratio" if self.ratio else "systematics"
         yscale_str = "log" if self.log_scale else "lin"
-        return os.path.join(
-            os.path.abspath(self.output_dir), self.plot_dir, syst_str, yscale_str
-        )
+        return self.local_file_target(syst_str, yscale_str, ".plots_done")
 
     def run(self):
         plot_manager = self.setup_plot_manager()

@@ -36,13 +36,20 @@ plotting_style:
       linewidth: 0
       marker: .
       markersize: 5.0
-
       
     opts_mc:
       histtype: "fill"
       stack: true
       flow: "sum"  # add underflow and overflow bin to first/last bin
       edges: false
+
+    opts_sig:
+      histtype: "step"
+      stack: false
+      flow: "sum"
+      edges: true
+      linestyle: solid
+      linewidth: 1
       
     opts_syst:
       down:
@@ -79,7 +86,11 @@ plotting_style:
         linewidth: 0
         step: post
         zorder: 2
-        
+
+    print_info:
+      category: False
+      year: false
+      
     plot_upper_label:
       by_year:
         "2016_PreVFP": "${pico_to_femto:${lumi.picobarns.2016_PreVFP.tot}}"
@@ -91,3 +102,11 @@ plotting_style:
         "2023_preBPix": "${pico_to_femto:${lumi.picobarns.2023_preBPix.tot}}"
         "2023_postBPix": "${pico_to_femto:${lumi.picobarns.2023_postBPix.tot}}"
 
+    categorical_axes_data:
+     year: years
+     cat: categories
+
+    categorical_axes_mc:
+     year: years
+     cat: categories
+     variation: variations

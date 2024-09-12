@@ -1,12 +1,26 @@
-# Recipes for common tasks
+# HOW-TOs for common tasks
 
 :::{alert}
 Page under construction! Come back for more common analysis steps recipes.
 :::
 
-## Skimmng events
+## HLT trigger selection
+
+## Define a new cut function
+
+
+## Skimming events
 WIP
-## Primary dataset cross-cleaning
-WIP
+
 ## Subsamples
 WIP
+
+
+### Primary dataset cross-cleaning
+WIP
+
+
+## Define a custom weight
+
+
+### Define a custom weights with custom variations
