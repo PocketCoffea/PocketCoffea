@@ -2,6 +2,11 @@
 
 This page keeps track of major and minor changes between versions. Breaking changes are also reported
 
+## PocketCoffea 0.9.6
+
+- Minor release: only fixes and small improvements
+  - Some fixes in the plotting script
+  - Improvements for the INFN analysis facility executor
 
 ## PocketCoffea 0.9.5
 

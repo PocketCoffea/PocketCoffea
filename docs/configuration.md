@@ -478,6 +478,7 @@ class CustomTopSF(WeightWrapper):
 The class must be then passed to the configurator in order to be available:
 
 ```python
+from pocket_coffea.lib.weights.common import common_weights
 
 cfg = Configurator(
     weights_classes = common_weights + [CustomTopSF],  # note the addition here
@@ -505,6 +506,8 @@ Moreover, often weights are easier to define: simple computations can be wrapped
 defining a full WeightWrapper class. 
 
 ```python
+from pocket_coffea.lib.weights.weights import WeightLambda
+
 my_custom_sf  = WeightLambda.wrap_func(
     name="sf_custom",
     function=lambda params, metadata, events, size, shape_variations:
