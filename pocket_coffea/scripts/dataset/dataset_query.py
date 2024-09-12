@@ -250,18 +250,14 @@ Some basic commands:
         pattern = r'\/([^\/]+)NanoAOD'
         match = re.search(pattern, dataset_name)
     
-        if match.group(1) == 'Run2016':
-            return '2016'
-        elif match.group(1) == 'Run2017':
+        if match.group(1) == 'RunIISummer20UL16NanoAODAPV':
+            return '2016_PreVFP'
+        elif match.group(1) == 'RunIISummer20UL16NanoAOD':
+            return '2016_PostVFP'
+        elif match.group(1) == 'RunIISummer20UL17':
             return '2017'
-        elif match.group(1) == 'Run2018':
+        elif match.group(1) == 'RunIISummer20UL18':
             return '2018'
-        elif match.group(1) == 'Run2022':
-            return '2022'
-        elif match.group(1) == 'Run2023':
-            return '2023'
-        elif match.group(1) == 'Run2016APV':
-            return '2016APV'
         elif match.group(1) == 'Run3Summer22':
             return '2022_preEE'
         elif match.group(1) == 'Run3Summer22EE':
