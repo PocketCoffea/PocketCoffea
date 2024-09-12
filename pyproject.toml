@@ -72,6 +72,16 @@ merge-outputs="pocket_coffea.scripts.merge_outputs:merge_outputs"
 print-parameters="pocket_coffea.scripts.print_parameters:print_parameters"
 make-config="pocket_coffea.sripts.make_config:make_config"
 
+
+[tool.ruff]
+src = ["pocket_coffea"]
+extend-exclude = ["*.ipynb"] #for now
+
+# maybe better
+# [tool.ruff.lint.per-file-ignores]
+# "*.ipynb" = ["E402"]
+
+
 # [tool.flake8]
 # extend-ignore = ["E203", "E501", "E722", "B950"]
 # extend-select = ["B9"]

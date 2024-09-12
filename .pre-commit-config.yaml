@@ -2,6 +2,7 @@ ci:
   autoupdate_commit_msg: "chore: update pre-commit hooks"
   autofix_commit_msg: "style: pre-commit fixes"
 
+# https://learn.scientific-python.org/development/guides/style/
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: "v4.6.0"
@@ -22,13 +23,14 @@ repos:
   # formatting and linting
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
-    rev: v0.6.0
+    rev: v0.6.4
     hooks:
-      # Run the linter.
-      - id: ruff
       # Run the formatter.
       - id: ruff-format
+      # TODO: for testing only, remove when merging into main
         args: ["--check"]
+      # Run the linter.
+      - id: ruff
 
   # type checking
   - repo: https://github.com/pre-commit/mirrors-mypy
