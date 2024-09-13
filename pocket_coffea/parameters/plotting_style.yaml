@@ -50,7 +50,7 @@ plotting_style:
       edges: true
       linestyle: solid
       linewidth: 1
-      
+            
     opts_syst:
       down:
         color: blue
