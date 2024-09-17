@@ -13,9 +13,10 @@ from rich.console import Console
 from rich.prompt import Confirm, IntPrompt, Prompt
 from rich.table import Table
 from rich.tree import Tree
-
+import re
 from pocket_coffea.utils import rucio as rucio_utils
-
+import requests
+#from pocket_coffea.parameters.xsection import xsection
 def print_dataset_query(query, dataset_list, console, selected=[]):
     table = Table(title=f"Query: [bold red]{query}")
     table.add_column("Name", justify="left", style="cyan", no_wrap=True)
@@ -225,6 +226,85 @@ Some basic commands:
             )
         else:
             print("First [bold red]query (Q)[/] for a dataset")
+    
+    def generate_default_metadata(self, dataset):
+        year = self.extract_year_from_dataset_name(dataset)
+        isMC = self.is_mc_dataset(dataset)
+        try:
+            xsec = self.extract_xsec_from_dataset_name(dataset)
+        except Exception as e:
+            xsec = 1.0
+        primary_dataset,year_data,era_data = self.extract_era_from_dataset_name(dataset)
+        if isMC == True:
+            return {
+                "year": year,
+                "isMC": isMC,
+                "xsec": xsec
+            }
+        else:
+            return {
+                "year": year_data,
+                "isMC": isMC,
+                "primaryDataset": primary_dataset,
+                "era": era_data
+            }
+
+    def extract_year_from_dataset_name(self, dataset_name):
+        pattern = r'\/([^\/]+)NanoAOD'
+        match = re.search(pattern, dataset_name)
+    
+        if match.group(1) == 'RunIISummer20UL16NanoAODAPV':
+            return '2016_PreVFP'
+        elif match.group(1) == 'RunIISummer20UL16NanoAOD':
+            return '2016_PostVFP'
+        elif match.group(1) == 'RunIISummer20UL17':
+            return '2017'
+        elif match.group(1) == 'RunIISummer20UL18':
+            return '2018'
+        elif match.group(1) == 'Run3Summer22':
+            return '2022_preEE'
+        elif match.group(1) == 'Run3Summer22EE':
+            return '2022_postEE'
+        elif match.group(1) == 'Run3Summer23':
+            return '2023_preBPix'
+        elif match.group(1) == 'Run3Summer23BPix':
+            return '2023_postBPix'
+        else:
+            return ""
+    
+    def extract_era_from_dataset_name(self, dataset_name):
+        pattern = r'/([^/]+)/Run(\d{4})([A-Z])'
+        match = re.search(pattern, dataset_name)
+        
+        if match:
+            primary_dataset = match.group(1)
+            year = match.group(2)
+            era = match.group(3)
+            return primary_dataset, year, era
+        else:
+            return "", "", ""
+    
+    def is_mc_dataset(self, dataset_name):
+        parts = dataset_name.split('/')
+        if len(parts) > 0 and 'SIM' in parts[-1]:
+            return True
+        else:
+            return False
+
+    def extract_xsec_from_dataset_name(self, dataset_name):
+        parts = dataset_name.split('/')
+        if len(parts) > 0:
+            parts =  parts[1]
+        url = 'https://xsdb-temp.app.cern.ch/api/search'
+        response = requests.post(url, json={'process_name': parts})
+        if response.status_code == 200:
+            data = response.json()
+            if isinstance(data, list) and len(data) > 0:
+                return float(data[0]['cross_section'])
+            else:
+                raise ValueError(f"No data found for process_name '{parts}'")
+        else:
+            raise ConnectionError(f"Failed to fetch data for process_name '{parts}'. Status code: {response.status_code}")
 
     def do_select(self, selection=None, metadata=None):
         """Selected the datasets from the list of query results. Input a list of indices
@@ -250,14 +330,15 @@ Some basic commands:
                 if metadata:
                     self.selected_datasets_metadata.append(metadata)
                 else:
-                    self.selected_datasets_metadata.append({
-                        "year": "",
-                        "isMC": True,
-                        "primaryDataset": "",
-                        "part": "",
-                        "era": "",
-                        "xsec": 1.0
-                    })
+                    self.selected_datasets_metadata.append(self.generate_default_metadata(self.last_query_list[s]))
+                    #self.selected_datasets_metadata.append({
+                    #    "year": "",
+                    #    "isMC": True,
+                    #    "primaryDataset": "",
+                    #    "part": "",
+                    #    "era": "",
+                    #    "xsec": 1.0
+                    #})
                 print(f"- ({s+1}) {self.last_query_list[s]}")
             else:
                 print(

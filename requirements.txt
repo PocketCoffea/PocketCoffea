@@ -5,7 +5,7 @@ numpy>=1.22.0
 awkward>=1.10.3,<2
 mplhep>=0.3.48
 cloudpickle
-vector
+vector<1.5.0
 hist
 pyaml
 requests
@@ -18,3 +18,5 @@ omegaconf
 law
 click>=8.0.4
 correctionlib>=2.6.1
+setuptools>=70.3.0
+setuptools-scm>=8.1.0

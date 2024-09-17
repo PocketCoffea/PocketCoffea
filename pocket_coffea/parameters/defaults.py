@@ -41,6 +41,7 @@ def get_default_parameters():
     pileup = OmegaConf.load(os.path.join(basedir, 'pileup.yaml'))
     event_flags = OmegaConf.load(os.path.join(basedir, 'event_flags.yaml'))
     lumi = OmegaConf.load(os.path.join(basedir, 'lumi.yaml'))
+    #xsec = OmegaConf.load(os.path.join(basedir, 'xsec.yaml'))
     jet_calibration = OmegaConf.load(os.path.join(basedir, "jets_calibration.yaml"))
     jet_scale_factors = OmegaConf.load(os.path.join(basedir, 'jet_scale_factors.yaml'))
     btagging = OmegaConf.load(os.path.join(basedir, "btagging.yaml"))
