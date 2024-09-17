@@ -47,7 +47,7 @@ from pocket_coffea.utils import dataset
 )
 @click.option("-l", "--local-prefix", type=str, default=None)
 @click.option(
-    "-as",
+    "-ws",
     "--allowlist-sites",
     multiple=True,
     help="List of sites in whitelist"
@@ -73,19 +73,13 @@ from pocket_coffea.utils import dataset
 @click.option("-p", "--parallelize", type=int, default=4)
 
 def build_datasets(cfg, keys, download, overwrite, check, split_by_year, local_prefix,
-                   allowlist_sites, blocklist_sites, regex_sites, include_redirector, parallelize):
+                   allowlist_sites, include_redirector, blocklist_sites, regex_sites, parallelize):
     '''Build dataset fileset in json format'''
     # Check for comma separated values
-    if len(allowlist_sites)>0:
-        if "," in allowlist_sites[0]:
-            allowlist_sites = allowlist_sites[0].split(",")
-        else:
-            allowlist_sites = [allowlist_sites]
-    if len(blocklist_sites)>0:
-        if "," in blocklist_sites[0]:
-            blocklist_sites = blocklist_sites[0].split(",")
-        else:
-            blocklist_sites = [blocklist_sites]
+    if len(allowlist_sites)>0 and "," in allowlist_sites[0]:
+        allowlist_sites = allowlist_sites[0].split(",")
+    if len(blocklist_sites)>0 and "," in blocklist_sites[0]:
+        blocklist_sites = blocklist_sites[0].split(",")
 
     print("Building datasets...")
     print("[green]Allowlist sites:[/]")
