@@ -207,6 +207,54 @@ default_axis_settings = {
         "lim": (0, 1),
         'label': "AK4 DeepJet CvsB score",
     },
+    'jet_btagPNetB': {
+        "field": "btagPNetB",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 PNet b-tag score",
+    },
+    'jet_btagPNetCvL': {
+        "field": "btagPNetCvL",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 PNet CvsL score",
+    },
+    'jet_btagPNetCvB': {
+        "field": "btagPNetCvB",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 PNet CvsB score",
+    },
+    'jet_btagRobustParTAK4B': {
+        "field": "btagRobustParTAK4B",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 RobustParT b-tag score",
+    },
+    'jet_btagRobustParTAK4CvL': {
+        "field": "btagRobustParTAK4CvL",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 RobustParT CvsL score",
+    },
+    'jet_btagRobustParTAK4CvB': {
+        "field": "btagRobustParTAK4CvB",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 RobustParT CvsB score",
+    },
     'fatjet_pt': {
         "field": "pt",
         "bins": 100,
@@ -474,7 +522,9 @@ default_axis_settings = {
 }
 
 collection_fields = {
-    'jet': ["eta", "pt", "phi", "btagDeepFlavB", "btagDeepFlavCvL", "btagDeepFlavCvB"],
+    'jet': ["eta", "pt", "phi", "btagDeepFlavB", "btagDeepFlavCvL", "btagDeepFlavCvB",
+            "btagPNetB", "btagPNetCvL", "btagPNetCvB",
+            "btagRobustParTAK4B", "btagRobustParTAK4CvL", "btagRobustParTAK4CvB",],
     'fatjet': [
         "eta",
         "pt",
