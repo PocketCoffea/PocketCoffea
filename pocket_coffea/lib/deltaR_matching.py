@@ -73,7 +73,7 @@ def metric_eta(obj, obj2):
     return abs(obj.eta - obj2.eta)
 
 def delta_phi(a, b):
-    """Compute difference in angles between two phi values
+    """Compute difference in between two phi values, modulo 2pi
     Returns a value within [-pi, pi)
     """
     return (a - b + np.pi) % (2 * np.pi) - np.pi

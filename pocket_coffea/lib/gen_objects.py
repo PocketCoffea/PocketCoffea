@@ -26,12 +26,12 @@ def Gen_leptons(events, lepton_flavour, params):
 
 
 
-def Gen_jets(events, GenLepCollName, params):
+def Gen_jets(events, GenLepCollNameForCleaning, params):
 
     cuts = params.object_preselection.GEN_Jet
     jets = events.GenJet[(np.abs(events.GenJet.eta) < cuts["eta"]) & (events.GenJet.pt > cuts["pt"])]
 
-    dR_jets_lep = jets.metric_table(events[GenLepCollName])
+    dR_jets_lep = jets.metric_table(events[GenLepCollNameForCleaning])
     mask_lepton_cleaning = ak.prod(dR_jets_lep > 0.4, axis=2) == 1
 
     mask_good_jets = mask_lepton_cleaning

@@ -1,9 +1,9 @@
 plotting_style:
 
-    collapse_datasets: true     # Plot all the datasets with the same sample as a single shape 
+    collapse_datasets: true     # Plot all the datasets with the same sample as a single shape
     fontsize: 22
     fontsize_legend_ratio: 12
-    
+
 
     opts_figure:
       datamc:
@@ -13,7 +13,7 @@ plotting_style:
         gridspec_kw:
           height_ratios: [3,1]
         sharex: true
-        
+
       partial:
         figsize: [12,15]
         gridspec_kw:
@@ -36,7 +36,7 @@ plotting_style:
       linewidth: 0
       marker: .
       markersize: 5.0
-      
+
     opts_mc:
       histtype: "fill"
       stack: true
@@ -50,7 +50,7 @@ plotting_style:
       edges: true
       linestyle: solid
       linewidth: 1
-            
+
     opts_syst:
       down:
         color: blue
@@ -64,7 +64,7 @@ plotting_style:
         color: red
         linestyle: dashed
         linewidth: 1
-        
+
     opts_unc:
       Down:
         elinewidth: 1
@@ -78,7 +78,7 @@ plotting_style:
         linewidth: 1
         marker: .
         markersize: 1.0
-        
+
       total:
         color: [0.,0.,0.,0.4]
         facecolor: [0.,0.,0.,0.]
@@ -90,7 +90,7 @@ plotting_style:
     print_info:
       category: False
       year: false
-      
+
     plot_upper_label:
       by_year:
         "2016_PreVFP": "${pico_to_femto:${lumi.picobarns.2016_PreVFP.tot}}"
