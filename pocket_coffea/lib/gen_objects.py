@@ -1,7 +1,7 @@
 import awkward as ak
 import numpy as np
 
-def Gen_leptons(events, lepton_flavour, params):
+def getGenLeptons(events, lepton_flavour, params):
 
     cuts = params.object_preselection.GEN_Lep
     particles = events.GenPart
@@ -26,7 +26,7 @@ def Gen_leptons(events, lepton_flavour, params):
 
 
 
-def Gen_jets(events, GenLepCollNameForCleaning, params):
+def getGenJets(events, GenLepCollNameForCleaning, params):
 
     cuts = params.object_preselection.GEN_Jet
     jets = events.GenJet[(np.abs(events.GenJet.eta) < cuts["eta"]) & (events.GenJet.pt > cuts["pt"])]
