@@ -813,7 +813,8 @@ class Shape:
         # Create ratios for all MC hist compared to the reference
         histograms_list = [h for h in stacks['mc_nominal'] ]
 
-        histograms_list.append(stacks['data_sum'])
+        if not self.is_mc_only:
+            histograms_list.append(stacks['data_sum'])
         for hnum in histograms_list:
             #print("Process:", hnum.name, type(hnum))
             num = hnum.values(flow=self.style.flow)
@@ -841,7 +842,7 @@ class Shape:
             # ratio_variance = np.power(ratio,2)*den_variances*np.power(den, -2)
 
             ratio_uncert = np.abs(poisson_interval(ratio, ratio_variance) - ratio)
-            ratio_uncert[np.isnan(ratio_uncert)] = np.inf
+            #ratio_uncert[np.isnan(ratio_uncert)] = np.inf
 
             ratios[hnum.name] = ratio
             ratios_unc[hnum.name] = ratio_uncert
@@ -973,9 +974,9 @@ class Shape:
             )
 
         if self.style.print_info["year"]:
-            self.ax.text(0.04, 0.75, f'Year: {self.year}', fontsize=12, transform=self.ax.transAxes)
+            self.ax.text(0.04, 0.75, f'Year: {self.year}', fontsize=0.7*self.style.fontsize, transform=self.ax.transAxes)
         if self.style.print_info["category"]:
-            self.ax.text(0.04, 0.70, f'Cat: {cat}', fontsize=12, transform=self.ax.transAxes)
+            self.ax.text(0.04, 0.70, f'Cat: {cat}', fontsize=0.7*self.style.fontsize, transform=self.ax.transAxes)
 
     def plot_mc(self, cat, ax=None):
         '''Plots the MC histograms as a stacked plot.'''
@@ -1089,7 +1090,7 @@ class Shape:
         )
         self.format_figure(cat, ratio=True)
         self.rax.axhline(1.0, color="black", linestyle="--")
-
+                        
     def plot_compare_ratios(self, cat, ref, ax=None):
         '''Plots the ratios as an errorbar plots.'''
         if self.dense_dim > 1:
@@ -1113,25 +1114,30 @@ class Shape:
                 unity = np.ones_like(ratios_unc[proc])
                 down = unity[0] - ratios_unc[proc][0]
                 up = unity[1] + ratios_unc[proc][1]
+                
                 #print("Ratio unc:", ratios_unc[proc])
+                #print("Up-down:", up-down)
+                
                 if ref=='data_sum':
                     color = 'black'
                 else:
                     color = self.colors[proc]
                 self.rax.stairs(down, baseline=up, edges=self.style.opts_axes["xedges"],
-                                color=color, alpha=0.4, linewidth=0, hatch='////')
+                                color=color, alpha=0.4, linewidth=0, facecolor="none", hatch='////')
             else:
                 if proc=='data_sum':
                     color = 'black'
                 else:
                     color = self.colors[proc]
                 self.rax.errorbar(self.style.opts_axes["xcenters"], ratios[proc], yerr=ratios_unc[proc],
-                                  **self.style.opts_ratios, color=color)
+                                  color=color, linewidth=0, elinewidth=1, marker='o', markersize=4)
         ref_label = ref
         if ref_label in self.style.labels_mc:
             ref_label = self.style.labels_mc[ref_label]
-        self.rax.text(0.04, 0.85, f'Ref = {ref_label}', fontsize=12, transform=self.rax.transAxes)
+        self.rax.text(0.04, 0.85, f'Ref = {ref_label}', fontsize=self.style.fontsize, transform=self.rax.transAxes)
 
+        self.format_figure(cat, ref=ref, ratio=True)
+        self.rax.axhline(1.0, color="gray", linestyle="--")
 
     def plot_systematic_uncertainty(self, cat, ratio=False, ax=None):
         '''Plots the asymmetric systematic uncertainty band on top of the MC stack, if `ratio` is set to False.

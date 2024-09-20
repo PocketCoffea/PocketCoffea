@@ -143,6 +143,46 @@ default_axis_settings = {
         "lim": (-math.pi, math.pi),
         'label': "$\phi_{j}$",
     },
+    'genjet_pt': {
+        "field": "pt",
+        "bins": 50,
+        "start": 0,
+        'stop': 300,
+        "lim": (0, 300),
+        'label': "$p_{T}^{j}$ [GeV]",
+    },
+    'genjet_eta': {
+        "field": "eta",
+        "bins": 50,
+        "start": -2.5,
+        'stop': 2.5,
+        "lim": (-2.5, 2.5),
+        'label': "$\eta_{j}$",
+    },
+    'genjet_phi': {
+        "field": "phi",
+        "bins": 64,
+        "start": -math.pi,
+        'stop': math.pi,
+        "lim": (-math.pi, math.pi),
+        'label': "$\phi_{j}$",
+    },
+    'genjet_hadronFlavour': {
+        "field": "hadronFlavour",
+        "bins": 8,
+        "start": -1,
+        'stop': 7,
+        "lim": (-1, 7),
+        'label': "hadron flavor",
+    },
+    'genjet_partonFlavour': {
+        "field": "partonFlavour",
+        "bins": 33,
+        "start": -10,
+        'stop': 23,
+        "lim": (-10, 23),
+        'label': "parton flavor",
+    },
     'jet_btagDeepFlavB': {
         "field": "btagDeepFlavB",
         "bins": 50,
@@ -166,6 +206,54 @@ default_axis_settings = {
         'stop': 1.0,
         "lim": (0, 1),
         'label': "AK4 DeepJet CvsB score",
+    },
+    'jet_btagPNetB': {
+        "field": "btagPNetB",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 PNet b-tag score",
+    },
+    'jet_btagPNetCvL': {
+        "field": "btagPNetCvL",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 PNet CvsL score",
+    },
+    'jet_btagPNetCvB': {
+        "field": "btagPNetCvB",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 PNet CvsB score",
+    },
+    'jet_btagRobustParTAK4B': {
+        "field": "btagRobustParTAK4B",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 RobustParT b-tag score",
+    },
+    'jet_btagRobustParTAK4CvL': {
+        "field": "btagRobustParTAK4CvL",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 RobustParT CvsL score",
+    },
+    'jet_btagRobustParTAK4CvB': {
+        "field": "btagRobustParTAK4CvB",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 RobustParT CvsB score",
     },
     'fatjet_pt': {
         "field": "pt",
@@ -434,7 +522,9 @@ default_axis_settings = {
 }
 
 collection_fields = {
-    'jet': ["eta", "pt", "phi", "btagDeepFlavB", "btagDeepFlavCvL", "btagDeepFlavCvB"],
+    'jet': ["eta", "pt", "phi", "btagDeepFlavB", "btagDeepFlavCvL", "btagDeepFlavCvB",
+            "btagPNetB", "btagPNetCvL", "btagPNetCvB",
+            "btagRobustParTAK4B", "btagRobustParTAK4CvL", "btagRobustParTAK4CvB",],
     'fatjet': [
         "eta",
         "pt",
@@ -452,6 +542,7 @@ collection_fields = {
         "btagHbb",
     ],
     'parton': ["eta", "pt", "phi", "dRMatchedJet", "pdgId"],
+    'genjet': ["eta", "pt", "phi", "hadronFlavour", "partonFlavour"],
     'electron': ["eta", "pt", "phi", "etaSC"],
     'muon': ["eta", "pt", "phi"],
     'lepton': ["eta", "pt", "phi", "pdgId"],
@@ -506,6 +597,11 @@ def jet_hists(coll="JetGood", pos=None, fields=None, name=None, axis_settings=No
     if name == None:
         name = coll
     return _get_default_hist(name, "jet", coll, pos, fields, axis_settings, **kwargs)
+
+def genjet_hists(coll="MyGenJets", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
+    if name == None:
+        name = coll
+    return _get_default_hist(name, "genjet", coll, pos, fields, axis_settings, **kwargs)
 
 
 def fatjet_hists(coll="FatJetGood", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
