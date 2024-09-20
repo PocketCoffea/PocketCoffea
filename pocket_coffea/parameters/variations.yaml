@@ -9,12 +9,6 @@ systematic_variations:
       "2016_PostVFP": "${.2016_PreVFP}" #interpolation by OmegaConf --> taking the same dict
       "2017": "${.2016_PreVFP}" 
       "2018": "${.2016_PreVFP}"
-      "2022_preEE":
-          - sf
-      "2022_postEE": "${.2022_preEE}"
-      "2023_preBPix": "${.2022_preEE}"
-      "2023_postBPix": "${.2022_preEE}"
-
       "2022_preEE": "${.2016_PreVFP}"
       "2022_postEE": "${.2016_PreVFP}"
       "2023_preBPix": "${.2016_PreVFP}"
