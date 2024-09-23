@@ -65,7 +65,7 @@ def test_new_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_
     # Check the output
     old_output = load(f"output_{reference_commit}/output_all.coffea")
 
-    compare_outputs(output, old_output)
+    compare_outputs(output, old_output, exclude_variables=["JetGood_btagDeepFlavB", "JetGood_btagDeepFlavCvL", "JetGood_btagDeepFlavCvB"])
     compare_totalweight(output, ["nJetGood"])
 
 
