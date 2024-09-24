@@ -271,7 +271,7 @@ def CvsLsorted(jets, tagger):
     return jets[ak.argsort(jets[ctag], axis=1, ascending=False)]
 
 
-def get_dijet(jets, tagger = 'PNet'):
+def get_dijet(jets, tagger = None):
     
     fields = {
         "pt": 0.,
@@ -300,19 +300,21 @@ def get_dijet(jets, tagger = 'PNet'):
     fields["j1pt"] = ak.where( (njet >= 2), jets[:,0].pt, -1)
     fields["j2pt"] = ak.where( (njet >= 2), jets[:,1].pt, -1)
 
-    if tagger == "PNet":
-        CvL = "btagPNetCvL"
-        CvB = "btagPNetCvB"
-    elif tagger == "DeepFlav":
-        CvL = "btagDeepFlavCvL"
-        CvB = "btagDeepFlavCvB"
-    elif tagger == "RobustParT":
-        CvL = "btagRobustParTAK4CvL"
-        CvB = "btagRobustParTAK4CvB"
-    else:
-        raise NotImplementedError(f"This tagger is not implemented: {tagger}")
-
-    if tagger:
+    if "genJetIdx" in jets.fields and tagger!=None:
+        '''This dijet fuction should work for GenJets as well. But the btags are not available for them
+        Thus, one has to check if a Jet is a GenJet or reco Jet. The genJetIdx variable only available in reco Jets'''
+        if tagger == "PNet":
+            CvL = "btagPNetCvL"
+            CvB = "btagPNetCvB"
+        elif tagger == "DeepFlav":
+            CvL = "btagDeepFlavCvL"
+            CvB = "btagDeepFlavCvB"
+        elif tagger == "RobustParT":
+            CvL = "btagRobustParTAK4CvL"
+            CvB = "btagRobustParTAK4CvB"
+        else:
+            raise NotImplementedError(f"This tagger is not implemented: {tagger}")
+        
         fields["j1CvsL"] = ak.where( (njet >= 2), jets[:,0][CvL], -1)
         fields["j2CvsL"] = ak.where( (njet >= 2), jets[:,1][CvL], -1)
         fields["j1CvsB"] = ak.where( (njet >= 2), jets[:,0][CvB], -1)
