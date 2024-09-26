@@ -252,7 +252,8 @@ Some basic commands:
     def extract_year_from_dataset_name(self, dataset_name):
         pattern = r'\/([^\/]+)NanoAOD'
         match = re.search(pattern, dataset_name)
-    
+        if not match:
+            return ""
         if match.group(1) == 'RunIISummer20UL16NanoAODAPV':
             return '2016_PreVFP'
         elif match.group(1) == 'RunIISummer20UL16NanoAOD':
