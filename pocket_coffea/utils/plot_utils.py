@@ -167,7 +167,8 @@ class PlotManager:
         log=False,
         density=False,
         verbose=1,
-        save=True
+        save=True,
+        index_file=None
     ) -> None:
 
         self.shape_objects = {}
@@ -177,6 +178,7 @@ class PlotManager:
         self.log = log
         self.density = density
         self.save = save
+        self.index_file = index_file
         self.nhists = len(variables)
         self.toplabel = toplabel
         self.verbose=verbose
@@ -225,6 +227,8 @@ class PlotManager:
                 )
         if self.save:
             self.make_dirs()
+            if self.index_file is not None:
+                self.copy_index_file()
             matplotlib.use('agg')
 
     def make_dirs(self):
@@ -237,6 +241,18 @@ class PlotManager:
                 plot_dir = os.path.join(self.plot_dir, cat)
                 if not os.path.exists(plot_dir):
                     os.makedirs(plot_dir)
+
+    def copy_index_file(self):
+        '''Copy the specified index file to the plot directory and each of the subdirectories.'''
+        if not os.path.exists(self.index_file):
+            raise Exception(f"Index file {self.index_file} not found.")
+        os.system(f"cp {self.index_file} {self.plot_dir}")
+        for name, shape in self.shape_objects.items():
+            for cat in shape.categories:
+                if self.only_cat and cat not in self.only_cat:
+                    continue
+                plot_dir = os.path.join(self.plot_dir, cat)
+                os.system(f"cp {self.index_file} {plot_dir}")
 
     def plot_datamc(self, name, ratio=True, syst=True, spliteras=False, format="png"):
         '''Plots one histogram, for all years and categories.'''
@@ -908,7 +924,8 @@ class Shape:
             if arg_log == 0:
                 arg_log = 100
             exp = math.floor(math.log(arg_log, 10))
-            self.ax.set_ylim((0.01, 10 ** (exp*1.75)))
+            y_lim_hi = self.style.opts_figure["datamc"]["ylim_log"].get("hi", 10 ** (exp*1.75))
+            self.ax.set_ylim((self.style.opts_figure["datamc"]["ylim_log"]["lo"], y_lim_hi))
         else:
             if self.is_data_only:
                 reference_shape = stacks["data_sum"].values()
@@ -947,7 +964,7 @@ class Shape:
             for i, l in enumerate(labels):
                 # If additional scale is provided, plot it on the legend:
                 scale_str = ""
-                if self.style.has_rescale_samples and l in self.style.rescale_samples.keys():
+                if self.style.has_rescale_samples and (l in self.style.rescale_samples.keys()) and (round(self.style.rescale_samples[l],2)!=1.0):
                     scale_str = " x%.2f"%self.style.rescale_samples[l]
                 if self.style.has_signal_samples and len(l)>=4 and l[:-4] in self.style.signal_samples.keys():
                     # Note: the l[:-4] strips away the potential '_sig' str from the name (added in plot_mc function).
@@ -1626,8 +1643,10 @@ class SystUnc:
         )
         if self.log:
             self.ax.set_yscale("log")
+            exp = math.floor(math.log(self.nominal.max(), 10)) + 3
+            y_lim_hi = self.style.opts_figure["systematics"]["ylim_log"].get("hi", 10**exp)
             self.ax.set_ylim(
-                (0.01, 10 ** (math.floor(math.log(self.nominal.max(), 10)) + 3))
+                (self.style.opts_figure["datamc"]["ylim_log"]["lo"], y_lim_hi)
             )
         else:
             self.ax.set_ylim((0, 1.5 * self.nominal.max()))

@@ -8,6 +8,8 @@ plotting_style:
     opts_figure:
       datamc:
         figsize: [12,9]
+        ylim_log:
+          lo: 0.01
       datamc_ratio:
         figsize: [12,12]
         gridspec_kw:
