@@ -34,6 +34,7 @@ class WeightsManager:
         weightsConf,
         weightsWrappers,
         metadata,
+        weightsConf_subsamples=None,     
         storeIndividual=False,
     ):
         self.params = params
@@ -42,6 +43,8 @@ class WeightsManager:
         self._year = metadata["year"]
         self._isMC = metadata["isMC"]
         self.weightsConf = weightsConf
+        self.weightsConf_subsamples = weightsConf_subsamples
+        self._hasSubsamples = self.weightsConf_subsamples != None
         #load the weights objects from the wrappers
         self._weightsObj = {}
         for w in weightsWrappers:
@@ -69,6 +72,10 @@ class WeightsManager:
         # Dictionary keeping track of which modifier can be applied to which region
         self._available_modifiers_inclusive = []
         self._available_modifiers_bycat = defaultdict(list)
+        if self._hasSubsamples:
+            self._available_modifiers_inclusive_subsamples = {}
+            self._available_modifiers_bycat_subsamples = defaultdict(dict)
+            
         # Loading the map in the constructor so that the histManager can access it
         # Compute first the inclusive weights
         for w in self.weightsConf["inclusive"]:
@@ -86,11 +93,33 @@ class WeightsManager:
                 for w in ws:
                     self._available_modifiers_bycat[cat] += self._available_modifiers_byweight[w]
 
+        # The same but looking at the ones specific for the subsamples
+        if self._hasSubsamples:
+            for subsample, subsample_conf in self.weightsConf_subsamples.items():
+                self._available_modifiers_inclusive_subsamples[subsample] = []
+                for w in subsample_conf["inclusive"]:
+                    if w in self._available_modifiers_byweight:
+                        self._available_modifiers_inclusive_subsamples[subsample] += self._available_modifiers_byweight[w]
+                if subsample_conf["is_split_bycat"]:
+                    for cat, ws in subsample_conf["bycategory"].items():
+                        if len(ws) == 0:
+                            continue
+                        for w in ws:
+                            self._available_modifiers_bycat_subsamples[subsample][cat] += self._available_modifiers_byweight[w]
+
         # make the variations unique
         self._available_modifiers_inclusive = set(self._available_modifiers_inclusive)
         self._available_modifiers_bycat = {
             k: set(v) for k, v in self._available_modifiers_bycat.items()
         }
+        if self._hasSubsamples:
+            self._available_modifiers_inclusive_subsamples = {
+                k: set(v) for k, v in self._available_modifiers_inclusive_subsamples.items()
+            }
+            self._available_modifiers_bycat_subsamples = {
+                k: {kk: set(vv) for kk, vv in v.items()}
+                for k, v in self._available_modifiers_bycat_subsamples.items()
+            }
         
         
     def compute(self, events, size, shape_variation="nominal"):
@@ -107,7 +136,12 @@ class WeightsManager:
         self._weightsByCat = {}
         self._installed_modifiers_inclusive = []
         self._installed_modifiers_bycat = defaultdict(list)
-
+        if self._hasSubsamples:
+            self._weightsIncl_subsamples = {}
+            self._weightsByCat_subsamples = defaultdict(dict)
+            self._installed_modifiers_inclusive_subsamples = {}
+            self._installed_modifiers_bycat_subsamples = defaultdict
+        
         def __add_weight(w, weight_obj):
             installed_modifiers = []
             if w not in self._available_weights:
@@ -168,6 +202,30 @@ class WeightsManager:
         self._installed_modifiers_bycat = {
             k: set(v) for k, v in self._installed_modifiers_bycat.items()
         }
+
+        # The same but looking at the ones specific for the subsamples
+        if self._hasSubsamples:
+            for subsample, subsample_conf in self.weightsConf_subsamples.items():
+                self._installed_modifiers_inclusive_subsamples[subsample] = []
+                for w in subsample_conf["inclusive"]:
+                    modifiers = __add_weight(w, self._weightsIncl_subsamples)
+                    self._installed_modifiers_inclusive_subsamples[subsample] += modifiers
+                if subsample_conf["is_split_bycat"]:
+                    for cat, ws in subsample_conf["bycategory"].items():
+                        if len(ws) == 0:
+                            continue
+                        self._weightsByCat_subsamples[subsample][cat] = Weights(size, self.storeIndividual)
+                        for w in ws:
+                            modifiers = __add_weight(w, self._weightsByCat_subsamples[subsample][cat])
+                            self._installed_modifiers_bycat_subsamples[subsample][cat] += modifiers
+
+            self._installed_modifiers_inclusive_subsamples = {
+                k: set(v) for k, v in self._installed_modifiers_inclusive_subsamples.items()
+            }
+            self._installed_modifiers_bycat_subsamples = {
+                k: {kk: set(vv) for kk, vv in v.items()}
+                for k, v in self._installed_modifiers_bycat_subsamples.items()
+            }
 
         _weightsCache.clear()
 
