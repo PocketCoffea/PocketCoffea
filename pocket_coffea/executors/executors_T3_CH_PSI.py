@@ -61,8 +61,8 @@ class DaskExecutorFactory(ExecutorFactoryABC):
         print(">>> Creating a SLURM cluster")
         self.dask_cluster = SLURMCluster(
                 queue=self.run_options['queue'],
-                cores=self.run_options['cores-per-worker'],
-                processes=self.run_options['cores-per-worker'],
+                cores=self.run_options.get('cores-per-worker', 1),
+                processes=self.run_options.get('cores-per-worker', 1),
                 memory=self.run_options['mem-per-worker'],
                 walltime=self.run_options["walltime"],
                 job_script_prologue=self.get_worker_env(),
