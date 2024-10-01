@@ -266,7 +266,7 @@ def CvsLsorted(jets, tagger):
     elif tagger == "RobustParT":
         ctag = "btagRobustParTAK4CvL"
     else:
-        raise("This tagger is not implemented:", tagger)
+        raise NotImplementedError(f"This tagger is not implemented: {tagger}")
     
     return jets[ak.argsort(jets[ctag], axis=1, ascending=False)]
 
@@ -310,7 +310,7 @@ def get_dijet(jets, tagger = 'PNet'):
         CvL = "btagRobustParTAK4CvL"
         CvB = "btagRobustParTAK4CvB"
     else:
-        raise("This tagger is not implemented:", tagger)
+        raise NotImplementedError(f"This tagger is not implemented: {tagger}")
 
     if tagger:
         fields["j1CvsL"] = ak.where( (njet >= 2), jets[:,0][CvL], -1)
