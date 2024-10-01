@@ -907,8 +907,10 @@ class Shape:
                 )
             if arg_log == 0:
                 arg_log = 100
-            exp = math.floor(math.log(arg_log, 10))
-            self.ax.set_ylim((0.01, 10 ** (exp*1.75)))
+            exp = math.log(arg_log, 10)
+            # exp = math.floor(math.log(arg_log, 10))
+            self.ax.set_ylim((0.5, 10 ** (exp*1.75)))
+            # self.ax.set_ylim((0.01, 10 ** (exp*1.75)))
         else:
             if self.is_data_only:
                 reference_shape = stacks["data_sum"].values()
