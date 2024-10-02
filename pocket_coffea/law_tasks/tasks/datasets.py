@@ -85,8 +85,8 @@ from pocket_coffea.utils.dataset import build_datasets
 class CreateDatasets(BaseTask):
     """Create dataset json files"""
 
-    # datasets are independent of the version
-    version = None
+    # # datasets are independent of the version
+    # version = None
 
     # # datasets are independent of the version
     # version = None
