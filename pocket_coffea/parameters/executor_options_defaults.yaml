@@ -1,6 +1,6 @@
-general: 
+general:
   scaleout: 1
-  chunksize: 50000
+  chunksize: 150000
   limit-files: null
   limit-chunks: null
   retries: 20
@@ -14,7 +14,7 @@ dask@lxplus:
   cores-per-worker: 1
   mem-per-worker: "2GB"
   disk-per-worker: "2GB"
-  worker-image: /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-latest
+  worker-image: /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-latest
   death-timeout: "3600"
   queue: "microcentury"
   adaptive: false
@@ -22,7 +22,7 @@ dask@lxplus:
   custom-setup-commands: null
   conda-env: false
   local-virtualenv: false
-  
+
 
 dask@T3_CH_PSI:
   scaleout: 10
@@ -52,7 +52,18 @@ parsl-condor@RWTH:
   local-virtualenv: false
   conda-env: True
   cores-per-worker: 1
-  walltime: "12:00:00"
+  walltime: "6:00:00"
+
+dask@RWTH:
+  scaleout: 10
+  mem-per-worker: "2GB"
+  disk-per-worker: "2GB"
+  local-virtualenv: false
+  conda-env: True
+  cores-per-worker: 1
+  walltime: "6:00:00"
+  adaptive: false
+  sched-url: null
 
 dask@purdue-af:
   gateway-address: "http://dask-gateway-k8s.geddes.rcac.purdue.edu/"
@@ -61,4 +72,10 @@ dask@purdue-af:
   adaptive: true
   cores-per-worker: 1
   mem-per-worker: 4 # GB
-  
+
+dask@infn-af:
+  adaptive: false
+  sched-url: null
+
+dask@swan:
+  sched-url: null

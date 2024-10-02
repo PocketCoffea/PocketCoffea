@@ -4,7 +4,7 @@ import correctionlib
 
 
 def get_ele_sf(
-    params, year, pt, eta, counts=None, key='', pt_region=None, variations=["nominal"]
+        params, year, pt, eta, phi, counts=None, key='', pt_region=None, variations=["nominal"]
 ):
     '''
     This function computes the per-electron reco or id SF.
@@ -25,16 +25,35 @@ def get_ele_sf(
 
         # translate the `year` key into the corresponding key in the correction file provided by the EGM-POG
         year_pog = electronSF["era_mapping"][year]
-
-        sf = electron_correctionset[map_name].evaluate(
-            year_pog, "sf", sfname, eta.to_numpy(), pt.to_numpy()
-        )
-        sfup = electron_correctionset[map_name].evaluate(
-            year_pog, "sfup", sfname, eta.to_numpy(), pt.to_numpy()
-        )
-        sfdown = electron_correctionset[map_name].evaluate(
-            year_pog, "sfdown", sfname, eta.to_numpy(), pt.to_numpy()
-        )
+        
+        if year in ["2023_preBPix", "2023_postBPix"]:
+            # Starting from 2023 SFs require the phi:
+            if key == 'reco' and pt_region == 'pt_lt_20':
+                # It also appears that for RecoBelow20 SFs the eta must be positive (absolute value).
+                eta_np = np.abs(eta.to_numpy())
+            else:
+                eta_np = eta.to_numpy()
+                
+            sf = electron_correctionset[map_name].evaluate(
+                year_pog, "sf", sfname, eta_np, pt.to_numpy(),  phi.to_numpy()
+            )
+            sfup = electron_correctionset[map_name].evaluate(
+                year_pog, "sfup", sfname, eta_np, pt.to_numpy(), phi.to_numpy()
+            )
+            sfdown = electron_correctionset[map_name].evaluate(
+                year_pog, "sfdown", sfname, eta_np, pt.to_numpy(), phi.to_numpy()
+            )
+        else:
+            # All other eras do not need phi:    
+            sf = electron_correctionset[map_name].evaluate(
+                year_pog, "sf", sfname, eta.to_numpy(), pt.to_numpy()
+            )
+            sfup = electron_correctionset[map_name].evaluate(
+                year_pog, "sfup", sfname, eta.to_numpy(), pt.to_numpy()
+            )
+            sfdown = electron_correctionset[map_name].evaluate(
+                year_pog, "sfdown", sfname, eta.to_numpy(), pt.to_numpy()
+            )
         # The unflattened arrays are returned in order to have one row per event.
         return (
             ak.unflatten(sf, counts),
@@ -42,7 +61,6 @@ def get_ele_sf(
             ak.unflatten(sfdown, counts),
         )
     elif key == 'trigger':
-
         electron_correctionset = correctionlib.CorrectionSet.from_file(
             electronSF.trigger_sf[year]["file"]
         )
@@ -73,6 +91,8 @@ def get_ele_sf(
                 output[variation][i] = ak.unflatten(sf, counts)
 
         return output
+    else:
+        raise Exception(f"Invalid key `{key}` for get_ele_sf. Available keys are 'reco', 'id', 'trigger'.")
 
 
 def get_mu_sf(params, year, pt, eta, counts, key=''):
@@ -84,6 +104,9 @@ def get_mu_sf(params, year, pt, eta, counts, key=''):
     muon_correctionset = correctionlib.CorrectionSet.from_file(
         muonSF.JSONfiles[year]['file']
     )
+
+    if key not in ["id","iso","trigger"]:
+        raise Exception(f"Muon SF key {key} not recognized")
     
     sfName = muonSF.sf_name[year][key]
     
@@ -111,16 +134,18 @@ def sf_ele_reco(params, events, year):
     Additionally, also the up and down variations of the SF are returned.
     Electrons are split into two categories based on a pt cut depending on the Run preiod, so that the proper SF is applied.
     '''
-    ele_pt = events.ElectronGood.pt
-    ele_eta = events.ElectronGood.etaSC
+    coll = params.lepton_scale_factors.electron_sf.collection
+    ele_pt = events[coll].pt
+    ele_eta = events[coll].etaSC # This is added on top of NanoAOD
+    ele_phi = events[coll].phi
 
     pt_ranges = []
     if year in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
         pt_ranges += [("pt_lt_20", (ele_pt < 20)), 
                       ("pt_gt_20", (ele_pt >= 20))]
-    elif year in ["2022_preEE", "2022_postEE"]:
+    elif year in ["2022_preEE", "2022_postEE", "2023_preBPix", "2023_postBPix"]:
         pt_ranges += [("pt_lt_20", (ele_pt < 20)), 
-                      ("pt_gt_20_lt_75", (ele_pt >= 20) & (ele_pt <75)), 
+                      ("pt_gt_20_lt_75", (ele_pt >= 20) & (ele_pt < 75)), 
                       ("pt_gt_75", (ele_pt >= 75))]
     else:
         raise Exception("For chosen year "+year+" sf_ele_reco are not implemented yet")
@@ -130,6 +155,7 @@ def sf_ele_reco(params, events, year):
     for pt_range_key, pt_range in pt_ranges:
         ele_pt_inPtRange = ak.flatten(ele_pt[pt_range])
         ele_eta_inPtRange = ak.flatten(ele_eta[pt_range])
+        ele_phi_inPtRange = ak.flatten(ele_phi[pt_range])
         ele_counts_inPtRange = ak.num(ele_pt[pt_range])
 
         sf_reco_inPtRange, sfup_reco_inPtRange, sfdown_reco_inPtRange = get_ele_sf(
@@ -137,10 +163,12 @@ def sf_ele_reco(params, events, year):
             year,
             ele_pt_inPtRange,
             ele_eta_inPtRange,
+            ele_phi_inPtRange,
             ele_counts_inPtRange,
             'reco',
             pt_range_key,
         )
+        
         sf_reco.append(sf_reco_inPtRange)
         sfup_reco.append(sfup_reco_inPtRange)
         sfdown_reco.append(sfdown_reco_inPtRange)
@@ -163,17 +191,22 @@ def sf_ele_id(params, events, year):
     This function computes the per-electron id SF and returns the corresponding per-event SF, obtained by multiplying the per-electron SF in each event.
     Additionally, also the up and down variations of the SF are returned.
     '''
-    ele_pt = events.ElectronGood.pt
-    ele_eta = events.ElectronGood.etaSC
+    coll = params.lepton_scale_factors.electron_sf.collection
+    ele_pt = events[coll].pt
+    ele_eta = events[coll].etaSC
+    ele_phi = events[coll].phi
 
-    ele_pt_flat, ele_eta_flat, ele_counts = (
+    ele_pt_flat, ele_eta_flat, ele_phi_flat, ele_counts = (
         ak.flatten(ele_pt),
         ak.flatten(ele_eta),
+        ak.flatten(ele_phi),
         ak.num(ele_pt),
     )
+
     sf_id, sfup_id, sfdown_id = get_ele_sf(
-        params, year, ele_pt_flat, ele_eta_flat, ele_counts, 'id'
+        params, year, ele_pt_flat, ele_eta_flat, ele_phi_flat, ele_counts, 'id'
     )
+        
 
     # The SF arrays corresponding to the electrons are multiplied along the electron axis in order to obtain a per-event scale factor.
     return ak.prod(sf_id, axis=1), ak.prod(sfup_id, axis=1), ak.prod(sfdown_id, axis=1)
@@ -185,9 +218,9 @@ def sf_ele_trigger(params, events, year, variations=["nominal"]):
     This computation is valid only in the case of the semileptonic final state.
     Additionally, also the up and down variations of the SF for a set of systematic uncertainties are returned.
     '''
-
-    ele_pt = events.ElectronGood.pt
-    ele_eta = events.ElectronGood.etaSC
+    coll = params.lepton_scale_factors.electron_sf.collection
+    ele_pt = events[coll].pt
+    ele_eta = events[coll].etaSC
 
     ele_pt_flat, ele_eta_flat, ele_counts = (
         ak.flatten(ele_pt),
@@ -197,10 +230,11 @@ def sf_ele_trigger(params, events, year, variations=["nominal"]):
     sf_dict = get_ele_sf(
         params,
         year,
-        ele_pt_flat,
-        ele_eta_flat,
-        ele_counts,
-        'trigger',
+        pt=ele_pt_flat,
+        eta=ele_eta_flat,
+        phi=None,
+        counts=ele_counts,
+        key='trigger',
         variations=variations,
     )
 
@@ -216,8 +250,9 @@ def sf_mu(params, events, year, key=''):
     This function computes the per-muon id SF and returns the corresponding per-event SF, obtained by multiplying the per-muon SF in each event.
     Additionally, also the up and down variations of the SF are returned.
     '''
-    mu_pt = events.MuonGood.pt
-    mu_eta = events.MuonGood.eta
+    coll = params.lepton_scale_factors.muon_sf.collection
+    mu_pt = events[coll].pt
+    mu_eta = events[coll].eta
 
     # Since `correctionlib` does not support jagged arrays as an input, the pt and eta arrays are flattened.
     mu_pt_flat, mu_eta_flat, mu_counts = (
@@ -234,7 +269,7 @@ def sf_mu(params, events, year, key=''):
 
 def sf_btag(params, jets, year, njets, variations=["central"]):
     '''
-    DeepJet AK4 btagging SF.
+    DeepJet (or other taggers) AK4 btagging SF.
     See https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/summaries/BTV_2018_UL_btagging.html
     The scale factors have 8 default uncertainty
     sources (hf,lf,hfstats1/2,lfstats1/2,cferr1/2) (all of this up_*var*, and down_*var*).

@@ -2,9 +2,15 @@
 # - btagSF: taking from cvmfs
 # - ctagSF: taking from cvmfs
 # - jetPuID SF
+# - jet veto maps
 
 jet_scale_factors:
-
+    # Collection used to apply btag SF and ctag SF
+    jet_collection:
+      btag: JetGood
+      ctag: JetGood
+      puId: JetGood
+      
     btagSF:
         # DeepJet AK4 tagger shape SF
         '2016_PreVFP':
@@ -20,10 +26,10 @@ jet_scale_factors:
             file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2018_UL/btagging.json.gz
             name: "deepJet_shape"
         '2022_preEE':
-            file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2022_27Jun2023/btagging.json.gz
+            file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2022_Summer22/btagging.json.gz
             name: "deepJet_shape"
         '2022_postEE':
-            file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2022_27Jun2023EE/btagging.json.gz
+            file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2022_Summer22EE/btagging.json.gz
             name: "deepJet_shape"
         '2023_preBPix':
             file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2023_Summer23/btagging.json.gz

@@ -25,12 +25,15 @@ In this page we will describe in details all the components of a more complete e
 ```python    
 from pocket_coffea.utils.configurator import Configurator
 from pocket_coffea.lib.cut_definition import Cut
-from pocket_coffea.lib.cut_functions import get_nObj_min, get_HLTsel,get_nBtagEq,get_nBtagMin
+
+from pocket_coffea.lib.cut_functions import  get_nPVgood, goldenJson, eventFlags
+from pocket_coffea.lib.cut_functions import  get_nObj_min, get_HLTsel, get_nBtagEq, get_nBtagMin
 from pocket_coffea.parameters.cuts import passthrough
 from pocket_coffea.parameters.histograms import *
 import os
 
 from pocket_coffea.workflows.tthbb_base_processor import ttHbbBaseProcessor 
+from pocket_coffea.lib.weights.common import common_weights
 
 # importing custom cut functions
 from custom_cut_functions import *
@@ -76,9 +79,10 @@ cfg = Configurator(
     
     # Skimming and categorization
     skim = [
-             get_nObj_min(4, 15., "Jet"),
-             get_HLTsel()
-             ],
+        get_nPVgood(1), eventFlags, goldenJson,
+        get_nObj_min(4, 15., "Jet"),
+        get_HLTsel()
+    ],
              
     preselections = [semileptonic_presel_nobtag],
     
@@ -91,6 +95,7 @@ cfg = Configurator(
     },
     
     # Weights configuration
+    weights_classes = common_weights,
     weights = {
         "common": {
             "inclusive": ["genWeight","lumi","XS",
@@ -183,23 +188,6 @@ cfg = Configurator(
     }
 )
 
-run_options = {
-        "executor"       : "dask/lxplus",
-        "env"            : "singularity",
-        "workers"        : 1,
-        "scaleout"       : 50,
-        "worker_image"   : "/cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-latest",
-        "queue"          : "microcentury",
-        "walltime"       : "00:40:00",
-        "mem_per_worker" : "4GB", # GB
-        "disk_per_worker" : "1GB", # GB
-        "exclusive"      : False,
-        "chunk"          : 400000,
-        "retries"        : 50,
-        "treereduction"  : 20,
-        "adapt"          : False,
-        
-    }
 ```
                 
 
@@ -273,9 +261,10 @@ see [Concepts#Filtering](./concepts.md#filtering) for a detailed explanation of 
 ```python
 cfg = Configurator(
    skim = [
-                get_nObj_min(4, 15., "Jet"),
-                get_HLTsel()
-                ],
+            get_nPVgood(1), eventFlags, goldenJson,
+            get_nObj_min(4, 15., "Jet"),
+            get_HLTsel() 
+          ],
 
    preselections = [semileptonic_presel_nobtag],
 
@@ -389,8 +378,10 @@ Weights are handled in PocketCoffea through the `WeightsManager` object (see [AP
 The configuration file specifies which weight is applied to which sample in which category.
 
 ```python
+from pocket_coffea.lib.weights.common import common_weights
+
 cfg = Configurator(
-  
+    weights_classes = common_weights,
     weights = {
         "common": {
             "inclusive": ["genWeight","lumi","XS",
@@ -420,10 +411,13 @@ To reduce boilerplate configuration the weights are specified following a `decis
 Weights can be assigned to all samples (`common` key), inclusively or by category.
 Weights can also be assigned to specific samples, again inclusively or in specific categories.
 
-A set of *predefined weights* with centrally produced corrections and scale factors for the CMS Run2 ultra-legacy
-analysis have been already implemented in PocketCoffea and are available in the configuration by using string
-identifiers:
+The available weights for a configuration are defined by the **weights_classes** passed to the Configurator. The
+framework implements a set of common weights definitions: if the `weights_classes` argument is not passed, the common
+ones are used by default. The user can add new weights classes in the configuration and use the corresponding string in
+the `weights` configuration dictionary. The Weight classes implement a mechanism to check that the definition of the
+string is unique and that users cannot inadvertly overwrite already defined weights. 
 
+A list of available weights definition: 
 - **genWeight**: MC generator weight
 - **lumi**
 - **XS**: sample cross-section
@@ -439,34 +433,92 @@ If a weight is requested in the configuration, but it doens't exist, the framewo
 
 ### On-the-flight custom weights
 
-Weights can be created by the user directly in the configuration. The `WeightCustom` object allows to create
-a function with a name that get called for each chunk to produce an array of weights (and optionally their variations).
-Have a look at the [API](pocket_coffea.lib.weights_manager.WeightCustom).
+Weights can be created by the user directly in the configuration. It is enough to define a new class deriving from
+[WeightWrapper](pocket_coffea.lib.weights.WeightWrapper) class defined by the framework. 
+
+This wrapper is used to instantiate the weight object for each chunk of data with the corresponding parameters and
+metadata. Doing so the user can customize the weight for different samples and conditions. Moreover the WeightWrapper
+instance defined the weight **name**, the string to be used in the config, and the available variations. 
+
 
 ```python
-WeightCustom(
-      name="custom_weight",
-      function= lambda events, size, metadata: [("pt_weight", 1 + events.JetGood[:,0].pt/400.)]
-   )
+from pocket_coffea.lib.weights_manager import WeightWrapper
+
+# example of WeightWrapper definition
+class CustomTopSF(WeightWrapper):
+    
+    name = "top_sf"
+    has_variations = True
+    
+    def __init__(self, params, metadata):
+        super().__init__(params, metadata)
+        self.sf_file = params["top_sf"]["json_file"]
+        # custom variations from config
+        self._variations = params["top_sf"]["variations"]
+        
+    def compute(self, events, size, shape_variation):
+        # custom computation
+        
+        if shape_variation == "nominal":
+            sf_data = sf_function.compute(self.sf_file, events)
+            return WeightDataMultiVariation(
+                name = self.name, 
+                nominal = sf_data["nominal"],
+                up = [sf_data[var] for var in self._variations["up"]],
+                down = [sf_data[var] for var in self._variations["down"]]
+            )
+        else:
+            return WeightData(
+                name = self.name, 
+                nominal = np.ones(size),
+            )
+
 ```
 
-The custom weight can be added in the configuration instead of the string identifier of centrally-defined weights.
+The class must be then passed to the configurator in order to be available:
 
 ```python
-custom_w = WeightCustom(
-  name="custom_weight",
-  function= lambda events, size, metadata: [("pt_weight", 1 + events.JetGood[:,0].pt/400.)]
+from pocket_coffea.lib.weights.common import common_weights
+
+cfg = Configurator(
+    weights_classes = common_weights + [CustomTopSF],  # note the addition here
+    weights = {
+        "common": {
+            "inclusive": ["genWeight","lumi","XS",
+                          "pileup",
+                          "sf_ele_reco", "sf_ele_id",
+                          "sf_mu_id","sf_mu_iso",
+                          "sf_btag", "sf_jet_puId", 
+                          ],
+            "bycategory" : {
+                "2jets_20pt" : [  "top_sf"  # custom weight
+                ]
+            }
+        },
+        ...
+        
+    ....
 )
 
-"weights": {
-    "common": {
-        "inclusive": [... ],
-        "bycategory" : {
-            "3jets": [custom_w]
-        }
-    }
-}
 ```
+
+Moreover, often weights are easier to define: simple computations can be wrapped in a lambda without the need of
+defining a full WeightWrapper class. 
+
+```python
+from pocket_coffea.lib.weights.weights import WeightLambda
+
+my_custom_sf  = WeightLambda.wrap_func(
+    name="sf_custom",
+    function=lambda params, metadata, events, size, shape_variations:
+        call_to_my_fancy_function(events, params, metadata, shape_variations)
+    has_variations=True
+    )
+```
+
+The return type of the lambda must be a [WeightData](pocket_coffea.lib.weights.weights.WeightData) or [WeightDataMultiVariation](pocket_coffea.lib.weights.weights.WeightData) object.
+
+
 :::{tip}
 The user can create a library of custom weights and include them in the configuration.
 :::

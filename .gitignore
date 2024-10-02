@@ -153,3 +153,10 @@ cython_debug/
 
 # setuptools_scm
 */_version.py
+
+# User data (analysis configs outside pocket-coffea)
+AnalysisConfigs/
+VHccPoCo/
+output*
+plots*
+.pkl.gz

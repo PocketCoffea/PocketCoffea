@@ -1,17 +1,14 @@
 from coffea.util import load, save
 from coffea.processor import accumulate 
 import click
-from glob import glob
-
+from rich import print
 
 @click.command()
-@click.option(
-    '-i',
-    '--inputfiles',
+@click.argument(
+    'inputfiles',
     required=True,
     type=str,
-    multiple=True,
-    help='List of coffea input files',
+    nargs=-1,
 )
 @click.option(
     "-o",
@@ -20,13 +17,14 @@ from glob import glob
     type=str,
     help="Output file",
 )
-def merge_outputs(inputfiles, outputfile):
-    files = []
-    for f in inputfiles:
-        files += glob(f)
-    out = accumulate(files)
-    save(out, outputfile)
 
+def merge_outputs(inputfiles, outputfile):
+    '''Merge coffea output files'''
+    print(f"[blue]Merging files into {outputfile}[/]")
+    print(sorted(inputfiles))
+    out = accumulate([load(f) for f in inputfiles])
+    save(out, outputfile)
+    print(f"[green]Output saved to {outputfile}")
 
 if __name__ == "__main__":
     merge_outputs()

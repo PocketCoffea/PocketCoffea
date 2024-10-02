@@ -34,9 +34,9 @@ customized ones (please get in touch if you need a specific environment).
 The apptainer environment is activated on **lxplus** with the following command:
 
 ```bash
-apptainer shell --bind /afs -B /cvmfs/cms.cern.ch \
-                --bind /tmp  --bind /eos/cms/ \
-                -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME=${XDG_RUNTIME_DIR}/krb5cc \
+apptainer shell -B /afs -B /cvmfs/cms.cern.ch \
+                -B /tmp  -B /eos/cms/  -B /etc/sysconfig/ngbauth-submit \
+                -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME="FILE:${XDG_RUNTIME_DIR}/krb5cc" 
     /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-stable
 ```
 
@@ -85,8 +85,8 @@ If the user needs to modify locally the central PocketCoffea code, the apptainer
 ```bash
 #Enter the image
 apptainer shell --bind /afs -B /cvmfs/cms.cern.ch \
-         --bind /tmp  --bind /eos/cms/ \
-         -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME=${XDG_RUNTIME_DIR}/krb5cc \
+         --bind /tmp  --bind /eos/cms/ -B /etc/sysconfig/ngbauth-submit \
+         -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME="FILE:${XDG_RUNTIME_DIR}/krb5cc"  \
          /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-stable
 
 # Clone locally the PocketCoffea repo
@@ -108,7 +108,7 @@ The next time the user enters in the apptainer the virtual environment needs to 
 #Enter the image
 apptainer shell  -B /afs -B /cvmfs/cms.cern.ch -B /tmp  -B /eos/cms/  \
                  -B /etc/sysconfig/ngbauth-submit  \
-                 -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME=${XDG_RUNTIME_DIR}/krb5cc 
+                 -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME="FILE:${XDG_RUNTIME_DIR}/krb5cc" 
                  /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-stable
 
 # Activate the virtual environment
@@ -166,7 +166,7 @@ git clone git@github.com:PocketCoffea/PocketCoffea.git
 
       ```bash
       # Install micromamba
-      curl micro.mamba.pm/install.sh | bash
+      "${SHELL}" <(curl -L micro.mamba.pm/install.sh)
       micromamba create -n pocket-coffea python=3.9 -c conda-forge
       micromamba activate pocket-coffea
       ```
