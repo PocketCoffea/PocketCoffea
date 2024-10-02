@@ -27,12 +27,13 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
 
     def get_worker_env(self):
         env_worker = [
+            'source /cvmfs/grid.desy.de/etc/profile.d/grid-ui-env.sh',
             'export XRD_RUNFORKHANDLER=1',
-            'export MALLOC_TRIM_THRESHOLD_=0',
             f'export X509_USER_PROXY={self.x509_path}',
+            f'export PYTHONPATH=$PYTHONPATH:{os.getcwd()}',
             'ulimit -u 32768',
-            'source /cvmfs/grid.desy.de/etc/profile.d/grid-ui-env.sh'
-            ]
+            f'cd {os.getcwd()}'
+        ]
 
         # Adding list of custom setup commands from user defined run options
         if self.run_options.get("custom-setup-commands", None):
@@ -44,6 +45,7 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
                 env_worker.append(f"{os.environ['CONDA_ROOT_PREFIX']} activate {os.environ['CONDA_DEFAULT_ENV']}")
             elif "MAMBA_ROOT_PREFIX" in os.environ:
                 env_worker.append(f"{os.environ['MAMBA_EXE']} activate {os.environ['CONDA_DEFAULT_ENV']}")
+                print("Done")
             else:
                 raise Exception("CONDA prefix not found in env! Something is wrong with your conda installation if you want to use conda in the dask cluster.")
 
@@ -110,3 +112,4 @@ def get_executor_factory(executor_name, **kwargs):
         return ParslCondorExecutorFactory(**kwargs)
     else:
         print("Chosen executor not implemented")
+
