@@ -16,6 +16,11 @@ class baseconfig(luigi.Config):
     #     default=os.path.join(os.getcwd(), "output"),
     # )
 
+class transferconfig(luigi.Config):
+    """Config class for transfer to wlcg."""
+    transfer = luigi.BoolParameter(
+        description="Transfer output to WLCG", default=False
+    )
 
 class datasetconfig(luigi.Config):
     """Paramters for dataset creation"""
