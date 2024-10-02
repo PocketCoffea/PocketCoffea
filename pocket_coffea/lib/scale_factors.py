@@ -2,6 +2,44 @@ import numpy as np
 import awkward as ak
 import correctionlib
 
+def sf_ele_trigger_EGM(params, events, year):
+    """Compute electron trigger scale factors using the EGM JSON files with correctionlib.
+    Returns the per-event scale factor for the trigger.
+    Returns:
+    --------
+    tuple: (sf, sfup, sfdown) per-event scale factor
+    """
+    electronSF = params.lepton_scale_factors.electron_sf
+    year_pog = electronSF.era_mapping[year]
+    map_name = electronSF.trigger_sf[year].name
+    trigger_path = electronSF.trigger_sf[year].path
+
+    coll = electronSF.collection
+    ele_pt = events[coll].pt
+    ele_eta = events[coll].etaSC
+
+    ele_pt_flat, ele_eta_flat, ele_counts = (
+        ak.flatten(ele_pt).to_numpy(),
+        ak.flatten(ele_eta).to_numpy(),
+        ak.num(ele_pt),
+    )
+
+    electron_correctionset = correctionlib.CorrectionSet.from_file(
+        electronSF.trigger_sf[year].file
+    )
+    corr_eval = electron_correctionset[map_name].evaluate
+
+    # get sf, sfup, sfdown per electron
+    scale_factors = [
+        ak.unflatten(
+            corr_eval(year_pog, variation, trigger_path, ele_eta_flat, ele_pt_flat),
+            ele_counts,
+        )
+        for variation in ("sf", "sfup", "sfdown")
+    ]
+
+    # return a per-event scale factor by multiplying all electron scale factors
+    return tuple(ak.prod(sf, axis=1) for sf in scale_factors)
 
 def get_ele_sf(
         params, year, pt, eta, phi, counts=None, key='', pt_region=None, variations=["nominal"]
