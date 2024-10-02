@@ -47,10 +47,6 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
                 raise Exception("CONDA prefix not found in env! Something is wrong with your conda installation if you want to use conda on the cluster.")
             env_worker.append('echo "Conda has been activated, hopefully... We are ready to roll!"')
 
-        # activate local virtualenv if local-virtualenv: true
-        if self.run_options.get("local-virtualenv", False):
-            env_worker.append(f"source {sys.prefix}/bin/activate")
-
         # Adding list of custom setup commands from user defined run options
         if self.run_options.get("custom-setup-commands", None):
             'echo "Executing custom commands below"'
