@@ -84,7 +84,7 @@ Options:
   -lc, --limit-chunks INTEGER     Limit number of chunks
   -e, --executor TEXT             Overwrite executor from config (to be used
                                   only with the --test options)
-  -s, --scaleout INTEGER          Overwrite scalout config
+  -s, --scaleout INTEGER          Overwrite scaleout config
   -c, --chunksize INTEGER         Overwrite chunksize config
   -q, --queue TEXT                Overwrite queue config
   -ll, --loglevel TEXT            Console logging level
@@ -133,7 +133,7 @@ The default options for the running options and different type of executors are 
 For example:
 ```yaml
 general: 
-  scalout: 1
+  scaleout: 1
   chunksize: 100000
   limit-files: null
   limit-chunks: null

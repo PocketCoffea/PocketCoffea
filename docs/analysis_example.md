@@ -107,7 +107,7 @@ see [Datasets handling](./datasets.md)
 
 The steps are the following:
 
-1) Create a json file that contains the required datasets, `dataset_definitions.json`. Each entry of the dictionary
+1) Create a json file that contains the required datasets, `datasets_definitions.json`. Each entry of the dictionary
 corresponds to a dataset. Datasets include a list of DAS keys, the output json dataset path and the metadata. In
 addition a label `sample` is specified to assign a the "type" of events contained in the dataset (e.g. group QCD datasets from different
 HT bins in a single sample).
@@ -206,7 +206,7 @@ our Drell-Yan and SingleMuon datasets should be the following:
 # if you are using singularity, create the ticket outside of it.
 voms-proxy-init -voms cms -rfc --valid 168:0
 
-pocket-coffea build-dataset --cfg datasets/dataset_definitions.json -o
+pocket-coffea build-datasets --cfg datasets/datasets_definitions.json -o
 
 # if you are running at CERN it is useful to restrict the data sources to Tiers closer to CERN
 pocket-coffea build-datasets --cfg datasets/datasets_definitions.json -o -rs 'T[123]_(FR|IT|BE|CH|DE)_\w+'

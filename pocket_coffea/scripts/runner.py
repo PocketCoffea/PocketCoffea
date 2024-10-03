@@ -29,7 +29,7 @@ from pocket_coffea.utils.benchmarking import print_processing_stats
 @click.option("-lf","--limit-files", type=int, help="Limit number of files")
 @click.option("-lc","--limit-chunks", type=int, help="Limit number of chunks", default=None)
 @click.option("-e","--executor", type=str, help="Overwrite executor from config (to be used only with the --test options)", default="iterative")
-@click.option("-s","--scaleout", type=int, help="Overwrite scalout config" )
+@click.option("-s","--scaleout", type=int, help="Overwrite scaleout config" )
 @click.option("-c","--chunksize", type=int, help="Overwrite chunksize config" )
 @click.option("-q","--queue", type=str, help="Overwrite queue config" )
 @click.option("-ll","--loglevel", type=str, help="Console logging level", default="INFO" )

@@ -137,7 +137,7 @@ class DaskGatewayExecutorFactory(ExecutorFactoryABC):
 
     def customized_args(self):
         args = super().customized_args()
-        # in the futures executor Nworkers == N scalout
+        # in the futures executor Nworkers == N scaleout
         args["client"] = self.dask_client
         args["treereduction"] = self.run_options["tree-reduction"]
         args["retries"] = self.run_options["retries"]
