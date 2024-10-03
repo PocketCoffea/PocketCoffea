@@ -37,7 +37,7 @@ The apptainer environment is activated on **lxplus** with the following command:
 apptainer shell -B /afs -B /cvmfs/cms.cern.ch \
                 -B /tmp  -B /eos/cms/  -B /etc/sysconfig/ngbauth-submit \
                 -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME="FILE:${XDG_RUNTIME_DIR}/krb5cc" 
-    /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-stable
+    /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-stable
 ```
 
 N.B.: The command to start the apptainer image has changed when lxplus moved to the el9 machines by default. The
@@ -45,7 +45,7 @@ difference is about the handling of the kerberos ticket necessary to access to t
 shell command above setups correctly the environment.
 
 The last part of the command contains the image version on unpacked:
-**cms-analysis/general/pocketcoffea:lxplus-cc7-stable**. The stable version is the recommended one to stay up-to-date
+**cms-analysis/general/pocketcoffea:lxplus-el9-stable**. The stable version is the recommended one to stay up-to-date
 with the development without the rought edges of the main branch. 
 
 Once inside the environment no installation is needed. The PocketCoffea scripts are globally available and the user's
@@ -87,7 +87,7 @@ If the user needs to modify locally the central PocketCoffea code, the apptainer
 apptainer shell --bind /afs -B /cvmfs/cms.cern.ch \
          --bind /tmp  --bind /eos/cms/ -B /etc/sysconfig/ngbauth-submit \
          -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME="FILE:${XDG_RUNTIME_DIR}/krb5cc"  \
-         /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-stable
+         /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-stable
 
 # Clone locally the PocketCoffea repo
 git clone git@github.com:PocketCoffea/PocketCoffea.git
@@ -109,7 +109,7 @@ The next time the user enters in the apptainer the virtual environment needs to 
 apptainer shell  -B /afs -B /cvmfs/cms.cern.ch -B /tmp  -B /eos/cms/  \
                  -B /etc/sysconfig/ngbauth-submit  \
                  -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME="FILE:${XDG_RUNTIME_DIR}/krb5cc" 
-                 /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-stable
+                 /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-stable
 
 # Activate the virtual environment
 cd PocketCoffea
