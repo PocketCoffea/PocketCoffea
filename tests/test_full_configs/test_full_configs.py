@@ -11,6 +11,7 @@ from utils import compare_outputs
 import numpy as np
 import awkward as ak
 import hist
+from coffea.nanoevents import NanoEventsFactory, NanoAODSchema
 
 @pytest.fixture
 def base_path() -> Path:
@@ -284,6 +285,16 @@ def test_skimming(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_fac
             assert output["sum_genweights"][dataset] > 0
         for nevent in nevents:
             assert nevent > 0
+
+    # Now checking the rescaled sumw
+    # Open a file with NanoEventsFactory
+    for dataset, files in output["skimmed_files"].items():
+        if output["datasets_metadata"]["by_dataset"][dataset]["isMC"] == "True":
+            for file in files:
+                print(file)
+                ev = NanoEventsFactory.from_root(file, schemaclass=NanoAODSchema).events()
+                sumw = ak.sum(ev.genWeight) * output["sum_genweights_skimmed"][dataset] / output["sum_genweights"][dataset]
+                assert np.isclose(sumw, output["sum_genweights_skimmed"][dataset])
 
 #-------------------------------------------------------------------
 

@@ -178,6 +178,18 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self.has_events = self.nEvents_after_skim > 0
 
     def export_skimmed_chunk(self):
+        ''' Function that export the skimmed chunk to a new ROOT file.
+        It rescales the genweight so that the processing on the skimmed file respects
+        the original cross section. '''
+        # Rescale the genweight to the original cross section
+        if self._isMC:
+            #sumgenweight after the skimming
+            skimmed_sumw = ak.sum(self.events.genWeight)
+            # the scaling factor is the original sumgenweight / the skimmed sumgenweight
+            ratio = self.output['sum_genweights'][self._dataset] / skimmed_sumw
+            self.events["genWeight"] = self.events.genWeight * ratio
+            self.output['sum_genweights_skimmed'] = { self._dataset : skimmed_sumw }
+        
         filename = (
             "__".join(
                 [
