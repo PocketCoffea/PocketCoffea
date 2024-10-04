@@ -308,6 +308,24 @@ In the configuration the categorization is split in:
 - **Categories**: Splitting of events for histograms and columns output.
 
 
+### Save skimmed NanoAOD
+PocketCoffea can dump events passing the skim selection to NanoAOD root files. This can be useful when your skimming
+efficiecy is high and you can trade the usage of some disk storage for higher processing speed. 
+
+The export of skimmed NanoAOD is activated by the `save_skimmed_files` argument of the `Configurator` object. If
+`save_skimmed_files!=None` then the processing stops after the skimming and one root file for each chunk is saved in the
+folder specified by the argument. 
+
+It is recommended to use a xrootd endpoint: `save_skimmed_files='root://eosuser.cern.ch:/eos/user/...`. 
+
+The PocketCoffea output file contains the list of skimmed files with the number of skimmed events in each file. Moreover
+    the root files contain a new branch called `skimRescaleGenWeight` which store for each event the scaling factor
+    needed to recover the sum of genWeight of the original factor, and correct for the skimming efficiency. 
+To be effective this weight needs to be included in the configurations using skimmed files with the
+    `skim_rescale_genweight` string (defined in common weights). The factor is computed as `sum of genweights of skimmed
+    files / original sum of genweights`.
+
+
 ### Categorization utilities
 PocketCoffea defines different ways to categorize events. 
 The code is available at [pocket_coffea.lib.categorization](pocket_coffea.lib.categorization).

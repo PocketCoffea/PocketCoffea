@@ -32,6 +32,15 @@ signOfGenWeight = WeightLambda.wrap_func(
     has_variations=False
     )
 
+# Rescaling factor included in skimmed files to recover original sumgenweight
+skim_rescale_genweight = WeightLambda.wrap_func(
+    name="skim_rescale_genweight",
+    function=lambda params, metadata, events, size, shape_variations:
+        events.skimRescaleGenWeight,
+    has_variations=False
+   )
+
+
 lumi = WeightLambda.wrap_func(
     name="lumi",
     function=lambda params, metadata, events, size, shape_variations:
