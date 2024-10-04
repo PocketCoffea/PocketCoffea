@@ -336,10 +336,11 @@ cfg = Configurator(
 
 The PocketCoffea output file contains the list of skimmed files with the number of skimmed events in each file. Moreover
     the root files contain a new branch called `skimRescaleGenWeight` which store for each event the scaling factor
-    needed to recover the sum of genWeight of the original factor, and correct for the skimming efficiency. 
-To be effective this weight needs to be included in the configurations using skimmed files with the
-    `skim_rescale_genweight` string (defined in common weights). The factor is computed as `sum of genweights of skimmed
-    files / original sum of genweights`.
+    needed to recover the sum of genWeight of the original factor, and correct for the skimming efficiency.  The factor
+    is computed as `(original sum of genweight / sum of genweights of skimmed files)` for each file. This factor needs to
+    be multiplied to the sum of genweights accumulated in each chunk by the processor that runs on top of skimmed
+        datasets. Therefore the dataset definition file for skimmed datasets must contain the `isSkim:True` metadata,
+    which is used by the processor to apply the rescaling.
 
 :::{alert}
  **N.B.**: The skim is performed before the object calibration and preselection step. The analyzer must be careful to

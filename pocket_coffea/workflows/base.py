@@ -125,6 +125,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self._year = self.events.metadata["year"]
         self._isMC = ((self.events.metadata["isMC"] in ["True", "true"])
                       or (self.events.metadata["isMC"] == True))
+        # if the dataset is a skim the skimRescaleGenWeight variable is used to rescale the sumgenweight
+        self._isSkim = ("isSkim" in self.events.metadata and self.events.metadata["isSkim"] in ["True","true"]) or(
+            "isSkim" in self.events.metadata and self.events.metadata["isSkim"] == True)
         # for some reason this get to a string WIP
         if self._isMC:
             self._era = "MC"
@@ -774,9 +777,14 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self.output['cutflow']['initial'][self._dataset] = self.nEvents_initial
         if self._isMC:
             # This is computed before any preselection
-            self.output['sum_genweights'][self._dataset] = ak.sum(self.events.genWeight)
+            if not self._isSkim:
+                self.output['sum_genweights'][self._dataset] = ak.sum(self.events.genWeight)
+            else:
+                # If the dataset is a skim, the sumgenweights are rescaled
+                self.output['sum_genweights'][self._dataset] = ak.sum(self.events.skimRescaleGenWeight * self.events.genWeight)
+            #FIXME: handle correctly the skim for the sum_signOf_genweights
             self.output['sum_signOf_genweights'][self._dataset] = ak.sum(np.sign(self.events.genWeight))
-
+                
         ########################
         # Then the first skimming happens.
         # Events that are for sure useless are removed.
