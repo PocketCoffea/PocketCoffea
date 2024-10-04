@@ -293,8 +293,8 @@ def test_skimming(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_fac
             for file in files:
                 print(file)
                 ev = NanoEventsFactory.from_root(file, schemaclass=NanoAODSchema).events()
-                sumw = ak.sum(ev.genWeight) * output["sum_genweights_skimmed"][dataset] / output["sum_genweights"][dataset]
-                assert np.isclose(sumw, output["sum_genweights_skimmed"][dataset])
+                sumw = ak.sum(ev.genWeight * ev.skimRescaleGenWeight)
+                assert np.isclose(sumw, output["sum_genweights"][dataset])
 
 #-------------------------------------------------------------------
 
