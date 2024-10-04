@@ -318,12 +318,35 @@ folder specified by the argument.
 
 It is recommended to use a xrootd endpoint: `save_skimmed_files='root://eosuser.cern.ch:/eos/user/...`. 
 
+```python
+cfg = Configurator(
+     
+    workflow = ttHbbBaseProcessor,
+    workflow_options = {},
+    
+    save_skimmed_files = "root://eosuser.cern.ch://eos/user/x/xxx/skimmed_samples/Run2UL/",
+    skim = [get_nPVgood(1),
+            eventFlags,
+            goldenJson,
+            get_nBtagMin(3, minpt=15., coll="Jet", wp="M"),
+            get_HLTsel(primaryDatasets=["SingleEle", "SingleMuon"])],
+    )
+
+```
+
 The PocketCoffea output file contains the list of skimmed files with the number of skimmed events in each file. Moreover
     the root files contain a new branch called `skimRescaleGenWeight` which store for each event the scaling factor
     needed to recover the sum of genWeight of the original factor, and correct for the skimming efficiency. 
 To be effective this weight needs to be included in the configurations using skimmed files with the
     `skim_rescale_genweight` string (defined in common weights). The factor is computed as `sum of genweights of skimmed
     files / original sum of genweights`.
+
+:::{alert}
+ **N.B.**: The skim is performed before the object calibration and preselection step. The analyzer must be careful to
+ apply a loose enough skim that is invariant under the shape uncertainties applied later in the analysis. For example
+ the selection on the minimum number of jets should be loose enought to not be affected by Jet energy scales, **which
+ are applied later**. 
+ :::
 
 
 ### Categorization utilities
