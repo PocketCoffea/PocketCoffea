@@ -95,7 +95,7 @@ class runnerconfig(luigi.Config):
 
 
 class plottingconfig(luigi.Config):
-    plot_dir = luigi.Parameter(default="plots", description="Output folder for plots")
+    plot_dir = luigi.Parameter(default=law.NO_STR, description="Output folder for plots")
     plot_verbose = luigi.IntParameter(
         default=0, description="verbosity level for PlotManager (default: 0)"
     )
