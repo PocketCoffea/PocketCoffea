@@ -35,7 +35,9 @@ from pocket_coffea.utils.benchmarking import print_processing_stats
 @click.option("-ll","--loglevel", type=str, help="Console logging level", default="INFO" )
 @click.option("-ps","--process-separately", is_flag=True, help="Process each dataset separately", default=False )
 @click.option("--executor-custom-setup", type=str, help="Python module to be loaded as custom executor setup")
-@click.option("--filter-years", type=str, help="Filter the data taking period of the datasets to be processed (comma separated list)")
+@click.option("--filter-years", type=str,  help="Filter the data taking period of the datasets to be processed (comma separated list)")
+@click.option("--filter-samples", type=str,  help="Filter the samples to be processed (comma separated list)")
+@click.option("--more-run-options", type=str, help="Custom run options in the form key1=value1,key2=value2,... to be added on the fly")
 
 def run(cfg,  custom_run_options, outputdir, test, limit_files,
            limit_chunks, executor, scaleout, chunksize,
@@ -163,12 +165,15 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     # Filter on the fly the fileset to process by datataking period
     filesets_to_run = {}
     filter_years = filter_years.split(",") if filter_years else None
-    if filter_years:
-        for fileset_name, fileset in config.filesets.items():
-            if fileset["metadata"]["year"] in filter_years:
-                filesets_to_run[fileset_name] = fileset
-    else:
-        filesets_to_run = config.filesets
+    filter_samples = filter_samples.split(",") if filter_samples else None
+    for fileset_name, fileset in config.filesets.items():
+        year = fileset["metadata"]["year"]
+        sample = fileset["metadata"]["sample"]
+        if filter_years and year not in filter_years:
+            continue
+        if filter_samples and sample not in filter_samples:
+            continue
+        filesets_to_run[fileset_name] = fileset
 
     if len(filesets_to_run) == 0:
         print("No datasets to process, closing")
