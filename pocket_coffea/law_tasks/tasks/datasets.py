@@ -6,6 +6,7 @@ import os
 import law
 import luigi
 import luigi.util
+
 from pocket_coffea.law_tasks.configuration.general import baseconfig, datasetconfig
 from pocket_coffea.law_tasks.tasks.base import BaseTask
 from pocket_coffea.law_tasks.utils import (
@@ -122,6 +123,7 @@ class CreateDatasets(BaseTask):
         self.merged_datasets = modify_dataset_output_path(
             dataset_definition=self.merged_datasets,
             dataset_configuration=self.dataset_config,
+            output_path=self.local_path(),
         )
 
     def output(self):
