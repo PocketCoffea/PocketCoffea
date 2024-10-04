@@ -1,4 +1,4 @@
-# Run a PocketCoffea Analysis with law Tasks
+# Run a PocketCoffea Analysis with law
 
 ## Introduction
 
@@ -31,8 +31,9 @@ The following tasks are available in PocketCoffea (`pocket_coffea/law_tasks/task
 For a general setup of an analysis with PocketCoffea see the [analysis example](https://pocketcoffea.readthedocs.io/en/stable/analysis_example.html). Here we focus on the setup with law.
 
 Two additional files are needed to setup the analysis with law:
-  - law.cfg: configuration file for law tasks
+  - law.cfg: configuration file for law
   - setup.sh: setup script to set environment variables and index law tasks
+
 So the directory structure looks like this:
 ```
 analysis-config
