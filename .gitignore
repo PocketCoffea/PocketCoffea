@@ -159,3 +159,4 @@ AnalysisConfigs/
 VHccPoCo/
 output*
 plots*
+.pkl.gz

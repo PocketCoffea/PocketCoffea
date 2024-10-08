@@ -246,6 +246,51 @@ def get_partons_provenance_ttHbb(pdgIds, array_builder):
         array_builder.end_list()
     return array_builder
 
+#############################################################
+#############################################################
+
+
+@njit
+def get_partons_provenance_ttHbb_dileptonic(pdgIds, array_builder):
+    """
+    This function assigns particle provenance (origin) for b-quarks in a dileptonic ttH -> bb process,
+    where the Higgs decays into two b-quarks, and both the top and anti-top quarks decay, producing
+    additional b-quarks.
+
+    1 = higgs bquarks,
+    2 = top bquark,
+    3 = antitop bquark,
+    4 = additional radiation (if present)
+    """
+
+    for ids in pdgIds:
+        from_part = [-1] * max(4, len(ids))
+        if len(ids) == 5:
+            offset = 1
+            from_part[0] = 4
+        else:
+            offset = 0
+
+        if len(ids) == 4 or len(ids) == 5:
+            if ids[0 + offset] == 5:
+                from_part[0 + offset] = 2
+            if ids[1 + offset] == -5:
+                from_part[1 + offset] = 3
+
+            from_part[2 + offset] = 1
+            from_part[3 + offset] = 1
+        else:
+
+            from_part[0 + offset] = 2
+            from_part[1 + offset] = 3
+            from_part[2 + offset] = 1
+            from_part[3 + offset] = 1
+
+        array_builder.begin_list()
+        for i in from_part:
+            array_builder.append(i)
+        array_builder.end_list()
+    return array_builder
 
 @njit
 def get_partons_provenance_ttbb4F(pdgIds, array_builder):

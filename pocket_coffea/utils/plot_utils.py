@@ -781,7 +781,7 @@ class Shape:
         #print("Everything in the Stack:", stacks.keys())
         #print("\t mc_nominal:", stacks['mc_nominal'])
 
-        # den and hden refer to the numerator, which is the reference histogram
+        # den and hden refer to the denomerator, which is the reference histogram for ratios
         # num and hnum refer to the numerator
 
         if ref=='data_sum':
@@ -803,8 +803,6 @@ class Shape:
 
         if self.density:
             den_integral = sum(den * np.array(self.style.opts_axes["xbinwidth"]) )
-
-            print("Integral = ", den_integral)
             if den_integral>0:
                 den = den * (1./den_integral)
                 den_variances = den_variances * (1./den_integral)**2
@@ -814,15 +812,16 @@ class Shape:
 
         # Create ratios for all MC hist compared to the reference
         histograms_list = [h for h in stacks['mc_nominal'] ]
-    
-        histograms_list.append(stacks['data_sum'])
+
+        if not self.is_mc_only:
+            histograms_list.append(stacks['data_sum'])
         for hnum in histograms_list:
             #print("Process:", hnum.name, type(hnum))
-            num = hnum.values(flow=flow)
-            num_variances = hnum.variances(flow=flow)
+            num = hnum.values(flow=self.style.flow)
+            num_variances = hnum.variances(flow=self.style.flow)
 
             if self.style.flow:
-                if (len(den) != (len(hden.values()) + 2)):
+                if (len(num) != (len(hnum.values()) + 2)):
                     raise NotImplementedError("Both underflow and overflow bins have to be defined. Please set `overflow=True` and `underflow=True` in the constructor of the Axis object, in your configuration.")
                 num = np.concatenate([[num[0]+num[1]], num[2:-2], [num[-2]+num[-1]]])
                 num_variances = np.concatenate([[num_variances[0]+num_variances[1]], num_variances[2:-2], [num_variances[-2]+num_variances[-1]]])
@@ -843,7 +842,7 @@ class Shape:
             # ratio_variance = np.power(ratio,2)*den_variances*np.power(den, -2)
 
             ratio_uncert = np.abs(poisson_interval(ratio, ratio_variance) - ratio)
-            ratio_uncert[np.isnan(ratio_uncert)] = np.inf
+            #ratio_uncert[np.isnan(ratio_uncert)] = np.inf
 
             ratios[hnum.name] = ratio
             ratios_unc[hnum.name] = ratio_uncert
@@ -914,6 +913,13 @@ class Shape:
         else:
             if self.is_data_only:
                 reference_shape = stacks["data_sum"].values()
+            elif ref!=None:
+                if ref=='data_sum':
+                    reference_shape = stacks['data_sum'].values()
+                elif ref=='mc_nominal_sum':
+                    reference_shape = stacks['mc_nominal_sum'].values()
+                else:
+                    reference_shape = stacks['mc_nominal'][ref].values()
             else:
                 reference_shape = stacks["mc_nominal_sum"].values()
             if self.density:
@@ -968,9 +974,9 @@ class Shape:
             )
 
         if self.style.print_info["year"]:
-            self.ax.text(0.04, 0.75, f'Year: {self.year}', fontsize=12, transform=self.ax.transAxes)
+            self.ax.text(0.04, 0.75, f'Year: {self.year}', fontsize=0.7*self.style.fontsize, transform=self.ax.transAxes)
         if self.style.print_info["category"]:
-            self.ax.text(0.04, 0.70, f'Cat: {cat}', fontsize=12, transform=self.ax.transAxes)
+            self.ax.text(0.04, 0.70, f'Cat: {cat}', fontsize=0.7*self.style.fontsize, transform=self.ax.transAxes)
 
     def plot_mc(self, cat, ax=None):
         '''Plots the MC histograms as a stacked plot.'''
@@ -1001,7 +1007,7 @@ class Shape:
                     h_sig = scale_sig*self.h_dict[sig][{'cat': cat, 'variation': 'nominal'}]
                     h_sig.plot(ax=self.ax, color=self.colors[sig], density=self.density, **self.style.opts_sig, label=sig+'_sig')
                     # Note: '_sig' str is added to the label of the signal sample, in order to distinguish it
-                    # from the same label present in a mc stack histograms.
+                    # from the same label present in the mc-stack histograms.
                 else:
                     if self.verbose>0:
                         print("WARNING. Signal sample does not exist amoung the histograms", sig, cat, self.name)
@@ -1084,7 +1090,7 @@ class Shape:
         )
         self.format_figure(cat, ratio=True)
         self.rax.axhline(1.0, color="black", linestyle="--")
-
+                        
     def plot_compare_ratios(self, cat, ref, ax=None):
         '''Plots the ratios as an errorbar plots.'''
         if self.dense_dim > 1:
@@ -1108,21 +1114,30 @@ class Shape:
                 unity = np.ones_like(ratios_unc[proc])
                 down = unity[0] - ratios_unc[proc][0]
                 up = unity[1] + ratios_unc[proc][1]
+                
                 #print("Ratio unc:", ratios_unc[proc])
+                #print("Up-down:", up-down)
+                
+                if ref=='data_sum':
+                    color = 'black'
+                else:
+                    color = self.colors[proc]
                 self.rax.stairs(down, baseline=up, edges=self.style.opts_axes["xedges"],
-                                color=self.colors[proc], alpha=0.4, linewidth=0, hatch='////')
-            elif proc=='data_sum':
-                self.rax.errorbar(self.style.opts_axes["xcenters"], ratios[proc], yerr=ratios_unc[proc],
-                                  **self.style.opts_data)
+                                color=color, alpha=0.4, linewidth=0, facecolor="none", hatch='////')
             else:
+                if proc=='data_sum':
+                    color = 'black'
+                else:
+                    color = self.colors[proc]
                 self.rax.errorbar(self.style.opts_axes["xcenters"], ratios[proc], yerr=ratios_unc[proc],
-                                  **self.style.opts_ratios, color=self.colors[proc])
-
+                                  color=color, linewidth=0, elinewidth=1, marker='o', markersize=4)
         ref_label = ref
         if ref_label in self.style.labels_mc:
             ref_label = self.style.labels_mc[ref_label]
-        self.rax.text(0.04, 0.85, f'Ref = {ref_label}', fontsize=12, transform=self.rax.transAxes)
+        self.rax.text(0.04, 0.85, f'Ref = {ref_label}', fontsize=self.style.fontsize, transform=self.rax.transAxes)
 
+        self.format_figure(cat, ref=ref, ratio=True)
+        self.rax.axhline(1.0, color="gray", linestyle="--")
 
     def plot_systematic_uncertainty(self, cat, ratio=False, ax=None):
         '''Plots the asymmetric systematic uncertainty band on top of the MC stack, if `ratio` is set to False.
@@ -1269,7 +1284,7 @@ class Shape:
             self.format_figure(cat, ratio=ratio, ref=ref)
         else:
             self.format_figure(cat, ratio=False)
-            
+
 
     def plot_comparison_all(self, ratio=True, save=True, format='png'):
         ''' '''

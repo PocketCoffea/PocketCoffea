@@ -258,11 +258,20 @@ def btagging(Jet, btag, wp, veto=False):
         return Jet[Jet[btag["btagging_algorithm"]] > btag["btagging_WP"][wp]]
 
 
-def CvsLsorted(jets, ctag):
-    return jets[ak.argsort(jets[ctag["tagger"]], axis=1, ascending=False)]
+def CvsLsorted(jets, tagger):
+    if tagger == "PNet":
+        ctag = "btagPNetCvL"
+    elif tagger == "DeepFlav":
+        ctag = "btagDeepFlavCvL"
+    elif tagger == "RobustParT":
+        ctag = "btagRobustParTAK4CvL"
+    else:
+        raise NotImplementedError(f"This tagger is not implemented: {tagger}")
+    
+    return jets[ak.argsort(jets[ctag], axis=1, ascending=False)]
 
 
-def get_dijet(jets, tagger = False):
+def get_dijet(jets, tagger = 'PNet'):
     
     fields = {
         "pt": 0.,
@@ -290,11 +299,24 @@ def get_dijet(jets, tagger = False):
     fields["j2Phi"] = ak.where( (njet >= 2), jets[:,1].phi, -1)
     fields["j1pt"] = ak.where( (njet >= 2), jets[:,0].pt, -1)
     fields["j2pt"] = ak.where( (njet >= 2), jets[:,1].pt, -1)
+
+    if tagger == "PNet":
+        CvL = "btagPNetCvL"
+        CvB = "btagPNetCvB"
+    elif tagger == "DeepFlav":
+        CvL = "btagDeepFlavCvL"
+        CvB = "btagDeepFlavCvB"
+    elif tagger == "RobustParT":
+        CvL = "btagRobustParTAK4CvL"
+        CvB = "btagRobustParTAK4CvB"
+    else:
+        raise NotImplementedError(f"This tagger is not implemented: {tagger}")
+
     if tagger:
-        fields["j1CvsL"] = ak.where( (njet >= 2), jets[:,0].btagDeepFlavCvL, -1)
-        fields["j2CvsL"] = ak.where( (njet >= 2), jets[:,1].btagDeepFlavCvL, -1)
-        fields["j1CvsB"] = ak.where( (njet >= 2), jets[:,0].btagDeepFlavCvB, -1)
-        fields["j2CvsB"] = ak.where( (njet >= 2), jets[:,1].btagDeepFlavCvB, -1)
+        fields["j1CvsL"] = ak.where( (njet >= 2), jets[:,0][CvL], -1)
+        fields["j2CvsL"] = ak.where( (njet >= 2), jets[:,1][CvL], -1)
+        fields["j1CvsB"] = ak.where( (njet >= 2), jets[:,0][CvB], -1)
+        fields["j2CvsB"] = ak.where( (njet >= 2), jets[:,1][CvB], -1)
     
     
     dijet = ak.zip(fields, with_name="PtEtaPhiMCandidate")
