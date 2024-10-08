@@ -1,10 +1,6 @@
 import awkward as ak
 import numpy as np
 
-# from ..parameters.object_preselection import object_preselection
-from ..lib.deltaR_matching import get_matching_pairs_indices, object_matching
-
-
 def lepton_selection(events, lepton_flavour, params):
 
     leptons = events[lepton_flavour]
@@ -72,9 +68,18 @@ def get_dilepton(electrons, muons, transverse=False):
         "mass": 0.,
         "charge": 0.,
     }
+
+    if muons is None and electrons is None:
+        raise("Must specify either muon or electron collection in get_dilepton() function")
+    elif muons is None and electrons is not None:
+        leptons = ak.pad_none(ak.with_name(electrons, "PtEtaPhiMCandidate"), 2)
+    elif electrons is None and muons is not None:
+        leptons = ak.pad_none(ak.with_name(muons, "PtEtaPhiMCandidate"), 2)
+    else:
+        leptons = ak.pad_none(ak.with_name(ak.concatenate([ muons[:, 0:2], electrons[:, 0:2]], axis=1), "PtEtaPhiMCandidate"), 2)
+        
+    nlep = ak.num(leptons[~ak.is_none(leptons, axis=1)])
     
-    leptons = ak.pad_none(ak.with_name(ak.concatenate([ muons[:, 0:2], electrons[:, 0:2]], axis=1), "PtEtaPhiMCandidate"), 2)
-    nlep =  ak.num(leptons[~ak.is_none(leptons, axis=1)])
     ll = leptons[:,0] + leptons[:,1]
 
     for var in fields.keys():

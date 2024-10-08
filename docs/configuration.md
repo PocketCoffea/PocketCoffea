@@ -308,6 +308,48 @@ In the configuration the categorization is split in:
 - **Categories**: Splitting of events for histograms and columns output.
 
 
+### Save skimmed NanoAOD
+PocketCoffea can dump events passing the skim selection to NanoAOD root files. This can be useful when your skimming
+efficiecy is high and you can trade the usage of some disk storage for higher processing speed. 
+
+The export of skimmed NanoAOD is activated by the `save_skimmed_files` argument of the `Configurator` object. If
+`save_skimmed_files!=None` then the processing stops after the skimming and one root file for each chunk is saved in the
+folder specified by the argument. 
+
+It is recommended to use a xrootd endpoint: `save_skimmed_files='root://eosuser.cern.ch:/eos/user/...`. 
+
+```python
+cfg = Configurator(
+     
+    workflow = ttHbbBaseProcessor,
+    workflow_options = {},
+    
+    save_skimmed_files = "root://eosuser.cern.ch://eos/user/x/xxx/skimmed_samples/Run2UL/",
+    skim = [get_nPVgood(1),
+            eventFlags,
+            goldenJson,
+            get_nBtagMin(3, minpt=15., coll="Jet", wp="M"),
+            get_HLTsel(primaryDatasets=["SingleEle", "SingleMuon"])],
+    )
+
+```
+
+The PocketCoffea output file contains the list of skimmed files with the number of skimmed events in each file. Moreover
+    the root files contain a new branch called `skimRescaleGenWeight` which store for each event the scaling factor
+    needed to recover the sum of genWeight of the original factor, and correct for the skimming efficiency.  The factor
+    is computed as `(original sum of genweight / sum of genweights of skimmed files)` for each file. This factor needs to
+    be multiplied to the sum of genweights accumulated in each chunk by the processor that runs on top of skimmed
+        datasets. Therefore the dataset definition file for skimmed datasets must contain the `isSkim:True` metadata,
+    which is used by the processor to apply the rescaling.
+
+:::{alert}
+ **N.B.**: The skim is performed before the object calibration and preselection step. The analyzer must be careful to
+ apply a loose enough skim that is invariant under the shape uncertainties applied later in the analysis. For example
+ the selection on the minimum number of jets should be loose enought to not be affected by Jet energy scales, **which
+ are applied later**. 
+ :::
+
+
 ### Categorization utilities
 PocketCoffea defines different ways to categorize events. 
 The code is available at [pocket_coffea.lib.categorization](pocket_coffea.lib.categorization).
@@ -478,6 +520,7 @@ class CustomTopSF(WeightWrapper):
 The class must be then passed to the configurator in order to be available:
 
 ```python
+from pocket_coffea.lib.weights.common import common_weights
 
 cfg = Configurator(
     weights_classes = common_weights + [CustomTopSF],  # note the addition here
@@ -505,6 +548,8 @@ Moreover, often weights are easier to define: simple computations can be wrapped
 defining a full WeightWrapper class. 
 
 ```python
+from pocket_coffea.lib.weights.weights import WeightLambda
+
 my_custom_sf  = WeightLambda.wrap_func(
     name="sf_custom",
     function=lambda params, metadata, events, size, shape_variations:
