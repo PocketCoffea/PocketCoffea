@@ -69,9 +69,8 @@ def copy_file(
 
     if xrootd:
         copyproc = XRootD.client.CopyProcess()
-        copyproc.add_job(local_file, destination)
+        copyproc.add_job(local_file, destination, force=True)
         copyproc.prepare()
-        copyproc.run()
         status, response = copyproc.run()
         if status.status != 0:
             raise Exception(status.message)

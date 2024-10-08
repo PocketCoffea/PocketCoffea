@@ -125,6 +125,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self._year = self.events.metadata["year"]
         self._isMC = ((self.events.metadata["isMC"] in ["True", "true"])
                       or (self.events.metadata["isMC"] == True))
+        # if the dataset is a skim the skimRescaleGenWeight variable is used to rescale the sumgenweight
+        self._isSkim = ("isSkim" in self.events.metadata and self.events.metadata["isSkim"] in ["True","true"]) or(
+            "isSkim" in self.events.metadata and self.events.metadata["isSkim"] == True)
         # for some reason this get to a string WIP
         if self._isMC:
             self._era = "MC"
@@ -178,6 +181,17 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self.has_events = self.nEvents_after_skim > 0
 
     def export_skimmed_chunk(self):
+        ''' Function that export the skimmed chunk to a new ROOT file.
+        It rescales the genweight so that the processing on the skimmed file respects
+        the original cross section. '''
+        # Save the rescaling of the genweight to get the original cross section
+        if self._isMC:
+            #sumgenweight after the skimming
+            skimmed_sumw = ak.sum(self.events.genWeight)
+            # the scaling factor is the original sumgenweight / the skimmed sumgenweight
+            self.events["skimRescaleGenWeight"] =  np.ones(self.nEvents_after_skim) * self.output['sum_genweights'][self._dataset] / skimmed_sumw
+            self.output['sum_genweights_skimmed'] = { self._dataset : skimmed_sumw }
+        
         filename = (
             "__".join(
                 [
@@ -763,9 +777,14 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self.output['cutflow']['initial'][self._dataset] = self.nEvents_initial
         if self._isMC:
             # This is computed before any preselection
-            self.output['sum_genweights'][self._dataset] = ak.sum(self.events.genWeight)
+            if not self._isSkim:
+                self.output['sum_genweights'][self._dataset] = ak.sum(self.events.genWeight)
+            else:
+                # If the dataset is a skim, the sumgenweights are rescaled
+                self.output['sum_genweights'][self._dataset] = ak.sum(self.events.skimRescaleGenWeight * self.events.genWeight)
+            #FIXME: handle correctly the skim for the sum_signOf_genweights
             self.output['sum_signOf_genweights'][self._dataset] = ak.sum(np.sign(self.events.genWeight))
-
+                
         ########################
         # Then the first skimming happens.
         # Events that are for sure useless are removed.
