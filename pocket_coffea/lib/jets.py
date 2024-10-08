@@ -301,9 +301,10 @@ def get_dijet(jets, tagger = None):
     fields["j2pt"] = ak.where( (njet >= 2), jets[:,1].pt, -1)
 
 
-    if "genJetIdx" in jets.fields and tagger!=None:
+    #print("The fields of jets:", jets.fields)
+    if "jetId" in jets.fields and tagger!=None:
         '''This dijet fuction should work for GenJets as well. But the btags are not available for them
-        Thus, one has to check if a Jet is a GenJet or reco Jet. The genJetIdx variable only available in reco Jets'''
+        Thus, one has to check if a Jet is a GenJet or reco Jet. The jetId variable is only available in reco Jets'''
         if tagger == "PNet":
             CvL = "btagPNetCvL"
             CvB = "btagPNetCvB"
@@ -315,7 +316,7 @@ def get_dijet(jets, tagger = None):
             CvB = "btagRobustParTAK4CvB"
         else:
             raise NotImplementedError(f"This tagger is not implemented: {tagger}")
-        
+
         fields["j1CvsL"] = ak.where( (njet >= 2), jets[:,0][CvL], -1)
         fields["j2CvsL"] = ak.where( (njet >= 2), jets[:,1][CvL], -1)
         fields["j1CvsB"] = ak.where( (njet >= 2), jets[:,0][CvB], -1)
