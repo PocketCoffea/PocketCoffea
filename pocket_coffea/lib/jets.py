@@ -300,6 +300,7 @@ def get_dijet(jets, tagger = None):
     fields["j1pt"] = ak.where( (njet >= 2), jets[:,0].pt, -1)
     fields["j2pt"] = ak.where( (njet >= 2), jets[:,1].pt, -1)
 
+
     if "genJetIdx" in jets.fields and tagger!=None:
         '''This dijet fuction should work for GenJets as well. But the btags are not available for them
         Thus, one has to check if a Jet is a GenJet or reco Jet. The genJetIdx variable only available in reco Jets'''
