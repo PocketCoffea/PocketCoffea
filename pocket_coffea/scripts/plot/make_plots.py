@@ -18,6 +18,7 @@ import click
 @click.option("-i", "--inputfile", type=str, help="Input file", required=False)
 @click.option('-j', '--workers', type=int, default=8, help='Number of parallel workers to use for plotting', required=False)
 @click.option('-oc', '--only-cat', type=str, multiple=True, help='Filter categories with string', required=False)
+@click.option('-oy', '--only-year', type=str, multiple=True, help='Filter datataking years with string', required=False)
 @click.option('-os', '--only-syst', type=str, multiple=True, help='Filter systematics with a list of strings', required=False)
 @click.option('-e', '--exclude-hist', type=str, multiple=True, default=None, help='Exclude histograms with a list of regular expression strings', required=False)
 @click.option('-oh', '--only-hist', type=str, multiple=True, default=None, help='Filter histograms with a list of regular expression strings', required=False)
@@ -36,7 +37,7 @@ import click
 @click.option('--index-file', type=str, help='Path of the index file to be copied recursively in the plots directory and its subdirectories', required=False, default=None)
 
 def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfile,
-               workers, only_cat, only_syst, exclude_hist, only_hist, split_systematics, partial_unc_band, no_syst,
+               workers, only_cat, only_year, only_syst, exclude_hist, only_hist, split_systematics, partial_unc_band, no_syst,
                overwrite, log, density, verbose, format, systematics_shifts, no_ratio, no_systematics_ratio, compare, index_file):
     '''Plot histograms produced by PocketCoffea processors'''
 
@@ -95,6 +96,7 @@ def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfile,
         plot_dir=outputdir,
         style_cfg=style_cfg,
         only_cat=only_cat,
+        only_year=only_year,
         workers=workers,
         log=log,
         density=density,
