@@ -34,7 +34,10 @@ def plot_shapes_comparison(
 
     for sample, cat, year, variation, label in shapes:
         print(sample, cat, year, variation)
-        hep.histplot(H[sample][cat, variation, year, :], label=label, ax=axu)
+        datasets = H[sample].keys()
+        datasets_by_year = list(filter(lambda x : x.endswith(year), datasets))
+        h_by_year = sum({k :val for k, val in H[sample].items() if k in datasets_by_year}.values())
+        hep.histplot(h_by_year[cat, variation, :], label=label, ax=axu)
 
     if ylog:
         axu.set_yscale("log")
@@ -46,14 +49,20 @@ def plot_shapes_comparison(
 
     # Ratios
     sample, cat, year, variation, label = shapes[0]
-    nom = H[sample][cat, variation, year, :]
+    datasets = H[sample].keys()
+    datasets_by_year = list(filter(lambda x : x.endswith(year), datasets))
+    h_by_year = sum({k :val for k, val in H[sample].items() if k in datasets_by_year}.values())
+    nom = h_by_year[cat, variation, :]
     nomvalues = nom.values()
     nom_sig2 = nom.variances()
     centers = nom.axes[0].centers
     edges = nom.axes[0].edges
     minratio, maxratio = 1000.0, 0.0
     for sample, cat, year, variation, label in shapes[:]:
-        h = H[sample][cat, variation, year, :]
+        datasets = H[sample].keys()
+        datasets_by_year = list(filter(lambda x : x.endswith(year), datasets))
+        h_by_year = sum({k :val for k, val in H[sample].items() if k in datasets_by_year}.values())
+        h = h_by_year[cat, variation, :]
         h_val = h.values()
         h_sig2 = h.variances()
 

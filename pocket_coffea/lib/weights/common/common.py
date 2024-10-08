@@ -214,7 +214,7 @@ class SF_btag_calib(WeightWrapper):
                             )
         return WeightData(
             name = self.name,
-            nominal = out,#[0],
+            nominal = out, #out[0] only if has_variations = True
             #up = out[1],
             #down = out[2]
             )
