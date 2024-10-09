@@ -23,9 +23,9 @@ btagging:
         btagging_WP: https://btv-wiki.docs.cern.ch/ScaleFactors/UL2016postVFP/
       btagging_algorithm: btagDeepFlavB
       btagging_WP:
-        L: 0.0816
-        M: 0.3657
-        H: 0.7565
+        L: 0.0480
+        M: 0.2489
+        H: 0.6377
       bbtagging_algorithm: btagDDBvL
       bbtagging_WP: 0.86
       bbtagSF_DDBvL_M1_loPt: 0.86
