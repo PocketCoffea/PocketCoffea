@@ -111,6 +111,7 @@ respectively).
 | Site | Supported executor | Executor string|
 |------|--------------------|----------------|
 |lxplus| dask               | dask@lxplus    |
+|swan| dask               | dask@swan    |
 |T3_CH_PSI| dask               | dask@T3_CH_PSI    |
 |RWTH Aachen LX-Cluster | parsl, dask         | parsl-condor@RWTH, dask@RWTH |
 |[Purdue Analysis Facility](https://analysis-facility.physics.purdue.edu)| dask | dask@purdue-af |
