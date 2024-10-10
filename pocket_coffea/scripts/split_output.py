@@ -39,9 +39,8 @@ def split_output(inputfile, outputfile, overwrite):
     print(sorted(outputfiles.values()))
     for year, outputfile in outputfiles.items():
         out = filter_output_by_year(out_all, year)
-        if os.path.exists(outputfile):
-            if not overwrite:
-                raise FileExistsError(f"Output file {outputfile} already exists. Use --overwrite to overwrite the output files.")
+        if os.path.exists(outputfile) and not overwrite:
+            raise FileExistsError(f"Output file {outputfile} already exists. Use --overwrite to overwrite the output files.")
         save(out, outputfile)
         print(f"[green]Output saved to {outputfile}")
 
