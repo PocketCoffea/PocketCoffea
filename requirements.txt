@@ -18,5 +18,5 @@ omegaconf
 law
 click>=8.0.4
 correctionlib>=2.6.1
-setuptools>=70.3.0
-setuptools-scm>=8.1.0
+setuptools==70.3.0
+setuptools-scm==8.1.0

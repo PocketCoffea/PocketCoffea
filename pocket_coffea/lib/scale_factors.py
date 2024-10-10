@@ -365,7 +365,7 @@ def sf_btag_calib(params, sample, year, njets, jetsHt):
         params.btagSF_calibration[year]["file"]
     )
     corr = cset[params.btagSF_calibration[year]["name"]]
-    w = corr.evaluate(sample, year, ak.to_numpy(njets), ak.to_numpy(jetsHt))
+    w = corr.evaluate(sample, ak.to_numpy(njets), ak.to_numpy(jetsHt))
     return w
 
 
