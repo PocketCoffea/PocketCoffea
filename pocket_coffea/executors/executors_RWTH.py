@@ -66,13 +66,13 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
                     HighThroughputExecutor(
                         label="coffea_parsl_condor",
                         address=address_by_hostname(),
-                        max_workers=1,
+                        max_workers_per_node=1,
                         worker_debug=False,
                         prefetch_capacity=0,
                         provider=CondorProvider(
                             nodes_per_block=1,
                             cores_per_slot=self.run_options.get("cores-per-worker", 1),
-                            mem_per_slot=self.run_options.get("mem_per_worker_parsl", 2),
+                            mem_per_slot=self.run_options.get("mem_per_worker", 2),
                             init_blocks=self.run_options["scaleout"],
                             max_blocks=(self.run_options["scaleout"]) + 5,
                             worker_init="\n".join(self.get_worker_env()),
