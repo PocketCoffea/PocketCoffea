@@ -29,10 +29,10 @@ guide [Installation guide](https://pocketcoffea.readthedocs.io/en/latest/install
 If you want to test it on lxplus just use the singularity image:
 
 ```bash
-apptainer shell  -B /afs -B /cvmfs/cms.cern.ch -B /tmp  -B /eos/cms/  \
-                 -B /etc/sysconfig/ngbauth-submit  \
-                 -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME=${XDG_RUNTIME_DIR}/krb5cc
-                 /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-stable
+apptainer shell -B /afs -B /cvmfs/cms.cern.ch \
+                -B /tmp  -B /eos/cms/  -B /etc/sysconfig/ngbauth-submit \
+                -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME="FILE:${XDG_RUNTIME_DIR}/krb5cc" 
+                /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-stable
 ```
 
 

@@ -68,7 +68,7 @@ pocket-coffea
 /_/    \____/\___/_/|_|\___/\__/\____/\____/_/ /_/  \___/\__,_/
 
 
-Running PocketCoffea version 0.8.0
+Running PocketCoffea version 0.9.6
 - Documentation page:  https://pocketcoffea.readthedocs.io/
 - Repository:          https://github.com/PocketCoffea/PocketCoffea
 
