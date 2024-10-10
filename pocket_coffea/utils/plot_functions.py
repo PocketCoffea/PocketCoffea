@@ -36,8 +36,11 @@ def plot_shapes_comparison(
         print(sample, cat, year, variation)
         datasets = H[sample].keys()
         datasets_by_year = list(filter(lambda x : x.endswith(year), datasets))
-        h_by_year = sum({k :val for k, val in H[sample].items() if k in datasets_by_year}.values())
-        hep.histplot(h_by_year[cat, variation, :], label=label, ax=axu)
+        h_by_year = {k :val for k, val in H[sample].items() if k in datasets_by_year}
+        if len(h_by_year) == 0:
+            raise ValueError(f"No datasets found for {sample} in year {year} in histogram {var}")
+        h_sum_datasets = sum(h_by_year.values())
+        hep.histplot(h_sum_datasets[cat, variation, :], label=label, ax=axu)
 
     if ylog:
         axu.set_yscale("log")
@@ -51,8 +54,8 @@ def plot_shapes_comparison(
     sample, cat, year, variation, label = shapes[0]
     datasets = H[sample].keys()
     datasets_by_year = list(filter(lambda x : x.endswith(year), datasets))
-    h_by_year = sum({k :val for k, val in H[sample].items() if k in datasets_by_year}.values())
-    nom = h_by_year[cat, variation, :]
+    h_sum_datasets = sum({k :val for k, val in H[sample].items() if k in datasets_by_year}.values())
+    nom = h_sum_datasets[cat, variation, :]
     nomvalues = nom.values()
     nom_sig2 = nom.variances()
     centers = nom.axes[0].centers
@@ -61,8 +64,8 @@ def plot_shapes_comparison(
     for sample, cat, year, variation, label in shapes[:]:
         datasets = H[sample].keys()
         datasets_by_year = list(filter(lambda x : x.endswith(year), datasets))
-        h_by_year = sum({k :val for k, val in H[sample].items() if k in datasets_by_year}.values())
-        h = h_by_year[cat, variation, :]
+        h_sum_datasets = sum({k :val for k, val in H[sample].items() if k in datasets_by_year}.values())
+        h = h_sum_datasets[cat, variation, :]
         h_val = h.values()
         h_sig2 = h.variances()
 
@@ -87,7 +90,7 @@ def plot_shapes_comparison(
         )
 
     axd.legend(ncol=3, fontsize='xx-small')
-    hep.plot.yscale_legend(axd)
+    hep.plot.yscale_legend(axd, soft_fail=True)
     axd.set_xlabel(nom.axes[0].label)
     axd.set_ylim(0.8 * minratio, 1.2 * maxratio)
     axd.set_ylabel("ratio")
