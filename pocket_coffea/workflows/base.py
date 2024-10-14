@@ -700,19 +700,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
             if variation == "nominal" or not self._isMC:  #only nominal for data
                 self.events = nominal_events
-                # evIds = [167331, 167338, 167353, 167357, 167359, 167370, 167365, 167363, 167384, 167385]
-                # pTbefore = []
-                # for evId in evIds:
-                    # evs = self.events[self.events.event == evId]
-                    # pTbefore.append(evs.Jet.pt)
                 # Just assign the nominal calibration
                 for jet_coll_name, jet_coll in jets_calibrated.items():
                     self.events[jet_coll_name] = jet_coll
-                # for i, evId in enumerate(evIds):
-                #     evs = self.events[self.events.event == evId]
-                #     print(evs.event)
-                #     for j in range(len(pTbefore[i][0])):
-                #         print("Jet pt (before): {:.4f}   Jet pt (after): {:.4f}".format(pTbefore[i][0][j], evs.Jet.pt[0][j]))
 
                 if self.params.lepton_scale_factors.electron_sf["apply_eleSS"][self._year]:
                     etaSC = abs(self.events["Electron"]["deltaEtaSC"] + self.events["Electron"]["eta"])
@@ -730,18 +720,14 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                             self.events["Electron"], ele_pt_smeared["nominal"], "pt"
                         )
                         # if "eleSS" in variations:
-                        #     self.events["Electron"] = ak.with_field(
-                        #         self.events["Electron"], ele_pt_smeared["nominal"], "pt_nominal"
-                        #     )
+                        #     MAKE COPY OF NOMINAL HERE
                     else:
                         ele_pt_scaled = get_ele_scaled(self.events["Electron"], ssfile, self._isMC, self.events["run"])
                         self.events["Electron"] = ak.with_field(
                             self.events["Electron"], ele_pt_scaled["nominal"], "pt"
                         )
                         # if "eleSS" in variations:
-                        #     self.events["Electron"] = ak.with_field(
-                        #         self.events["Electron"], ele_pt_scaled["nominal"], "pt_nominal"
-                        #     )
+                        #     MAKE COPY OF NOMINAL HERE
 
                 yield "nominal"
 
