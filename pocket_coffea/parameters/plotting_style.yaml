@@ -3,6 +3,7 @@ plotting_style:
     collapse_datasets: true     # Plot all the datasets with the same sample as a single shape
     fontsize: 22
     fontsize_legend_ratio: 12
+    blind_threshold: -1
 
 
     opts_figure:
