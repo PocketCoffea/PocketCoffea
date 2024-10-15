@@ -25,7 +25,8 @@ class ExecutorFactoryABC(ABC):
              _x509_localpath = get_proxy_path()
              # Copy the proxy to the home from the /tmp to be used by workers
              self.x509_path = os.environ['HOME'] + f'/{_x509_localpath.split("/")[-1]}'
-             os.system(f'cp {_x509_localpath} {self.x509_path}')
+             print("Copying proxy file to $HOME.")
+             os.system(f'scp {_x509_localpath} {self.x509_path}')       # scp makes sure older file is overwritten without prompting
              
     def set_env(self):
         # define some environmental variable
