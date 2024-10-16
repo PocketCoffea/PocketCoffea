@@ -61,68 +61,58 @@ class Style:
 
     def __init__(self, style_cfg) -> None:
         self.style_cfg = style_cfg
-        self._required_keys = ["opts_figure", "opts_mc", "opts_sig", "opts_data", "opts_unc"]
-        for key in self._required_keys:
-            assert (
-                key in style_cfg
-            ), f"The key `{key}` is not defined in the style dictionary."
-        for key, item in style_cfg.items():
+        self._required_keys = [
+            "opts_figure",
+            "opts_mc",
+            "opts_sig",
+            "opts_data",
+            "opts_unc",
+        ]
+        self.set_defaults()
+        for key, item in self.style_cfg.items():
             setattr(self, key, item)
+
         self.has_labels = "labels_mc" in style_cfg
         self.has_samples_groups = "samples_groups" in style_cfg
         self.has_exclude_samples = "exclude_samples" in style_cfg
         self.has_rescale_samples = "rescale_samples" in style_cfg
         self.has_colors_mc = "colors_mc" in style_cfg
+        self.has_signal_samples = "signal_samples" in style_cfg
 
         self.has_blind_hists = False
         if "blind_hists" in style_cfg:
-            if 'categories' in style_cfg["blind_hists"] and 'histograms' in style_cfg["blind_hists"]:
-                if len(style_cfg["blind_hists"]["categories"])!=0 and len(style_cfg["blind_hists"]["histograms"])!=0:
+            if (
+                "categories" in style_cfg["blind_hists"]
+                and "histograms" in style_cfg["blind_hists"]
+            ):
+                if (
+                    len(style_cfg["blind_hists"]["categories"]) != 0
+                    and len(style_cfg["blind_hists"]["histograms"]) != 0
+                ):
                     self.has_blind_hists = True
 
-        self.has_signal_samples = False
-        if "signal_samples" in self.style_cfg:
-            self.has_signal_samples = True
-
-        self.has_compare_ref = None
+        self.has_compare_ref = False
         if "compare" in self.style_cfg:
             if "ref" in self.style_cfg["compare"]:
                 self.has_compare_ref = True
 
-        self.set_defaults()
-
-        if self.opts_mc["flow"] == "sum":
-            self.flow = True
-        else:
-            self.flow = False
-
-        #print("Style config:\n", style_cfg)
+        self.flow = self.opts_mc["flow"] == "sum"
 
     def set_defaults(self):
-        for key in self._required_keys:
-            for subkey, val_default in plotting_style_defaults[key].items():
-                if subkey not in self.style_cfg[key]:
-                    self.style_cfg[key][subkey] = val_default
+        # load default plotting paramters, update with user-defined values
+        self.style_cfg = merge_parameters(
+            plotting_style_defaults, self.style_cfg, update=True
+        )
 
-        # Overwrite the default values with the user-defined values and check if they are valid
-        for key, is_mc in zip(["categorical_axes_data", "categorical_axes_mc"], [False, True]):
-            parameters_categorical_axes = plotting_style_defaults[key]
-            if key in self.style_cfg:
-                parameters_categorical_axes.update(self.style_cfg[key])
-            self.style_cfg[key] = parameters_categorical_axes
+        # check if the user-defined values are valid
+        for key, is_mc in zip(
+            ["categorical_axes_data", "categorical_axes_mc"], [False, True]
+        ):
             for subkey, val in self.style_cfg[key].items():
                 if (subkey, val) not in self._available_categorical_axes(is_mc).items():
-                    raise Exception(f"The key `{subkey}` with value `{val}` is not a valid categorical axis for {key}. Available axes: {self._available_categorical_axes(is_mc)}")
-            setattr(self, key, self.style_cfg[key])
-
-        self.fontsize = getattr(self, "fontsize", 22)
-
-        # default experiment label location: upper left inside plot
-        # https://twiki.cern.ch/twiki/bin/viewauth/CMS/Internal/FigGuidelines
-        self.experiment_label_loc = getattr(self, "experiment_label_loc", 2)
-
-        self.print_info = getattr(self, "print_info", {"category": False, "year": False})
-
+                    raise Exception(
+                        f"The key `{subkey}` with value `{val}` is not a valid categorical axis for {key}. Available axes: {self._available_categorical_axes(is_mc)}"
+                    )
 
     def update(self, style_cfg):
         '''Updates the style options with a new dictionary.'''
