@@ -215,7 +215,8 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
                 for dataset, files in filesets_to_run.items():
                     if files["metadata"]["sample"] in samples_to_group:
                         fileset_[dataset] = filesets_to_group.pop(dataset)
-                filesets_groups[group] = fileset_
+                if len(fileset_) > 0:
+                    filesets_groups[group] = fileset_
             # Adding the remaining datasets that were not grouped
             for dataset, files in filesets_to_group.items():
                 filesets_groups[dataset] = {dataset:files}
