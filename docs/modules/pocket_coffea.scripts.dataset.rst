@@ -28,6 +28,14 @@ pocket\_coffea.scripts.dataset.build\_datasets module
    :undoc-members:
    :show-inheritance:
 
+pocket\_coffea.scripts.dataset.dataset\_query module
+----------------------------------------------------
+
+.. automodule:: pocket_coffea.scripts.dataset.dataset_query
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pocket\_coffea.scripts.dataset.download module
 ----------------------------------------------
 

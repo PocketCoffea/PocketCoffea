@@ -1,6 +1,7 @@
 from copy import deepcopy
 from ..lib.hist_manager import Axis, HistConf
 import math
+from typing import List
 
 default_axis_settings = {
     'muon_pt': {
@@ -142,6 +143,46 @@ default_axis_settings = {
         "lim": (-math.pi, math.pi),
         'label': "$\phi_{j}$",
     },
+    'genjet_pt': {
+        "field": "pt",
+        "bins": 50,
+        "start": 0,
+        'stop': 300,
+        "lim": (0, 300),
+        'label': "$p_{T}^{j}$ [GeV]",
+    },
+    'genjet_eta': {
+        "field": "eta",
+        "bins": 50,
+        "start": -2.5,
+        'stop': 2.5,
+        "lim": (-2.5, 2.5),
+        'label': "$\eta_{j}$",
+    },
+    'genjet_phi': {
+        "field": "phi",
+        "bins": 64,
+        "start": -math.pi,
+        'stop': math.pi,
+        "lim": (-math.pi, math.pi),
+        'label': "$\phi_{j}$",
+    },
+    'genjet_hadronFlavour': {
+        "field": "hadronFlavour",
+        "bins": 8,
+        "start": -1,
+        'stop': 7,
+        "lim": (-1, 7),
+        'label': "hadron flavor",
+    },
+    'genjet_partonFlavour': {
+        "field": "partonFlavour",
+        "bins": 33,
+        "start": -10,
+        'stop': 23,
+        "lim": (-10, 23),
+        'label': "parton flavor",
+    },
     'jet_btagDeepFlavB': {
         "field": "btagDeepFlavB",
         "bins": 50,
@@ -165,6 +206,54 @@ default_axis_settings = {
         'stop': 1.0,
         "lim": (0, 1),
         'label': "AK4 DeepJet CvsB score",
+    },
+    'jet_btagPNetB': {
+        "field": "btagPNetB",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 PNet b-tag score",
+    },
+    'jet_btagPNetCvL': {
+        "field": "btagPNetCvL",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 PNet CvsL score",
+    },
+    'jet_btagPNetCvB': {
+        "field": "btagPNetCvB",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 PNet CvsB score",
+    },
+    'jet_btagRobustParTAK4B': {
+        "field": "btagRobustParTAK4B",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 RobustParT b-tag score",
+    },
+    'jet_btagRobustParTAK4CvL': {
+        "field": "btagRobustParTAK4CvL",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 RobustParT CvsL score",
+    },
+    'jet_btagRobustParTAK4CvB': {
+        "field": "btagRobustParTAK4CvB",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 RobustParT CvsB score",
     },
     'fatjet_pt': {
         "field": "pt",
@@ -433,24 +522,16 @@ default_axis_settings = {
 }
 
 collection_fields = {
-    'jet': ["eta", "pt", "phi", "btagDeepFlavB", "btagDeepFlavCvL", "btagDeepFlavCvB"],
+    'jet': ["eta", "pt", "phi"],
     'fatjet': [
         "eta",
         "pt",
         "phi",
         "mass",
         "msoftdrop",
-        "btagDDBvLV2",
-        "btagDDCvLV2",
-        "btagDDCvBV2",
-        # "particleNetMD_Xbb", "particleNetMD_Xcc",
-        "particleNetMD_Xbb_QCD",
-        "particleNetMD_Xcc_QCD",
-        "deepTagMD_ZHbbvsQCD",
-        "deepTagMD_ZHccvsQCD",
-        "btagHbb",
     ],
     'parton': ["eta", "pt", "phi", "dRMatchedJet", "pdgId"],
+    'genjet': ["eta", "pt", "phi", "hadronFlavour", "partonFlavour"],
     'electron': ["eta", "pt", "phi", "etaSC"],
     'muon': ["eta", "pt", "phi"],
     'lepton': ["eta", "pt", "phi", "pdgId"],
@@ -464,6 +545,26 @@ collection_fields = {
         "logsumcorrmass",
     ]
     #'sv': ["summass", "logsummass", "projmass", "logprojmass", "sv1mass", "logsv1mass", "sumcorrmass", "logsumcorrmass"]
+}
+
+
+taggers_fields = {
+    "jet": [
+        "btagDeepFlavB", "btagDeepFlavCvL", "btagDeepFlavCvB",
+        "btagPNetB", "btagPNetCvL", "btagPNetCvB",
+        "btagRobustParTAK4B", "btagRobustParTAK4CvL", "btagRobustParTAK4CvB"
+    ],
+    "fatjet": [
+        "btagDDBvLV2",
+        "btagDDCvLV2",
+        "btagDDCvBV2",
+        # "particleNetMD_Xbb", "particleNetMD_Xcc",
+        "particleNetMD_Xbb_QCD",
+        "particleNetMD_Xcc_QCD",
+        "deepTagMD_ZHbbvsQCD",
+        "deepTagMD_ZHccvsQCD",
+        "btagHbb",
+    ]        
 }
 
 
@@ -501,10 +602,62 @@ def _get_default_hist(name, type, coll, pos=None, fields=None, axis_settings=Non
     return out
 
 
+
 def jet_hists(coll="JetGood", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
     if name == None:
         name = coll
     return _get_default_hist(name, "jet", coll, pos, fields, axis_settings, **kwargs)
+
+def jet_taggers_hists(coll="JetGood", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
+    for field in taggers_fields["jet"]:
+        if fields == None or field in fields:
+            hist_name = f"{name}_{field}"
+            setting = deepcopy(default_axis_settings[f"jet_{field}"])
+            if axis_settings != None and f"jet_{field}" in axis_settings:
+                setting.update(axis_settings[f"jet_{field}"])
+            setting["coll"] = coll
+            # If the position argument is given the histogram is
+            # created for the specific position
+            if pos != None:
+                setting["pos"] = pos
+                # Avoid 0-indexing for the name of the histogram
+                hist_name += f"_{pos+1}"
+                setting["label"] = setting["label"] + " for Obj. #%i"%(pos+1)
+                
+            out[hist_name] = HistConf(
+                axes=[
+                    Axis(**setting),
+                ],
+                **kwargs
+            )
+
+def fatjet_taggers_hists(coll="FatJetGood", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
+    for field in taggers_fields["fatjet"]:
+        if fields == None or field in fields:
+            hist_name = f"{name}_{field}"
+            setting = deepcopy(default_axis_settings[f"jet_{field}"])
+            if axis_settings != None and f"jet_{field}" in axis_settings:
+                setting.update(axis_settings[f"jet_{field}"])
+            setting["coll"] = coll
+            # If the position argument is given the histogram is
+            # created for the specific position
+            if pos != None:
+                setting["pos"] = pos
+                # Avoid 0-indexing for the name of the histogram
+                hist_name += f"_{pos+1}"
+                setting["label"] = setting["label"] + " for Obj. #%i"%(pos+1)
+                
+            out[hist_name] = HistConf(
+                axes=[
+                    Axis(**setting),
+                ],
+                **kwargs
+            )
+            
+def genjet_hists(coll="MyGenJets", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
+    if name == None:
+        name = coll
+    return _get_default_hist(name, "genjet", coll, pos, fields, axis_settings, **kwargs)
 
 
 def fatjet_hists(coll="FatJetGood", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
@@ -568,3 +721,91 @@ def count_hist(coll, bins=10, start=0, stop=9, label=None, name=None, **kwargs):
             **kwargs
         )
     }
+
+
+def processing_metadata_hists(only_cats : List, chunk_size):
+    return {
+        "events_per_chunk_initial" : HistConf(
+               axes=[
+                   Axis(name='nevents', field=None,
+                        bins=max([int(chunk_size/500), 30]), start=0, stop=chunk_size,                       
+                        label="Number of events in the chunk",
+                        ), 
+               ],
+            storage="int64",
+            autofill=False,
+            metadata_hist = True,
+            no_weights=True,
+            only_categories=only_cats,
+            variations=False
+        ),
+        "events_per_chunk_skim" : HistConf(
+               axes=[
+                   Axis(name='nevents', field=None,
+                        bins=max([int(chunk_size/500), 30]), start=0, stop=chunk_size,                       
+                        label="Number of events in the chunk",
+                        )
+               ],
+            storage="int64",
+            autofill=False,
+            metadata_hist = True,
+            no_weights=True,
+            only_categories=only_cats,
+            variations=False
+        ),
+        "events_per_chunk_presel" : HistConf(
+               axes=[
+                   Axis(name='nevents', field=None,
+                        bins=max([int(chunk_size/500), 30]), start=0, stop=chunk_size,                       
+                        label="Number of events in the chunk",
+                        )
+               ],
+            storage="int64",
+            autofill=False,
+            metadata_hist = True,
+            no_weights=True,
+            only_categories=only_cats,
+            variations=False
+        ),
+        "throughput_per_chunk_initial" : HistConf(
+               axes=[
+                   Axis(name='throughput', field=None,
+                        bins=200, start=0, stop=50000,                       
+                        label="N. events/s processed in the chunk",
+                        )
+               ],
+            storage="int64",
+            autofill=False,
+            metadata_hist = True,
+            no_weights=True,
+            only_categories=only_cats,
+            variations=False,
+        ),
+        "throughput_per_chunk_skim" : HistConf(
+               axes=[
+                   Axis(name='throughput', field=None,
+                        bins=200, start=0, stop=50000,                       
+                        label="N. events/s processed in the chunk",
+                        )
+               ],
+            storage="int64",
+            autofill=False,
+            metadata_hist = True,
+            no_weights=True,
+            only_categories=only_cats,
+            variations=False,
+        ),
+        "throughput_per_chunk_presel" : HistConf(
+               axes=[
+                   Axis(name='throughput', field=None,
+                        bins=200, start=0, stop=50000,                       
+                        label="N. events/s processed in the chunk",
+                        )
+               ],
+            storage="int64",
+            autofill=False,
+            metadata_hist = True,
+            no_weights=True,
+            only_categories=only_cats,
+            variations=False,
+        )}

@@ -61,7 +61,6 @@ def get_ele_sf(
             ak.unflatten(sfdown, counts),
         )
     elif key == 'trigger':
-
         electron_correctionset = correctionlib.CorrectionSet.from_file(
             electronSF.trigger_sf[year]["file"]
         )
@@ -92,6 +91,8 @@ def get_ele_sf(
                 output[variation][i] = ak.unflatten(sf, counts)
 
         return output
+    else:
+        raise Exception(f"Invalid key `{key}` for get_ele_sf. Available keys are 'reco', 'id', 'trigger'.")
 
 
 def get_mu_sf(params, year, pt, eta, counts, key=''):
@@ -103,6 +104,9 @@ def get_mu_sf(params, year, pt, eta, counts, key=''):
     muon_correctionset = correctionlib.CorrectionSet.from_file(
         muonSF.JSONfiles[year]['file']
     )
+
+    if key not in ["id","iso","trigger"]:
+        raise Exception(f"Muon SF key {key} not recognized")
     
     sfName = muonSF.sf_name[year][key]
     
@@ -130,9 +134,10 @@ def sf_ele_reco(params, events, year):
     Additionally, also the up and down variations of the SF are returned.
     Electrons are split into two categories based on a pt cut depending on the Run preiod, so that the proper SF is applied.
     '''
-    ele_pt = events.ElectronGood.pt
-    ele_eta = events.ElectronGood.etaSC
-    ele_phi = events.ElectronGood.phi
+    coll = params.lepton_scale_factors.electron_sf.collection
+    ele_pt = events[coll].pt
+    ele_eta = events[coll].etaSC # This is added on top of NanoAOD
+    ele_phi = events[coll].phi
 
     pt_ranges = []
     if year in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
@@ -186,9 +191,10 @@ def sf_ele_id(params, events, year):
     This function computes the per-electron id SF and returns the corresponding per-event SF, obtained by multiplying the per-electron SF in each event.
     Additionally, also the up and down variations of the SF are returned.
     '''
-    ele_pt = events.ElectronGood.pt
-    ele_eta = events.ElectronGood.etaSC
-    ele_phi = events.ElectronGood.phi
+    coll = params.lepton_scale_factors.electron_sf.collection
+    ele_pt = events[coll].pt
+    ele_eta = events[coll].etaSC
+    ele_phi = events[coll].phi
 
     ele_pt_flat, ele_eta_flat, ele_phi_flat, ele_counts = (
         ak.flatten(ele_pt),
@@ -212,9 +218,9 @@ def sf_ele_trigger(params, events, year, variations=["nominal"]):
     This computation is valid only in the case of the semileptonic final state.
     Additionally, also the up and down variations of the SF for a set of systematic uncertainties are returned.
     '''
-
-    ele_pt = events.ElectronGood.pt
-    ele_eta = events.ElectronGood.etaSC
+    coll = params.lepton_scale_factors.electron_sf.collection
+    ele_pt = events[coll].pt
+    ele_eta = events[coll].etaSC
 
     ele_pt_flat, ele_eta_flat, ele_counts = (
         ak.flatten(ele_pt),
@@ -224,10 +230,11 @@ def sf_ele_trigger(params, events, year, variations=["nominal"]):
     sf_dict = get_ele_sf(
         params,
         year,
-        ele_pt_flat,
-        ele_eta_flat,
-        ele_counts,
-        'trigger',
+        pt=ele_pt_flat,
+        eta=ele_eta_flat,
+        phi=None,
+        counts=ele_counts,
+        key='trigger',
         variations=variations,
     )
 
@@ -243,8 +250,9 @@ def sf_mu(params, events, year, key=''):
     This function computes the per-muon id SF and returns the corresponding per-event SF, obtained by multiplying the per-muon SF in each event.
     Additionally, also the up and down variations of the SF are returned.
     '''
-    mu_pt = events.MuonGood.pt
-    mu_eta = events.MuonGood.eta
+    coll = params.lepton_scale_factors.muon_sf.collection
+    mu_pt = events[coll].pt
+    mu_eta = events[coll].eta
 
     # Since `correctionlib` does not support jagged arrays as an input, the pt and eta arrays are flattened.
     mu_pt_flat, mu_eta_flat, mu_counts = (
@@ -261,7 +269,7 @@ def sf_mu(params, events, year, key=''):
 
 def sf_btag(params, jets, year, njets, variations=["central"]):
     '''
-    DeepJet AK4 btagging SF.
+    DeepJet (or other taggers) AK4 btagging SF.
     See https://cms-nanoaod-integration.web.cern.ch/commonJSONSFs/summaries/BTV_2018_UL_btagging.html
     The scale factors have 8 default uncertainty
     sources (hf,lf,hfstats1/2,lfstats1/2,cferr1/2) (all of this up_*var*, and down_*var*).

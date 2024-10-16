@@ -21,10 +21,26 @@ pocket\_coffea.scripts.build\_jec module
    :undoc-members:
    :show-inheritance:
 
+pocket\_coffea.scripts.config\_template module
+----------------------------------------------
+
+.. automodule:: pocket_coffea.scripts.config_template
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pocket\_coffea.scripts.hadd\_skimmed\_files module
 --------------------------------------------------
 
 .. automodule:: pocket_coffea.scripts.hadd_skimmed_files
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+pocket\_coffea.scripts.make\_config module
+------------------------------------------
+
+.. automodule:: pocket_coffea.scripts.make_config
    :members:
    :undoc-members:
    :show-inheritance:
@@ -37,18 +53,18 @@ pocket\_coffea.scripts.merge\_outputs module
    :undoc-members:
    :show-inheritance:
 
-pocket\_coffea.scripts.runner module
-------------------------------------
+pocket\_coffea.scripts.print\_parameters module
+-----------------------------------------------
 
-.. automodule:: pocket_coffea.scripts.runner
+.. automodule:: pocket_coffea.scripts.print_parameters
    :members:
    :undoc-members:
    :show-inheritance:
 
-pocket\_coffea.scripts.runner\_old module
------------------------------------------
+pocket\_coffea.scripts.runner module
+------------------------------------
 
-.. automodule:: pocket_coffea.scripts.runner_old
+.. automodule:: pocket_coffea.scripts.runner
    :members:
    :undoc-members:
    :show-inheritance:

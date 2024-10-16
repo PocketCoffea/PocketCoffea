@@ -13,9 +13,10 @@ from rich.console import Console
 from rich.prompt import Confirm, IntPrompt, Prompt
 from rich.table import Table
 from rich.tree import Tree
-
+import re
 from pocket_coffea.utils import rucio as rucio_utils
-
+import requests
+#from pocket_coffea.parameters.xsection import xsection
 def print_dataset_query(query, dataset_list, console, selected=[]):
     table = Table(title=f"Query: [bold red]{query}")
     table.add_column("Name", justify="left", style="cyan", no_wrap=True)
@@ -116,6 +117,7 @@ class DataDiscoveryCLI:
             "replicas",
             "list-replicas",
             "save",
+            "clear",
             "allow-sites",
             "block-sites",
             "regex-sites",
@@ -142,6 +144,7 @@ Some basic commands:
   - [bold cyan]block-sites[/]: Exclude grid sites from the available sites for replicas query
   - [bold cyan]regex-sites[/]: Select sites with a regex for replica queries: e.g.  "T[123]_(FR|IT|BE|CH|DE)_\w+"
   - [bold cyan]save[/]: Save the selected datasets as a dataset definition file and also the replicas query results to file (json or yaml) for further processing
+  - [bold cyan]clear[/]: Clear the selected datasets and replicas
   - [bold cyan]help[/]: Print this help message
             """
                 )
@@ -164,6 +167,8 @@ Some basic commands:
                 self.do_list_replicas()
             elif command == "save":
                 self.do_save()
+            elif command == "clear":
+                self.do_clear()
             elif command == "allow-sites":
                 self.do_allowlist_sites()
             elif command == "block-sites":
@@ -221,6 +226,86 @@ Some basic commands:
             )
         else:
             print("First [bold red]query (Q)[/] for a dataset")
+    
+    def generate_default_metadata(self, dataset):
+        year = self.extract_year_from_dataset_name(dataset)
+        isMC = self.is_mc_dataset(dataset)
+        try:
+            xsec = self.extract_xsec_from_dataset_name(dataset)
+        except Exception as e:
+            xsec = 1.0
+        primary_dataset,year_data,era_data = self.extract_era_from_dataset_name(dataset)
+        if isMC == True:
+            return {
+                "year": year,
+                "isMC": isMC,
+                "xsec": xsec
+            }
+        else:
+            return {
+                "year": year_data,
+                "isMC": isMC,
+                "primaryDataset": primary_dataset,
+                "era": era_data
+            }
+
+    def extract_year_from_dataset_name(self, dataset_name):
+        pattern = r'\/([^\/]+)NanoAOD'
+        match = re.search(pattern, dataset_name)
+        if not match:
+            return ""
+        if match.group(1) == 'RunIISummer20UL16NanoAODAPV':
+            return '2016_PreVFP'
+        elif match.group(1) == 'RunIISummer20UL16NanoAOD':
+            return '2016_PostVFP'
+        elif match.group(1) == 'RunIISummer20UL17':
+            return '2017'
+        elif match.group(1) == 'RunIISummer20UL18':
+            return '2018'
+        elif match.group(1) == 'Run3Summer22':
+            return '2022_preEE'
+        elif match.group(1) == 'Run3Summer22EE':
+            return '2022_postEE'
+        elif match.group(1) == 'Run3Summer23':
+            return '2023_preBPix'
+        elif match.group(1) == 'Run3Summer23BPix':
+            return '2023_postBPix'
+        else:
+            return ""
+    
+    def extract_era_from_dataset_name(self, dataset_name):
+        pattern = r'/([^/]+)/Run(\d{4})([A-Z])'
+        match = re.search(pattern, dataset_name)
+        
+        if match:
+            primary_dataset = match.group(1)
+            year = match.group(2)
+            era = match.group(3)
+            return primary_dataset, year, era
+        else:
+            return "", "", ""
+    
+    def is_mc_dataset(self, dataset_name):
+        parts = dataset_name.split('/')
+        if len(parts) > 0 and 'SIM' in parts[-1]:
+            return True
+        else:
+            return False
+
+    def extract_xsec_from_dataset_name(self, dataset_name):
+        parts = dataset_name.split('/')
+        if len(parts) > 0:
+            parts =  parts[1]
+        url = 'https://xsdb-temp.app.cern.ch/api/search'
+        response = requests.post(url, json={'process_name': parts})
+        if response.status_code == 200:
+            data = response.json()
+            if isinstance(data, list) and len(data) > 0:
+                return float(data[0]['cross_section'])
+            else:
+                raise ValueError(f"No data found for process_name '{parts}'")
+        else:
+            raise ConnectionError(f"Failed to fetch data for process_name '{parts}'. Status code: {response.status_code}")
 
     def do_select(self, selection=None, metadata=None):
         """Selected the datasets from the list of query results. Input a list of indices
@@ -246,14 +331,15 @@ Some basic commands:
                 if metadata:
                     self.selected_datasets_metadata.append(metadata)
                 else:
-                    self.selected_datasets_metadata.append({
-                        "year": "",
-                        "isMC": True,
-                        "primaryDataset": "",
-                        "part": "",
-                        "era": "",
-                        "xsec": 1.0
-                    })
+                    self.selected_datasets_metadata.append(self.generate_default_metadata(self.last_query_list[s]))
+                    #self.selected_datasets_metadata.append({
+                    #    "year": "",
+                    #    "isMC": True,
+                    #    "primaryDataset": "",
+                    #    "part": "",
+                    #    "era": "",
+                    #    "xsec": 1.0
+                    #})
                 print(f"- ({s+1}) {self.last_query_list[s]}")
             else:
                 print(
@@ -515,7 +601,8 @@ Some basic commands:
             )
         format = os.path.splitext(filename)[1]
         if not format:
-            raise Exception("[red] Please use a .json or .yaml filename for the output")
+            print("[red] Please use a .json or .yaml filename for the output")
+            return
 
         # First save the datasets in the format of the PocketCoffea metadata
         groups = defaultdict(list)
@@ -541,11 +628,11 @@ Some basic commands:
             for dataset in datasets:
                 if dataset in self.replica_results:
                     dataset_info_withreplicas = {
-                        "sample": group,
                         "json_output": f"datasets/{group}.json",
                     }
                     dataset_info_withreplicas.update(self.final_output[dataset])
                     dataset_info_withreplicas["metadata"]["das_names"] = [dataset]
+                    dataset_info_withreplicas["metadata"]["sample"] = group
                     output_definition_withreplicas[f"{group}_{ireplicas}"] = dataset_info_withreplicas
                     ireplicas += 1
 
@@ -565,7 +652,28 @@ Some basic commands:
                 json.dump(output_definition, file, indent=2)
                
         print(f"[green]File {filename} saved!")
-        
+        # Ask to reset the selection
+        if Confirm.ask("[red]Do you want to empty your selected samples list?[/]", default=False):
+            self.selected_datasets = []
+            self.selected_datasets_metadata = []
+            self.replica_results = defaultdict(list)
+            self.replica_results_metadata = {}
+            self.replica_results_bysite = {}
+            self.final_output = None
+            print(f"[green]Selected datasets list emptied![/]")
+
+
+    # Define a empty-list function
+    def do_clear(self):
+        if Confirm.ask("[red]Do you want to empty your selected samples list?[/]", default=False):
+          self.selected_datasets = []
+          self.selected_datasets_metadata = []
+          self.replica_results = defaultdict(list)
+          self.replica_results_metadata = {}
+          self.replica_results_bysite = {}
+          self.final_output = None
+          print(f"[green]Selected datasets list emptied![/]")
+
         
     def load_dataset_definition(
         self,
