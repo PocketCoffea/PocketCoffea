@@ -8,6 +8,7 @@ general:
   skip-bad-files: false
   voms-proxy: null
   ignore-grid-certificate: false
+  group-samples: null
 
 dask@lxplus:
   scaleout: 10

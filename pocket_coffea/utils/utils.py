@@ -50,6 +50,16 @@ def load_config(cfg, do_load=True, save_config=True, outputdir=None):
         raise("The configuration module attribute `cfg` is not of type Configurator. Please check yuor configuration!")
     return config
 
+def adapt_chunksize(nevents, run_options):
+    '''Helper function to adjust the chunksize so that each worker has at least a chunk to process.
+    If the number of available workers exceeds the maximum number of workers for a given dataset,
+    the chunksize is reduced so that all the available workers are used to process the given dataset.'''
+    n_workers_max = nevents / run_options["chunksize"]
+    if (run_options["scaleout"] > n_workers_max):
+        adapted_chunksize = int(nevents / run_options["scaleout"])
+    else:
+        adapted_chunksize = run_options["chunksize"]
+    return adapted_chunksize
 
 # Function taken from HiggsDNA
 # https://gitlab.cern.ch/HiggsDNA-project/HiggsDNA/-/blob/master/higgs_dna/utils/dumping_utils.py

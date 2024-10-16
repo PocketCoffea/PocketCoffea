@@ -14,7 +14,7 @@ from coffea import processor
 from coffea.processor import Runner
 
 from pocket_coffea.utils.configurator import Configurator
-from pocket_coffea.utils.utils import load_config, path_import
+from pocket_coffea.utils.utils import load_config, path_import, adapt_chunksize
 from pocket_coffea.utils.logging import setup_logging
 from pocket_coffea.parameters import defaults as parameters_utils
 from pocket_coffea.executors import executors_base
@@ -178,7 +178,14 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         
     if not process_separately:
         # Running on all datasets at once
-        logging.info(f"Working on samples: {list(filesets_to_run.keys())}")
+        logging.info(f"Working on datasets: {list(filesets_to_run.keys())}")
+
+        n_events_tot = sum([int(files["metadata"]["nevents"]) for files in filesets_to_run.values()])
+        logging.info("Total number of events: %d", n_events_tot)
+
+        adapted_chunksize = adapt_chunksize(n_events_tot, run_options)
+        if adapted_chunksize != run_options["chunksize"]:
+            logging.info(f"Reducing chunksize from {run_options['chunksize']} to {adapted_chunksize} for dataset(s) {group_name}")
 
         run = Runner(
             executor=executor,
@@ -196,23 +203,43 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         print_processing_stats(output, start_time, run_options["scaleout"])
 
     else:
+        if run_options["group-samples"] is not None:
+            logging.info(f"Grouping samples during processing")
+            logging.info(f"Grouping samples configuration: {run_options['group-samples']}")
+            # Group samples together during processing with a list specified in the run_options
+            # Once a dataset is grouped, it is removed from the list of datasets to be processed to avoid double processing
+            filesets_groups = {}
+            filesets_to_group = filesets_to_run.copy()
+            for group, samples_to_group in run_options["group-samples"].items():
+                fileset_ = {}
+                for dataset, files in filesets_to_run.items():
+                    if files["metadata"]["sample"] in samples_to_group:
+                        fileset_[dataset] = filesets_to_group.pop(dataset)
+                if len(fileset_) > 0:
+                    filesets_groups[group] = fileset_
+            # Adding the remaining datasets that were not grouped
+            for dataset, files in filesets_to_group.items():
+                filesets_groups[dataset] = {dataset:files}
+        else:
+            filesets_groups = {dataset:{dataset:files} for dataset, files in filesets_to_run.items()}
+
         # Running separately on each dataset
-        for sample, files in filesets_to_run.items():
-            print(f"Working on sample: {sample}")
-            logging.info(f"Working on sample: {sample}")
-            
-            fileset_ = {sample:files}
-
-            n_events_tot = int(files["metadata"]["nevents"])
-            n_workers_max = n_events_tot / run_options["chunksize"]
-
-            # If the number of available workers exceeds the maximum number of workers for a given sample,
-            # the chunksize is reduced so that all the workers are used to process the given sample
-            if (run_options["scaleout"] > n_workers_max):
-                adapted_chunksize = int(n_events_tot / run_options["scaleout"])
-                logging.info(f"Reducing chunksize from {run_options['chunksize']} to {adapted_chunksize} for sample {sample}")
+        for group_name, fileset_ in filesets_groups.items():
+            datasets = list(fileset_.keys())
+            if len(datasets) == 1:
+                dataset = datasets[0]
+                print(f"Working on dataset: {group_name}")
+                logging.info(f"Working on dataset: {group_name}")
             else:
-                adapted_chunksize = run_options["chunksize"]
+                print(f"Working on group of datasets: {group_name} ({len(datasets)} datasets)")
+                logging.info(f"Working on group of datasets: {group_name} ({len(datasets)} datasets)")
+
+            n_events_tot = sum([int(files["metadata"]["nevents"]) for files in fileset_.values()])
+            logging.info("Total number of events: %d", n_events_tot)
+
+            adapted_chunksize = adapt_chunksize(n_events_tot, run_options)
+            if adapted_chunksize != run_options["chunksize"]:
+                logging.info(f"Reducing chunksize from {run_options['chunksize']} to {adapted_chunksize} for dataset(s) {group_name}")
 
             run = Runner(
                 executor=executor,
@@ -224,8 +251,8 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
             )
             output = run(fileset_, treename="Events",
                          processor_instance=config.processor_instance)
-            print(f"Saving output to {outfile.format(sample)}")
-            save(output, outfile.format(sample))
+            print(f"Saving output to {outfile.format(group_name)}")
+            save(output, outfile.format(group_name))
             print_processing_stats(output, start_time, run_options["scaleout"])
     # Closing the executor if needed
     executor_factory.close()
