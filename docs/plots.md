@@ -114,6 +114,21 @@ histogram is rescaled by the number specified.
 The `print_info` options would print a text on the plots for category
 name and the year (era period).
 
+In addition, all the default parameters related to the formatting of figures,
+such as `opts_figure`, `opts_data`, `opts_mc`, `opts_sig`, `opts_syst`, `opts_unc` and
+`opts_ylim`, can be overridden by passing custom parameters. For example, to set custom
+limits on the y-axis of logarithmic plots, one can include this dictionary in the
+`.yaml` file passed as the `-op` argument:
+```
+plotting_style:
+
+    opts_ylim:
+        datamc:
+            ylim_log:
+                lo: 0.01
+                hi: 1000000
+```
+
 ## Produce shape comparison plots
 
 Oftentimes one wants to compare shapes of various MC samples, not the

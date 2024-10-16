@@ -609,6 +609,7 @@ def jet_hists(coll="JetGood", pos=None, fields=None, name=None, axis_settings=No
     return _get_default_hist(name, "jet", coll, pos, fields, axis_settings, **kwargs)
 
 def jet_taggers_hists(coll="JetGood", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
+    out = {}
     for field in taggers_fields["jet"]:
         if fields == None or field in fields:
             hist_name = f"{name}_{field}"
@@ -630,8 +631,10 @@ def jet_taggers_hists(coll="JetGood", pos=None, fields=None, name=None, axis_set
                 ],
                 **kwargs
             )
+    return out
 
 def fatjet_taggers_hists(coll="FatJetGood", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
+    out = {}
     for field in taggers_fields["fatjet"]:
         if fields == None or field in fields:
             hist_name = f"{name}_{field}"
@@ -653,6 +656,7 @@ def fatjet_taggers_hists(coll="FatJetGood", pos=None, fields=None, name=None, ax
                 ],
                 **kwargs
             )
+    return out
             
 def genjet_hists(coll="MyGenJets", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
     if name == None:

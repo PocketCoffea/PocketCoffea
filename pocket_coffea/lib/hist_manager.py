@@ -112,6 +112,30 @@ def get_hist_axis_from_config(ax: Axis):
         )
 
 
+def weights_cache(fun):
+    '''
+    Function decorator to cache the weights calculation when they are ndim=1 on data_structure of ndim=1.
+    The weight is cached by (category, subsample, variation)
+    '''
+    def inner(self, category, subsample, variation, weight, mask, data_structure):
+        if mask.ndim == 2:
+            # Do not cache
+            return fun(self, weight, mask, data_structure)
+        #Cache only in the "by event" weight, which does not need to be
+        #broadcasted on the data dimension.
+        elif mask.ndim == 1 and (
+            (data_structure is None) or (data_structure.ndim == 1)
+        ):
+            name = (category, subsample, variation)
+            if name not in self._weights_cache:
+                self._weights_cache[name] = fun(self, weight, mask, data_structure)
+
+            return self._weights_cache[name]
+        else:
+            # if the mask is 2d, do not cache
+            return fun(self, weight, mask, data_structure)
+    return inner
+
 class HistManager:
     def __init__(
         self,
@@ -137,6 +161,8 @@ class HistManager:
         self.available_categories = set(self.categories_config.keys())
         self.available_weights_variations = ["nominal"]
         self.available_shape_variations = []
+        # This dictionary is used to store the weights in some cases for performance reaso
+        self._weights_cache = {}
 
         # We take the variations config and we build the available variations
         # for each category and for the whole sample (if MC)
@@ -331,8 +357,7 @@ class HistManager:
             for category in self.available_categories:
                 weights[category] = self.__prefetch_weights(category, shape_variation)
         # Cleaning the weights cache decorator between calls.
-        weights_cache.cache_.clear()
-
+        self._weights_cache.clear()
         # Looping on the histograms to read the values only once
         # Then categories, subsamples and weights are applied and masked correctly
 
@@ -526,7 +551,7 @@ class HistManager:
                                     weight_varied = weights[category][variation]
 
                                 # Broadcast and mask the weight (using the cached value if possible)
-                                weight_varied = mask_and_broadcast_weight(
+                                weight_varied = self.mask_and_broadcast_weight(
                                     category,
                                     subsample,
                                     variation,
@@ -535,7 +560,7 @@ class HistManager:
                                     data_structure,
                                 )
                                 if custom_weight != None and name in custom_weight:
-                                    weight_varied = weight_varied * mask_and_broadcast_weight(
+                                    weight_varied = weight_varied * self.mask_and_broadcast_weight(
                                         category + "customW",
                                         subsample,
                                         variation,
@@ -547,7 +572,7 @@ class HistManager:
                                     )
 
                                 # Then we apply the notnone mask
-                                weight_varied = weight_varied[all_axes_isnotnone]
+                                weight_varied = weight_varied[ak.to_numpy(all_axes_isnotnone)]
                                 # Fill the histogram
                                 try:
                                     self.histograms[subsample][name].hist_obj.fill(
@@ -564,7 +589,7 @@ class HistManager:
                             # Working on shape variation! only nominal weights
                             # (also using the cache which is cleaned for each shape variation
                             # at the beginning of the function)
-                            weights_nom = mask_and_broadcast_weight(
+                            weights_nom = self.mask_and_broadcast_weight(
                                 category,
                                 subsample,
                                 "nominal",
@@ -573,7 +598,7 @@ class HistManager:
                                 data_structure,
                             )
                             if custom_weight != None and name in custom_weight:
-                                weight_varied = weight_varied * mask_and_broadcast_weight(
+                                weight_varied = weight_varied * self.mask_and_broadcast_weight(
                                     category + "customW",
                                     subsample,
                                     "nominal",
@@ -629,79 +654,53 @@ class HistManager:
                         )
 
 
-###################
-# Utilities to handle the Weights cache
+        ###################
+        # Utilities to handle the Weights cache
 
+    @weights_cache
+    def mask_and_broadcast_weight(self, weight, mask, data_structure):
+        '''
+        The function mask the weights and broadcast them to the correct dimension.
+        The `data_structure` input is an array of 1-value with the structure of the data ALREADY masked.
+        We need instead to mask the weight value and broadcast it.
 
-def weights_cache(fun):
-    '''
-    Function decorator to cache the weights calculation when they are ndim=1 on data_structure of ndim=1.
-    The weight is cached by (category, subsample, variation)
-    '''
-    weights_cache.cache_ = {}
+        We need to handle different cases:
+        - Mask dimension=1 (mask on events):
+           If the data_structure.dim = 2 it means that we want to plot a collection
+           - we mask the weights by events (data is already masked)
+           - broadcast weight to the collection by multiplying to the datastructure (1-like array)
+           - flatten the final weight
+           If the data_structure.dim = 1:
+           - We just mask the weight by event
 
-    def inner(category, subsample, variation, weight, mask, data_structure):
-        if mask.ndim == 2:
-            # Do not cache
-            return fun(weight, mask, data_structure)
-        # Cache only in the "by event" weight, which does not need to be
-        # broadcasted on the data dimension.
-        elif mask.ndim == 1 and (
-            (data_structure is None) or (data_structure.ndim == 1)
-        ):
-            name = (category, subsample, variation)
-            if name not in weights_cache.cache_:
-                weights_cache.cache_[name] = fun(weight, mask, data_structure)
+        - Mask dimension=2 (mask on the collection)
+          It means that we are masking the collection, not the events.
+          - First we broadcast the weight to the structure of the mask
+          - Then we apply the mask
+          - Then we flatten the weight
 
-            return weights_cache.cache_[name]
+        '''    
+        if mask.ndim == 1 and not (data_structure is None) and data_structure.ndim == 2:
+            # If the mask has dim =1 and the data dim =2
+            # we need to mask the weight on dim=1, then to broadcast
+            # on the data_structure -> then flatten
+            allow_missing = False
+            if ak.sum(ak.is_none(data_structure, axis=-1)) > 0:
+                data_structure = ak.fill_none(data_structure, 0.)
+
+            return ak.to_numpy(
+                ak.flatten(data_structure * (weight[mask])), allow_missing=False
+            )
+
+        elif mask.ndim == 2:
+            # First we broadcast the weight then we mask
+            # if the mask is ndim==2 also the data is ndim==2.
+            # The weights are broadcasted at collection level, then masked, then flattened.
+            return ak.to_numpy(
+                ak.flatten((ak.ones_like(mask) * weight)[mask]), allow_missing=False
+            )
         else:
-            # if the mask is 2d, do not cache
-            return fun(weight, mask, data_structure)
-
-    return inner
+            return ak.to_numpy(weight[mask], allow_missing=False)
 
 
-@weights_cache
-def mask_and_broadcast_weight(weight, mask, data_structure):
-    '''
-    The function mask the weights and broadcast them to the correct dimension.
-    The `data_structure` input is an array of 1-value with the structure of the data ALREADY masked.
-    We need instead to mask the weight value and broadcast it.
 
-    We need to handle different cases:
-    - Mask dimension=1 (mask on events):
-       If the data_structure.dim = 2 it means that we want to plot a collection
-       - we mask the weights by events (data is already masked)
-       - broadcast weight to the collection by multiplying to the datastructure (1-like array)
-       - flatten the final weight
-       If the data_structure.dim = 1:
-       - We just mask the weight by event
-
-    - Mask dimension=2 (mask on the collection)
-      It means that we are masking the collection, not the events.
-      - First we broadcast the weight to the structure of the mask
-      - Then we apply the mask
-      - Then we flatten the weight
-
-    '''
-    if mask.ndim == 1 and not (data_structure is None) and data_structure.ndim == 2:
-        # If the mask has dim =1 and the data dim =2
-        # we need to mask the weight on dim=1, then to broadcast
-        # on the data_structure -> then flatten
-        allow_missing = False
-        if ak.sum(ak.is_none(data_structure, axis=-1)) > 0:
-            data_structure = ak.fill_none(data_structure, 0.)
-
-        return ak.to_numpy(
-            ak.flatten(data_structure * (weight[mask])), allow_missing=False
-        )
-
-    elif mask.ndim == 2:
-        # First we broadcast the weight then we mask
-        # if the mask is ndim==2 also the data is ndim==2.
-        # The weights are broadcasted at collection level, then masked, then flattened.
-        return ak.to_numpy(
-            ak.flatten((ak.ones_like(mask) * weight)[mask]), allow_missing=False
-        )
-    else:
-        return ak.to_numpy(weight[mask], allow_missing=False)

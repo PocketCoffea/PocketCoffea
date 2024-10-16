@@ -87,6 +87,11 @@ plotting_style:
         step: post
         zorder: 2
 
+    opts_ylim:
+      datamc:
+        ylim_log:
+          lo: 0.01
+
     print_info:
       category: False
       year: false

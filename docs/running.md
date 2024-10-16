@@ -84,7 +84,7 @@ Options:
   -lc, --limit-chunks INTEGER     Limit number of chunks
   -e, --executor TEXT             Overwrite executor from config (to be used
                                   only with the --test options)
-  -s, --scaleout INTEGER          Overwrite scalout config
+  -s, --scaleout INTEGER          Overwrite scaleout config
   -c, --chunksize INTEGER         Overwrite chunksize config
   -q, --queue TEXT                Overwrite queue config
   -ll, --loglevel TEXT            Console logging level
@@ -111,10 +111,12 @@ respectively).
 | Site | Supported executor | Executor string|
 |------|--------------------|----------------|
 |lxplus| dask               | dask@lxplus    |
+|swan| dask               | dask@swan    |
 |T3_CH_PSI| dask               | dask@T3_CH_PSI    |
-|RWTH Aachen LX-Cluster | parsl         | parsl-condor@RWTH |
+|RWTH Aachen LX-Cluster | parsl, dask         | parsl-condor@RWTH, dask@RWTH |
 |[Purdue Analysis Facility](https://analysis-facility.physics.purdue.edu)| dask | dask@purdue-af |
 |[INFN Analysis Facility](https://infn-cms-analysisfacility.readthedocs.io/)| dask | dask@infn-af |
+|Brown brux20 cluster | dask | dask@brux |
 
 
 ---------------------------------------
@@ -133,7 +135,7 @@ The default options for the running options and different type of executors are 
 For example:
 ```yaml
 general: 
-  scalout: 1
+  scaleout: 1
   chunksize: 100000
   limit-files: null
   limit-chunks: null
@@ -147,7 +149,7 @@ dask@lxplus:
   cores-per-worker: 1
   mem-per-worker: "2GB"
   disk-per-worker: "2GB"
-  worker-image: /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-stable
+  worker-image: /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-stable
   death-timeout: "3600"
   queue: "microcentury"
   adaptive: false
