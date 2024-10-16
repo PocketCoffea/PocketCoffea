@@ -393,6 +393,8 @@ class Shape:
             self.sum_flow_bins()
         self.load_syst_manager()
 
+        self.blind_mask = None  # blind bins depending of S/sqrt(B) threshold
+
     def load_attributes(self):
         '''Loads the attributes from the dictionary of histograms.'''
         if self.verbose>1:
@@ -776,6 +778,29 @@ class Shape:
                 stacks["mc_nominal"] = hist.Stack.from_dict(h_dict_mc_nominal)
                 stacks["mc_nominal_sum"] = self._stack_sum(stack = stacks["mc_nominal"])
 
+                if self.style.has_signal_samples and (self.style.blind_threshold >= 0):
+                    signal_samples = set(self.style.signal_samples)
+                    background_samples = {
+                        sample
+                        for sample in self.h_dict.keys()
+                        if not sample.startswith("DATA")
+                    } - signal_samples
+                    stacks["mc_nominal_signal"] = self._stack_sum(
+                        stack=hist.Stack.from_dict(
+                            {d: h_dict_mc_nominal[d] for d in signal_samples}
+                        )
+                    )
+                    stacks["mc_nominal_background"] = self._stack_sum(
+                        stack=hist.Stack.from_dict(
+                            {d: h_dict_mc_nominal[d] for d in background_samples}
+                        )
+                    )
+                    self.blind_mask = (
+                        stacks["mc_nominal_sum"].values()
+                        / np.sqrt(stacks["mc_nominal_background"].values())
+                        > self.style.blind_threshold
+                    )
+
             if not self.is_mc_only:
                 # Sum over eras if specified as extra argument
                 if 'era' in [ax.name for ax in self.categorical_axes_data]:
@@ -1107,6 +1132,8 @@ class Shape:
         if self.density:
             y = y / integral
             yerr = yerr / integral
+        if self.blind_mask is not None:
+            y[self.blind_mask] = np.nan
         self.ax.errorbar(self.style.opts_axes["xcenters"], y, yerr=yerr, **self.style.opts_data)
         self.format_figure(cat, ratio=False)
 
@@ -1123,6 +1150,16 @@ class Shape:
         else:
             if not hasattr(self, "rax"):
                 self.define_figure(ratio=True)
+
+        if self.blind_mask is not None:
+            ratio[self.blind_mask] = np.nan
+
+            self.rax.scatter(
+                np.array(self.style.opts_axes["xcenters"])[self.blind_mask],
+                np.ones(self.blind_mask.sum()),
+                marker="x",
+                color="black",
+            )
 
         # Removing nans and inf
         np.nan_to_num(ratio, copy=False)
