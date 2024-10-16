@@ -134,15 +134,17 @@ The default options for the running options and different type of executors are 
 
 For example:
 ```yaml
-general: 
+general:
   scaleout: 1
-  chunksize: 100000
+  chunksize: 150000
   limit-files: null
   limit-chunks: null
   retries: 20
   tree-reduction: 20
   skip-bad-files: false
   voms-proxy: null
+  ignore-grid-certificate: false
+  group-samples: null
 
 dask@lxplus:
   scaleout: 10
@@ -189,6 +191,47 @@ $> pocket-coffea run  --cfg analysis_config.py -o output --executor dask@lxplus 
               --chunksize 150000 --queue espresso
 ```
 
+
+### Process datasets separately and group samples
+By default, the `pocket-coffea run` command will run all the datasets together in one shot and a single output `output_all.coffea` is saved.
+In case one wants to save intermediate outputs, it is possible to run with the `--process-separately` option, where each dataset
+is processed separately and an independent output `output_{dataset}.coffea` is saved for each dataset.
+
+In case several datasets need to be processed with the `--process-separately` option, there is the additional possibility to group datasets
+belonging to the same sample, process them together and save an output `output_{group}.coffea` for each group.
+To group samples during processing it is sufficient to add an extra entry to the custom `run_options.yaml` file passed to `pocket-coffea run`,
+defining the dictionary `group-samples`. Each key in this dictionary corresponds to the group name, and the values of the dictionary are lists
+of samples.
+
+As an example, by adding the following snippet to the `run_options.yaml` file:
+
+```yaml
+group-samples:
+  signal:
+    - "ttHTobb"
+    - "ttHTobb_ttToSemiLep"
+  TTToSemiLeptonic:
+    - "TTToSemiLeptonic"
+  TTbbSemiLeptonic:
+    - "TTbbSemiLeptonic"
+  "TTTo2L2Nu_SingleTop":
+    - "TTTo2L2Nu"
+    - "SingleTop"
+  VJets:
+    - "WJetsToLNu_HT"
+    - "DYJetsToLL"
+  VV_TTV:
+    - "VV"
+    - "TTV"
+  DATA:
+    - "DATA_SingleEle"
+    - "DATA_SingleMuon"
+```
+and running the analysis with the command `pocket-coffea run --cfg config.py -ro run_options.yaml --process-separately`, will result in running
+the analysis processor sequentially for 7 times, saving 7 independent outputs: `output_signal.coffea`, `output_TTToSemiLeptonic.coffea`, `output_TTbbSemiLeptonic.coffea`,
+`output_TTTo2L2Nu_SingleTop.coffea`, `output_VJets.coffea`, `output_VV_TTV.coffea` and `output_DATA.coffea`.
+For example, the output file `output_signal.coffea` file will contain the output obtained by processing the datasets of the samples `ttHTobb` and `ttHTobb_ttToSemiLep`,
+for all the data-taking years specified in the `datasets["filter"]["year"]` dictionary.
 
 ### Customize the executor software environment
 The software environment where the executor runs the analysis is defined by the python environment where the analysis is
