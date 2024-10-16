@@ -231,7 +231,7 @@ and running the analysis with the command `pocket-coffea run --cfg config.py -ro
 the analysis processor sequentially for 7 times, saving 7 independent outputs: `output_signal.coffea`, `output_TTToSemiLeptonic.coffea`, `output_TTbbSemiLeptonic.coffea`,
 `output_TTTo2L2Nu_SingleTop.coffea`, `output_VJets.coffea`, `output_VV_TTV.coffea` and `output_DATA.coffea`.
 For example, the output file `output_signal.coffea` file will contain the output obtained by processing the datasets of the samples `ttHTobb` and `ttHTobb_ttToSemiLep`,
-for all the data-taking years specified in the `datasets["filter"]["year"]` dictionary.
+for all the data-taking years specified in the `datasets["filter"]["year"]` dictionary in the constructor of the Configurator.
 
 ### Customize the executor software environment
 The software environment where the executor runs the analysis is defined by the python environment where the analysis is
