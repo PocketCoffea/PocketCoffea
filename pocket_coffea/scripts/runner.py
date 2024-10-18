@@ -16,6 +16,7 @@ from coffea.processor import Runner
 from pocket_coffea.utils.configurator import Configurator
 from pocket_coffea.utils.utils import load_config, path_import, adapt_chunksize
 from pocket_coffea.utils.logging import setup_logging
+from pocket_coffea.utils.time import wait_until
 from pocket_coffea.parameters import defaults as parameters_utils
 from pocket_coffea.executors import executors_base
 from pocket_coffea.utils.benchmarking import print_processing_stats
@@ -149,7 +150,12 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
 
     if "parsl" in executor_name:
         logging.getLogger().handlers[0].setLevel("ERROR")
-        
+
+    # Wait until the starting time, if provided
+    if run_options["starting-time"] is not None:
+        logging.info(f"Waiting until {run_options['starting-time']} to start processing")
+        wait_until(run_options["starting-time"])
+
     # Load the executor class from the lib and instantiate it
     executor_factory = executors_lib.get_executor_factory(executor_name, run_options=run_options, outputdir=outputdir)
     # Check the type of the executor_factory
