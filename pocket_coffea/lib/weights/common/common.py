@@ -219,7 +219,7 @@ class SF_btag_calib(WeightWrapper):
             #down = out[2]
             )
 
-    
+
 ########################################
 # Ctag scale factors have weights depending on the shape_variation
 

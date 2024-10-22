@@ -8,6 +8,7 @@ general:
   skip-bad-files: false
   voms-proxy: null
   ignore-grid-certificate: false
+  group-samples: null
 
 dask@lxplus:
   scaleout: 10
@@ -58,6 +59,17 @@ dask@RWTH:
   scaleout: 10
   mem-per-worker: "2GB"
   disk-per-worker: "2GB"
+  local-virtualenv: false
+  conda-env: True
+  cores-per-worker: 1
+  walltime: "6:00:00"
+  adaptive: false
+  sched-url: null
+
+dask@brux:
+  scaleout: 336
+  mem-per-worker: "4GB"
+  disk-per-worker: "4GB"
   local-virtualenv: false
   conda-env: True
   cores-per-worker: 1
