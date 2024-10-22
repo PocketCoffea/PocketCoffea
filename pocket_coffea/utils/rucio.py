@@ -1,12 +1,13 @@
-from pocket_coffea.utils.network import get_proxy_path
+
 import os
-import getpass
+from multiprocessing import Lock
+from collections import defaultdict
 import re
 import json
 import time
 import requests
 from rucio.client import Client
-from collections import defaultdict
+from pocket_coffea.utils.network import get_proxy_path
 
 
 # Rucio needs the default configuration --> taken from CMS cvmfs defaults
@@ -57,6 +58,8 @@ def get_xrootd_sites_map():
         if file_time > ten_minutes_ago:
             cache_valid = True
 
+    lock = Lock()
+
     if not os.path.exists(".sites_map.json") or not cache_valid:
         print("Loading SITECONF info")
         sites = [
@@ -89,7 +92,11 @@ def get_xrootd_sites_map():
                         else:
                             sites_xrootd_access[site["rse"]] = proc["prefix"]
 
-        json.dump(sites_xrootd_access, open(".sites_map.json", "w"))
+        lock.acquire()
+        try:
+            json.dump(sites_xrootd_access, open(".sites_map.json", "w"))
+        finally:
+            lock.release()
 
     return json.load(open(".sites_map.json"))
 
