@@ -476,7 +476,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
             if name in self._columns:
                 self.column_managers[subs] = ColumnsManager(
-                    self._columns[name], self._categories
+                    self._columns[name], self._categories, variations_config=self.cfg.variations_config[self._sample], year=self._year, processor_params=self.params, isMC=self._isMC
                 )
 
     def define_column_accumulators_extra(self):
@@ -486,9 +486,10 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
 
     def fill_column_accumulators(self, variation):
-        if variation != "nominal":
+        
+        if (not self.params.columns_config['save_variations']) and (variation != "nominal"):
             return
-
+        
         if len(self.column_managers) == 0:
             return
 
@@ -518,12 +519,14 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     # Filling columns to be accumulated for all the chunks
                     # Calling hist manager with a subsample mask
                     if self.column_managers[subs].ncols == 0: break
-                    self.output["columns"][f"{self._sample}__{subs}"]= {
+                    self.output["columns"][f"{self._sample}__{subs}__{variation}"]= {
                         self._dataset : self.column_managers[subs].fill_columns_accumulators(
                                                    self.events,
                                                    self._categories,
                                                    subsample_mask=self._subsamples[self._sample].get_mask(subs),
-                                                   weights_manager=self.weights_manager
+                                                   weights_manager=self.weights_manager,
+                                                   shape_variation=variation,
+                                                   save_variations=self.params.columns_config['save_variations']
                                                    )
                     }
         else:
@@ -543,13 +546,15 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     subdirs = [self._dataset, category]
                     dump_ak_array(akarr, fname, self.workflow_options["dump_columns_as_arrays_per_chunk"]+"/", subdirs)
             else:
-                self.output["columns"][self._sample] = { self._dataset: self.column_managers[
+                self.output["columns"][f"{self._sample}__{variation}"] = { self._dataset: self.column_managers[
                     self._sample
                 ].fill_columns_accumulators(
                     self.events,
                     self._categories,
                     subsample_mask = None,
-                    weights_manager=self.weights_manager
+                    weights_manager=self.weights_manager,
+                    shape_variation=variation,
+                    save_variations=self.params.columns_config['save_variations']
                 ) }
 
     def fill_column_accumulators_extra(self, variation):
@@ -660,7 +665,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # This is useless. Events is just a point and we are not doing any copies
         nominal_events = self.events
 
-        #print("Variations:", variations)
         # Define flags to know if the variations include JES or JER
         has_jes = any(["JES" in v for v in variations])
         has_jer = any(["JER" in v for v in variations])

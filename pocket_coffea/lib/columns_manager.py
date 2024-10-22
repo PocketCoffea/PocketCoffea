@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import List
 from coffea.processor.accumulator import column_accumulator
 import awkward as ak
-
+from collections import defaultdict
 
 @dataclass
 class ColOut:
@@ -17,9 +17,77 @@ class ColOut:
 
 
 class ColumnsManager:
-    def __init__(self, cfg, categories_config):
+    def __init__(self, cfg, categories_config, variations_config, year, processor_params, isMC=True):
         self.cfg = cfg
         self.categories_config = categories_config
+        self.variations_config = variations_config
+        self.year = year
+        self.isMC = isMC
+        self.available_weights_variations = ["nominal"]
+        self.available_shape_variations = []
+        self.processor_params = processor_params
+        if self.isMC:
+            self.available_weights_variations_bycat = defaultdict(list)
+            self.available_shape_variations_bycat = defaultdict(list)
+            # weights variations
+            for cat, vars in self.variations_config["weights"].items():
+                self.available_weights_variations_bycat[cat].append("nominal")
+                for var in vars:
+                    # Check if the variation is a wildcard and the systematic requested has subvariations
+                    # defined in the parameters
+                    if (
+                        var
+                        in self.processor_params.systematic_variations.weight_variations
+                    ):
+                        for (
+                            subvariation
+                        ) in self.processor_params.systematic_variations.weight_variations[
+                            var
+                        ][
+                            self.year
+                        ]:
+                            self.available_weights_variations += [
+                                f"{var}_{subvariation}Up",
+                                f"{var}_{subvariation}Down",
+                            ]
+                            self.available_weights_variations_bycat[cat] += [
+                                f"{var}_{subvariation}Up",
+                                f"{var}_{subvariation}Down",
+                            ]
+                    else:
+                        vv = [f"{var}Up", f"{var}Down"]
+                        self.available_weights_variations += vv
+                        self.available_weights_variations_bycat[cat] += vv
+
+            for cat, vars in self.variations_config["shape"].items():
+                for var in vars:
+                    # Check if the variation is a wildcard and the systematic requested has subvariations
+                    # defined in the parameters
+                    if (
+                        var
+                        in self.processor_params.systematic_variations.shape_variations
+                    ):
+                        for (
+                            subvariation
+                        ) in self.processor_params.systematic_variations.shape_variations[
+                            var
+                        ][
+                            self.year
+                        ]:
+                            self.available_weights_variations += [
+                                f"{var}_{subvariation}Up",
+                                f"{var}_{subvariation}Down",
+                            ]
+                            self.available_weights_variations_bycat[cat] += [
+                                f"{var}_{subvariation}Up",
+                                f"{var}_{subvariation}Down",
+                            ]
+                    else:
+                        vv = [f"{var}Up", f"{var}Down"]
+                        self.available_shape_variations += vv
+                        self.available_shape_variations_bycat[cat] += vv
+            self.available_weights_variations = set(self.available_weights_variations)
+            self.available_shape_variations = set(self.available_shape_variations)
 
     @property
     def ncols(self):
@@ -31,7 +99,7 @@ class ColumnsManager:
         for cat in categories:
             self.cfg[cat].append(cfg)
 
-    def fill_columns_accumulators(self, events, cuts_masks, subsample_mask=None, weights_manager=None):
+    def fill_columns_accumulators(self, events, cuts_masks, subsample_mask=None, weights_manager=None, shape_variation="nominal", save_variations=False):
         self.output = {}
         for category, outarrays in self.cfg.items():
             self.output[category] = {}
@@ -41,10 +109,19 @@ class ColumnsManager:
                 mask = mask & subsample_mask
 
             # Getting the weights
-            # Only for nominal variation for the moment
             if weights_manager:
-                self.output[category]["weight"] = column_accumulator(
+                if shape_variation=="nominal" and save_variations:
+                    for variation in self.available_weights_variations_bycat[category]:
+                        if variation == "nominal":
+                            self.output[category][f"weight_{variation}"] = column_accumulator(                                                                                                                                                              ak.to_numpy(weights_manager.get_weight(category)[mask], allow_missing=False))
+                        else:
+                            # Check if the variation is available in this category
+                            self.output[category][f"weight_{variation}"] = column_accumulator(                                                                                                                                                              ak.to_numpy(weights_manager.get_weight(category, modifier=variation)[mask], allow_missing=False))
+                else:
+                    # Save only the nominal weights if a shape variation is being processed
+                    self.output[category]["weight"] = column_accumulator(
                     ak.to_numpy(weights_manager.get_weight(category)[mask], allow_missing=False))
+                    
                 
             for outarray in outarrays:
                 # Check if the cut is multidimensional
