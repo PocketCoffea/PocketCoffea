@@ -116,6 +116,7 @@ def hadd_skimmed_files(files_list, outputdir, only_datasets, files, events, scal
         metadata["size"] = int(skim_efficiency * int(df["datasets_metadata"]["by_dataset"][s]["size"])) # Compute the (approximate) size of the skimmed dataset
         metadata["nevents"] = sum(df["nskimmed_events"][s])
         metadata["skim_efficiency"] = skim_efficiency
+        metadata["isSkim"] = True
         dataset_definition[s] = {"metadata": metadata, "files": list(d['files'].keys())}
 
     json.dump(dataset_definition, open("skimmed_dataset_definition.json", "w"), indent=2)
