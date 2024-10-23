@@ -66,7 +66,7 @@ class DaskExecutorFactory(ExecutorFactoryABC):
                 memory=self.run_options['mem-per-worker'],
                 walltime=self.run_options["walltime"],
                 job_script_prologue=self.get_worker_env(),
-                local_directory=os.path.join(self.outputdir, "slurm_localdir"),
+                local_directory=os.path.join("/scratch", os.environ["USER"], "slurm_localdir"),
                 log_directory=os.path.join(self.outputdir, "slurm_log"),
             )
         print(self.get_worker_env())
