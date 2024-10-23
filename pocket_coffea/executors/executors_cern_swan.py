@@ -19,7 +19,7 @@ class PackageChecker(WorkerPlugin):
             if spec is None:
                 raise ImportError(f"Package {self.package_name} not found")
         except ImportError:
-            worker.close(timeout=0, executor_wait=False, nanny=True, reason'eos-not-ready')
+            worker.close(timeout=0, executor_wait=False, nanny=True, reason='eos-not-ready')
             
 
 class DaskExecutorFactory(ExecutorFactoryABC):

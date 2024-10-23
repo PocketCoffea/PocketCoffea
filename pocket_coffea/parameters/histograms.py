@@ -609,6 +609,8 @@ def jet_hists(coll="JetGood", pos=None, fields=None, name=None, axis_settings=No
     return _get_default_hist(name, "jet", coll, pos, fields, axis_settings, **kwargs)
 
 def jet_taggers_hists(coll="JetGood", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
+    if name == None:
+        name = coll
     out = {}
     for field in taggers_fields["jet"]:
         if fields == None or field in fields:
@@ -634,6 +636,8 @@ def jet_taggers_hists(coll="JetGood", pos=None, fields=None, name=None, axis_set
     return out
 
 def fatjet_taggers_hists(coll="FatJetGood", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
+    if name == None:
+        name = coll
     out = {}
     for field in taggers_fields["fatjet"]:
         if fields == None or field in fields:

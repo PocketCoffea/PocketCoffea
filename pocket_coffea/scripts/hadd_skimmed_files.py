@@ -1,12 +1,26 @@
 #!/usr/bin/env python
 import os
 from multiprocessing import Pool
+from functools import partial
 import argparse
 from collections import defaultdict
 from coffea.util import load
 import subprocess
 import json
 import click
+
+def do_hadd(group, overwrite=False):
+    try:
+        print("Running: ", group[0])
+        if overwrite:
+            subprocess.run(["hadd", "-f", group[0], *group[1]], check=True)
+        else:
+            subprocess.run(["hadd", group[0], *group[1]], check=True)
+        return group[0], 0
+    except subprocess.CalledProcessError as e:
+        print("Error producing group: ", group[0])
+        print(e.stderr)
+        return group[0], 1
 
 @click.command()
 @click.option(
@@ -51,7 +65,7 @@ def hadd_skimmed_files(files_list, outputdir, only_datasets, files, events, scal
         group = []
         ngroup = 1
         for file, nevents in zip(
-            df["skimmed_files"][dataset], df["nskimmed_files"][dataset]
+            df["skimmed_files"][dataset], df["nskimmed_events"][dataset]
         ):
             if (files and (nfiles + 1) > files) or (
                 events and (nevents_tot + nevents) > events
@@ -77,23 +91,14 @@ def hadd_skimmed_files(files_list, outputdir, only_datasets, files, events, scal
     print(f"We will hadd {len(workload)} groups of files.")
     print("Samples:", groups_metadata.keys())
 
-    def do_hadd(group):
-        try:
-            print("Running: ", group[0])
-            if overwrite:
-                subprocess.run(["hadd", "-f", group[0], *group[1]], check=True)
-            else:
-                subprocess.run(["hadd", group[0], *group[1]], check=True)
-            return group[0], 0
-        except subprocess.CalledProcessError as e:
-            print("Error producing group: ", group[0])
-            print(e.stderr)
-            return group[0], 1
-
-
     if not dry:
         p = Pool(scaleout)
-        results = p.map(do_hadd, workload)
+        # Create one output folder for each dataset
+        for outfile, group in workload:
+            basedir = os.path.dirname(outfile)
+            if not os.path.exists(basedir):
+                os.makedirs(basedir)
+        results = p.map(partial(do_hadd, overwrite=overwrite), workload)
 
         print("\n\n\n")
         for group, r in results:
@@ -103,9 +108,16 @@ def hadd_skimmed_files(files_list, outputdir, only_datasets, files, events, scal
     json.dump(groups_metadata, open("hadd.json", "w"), indent=2)
 
     # Now saving the dataset definition file
-    dataset_definition = {
-        s: {"files": list(d['files'].keys())} for s, d in groups_metadata.items()
-    }
+    dataset_metadata = df["datasets_metadata"]["by_dataset"]
+    dataset_definition = {}
+    for s, d in groups_metadata.items():
+        metadata = dataset_metadata[s]
+        skim_efficiency = df["cutflow"]["skim"][s] / df["cutflow"]["initial"][s]
+        metadata["size"] = int(skim_efficiency * int(df["datasets_metadata"]["by_dataset"][s]["size"])) # Compute the (approximate) size of the skimmed dataset
+        metadata["nevents"] = sum(df["nskimmed_events"][s])
+        metadata["skim_efficiency"] = skim_efficiency
+        metadata["isSkim"] = True
+        dataset_definition[s] = {"metadata": metadata, "files": list(d['files'].keys())}
 
     json.dump(dataset_definition, open("skimmed_dataset_definition.json", "w"), indent=2)
 
