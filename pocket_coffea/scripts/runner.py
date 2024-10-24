@@ -191,7 +191,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
 
         adapted_chunksize = adapt_chunksize(n_events_tot, run_options)
         if adapted_chunksize != run_options["chunksize"]:
-            logging.info(f"Reducing chunksize from {run_options['chunksize']} to {adapted_chunksize} for dataset(s) {group_name}")
+            logging.info(f"Reducing chunksize from {run_options['chunksize']} to {adapted_chunksize} for datasets")
 
         run = Runner(
             executor=executor,
