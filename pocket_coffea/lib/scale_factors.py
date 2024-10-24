@@ -11,6 +11,8 @@ def get_ele_sf(
     If 'reco', the appropriate corrections are chosen by using the argument `pt_region`.
     '''
     electronSF = params["lepton_scale_factors"]["electron_sf"]
+    # translate the `year` key into the corresponding key in the correction file provided by the EGM-POG
+    year_pog = electronSF["era_mapping"][year]
 
     if key in ['reco', 'id']:
         electron_correctionset = correctionlib.CorrectionSet.from_file(
@@ -22,9 +24,6 @@ def get_ele_sf(
             sfname = electronSF.JSONfiles[year]["reco"][pt_region]
         elif key == 'id':
             sfname = electronSF["id"][params.object_preselection["Electron"]["id"]]
-
-        # translate the `year` key into the corresponding key in the correction file provided by the EGM-POG
-        year_pog = electronSF["era_mapping"][year]
         
         if year in ["2023_preBPix", "2023_postBPix"]:
             # Starting from 2023 SFs require the phi:
@@ -67,11 +66,16 @@ def get_ele_sf(
         map_name = electronSF.trigger_sf[year]["name"]
 
         output = {}
+        trigger_path = electronSF.trigger_sf[year]["path"]
         for variation in variations:
             if variation == "nominal":
                 output[variation] = [
                     electron_correctionset[map_name].evaluate(
-                        variation, pt.to_numpy(), eta.to_numpy()
+                        year_pog,
+                        "sf",
+                        trigger_path,
+                        eta.to_numpy(),
+                        pt.to_numpy(),
                     )
                 ]
             else:
@@ -81,10 +85,18 @@ def get_ele_sf(
                 output[variation] = [
                     nominal,
                     electron_correctionset[map_name].evaluate(
-                        f"{variation}Up", pt.to_numpy(), eta.to_numpy()
+                        year_pog,
+                        f"{variation}up",
+                        trigger_path,
+                        eta.to_numpy(),
+                        pt.to_numpy(),
                     ),
                     electron_correctionset[map_name].evaluate(
-                        f"{variation}Down", pt.to_numpy(), eta.to_numpy()
+                        year_pog,
+                        f"{variation}down",
+                        electronSF.trigger_sf[year]["path"],
+                        eta.to_numpy(),
+                        pt.to_numpy(),
                     ),
                 ]
             for i, sf in enumerate(output[variation]):
@@ -93,6 +105,47 @@ def get_ele_sf(
         return output
     else:
         raise Exception(f"Invalid key `{key}` for get_ele_sf. Available keys are 'reco', 'id', 'trigger'.")
+    
+
+def sf_ele_trigger_EGM(params, events, year):
+    """Compute electron trigger scale factors using the EGM JSON files with correctionlib.
+    Returns the per-event scale factor for the trigger.
+
+    Returns:
+    --------
+    tuple: (sf, sfup, sfdown) per-event scale factor
+    """
+    electronSF = params.lepton_scale_factors.electron_sf
+    year_pog = electronSF.era_mapping[year]
+    map_name = electronSF.trigger_sf[year].name
+    trigger_path = electronSF.trigger_sf[year].path
+
+    coll = electronSF.collection
+    ele_pt = events[coll].pt
+    ele_eta = events[coll].etaSC
+
+    ele_pt_flat, ele_eta_flat, ele_counts = (
+        ak.flatten(ele_pt).to_numpy(),
+        ak.flatten(ele_eta).to_numpy(),
+        ak.num(ele_pt),
+    )
+
+    electron_correctionset = correctionlib.CorrectionSet.from_file(
+        electronSF.trigger_sf[year].file
+    )
+    corr_eval = electron_correctionset[map_name].evaluate
+
+    # get sf, sfup, sfdown per electron
+    scale_factors = [
+        ak.unflatten(
+            corr_eval(year_pog, variation, trigger_path, ele_eta_flat, ele_pt_flat),
+            ele_counts,
+        )
+        for variation in ("sf", "sfup", "sfdown")
+    ]
+
+    # return a per-event scale factor by multiplying all electron scale factors
+    return tuple(ak.prod(sf, axis=1) for sf in scale_factors)
 
 
 def get_mu_sf(params, year, pt, eta, counts, key=''):
