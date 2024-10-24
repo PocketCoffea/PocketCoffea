@@ -116,6 +116,8 @@ def hadd_skimmed_files(files_list, outputdir, only_datasets, files, events, scal
         metadata["size"] = str(int(skim_efficiency * int(df["datasets_metadata"]["by_dataset"][s]["size"]))) # Compute the (approximate) size of the skimmed dataset
         metadata["nevents"] = str(sum(df["nskimmed_events"][s]))
         metadata["skim_efficiency"] = str(skim_efficiency)
+        if metadata["isMC"] in ["True", "true", True]:
+            metadata["skim_rescale_genweights"] = str(df["sum_genweights"][s] / df["sum_genweights_skimmed"][s]) # Compute the rescale factor for the genweights as the inverse of the skim genweighed efficiency
         metadata["isSkim"] = "True"
         dataset_definition[s] = {"metadata": metadata, "files": list(d['files'].keys())}
 

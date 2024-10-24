@@ -126,7 +126,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self._year = self.events.metadata["year"]
         self._isMC = ((self.events.metadata["isMC"] in ["True", "true"])
                       or (self.events.metadata["isMC"] == True))
-        # if the dataset is a skim the skimRescaleGenWeight variable is used to rescale the sumgenweight
+        # if the dataset is a skim the sumgenweights are scaled by the skim efficiency
         self._isSkim = ("isSkim" in self.events.metadata and self.events.metadata["isSkim"] in ["True","true"]) or(
             "isSkim" in self.events.metadata and self.events.metadata["isSkim"] == True)
         # for some reason this get to a string WIP
@@ -190,7 +190,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             #sumgenweight after the skimming
             skimmed_sumw = ak.sum(self.events.genWeight)
             # the scaling factor is the original sumgenweight / the skimmed sumgenweight
-            self.events["skimRescaleGenWeight"] =  np.ones(self.nEvents_after_skim) * self.output['sum_genweights'][self._dataset] / skimmed_sumw
             self.output['sum_genweights_skimmed'] = { self._dataset : skimmed_sumw }
         
         filename = (
@@ -834,7 +833,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 self.output['sum_genweights'][self._dataset] = ak.sum(self.events.genWeight)
             else:
                 # If the dataset is a skim, the sumgenweights are rescaled
-                self.output['sum_genweights'][self._dataset] = ak.sum(self.events.skimRescaleGenWeight * self.events.genWeight)
+                self.output['sum_genweights'][self._dataset] = ak.sum(self.events.metadata["skim_rescale_genweights"] * self.events.genWeight)
             #FIXME: handle correctly the skim for the sum_signOf_genweights
             self.output['sum_signOf_genweights'][self._dataset] = ak.sum(np.sign(self.events.genWeight))
                 
