@@ -198,6 +198,7 @@ class PlotManager:
                 vs[year] = hs
             self.hists_to_plot[variable] = vs
 
+        h_metadata = {}
         for variable, histoplot in self.hists_to_plot.items():
             for year, h_dict in histoplot.items():
                 if self.only_year and year not in self.only_year:
@@ -209,19 +210,38 @@ class PlotManager:
                 else:
                     toplabel_to_use = f"$\mathcal{{L}}$ = {style_cfg.plot_upper_label.by_year[year]:.2f}/fb"
 
-                self.shape_objects[name] = Shape(
-                    h_dict,
-                    datasets_metadata["by_dataset"],
-                    name,
-                    plot_dir,
-                    style_cfg=style_cfg,
-                    only_cat=self.only_cat,
-                    log=self.log,
-                    density=self.density,
-                    toplabel=toplabel_to_use,
-                    year=year,
-                    verbose=self.verbose
-                )
+                h_metadata[name] = {"name": name, "h_dict": h_dict, "year": year, "toplabel": toplabel_to_use}
+
+                def create_shape(metadata):
+                    name = metadata["name"]
+                    h_dict = metadata["h_dict"]
+                    year = metadata["year"]
+                    toplabel_to_use = metadata["toplabel"]
+                    print("Creating shape:", name)
+                    return Shape(
+                        h_dict,
+                        datasets_metadata["by_dataset"],
+                        name,
+                        plot_dir,
+                        style_cfg=style_cfg,
+                        only_cat=self.only_cat,
+                        log=self.log,
+                        density=self.density,
+                        toplabel=toplabel_to_use,
+                        year=year,
+                        verbose=self.verbose
+                    )
+
+                if self.workers > 1:
+                    with Pool(processes=self.workers) as pool:
+                        # Parallel calls of create_shape() on different shape objects
+                        results = pool.map(create_shape, h_metadata.values())
+                        for shape in results:
+                            self.shape_objects[shape.name] = shape
+                        pool.close()
+                else:
+                    for metadata in h_metadata.values():
+                        self.shape_objects[metadata["name"]] = create_shape(metadata)
         if self.save:
             self.make_dirs()
             if self.index_file is not None:
