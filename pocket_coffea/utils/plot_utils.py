@@ -1,5 +1,6 @@
 import os
 from copy import deepcopy
+import multiprocessing
 from multiprocessing import Pool
 from collections import defaultdict
 from functools import partial
@@ -164,7 +165,9 @@ class PlotManager:
     ) -> None:
 
         self.shape_objects = {}
+        self.datasets_metadata = datasets_metadata
         self.plot_dir = plot_dir
+        self.style_cfg = style_cfg
         self.only_cat = only_cat
         self.only_year = only_year
         self.workers = workers
@@ -182,7 +185,7 @@ class PlotManager:
         self.hists_to_plot = {}
         for variable in variables:
             vs = {}
-            for year, samples in datasets_metadata["by_datataking_period"].items():
+            for year, samples in self.datasets_metadata["by_datataking_period"].items():
                 if self.only_year and year not in self.only_year:
                     continue
                 hs = {}
@@ -198,7 +201,7 @@ class PlotManager:
                 vs[year] = hs
             self.hists_to_plot[variable] = vs
 
-        h_metadata = {}
+        h_args = []
         for variable, histoplot in self.hists_to_plot.items():
             for year, h_dict in histoplot.items():
                 if self.only_year and year not in self.only_year:
@@ -208,45 +211,48 @@ class PlotManager:
                 if self.toplabel:
                     toplabel_to_use = self.toplabel
                 else:
-                    toplabel_to_use = f"$\mathcal{{L}}$ = {style_cfg.plot_upper_label.by_year[year]:.2f}/fb"
+                    toplabel_to_use = f"$\mathcal{{L}}$ = {self.style_cfg.plot_upper_label.by_year[year]:.2f}/fb"
 
-                h_metadata[name] = {"name": name, "h_dict": h_dict, "year": year, "toplabel": toplabel_to_use}
+                h_args.append({"name": name, "h_dict": h_dict, "year": year, "toplabel_to_use": toplabel_to_use})
 
-                def create_shape(metadata):
-                    name = metadata["name"]
-                    h_dict = metadata["h_dict"]
-                    year = metadata["year"]
-                    toplabel_to_use = metadata["toplabel"]
-                    print("Creating shape:", name)
-                    return Shape(
-                        h_dict,
-                        datasets_metadata["by_dataset"],
-                        name,
-                        plot_dir,
-                        style_cfg=style_cfg,
-                        only_cat=self.only_cat,
-                        log=self.log,
-                        density=self.density,
-                        toplabel=toplabel_to_use,
-                        year=year,
-                        verbose=self.verbose
-                    )
-
-                if self.workers > 1:
-                    with Pool(processes=self.workers) as pool:
-                        # Parallel calls of create_shape() on different shape objects
-                        results = pool.map(create_shape, h_metadata.values())
-                        for shape in results:
-                            self.shape_objects[shape.name] = shape
-                        pool.close()
-                else:
-                    for metadata in h_metadata.values():
-                        self.shape_objects[metadata["name"]] = create_shape(metadata)
+        if self.workers > 1:
+            print("Available CPUs:", multiprocessing.cpu_count())
+            print("Creating shapes using multiprocessing with", self.workers, "workers.")
+            with Pool(processes=self.workers) as pool:
+                # Parallel calls of create_shape() on different shape objects
+                results = pool.map(self.create_shape, h_args)
+                for shape in results:
+                    self.shape_objects[shape.name] = shape
+                pool.close()
+        else:
+            for args in h_args:
+                self.shape_objects[args["name"]] = self.create_shape(args)
         if self.save:
             self.make_dirs()
             if self.index_file is not None:
                 self.copy_index_file()
             matplotlib.use('agg')
+
+    def create_shape(self, h_args):
+        '''Creates a Shape object and stores it in the dictionary.'''
+        name = h_args["name"]
+        h_dict = h_args["h_dict"]
+        year = h_args["year"]
+        toplabel_to_use = h_args["toplabel_to_use"]
+        print(f"Process {os.getpid()}: Creating shape:", name)
+        return Shape(
+            h_dict,
+            self.datasets_metadata["by_dataset"],
+            name,
+            self.plot_dir,
+            style_cfg=self.style_cfg,
+            only_cat=self.only_cat,
+            log=self.log,
+            density=self.density,
+            toplabel=toplabel_to_use,
+            year=year,
+            verbose=self.verbose
+        )
 
     def make_dirs(self):
         '''Create directories recursively before saving plots with multiprocessing
