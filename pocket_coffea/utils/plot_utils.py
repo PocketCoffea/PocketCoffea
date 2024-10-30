@@ -763,10 +763,19 @@ class Shape:
         hnum = stacks["data_sum"]
         hden = stacks["mc_nominal_sum"]
 
-        num = hnum.values()
-        den = hden.values()
-        num_variances = hnum.variances()
-        den_variances = hden.variances()
+        num = hnum.values(flow=self.style.flow)
+        den = hden.values(flow=self.style.flow)
+        num_variances = hnum.variances(flow=self.style.flow)
+        den_variances = hden.variances(flow=self.style.flow)
+
+        # Sum underflow and overflow bins for the numerator and denominator, to restore an array of the same length
+        if self.style.flow:
+            if (len(num) != (len(hnum.values()) + 2)) | (len(den) != (len(hden.values()) + 2)):
+                raise NotImplementedError("Both underflow and overflow bins have to be defined. Please set `overflow=True` and `underflow=True` in the constructor of the Axis object, in your configuration.")
+            num = np.concatenate([[num[0]+num[1]], num[2:-2], [num[-2]+num[-1]]])
+            den = np.concatenate([[den[0]+den[1]], den[2:-2], [den[-2]+den[-1]]])
+            num_variances = np.concatenate([[num_variances[0]+num_variances[1]], num_variances[2:-2], [num_variances[-2]+num_variances[-1]]])
+            den_variances = np.concatenate([[den_variances[0]+den_variances[1]], den_variances[2:-2], [den_variances[-2]+den_variances[-1]]])
 
         if self.density:
             num_integral = sum(num * np.array(self.style.opts_axes["xbinwidth"]) )
@@ -779,7 +788,7 @@ class Shape:
                 den_variances = den_variances * (1./den_integral)**2
 
         ratio = num / den
-        # Total uncertainy propagation of num / den :
+        # Total uncertainty propagation of num / den :
         # ratio_variance = np.power(ratio,2)*( num_variances*np.power(num, -2) + den_variances*np.power(den, -2))
         # Only the uncertainty of num (DATA) propagated:
         ratio_variance = num_variances * np.power(den, -2)
@@ -1030,7 +1039,7 @@ class Shape:
         else:
             if not hasattr(self, "ax"):
                 self.define_figure(ratio=False)
-        y = stacks["data_sum"].values()
+        y = deepcopy(stacks["data_sum"].values())
         if self.style.flow:
             y[0] += stacks["data_sum"][hist.underflow].value
             y[-1] += stacks["data_sum"][hist.overflow].value
