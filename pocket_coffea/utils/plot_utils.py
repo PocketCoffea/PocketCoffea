@@ -601,11 +601,11 @@ class Shape:
             for s_to_group in samples_list:
                 if s_to_group not in self.h_dict.keys():
                     if self.verbose>=0:
-                        print("WARNING. Sample ",s_to_group," is not in the list of samples: ", list(self.h_dict.keys()), "Skipping it.")
+                        print(f"{self.name}: WARNING. Sample ",s_to_group," is not in the list of samples: ", list(self.h_dict.keys()), "Skipping it.")
                     cleaned_samples_list[sample_new].remove(s_to_group)
                     continue
                 if self.verbose>=1:
-                    print("\t Sample ",s_to_group," will be grouped into sample", sample_new)
+                    print(f"\t {self.name}: Sample ",s_to_group," will be grouped into sample", sample_new)
 
         for sample_new, samples_list in cleaned_samples_list.items():
             if len(samples_list)==0:
@@ -1008,7 +1008,7 @@ class Shape:
                         print("Plotting signal sample:", sig, "scale=", scale_sig, "cat=", cat, "hist=", self.name)
 
                     h_sig = scale_sig*self.h_dict[sig][{'cat': cat, 'variation': 'nominal'}]
-                    h_sig.plot(ax=self.ax, color=self.colors[sig], density=self.density, **self.style.opts_sig, label=sig+'_sig')
+                    h_sig.plot(ax=self.ax, color=self.colors[sig], density=self.density, flow=self.style.flow, **self.style.opts_sig, label=sig+'_sig')
                     # Note: '_sig' str is added to the label of the signal sample, in order to distinguish it
                     # from the same label present in the mc-stack histograms.
                 else:
@@ -1031,6 +1031,9 @@ class Shape:
             if not hasattr(self, "ax"):
                 self.define_figure(ratio=False)
         y = stacks["data_sum"].values()
+        if self.style.flow:
+            y[0] += stacks["data_sum"][hist.underflow].value
+            y[-1] += stacks["data_sum"][hist.overflow].value
 
         # Blinding data for certain variables (if defined in plotting config)
         if self.style.has_blind_hists and cat in self.style.blind_hists.categories:
