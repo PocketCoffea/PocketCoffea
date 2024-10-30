@@ -377,10 +377,6 @@ class Shape:
         self.exclude_samples()
         self.rescale_samples()
         self.load_attributes()
-        # IMPORTANT: the flow bins should be summed before loading the SystManager,
-        # so that the systematic uncertainties are built with the flow bins included in the first and last bins
-        if self.style.flow:
-            self.sum_flow_bins()
         self.load_syst_manager()
 
     def load_attributes(self):
@@ -656,46 +652,6 @@ class Shape:
                 if self.verbose>0:
                     print("Warning: the rescaling sample is not among the samples in the histograms. Nothing will be rescaled! ")
                     print("\t Rescale requested for:", sample, ";  hists exist:", self.h_dict.keys())
-
-    def sum_flow_bins(self):
-        '''Add the underflow and overflow bins to the first and last bins, respectively.
-        The operation is performed for each sample and for each category for data histograms.
-        It is performed for each sample, category and variation for MC histograms.
-        The underflow and overflow bins are set to zero after summing them to the first and last bins.'''
-        if self.dense_dim > 1:
-            print(f"WARNING: cannot sum flow bins of histogram {self.name} with dimension {self.dense_dim}.")
-            print("The method `sum_flow_bins` will be skipped.")
-            return
-
-        xaxis_name = self.dense_axes[0].name
-
-        for s, h in self.h_dict.items():
-            if s in self.samples_mc:
-                if len(self.categorical_axes_mc) != 2:
-                    raise NotImplementedError(
-                        "The flow option is only implemented for histograms with two categorical axes `cat` and `variation`."
-                    )
-                assert self.categorical_axes_mc[0].name == "cat", "The first categorical axis should be named `cat`."
-                assert self.categorical_axes_mc[1].name == "variation", "The second categorical axis should be named `variation`."
-                for cat, variation in product(self.categorical_axes_mc[0], self.categorical_axes_mc[1]):
-                    self.h_dict[s][{'cat' : cat, 'variation' : variation, xaxis_name : 0}] += self.h_dict[s][{'cat' : cat, 'variation' : variation, xaxis_name : hist.underflow}]
-                    self.h_dict[s][{'cat' : cat, 'variation' : variation, xaxis_name : -1}] += self.h_dict[s][{'cat' : cat, 'variation' : variation, xaxis_name : hist.overflow}]
-                    # Set the underflow and overflow bins to zero after summing them
-                    self.h_dict[s][{'cat' : cat, 'variation' : variation, xaxis_name : hist.underflow}] = [0.0, 0.0]
-                    self.h_dict[s][{'cat' : cat, 'variation' : variation, xaxis_name : hist.overflow}] = [0.0, 0.0]
-
-            elif s in self.samples_data:
-                if len(self.categorical_axes_data) != 1:
-                    raise NotImplementedError(
-                        "The flow option is only implemented for histograms with one categorical axis `cat`."
-                    )
-                assert self.categorical_axes_data[0].name == "cat", "The first categorical axis should be named `cat`."
-                for cat in self.categorical_axes_data[0]:
-                    self.h_dict[s][{'cat' : cat, xaxis_name : 0}] += self.h_dict[s][{'cat' : cat, xaxis_name : hist.underflow}]
-                    self.h_dict[s][{'cat' : cat, xaxis_name : -1}] += self.h_dict[s][{'cat' : cat, xaxis_name : hist.overflow}]
-                    # Set the underflow and overflow bins to zero after summing them
-                    self.h_dict[s][{'cat' : cat, xaxis_name : hist.underflow}] = [0.0, 0.0]
-                    self.h_dict[s][{'cat' : cat, xaxis_name : hist.overflow}] = [0.0, 0.0]
 
     def _get_stacks(self, cat, spliteras=False):
         '''Builds the data and MC stacks, applying a slicing by category.
