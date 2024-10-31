@@ -1,4 +1,4 @@
-general: 
+general:
   scaleout: 1
   chunksize: 150000
   limit-files: null
@@ -8,6 +8,7 @@ general:
   skip-bad-files: false
   voms-proxy: null
   ignore-grid-certificate: false
+  group-samples: null
 
 dask@lxplus:
   scaleout: 10
@@ -22,7 +23,7 @@ dask@lxplus:
   custom-setup-commands: null
   conda-env: false
   local-virtualenv: false
-  
+
 
 dask@T3_CH_PSI:
   scaleout: 10
@@ -52,7 +53,29 @@ parsl-condor@RWTH:
   local-virtualenv: false
   conda-env: True
   cores-per-worker: 1
-  walltime: "12:00:00"
+  walltime: "6:00:00"
+
+dask@RWTH:
+  scaleout: 10
+  mem-per-worker: "2GB"
+  disk-per-worker: "2GB"
+  local-virtualenv: false
+  conda-env: True
+  cores-per-worker: 1
+  walltime: "6:00:00"
+  adaptive: false
+  sched-url: null
+
+dask@brux:
+  scaleout: 336
+  mem-per-worker: "4GB"
+  disk-per-worker: "4GB"
+  local-virtualenv: false
+  conda-env: True
+  cores-per-worker: 1
+  walltime: "6:00:00"
+  adaptive: false
+  sched-url: null
 
 dask@purdue-af:
   gateway-address: "http://dask-gateway-k8s.geddes.rcac.purdue.edu/"
@@ -65,6 +88,6 @@ dask@purdue-af:
 dask@infn-af:
   adaptive: false
   sched-url: null
-  
+
 dask@swan:
   sched-url: null

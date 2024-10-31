@@ -26,6 +26,7 @@ analysis phase space and metadata from CMS groups, and an analysis's run configu
 changelog.md
 installation.md
 running.md
+law_tasks.md
 analysis_example.md
 recipes.md
 plots.md

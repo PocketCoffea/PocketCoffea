@@ -3,6 +3,7 @@ from copy import deepcopy
 from multiprocessing import Pool
 from collections import defaultdict
 from functools import partial
+from itertools import product
 from warnings import warn
 
 import math
@@ -60,68 +61,58 @@ class Style:
 
     def __init__(self, style_cfg) -> None:
         self.style_cfg = style_cfg
-        self._required_keys = ["opts_figure", "opts_mc", "opts_sig", "opts_data", "opts_unc"]
-        for key in self._required_keys:
-            assert (
-                key in style_cfg
-            ), f"The key `{key}` is not defined in the style dictionary."
-        for key, item in style_cfg.items():
+        self._required_keys = [
+            "opts_figure",
+            "opts_mc",
+            "opts_sig",
+            "opts_data",
+            "opts_unc",
+        ]
+        self.set_defaults()
+        for key, item in self.style_cfg.items():
             setattr(self, key, item)
+
         self.has_labels = "labels_mc" in style_cfg
         self.has_samples_groups = "samples_groups" in style_cfg
         self.has_exclude_samples = "exclude_samples" in style_cfg
         self.has_rescale_samples = "rescale_samples" in style_cfg
         self.has_colors_mc = "colors_mc" in style_cfg
+        self.has_signal_samples = "signal_samples" in style_cfg
 
         self.has_blind_hists = False
         if "blind_hists" in style_cfg:
-            if 'categories' in style_cfg["blind_hists"] and 'histograms' in style_cfg["blind_hists"]:
-                if len(style_cfg["blind_hists"]["categories"])!=0 and len(style_cfg["blind_hists"]["histograms"])!=0:
+            if (
+                "categories" in style_cfg["blind_hists"]
+                and "histograms" in style_cfg["blind_hists"]
+            ):
+                if (
+                    len(style_cfg["blind_hists"]["categories"]) != 0
+                    and len(style_cfg["blind_hists"]["histograms"]) != 0
+                ):
                     self.has_blind_hists = True
 
-        self.has_signal_samples = False
-        if "signal_samples" in self.style_cfg:
-            self.has_signal_samples = True
-
-        self.has_compare_ref = None
+        self.has_compare_ref = False
         if "compare" in self.style_cfg:
             if "ref" in self.style_cfg["compare"]:
                 self.has_compare_ref = True
 
-        self.set_defaults()
-
-        if self.opts_mc["flow"] == "sum":
-            self.flow = True
-        else:
-            self.flow = False
-
-        #print("Style config:\n", style_cfg)
+        self.flow = self.opts_mc["flow"] == "sum"
 
     def set_defaults(self):
-        for key in self._required_keys:
-            for subkey, val_default in plotting_style_defaults[key].items():
-                if subkey not in self.style_cfg[key]:
-                    self.style_cfg[key][subkey] = val_default
+        # load default plotting paramters, update with user-defined values
+        self.style_cfg = merge_parameters(
+            plotting_style_defaults, self.style_cfg, update=True
+        )
 
-        # Overwrite the default values with the user-defined values and check if they are valid
-        for key, is_mc in zip(["categorical_axes_data", "categorical_axes_mc"], [False, True]):
-            parameters_categorical_axes = plotting_style_defaults[key]
-            if key in self.style_cfg:
-                parameters_categorical_axes.update(self.style_cfg[key])
-            self.style_cfg[key] = parameters_categorical_axes
+        # check if the user-defined values are valid
+        for key, is_mc in zip(
+            ["categorical_axes_data", "categorical_axes_mc"], [False, True]
+        ):
             for subkey, val in self.style_cfg[key].items():
                 if (subkey, val) not in self._available_categorical_axes(is_mc).items():
-                    raise Exception(f"The key `{subkey}` with value `{val}` is not a valid categorical axis for {key}. Available axes: {self._available_categorical_axes(is_mc)}")
-            setattr(self, key, self.style_cfg[key])
-
-        self.fontsize = getattr(self, "fontsize", 22)
-
-        # default experiment label location: upper left inside plot
-        # https://twiki.cern.ch/twiki/bin/viewauth/CMS/Internal/FigGuidelines
-        self.experiment_label_loc = getattr(self, "experiment_label_loc", 2)
-
-        self.print_info = getattr(self, "print_info", {"category": False, "year": False})
-
+                    raise Exception(
+                        f"The key `{subkey}` with value `{val}` is not a valid categorical axis for {key}. Available axes: {self._available_categorical_axes(is_mc)}"
+                    )
 
     def update(self, style_cfg):
         '''Updates the style options with a new dictionary.'''
@@ -163,20 +154,24 @@ class PlotManager:
         style_cfg,
         toplabel=None,
         only_cat=None,
+        only_year=None,
         workers=8,
         log=False,
         density=False,
         verbose=1,
-        save=True
+        save=True,
+        index_file=None
     ) -> None:
 
         self.shape_objects = {}
         self.plot_dir = plot_dir
         self.only_cat = only_cat
+        self.only_year = only_year
         self.workers = workers
         self.log = log
         self.density = density
         self.save = save
+        self.index_file = index_file
         self.nhists = len(variables)
         self.toplabel = toplabel
         self.verbose=verbose
@@ -188,6 +183,8 @@ class PlotManager:
         for variable in variables:
             vs = {}
             for year, samples in datasets_metadata["by_datataking_period"].items():
+                if self.only_year and year not in self.only_year:
+                    continue
                 hs = {}
                 for sample, datasets in samples.items():
                     hs[sample] = {}
@@ -203,6 +200,8 @@ class PlotManager:
 
         for variable, histoplot in self.hists_to_plot.items():
             for year, h_dict in histoplot.items():
+                if self.only_year and year not in self.only_year:
+                    continue
                 name = '_'.join([variable, year])
                 # If toplabel is overwritten we use that, if not we take the lumi from the year
                 if self.toplabel:
@@ -225,6 +224,8 @@ class PlotManager:
                 )
         if self.save:
             self.make_dirs()
+            if self.index_file is not None:
+                self.copy_index_file()
             matplotlib.use('agg')
 
     def make_dirs(self):
@@ -237,6 +238,18 @@ class PlotManager:
                 plot_dir = os.path.join(self.plot_dir, cat)
                 if not os.path.exists(plot_dir):
                     os.makedirs(plot_dir)
+
+    def copy_index_file(self):
+        '''Copy the specified index file to the plot directory and each of the subdirectories.'''
+        if not os.path.exists(self.index_file):
+            raise Exception(f"Index file {self.index_file} not found.")
+        os.system(f"cp {self.index_file} {self.plot_dir}")
+        for name, shape in self.shape_objects.items():
+            for cat in shape.categories:
+                if self.only_cat and cat not in self.only_cat:
+                    continue
+                plot_dir = os.path.join(self.plot_dir, cat)
+                os.system(f"cp {self.index_file} {plot_dir}")
 
     def plot_datamc(self, name, ratio=True, syst=True, spliteras=False, format="png"):
         '''Plots one histogram, for all years and categories.'''
@@ -364,6 +377,11 @@ class Shape:
         self.exclude_samples()
         self.rescale_samples()
         self.load_attributes()
+        # IMPORTANT: the flow bins should be summed before loading the SystManager,
+        # so that the systematic uncertainties are built with the flow bins included in the first and last bins
+        if self.style.flow:
+            self.sum_flow_bins()
+        self.load_syst_manager()
 
     def load_attributes(self):
         '''Loads the attributes from the dictionary of histograms.'''
@@ -390,7 +408,6 @@ class Shape:
                     ],
                     self.get_axis_items(ax.name, is_mc=True),
                 )
-            self.syst_manager = SystManager(self, self.style)
         if not self.is_mc_only:
             assert len(
                 set([self.h_dict[s].ndim for s in self.samples_data])
@@ -429,6 +446,17 @@ class Shape:
                     }
                 }
             )
+
+    def load_syst_manager(self):
+        '''Loads the attributes from the dictionary of histograms.'''
+        if self.verbose>1:
+            print(self.h_dict)
+            print("samples:", self.samples_mc)
+
+        self.is_data_only = len(self.samples_mc) == 0
+
+        if not self.is_data_only:
+            self.syst_manager = SystManager(self, self.style)
 
     @property
     def dense_axes(self):
@@ -629,6 +657,46 @@ class Shape:
                     print("Warning: the rescaling sample is not among the samples in the histograms. Nothing will be rescaled! ")
                     print("\t Rescale requested for:", sample, ";  hists exist:", self.h_dict.keys())
 
+    def sum_flow_bins(self):
+        '''Add the underflow and overflow bins to the first and last bins, respectively.
+        The operation is performed for each sample and for each category for data histograms.
+        It is performed for each sample, category and variation for MC histograms.
+        The underflow and overflow bins are set to zero after summing them to the first and last bins.'''
+        if self.dense_dim > 1:
+            print(f"WARNING: cannot sum flow bins of histogram {self.name} with dimension {self.dense_dim}.")
+            print("The method `sum_flow_bins` will be skipped.")
+            return
+
+        xaxis_name = self.dense_axes[0].name
+
+        for s, h in self.h_dict.items():
+            if s in self.samples_mc:
+                if len(self.categorical_axes_mc) != 2:
+                    raise NotImplementedError(
+                        "The flow option is only implemented for histograms with two categorical axes `cat` and `variation`."
+                    )
+                assert self.categorical_axes_mc[0].name == "cat", "The first categorical axis should be named `cat`."
+                assert self.categorical_axes_mc[1].name == "variation", "The second categorical axis should be named `variation`."
+                for cat, variation in product(self.categorical_axes_mc[0], self.categorical_axes_mc[1]):
+                    self.h_dict[s][{'cat' : cat, 'variation' : variation, xaxis_name : 0}] += self.h_dict[s][{'cat' : cat, 'variation' : variation, xaxis_name : hist.underflow}]
+                    self.h_dict[s][{'cat' : cat, 'variation' : variation, xaxis_name : -1}] += self.h_dict[s][{'cat' : cat, 'variation' : variation, xaxis_name : hist.overflow}]
+                    # Set the underflow and overflow bins to zero after summing them
+                    self.h_dict[s][{'cat' : cat, 'variation' : variation, xaxis_name : hist.underflow}] = [0.0, 0.0]
+                    self.h_dict[s][{'cat' : cat, 'variation' : variation, xaxis_name : hist.overflow}] = [0.0, 0.0]
+
+            elif s in self.samples_data:
+                if len(self.categorical_axes_data) != 1:
+                    raise NotImplementedError(
+                        "The flow option is only implemented for histograms with one categorical axis `cat`."
+                    )
+                assert self.categorical_axes_data[0].name == "cat", "The first categorical axis should be named `cat`."
+                for cat in self.categorical_axes_data[0]:
+                    self.h_dict[s][{'cat' : cat, xaxis_name : 0}] += self.h_dict[s][{'cat' : cat, xaxis_name : hist.underflow}]
+                    self.h_dict[s][{'cat' : cat, xaxis_name : -1}] += self.h_dict[s][{'cat' : cat, xaxis_name : hist.overflow}]
+                    # Set the underflow and overflow bins to zero after summing them
+                    self.h_dict[s][{'cat' : cat, xaxis_name : hist.underflow}] = [0.0, 0.0]
+                    self.h_dict[s][{'cat' : cat, xaxis_name : hist.overflow}] = [0.0, 0.0]
+
     def _get_stacks(self, cat, spliteras=False):
         '''Builds the data and MC stacks, applying a slicing by category.
         The stacks are cached in a dictionary so that they are not recomputed every time.
@@ -739,27 +807,18 @@ class Shape:
         hnum = stacks["data_sum"]
         hden = stacks["mc_nominal_sum"]
 
-        num = hnum.values(flow=self.style.flow)
-        den = hden.values(flow=self.style.flow)
-        num_variances = hnum.variances(flow=self.style.flow)
-        den_variances = hden.variances(flow=self.style.flow)
-
-        # Sum underflow and overflow bins for the numerator and denominator, to restore an array of the same length
-        if self.style.flow:
-            if (len(num) != (len(hnum.values()) + 2)) | (len(den) != (len(hden.values()) + 2)):
-                raise NotImplementedError("Both underflow and overflow bins have to be defined. Please set `overflow=True` and `underflow=True` in the constructor of the Axis object, in your configuration.")
-            num = np.concatenate([[num[0]+num[1]], num[2:-2], [num[-2]+num[-1]]])
-            den = np.concatenate([[den[0]+den[1]], den[2:-2], [den[-2]+den[-1]]])
-            num_variances = np.concatenate([[num_variances[0]+num_variances[1]], num_variances[2:-2], [num_variances[-2]+num_variances[-1]]])
-            den_variances = np.concatenate([[den_variances[0]+den_variances[1]], den_variances[2:-2], [den_variances[-2]+den_variances[-1]]])
+        num = hnum.values()
+        den = hden.values()
+        num_variances = hnum.variances()
+        den_variances = hden.variances()
 
         if self.density:
             num_integral = sum(num * np.array(self.style.opts_axes["xbinwidth"]) )
-            if num_integral>0:
+            if num_integral > 0:
                 num = num * (1./num_integral)
                 num_variances = num_variances * (1./num_integral)**2
             den_integral = sum(den * np.array(self.style.opts_axes["xbinwidth"]) )
-            if den_integral>0:
+            if den_integral > 0:
                 den = den * (1./den_integral)
                 den_variances = den_variances * (1./den_integral)**2
 
@@ -767,7 +826,7 @@ class Shape:
         # Total uncertainy propagation of num / den :
         # ratio_variance = np.power(ratio,2)*( num_variances*np.power(num, -2) + den_variances*np.power(den, -2))
         # Only the uncertainty of num (DATA) propagated:
-        ratio_variance = num_variances*np.power(den, -2)
+        ratio_variance = num_variances * np.power(den, -2)
 
         ratio_uncert = np.abs(poisson_interval(ratio, ratio_variance) - ratio)
         ratio_uncert[np.isnan(ratio_uncert)] = np.inf
@@ -791,15 +850,8 @@ class Shape:
         else:
             hden = stacks['mc_nominal'][ref]
 
-        den = hden.values(flow=self.style.flow)
-        den_variances = hden.variances(flow=self.style.flow)
-
-        # Sum underflow and overflow bins for the denominator, to restore an array of the same length
-        if self.style.flow:
-            if (len(den) != (len(hden.values()) + 2)):
-                raise NotImplementedError("Both underflow and overflow bins have to be defined. Please set `overflow=True` and `underflow=True` in the constructor of the Axis object, in your configuration.")
-            den = np.concatenate([[den[0]+den[1]], den[2:-2], [den[-2]+den[-1]]])
-            den_variances = np.concatenate([[den_variances[0]+den_variances[1]], den_variances[2:-2], [den_variances[-2]+den_variances[-1]]])
+        den = hden.values()
+        den_variances = hden.variances()
 
         if self.density:
             den_integral = sum(den * np.array(self.style.opts_axes["xbinwidth"]) )
@@ -817,14 +869,8 @@ class Shape:
             histograms_list.append(stacks['data_sum'])
         for hnum in histograms_list:
             #print("Process:", hnum.name, type(hnum))
-            num = hnum.values(flow=self.style.flow)
-            num_variances = hnum.variances(flow=self.style.flow)
-
-            if self.style.flow:
-                if (len(num) != (len(hnum.values()) + 2)):
-                    raise NotImplementedError("Both underflow and overflow bins have to be defined. Please set `overflow=True` and `underflow=True` in the constructor of the Axis object, in your configuration.")
-                num = np.concatenate([[num[0]+num[1]], num[2:-2], [num[-2]+num[-1]]])
-                num_variances = np.concatenate([[num_variances[0]+num_variances[1]], num_variances[2:-2], [num_variances[-2]+num_variances[-1]]])
+            num = hnum.values()
+            num_variances = hnum.variances()
 
             if self.density:
                 num_integral = sum(num * np.array(self.style.opts_axes["xbinwidth"]) )
@@ -909,7 +955,8 @@ class Shape:
             if arg_log == 0:
                 arg_log = 100
             exp = math.floor(math.log(arg_log, 10))
-            self.ax.set_ylim((0.01, 10 ** (exp*1.75)))
+            y_lim_hi = self.style.opts_ylim["datamc"]["ylim_log"].get("hi", 10 ** (exp*1.75))
+            self.ax.set_ylim((self.style.opts_ylim["datamc"]["ylim_log"]["lo"], y_lim_hi))
         else:
             if self.is_data_only:
                 reference_shape = stacks["data_sum"].values()
@@ -948,7 +995,7 @@ class Shape:
             for i, l in enumerate(labels):
                 # If additional scale is provided, plot it on the legend:
                 scale_str = ""
-                if self.style.has_rescale_samples and l in self.style.rescale_samples.keys():
+                if self.style.has_rescale_samples and (l in self.style.rescale_samples.keys()) and (round(self.style.rescale_samples[l],2)!=1.0):
                     scale_str = " x%.2f"%self.style.rescale_samples[l]
                 if self.style.has_signal_samples and len(l)>=4 and l[:-4] in self.style.signal_samples.keys():
                     # Note: the l[:-4] strips away the potential '_sig' str from the name (added in plot_mc function).
@@ -1028,20 +1075,6 @@ class Shape:
             if not hasattr(self, "ax"):
                 self.define_figure(ratio=False)
         y = stacks["data_sum"].values()
-        # Add underflow and overflow bins to the first and last bin, respectively
-        if self.style.flow:
-            has_underflow = True
-            has_overflow = True
-            try: stacks["data_sum"][hist.underflow]
-            except: has_underflow = False
-            try: stacks["data_sum"][hist.overflow]
-            except: has_overflow = False
-            if not all([has_underflow, has_overflow]):
-                raise NotImplementedError("Both underflow and overflow bins have to be defined. Please set `overflow=True` and `underflow=True` in the constructor of the Axis object, in your configuration.")
-            y_underflow = stacks["data_sum"][hist.underflow].value
-            y_overflow = stacks["data_sum"][hist.overflow].value
-            y[0] += y_underflow
-            y[-1] += y_overflow
 
         # Blinding data for certain variables (if defined in plotting config)
         if self.style.has_blind_hists and cat in self.style.blind_hists.categories:
@@ -1166,7 +1199,7 @@ class Shape:
 
             # If the histogram is in density mode, the systematic uncertainty has to be normalized to the integral of the MC stack
             if self.density:
-                mc_integral = sum(self._get_stacks(cat)["mc_nominal_sum"].values(flow=self.style.flow)) * np.array(self.style.opts_axes["xbinwidth"])
+                mc_integral = sum(self._get_stacks(cat)["mc_nominal_sum"].values()) * np.array(self.style.opts_axes["xbinwidth"])
                 up = up / mc_integral
                 down = down / mc_integral
 
@@ -1433,18 +1466,6 @@ class SystUnc:
             # Full nominal MC including all MC samples
             self.h_mc_nominal = stacks["mc_nominal_sum"]
             self.nominal, self.bins = stacks["mc_nominal_sum"].to_numpy()
-            # Add underflow and overflow bins to the first and last bin, respectively
-            if self.style.flow:
-                has_underflow = True
-                has_overflow = True
-                try: stacks["mc_nominal_sum"][hist.underflow]
-                except: has_underflow = False
-                try: stacks["mc_nominal_sum"][hist.overflow]
-                except: has_overflow = False
-                if not all([has_underflow, has_overflow]):
-                    raise NotImplementedError("Both underflow and overflow bins have to be defined. Please set `overflow=True` and `underflow=True` in the constructor of the Axis object, in your configuration.")
-                self.nominal[0] += stacks["mc_nominal_sum"][hist.underflow].value
-                self.nominal[-1] += stacks["mc_nominal_sum"][hist.overflow].value
         elif syst_list:
             self.syst_list = syst_list
             assert (
@@ -1453,6 +1474,7 @@ class SystUnc:
             assert not (
                 (self._n_empty == 1) & (self.nsyst == 1)
             ), "Attempting to intialize a `SystUnc` instance with an empty systematic uncertainty."
+            # Get nominal yields from the first systematic uncertainty in the list
             _syst = self.syst_list[0]
             self.h_mc_nominal = _syst.h_mc_nominal
             self.nominal = _syst.nominal
@@ -1529,12 +1551,6 @@ class SystUnc:
         '''Method used in the constructor to instanstiate a SystUnc object from
         a list of SystUnc objects. The sytematic uncertainties in self.syst_list,
         are summed in quadrature to define a new SystUnc object.'''
-        if not self._is_empty:
-            index_non_empty = [i for i, s in enumerate(self.syst_list) if not s._is_empty][0]
-        else:
-            raise Exception(' '.join([f"The systematic uncertainty `{self.name}` is empty.",
-                                    "Please check the histogram definition. If a histogram is expected to be empty in a given category, the category can be excluded with the option `only_cat`."]))
-        self.nominal = self.syst_list[index_non_empty].nominal
         for syst in self.syst_list:
             if not ((self._is_empty) | (syst._is_empty)):
                 assert all(
@@ -1632,8 +1648,10 @@ class SystUnc:
         )
         if self.log:
             self.ax.set_yscale("log")
+            exp = math.floor(math.log(self.nominal.max(), 10)) + 3
+            y_lim_hi = self.style.opts_figure["systematics"]["ylim_log"].get("hi", 10**exp)
             self.ax.set_ylim(
-                (0.01, 10 ** (math.floor(math.log(self.nominal.max(), 10)) + 3))
+                (self.style.opts_ylim["datamc"]["ylim_log"]["lo"], y_lim_hi)
             )
         else:
             self.ax.set_ylim((0, 1.5 * self.nominal.max()))

@@ -522,24 +522,13 @@ default_axis_settings = {
 }
 
 collection_fields = {
-    'jet': ["eta", "pt", "phi", "btagDeepFlavB", "btagDeepFlavCvL", "btagDeepFlavCvB",
-            "btagPNetB", "btagPNetCvL", "btagPNetCvB",
-            "btagRobustParTAK4B", "btagRobustParTAK4CvL", "btagRobustParTAK4CvB",],
+    'jet': ["eta", "pt", "phi"],
     'fatjet': [
         "eta",
         "pt",
         "phi",
         "mass",
         "msoftdrop",
-        "btagDDBvLV2",
-        "btagDDCvLV2",
-        "btagDDCvBV2",
-        # "particleNetMD_Xbb", "particleNetMD_Xcc",
-        "particleNetMD_Xbb_QCD",
-        "particleNetMD_Xcc_QCD",
-        "deepTagMD_ZHbbvsQCD",
-        "deepTagMD_ZHccvsQCD",
-        "btagHbb",
     ],
     'parton': ["eta", "pt", "phi", "dRMatchedJet", "pdgId"],
     'genjet': ["eta", "pt", "phi", "hadronFlavour", "partonFlavour"],
@@ -556,6 +545,26 @@ collection_fields = {
         "logsumcorrmass",
     ]
     #'sv': ["summass", "logsummass", "projmass", "logprojmass", "sv1mass", "logsv1mass", "sumcorrmass", "logsumcorrmass"]
+}
+
+
+taggers_fields = {
+    "jet": [
+        "btagDeepFlavB", "btagDeepFlavCvL", "btagDeepFlavCvB",
+        "btagPNetB", "btagPNetCvL", "btagPNetCvB",
+        "btagRobustParTAK4B", "btagRobustParTAK4CvL", "btagRobustParTAK4CvB"
+    ],
+    "fatjet": [
+        "btagDDBvLV2",
+        "btagDDCvLV2",
+        "btagDDCvBV2",
+        # "particleNetMD_Xbb", "particleNetMD_Xcc",
+        "particleNetMD_Xbb_QCD",
+        "particleNetMD_Xcc_QCD",
+        "deepTagMD_ZHbbvsQCD",
+        "deepTagMD_ZHccvsQCD",
+        "btagHbb",
+    ]        
 }
 
 
@@ -593,11 +602,62 @@ def _get_default_hist(name, type, coll, pos=None, fields=None, axis_settings=Non
     return out
 
 
+
 def jet_hists(coll="JetGood", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
     if name == None:
         name = coll
     return _get_default_hist(name, "jet", coll, pos, fields, axis_settings, **kwargs)
 
+def jet_taggers_hists(coll="JetGood", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
+    out = {}
+    for field in taggers_fields["jet"]:
+        if fields == None or field in fields:
+            hist_name = f"{name}_{field}"
+            setting = deepcopy(default_axis_settings[f"jet_{field}"])
+            if axis_settings != None and f"jet_{field}" in axis_settings:
+                setting.update(axis_settings[f"jet_{field}"])
+            setting["coll"] = coll
+            # If the position argument is given the histogram is
+            # created for the specific position
+            if pos != None:
+                setting["pos"] = pos
+                # Avoid 0-indexing for the name of the histogram
+                hist_name += f"_{pos+1}"
+                setting["label"] = setting["label"] + " for Obj. #%i"%(pos+1)
+                
+            out[hist_name] = HistConf(
+                axes=[
+                    Axis(**setting),
+                ],
+                **kwargs
+            )
+    return out
+
+def fatjet_taggers_hists(coll="FatJetGood", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
+    out = {}
+    for field in taggers_fields["fatjet"]:
+        if fields == None or field in fields:
+            hist_name = f"{name}_{field}"
+            setting = deepcopy(default_axis_settings[f"jet_{field}"])
+            if axis_settings != None and f"jet_{field}" in axis_settings:
+                setting.update(axis_settings[f"jet_{field}"])
+            setting["coll"] = coll
+            # If the position argument is given the histogram is
+            # created for the specific position
+            if pos != None:
+                setting["pos"] = pos
+                # Avoid 0-indexing for the name of the histogram
+                hist_name += f"_{pos+1}"
+                setting["label"] = setting["label"] + " for Obj. #%i"%(pos+1)
+                
+            out[hist_name] = HistConf(
+                axes=[
+                    Axis(**setting),
+                ],
+                **kwargs
+            )
+    return out
+            
 def genjet_hists(coll="MyGenJets", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
     if name == None:
         name = coll

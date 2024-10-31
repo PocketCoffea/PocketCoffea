@@ -13,7 +13,7 @@ def events():
     return events
 
 
-def compare_outputs(output, old_output):
+def compare_outputs(output, old_output, exclude_variables=None):
     for cat, data in old_output["sumw"].items():
         assert cat in output["sumw"]
         for dataset, _data in data.items():
@@ -35,7 +35,9 @@ def compare_outputs(output, old_output):
     metadata = output["datasets_metadata"]["by_dataset"]
     # Testing variables
     for variables, data in old_output["variables"].items():
-        assert variables in output["variables"]
+        if exclude_variables is not None and variables in exclude_variables:
+            continue
+        assert variables in output["variables"]    
         for sample, _data in data.items():
             assert sample in output["variables"][variables]
             for dataset, hist in _data.items():

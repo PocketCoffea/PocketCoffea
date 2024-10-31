@@ -3,6 +3,7 @@ plotting_style:
     collapse_datasets: true     # Plot all the datasets with the same sample as a single shape
     fontsize: 22
     fontsize_legend_ratio: 12
+    experiment_label_loc: 2  # location of CMS label (https://twiki.cern.ch/twiki/bin/viewauth/CMS/Internal/FigGuidelines)
 
 
     opts_figure:
@@ -86,6 +87,11 @@ plotting_style:
         linewidth: 0
         step: post
         zorder: 2
+
+    opts_ylim:
+      datamc:
+        ylim_log:
+          lo: 0.01
 
     print_info:
       category: False
