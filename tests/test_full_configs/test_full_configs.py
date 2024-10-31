@@ -252,7 +252,7 @@ def test_skimming(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_fac
 
     run_options = defaults.get_default_run_options()["general"]
     run_options["limit-files"] = 1
-    run_options["limit-chunks"] = 1
+    run_options["limit-chunks"] = 2
     run_options["chunksize"] = 10
     config.filter_dataset(run_options["limit-files"])
 
@@ -290,11 +290,17 @@ def test_skimming(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_fac
     # Open a file with NanoEventsFactory
     for dataset, files in output["skimmed_files"].items():
         if output["datasets_metadata"]["by_dataset"][dataset]["isMC"] == "True":
+            tot_sumw = 0.
             for file in files:
-                print(file)
                 ev = NanoEventsFactory.from_root(file, schemaclass=NanoAODSchema).events()
                 sumw = ak.sum(ev.genWeight * ev.skimRescaleGenWeight)
-                assert np.isclose(sumw, output["sum_genweights"][dataset])
+                tot_sumw += sumw
+            assert np.isclose(tot_sumw, output["sum_genweights"][dataset])
+
+    # NOw let's hadd the files and them rerun on them
+    hadd_files = []
+    for dataset, files in output["skimmed_files"].items():
+        
 
 #-------------------------------------------------------------------
 

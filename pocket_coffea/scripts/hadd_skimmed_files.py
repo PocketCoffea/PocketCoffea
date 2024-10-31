@@ -121,7 +121,7 @@ def hadd_skimmed_files(files_list, outputdir, only_datasets, files, events, scal
         metadata["isSkim"] = "True"
         dataset_definition[s] = {"metadata": metadata, "files": list(d['files'].keys())}
 
-    json.dump(dataset_definition, open("skimmed_dataset_definition.json", "w"), indent=2)
+    json.dump(dataset_definition, open("skimmed_dataset_definition_hadd.json", "w"), indent=2)
 
     print("DONE!")
 
