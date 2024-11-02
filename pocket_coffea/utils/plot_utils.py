@@ -757,25 +757,25 @@ class Shape:
                 is_empty = False
         return is_empty
 
+    def _merge_flow_bins(self, values):
+        '''Add the underflow and overflow bins to the first and last bins, respectively.'''
+        values_copy = deepcopy(values)
+        if self.style.flow:
+            values_copy[1] += values_copy[0]  # Merge underflow bin
+            values_copy[-2] += values_copy[-1]  # Merge overflow bin
+            values_copy = values_copy[1:-1]  # Remove the original underflow and overflow bins
+        return values_copy
+
     def get_datamc_ratio(self, cat):
         '''Computes the data/MC ratio and the corresponding uncertainty.'''
         stacks = self._get_stacks(cat)
         hnum = stacks["data_sum"]
         hden = stacks["mc_nominal_sum"]
 
-        num = hnum.values(flow=self.style.flow)
-        den = hden.values(flow=self.style.flow)
-        num_variances = hnum.variances(flow=self.style.flow)
-        den_variances = hden.variances(flow=self.style.flow)
-
-        # Sum underflow and overflow bins for the numerator and denominator, to restore an array of the same length
-        if self.style.flow:
-            if (len(num) != (len(hnum.values()) + 2)) | (len(den) != (len(hden.values()) + 2)):
-                raise NotImplementedError("Both underflow and overflow bins have to be defined. Please set `overflow=True` and `underflow=True` in the constructor of the Axis object, in your configuration.")
-            num = np.concatenate([[num[0]+num[1]], num[2:-2], [num[-2]+num[-1]]])
-            den = np.concatenate([[den[0]+den[1]], den[2:-2], [den[-2]+den[-1]]])
-            num_variances = np.concatenate([[num_variances[0]+num_variances[1]], num_variances[2:-2], [num_variances[-2]+num_variances[-1]]])
-            den_variances = np.concatenate([[den_variances[0]+den_variances[1]], den_variances[2:-2], [den_variances[-2]+den_variances[-1]]])
+        num = self._merge_flow_bins(hnum.values(flow=self.style.flow))
+        den = self._merge_flow_bins(hden.values(flow=self.style.flow))
+        num_variances = self._merge_flow_bins(hnum.variances(flow=self.style.flow))
+        den_variances = self._merge_flow_bins(hden.variances(flow=self.style.flow))
 
         if self.density:
             num_integral = sum(num * np.array(self.style.opts_axes["xbinwidth"]) )
@@ -815,8 +815,8 @@ class Shape:
         else:
             hden = stacks['mc_nominal'][ref]
 
-        den = hden.values()
-        den_variances = hden.variances()
+        den = self._merge_flow_bins(hden.values(flow=self.style.flow))
+        den_variances = self._merge_flow_bins(hden.variances(flow=self.style.flow))
 
         if self.density:
             den_integral = sum(den * np.array(self.style.opts_axes["xbinwidth"]) )
@@ -834,8 +834,8 @@ class Shape:
             histograms_list.append(stacks['data_sum'])
         for hnum in histograms_list:
             #print("Process:", hnum.name, type(hnum))
-            num = hnum.values()
-            num_variances = hnum.variances()
+            num = self._merge_flow_bins(hnum.values(flow=self.style.flow))
+            num_variances = self._merge_flow_bins(hnum.variances(flow=self.style.flow))
 
             if self.density:
                 num_integral = sum(num * np.array(self.style.opts_axes["xbinwidth"]) )
@@ -1039,10 +1039,7 @@ class Shape:
         else:
             if not hasattr(self, "ax"):
                 self.define_figure(ratio=False)
-        y = deepcopy(stacks["data_sum"].values())
-        if self.style.flow:
-            y[0] += stacks["data_sum"][hist.underflow].value
-            y[-1] += stacks["data_sum"][hist.overflow].value
+        y = self._merge_flow_bins(stacks["data_sum"].values(flow=self.style.flow))
 
         # Blinding data for certain variables (if defined in plotting config)
         if self.style.has_blind_hists and cat in self.style.blind_hists.categories:
@@ -1167,7 +1164,7 @@ class Shape:
 
             # If the histogram is in density mode, the systematic uncertainty has to be normalized to the integral of the MC stack
             if self.density:
-                mc_integral = sum(self._get_stacks(cat)["mc_nominal_sum"].values()) * np.array(self.style.opts_axes["xbinwidth"])
+                mc_integral = sum(self._get_stacks(cat)["mc_nominal_sum"].values(flow=self.style.flow)) * np.array(self.style.opts_axes["xbinwidth"])
                 up = up / mc_integral
                 down = down / mc_integral
 
@@ -1430,10 +1427,11 @@ class SystUnc:
                 )
             else:
                 self.syst_list = [self]
+            self.bins = stacks["mc_nominal_sum"].axes[0].edges
+            self.h_mc_nominal = stacks["mc_nominal_sum"]
+            self.nominal = self._merge_flow_bins(self.h_mc_nominal.values(flow=self.style.flow))
             self._get_err2(stacks)
             # Full nominal MC including all MC samples
-            self.h_mc_nominal = stacks["mc_nominal_sum"]
-            self.nominal, self.bins = stacks["mc_nominal_sum"].to_numpy()
         elif syst_list:
             self.syst_list = syst_list
             assert (
@@ -1453,6 +1451,15 @@ class SystUnc:
         In case multiple objects are summed, the information on the systematic uncertainties that
         have been summed is stored in self.syst_list.'''
         return SystUnc(style=self.style, name=f"{self.name}_{other.name}", syst_list=[self, other])
+
+    def _merge_flow_bins(self, values):
+        '''Add the underflow and overflow bins to the first and last bins, respectively.'''
+        values_copy = deepcopy(values)
+        if self.style.flow:
+            values_copy[1] += values_copy[0]  # Merge underflow bin
+            values_copy[-2] += values_copy[-1]  # Merge overflow bin
+            values_copy = values_copy[1:-1]  # Remove the original underflow and overflow bins
+        return values_copy
 
     @property
     def up(self):
@@ -1538,16 +1545,16 @@ class SystUnc:
         for h in stacks["mc"]:
             # Nominal variation for a single MC sample
             h_nom = h[{'variation': 'nominal'}]
-            nom = h_nom.values()
+            nom = self._merge_flow_bins(h_nom.values(flow=self.style.flow))
             # Sum in quadrature of mcstat
             if self.is_mcstat:
-                mcstat_err2 = h_nom.variances()
+                mcstat_err2 = self._merge_flow_bins(h_nom.variances(flow=self.style.flow))
                 self.err2_up += mcstat_err2
                 self.err2_down += mcstat_err2
                 continue
             # Up/down variations for a single MC sample
-            var_up = h[{'variation': f'{self.name}Up'}].values()
-            var_down = h[{'variation': f'{self.name}Down'}].values()
+            var_up = self._merge_flow_bins(h[{'variation': f'{self.name}Up'}].values(flow=self.style.flow))
+            var_down = self._merge_flow_bins(h[{'variation': f'{self.name}Down'}].values(flow=self.style.flow))
             # Compute the uncertainties corresponding to the up/down variations
             err_up = var_up - nom
             err_down = var_down - nom
