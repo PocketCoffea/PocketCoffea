@@ -1390,10 +1390,10 @@ class SystManager:
         '''Updates the dictionary of systematic uncertainties with the new cached stacks.'''
         for cat, stacks in self.shape._stacksCache.items():
             for syst_name in self.systematics:
-                self.syst_dict[cat][syst_name] = SystUnc(self.shape.style, stacks, syst_name)
+                self.syst_dict[cat][syst_name] = SystUnc(self.shape, stacks, syst_name)
 
     def total(self, cat):
-        return SystUnc(style = self.style, name="total", syst_list=list(self.syst_dict[cat].values()))
+        return SystUnc(self.shape, name="total", syst_list=list(self.syst_dict[cat].values()))
 
     def mcstat(self, cat):
         return self.syst_dict[cat]["mcstat"]
@@ -1410,8 +1410,10 @@ class SystUnc:
     returning a `SystUnc` instance corresponding to their sum in quadrature.'''
 
     def __init__(
-            self, style: Style, stacks: dict = None, name: str = None, syst_list: list = None
+            self, shape: Shape, stacks: dict = None, name: str = None, syst_list: list = None
     ) -> None:
+        self.shape = shape
+        self.style = shape.style
         self.name = name
         self.is_mcstat = self.name == "mcstat"
 
@@ -1419,7 +1421,6 @@ class SystUnc:
         self.nominal = 0.0
         self.err2_up = 0.0
         self.err2_down = 0.0
-        self.style = style
         if stacks:
             if syst_list:
                 raise Exception(
@@ -1429,7 +1430,7 @@ class SystUnc:
                 self.syst_list = [self]
             self.bins = stacks["mc_nominal_sum"].axes[0].edges
             self.h_mc_nominal = stacks["mc_nominal_sum"]
-            self.nominal = self._merge_flow_bins(self.h_mc_nominal.values(flow=self.style.flow))
+            self.nominal = self.shape._merge_flow_bins(self.h_mc_nominal.values(flow=self.style.flow))
             self._get_err2(stacks)
             # Full nominal MC including all MC samples
         elif syst_list:
@@ -1450,16 +1451,7 @@ class SystUnc:
         '''Sum in quadrature of two systematic uncertainties.
         In case multiple objects are summed, the information on the systematic uncertainties that
         have been summed is stored in self.syst_list.'''
-        return SystUnc(style=self.style, name=f"{self.name}_{other.name}", syst_list=[self, other])
-
-    def _merge_flow_bins(self, values):
-        '''Add the underflow and overflow bins to the first and last bins, respectively.'''
-        values_copy = deepcopy(values)
-        if self.style.flow:
-            values_copy[1] += values_copy[0]  # Merge underflow bin
-            values_copy[-2] += values_copy[-1]  # Merge overflow bin
-            values_copy = values_copy[1:-1]  # Remove the original underflow and overflow bins
-        return values_copy
+        return SystUnc(self.shape, name=f"{self.name}_{other.name}", syst_list=[self, other])
 
     @property
     def up(self):
@@ -1545,16 +1537,16 @@ class SystUnc:
         for h in stacks["mc"]:
             # Nominal variation for a single MC sample
             h_nom = h[{'variation': 'nominal'}]
-            nom = self._merge_flow_bins(h_nom.values(flow=self.style.flow))
+            nom = self.shape._merge_flow_bins(h_nom.values(flow=self.style.flow))
             # Sum in quadrature of mcstat
             if self.is_mcstat:
-                mcstat_err2 = self._merge_flow_bins(h_nom.variances(flow=self.style.flow))
+                mcstat_err2 = self.shape._merge_flow_bins(h_nom.variances(flow=self.style.flow))
                 self.err2_up += mcstat_err2
                 self.err2_down += mcstat_err2
                 continue
             # Up/down variations for a single MC sample
-            var_up = self._merge_flow_bins(h[{'variation': f'{self.name}Up'}].values(flow=self.style.flow))
-            var_down = self._merge_flow_bins(h[{'variation': f'{self.name}Down'}].values(flow=self.style.flow))
+            var_up = self.shape._merge_flow_bins(h[{'variation': f'{self.name}Up'}].values(flow=self.style.flow))
+            var_down = self.shape._merge_flow_bins(h[{'variation': f'{self.name}Down'}].values(flow=self.style.flow))
             # Compute the uncertainties corresponding to the up/down variations
             err_up = var_up - nom
             err_down = var_down - nom
