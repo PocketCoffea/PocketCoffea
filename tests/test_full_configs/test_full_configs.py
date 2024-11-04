@@ -1,4 +1,5 @@
 import pytest
+import os
 from pocket_coffea.utils.utils import load_config
 from pocket_coffea.utils.configurator import Configurator
 from pocket_coffea.parameters import defaults 
@@ -274,7 +275,7 @@ def test_skimming(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_fac
     save(output, outputdir / "output_all.coffea")
     
     assert output is not None
-
+    print(output)
     assert "skimmed_files" in output
     assert "nskimmed_events" in output
     for dataset, files in output["skimmed_files"].items():
@@ -285,7 +286,7 @@ def test_skimming(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_fac
             assert output["sum_genweights"][dataset] > 0
         for nevent in nevents:
             assert nevent > 0
-
+            
     # Now checking the rescaled sumw
     # Open a file with NanoEventsFactory
     for dataset, files in output["skimmed_files"].items():
@@ -298,10 +299,45 @@ def test_skimming(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_fac
             assert np.isclose(tot_sumw, output["sum_genweights"][dataset])
 
     # NOw let's hadd the files and them rerun on them
-    hadd_files = []
-    for dataset, files in output["skimmed_files"].items():
-        
+    print("Hadding the skimmed files")
+    outputdir_skim_hadd = tmp_path_factory.mktemp("test_skimming_skim_hadd")
+    # We need to source the correct libraries to make root work
+    os.system(f"source /cvmfs/cms.cern.ch/cmsset_default.sh && \
+    cd {outputdir} && \
+    scram p CMSSW_14_0_1 && cd CMSSW_14_0_1/src && cmsenv && \
+    cd {base_path}/test_skimming && \
+    pocket-coffea hadd-skimmed-files -fl {outputdir}/output_all.coffea -f 4 -o {outputdir_skim_hadd} && scram unsetenv -sh")
+    # This created a local dataset file with the hadded files
+    print("Running new processor on the hadded files")
+    config = load_config("config_hadd.py", save_config=True, outputdir=outputdir)
+    assert isinstance(config, Configurator)
 
+    run_options = defaults.get_default_run_options()["general"]
+    run_options["limit-files"] = 1
+    run_options["limit-chunks"] = 1
+    run_options["chunksize"] = 20
+    config.filter_dataset(run_options["limit-files"])
+
+    executor_factory = executors_lib.get_executor_factory("iterative",
+                                                          run_options=run_options,
+                                                          outputdir=outputdir)
+
+    executor = executor_factory.get()
+
+    run = Runner(
+        executor=executor,
+        chunksize=run_options["chunksize"],
+        maxchunks=run_options["limit-chunks"],
+        schema=processor.NanoAODSchema,
+        format="root"
+    )
+    output2 = run(config.filesets, treename="Events",
+                 processor_instance=config.processor_instance)
+    save(output2, outputdir / "output_all_hadd.coffea")
+
+    # Now we compare the total sumgenweight of this output with the previous one
+    assert np.isclose(output["sum_genweights"]["TTTo2L2Nu_2018"], output2["sum_genweights"]["TTTo2L2Nu_2018"])
+    
 #-------------------------------------------------------------------
 
 def test_columns_export(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
