@@ -95,7 +95,7 @@ lepton_scale_factors:
       "2023_preBPix": "2023PromptC"
       "2023_postBPix": "2023PromptD"
       
-    apply_eleSS: 
+    apply_ele_scale_and_smearing: 
       '2022_preEE': True
       '2022_postEE': True
       '2023_preBPix': True

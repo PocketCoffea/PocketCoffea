@@ -36,7 +36,7 @@ def get_ele_scaled(ele, jsonFileName, isMC, runNr):
         ele_pt_scale_down = ak.unflatten((1-scale_MC_unc) * ele_pt_flat, counts=ele_counts)
         return {"Up": ele_pt_scale_up, "Down": ele_pt_scale_down}
 
-def get_ele_smeared(mc_ele, jsonFileName, isMC, nominal=True):
+def get_ele_smeared(mc_ele, jsonFileName, isMC, nominal=True, seed=125):
     
     if not isMC:
         return
@@ -46,7 +46,7 @@ def get_ele_smeared(mc_ele, jsonFileName, isMC, nominal=True):
     ele_r9_flat = ak.flatten(mc_ele["r9"])
     ele_pt_flat = ak.flatten(mc_ele["pt"])
     ele_counts = ak.num(mc_ele["pt"])
-    rng = np.random.default_rng(seed=125)
+    rng = np.random.default_rng(seed=seed)
     rho = evaluator_smearing.evaluate(
         "rho",
         ele_eta_flat,
