@@ -18,6 +18,7 @@ from ..lib.weights.weights_manager import WeightsManager
 from ..lib.columns_manager import ColumnsManager
 from ..lib.hist_manager import HistManager
 from ..lib.jets import jet_correction, met_correction, load_jet_factory
+from ..lib.leptons import get_ele_smeared, get_ele_scaled
 from ..lib.categorization import CartesianSelection
 from ..utils.skim import uproot_writeable, copy_file
 from ..utils.utils import dump_ak_array
@@ -125,6 +126,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self._year = self.events.metadata["year"]
         self._isMC = ((self.events.metadata["isMC"] in ["True", "true"])
                       or (self.events.metadata["isMC"] == True))
+        # if the dataset is a skim the skimRescaleGenWeight variable is used to rescale the sumgenweight
+        self._isSkim = ("isSkim" in self.events.metadata and self.events.metadata["isSkim"] in ["True","true"]) or(
+            "isSkim" in self.events.metadata and self.events.metadata["isSkim"] == True)
         # for some reason this get to a string WIP
         if self._isMC:
             self._era = "MC"
@@ -178,6 +182,17 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self.has_events = self.nEvents_after_skim > 0
 
     def export_skimmed_chunk(self):
+        ''' Function that export the skimmed chunk to a new ROOT file.
+        It rescales the genweight so that the processing on the skimmed file respects
+        the original cross section. '''
+        # Save the rescaling of the genweight to get the original cross section
+        if self._isMC:
+            #sumgenweight after the skimming
+            skimmed_sumw = ak.sum(self.events.genWeight)
+            # the scaling factor is the original sumgenweight / the skimmed sumgenweight
+            self.events["skimRescaleGenWeight"] =  np.ones(self.nEvents_after_skim) * self.output['sum_genweights'][self._dataset] / skimmed_sumw
+            self.output['sum_genweights_skimmed'] = { self._dataset : skimmed_sumw }
+        
         filename = (
             "__".join(
                 [
@@ -689,6 +704,32 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 for jet_coll_name, jet_coll in jets_calibrated.items():
                     self.events[jet_coll_name] = jet_coll
 
+                if self.params.lepton_scale_factors.electron_sf["apply_ele_scale_and_smearing"][self._year]:
+                    etaSC = abs(self.events["Electron"]["deltaEtaSC"] + self.events["Electron"]["eta"])
+                    self.events["Electron"] = ak.with_field(
+                        self.events["Electron"], etaSC, "etaSC"
+                    )
+                    self.events["Electron"] = ak.with_field(
+                        self.events["Electron"], self.events["Electron"]["pt"], "pt_original"
+                    )
+                    ssfile = self.params.lepton_scale_factors["electron_sf"]["JSONfiles"][self._year]["fileSS"]
+                    # Apply smearing on MC, scaling on Data
+                    if self._isMC:
+                        seed = abs(hash(self.events.metadata['fileuuid'])+self.events.metadata['entrystart'])
+                        ele_pt_smeared = get_ele_smeared(self.events["Electron"], ssfile, self._isMC, nominal=True, seed=seed)
+                        self.events["Electron"] = ak.with_field(
+                            self.events["Electron"], ele_pt_smeared["nominal"], "pt"
+                        )
+                        # if "eleSS" in variations:
+                        #     MAKE COPY OF NOMINAL HERE
+                    else:
+                        ele_pt_scaled = get_ele_scaled(self.events["Electron"], ssfile, self._isMC, self.events["run"])
+                        self.events["Electron"] = ak.with_field(
+                            self.events["Electron"], ele_pt_scaled["nominal"], "pt"
+                        )
+                        # if "eleSS" in variations:
+                        #     MAKE COPY OF NOMINAL HERE
+
                 yield "nominal"
 
 
@@ -723,6 +764,32 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         #empty generator
         return
         yield  # the yield defines the function as a generator and the return stops it to be empty
+        nominal_events = self.events
+        variations = ["ele_smearing", "ele_scale"]
+
+        ssfile = self.params.lepton_scale_factors["electron_sf"]["JSONfiles"][self._year]["fileSS"]
+
+        for variation in variations:
+            if not self._isMC:
+                return
+
+            elif variation == "ele_smearing":
+                self.events = nominal_events
+                ele_pt_smeared = get_ele_smeared(self.events["Electron"], ssfile, self._isMC, nominal=False)
+                for shift in ["Up", "Down"]:
+                    self.events["ElectronSS"] = ak.with_field(
+                        self.events["Electron"], ele_pt_smeared[shift], "pt"
+                    )
+                    yield variation + shift
+
+            elif variation == "ele_scale":
+                ele_pt_scaled = get_ele_scaled(self.events["Electron"], ssfile, self._isMC, self.events["run"])
+                self.events = nominal_events
+                for shift in ["Up", "Down"]:
+                    self.events["ElectronSS"] = ak.with_field(
+                        self.events["Electron"], ele_pt_scaled[shift], "pt"
+                    )
+                    yield variation + shift
 
     def process(self, events: ak.Array):
         '''
@@ -763,9 +830,14 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self.output['cutflow']['initial'][self._dataset] = self.nEvents_initial
         if self._isMC:
             # This is computed before any preselection
-            self.output['sum_genweights'][self._dataset] = ak.sum(self.events.genWeight)
+            if not self._isSkim:
+                self.output['sum_genweights'][self._dataset] = ak.sum(self.events.genWeight)
+            else:
+                # If the dataset is a skim, the sumgenweights are rescaled
+                self.output['sum_genweights'][self._dataset] = ak.sum(self.events.skimRescaleGenWeight * self.events.genWeight)
+            #FIXME: handle correctly the skim for the sum_signOf_genweights
             self.output['sum_signOf_genweights'][self._dataset] = ak.sum(np.sign(self.events.genWeight))
-
+                
         ########################
         # Then the first skimming happens.
         # Events that are for sure useless are removed.

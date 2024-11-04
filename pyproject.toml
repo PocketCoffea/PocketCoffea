@@ -69,6 +69,7 @@ build-datasets="pocket_coffea.scripts.dataset.build_datasets:build_datasets"
 dataset-discovery-cli="pocket_coffea.scripts.dataset:dataset_discovery_cli"
 hadd-skimmed_files="pocket_coffea.scripts.hadd_skimmed_files:hadd_skimmed_files"
 merge-outputs="pocket_coffea.scripts.merge_outputs:merge_outputs"
+split-output="pocket_coffea.scripts.split_output:split_output"
 print-parameters="pocket_coffea.scripts.print_parameters:print_parameters"
 make-config="pocket_coffea.sripts.make_config:make_config"
 
