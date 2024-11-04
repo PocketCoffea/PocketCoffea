@@ -704,7 +704,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 for jet_coll_name, jet_coll in jets_calibrated.items():
                     self.events[jet_coll_name] = jet_coll
 
-                if self.params.lepton_scale_factors.electron_sf["apply_eleSS"][self._year]:
+                if self.params.lepton_scale_factors.electron_sf["apply_ele_scale_and_smearing"][self._year]:
                     etaSC = abs(self.events["Electron"]["deltaEtaSC"] + self.events["Electron"]["eta"])
                     self.events["Electron"] = ak.with_field(
                         self.events["Electron"], etaSC, "etaSC"
@@ -715,7 +715,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     ssfile = self.params.lepton_scale_factors["electron_sf"]["JSONfiles"][self._year]["fileSS"]
                     # Apply smearing on MC, scaling on Data
                     if self._isMC:
-                        ele_pt_smeared = get_ele_smeared(self.events["Electron"], ssfile, self._isMC, nominal=True)
+                        seed = hash(self.events.metadata['fileuuid'])+self.events.metadata['entrystart']
+                        ele_pt_smeared = get_ele_smeared(self.events["Electron"], ssfile, self._isMC, nominal=True, seed=seed)
                         self.events["Electron"] = ak.with_field(
                             self.events["Electron"], ele_pt_smeared["nominal"], "pt"
                         )
