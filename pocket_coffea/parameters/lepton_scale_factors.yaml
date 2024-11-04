@@ -95,6 +95,15 @@ lepton_scale_factors:
       "2023_preBPix": "2023PromptC"
       "2023_postBPix": "2023PromptD"
       
+    apply_ele_scale_and_smearing: 
+      '2016_PreVFP': False
+      '2016_PostVFP': False
+      '2017': False
+      '2018': False
+      '2022_preEE': True
+      '2022_postEE': True
+      '2023_preBPix': True
+      '2023_postBPix': True
     
     # The trigger SF configuration is expected to have this structure
     # needs to be provided by the user.

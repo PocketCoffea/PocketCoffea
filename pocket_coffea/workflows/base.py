@@ -18,6 +18,7 @@ from ..lib.weights.weights_manager import WeightsManager
 from ..lib.columns_manager import ColumnsManager
 from ..lib.hist_manager import HistManager
 from ..lib.jets import jet_correction, met_correction, load_jet_factory
+from ..lib.leptons import get_ele_smeared, get_ele_scaled
 from ..lib.categorization import CartesianSelection
 from ..utils.skim import uproot_writeable, copy_file
 from ..utils.utils import dump_ak_array
@@ -703,6 +704,32 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 for jet_coll_name, jet_coll in jets_calibrated.items():
                     self.events[jet_coll_name] = jet_coll
 
+                if self.params.lepton_scale_factors.electron_sf["apply_ele_scale_and_smearing"][self._year]:
+                    etaSC = abs(self.events["Electron"]["deltaEtaSC"] + self.events["Electron"]["eta"])
+                    self.events["Electron"] = ak.with_field(
+                        self.events["Electron"], etaSC, "etaSC"
+                    )
+                    self.events["Electron"] = ak.with_field(
+                        self.events["Electron"], self.events["Electron"]["pt"], "pt_original"
+                    )
+                    ssfile = self.params.lepton_scale_factors["electron_sf"]["JSONfiles"][self._year]["fileSS"]
+                    # Apply smearing on MC, scaling on Data
+                    if self._isMC:
+                        seed = hash(self.events.metadata['fileuuid'])+self.events.metadata['entrystart']
+                        ele_pt_smeared = get_ele_smeared(self.events["Electron"], ssfile, self._isMC, nominal=True, seed=seed)
+                        self.events["Electron"] = ak.with_field(
+                            self.events["Electron"], ele_pt_smeared["nominal"], "pt"
+                        )
+                        # if "eleSS" in variations:
+                        #     MAKE COPY OF NOMINAL HERE
+                    else:
+                        ele_pt_scaled = get_ele_scaled(self.events["Electron"], ssfile, self._isMC, self.events["run"])
+                        self.events["Electron"] = ak.with_field(
+                            self.events["Electron"], ele_pt_scaled["nominal"], "pt"
+                        )
+                        # if "eleSS" in variations:
+                        #     MAKE COPY OF NOMINAL HERE
+
                 yield "nominal"
 
 
@@ -737,6 +764,32 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         #empty generator
         return
         yield  # the yield defines the function as a generator and the return stops it to be empty
+        nominal_events = self.events
+        variations = ["ele_smearing", "ele_scale"]
+
+        ssfile = self.params.lepton_scale_factors["electron_sf"]["JSONfiles"][self._year]["fileSS"]
+
+        for variation in variations:
+            if not self._isMC:
+                return
+
+            elif variation == "ele_smearing":
+                self.events = nominal_events
+                ele_pt_smeared = get_ele_smeared(self.events["Electron"], ssfile, self._isMC, nominal=False)
+                for shift in ["Up", "Down"]:
+                    self.events["ElectronSS"] = ak.with_field(
+                        self.events["Electron"], ele_pt_smeared[shift], "pt"
+                    )
+                    yield variation + shift
+
+            elif variation == "ele_scale":
+                ele_pt_scaled = get_ele_scaled(self.events["Electron"], ssfile, self._isMC, self.events["run"])
+                self.events = nominal_events
+                for shift in ["Up", "Down"]:
+                    self.events["ElectronSS"] = ak.with_field(
+                        self.events["Electron"], ele_pt_scaled[shift], "pt"
+                    )
+                    yield variation + shift
 
     def process(self, events: ak.Array):
         '''
