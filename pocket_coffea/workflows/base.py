@@ -715,7 +715,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     ssfile = self.params.lepton_scale_factors["electron_sf"]["JSONfiles"][self._year]["fileSS"]
                     # Apply smearing on MC, scaling on Data
                     if self._isMC:
-                        seed = hash(self.events.metadata['fileuuid'])+self.events.metadata['entrystart']
+                        seed = abs(hash(self.events.metadata['fileuuid'])+self.events.metadata['entrystart'])
                         ele_pt_smeared = get_ele_smeared(self.events["Electron"], ssfile, self._isMC, nominal=True, seed=seed)
                         self.events["Electron"] = ak.with_field(
                             self.events["Electron"], ele_pt_smeared["nominal"], "pt"
