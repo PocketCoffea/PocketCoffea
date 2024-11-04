@@ -17,6 +17,7 @@ from coffea.processor import NanoAODSchema, accumulate
 from coffea.processor import Runner as CoffeaRunner
 from coffea.processor.executor import ExecutorBase
 from omegaconf import OmegaConf
+
 from pocket_coffea.executors import executors_base
 from pocket_coffea.parameters import defaults as parameters_utils
 from pocket_coffea.utils import utils as pocket_utils
