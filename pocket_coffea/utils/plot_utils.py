@@ -1017,7 +1017,7 @@ class Shape:
                         print("Plotting signal sample:", sig, "scale=", scale_sig, "cat=", cat, "hist=", self.name)
 
                     h_sig = scale_sig*self.h_dict[sig][{'cat': cat, 'variation': 'nominal'}]
-                    h_sig.plot(ax=self.ax, color=self.colors[sig], density=self.density, flow=self.style.flow, **self.style.opts_sig, label=sig+'_sig')
+                    h_sig.plot(ax=self.ax, color=self.colors[sig], density=self.density, **self.style.opts_sig, label=sig+'_sig')
                     # Note: '_sig' str is added to the label of the signal sample, in order to distinguish it
                     # from the same label present in the mc-stack histograms.
                 else:
