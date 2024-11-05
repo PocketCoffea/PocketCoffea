@@ -903,10 +903,10 @@ class Shape:
         stacks = self._get_stacks(cat)
         ylabel = "Counts" if not self.density else "A.U."
         self.ax.set_ylabel(ylabel, fontsize=self.style.fontsize)
-        self.ax.legend(fontsize=self.style.fontsize, ncol=2, loc="upper right")
         self.ax.tick_params(axis='x', labelsize=self.style.fontsize)
         self.ax.tick_params(axis='y', labelsize=self.style.fontsize)
         self.ax.set_xlim(self.style.opts_axes["xedges"][0], self.style.opts_axes["xedges"][-1])
+        handles, labels = self.ax.get_legend_handles_labels()
         if self.log:
             self.ax.set_yscale("log")
             if self.is_data_only:
@@ -922,6 +922,19 @@ class Shape:
             exp = math.floor(math.log(arg_log, 10))
             y_lim_hi = self.style.opts_ylim["datamc"]["ylim_log"].get("hi", 10 ** (exp*1.75))
             self.ax.set_ylim((self.style.opts_ylim["datamc"]["ylim_log"]["lo"], y_lim_hi))
+            # Revert handles and labels in logarithmic plot
+            if self.is_mc_only:
+                handles_to_reverse = handles[:-1]
+                labels_to_reverse = labels[:-1]
+                handles_last = [handles[-1]]
+                labels_last = [labels[-1]]
+            else:
+                handles_to_reverse = handles[:-2]
+                labels_to_reverse = labels[:-2]
+                handles_last = handles[-2:]
+                labels_last = labels[-2:]
+            handles = handles_to_reverse[::-1] + handles_last
+            labels = labels_to_reverse[::-1] + labels_last
         else:
             if self.is_data_only:
                 reference_shape = stacks["data_sum"].values()
@@ -941,6 +954,7 @@ class Shape:
             if not np.isnan(ymax):
                 if ymax==0: ymax=1
                 self.ax.set_ylim((0, 2.0 * ymax))
+        self.ax.legend(handles, labels, fontsize=self.style.fontsize_legend, ncol=2, loc="upper right")
         if ratio:
             self.ax.set_xlabel("")
             self.rax.set_xlabel(self.style.opts_axes["xlabel"], fontsize=self.style.fontsize)
@@ -954,7 +968,6 @@ class Shape:
             self.rax.set_ylim((0.5, 1.5))
 
         if self.style.has_labels or self.style.has_signal_samples:
-            handles, labels = self.ax.get_legend_handles_labels()
             labels_new = []
             handles_new = []
             for i, l in enumerate(labels):
@@ -980,7 +993,7 @@ class Shape:
             self.ax.legend(
                 handles,
                 labels,
-                fontsize=self.style.fontsize,
+                fontsize=self.style.fontsize_legend,
                 ncol=2,
                 loc="upper right",
             )
@@ -1607,7 +1620,7 @@ class SystUnc:
     def format_figure(self, ratio=True):
         """Formats the figure's axes, labels, ticks, xlim and ylim."""
         self.ax.set_ylabel("Counts", fontsize=self.style.fontsize)
-        self.ax.legend(fontsize=self.style.fontsize, ncol=2, loc="upper right")
+        self.ax.legend(fontsize=self.style.fontsize_legend, ncol=2, loc="upper right")
         self.ax.tick_params(axis="x", labelsize=self.style.fontsize)
         self.ax.tick_params(axis="y", labelsize=self.style.fontsize)
         self.ax.set_xlim(
@@ -1656,7 +1669,7 @@ class SystUnc:
             self.ax.legend(
                 handles,
                 labels,
-                fontsize=self.style.fontsize,
+                fontsize=self.style.fontsize_legend,
                 ncol=1,
                 loc="upper right",
             )
