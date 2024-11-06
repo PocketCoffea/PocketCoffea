@@ -26,10 +26,13 @@ def merge_outputs(inputfiles, outputfile):
     type_mismatches = []
     f0 = inputfiles[0]
     for f in inputfiles[1:]:
-        print(f"[green]Comparing {f0} and {f}")
         type_mismatch_found = compare_dict_types(load(f0), load(f))
         type_mismatches.append(type_mismatch_found)
     if any(type_mismatches):
+        print("[red]Type mismatch found between the values of the input dictionaries for the following files:")
+        for i, f in enumerate(inputfiles):
+            if type_mismatches[i]:
+                print(f"    {f}")
         raise TypeError("Type mismatch found between the values of the input dictionaries. Please check the input files.")
 
     out = accumulate([load(f) for f in inputfiles])
