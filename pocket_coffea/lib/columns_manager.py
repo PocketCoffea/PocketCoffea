@@ -158,28 +158,31 @@ class ColumnsManager:
                     data = data[:, : outarray.pos_end]
 
                 # looping on the columns
-                for col in outarray.columns:
-                    if outarray.flatten and data.ndim > 1:
-                        if outarray.fill_none:
-                            out = ak.fill_none(
-                                ak.flatten(data[col]),
-                                outarray.fill_value,
-                            )
+                try:
+                    for col in outarray.columns:
+                        if outarray.flatten and data.ndim > 1:
+                            if outarray.fill_none:
+                                out = ak.fill_none(
+                                    ak.flatten(getattr(data, col)),
+                                    outarray.fill_value,
+                                )
+                            else:
+                                out = ak.flatten(getattr(data, col))
                         else:
-                            out = ak.flatten(data[col])
-                    else:
-                        if outarray.fill_none:
-                            out = ak.fill_none(
-                                data[col],
-                                outarray.fill_value,
-                            )
-                        else:
-                            out = data[col]
+                            if outarray.fill_none:
+                                out = ak.fill_none(
+                                    getattr(data, col),
+                                    outarray.fill_value,
+                                )
+                            else:
+                                out = getattr(data, col)
 
-                    out_by_cat[f"{outarray.collection}_{col}"] = out
+                        out_by_cat[f"{outarray.collection}_{col}"] = out
+                except Exception as e:
+                    print(f"Error in category {category} and collection {outarray.collection} and column {col}")
+                    print(e)
+                    raise e
 
-            #print("Output Columns:\n", out_by_cat)
-                     
             # Check that all the columns have the same first axis size
             # get dim from first key
             dim = len(out_by_cat[list(out_by_cat.keys())[0]])
