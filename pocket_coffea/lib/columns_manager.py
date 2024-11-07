@@ -16,6 +16,8 @@ class ColOut:
     pos_end: int = None  # Last position in the collection to export. If None export until the last element
 
 
+import pyarrow as pa
+import pyarrow.parquet as pq
 class ColumnsManager:
     def __init__(self, cfg, categories_config):
         self.cfg = cfg
@@ -114,11 +116,30 @@ class ColumnsManager:
                     )
         return self.output
 
+    def get_parquet_schema(self):
+        schema = {}
+        for category, outarrays in self.cfg.items():
+            category_fields = []
+            if any(weights_manager for outarray in outarrays):
+                category_fields.append(('weight', pa.float64()))
+            for outarray in outarrays:
+                for col in outarray.columns:
+                    field_name = f"{outarray.collection}_{col}"
+                    if outarray.flatten:
+                        field_type = pa.list_(pa.float64())
+                    else:
+                        field_type = pa.float64()
+                    category_fields.append((field_name, field_type))
+            schema[category] = pa.schema(category_fields)
+        return schema
+
+    def fill_ak_arrays(self, events, cuts_masks, subsample_mask=None, weights_manager=None, enforce_schema=True):
     def fill_ak_arrays(self, events, cuts_masks, subsample_mask=None, weights_manager=None):
-        self.output = {}
         for category, outarrays in self.cfg.items():
             if len(outarrays)==0:
                 continue
+        self.output = {}
+        schema = self.get_parquet_schema() if enforce_schema else None
             out_by_cat = {}
             # Computing mask
             mask = cuts_masks.get_mask(category)
@@ -193,7 +214,10 @@ class ColumnsManager:
                         When exporting akward arrays all the columns should have flatten=False option to keep the event dimension consistent"
                     )
             
-            self.output[category] = ak.zip(out_by_cat, depth_limit=1)
+            if enforce_schema:
+                self.output[category] = ak.Array(out_by_cat, with_name="event").to_arrow().cast(schema[category])
+            else:
+                self.output[category] = ak.zip(out_by_cat, depth_limit=1)
                 
         #return full output with all categories
         return self.output
