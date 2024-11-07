@@ -39,7 +39,7 @@ variables:
 build_docker_lxplus_el9:
   extends: .build_docker_template
   variables:
-    BUILD_ARGS: "FROM_IMAGE=gitlab-registry.cern.ch/batch-team/dask-lxplus/lxdask-al9:latest CLUSTER=lxplus-el9"
+    BUILD_ARGS: "FROM_IMAGE=gitlab-registry.cern.ch/batch-team/dask-lxplus/lxdask-al9:qa CLUSTER=lxplus-el9"
     REGISTRY_IMAGE_PATH: ${CI_REGISTRY_IMAGE}:lxplus-el9-${CI_COMMIT_SHORT_SHA}
 
 
