@@ -254,6 +254,103 @@ def test_skimming(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_fac
     run_options = defaults.get_default_run_options()["general"]
     run_options["limit-files"] = 1
     run_options["limit-chunks"] = 2
+    run_options["chunksize"] = 25
+    config.filter_dataset(run_options["limit-files"])
+
+    executor_factory = executors_lib.get_executor_factory("iterative",
+                                                          run_options=run_options,
+                                                          outputdir=outputdir)
+
+    executor = executor_factory.get()
+
+    run = Runner(
+        executor=executor,
+        chunksize=run_options["chunksize"],
+        maxchunks=run_options["limit-chunks"],
+        schema=processor.NanoAODSchema,
+        format="root"
+    )
+    output = run(config.filesets, treename="Events",
+                 processor_instance=config.processor_instance)
+    save(output, outputdir / "output_all.coffea")
+    from pocket_coffea.utils.skim import save_skimed_dataset_definition
+    save_skimed_dataset_definition(output, f"{outputdir}/skimmed_dataset_definition.json")
+    
+    assert output is not None
+    print(output)
+    assert "skimmed_files" in output
+    assert "nskimmed_events" in output
+    for dataset, files in output["skimmed_files"].items():
+        for file in files:
+            assert Path(file).exists()
+    for dataset, nevents in output["nskimmed_events"].items():
+        if output["datasets_metadata"]["by_dataset"][dataset]["isMC"] == "True":
+            assert output["sum_genweights"][dataset] > 0
+        for nevent in nevents:
+            assert nevent > 0
+            
+    # Now checking the rescaled sumw
+    # Open a file with NanoEventsFactory
+    for dataset, files in output["skimmed_files"].items():
+        if output["datasets_metadata"]["by_dataset"][dataset]["isMC"] == "True":
+            tot_sumw = 0.
+            for file in files:
+                ev = NanoEventsFactory.from_root(file, schemaclass=NanoAODSchema).events()
+                sumw = ak.sum(ev.genWeight * ev.skimRescaleGenWeight)
+                tot_sumw += sumw
+            assert np.isclose(tot_sumw, output["sum_genweights"][dataset])
+
+    # NOw let's hadd the files and them rerun on them
+    print("Running new processor on the skimmed files with different chunksize")
+    config = load_config("config_afterskim.py", do_load=False, outputdir=outputdir)
+    # Change the dataset_cfg file
+    config.datasets_cfg["jsons"] = [f"{outputdir}/skimmed_dataset_definition.json"]
+    config.load()
+    assert isinstance(config, Configurator)
+
+    run_options = defaults.get_default_run_options()["general"]
+    # Testing a different chunksize to verify that total sum_genweight scales correctly
+    run_options["chunksize"] = 5
+    config.filter_dataset(run_options["limit-files"])
+
+    executor_factory = executors_lib.get_executor_factory("iterative",
+                                                          run_options=run_options,
+                                                          outputdir=outputdir)
+
+    executor = executor_factory.get()
+
+    run = Runner(
+        executor=executor,
+        chunksize=run_options["chunksize"],
+        maxchunks=run_options["limit-chunks"],
+        schema=processor.NanoAODSchema,
+        format="root"
+    )
+    output2 = run(config.filesets, treename="Events",
+                 processor_instance=config.processor_instance)
+    save(output2, outputdir / "output_all_hadd.coffea")
+
+    # Now we compare the total sumgenweight of this output with the previous one
+    assert np.isclose(output["sum_genweights"]["TTTo2L2Nu_2018"], output2["sum_genweights"]["TTTo2L2Nu_2018"])
+
+
+## Very difficult to test in the CDCI, disabled
+"""
+def test_skimming_hadd(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
+    monkeypatch.chdir(base_path / "test_skimming" )
+    outputdir = tmp_path_factory.mktemp("test_skimming")
+    outputdir_skim = tmp_path_factory.mktemp("test_skimming_skim")
+    config = load_config("config.py", save_config=True, outputdir=outputdir)
+    assert isinstance(config, Configurator)
+
+    # Check the subsamples config
+    assert config.save_skimmed_files != None
+    config.save_skimmed_files = outputdir_skim.as_posix()
+    # this means that the processing will stop at the skimming step
+
+    run_options = defaults.get_default_run_options()["general"]
+    run_options["limit-files"] = 1
+    run_options["limit-chunks"] = 2
     run_options["chunksize"] = 10
     config.filter_dataset(run_options["limit-files"])
 
@@ -337,7 +434,7 @@ def test_skimming(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_fac
 
     # Now we compare the total sumgenweight of this output with the previous one
     assert np.isclose(output["sum_genweights"]["TTTo2L2Nu_2018"], output2["sum_genweights"]["TTTo2L2Nu_2018"])
-    
+"""
 #-------------------------------------------------------------------
 
 def test_columns_export(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):

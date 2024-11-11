@@ -264,18 +264,8 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
 
     # If the processor has skimmed NanoAOD, we export a dataset_definition file
     if config.save_skimmed_files:
-        datasets_info = {}
-        datasets_metadata = output["datasets_metadata"]["by_dataset"]
-        # Now add the files
-        for key in datasets_metadata.keys():
-            datasets_info[key] =  {
-                "metadata": datasets_metadata[key],
-                "files": output["skimmed_files"][key]
-            }
-            datasets_info[key]["metadata"]["isSkim"] = "True"
-            # Save the json
-        with open(f"{outputdir}/skimmed_dataset_definition.json", "w") as f:
-            json.dump(datasets_info, f, indent=4)
+        from pocket_coffea.utils.skim import save_skimed_dataset_definition
+        save_skimed_dataset_definition(output, f"{outputdir}/skimmed_dataset_definition.json")
         
     # Closing the executor if needed
     executor_factory.close()
