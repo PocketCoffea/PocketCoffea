@@ -102,8 +102,8 @@ lepton_scale_factors:
       '2018': False
       '2022_preEE': True
       '2022_postEE': True
-      '2023_preBPix': True
-      '2023_postBPix': True
+      '2023_preBPix': False
+      '2023_postBPix': False
     
     # The trigger SF configuration is expected to have this structure
     # needs to be provided by the user.

@@ -260,6 +260,13 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
             print(f"Saving output to {outfile.format(group_name)}")
             save(output, outfile.format(group_name))
             print_processing_stats(output, start_time, run_options["scaleout"])
+
+
+    # If the processor has skimmed NanoAOD, we export a dataset_definition file
+    if config.save_skimmed_files:
+        from pocket_coffea.utils.skim import save_skimed_dataset_definition
+        save_skimed_dataset_definition(output, f"{outputdir}/skimmed_dataset_definition.json")
+        
     # Closing the executor if needed
     executor_factory.close()
 
