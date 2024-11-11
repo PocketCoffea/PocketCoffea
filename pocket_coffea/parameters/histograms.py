@@ -642,9 +642,9 @@ def fatjet_taggers_hists(coll="FatJetGood", pos=None, fields=None, name=None, ax
     for field in taggers_fields["fatjet"]:
         if fields == None or field in fields:
             hist_name = f"{name}_{field}"
-            setting = deepcopy(default_axis_settings[f"jet_{field}"])
-            if axis_settings != None and f"jet_{field}" in axis_settings:
-                setting.update(axis_settings[f"jet_{field}"])
+            setting = deepcopy(default_axis_settings[f"fatjet_{field}"])
+            if axis_settings != None and f"fatjet_{field}" in axis_settings:
+                setting.update(axis_settings[f"fatjet_{field}"])
             setting["coll"] = coll
             # If the position argument is given the histogram is
             # created for the specific position
