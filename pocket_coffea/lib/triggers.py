@@ -1,8 +1,36 @@
 import numpy as np
 import awkward as ak
 
+def apply_trigger_mask(events, triggers_to_apply, year, invert=False):
+    '''Computes the HLT trigger mask doing the OR of all the triggers in the list
+    '''
+    trigger_mask = np.zeros(len(events), dtype="bool")
 
-def get_trigger_mask(events, trigger_dict, year, isMC, primaryDatasets=None, invert=False):
+    for trigger in triggers_to_apply:
+        # Special treatment for Ele32 in 2017
+        if year == "2017" and (
+            (trigger == 'Ele32_WPTight_Gsf_L1DoubleEG')
+            & ('Ele32_WPTight' not in events.HLT.fields)
+        ):
+            flag = (
+                ak.sum(
+                    (events.TrigObj.id == 11)
+                    & ((events.TrigObj.filterBits & 1024) == 1024),
+                    axis=1,
+                )
+                > 0
+            )
+            trigger_mask = trigger_mask | (events.HLT[trigger] & flag)
+        else:
+            if trigger in events.HLT.fields:
+                trigger_mask = trigger_mask | events.HLT[trigger]
+
+    if invert:
+        trigger_mask = ~trigger_mask
+    return trigger_mask
+
+
+def get_trigger_mask_byprimarydataset(events, trigger_dict, year, isMC, primaryDatasets=None, invert=False):
     '''Computes the HLT trigger mask
 
     The function reads the triggers configuration and create the mask.
@@ -36,28 +64,4 @@ def get_trigger_mask(events, trigger_dict, year, isMC, primaryDatasets=None, inv
             # If Data take only the specific pd
             triggers_to_apply += [t.lstrip("HLT_") for t in cfg[events.metadata["primaryDataset"]]]
 
-    # create the mask
-    trigger_mask = np.zeros(len(events), dtype="bool")
-
-    for trigger in triggers_to_apply:
-        # Special treatment for Ele32 in 2017
-        if year == "2017" and (
-            (trigger == 'Ele32_WPTight_Gsf_L1DoubleEG')
-            & ('Ele32_WPTight' not in events.HLT.fields)
-        ):
-            flag = (
-                ak.sum(
-                    (events.TrigObj.id == 11)
-                    & ((events.TrigObj.filterBits & 1024) == 1024),
-                    axis=1,
-                )
-                > 0
-            )
-            trigger_mask = trigger_mask | (events.HLT[trigger] & flag)
-        else:
-            if trigger in events.HLT.fields:
-                trigger_mask = trigger_mask | events.HLT[trigger]
-
-    if invert:
-        trigger_mask = ~trigger_mask
-    return trigger_mask
+    return apply_trigger_mask(events, triggers_to_apply, year, invert=invert)
