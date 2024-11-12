@@ -1,6 +1,6 @@
 
 import pytest
-from pocket_coffea.lib.cut_functions import get_HLTsel
+from pocket_coffea.lib.cut_functions import get_HLTsel, get_HLTsel_custom
 from pocket_coffea.lib.cut_definition import Cut
 from pocket_coffea.parameters import defaults
 import awkward as ak
@@ -22,8 +22,7 @@ def params():
 
 
 
-
-def test_HTLsel(events, params):
+def test_HLTsel(events, params):
     hlt = get_HLTsel()
     mask = hlt.get_mask(events, params, year="2018", isMC=True)
 
@@ -46,7 +45,12 @@ def test_HLTsel_primaryDatasets(events, params):
     assert ak.all(events[mask_ele].event == events[(events.HLT.Ele32_WPTight_Gsf)|(events.HLT.Ele28_eta2p1_WPTight_Gsf_HT150)].event)
 
      
+def test_HLTsel_custom(events, params):
+    hlt = get_HLTsel_custom(["HLT_Ele32_WPTight_Gsf", "HLT_Ele28_eta2p1_WPTight_Gsf_HT150"])
+    mask = hlt.get_mask(events, params, year="2018", isMC=True)
 
+    #Checking without the mask
+    assert ak.all(events[mask].event == events[(events.HLT.Ele32_WPTight_Gsf)|(events.HLT.Ele28_eta2p1_WPTight_Gsf_HT150)].event)
 
 # def test_HTLsel_primaryDatasets():
 #     key = "semileptonic"
