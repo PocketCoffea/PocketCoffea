@@ -214,7 +214,7 @@ def jet_correction_correctionlib(
         return jets_corrected
 
 
-def jet_selection(events, jet_type, params, year, leptons_collection=""):
+def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tagger=""):
 
     jets = events[jet_type]
     cuts = params.object_preselection[jet_type]
@@ -231,6 +231,29 @@ def jet_selection(events, jet_type, params, year, leptons_collection=""):
         mask_lepton_cleaning = ak.prod(dR_jets_lep > cuts["dr_lepton"], axis=2) == 1
     else:
         mask_lepton_cleaning = True
+    
+    if jet_tagger != "":
+        if "PNet" in jet_tagger:
+            B   = "btagPNetB"
+            CvL = "btagPNetCvL"
+            CvB = "btagPNetCvB"
+        elif "DeepFlav" in jet_tagger:
+            B   = "btagDeepFlavB"
+            CvL = "btagDeepFlavCvL"
+            CvB = "btagDeepFlavCvB"
+        elif "RobustParT" in jet_tagger:
+            B   = "btagRobustParTAK4B"
+            CvL = "btagRobustParTAK4CvL"
+            CvB = "btagRobustParTAK4CvB"
+        else:
+            raise NotImplementedError(f"This tagger is not implemented: {jet_tagger}")
+        
+        if B not in jets.fields or CvL not in jets.fields or CvB not in jets.fields:
+            raise NotImplementedError(f"This tagger is not available in the input: {jet_tagger}")
+
+        jets["btagB"] = jets[B]
+        jets["btagCvL"] = jets[CvL]
+        jets["btagCvB"] = jets[CvB]
 
     if jet_type == "Jet":
         # Selection on PUid. Only available in Run2 UL, thus we need to determine which sample we run over;
@@ -258,20 +281,11 @@ def btagging(Jet, btag, wp, veto=False):
         return Jet[Jet[btag["btagging_algorithm"]] > btag["btagging_WP"][wp]]
 
 
-def CvsLsorted(jets, tagger):
-    if tagger == "PNet":
-        ctag = "btagPNetCvL"
-    elif tagger == "DeepFlav":
-        ctag = "btagDeepFlavCvL"
-    elif tagger == "RobustParT":
-        ctag = "btagRobustParTAK4CvL"
-    else:
-        raise NotImplementedError(f"This tagger is not implemented: {tagger}")
-    
-    return jets[ak.argsort(jets[ctag], axis=1, ascending=False)]
+def CvsLsorted(jets):    
+    return jets[ak.argsort(jets["btagCvL"], axis=1, ascending=False)]
 
 
-def get_dijet(jets, tagger = 'PNet'):
+def get_dijet(jets, taggerVars=True):
     
     fields = {
         "pt": 0.,
@@ -300,23 +314,11 @@ def get_dijet(jets, tagger = 'PNet'):
     fields["j1pt"] = ak.where( (njet >= 2), jets[:,0].pt, -1)
     fields["j2pt"] = ak.where( (njet >= 2), jets[:,1].pt, -1)
 
-    if tagger == "PNet":
-        CvL = "btagPNetCvL"
-        CvB = "btagPNetCvB"
-    elif tagger == "DeepFlav":
-        CvL = "btagDeepFlavCvL"
-        CvB = "btagDeepFlavCvB"
-    elif tagger == "RobustParT":
-        CvL = "btagRobustParTAK4CvL"
-        CvB = "btagRobustParTAK4CvB"
-    else:
-        raise NotImplementedError(f"This tagger is not implemented: {tagger}")
-
-    if tagger:
-        fields["j1CvsL"] = ak.where( (njet >= 2), jets[:,0][CvL], -1)
-        fields["j2CvsL"] = ak.where( (njet >= 2), jets[:,1][CvL], -1)
-        fields["j1CvsB"] = ak.where( (njet >= 2), jets[:,0][CvB], -1)
-        fields["j2CvsB"] = ak.where( (njet >= 2), jets[:,1][CvB], -1)
+    if taggerVars:
+        fields["j1CvsL"] = ak.where( (njet >= 2), jets[:,0]["btagCvL"], -1)
+        fields["j2CvsL"] = ak.where( (njet >= 2), jets[:,1]["btagCvL"], -1)
+        fields["j1CvsB"] = ak.where( (njet >= 2), jets[:,0]["btagCvB"], -1)
+        fields["j2CvsB"] = ak.where( (njet >= 2), jets[:,1]["btagCvB"], -1)
     
     
     dijet = ak.zip(fields, with_name="PtEtaPhiMCandidate")
