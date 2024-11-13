@@ -609,6 +609,9 @@ def jet_hists(coll="JetGood", pos=None, fields=None, name=None, axis_settings=No
     return _get_default_hist(name, "jet", coll, pos, fields, axis_settings, **kwargs)
 
 def jet_taggers_hists(coll="JetGood", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
+    if name == None:
+        name = coll
+    out = {}
     for field in taggers_fields["jet"]:
         if fields == None or field in fields:
             hist_name = f"{name}_{field}"
@@ -630,14 +633,18 @@ def jet_taggers_hists(coll="JetGood", pos=None, fields=None, name=None, axis_set
                 ],
                 **kwargs
             )
+    return out
 
 def fatjet_taggers_hists(coll="FatJetGood", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
+    if name == None:
+        name = coll
+    out = {}
     for field in taggers_fields["fatjet"]:
         if fields == None or field in fields:
             hist_name = f"{name}_{field}"
-            setting = deepcopy(default_axis_settings[f"jet_{field}"])
-            if axis_settings != None and f"jet_{field}" in axis_settings:
-                setting.update(axis_settings[f"jet_{field}"])
+            setting = deepcopy(default_axis_settings[f"fatjet_{field}"])
+            if axis_settings != None and f"fatjet_{field}" in axis_settings:
+                setting.update(axis_settings[f"fatjet_{field}"])
             setting["coll"] = coll
             # If the position argument is given the histogram is
             # created for the specific position
@@ -653,6 +660,7 @@ def fatjet_taggers_hists(coll="FatJetGood", pos=None, fields=None, name=None, ax
                 ],
                 **kwargs
             )
+    return out
             
 def genjet_hists(coll="MyGenJets", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
     if name == None:

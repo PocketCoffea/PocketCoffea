@@ -1,6 +1,7 @@
 import os
 import pathlib
 import shutil
+import json
 import awkward as ak
 from typing import Any, Dict, List, Optional
 
@@ -69,9 +70,8 @@ def copy_file(
 
     if xrootd:
         copyproc = XRootD.client.CopyProcess()
-        copyproc.add_job(local_file, destination)
+        copyproc.add_job(local_file, destination, force=True)
         copyproc.prepare()
-        copyproc.run()
         status, response = copyproc.run()
         if status.status != 0:
             raise Exception(status.message)
@@ -83,3 +83,19 @@ def copy_file(
         shutil.copy(local_file, destination)
         assert os.path.isfile(destination)
     pathlib.Path(local_file).unlink()
+
+
+
+def save_skimed_dataset_definition(processing_out, fileout):
+    datasets_info = {}
+    datasets_metadata = processing_out["datasets_metadata"]["by_dataset"]
+    # Now add the files
+    for key in datasets_metadata.keys():
+        datasets_info[key] =  {
+            "metadata": datasets_metadata[key],
+            "files": processing_out["skimmed_files"][key]
+        }
+        datasets_info[key]["metadata"]["isSkim"] = "True"
+    # Save the json
+    with open(fileout, "w") as f:
+        json.dump(datasets_info, f, indent=4)

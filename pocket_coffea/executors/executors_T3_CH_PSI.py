@@ -61,12 +61,12 @@ class DaskExecutorFactory(ExecutorFactoryABC):
         print(">>> Creating a SLURM cluster")
         self.dask_cluster = SLURMCluster(
                 queue=self.run_options['queue'],
-                cores=self.run_options['cores-per-worker'],
-                processes=self.run_options['cores-per-worker'],
+                cores=self.run_options.get('cores-per-worker', 1),
+                processes=self.run_options.get('cores-per-worker', 1),
                 memory=self.run_options['mem-per-worker'],
                 walltime=self.run_options["walltime"],
                 job_script_prologue=self.get_worker_env(),
-                local_directory=os.path.join(self.outputdir, "slurm_localdir"),
+                local_directory=os.path.join("/scratch", os.environ["USER"], "slurm_localdir"),
                 log_directory=os.path.join(self.outputdir, "slurm_log"),
             )
         print(self.get_worker_env())
@@ -93,7 +93,7 @@ class DaskExecutorFactory(ExecutorFactoryABC):
 
     def customized_args(self):
         args = super().customized_args()
-        # in the futures executor Nworkers == N scalout
+        # in the futures executor Nworkers == N scaleout
         args["client"] = self.dask_client
         args["treereduction"] = self.run_options["tree-reduction"]
         args["retries"] = self.run_options["retries"]

@@ -65,7 +65,7 @@ class FuturesExecutorFactory(ExecutorFactoryABC):
 
     def customized_args(self):
         args = super().customized_args()
-        # in the futures executor Nworkers == N scalout
+        # in the futures executor Nworkers == N scaleout
         args["workers"] = self.run_options["scaleout"]
         return args
 

@@ -53,6 +53,14 @@ pocket\_coffea.scripts.merge\_outputs module
    :undoc-members:
    :show-inheritance:
 
+pocket\_coffea.scripts.split\_output module
+--------------------------------------------
+
+.. automodule:: pocket_coffea.scripts.split_output
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 pocket\_coffea.scripts.print\_parameters module
 -----------------------------------------------
 

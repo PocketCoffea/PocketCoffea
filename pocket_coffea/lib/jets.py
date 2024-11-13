@@ -45,6 +45,23 @@ def jet_correction(params, events, jets, factory, jet_type, chunk_metadata, cach
 def met_correction(params, MET, jets):
     met_factory = CorrectedMETFactory(params.jet_calibration.jec_name_map) # to be fixed
     return met_factory.build(MET, jets, {})
+    
+def met_xy_correction(params, events, year, era):
+    metx = events.MET.pt * np.cos(events.MET.phi)
+    mety = events.MET.pt * np.sin(events.MET.phi)
+    nPV = events.PV.npvs
+
+    if era == "MC":
+        params_ = params["MET_xy"]["MC"][year]
+    else:
+        params_ = params["MET_xy"]["Data"][year][era]
+
+    metx = metx - (params_[0][0] * nPV + params_[0][1])
+    mety = mety - (params_[1][0] * nPV + params_[1][1])
+    pt_corr = np.hypot(metx, mety)
+    phi_corr = np.arctan2(mety, metx)
+    
+    return pt_corr, phi_corr
 
 
 def jet_correction_correctionlib(
@@ -314,12 +331,13 @@ def get_dijet(jets, taggerVars=True):
     fields["j1pt"] = ak.where( (njet >= 2), jets[:,0].pt, -1)
     fields["j2pt"] = ak.where( (njet >= 2), jets[:,1].pt, -1)
 
-    if taggerVars:
+    if "jetId" in jets.fields and taggerVars:
+        '''This dijet fuction should work for GenJets as well. But the btags are not available for them
+        Thus, one has to check if a Jet is a GenJet or reco Jet. The jetId variable is only available in reco Jets'''
         fields["j1CvsL"] = ak.where( (njet >= 2), jets[:,0]["btagCvL"], -1)
         fields["j2CvsL"] = ak.where( (njet >= 2), jets[:,1]["btagCvL"], -1)
         fields["j1CvsB"] = ak.where( (njet >= 2), jets[:,0]["btagCvB"], -1)
         fields["j2CvsB"] = ak.where( (njet >= 2), jets[:,1]["btagCvB"], -1)
-    
     
     dijet = ak.zip(fields, with_name="PtEtaPhiMCandidate")
 
