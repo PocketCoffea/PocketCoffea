@@ -248,29 +248,6 @@ def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tag
         mask_lepton_cleaning = ak.prod(dR_jets_lep > cuts["dr_lepton"], axis=2) == 1
     else:
         mask_lepton_cleaning = True
-    
-    if jet_tagger != "":
-        if "PNet" in jet_tagger:
-            B   = "btagPNetB"
-            CvL = "btagPNetCvL"
-            CvB = "btagPNetCvB"
-        elif "DeepFlav" in jet_tagger:
-            B   = "btagDeepFlavB"
-            CvL = "btagDeepFlavCvL"
-            CvB = "btagDeepFlavCvB"
-        elif "RobustParT" in jet_tagger:
-            B   = "btagRobustParTAK4B"
-            CvL = "btagRobustParTAK4CvL"
-            CvB = "btagRobustParTAK4CvB"
-        else:
-            raise NotImplementedError(f"This tagger is not implemented: {jet_tagger}")
-        
-        if B not in jets.fields or CvL not in jets.fields or CvB not in jets.fields:
-            raise NotImplementedError(f"This tagger is not available in the input: {jet_tagger}")
-
-        jets["btagB"] = jets[B]
-        jets["btagCvL"] = jets[CvL]
-        jets["btagCvB"] = jets[CvB]
 
     if jet_type == "Jet":
         # Selection on PUid. Only available in Run2 UL, thus we need to determine which sample we run over;
@@ -283,10 +260,49 @@ def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tag
   
         mask_good_jets = mask_presel & mask_lepton_cleaning & mask_jetpuid
 
+        if jet_tagger != "":
+            if "PNet" in jet_tagger:
+                B   = "btagPNetB"
+                CvL = "btagPNetCvL"
+                CvB = "btagPNetCvB"
+            elif "DeepFlav" in jet_tagger:
+                B   = "btagDeepFlavB"
+                CvL = "btagDeepFlavCvL"
+                CvB = "btagDeepFlavCvB"
+            elif "RobustParT" in jet_tagger:
+                B   = "btagRobustParTAK4B"
+                CvL = "btagRobustParTAK4CvL"
+                CvB = "btagRobustParTAK4CvB"
+            else:
+                raise NotImplementedError(f"This tagger is not implemented: {jet_tagger}")
+            
+            if B not in jets.fields or CvL not in jets.fields or CvB not in jets.fields:
+                raise NotImplementedError(f"{B}, {CvL}, and/or {CvB} are not available in the input.")
+
+            jets["btagB"] = jets[B]
+            jets["btagCvL"] = jets[CvL]
+            jets["btagCvB"] = jets[CvB]
+
     elif jet_type == "FatJet":
         # Apply the msd and preselection cuts
         mask_msd = events.FatJet.msoftdrop > cuts["msd"]
         mask_good_jets = mask_presel & mask_msd
+
+        if jet_tagger != "":
+            if "PNetMD" in jet_tagger:
+                BB   = "particleNet_XbbVsQCD"
+                CC   = "particleNet_XccVsQCD"
+            elif "PNet" in jet_tagger:
+                BB   = "particleNetWithMass_HbbvsQCD"
+                CC   = "particleNetWithMass_HccvsQCD"
+            else:
+                raise NotImplementedError(f"This tagger is not implemented: {jet_tagger}")
+            
+            if BB not in jets.fields or CC not in jets.fields:
+                raise NotImplementedError(f"{BB} and/or {CC} are not available in the input.")
+
+            jets["btagBB"] = jets[BB]
+            jets["btagCC"] = jets[CC]
 
     return jets[mask_good_jets], mask_good_jets
 
@@ -298,11 +314,15 @@ def btagging(Jet, btag, wp, veto=False):
         return Jet[Jet[btag["btagging_algorithm"]] > btag["btagging_WP"][wp]]
 
 
-def CvsLsorted(jets):    
+def CvsLsorted(jets,temp=None):    
+    if temp is not None:
+        raise NotImplementedError(f"Using the tagger name while calling `CvsLsorted` is deprecated. Please use `jet_tagger={temp}` as an argument to `jet_selection`.")
     return jets[ak.argsort(jets["btagCvL"], axis=1, ascending=False)]
 
 
 def get_dijet(jets, taggerVars=True):
+    if isinstance(taggerVars,str):
+        raise NotImplementedError(f"Using the tagger name while calling `get_dijet` is deprecated. Please use `jet_tagger={taggerVars}` as an argument to `jet_selection`.")
     
     fields = {
         "pt": 0.,
