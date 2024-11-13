@@ -48,7 +48,11 @@ def test_HLTsel_primaryDatasets(events, params):
 def test_HLTsel_custom(events, params):
     hlt = get_HLTsel_custom(["HLT_Ele32_WPTight_Gsf", "HLT_Ele28_eta2p1_WPTight_Gsf_HT150"])
     mask = hlt.get_mask(events, params, year="2018", isMC=True)
+    #Checking without the mask
+    assert ak.all(events[mask].event == events[(events.HLT.Ele32_WPTight_Gsf)|(events.HLT.Ele28_eta2p1_WPTight_Gsf_HT150)].event)
 
+    hlt = get_HLTsel_custom(["Ele32_WPTight_Gsf", "Ele28_eta2p1_WPTight_Gsf_HT150"])
+    mask = hlt.get_mask(events, params, year="2018", isMC=True)
     #Checking without the mask
     assert ak.all(events[mask].event == events[(events.HLT.Ele32_WPTight_Gsf)|(events.HLT.Ele28_eta2p1_WPTight_Gsf_HT150)].event)
 
