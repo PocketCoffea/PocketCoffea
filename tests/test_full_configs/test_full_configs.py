@@ -235,8 +235,60 @@ def test_subsamples(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_f
                                      'TTTo2L2Nu__mu': 55}}}
     
     compare_totalweight(output, ["nJetGood"])
-    
 
+# ----------------------------------------------------------------------------------------
+def test_subsamples_and_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
+    monkeypatch.chdir(base_path / "test_categorization" )
+    outputdir = tmp_path_factory.mktemp("test_categorization_subsamples_and_weights")
+    config = load_config("config_weights_and_subsamples.py", save_config=True, outputdir=outputdir)
+    assert isinstance(config, Configurator)
+
+    # Check the subsamples config
+    weights_dict = config.weights_config
+    assert "sf_custom_A" in weights_dict["TTTo2L2Nu"]["inclusive"]
+    assert "sf_custom_B" in weights_dict["TTTo2L2Nu"]["bycategory"]["1btag_B"]
+    
+    run_options = defaults.get_default_run_options()["general"]
+    run_options["limit-files"] = 1
+    run_options["limit-chunks"] = 1
+    run_options["chunksize"] = 500
+    config.filter_dataset(run_options["limit-files"])
+
+    executor_factory = executors_lib.get_executor_factory("iterative",
+                                                          run_options=run_options,                                                          outputdir=outputdir)
+
+    executor = executor_factory.get()
+
+    run = Runner(
+        executor=executor,
+        chunksize=run_options["chunksize"],
+        maxchunks=run_options["limit-chunks"],
+        schema=processor.NanoAODSchema,
+        format="root"
+    )
+    output = run(config.filesets, treename="Events",
+                 processor_instance=config.processor_instance)
+    save(output, outputdir / "output_all.coffea")
+
+    # some checks
+    assert output is not None
+    sw = output["sumw"]
+    assert np.isclose(sw["1btag_B"]["TTTo2L2Nu_2018"]["TTTo2L2Nu"] / sw["1btag"]["TTTo2L2Nu_2018"]["TTTo2L2Nu"], 3.)
+    assert np.isclose(sw["1btag_B"]["TTTo2L2Nu_2018"]["TTTo2L2Nu__ele"] / sw["1btag"]["TTTo2L2Nu_2018"]["TTTo2L2Nu__ele"], 3.)
+
+    # Checking variations
+    h = output["variables"]["ElectronGood_eta"]["TTTo2L2Nu__ele"]["TTTo2L2Nu_2018"]
+    # N.B: the variation is checked w.r.t the nominal of a category without the custom weight,
+    # if not the factor include the nominal custom weight
+    assert np.isclose(h[{"cat":"1btag_B", "variation":"sf_custom_BUp"}].values().sum() / h[{"cat":"1btag", "variation":"nominal"}].values().sum(), 5.)
+    assert np.isclose(h[{"cat":"1btag_B", "variation":"sf_custom_BDown"}].values().sum() / h[{"cat":"1btag", "variation":"nominal"}].values().sum(), 0.7)
+    assert np.isclose(h[{"cat":"1btag", "variation":"sf_custom_AUp"}].values().sum() / h[{"cat":"1btag", "variation":"nominal"}].values().sum(), 4./2.)
+    assert np.isclose(h[{"cat":"1btag", "variation":"sf_custom_ADown"}].values().sum() / h[{"cat":"1btag", "variation":"nominal"}].values().sum(), 0.5/2.)
+    h = output["variables"]["ElectronGood_eta"]["TTToSemiLeptonic"]["TTToSemiLeptonic_2016_PostVFP"]
+    # N.B: the variation is checked w.r.t the nominal of a category without the custom weight,
+    # if not the factor include the nominal custom weight
+    assert np.isclose(h[{"cat":"1btag_B", "variation":"sf_custom_BUp"}].values().sum() / h[{"cat":"1btag", "variation":"nominal"}].values().sum(), 5.)
+    assert np.isclose(h[{"cat":"1btag_B", "variation":"sf_custom_BDown"}].values().sum() / h[{"cat":"1btag", "variation":"nominal"}].values().sum(), 0.7)
 # ----------------------------------------------------------------------------------------
 
 def test_skimming(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
