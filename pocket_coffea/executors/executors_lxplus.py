@@ -169,7 +169,9 @@ echo 'Done'"""
         abs_output_path = os.path.abspath(self.outputdir)
 
         os.makedirs(f"{self.jobs_dir}/logs", exist_ok=True)
-        sub = htcondor.Submit()
+        sub = {
+            
+        }
         sub['Executable'] = f"{self.jobs_dir}/job.sh"
         sub['Error'] = f"{self.jobs_dir}/logs/job_$(ClusterId).$(ProcId).err"
         sub['Output'] = f"{self.jobs_dir}/logs/job_$(ClusterId).$(ProcId).out"
@@ -183,6 +185,8 @@ echo 'Done'"""
         with schedd.transaction() as txn:
             cluster_ids = sub.queue(txn, count=len(jobs_config))
 
+        with schedd.transaction() as txn:
+            cluster_id = schedd.submit(txn, sub, count=len(jobs_config))
         breakpoint()
 
 def get_executor_factory(executor_name, **kwargs):
