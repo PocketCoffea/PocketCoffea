@@ -18,7 +18,7 @@ from pocket_coffea.utils.utils import load_config, path_import, adapt_chunksize
 from pocket_coffea.utils.logging import setup_logging
 from pocket_coffea.utils.time import wait_until
 from pocket_coffea.parameters import defaults as parameters_utils
-from pocket_coffea.executors import executors_base
+from pocket_coffea.executors import executors_base, executors_manual_jobs
 from pocket_coffea.utils.benchmarking import print_processing_stats
 
 @click.command(context_settings=dict(ignore_unknown_options=True, allow_extra_args=True))
@@ -166,8 +166,9 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     # Load the executor class from the lib and instantiate it
     executor_factory = executors_lib.get_executor_factory(executor_name, run_options=run_options, outputdir=outputdir)
     # Check the type of the executor_factory
-    if not isinstance(executor_factory, executors_base.ExecutorFactoryABC):
-        print("The user defined executor factory lib is not of type BaseExecturoABC!", executor_name, site)
+    if not (isinstance(executor_factory, executors_base.ExecutorFactoryABC) or
+            isinstance(executor_factory, executors_manual_jobs.ExecutorFactoryManualABC)):
+        print("The user defined executor factory lib is not of type ExecutorFactoryABC or ExecutorFactoryManualABC!", executor_name, site)
         
         exit(1)
 
@@ -191,7 +192,6 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     # Instantiate the executor
     
     # Checking if the executor handles the submission or returns a coffea executor
-    breakpoint()
     if executor_factory.handles_submission:
         # in this case we just send to the executor the config file
         executor = executor_factory.submit(config, filesets_to_run)

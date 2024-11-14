@@ -8,6 +8,8 @@ class ExecutorFactoryABC(ABC):
     def __init__(self, run_options, **kwargs):
         self.run_options = run_options
         self.setup()
+        # If handles_submission == False, the executor is not responsible for submitting the jobs
+        self.handles_submission = False
 
     @abstractmethod
     def get(self):

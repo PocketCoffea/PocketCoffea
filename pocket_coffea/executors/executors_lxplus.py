@@ -3,9 +3,12 @@ import sys
 import socket
 from coffea import processor as coffea_processor
 from .executors_base import ExecutorFactoryABC
+from .executors_manual_jobs import ExecutorFactoryManualABC
 from .executors_base import IterativeExecutorFactory, FuturesExecutorFactory
 from pocket_coffea.utils.network import check_port
 from pocket_coffea.parameters.dask_env import setup_dask
+import cloudpickle
+import yaml
     
 
 class DaskExecutorFactory(ExecutorFactoryABC):
@@ -120,8 +123,67 @@ class DaskExecutorFactory(ExecutorFactoryABC):
         self.dask_client.close()
         self.dask_cluster.close()
 
+#--------------------------------------------------------------------
+# Manual jobs executor
 
+class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
+    def get(self):
+        pass
 
+    def prepare_jobs(self, splits):
+        config_files = [ ]
+        for i, split in enumerate(splits):
+            # take the config filr, set the fileset and save it.
+            self.config.filesets = split
+            cloudpickle.dump(self.config, open(f"{self.jobs_dir}/config_job_{i}.pkl", "wb"))
+            config_files.append(f"{self.jobs_dir}/config_job_{i}.pkl")
+            split["config_file"] = f"{self.jobs_dir}/config_job_{i}.pkl"
+            
+        yaml.dump(splits, open(f"{self.jobs_dir}/job_configs.yaml", "w"))
+        # save the configuration
+        return config_files
+
+    def submit_jobs(self, jobs_config):
+        if self.run_options.get("dry-run", False):
+            print("Dry run, not submitting jobs")
+            return
+        
+        import htcondor
+        col = htcondor.Collector()
+        credd = htcondor.Credd()
+        credd.add_user_cred(htcondor.CredTypes.Kerberos, None)
+        script = f"""#!/bin/bash
+export X509_USER_PROXY={self.x509_path}
+export XRD_RUNFORKHANDLER=1
+export MALLOC_TRIM_THRESHOLD_=0
+
+echo "Starting job $1"
+pocket-coffea run --cfg $2 -o output --executor futures -s $4
+
+xrdcp -f output/output_all.coffea $3/output_job_$1.coffea
+
+echo 'Done'"""
+        with open(f"{self.jobs_dir}/job.sh", "w") as f:
+            f.write(script)
+
+        abs_output_path = os.path.abspath(self.outputdir)
+
+        os.makedirs(f"{self.jobs_dir}/logs", exist_ok=True)
+        sub = htcondor.Submit()
+        sub['Executable'] = f"{self.jobs_dir}/job.sh"
+        sub['Error'] = f"{self.jobs_dir}/logs/job_$(ClusterId).$(ProcId).err"
+        sub['Output'] = f"{self.jobs_dir}/logs/job_$(ClusterId).$(ProcId).out"
+        sub['Log'] = f"{self.jobs_dir}/logs/job_$(ClusterId).$(ProcId).log"
+        sub['MY.SendCredential'] = True
+        sub['MY.SingularityImage'] = f'"{self.run_options["worker-image"]}"'
+        sub['+JobFlavour'] = f'"{self.run_options["queue"]}"'
+        sub['arguments'] = f"$(ProcId) {self.jobs_dir}/config_job_$(ProcId).pkl {abs_output_path} {self.run_options['cores-per-worker']}"
+        sub['queue'] = len(jobs_config)
+
+        with schedd.transaction() as txn:
+            cluster_ids = sub.queue(txn)
+
+        breakpoint()
 
 def get_executor_factory(executor_name, **kwargs):
     if executor_name == "iterative":
@@ -130,3 +192,5 @@ def get_executor_factory(executor_name, **kwargs):
         return FuturesExecutorFactory(**kwargs)
     elif  executor_name == "dask":
         return DaskExecutorFactory(**kwargs)
+    elif executor_name == "condor":
+        return ExecutorFactoryCondorCERN(**kwargs)
