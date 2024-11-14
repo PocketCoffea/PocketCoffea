@@ -37,6 +37,8 @@ from pocket_coffea.utils.benchmarking import print_processing_stats
 @click.option("-ps","--process-separately", is_flag=True, help="Process each dataset separately", default=False )
 @click.option("--executor-custom-setup", type=str, help="Python module to be loaded as custom executor setup")
 @click.option("--filter-years", type=str, help="Filter the data taking period of the datasets to be processed (comma separated list)")
+@click.option("--filter-samples", type=str, help="Filter the samples to be processed (comma separated list)")
+@click.option("--filter-datasets", type=str, help="Filter the datasets to be processed (comma separated list)")
 
 def run(cfg,  custom_run_options, outputdir, test, limit_files,
            limit_chunks, executor, scaleout, chunksize,
@@ -64,8 +66,8 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         logging.info(config)
     
     elif cfg[-4:] == ".pkl":
-        # WARNING: This has to be tested!!
         config = cloudpickle.load(open(cfg,"rb"))
+        config.save_config(outputdir) 
     else:
         raise sys.exit("Please provide a .py/.pkl configuration file")
     
@@ -164,23 +166,36 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         
         exit(1)
 
-    # Instantiate the executor
-    executor = executor_factory.get()
-    start_time = time.time()
-
     # Filter on the fly the fileset to process by datataking period
-    filesets_to_run = {}
+    filesets_to_run = config.filesets
     filter_years = filter_years.split(",") if filter_years else None
+    filter_samples = filter_samples.split(",") if filter_samples else None
+    filter_datasets = filter_datasets.split(",") if filter_datasets else None
     if filter_years:
-        for fileset_name, fileset in config.filesets.items():
-            if fileset["metadata"]["year"] in filter_years:
-                filesets_to_run[fileset_name] = fileset
-    else:
-        filesets_to_run = config.filesets
+        filesets_to_run = {dataset: files for dataset, files in filesets_to_run.items() if files["metadata"]["year"] in filter_years}
+    if filter_samples:
+        filesets_to_run = {dataset: files for dataset, files in filesets_to_run.items() if files["metadata"]["sample"] in filter_samples}
+    if filter_datasets:
+        filesets_to_run = {dataset: files for dataset, files in filesets_to_run.items() if dataset in filter_datasets}
 
     if len(filesets_to_run) == 0:
         print("No datasets to process, closing")
         exit(1)
+
+        
+    # Instantiate the executor
+    
+    # Checking if the executor handles the submission or returns a coffea executor
+    if executor_factory.handle_submission:
+        # in this case we just send to the executor the config file
+        executor = executor_factory.submit(config, filesets_to_run)
+        print("Submission done!")
+        exit(0)
+    else:
+        executor = executor_factory.get()
+
+
+    start_time = time.time()
         
     if not process_separately:
         # Running on all datasets at once

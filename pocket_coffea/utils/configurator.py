@@ -597,11 +597,17 @@ class Configurator:
         # categories
         ocfg["categories"] = self.categories.serialize()
 
-        ocfg["workflow"] = {
-            "name": self.workflow.__name__,
-            "workflow_options": self.workflow_options,
-            "srcfile": inspect.getsourcefile(self.workflow),
-        }
+        try:
+            ocfg["workflow"] = {
+                "name": self.workflow.__name__,
+                "workflow_options": self.workflow_options,
+                "srcfile": inspect.getsourcefile(self.workflow),
+            }
+        except TypeError:
+            ocfg["workflow"] = {
+                "name": self.workflow.__name__,
+                "workflow_options": self.workflow_options,
+            }
 
         ocfg["weights"] = {}
         for sample, weights in self.weights_config.items():
