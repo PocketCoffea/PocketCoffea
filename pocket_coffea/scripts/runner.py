@@ -117,6 +117,10 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
             if "=" in arg:
                 key, value = arg.split("=")
                 run_options[key[2:]] = value
+            if ctx.args.index(arg) < len(ctx.args)-1:
+                next_arg = ctx.args[ctx.args.index(arg)+1]
+                if not next_arg.startswith("--"):
+                    run_options[arg[2:]] = next_arg
             else:
                 run_options[arg[2:]] = True
 

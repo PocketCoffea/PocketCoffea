@@ -71,15 +71,15 @@ class ExecutorFactoryManualABC(ABC):
         If the run_option max-events-by-job is provided instead we submit the amount of jobs necessary to get the desired number of events.
         '''
         tot_n_events = sum([ int(fileset["metadata"]["nevents"]) for fileset in filesets.values()])
-        n_jobs = int(self.run_options.get("scaleout", None))
-        if n_jobs is None:
-            max_events_by_job = int(self.run_options.get("max-events-by-job", None))
-            if max_events_by_job is not None:
-                n_jobs = tot_n_events // max_events_by_job
-            else:
-                raise Exception("No splitting strategy provided --> please provide either njobs or max-events-by-job")
+        max_events_by_job = self.run_options.get("max-events-by-job", None)
+        if max_events_by_job is not None:
+            max_events_by_job = int(max_events_by_job)
+            n_jobs = tot_n_events // max_events_by_job
         else:
+            n_jobs = self.run_options.get("scaleout", None)
             max_events_by_job = tot_n_events // n_jobs
+            if n_jobs is None:
+                raise Exception("No splitting strategy provided --> please provide either njobs or max-events-by-job")
 
         print(f"Splitting the fileset in {n_jobs} jobs with {max_events_by_job} events each")
         jobs = []

@@ -158,14 +158,14 @@ export MALLOC_TRIM_THRESHOLD_=0
 echo "Starting job $1"
 pocket-coffea run --cfg $2 -o output EXECUTOR
 
-xrdcp -f output/output_all.coffea $3/output_job_$1.coffea
+cp output/output_all.coffea $3/output_job_$1.coffea
 
 echo 'Done'"""
 
         if self.run_options["cores-per-worker"] > 1:
             script = script.replace("EXECUTOR", f"--executor futures")
         else:
-            script = script.replace("EXECUTOR", "--iterative")
+            script = script.replace("EXECUTOR", "--executor iterative")
             
         with open(f"{self.jobs_dir}/job.sh", "w") as f:
             f.write(script)
@@ -200,15 +200,12 @@ echo 'Done'"""
 
         dry_run = self.run_options.get("dry-run", False)
         if dry_run:
-            print("Dry run, not submitting jobs")
+            print(f"Dry run, not submitting jobs. You can find all files: {abs_jobdir_path}")
             return
         else:
             print("Submitting jobs")
             os.system(f"condor_submit {self.jobs_dir}/job.sub")
-        # schedd = htcondor.Schedd()
-        # with schedd.transaction() as txn:
-        #     cluster_ids = sub.queue(txn, count=len(jobs_config))
-
+    
 
 def get_executor_factory(executor_name, **kwargs):
     if executor_name == "iterative":
