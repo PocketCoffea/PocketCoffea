@@ -21,7 +21,7 @@ from pocket_coffea.parameters import defaults as parameters_utils
 from pocket_coffea.executors import executors_base
 from pocket_coffea.utils.benchmarking import print_processing_stats
 
-@click.command()
+@click.command(context_settings=dict(ignore_unknown_options=True, allow_extra_args=True))
 @click.option('--cfg', required=True, type=str,
               help='Config file with parameters specific to the current run')
 @click.option("-ro", "--custom-run-options", type=str, default=None, help="User provided run options .yaml file")
@@ -43,9 +43,8 @@ from pocket_coffea.utils.benchmarking import print_processing_stats
 def run(cfg,  custom_run_options, outputdir, test, limit_files,
            limit_chunks, executor, scaleout, chunksize,
            queue, loglevel, process_separately, executor_custom_setup,
-           filter_years):
+           filter_years, filter_samples, filter_datasets):
     '''Run an analysis on NanoAOD files using PocketCoffea processors'''
-
     # Setting up the output dir
     os.makedirs(outputdir, exist_ok=True)
     outfile = os.path.join(
@@ -111,6 +110,12 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     if queue!=None:
         run_options["queue"] = queue
 
+    #Parsing additional runoptions from command line in the format --option=value
+    ctx = click.get_current_context()
+    for arg in ctx.args:
+        if arg.startswith("--") and  "=" in arg:
+            key, value = arg.split("=")
+            run_options[key[2:]] = value
 
     ## Default config for testing: iterative executor, with 2 file and 2 chunks
     if test:
@@ -152,7 +157,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
 
     if "parsl" in executor_name:
         logging.getLogger().handlers[0].setLevel("ERROR")
-
+        
     # Wait until the starting time, if provided
     if run_options["starting-time"] is not None:
         logging.info(f"Waiting until {run_options['starting-time']} to start processing")
@@ -186,7 +191,8 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     # Instantiate the executor
     
     # Checking if the executor handles the submission or returns a coffea executor
-    if executor_factory.handle_submission:
+    breakpoint()
+    if executor_factory.handles_submission:
         # in this case we just send to the executor the config file
         executor = executor_factory.submit(config, filesets_to_run)
         print("Submission done!")
