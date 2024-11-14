@@ -132,62 +132,83 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
 
     def prepare_jobs(self, splits):
         config_files = [ ]
+        out_config = {}
         for i, split in enumerate(splits):
             # take the config filr, set the fileset and save it.
             self.config.filesets = split
             cloudpickle.dump(self.config, open(f"{self.jobs_dir}/config_job_{i}.pkl", "wb"))
             config_files.append(f"{self.jobs_dir}/config_job_{i}.pkl")
-            split["config_file"] = f"{self.jobs_dir}/config_job_{i}.pkl"
+            out_config[f"job-{i}"] = {
+                "filesets": split,
+                "config_file": f"{self.jobs_dir}/config_job_{i}.pkl"
+            }
             
-        yaml.dump(splits, open(f"{self.jobs_dir}/job_configs.yaml", "w"))
+        yaml.dump(out_config, open(f"{self.jobs_dir}/job_configs.yaml", "w"))
         # save the configuration
         return config_files
 
     def submit_jobs(self, jobs_config):
-        if self.run_options.get("dry-run", False):
-            print("Dry run, not submitting jobs")
-            return
+        '''Prepare job config and script and submit the jobs to the cluster'''
         
-        import htcondor
-        col = htcondor.Collector()
-        credd = htcondor.Credd()
-        credd.add_user_cred(htcondor.CredTypes.Kerberos, None)
         script = f"""#!/bin/bash
-export X509_USER_PROXY={self.x509_path}
+export X509_USER_PROXY={self.x509_path.split("/")[-1]}
 export XRD_RUNFORKHANDLER=1
 export MALLOC_TRIM_THRESHOLD_=0
 
 echo "Starting job $1"
-pocket-coffea run --cfg $2 -o output --executor futures -s $4
+pocket-coffea run --cfg $2 -o output EXECUTOR
 
 xrdcp -f output/output_all.coffea $3/output_job_$1.coffea
 
 echo 'Done'"""
+
+        if self.run_options["cores-per-worker"] > 1:
+            script = script.replace("EXECUTOR", f"--executor futures")
+        else:
+            script = script.replace("EXECUTOR", "--iterative")
+            
         with open(f"{self.jobs_dir}/job.sh", "w") as f:
             f.write(script)
 
         abs_output_path = os.path.abspath(self.outputdir)
+        abs_jobdir_path = os.path.abspath(self.jobs_dir)
 
         os.makedirs(f"{self.jobs_dir}/logs", exist_ok=True)
+        # Writing the jid file as the htcondor python submission does not work in the singularity
         sub = {
-            
+            'Executable': "job.sh",
+            'Error': f"{abs_jobdir_path}/logs/job_$(ClusterId).$(ProcId).err",
+            'Output': f"{abs_jobdir_path}/logs/job_$(ClusterId).$(ProcId).out",
+            'Log': f"{abs_jobdir_path}/logs/job_$(ClusterId).$(ProcId).log",
+            'MY.SendCredential': True,
+            'MY.SingularityImage': f'"{self.run_options["worker-image"]}"',
+            '+JobFlavour': f'"{self.run_options["queue"]}"',
+            'RequestCpus' : self.run_options['cores-per-worker'],
+            'arguments': f"$(ProcId) config_job_$(ProcId).pkl {abs_output_path}",
+            'should_transfer_files':'YES',
+            'when_to_transfer_output' : 'ON_EXIT',
+            'transfer_input_files' : f"{abs_jobdir_path}/config_job_$(ProcId).pkl,{self.x509_path},job.sh",
+            'on_exit_remove': '(ExitBySignal == False) && (ExitCode == 0)',
+            'max_retries' : self.run_options["retries"],
+            'requirements' : 'Machine =!= LastRemoteHost'
         }
-        sub['Executable'] = f"{self.jobs_dir}/job.sh"
-        sub['Error'] = f"{self.jobs_dir}/logs/job_$(ClusterId).$(ProcId).err"
-        sub['Output'] = f"{self.jobs_dir}/logs/job_$(ClusterId).$(ProcId).out"
-        sub['Log'] = f"{self.jobs_dir}/logs/job_$(ClusterId).$(ProcId).log"
-        sub['MY.SendCredential'] = True
-        sub['MY.SingularityImage'] = f'"{self.run_options["worker-image"]}"'
-        sub['+JobFlavour'] = f'"{self.run_options["queue"]}"'
-        sub['arguments'] = f"$(ProcId) {self.jobs_dir}/config_job_$(ProcId).pkl {abs_output_path} {self.run_options['cores-per-worker']}"
 
-        schedd = htcondor.Schedd()
-        with schedd.transaction() as txn:
-            cluster_ids = sub.queue(txn, count=len(jobs_config))
+        with open(f"{self.jobs_dir}/job.sub", "w") as f:
+            for k,v in sub.items():
+                f.write(f"{k} = {v}\n")
+            f.write(f"queue {len(jobs_config)}\n")
 
-        with schedd.transaction() as txn:
-            cluster_id = schedd.submit(txn, sub, count=len(jobs_config))
-        breakpoint()
+        dry_run = self.run_options.get("dry-run", False)
+        if dry_run:
+            print("Dry run, not submitting jobs")
+            return
+        else:
+            print("Submitting jobs")
+            os.system(f"condor_submit {self.jobs_dir}/job.sub")
+        # schedd = htcondor.Schedd()
+        # with schedd.transaction() as txn:
+        #     cluster_ids = sub.queue(txn, count=len(jobs_config))
+
 
 def get_executor_factory(executor_name, **kwargs):
     if executor_name == "iterative":

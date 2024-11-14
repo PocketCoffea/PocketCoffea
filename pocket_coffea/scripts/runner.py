@@ -113,9 +113,12 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     #Parsing additional runoptions from command line in the format --option=value
     ctx = click.get_current_context()
     for arg in ctx.args:
-        if arg.startswith("--") and  "=" in arg:
-            key, value = arg.split("=")
-            run_options[key[2:]] = value
+        if arg.startswith("--"):
+            if "=" in arg:
+                key, value = arg.split("=")
+                run_options[key[2:]] = value
+            else:
+                run_options[arg[2:]] = True
 
     ## Default config for testing: iterative executor, with 2 file and 2 chunks
     if test:
@@ -195,7 +198,6 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     if executor_factory.handles_submission:
         # in this case we just send to the executor the config file
         executor = executor_factory.submit(config, filesets_to_run, outputdir)
-        print("Submission done!")
         exit(0)
     else:
         executor = executor_factory.get()
