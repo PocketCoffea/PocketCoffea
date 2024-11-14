@@ -10,7 +10,8 @@ class ExecutorFactoryManualABC(ABC):
 
     def __init__(self, run_options, **kwargs):
         self.run_options = run_options
-        self.jobs_dir = run_options.get("jobs-dir", "./jobs-dir")
+        self.job_name = run_options.get("job-name", "job")
+        self.jobs_dir = os.path.join(run_options.get("jobs-dir", "./jobs-dir/"), self.job_name)
         os.makedirs(self.jobs_dir, exist_ok=True)
         self.setup()
         # If handles_submission == True, the executor is responsible for submitting the job
@@ -54,9 +55,11 @@ class ExecutorFactoryManualABC(ABC):
         pass
 
 
-    def submit(self, config, filesets):
+    def submit(self, config, filesets, outputdir):
         # storing the job config
         self.config = config
+        self.outputdir = outputdir
+        self.filesets = filesets
         splits = self.prepare_splitting(filesets)
         job_configs = self.prepare_jobs(splits)
         self.submit_jobs(job_configs)
@@ -68,7 +71,7 @@ class ExecutorFactoryManualABC(ABC):
         If the run_option max-events-by-job is provided instead we submit the amount of jobs necessary to get the desired number of events.
         '''
         tot_n_events = sum([ int(fileset["metadata"]["nevents"]) for fileset in filesets.values()])
-        n_jobs = int(self.run_options.get("njobs", None))
+        n_jobs = int(self.run_options.get("scaleout", None))
         if n_jobs is None:
             max_events_by_job = int(self.run_options.get("max-events-by-job", None))
             if max_events_by_job is not None:
@@ -87,7 +90,7 @@ class ExecutorFactoryManualABC(ABC):
                     
         for dataset_name, fileset in filesets.items():
             nevents_per_file = ceil(int(fileset["metadata"]["nevents"])/ len(fileset["files"]))
-            print(f"\t- Dataset {dataset_name} has {len(fileset['files'])} files with {nevents_per_file} events each")
+            #print(f"\t- Dataset {dataset_name} has {len(fileset['files'])} files with {nevents_per_file} events each")
             for file in fileset["files"]:
                 current_fileset_job.append(file)
                 current_job_nevents += nevents_per_file

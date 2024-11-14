@@ -25,6 +25,17 @@ dask@lxplus:
   conda-env: false
   local-virtualenv: false
 
+  
+condor@lxplus:
+  cores-per-worker: 1
+  mem-per-worker: "2GB"
+  disk-per-worker: "2GB"
+  worker-image: /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-latest
+  queue: "microcentury"
+  custom-setup-commands: null
+  conda-env: false
+  local-virtualenv: false
+
 
 dask@T3_CH_PSI:
   scaleout: 10

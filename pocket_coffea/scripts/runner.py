@@ -194,7 +194,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     # Checking if the executor handles the submission or returns a coffea executor
     if executor_factory.handles_submission:
         # in this case we just send to the executor the config file
-        executor = executor_factory.submit(config, filesets_to_run)
+        executor = executor_factory.submit(config, filesets_to_run, outputdir)
         print("Submission done!")
         exit(0)
     else:

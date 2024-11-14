@@ -178,10 +178,10 @@ echo 'Done'"""
         sub['MY.SingularityImage'] = f'"{self.run_options["worker-image"]}"'
         sub['+JobFlavour'] = f'"{self.run_options["queue"]}"'
         sub['arguments'] = f"$(ProcId) {self.jobs_dir}/config_job_$(ProcId).pkl {abs_output_path} {self.run_options['cores-per-worker']}"
-        sub['queue'] = len(jobs_config)
 
+        schedd = htcondor.Schedd()
         with schedd.transaction() as txn:
-            cluster_ids = sub.queue(txn)
+            cluster_ids = sub.queue(txn, count=len(jobs_config))
 
         breakpoint()
 
