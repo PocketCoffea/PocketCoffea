@@ -66,6 +66,8 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     
     elif cfg[-4:] == ".pkl":
         config = cloudpickle.load(open(cfg,"rb"))
+        if not config.loaded:
+            config.load()
         config.save_config(outputdir) 
     else:
         raise sys.exit("Please provide a .py/.pkl configuration file")
@@ -110,19 +112,20 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     if queue!=None:
         run_options["queue"] = queue
 
-    #Parsing additional runoptions from command line in the format --option=value
+    #Parsing additional runoptions from command line in the format --option=value, or --option. 
     ctx = click.get_current_context()
     for arg in ctx.args:
         if arg.startswith("--"):
             if "=" in arg:
                 key, value = arg.split("=")
                 run_options[key[2:]] = value
-            if ctx.args.index(arg) < len(ctx.args)-1:
-                next_arg = ctx.args[ctx.args.index(arg)+1]
-                if not next_arg.startswith("--"):
-                    run_options[arg[2:]] = next_arg
             else:
-                run_options[arg[2:]] = True
+                next_arg = ctx.args[ctx.args.index(arg)+1] if ctx.args.index(arg)+1 < len(ctx.args) else None
+                if next_arg and not next_arg.startswith("--"):
+                    run_options[arg[2:]] = next_arg
+                else:
+                    run_options[arg[2:]] = True
+
 
     ## Default config for testing: iterative executor, with 2 file and 2 chunks
     if test:

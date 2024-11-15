@@ -71,17 +71,17 @@ class ExecutorFactoryManualABC(ABC):
         If the run_option max-events-by-job is provided instead we submit the amount of jobs necessary to get the desired number of events.
         '''
         tot_n_events = sum([ int(fileset["metadata"]["nevents"]) for fileset in filesets.values()])
-        max_events_by_job = self.run_options.get("max-events-by-job", None)
-        if max_events_by_job is not None:
-            max_events_by_job = int(max_events_by_job)
-            n_jobs = tot_n_events // max_events_by_job
+        max_events_per_job = self.run_options.get("max-events-per-job", None)
+        if max_events_per_job is not None:
+            max_events_per_job = int(max_events_per_job)
+            n_jobs = tot_n_events // max_events_per_job
         else:
             n_jobs = self.run_options.get("scaleout", None)
-            max_events_by_job = tot_n_events // n_jobs
+            max_events_per_job = tot_n_events // n_jobs
             if n_jobs is None:
                 raise Exception("No splitting strategy provided --> please provide either njobs or max-events-by-job")
 
-        print(f"Splitting the fileset in {n_jobs} jobs with {max_events_by_job} events each")
+        print(f"Splitting the fileset in {n_jobs} jobs with {max_events_per_job} events each")
         jobs = []
         current_job = {}
         current_job_nevents = 0
@@ -94,7 +94,7 @@ class ExecutorFactoryManualABC(ABC):
             for file in fileset["files"]:
                 current_fileset_job.append(file)
                 current_job_nevents += nevents_per_file
-                if current_job_nevents >= max_events_by_job:
+                if current_job_nevents >= max_events_per_job:
                     # Add the job to the list
                     current_job[dataset_name] = {
                         "files": current_fileset_job,
@@ -133,7 +133,7 @@ class ExecutorFactoryManualABC(ABC):
             table.add_row("", "", "", "")
         table.add_section()
         tot_files = sum( [len(ds["files"]) for job in jobs for ds in job.values()])
-        table.add_row("","Total", str(tot_files), f"{tot_n_events:_}")
+        table.add_row(f"{len(jobs)}","Total", str(tot_files), f"{tot_n_events:_}")
         print(table)
         return jobs
 

@@ -154,30 +154,37 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
     def submit_jobs(self, jobs_config):
         '''Prepare job config and script and submit the jobs to the cluster'''
         
-        script = f"""#!/bin/bash
-export X509_USER_PROXY={self.x509_path.split("/")[-1]}
-export XRD_RUNFORKHANDLER=1
-export MALLOC_TRIM_THRESHOLD_=0
-
-echo "Starting job $1"
-touch JOBDIR/job_$1.running
-pocket-coffea run --cfg $2 -o output EXECUTOR
-
-cp output/output_all.coffea $3/output_job_$1.coffea
-rm JOBDIR/job_$1.running
-touch JOBDIR/job_$1.done
-
-echo 'Done'"""
-        
         abs_output_path = os.path.abspath(self.outputdir)
         abs_jobdir_path = os.path.abspath(self.jobs_dir)
         os.makedirs(f"{self.jobs_dir}/logs", exist_ok=True)
 
-        if self.run_options["cores-per-worker"] > 1:
-            script = script.replace("EXECUTOR", f"--executor futures")
+        script = f"""#!/bin/bash
+export X509_USER_PROXY={self.x509_path.split("/")[-1]}
+export XRD_RUNFORKHANDLER=1
+export MALLOC_TRIM_THRESHOLD_=0
+JOBDIR={abs_jobdir_path}
+
+echo "Starting job $1"
+touch $JOBDIR/job_$1.running
+pocket-coffea run --cfg $2 -o output EXECUTOR
+# Do things only if the job is successful
+if [ $? -eq 0 ]; then
+    echo 'Job successful'
+    cp output/output_all.coffea $3/output_job_$1.coffea
+
+    rm $JOBDIR/job_$1.running
+    touch $JOBDIR/job_$1.done
+else
+    echo 'Job failed'
+    rm $JOBDIR/job_$1.running
+    touch $JOBDIR/job_$1.failed
+fi
+echo 'Done'"""
+        
+        if int(self.run_options["cores-per-worker"]) > 1:
+            script = script.replace("EXECUTOR", f"--executor futures --scalout {self.run_options['cores-per-worker']}")
         else:
             script = script.replace("EXECUTOR", "--executor iterative")
-        script = script.replace("JOBDIR", abs_jobdir_path)
             
         with open(f"{self.jobs_dir}/job.sh", "w") as f:
             f.write(script)
@@ -192,6 +199,7 @@ echo 'Done'"""
             'MY.SingularityImage': f'"{self.run_options["worker-image"]}"',
             '+JobFlavour': f'"{self.run_options["queue"]}"',
             'RequestCpus' : self.run_options['cores-per-worker'],
+            'RequestMemory' : f"{self.run_options['mem-per-worker']}",
             'arguments': f"$(ProcId) config_job_$(ProcId).pkl {abs_output_path}",
             'should_transfer_files':'YES',
             'when_to_transfer_output' : 'ON_EXIT',
