@@ -354,15 +354,17 @@ def test_skimming(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_fac
 
     # NOw let's hadd the files and them rerun on them
     print("Running new processor on the skimmed files with different chunksize")
-    config = load_config("config_afterskim.py", do_load=False, outputdir=outputdir)
+    config = load_config("config.py", do_load=False, outputdir=outputdir)
     # Change the dataset_cfg file
     config.datasets_cfg["jsons"] = [f"{outputdir}/skimmed_dataset_definition.json"]
+    config.load_datasets()
     config.load()
+    
     assert isinstance(config, Configurator)
 
     run_options = defaults.get_default_run_options()["general"]
     # Testing a different chunksize to verify that total sum_genweight scales correctly
-    run_options["chunksize"] = 5
+    run_options["chunksize"] = 10
     config.filter_dataset(run_options["limit-files"])
 
     executor_factory = executors_lib.get_executor_factory("iterative",
