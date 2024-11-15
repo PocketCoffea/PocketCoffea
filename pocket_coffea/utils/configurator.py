@@ -79,6 +79,7 @@ class Configurator:
         self.filesets = {}
         self.datasets = []
         self.samples = []
+        self.samples_metadata = {}
 
         self.subsamples = {}
         self.subsamples_list = []  # List of subsamples (for internal checks)
@@ -110,13 +111,16 @@ class Configurator:
         self.columns = {}
         self.columns_cfg = columns
 
+        
+        # Datasets are loaded in the constructore to be able
+        # to manipulate the fileset without loading the configurator
+        self.load_datasets()
+
         self.loaded = False
 
     def load(self):
         '''This function loads the configuration for samples/weights/variations and creates
         the necessary objects for the processor to use. It also loads the workflow'''
-        self.samples_metadata = {}
-        self.load_datasets()
         self.load_subsamples()
 
         # Categories: object handling categorization
@@ -681,3 +685,22 @@ class Configurator:
 
     def __str__(self):
         return repr(self)
+
+
+    def clone(self):
+        '''Create a copy of the configurator in the loaded=False state'''
+        return Configurator(
+            workflow=self.workflow,
+            parameters=self.parameters,
+            datasets=self.datasets_cfg,
+            skim=self.skim_cfg,
+            preselections=self.preselections_cfg,
+            categories=self.categories_cfg,
+            weights=self.weights_cfg,
+            weights_classes=self.weights_classes,
+            variations=self.variations_cfg,
+            variables=self.variables,
+            columns=self.columns_cfg,
+            workflow_options=self.workflow_options,
+            save_skimmed_files=self.save_skimmed_files,
+        )

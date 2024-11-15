@@ -7,6 +7,7 @@ from .executors_manual_jobs import ExecutorFactoryManualABC
 from .executors_base import IterativeExecutorFactory, FuturesExecutorFactory
 from pocket_coffea.utils.network import check_port
 from pocket_coffea.parameters.dask_env import setup_dask
+from pocket_coffea.utils.configurator import Configurator
 import cloudpickle
 import yaml
     
@@ -134,9 +135,12 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
         config_files = [ ]
         out_config = {}
         for i, split in enumerate(splits):
+            # We want to create an unloaded copy of the configurator, and setting the filtered
+            # fileset
+            partial_config = self.config.clone()
             # take the config filr, set the fileset and save it.
-            self.config.filesets = split
-            cloudpickle.dump(self.config, open(f"{self.jobs_dir}/config_job_{i}.pkl", "wb"))
+            partial_config.filesets = split
+            cloudpickle.dump(partial_config, open(f"{self.jobs_dir}/config_job_{i}.pkl", "wb"))
             config_files.append(f"{self.jobs_dir}/config_job_{i}.pkl")
             out_config[f"job-{i}"] = {
                 "filesets": split,
@@ -156,24 +160,28 @@ export XRD_RUNFORKHANDLER=1
 export MALLOC_TRIM_THRESHOLD_=0
 
 echo "Starting job $1"
+touch JOBDIR/job_$1.running
 pocket-coffea run --cfg $2 -o output EXECUTOR
 
 cp output/output_all.coffea $3/output_job_$1.coffea
+rm JOBDIR/job_$1.running
+touch JOBDIR/job_$1.done
 
 echo 'Done'"""
+        
+        abs_output_path = os.path.abspath(self.outputdir)
+        abs_jobdir_path = os.path.abspath(self.jobs_dir)
+        os.makedirs(f"{self.jobs_dir}/logs", exist_ok=True)
 
         if self.run_options["cores-per-worker"] > 1:
             script = script.replace("EXECUTOR", f"--executor futures")
         else:
             script = script.replace("EXECUTOR", "--executor iterative")
+        script = script.replace("JOBDIR", abs_jobdir_path)
             
         with open(f"{self.jobs_dir}/job.sh", "w") as f:
             f.write(script)
 
-        abs_output_path = os.path.abspath(self.outputdir)
-        abs_jobdir_path = os.path.abspath(self.jobs_dir)
-
-        os.makedirs(f"{self.jobs_dir}/logs", exist_ok=True)
         # Writing the jid file as the htcondor python submission does not work in the singularity
         sub = {
             'Executable': "job.sh",
@@ -187,16 +195,24 @@ echo 'Done'"""
             'arguments': f"$(ProcId) config_job_$(ProcId).pkl {abs_output_path}",
             'should_transfer_files':'YES',
             'when_to_transfer_output' : 'ON_EXIT',
-            'transfer_input_files' : f"{abs_jobdir_path}/config_job_$(ProcId).pkl,{self.x509_path},job.sh",
+            'transfer_input_files' : f"{abs_jobdir_path}/config_job_$(ProcId).pkl,{self.x509_path},{abs_jobdir_path}/job.sh",
             'on_exit_remove': '(ExitBySignal == False) && (ExitCode == 0)',
             'max_retries' : self.run_options["retries"],
             'requirements' : 'Machine =!= LastRemoteHost'
         }
 
-        with open(f"{self.jobs_dir}/job.sub", "w") as f:
+        with open(f"{self.jobs_dir}/jobs_all.sub", "w") as f:
             for k,v in sub.items():
                 f.write(f"{k} = {v}\n")
             f.write(f"queue {len(jobs_config)}\n")
+        # Creating also single sub files for resubmission
+        for i, _ in enumerate(jobs_config):
+            with open(f"{self.jobs_dir}/job_{i}.sub", "w") as f:
+                for k,v in sub.items():
+                    if isinstance(v, str):
+                        v = v.replace("$(ProcId)", str(i))
+                    f.write(f"{k} = {v}\n")
+                f.write(f"queue\n")
 
         dry_run = self.run_options.get("dry-run", False)
         if dry_run:
@@ -204,7 +220,7 @@ echo 'Done'"""
             return
         else:
             print("Submitting jobs")
-            os.system(f"condor_submit {self.jobs_dir}/job.sub")
+            os.system(f"condor_submit {self.jobs_dir}/jobs_all.sub")
     
 
 def get_executor_factory(executor_name, **kwargs):
