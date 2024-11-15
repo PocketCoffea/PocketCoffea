@@ -134,6 +134,9 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
     def prepare_jobs(self, splits):
         config_files = [ ]
         out_config = {}
+        # Disabling the postprocessing
+        self.config.do_postprocessing = False
+        # Splitting the filets creating a new configuration for each and pickling it
         for i, split in enumerate(splits):
             # We want to create an unloaded copy of the configurator, and setting the filtered
             # fileset
@@ -228,7 +231,7 @@ echo 'Done'"""
             return
         else:
             print("Submitting jobs")
-            os.system(f"condor_submit {self.jobs_dir}/jobs_all.sub")
+            os.system(f"cd {abs_jobdir_path} && condor_submit jobs_all.sub")
     
 
 def get_executor_factory(executor_name, **kwargs):

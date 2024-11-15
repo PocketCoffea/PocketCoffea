@@ -148,13 +148,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
     def skim_events(self):
         '''
         Function which applied the initial event skimming.
-        By default the skimming comprehend:
-
-          - METfilters,
-          - PV requirement *at least 1 good primary vertex
-          - lumi-mask (for DATA): applied the goldenJson selection
-          - requested HLT triggers (from configuration, not hardcoded in the processor)
-          - **user-defined** skimming cuts
+        By default the skimming does not comprehend cuts. 
 
         BE CAREFUL: the skimming is done before any object preselection and cleaning.
         Only collections and branches already present in the NanoAOD before any corrections
@@ -208,12 +202,12 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             fout["Events"] = uproot_writeable(self.events)
         # copy the file
         copy_file(
-            filename, "./", self.cfg.save_skimmed_files, subdirs=[self._dataset]
+            filename, "./", self.cfg.save_skimmed_files_folder, subdirs=[self._dataset]
         )
         # save the new file location for the new dataset definition
         self.output["skimmed_files"] = {
             self._dataset: [
-                os.path.join(self.cfg.save_skimmed_files, self._dataset, filename)
+                os.path.join(self.cfg.save_skimmed_files_folder, self._dataset, filename)
             ]
         }
         self.output["nskimmed_events"] = {self._dataset: [self.nEvents_after_skim]}
@@ -1011,7 +1005,11 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         To add additional customatizaion redefine the `postprocessing` function,
         but remember to include a super().postprocess() call.
         '''
-       
+        
+        if not self.cfg.do_postprocessing:
+            return accumulator
+
+        
         # Saving dataset metadata directly in the output file reading from the config
         dmeta = accumulator["datasets_metadata"] = {
             "by_datataking_period": {},

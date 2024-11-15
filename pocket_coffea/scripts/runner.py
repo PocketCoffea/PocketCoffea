@@ -8,6 +8,7 @@ import yaml
 from yaml import Loader, Dumper
 import click
 import time
+from rich import print as rprint
 
 from coffea.util import save
 from coffea import processor
@@ -58,12 +59,10 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         print("Failed to setup logging, aborting.")
         exit(1)
 
-    print("Loading the configuration file...")
+    rprint("[bold]Loading the configuration file...[/]")
     if cfg[-3:] == ".py":
         # Load the script
         config = load_config(cfg, save_config=True, outputdir=outputdir)
-        logging.info(config)
-    
     elif cfg[-4:] == ".pkl":
         config = cloudpickle.load(open(cfg,"rb"))
         if not config.loaded:
@@ -71,6 +70,8 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         config.save_config(outputdir) 
     else:
         raise sys.exit("Please provide a .py/.pkl configuration file")
+
+    rprint(config)
     
     # Now loading the executor or from the set of predefined ones, or from the
     # user defined script
@@ -134,6 +135,10 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         run_options["limit-chunks"] = limit_chunks if limit_chunks else 2
         config.filter_dataset(run_options["limit-files"])
 
+    # Print the run options
+    rprint("[bold]Run options:[/]")
+    rprint(run_options)
+    
     # The user can provide a custom executor factory module
     if executor_custom_setup:
         # The user is providing a custom python module that acts as an executor factory.
@@ -142,7 +147,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
             print(f"The user defined executor setup module {executor_custom_setup}"
                   "does not define a `get_executor_factory` function!")
             exit(1)
-
+            
     # if site is known we can load the corresponding module
     elif site == "lxplus":
         from pocket_coffea.executors import executors_lxplus as executors_lib

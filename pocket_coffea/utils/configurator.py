@@ -54,11 +54,29 @@ class Configurator:
         columns=None,
         workflow_options=None,
         save_skimmed_files=None,
+        do_postprocessing=None,
     ):
         '''
         Constructur of the Configurator class.
         It saves the configuration of the analysis and the workflow to be used to load
-        the internal objects in the load() method.'''
+        the internal objects in the load() method.
+
+        Args:
+        - workflow: the workflow class to be used in the analysis
+        - parameters: the OmegaConf object with the parameters of the analysis
+        - datasets: the dictionary describing the datasets to be used in the analysis
+        - skim: the list of cuts to be applied in the skimming step
+        - preselections: the list of preselections to apply
+        - categories: the dictionary of categories to be used in the analysis
+        - weights: the dictionary of weights to be used in the analysis
+        - variations: the dictionary of variations to be used in the analysis
+        - variables: the dictionary of variables to be used in the analysis
+        - weights_classes: the list of WeightWrapper classes to be used in the analysis
+        - columns: the dictionary of columns to be used in the analysis
+        - workflow_options: the dictionary of options to be passed to the workflow
+        - save_skimmed_files:  if !=None and str, it is used to save the skimmed files in the specified folder
+        - do_postprocessing: if False the postprocessing step is skipped      
+        '''
 
         # Save the workflow object and its options
         self.workflow = workflow
@@ -71,7 +89,9 @@ class Configurator:
             print("Error during resolution of OmegaConf parameters magic, please check your parameters files.")
             raise(e)
         
-        self.save_skimmed_files = save_skimmed_files
+        self.save_skimmed_files = save_skimmed_files != None
+        self.save_skimmed_files_folder = save_skimmed_files
+        self.do_postprocessing = do_postprocessing
         # Save
         # Load dataset
         self.datasets_cfg = datasets
@@ -702,5 +722,6 @@ class Configurator:
             variables=self.variables,
             columns=self.columns_cfg,
             workflow_options=self.workflow_options,
-            save_skimmed_files=self.save_skimmed_files,
+            save_skimmed_files=self.save_skimmed_files_folder,
+            do_postprocessing=self.do_postprocessing,
         )
