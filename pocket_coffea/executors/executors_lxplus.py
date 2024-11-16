@@ -167,6 +167,8 @@ export XRD_RUNFORKHANDLER=1
 export MALLOC_TRIM_THRESHOLD_=0
 JOBDIR={abs_jobdir_path}
 
+rm -f $JOBDIR/job_$1.idle
+
 echo "Starting job $1"
 touch $JOBDIR/job_$1.running
 pocket-coffea run --cfg $2 -o output EXECUTOR
@@ -224,6 +226,9 @@ echo 'Done'"""
                         v = v.replace("$(ProcId)", str(i))
                     f.write(f"{k} = {v}\n")
                 f.write(f"queue\n")
+            # Let's also create a .idle file to indicate the the job is in idle
+            with open(f"{self.jobs_dir}/job_{i}.idle", "w") as f:
+                f.write("")
 
         dry_run = self.run_options.get("dry-run", False)
         if dry_run:

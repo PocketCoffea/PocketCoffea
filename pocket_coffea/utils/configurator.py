@@ -54,7 +54,7 @@ class Configurator:
         columns=None,
         workflow_options=None,
         save_skimmed_files=None,
-        do_postprocessing=None,
+        do_postprocessing=True,
     ):
         '''
         Constructur of the Configurator class.
