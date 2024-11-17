@@ -199,7 +199,7 @@ echo 'Done'"""
             'Executable': "job.sh",
             'Error': f"{abs_jobdir_path}/logs/job_$(ClusterId).$(ProcId).err",
             'Output': f"{abs_jobdir_path}/logs/job_$(ClusterId).$(ProcId).out",
-            'Log': f"{abs_jobdir_path}/logs/job_$(ClusterId).$(ProcId).log",
+            'Log': f"{abs_jobdir_path}/logs/job_$(ClusterId).log",
             'MY.SendCredential': True,
             'MY.SingularityImage': f'"{self.run_options["worker-image"]}"',
             '+JobFlavour': f'"{self.run_options["queue"]}"',
