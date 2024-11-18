@@ -35,6 +35,7 @@ condor@lxplus:
   custom-setup-commands: null
   conda-env: false
   local-virtualenv: false
+  max-retries: 3
 
 
 dask@T3_CH_PSI:
