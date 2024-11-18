@@ -198,7 +198,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             )
             + ".root"
         )
-        with uproot.recreate(f"{filename}") as fout:
+        with uproot.recreate(f"{filename}", compression=uproot.ZSTD(5)) as fout:
             fout["Events"] = uproot_writeable(self.events)
         # copy the file
         copy_file(
