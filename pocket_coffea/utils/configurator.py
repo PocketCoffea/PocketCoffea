@@ -131,16 +131,17 @@ class Configurator:
         self.columns = {}
         self.columns_cfg = columns
 
-        
-        # Datasets are loaded in the constructore to be able
-        # to manipulate the fileset without loading the configurator
-        self.load_datasets()
-
+        self.filesets_loaded = False
         self.loaded = False
 
     def load(self):
         '''This function loads the configuration for samples/weights/variations and creates
         the necessary objects for the processor to use. It also loads the workflow'''
+        if not self.filesets_loaded:
+            # Avoid reloading the datasets if the configurator already loaded them manually.
+            # This happens when the configurator is manipulated to restrict the fileset before pickling (condor submission)
+            self.load_datasets()
+        
         self.load_subsamples()
 
         # Categories: object handling categorization
