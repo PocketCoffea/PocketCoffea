@@ -11,6 +11,7 @@ hist>=2.8.0
 pyaml
 requests
 parsl
+typeguard!=3.*,<5,>=2.10
 matplotlib>=3.7
 rich
 rucio-clients>=35.2.1
