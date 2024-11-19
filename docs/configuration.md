@@ -705,6 +705,33 @@ cfg = Configurator(
 
 ```
 
+The `HistConf` class has many options, particularly useful to exclude some categories or samples from a specific
+histogram. 
+
+```python
+
+@dataclass
+class HistConf:
+    axes: List[Axis]
+    storage: str = "weight"
+    autofill: bool = True  # Handle the filling automatically
+    variations: bool = True
+    only_variations: List[str] = None
+    exclude_samples: List[str] = None
+    only_samples: List[str] = None
+    exclude_categories: List[str] = None
+    only_categories: List[str] = None
+    no_weights: bool = False  # Do not fill the weights
+    metadata_hist: bool = False  # Non-event variables, for processing metadata
+    hist_obj = None
+    collapse_2D_masks = False  # if 2D masks are applied on the events
+    # and the data_ndim=1, when collapse_2D_mask=True the OR
+    # of the masks on the axis=2 is performed to get the mask
+    # on axis=1, otherwise an exception is raised
+    collapse_2D_masks_mode = "OR"  # Use OR or AND to collapse 2D masks for data_ndim=1 if collapse_2D_masks == True
+
+```
+
 The `Axis` object has many options: in particular the array to be plotted is taken from the `events` mother array
 using the `coll` and `field` attributed. If an array is global in NanoAOD, the `coll` is `events`. 
 
