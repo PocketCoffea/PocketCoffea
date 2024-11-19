@@ -8,6 +8,8 @@ class ExecutorFactoryABC(ABC):
     def __init__(self, run_options, **kwargs):
         self.run_options = run_options
         self.setup()
+        # If handles_submission == False, the executor is not responsible for submitting the jobs
+        self.handles_submission = False
 
     @abstractmethod
     def get(self):
@@ -25,7 +27,8 @@ class ExecutorFactoryABC(ABC):
              _x509_localpath = get_proxy_path()
              # Copy the proxy to the home from the /tmp to be used by workers
              self.x509_path = os.environ['HOME'] + f'/{_x509_localpath.split("/")[-1]}'
-             os.system(f'cp {_x509_localpath} {self.x509_path}')
+             print("Copying proxy file to $HOME.")
+             os.system(f'scp {_x509_localpath} {self.x509_path}')       # scp makes sure older file is overwritten without prompting
              
     def set_env(self):
         # define some environmental variable
@@ -64,7 +67,7 @@ class FuturesExecutorFactory(ExecutorFactoryABC):
 
     def customized_args(self):
         args = super().customized_args()
-        # in the futures executor Nworkers == N scalout
+        # in the futures executor Nworkers == N scaleout
         args["workers"] = self.run_options["scaleout"]
         return args
 

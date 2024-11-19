@@ -21,7 +21,11 @@ def add_jec_variables(jets, event_rho, isMC=True):
 def load_jet_factory(params):
     #read the factory file from params and load it
     with gzip.open(params.jets_calibration.factory_file) as fin:
-        return cloudpickle.load(fin)
+        try:
+            return cloudpickle.load(fin)
+        except Exception as e:
+            print(f"Error loading the jet factory file: {params.jets_calibration.factory_file} --> Please remove the file and rerun the code")
+            raise Exception(f"Error loading the jet factory file: {params.jets_calibration.factory_file} --> Please remove the file and rerun the code")
         
 
 def jet_correction(params, events, jets, factory, jet_type, chunk_metadata, cache):
@@ -45,6 +49,23 @@ def jet_correction(params, events, jets, factory, jet_type, chunk_metadata, cach
 def met_correction(params, MET, jets):
     met_factory = CorrectedMETFactory(params.jet_calibration.jec_name_map) # to be fixed
     return met_factory.build(MET, jets, {})
+    
+def met_xy_correction(params, events, year, era):
+    metx = events.MET.pt * np.cos(events.MET.phi)
+    mety = events.MET.pt * np.sin(events.MET.phi)
+    nPV = events.PV.npvs
+
+    if era == "MC":
+        params_ = params["MET_xy"]["MC"][year]
+    else:
+        params_ = params["MET_xy"]["Data"][year][era]
+
+    metx = metx - (params_[0][0] * nPV + params_[0][1])
+    mety = mety - (params_[1][0] * nPV + params_[1][1])
+    pt_corr = np.hypot(metx, mety)
+    phi_corr = np.arctan2(mety, metx)
+    
+    return pt_corr, phi_corr
 
 
 def jet_correction_correctionlib(
@@ -271,7 +292,7 @@ def CvsLsorted(jets, tagger):
     return jets[ak.argsort(jets[ctag], axis=1, ascending=False)]
 
 
-def get_dijet(jets, tagger = 'PNet'):
+def get_dijet(jets, tagger = None):
     
     fields = {
         "pt": 0.,
@@ -300,19 +321,23 @@ def get_dijet(jets, tagger = 'PNet'):
     fields["j1pt"] = ak.where( (njet >= 2), jets[:,0].pt, -1)
     fields["j2pt"] = ak.where( (njet >= 2), jets[:,1].pt, -1)
 
-    if tagger == "PNet":
-        CvL = "btagPNetCvL"
-        CvB = "btagPNetCvB"
-    elif tagger == "DeepFlav":
-        CvL = "btagDeepFlavCvL"
-        CvB = "btagDeepFlavCvB"
-    elif tagger == "RobustParT":
-        CvL = "btagRobustParTAK4CvL"
-        CvB = "btagRobustParTAK4CvB"
-    else:
-        raise NotImplementedError(f"This tagger is not implemented: {tagger}")
 
-    if tagger:
+    #print("The fields of jets:", jets.fields)
+    if "jetId" in jets.fields and tagger!=None:
+        '''This dijet fuction should work for GenJets as well. But the btags are not available for them
+        Thus, one has to check if a Jet is a GenJet or reco Jet. The jetId variable is only available in reco Jets'''
+        if tagger == "PNet":
+            CvL = "btagPNetCvL"
+            CvB = "btagPNetCvB"
+        elif tagger == "DeepFlav":
+            CvL = "btagDeepFlavCvL"
+            CvB = "btagDeepFlavCvB"
+        elif tagger == "RobustParT":
+            CvL = "btagRobustParTAK4CvL"
+            CvB = "btagRobustParTAK4CvB"
+        else:
+            raise NotImplementedError(f"This tagger is not implemented: {tagger}")
+
         fields["j1CvsL"] = ak.where( (njet >= 2), jets[:,0][CvL], -1)
         fields["j2CvsL"] = ak.where( (njet >= 2), jets[:,1][CvL], -1)
         fields["j1CvsB"] = ak.where( (njet >= 2), jets[:,0][CvB], -1)

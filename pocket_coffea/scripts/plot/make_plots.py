@@ -18,6 +18,7 @@ import click
 @click.option("-i", "--inputfile", type=str, help="Input file", required=False)
 @click.option('-j', '--workers', type=int, default=8, help='Number of parallel workers to use for plotting', required=False)
 @click.option('-oc', '--only-cat', type=str, multiple=True, help='Filter categories with string', required=False)
+@click.option('-oy', '--only-year', type=str, multiple=True, help='Filter datataking years with string', required=False)
 @click.option('-os', '--only-syst', type=str, multiple=True, help='Filter systematics with a list of strings', required=False)
 @click.option('-e', '--exclude-hist', type=str, multiple=True, default=None, help='Exclude histograms with a list of regular expression strings', required=False)
 @click.option('-oh', '--only-hist', type=str, multiple=True, default=None, help='Filter histograms with a list of regular expression strings', required=False)
@@ -33,10 +34,11 @@ import click
 @click.option('--no-ratio', is_flag=True, help='Dont plot the ratio', required=False, default=False)
 @click.option('--no-systematics-ratio', is_flag=True, help='Plot the ratio of the shifts for the systematic uncertainties', required=False, default=False)
 @click.option('--compare', is_flag=True, help='Plot comparison of the samples, instead of data/MC', required=False, default=False)
+@click.option('--index-file', type=str, help='Path of the index file to be copied recursively in the plots directory and its subdirectories', required=False, default=None)
 
 def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfile,
-               workers, only_cat, only_syst, exclude_hist, only_hist, split_systematics, partial_unc_band, no_syst,
-               overwrite, log, density, verbose, format, systematics_shifts, no_ratio, no_systematics_ratio, compare):
+               workers, only_cat, only_year, only_syst, exclude_hist, only_hist, split_systematics, partial_unc_band, no_syst,
+               overwrite, log, density, verbose, format, systematics_shifts, no_ratio, no_systematics_ratio, compare, index_file):
     '''Plot histograms produced by PocketCoffea processors'''
 
     # Using the `input_dir` argument, read the default config and coffea files (if not set with argparse):
@@ -94,11 +96,13 @@ def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfile,
         plot_dir=outputdir,
         style_cfg=style_cfg,
         only_cat=only_cat,
+        only_year=only_year,
         workers=workers,
         log=log,
         density=density,
         verbose=verbose,
-        save=True
+        save=True,
+        index_file=index_file
     )
 
     print("Started plotting.  Please wait...")

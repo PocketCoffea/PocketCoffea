@@ -1,4 +1,11 @@
 HLT_triggers:
+  "2016_PostVFP":
+    SingleEle:
+        - Ele32_WPTight_Gsf
+
+    SingleMuon:
+        - IsoMu24
+
   "2018":
     SingleEle:
         - Ele32_WPTight_Gsf

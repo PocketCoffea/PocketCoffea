@@ -54,11 +54,29 @@ class Configurator:
         columns=None,
         workflow_options=None,
         save_skimmed_files=None,
+        do_postprocessing=True,
     ):
         '''
         Constructur of the Configurator class.
         It saves the configuration of the analysis and the workflow to be used to load
-        the internal objects in the load() method.'''
+        the internal objects in the load() method.
+
+        Args:
+        - workflow: the workflow class to be used in the analysis
+        - parameters: the OmegaConf object with the parameters of the analysis
+        - datasets: the dictionary describing the datasets to be used in the analysis
+        - skim: the list of cuts to be applied in the skimming step
+        - preselections: the list of preselections to apply
+        - categories: the dictionary of categories to be used in the analysis
+        - weights: the dictionary of weights to be used in the analysis
+        - variations: the dictionary of variations to be used in the analysis
+        - variables: the dictionary of variables to be used in the analysis
+        - weights_classes: the list of WeightWrapper classes to be used in the analysis
+        - columns: the dictionary of columns to be used in the analysis
+        - workflow_options: the dictionary of options to be passed to the workflow
+        - save_skimmed_files:  if !=None and str, it is used to save the skimmed files in the specified folder
+        - do_postprocessing: if False the postprocessing step is skipped      
+        '''
 
         # Save the workflow object and its options
         self.workflow = workflow
@@ -71,7 +89,9 @@ class Configurator:
             print("Error during resolution of OmegaConf parameters magic, please check your parameters files.")
             raise(e)
         
-        self.save_skimmed_files = save_skimmed_files
+        self.save_skimmed_files = save_skimmed_files != None
+        self.save_skimmed_files_folder = save_skimmed_files
+        self.do_postprocessing = do_postprocessing
         # Save
         # Load dataset
         self.datasets_cfg = datasets
@@ -79,6 +99,7 @@ class Configurator:
         self.filesets = {}
         self.datasets = []
         self.samples = []
+        self.samples_metadata = {}
 
         self.subsamples = {}
         self.subsamples_list = []  # List of subsamples (for internal checks)
@@ -110,13 +131,17 @@ class Configurator:
         self.columns = {}
         self.columns_cfg = columns
 
+        self.filesets_loaded = False
         self.loaded = False
 
     def load(self):
         '''This function loads the configuration for samples/weights/variations and creates
         the necessary objects for the processor to use. It also loads the workflow'''
-        self.samples_metadata = {}
-        self.load_datasets()
+        if not self.filesets_loaded:
+            # Avoid reloading the datasets if the configurator already loaded them manually.
+            # This happens when the configurator is manipulated to restrict the fileset before pickling (condor submission)
+            self.load_datasets()
+        
         self.load_subsamples()
 
         # Categories: object handling categorization
@@ -597,11 +622,17 @@ class Configurator:
         # categories
         ocfg["categories"] = self.categories.serialize()
 
-        ocfg["workflow"] = {
-            "name": self.workflow.__name__,
-            "workflow_options": self.workflow_options,
-            "srcfile": inspect.getsourcefile(self.workflow),
-        }
+        try:
+            ocfg["workflow"] = {
+                "name": self.workflow.__name__,
+                "workflow_options": self.workflow_options,
+                "srcfile": inspect.getsourcefile(self.workflow),
+            }
+        except TypeError:
+            ocfg["workflow"] = {
+                "name": self.workflow.__name__,
+                "workflow_options": self.workflow_options,
+            }
 
         ocfg["weights"] = {}
         for sample, weights in self.weights_config.items():
@@ -675,3 +706,23 @@ class Configurator:
 
     def __str__(self):
         return repr(self)
+
+
+    def clone(self):
+        '''Create a copy of the configurator in the loaded=False state'''
+        return Configurator(
+            workflow=self.workflow,
+            parameters=self.parameters,
+            datasets=self.datasets_cfg,
+            skim=self.skim_cfg,
+            preselections=self.preselections_cfg,
+            categories=self.categories_cfg,
+            weights=self.weights_cfg,
+            weights_classes=self.weights_classes,
+            variations=self.variations_cfg,
+            variables=self.variables,
+            columns=self.columns_cfg,
+            workflow_options=self.workflow_options,
+            save_skimmed_files=self.save_skimmed_files_folder,
+            do_postprocessing=self.do_postprocessing,
+        )

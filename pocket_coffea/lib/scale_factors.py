@@ -11,6 +11,8 @@ def get_ele_sf(
     If 'reco', the appropriate corrections are chosen by using the argument `pt_region`.
     '''
     electronSF = params["lepton_scale_factors"]["electron_sf"]
+    # translate the `year` key into the corresponding key in the correction file provided by the EGM-POG
+    year_pog = electronSF["era_mapping"][year]
 
     if key in ['reco', 'id']:
         electron_correctionset = correctionlib.CorrectionSet.from_file(
@@ -22,9 +24,6 @@ def get_ele_sf(
             sfname = electronSF.JSONfiles[year]["reco"][pt_region]
         elif key == 'id':
             sfname = electronSF["id"][params.object_preselection["Electron"]["id"]]
-
-        # translate the `year` key into the corresponding key in the correction file provided by the EGM-POG
-        year_pog = electronSF["era_mapping"][year]
         
         if year in ["2023_preBPix", "2023_postBPix"]:
             # Starting from 2023 SFs require the phi:
@@ -60,39 +59,49 @@ def get_ele_sf(
             ak.unflatten(sfup, counts),
             ak.unflatten(sfdown, counts),
         )
-    elif key == 'trigger':
-        electron_correctionset = correctionlib.CorrectionSet.from_file(
-            electronSF.trigger_sf[year]["file"]
-        )
-        map_name = electronSF.trigger_sf[year]["name"]
-
-        output = {}
-        for variation in variations:
-            if variation == "nominal":
-                output[variation] = [
-                    electron_correctionset[map_name].evaluate(
-                        variation, pt.to_numpy(), eta.to_numpy()
-                    )
-                ]
-            else:
-                # Nominal sf==1
-                nominal = np.ones_like(pt.to_numpy())
-                # Systematic variations
-                output[variation] = [
-                    nominal,
-                    electron_correctionset[map_name].evaluate(
-                        f"{variation}Up", pt.to_numpy(), eta.to_numpy()
-                    ),
-                    electron_correctionset[map_name].evaluate(
-                        f"{variation}Down", pt.to_numpy(), eta.to_numpy()
-                    ),
-                ]
-            for i, sf in enumerate(output[variation]):
-                output[variation][i] = ak.unflatten(sf, counts)
-
-        return output
     else:
-        raise Exception(f"Invalid key `{key}` for get_ele_sf. Available keys are 'reco', 'id', 'trigger'.")
+        raise Exception(f"Invalid key `{key}` for get_ele_sf. Available keys are 'reco', 'id'.")
+
+
+def sf_ele_trigger(params, events, year):
+    """Compute electron trigger scale factors using the EGM JSON files with correctionlib.
+    Returns the per-event scale factor for the trigger.
+
+    Returns:
+    --------
+    tuple: (sf, sfup, sfdown) per-event scale factor
+    """
+    electronSF = params.lepton_scale_factors.electron_sf
+    year_pog = electronSF.era_mapping[year]
+    map_name = electronSF.trigger_sf[year].name
+    trigger_path = electronSF.trigger_sf[year].path
+
+    coll = electronSF.collection
+    ele_pt = events[coll].pt
+    ele_eta = events[coll].etaSC
+
+    ele_pt_flat, ele_eta_flat, ele_counts = (
+        ak.flatten(ele_pt).to_numpy(),
+        ak.flatten(ele_eta).to_numpy(),
+        ak.num(ele_pt),
+    )
+
+    electron_correctionset = correctionlib.CorrectionSet.from_file(
+        electronSF.trigger_sf[year].file
+    )
+    corr_eval = electron_correctionset[map_name].evaluate
+
+    # get sf, sfup, sfdown per electron
+    scale_factors = [
+        ak.unflatten(
+            corr_eval(year_pog, variation, trigger_path, ele_eta_flat, ele_pt_flat),
+            ele_counts,
+        )
+        for variation in ("sf", "sfup", "sfdown")
+    ]
+
+    # return a per-event scale factor by multiplying all electron scale factors
+    return tuple(ak.prod(sf, axis=1) for sf in scale_factors)
 
 
 def get_mu_sf(params, year, pt, eta, counts, key=''):
@@ -210,39 +219,6 @@ def sf_ele_id(params, events, year):
 
     # The SF arrays corresponding to the electrons are multiplied along the electron axis in order to obtain a per-event scale factor.
     return ak.prod(sf_id, axis=1), ak.prod(sfup_id, axis=1), ak.prod(sfdown_id, axis=1)
-
-
-def sf_ele_trigger(params, events, year, variations=["nominal"]):
-    '''
-    This function computes the semileptonic electron trigger SF by considering the leading electron in the event.
-    This computation is valid only in the case of the semileptonic final state.
-    Additionally, also the up and down variations of the SF for a set of systematic uncertainties are returned.
-    '''
-    coll = params.lepton_scale_factors.electron_sf.collection
-    ele_pt = events[coll].pt
-    ele_eta = events[coll].etaSC
-
-    ele_pt_flat, ele_eta_flat, ele_counts = (
-        ak.flatten(ele_pt),
-        ak.flatten(ele_eta),
-        ak.num(ele_pt),
-    )
-    sf_dict = get_ele_sf(
-        params,
-        year,
-        pt=ele_pt_flat,
-        eta=ele_eta_flat,
-        phi=None,
-        counts=ele_counts,
-        key='trigger',
-        variations=variations,
-    )
-
-    for variation in sf_dict.keys():
-        for i, sf in enumerate(sf_dict[variation]):
-            sf_dict[variation][i] = ak.prod(sf, axis=1)
-
-    return sf_dict
 
 
 def sf_mu(params, events, year, key=''):
@@ -365,7 +341,7 @@ def sf_btag_calib(params, sample, year, njets, jetsHt):
         params.btagSF_calibration[year]["file"]
     )
     corr = cset[params.btagSF_calibration[year]["name"]]
-    w = corr.evaluate(sample, year, ak.to_numpy(njets), ak.to_numpy(jetsHt))
+    w = corr.evaluate(sample, ak.to_numpy(njets), ak.to_numpy(jetsHt))
     return w
 
 
