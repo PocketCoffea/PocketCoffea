@@ -3,9 +3,13 @@ import sys
 import socket
 from coffea import processor as coffea_processor
 from .executors_base import ExecutorFactoryABC
+from .executors_manual_jobs import ExecutorFactoryManualABC
 from .executors_base import IterativeExecutorFactory, FuturesExecutorFactory
 from pocket_coffea.utils.network import check_port
 from pocket_coffea.parameters.dask_env import setup_dask
+from pocket_coffea.utils.configurator import Configurator
+import cloudpickle
+import yaml
     
 
 class DaskExecutorFactory(ExecutorFactoryABC):
@@ -120,8 +124,122 @@ class DaskExecutorFactory(ExecutorFactoryABC):
         self.dask_client.close()
         self.dask_cluster.close()
 
+#--------------------------------------------------------------------
+# Manual jobs executor
 
+class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
+    def get(self):
+        pass
 
+    def prepare_jobs(self, splits):
+        config_files = [ ]
+        out_config = {}
+        # Disabling the postprocessing
+        self.config.do_postprocessing = False
+        # Splitting the filets creating a new configuration for each and pickling it
+        for i, split in enumerate(splits):
+            # We want to create an unloaded copy of the configurator, and setting the filtered
+            # fileset
+            partial_config = self.config.clone()
+            # take the config filr, set the fileset and save it.
+            partial_config.filesets = split
+            partial_config.samples_metadata = self.config.samples_metadata
+            partial_config.filesets_loaded = True # so that they don't get reloaded in the job
+            cloudpickle.dump(partial_config, open(f"{self.jobs_dir}/config_job_{i}.pkl", "wb"))
+            config_files.append(f"{self.jobs_dir}/config_job_{i}.pkl")
+            out_config[f"job-{i}"] = {
+                "filesets": split,
+                "config_file": f"{self.jobs_dir}/config_job_{i}.pkl"
+            }
+            
+        yaml.dump(out_config, open(f"{self.jobs_dir}/job_configs.yaml", "w"))
+        # save the configuration
+        return config_files
+
+    def submit_jobs(self, jobs_config):
+        '''Prepare job config and script and submit the jobs to the cluster'''
+        
+        abs_output_path = os.path.abspath(self.outputdir)
+        abs_jobdir_path = os.path.abspath(self.jobs_dir)
+        os.makedirs(f"{self.jobs_dir}/logs", exist_ok=True)
+
+        script = f"""#!/bin/bash
+export X509_USER_PROXY={self.x509_path.split("/")[-1]}
+export XRD_RUNFORKHANDLER=1
+export MALLOC_TRIM_THRESHOLD_=0
+JOBDIR={abs_jobdir_path}
+
+rm -f $JOBDIR/job_$1.idle
+
+echo "Starting job $1"
+touch $JOBDIR/job_$1.running
+pocket-coffea run --cfg $2 -o output EXECUTOR
+# Do things only if the job is successful
+if [ $? -eq 0 ]; then
+    echo 'Job successful'
+    cp output/output_all.coffea $3/output_job_$1.coffea
+
+    rm $JOBDIR/job_$1.running
+    touch $JOBDIR/job_$1.done
+else
+    echo 'Job failed'
+    rm $JOBDIR/job_$1.running
+    touch $JOBDIR/job_$1.failed
+fi
+echo 'Done'"""
+        
+        if int(self.run_options["cores-per-worker"]) > 1:
+            script = script.replace("EXECUTOR", f"--executor futures --scalout {self.run_options['cores-per-worker']}")
+        else:
+            script = script.replace("EXECUTOR", "--executor iterative")
+            
+        with open(f"{self.jobs_dir}/job.sh", "w") as f:
+            f.write(script)
+
+        # Writing the jid file as the htcondor python submission does not work in the singularity
+        sub = {
+            'Executable': "job.sh",
+            'Error': f"{abs_jobdir_path}/logs/job_$(ClusterId).$(ProcId).err",
+            'Output': f"{abs_jobdir_path}/logs/job_$(ClusterId).$(ProcId).out",
+            'Log': f"{abs_jobdir_path}/logs/job_$(ClusterId).log",
+            'MY.SendCredential': True,
+            'MY.SingularityImage': f'"{self.run_options["worker-image"]}"',
+            '+JobFlavour': f'"{self.run_options["queue"]}"',
+            'RequestCpus' : self.run_options['cores-per-worker'],
+            'RequestMemory' : f"{self.run_options['mem-per-worker']}",
+            'arguments': f"$(ProcId) config_job_$(ProcId).pkl {abs_output_path}",
+            'should_transfer_files':'YES',
+            'when_to_transfer_output' : 'ON_EXIT',
+            'transfer_input_files' : f"{abs_jobdir_path}/config_job_$(ProcId).pkl,{self.x509_path},{abs_jobdir_path}/job.sh",
+            'on_exit_remove': '(ExitBySignal == False) && (ExitCode == 0)',
+            'max_retries' : self.run_options["retries"],
+            'requirements' : 'Machine =!= LastRemoteHost'
+        }
+
+        with open(f"{self.jobs_dir}/jobs_all.sub", "w") as f:
+            for k,v in sub.items():
+                f.write(f"{k} = {v}\n")
+            f.write(f"queue {len(jobs_config)}\n")
+        # Creating also single sub files for resubmission
+        for i, _ in enumerate(jobs_config):
+            with open(f"{self.jobs_dir}/job_{i}.sub", "w") as f:
+                for k,v in sub.items():
+                    if isinstance(v, str):
+                        v = v.replace("$(ProcId)", str(i))
+                    f.write(f"{k} = {v}\n")
+                f.write(f"queue\n")
+            # Let's also create a .idle file to indicate the the job is in idle
+            with open(f"{self.jobs_dir}/job_{i}.idle", "w") as f:
+                f.write("")
+
+        dry_run = self.run_options.get("dry-run", False)
+        if dry_run:
+            print(f"Dry run, not submitting jobs. You can find all files: {abs_jobdir_path}")
+            return
+        else:
+            print("Submitting jobs")
+            os.system(f"cd {abs_jobdir_path} && condor_submit jobs_all.sub")
+    
 
 def get_executor_factory(executor_name, **kwargs):
     if executor_name == "iterative":
@@ -130,3 +248,5 @@ def get_executor_factory(executor_name, **kwargs):
         return FuturesExecutorFactory(**kwargs)
     elif  executor_name == "dask":
         return DaskExecutorFactory(**kwargs)
+    elif executor_name == "condor":
+        return ExecutorFactoryCondorCERN(**kwargs)

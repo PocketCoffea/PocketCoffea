@@ -72,6 +72,7 @@ merge-outputs="pocket_coffea.scripts.merge_outputs:merge_outputs"
 split-output="pocket_coffea.scripts.split_output:split_output"
 print-parameters="pocket_coffea.scripts.print_parameters:print_parameters"
 make-config="pocket_coffea.sripts.make_config:make_config"
+check-jobs="pocket_coffea.scripts.check_jobs:check_jobs"
 
 # [tool.flake8]
 # extend-ignore = ["E203", "E501", "E722", "B950"]
