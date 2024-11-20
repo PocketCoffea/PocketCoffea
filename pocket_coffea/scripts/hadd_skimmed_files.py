@@ -77,10 +77,10 @@ def hadd_skimmed_files(files_list, outputdir, only_datasets, files, events, scal
                 ngroup += 1
                 nfiles = 0
                 nevents_tot = 0
-            else:
-                group.append(file)
-                nfiles += 1
-                nevents_tot += nevents
+            
+            group.append(file)
+            nfiles += 1
+            nevents_tot += nevents
 
         # add last group
         if len(group):
@@ -91,13 +91,15 @@ def hadd_skimmed_files(files_list, outputdir, only_datasets, files, events, scal
     print(f"We will hadd {len(workload)} groups of files.")
     print("Samples:", groups_metadata.keys())
 
+    # Create one output folder for each dataset
+    for outfile, group in workload:
+        basedir = os.path.dirname(outfile)
+        if not os.path.exists(basedir):
+            os.makedirs(basedir)
+
     if not dry:
         p = Pool(scaleout)
-        # Create one output folder for each dataset
-        for outfile, group in workload:
-            basedir = os.path.dirname(outfile)
-            if not os.path.exists(basedir):
-                os.makedirs(basedir)
+        
         results = p.map(partial(do_hadd, overwrite=overwrite), workload)
 
         print("\n\n\n")
