@@ -38,7 +38,7 @@ queues = [
 def check_jobs(jobs_folder, details):
     jobs_folder = Path(jobs_folder)
     # Get the list of files in the folder
-    tot_jobs = [ a[:-4] for a in glob.glob(f"{jobs_folder}/job_*.sub")]
+    tot_jobs = [ a.split("/")[-1][:-4] for a in glob.glob(f"{jobs_folder}/job_*.sub")]
     # Redo everything every 5 sec
     console = Console()
 

@@ -133,7 +133,13 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
 
     def prepare_jobs(self, splits):
         config_files = [ ]
-        out_config = {}
+        out_config = {
+            "job_name": self.job_name,
+            "job_dir": os.path.abspath(self.jobs_dir),
+            "output_dir": os.path.abspath(self.outputdir),
+            "config_pkl_total": f"{os.path.abspath(self.outputdir)}/configurator.pkl",
+            "jobs_list": {}
+        }
         # Disabling the postprocessing
         self.config.do_postprocessing = False
         # Splitting the filets creating a new configuration for each and pickling it
@@ -142,15 +148,16 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
             # fileset
             partial_config = self.config.clone()
             # take the config filr, set the fileset and save it.
-            partial_config.set_filesets_manually(filesets)
+            partial_config.set_filesets_manually(split)
             cloudpickle.dump(partial_config, open(f"{self.jobs_dir}/config_job_{i}.pkl", "wb"))
             config_files.append(f"{self.jobs_dir}/config_job_{i}.pkl")
-            out_config[f"job-{i}"] = {
+            out_config["jobs_list"][f"job_{i}"] = {
                 "filesets": split,
-                "config_file": f"{self.jobs_dir}/config_job_{i}.pkl"
+                "config_file": f"{self.jobs_dir}/config_job_{i}.pkl",
+                "output_file": f"{os.path.abspath(self.outputdir)}/output_job_{i}.coffea",
             }
             
-        yaml.dump(out_config, open(f"{self.jobs_dir}/job_configs.yaml", "w"))
+        yaml.dump(out_config, open(f"{self.jobs_dir}/jobs_config.yaml", "w"))
         # save the configuration
         return config_files
 
@@ -171,7 +178,7 @@ rm -f $JOBDIR/job_$1.idle
 
 echo "Starting job $1"
 touch $JOBDIR/job_$1.running
-pocket-coffea run --cfg $2 -o output EXECUTOR
+pocket-coffea run --cfg $2 -o output EXECUTOR --chunksize $4
 # Do things only if the job is successful
 if [ $? -eq 0 ]; then
     echo 'Job successful'
@@ -205,7 +212,7 @@ echo 'Done'"""
             '+JobFlavour': f'"{self.run_options["queue"]}"',
             'RequestCpus' : self.run_options['cores-per-worker'],
             'RequestMemory' : f"{self.run_options['mem-per-worker']}",
-            'arguments': f"$(ProcId) config_job_$(ProcId).pkl {abs_output_path}",
+            'arguments': f"$(ProcId) config_job_$(ProcId).pkl {abs_output_path} {self.run_options['chunksize']}",
             'should_transfer_files':'YES',
             'when_to_transfer_output' : 'ON_EXIT',
             'transfer_input_files' : f"{abs_jobdir_path}/config_job_$(ProcId).pkl,{self.x509_path},{abs_jobdir_path}/job.sh",
@@ -237,7 +244,7 @@ echo 'Done'"""
         else:
             print("Submitting jobs")
             os.system(f"cd {abs_jobdir_path} && condor_submit jobs_all.sub")
-    
+
 
 def get_executor_factory(executor_name, **kwargs):
     if executor_name == "iterative":
