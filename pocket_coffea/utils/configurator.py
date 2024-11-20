@@ -141,7 +141,27 @@ class Configurator:
             # Avoid reloading the datasets if the configurator already loaded them manually.
             # This happens when the configurator is manipulated to restrict the fileset before pickling (condor submission)
             self.load_datasets()
-        
+
+        # Now loading and storing the metadata of the filtered filesets
+        if len(self.filesets) == 0:
+            print("File set is empty: please check you dataset definition...")
+            raise Exception("Wrong filesets configuration")
+        else:
+            for name, d in self.filesets.items():
+                m = d["metadata"]
+                if name not in self.datasets:
+                    self.datasets.append(name)
+                if m["sample"] not in self.samples:
+                    self.samples.append(m["sample"])
+                if m["year"] not in self.years:
+                    self.years.append(m["year"])
+                if 'era' in m.keys():
+                    if (m["era"]) not in self.eras:
+                        self.eras.append(m["era"])
+                self.samples_metadata[m["sample"]] = {
+                    "isMC": m["isMC"] =="True",
+                }
+            
         self.load_subsamples()
 
         # Categories: object handling categorization
@@ -260,26 +280,13 @@ class Configurator:
             else:
                 self.filesets.update(ds_dict)
 
-        # Now loading and storing the metadata of the filtered filesets
-        if len(self.filesets) == 0:
-            print("File set is empty: please check you dataset definition...")
-            raise Exception("Wrong filesets configuration")
-        else:
-            for name, d in self.filesets.items():
-                m = d["metadata"]
-                if name not in self.datasets:
-                    self.datasets.append(name)
-                if m["sample"] not in self.samples:
-                    self.samples.append(m["sample"])
-                if m["year"] not in self.years:
-                    self.years.append(m["year"])
-                if 'era' in m.keys():
-                    if (m["era"]) not in self.eras:
-                        self.eras.append(m["era"])
-                self.samples_metadata[m["sample"]] = {
-                    "isMC": m["isMC"] =="True",
-                }
-                        
+    def set_filesets_manually(self, filesets):
+        '''This function sets the filesets directly, usually before the configuration is loaded.
+        This is useful to pickle an unloaded version of the configuration restricting the filesets a priori.
+        It is used in the condor submission script.
+        The `filesets_loaded` attribute is set to True to avoid reloading the datasets.'''
+        self.filesets = filesets
+        self.filesets_loaded = True
 
     def load_subsamples(self):
         # subsamples configuration

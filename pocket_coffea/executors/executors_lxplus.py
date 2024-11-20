@@ -142,9 +142,7 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
             # fileset
             partial_config = self.config.clone()
             # take the config filr, set the fileset and save it.
-            partial_config.filesets = split
-            partial_config.samples_metadata = self.config.samples_metadata
-            partial_config.filesets_loaded = True # so that they don't get reloaded in the job
+            partial_config.set_filesets_manually(filesets)
             cloudpickle.dump(partial_config, open(f"{self.jobs_dir}/config_job_{i}.pkl", "wb"))
             config_files.append(f"{self.jobs_dir}/config_job_{i}.pkl")
             out_config[f"job-{i}"] = {
