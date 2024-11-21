@@ -446,11 +446,11 @@ class Configurator:
         for w in wcfg["common"]["inclusive"]:
             if w not in available_variations:
                 print(f"Variation {w} not available in the workflow")
-                raise Exception("Wrong variation configuration")
+                raise Exception(f"Wrong variation configuration: variation {w} not available in the workflow")
             for sample, wsample in self.variations_config.items():
-                if w not in self.weights_config[sample]["inclusive"]:
+                if variation_type == "weights" and w not in self.weights_config[sample]["inclusive"]:
                     print(f"Error: variation {w} not available for sample {sample} in inclusive category")
-                    raise Exception("Wrong variation configuration")
+                    raise Exception(f"Wrong variation configuration: variation {w} not available for sample {sample} in inclusive category")
                 # add the variation to all the categories and samples
                 for wcat in wsample[variation_type].values():
                     wcat.append(w)
@@ -460,12 +460,13 @@ class Configurator:
                 for w in variations:
                     if w not in available_variations:
                         print(f"Variation {w} not available in the workflow")
-                        raise Exception("Wrong variation configuration")
+                        raise Exception(f"Wrong variation configuration: variation {w} not available in the workflow")
                     for sample, wsample in self.variations_config.items():
-                        if (self.weights_config[sample]["is_split_bycat"] and
+                        if (variation_type == "weights" and
+                            self.weights_config[sample]["is_split_bycat"] and
                             w not in self.weights_config[sample]["bycategory"][cat]):
                             print(f"Error: variation {w} not available for sample {sample} in {cat} category")
-                            raise Exception("Wrong variation configuration")
+                            raise Exception(f"Wrong variation configuration: variation {w} not available for sample {sample} in {cat} category")
                         if w not in wsample[variation_type][cat]:
                             wsample[variation_type][cat].append(w)
 
@@ -476,15 +477,15 @@ class Configurator:
                     print(
                         f"Requested missing sample {sample} in the variations configuration"
                     )
-                    raise Exception("Wrong variation configuration")
+                    raise Exception(f"Wrong variation configuration: sample {sample} not available in the samples list")
                 if "inclusive" in s_wcfg:
                     for w in s_wcfg["inclusive"]:
                         if w not in available_variations:
                             print(f"Variation {w} not available in the workflow")
-                            raise Exception("Wrong variation configuration")
-                        if w not in self.weights_config[sample]["inclusive"]:
+                            raise Exception(f"Wrong variation configuration: variation {w} not available in the workflow")
+                        if variation_type == "weights" and  w not in self.weights_config[sample]["inclusive"]:
                             print(f"Error: variation {w} not available for sample {sample} in inclusive category")
-                            raise Exception("Wrong variation configuration")
+                            raise Exception(f"Wrong variation configuration: variation {w} not available for sample {sample} in inclusive category")
                         # append only to the specific sample
                         for wcat in self.variations_config[sample][
                             variation_type
@@ -499,11 +500,12 @@ class Configurator:
                                 print(
                                     f"Variation {w} not available in the workflow"
                                 )
-                                raise Exception("Wrong variation configuration")
-                            if (self.weights_config[sample]["is_split_bycat"] and
-                            w not in self.weights_config[sample]["bycategory"][cat]):
+                                raise Exception(f"Wrong variation configuration: variation {w} not available in the workflow")
+                            if (variation_type=="weights" and
+                                self.weights_config[sample]["is_split_bycat"] and
+                                w not in self.weights_config[sample]["bycategory"][cat]):
                                 print(f"Error: variation {w} not available for sample {sample} in {cat} category")
-                                raise Exception("Wrong variation configuration")
+                                raise Exception(f"Wrong variation configuration: variation {w} not available for sample {sample} in {cat} category")
                             self.variations_config[sample][variation_type][cat].append(
                                 w
                             )
