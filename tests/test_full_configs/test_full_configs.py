@@ -43,7 +43,7 @@ def test_new_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_
     run_options = defaults.get_default_run_options()["general"]
     run_options["limit-files"] = 1
     run_options["limit-chunks"] = 1
-    run_options["chunksize"] = 10000
+    run_options["chunksize"] = 500
     config.filter_dataset(run_options["limit-files"])
 
     executor_factory = executors_lib.get_executor_factory("iterative",
@@ -566,3 +566,4 @@ def test_columns_export_parquet(base_path: Path, monkeypatch: pytest.MonkeyPatch
     
     assert "JetGood_pt" in dataset.fields
     assert ak.all(ak.num(dataset.JetGood_pt, axis=1) >= 4)
+ 
