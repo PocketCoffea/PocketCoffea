@@ -12,7 +12,9 @@ class ExecutorFactoryManualABC(ABC):
         self.run_options = run_options
         self.job_name = run_options.get("job-name", "job")
         self.jobs_dir = os.path.join(run_options.get("jobs-dir", "./jobs-dir/"), self.job_name)
-        os.makedirs(self.jobs_dir, exist_ok=True)
+        if os.path.exists(self.jobs_dir):
+            print(f"Jobs directory {self.jobs_dir} already exists. Please clean it up before running the jobs.")
+            exit(1)
         self.setup()
         # If handles_submission == True, the executor is responsible for submitting the job
         self.handles_submission = True

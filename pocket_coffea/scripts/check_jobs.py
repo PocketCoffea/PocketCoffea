@@ -19,6 +19,7 @@ from pathlib import Path
 from rich.console import Console
 from rich.table import Table
 from rich.progress import Progress
+from rich import print as rprint
 import time
 import re
 
@@ -35,12 +36,16 @@ queues = [
 @click.command()
 @click.option("-j", "--jobs-folder", type=str, help="Folder containing the jobs", required=True)
 @click.option("-d","--details", is_flag=True, help="Show the details of the jobs")
-def check_jobs(jobs_folder, details):
+@click.option("-r","--resubmit", is_flag=True, help="Resubmit the failed jobs")
+@click.option("--max-resubmit", type=int, help="Maximum number of resubmission", default=3)
+def check_jobs(jobs_folder, details, resubmit, max_resubmit):
     jobs_folder = Path(jobs_folder)
     # Get the list of files in the folder
     tot_jobs = [ a.split("/")[-1][:-4] for a in glob.glob(f"{jobs_folder}/job_*.sub")]
     # Redo everything every 5 sec
     console = Console()
+
+    failed_jobs_stats = {}
 
     with Progress() as progress:
         task = progress.add_task("[green]Completed jobs...", total=len(tot_jobs))
@@ -73,6 +78,30 @@ def check_jobs(jobs_folder, details):
                           str(len(done_jobs)),
                           str(len(failed_jobs)))
             console.print(table)
+
+            # Checking failed jobs
+            if len(failed_jobs) > 0:
+                rprint("[red]Failed jobs found. Check the details below. Use --resubmit to resubmit the failed jobs[/]")
+                for failed_job in failed_jobs:
+                    if failed_job in failed_jobs_stats:
+                        failed_jobs_stats[failed_job] += 1
+                    else:
+                        failed_jobs_stats[failed_job] = 1
+                    # Check the log file
+                    glob_file = glob.glob(f"{jobs_folder}/logs/job_*.{failed_job.split('_')[1]}.err")
+                    if glob_file:
+                        with open(glob_file[0]) as f:
+                            c = f.readlines()
+                            rprint(f"[b]Job {failed_job} failed[/] {failed_jobs_stats[failed_job]} times. Last error:")
+                            print("\t"+ "".join(c[-3:]))
+                    else:
+                        print(f"Error in job {failed_job}: No log file found")
+
+                    if resubmit and failed_jobs_stats[failed_job] <= max_resubmit:
+                        os.system(f"rm {jobs_folder}/{failed_job}.failed")
+                        os.system(f"touch {jobs_folder}/{failed_job}.idle")
+                        os.system(f"cd {jobs_folder} && condor_submit {failed_job}.sub")
+                        
             
             # Create a table to display the status
             if details:
@@ -137,5 +166,5 @@ def check_jobs(jobs_folder, details):
             # sleep for 5 sec
             if not progress.finished:
                 time.sleep(5)
-                console.clear()
+                #console.clear()
                
