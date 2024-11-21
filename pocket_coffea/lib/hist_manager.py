@@ -331,7 +331,7 @@ class HistManager:
                     )
         else:
             # Save only the nominal weights if a shape variation is being processed
-            weights["nominal"] = weights_manager.get_weight(category)
+            weights["nominal"] = self.weights_manager.get_weight(category)
         return weights
 
     def fill_histograms(

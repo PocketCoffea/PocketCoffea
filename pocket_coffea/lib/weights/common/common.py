@@ -134,7 +134,7 @@ class SF_btag(WeightWrapper):
 
 
         elif "JES_" in shape_variation:
-            out = sf_btag_calib(self._params,
+            out = sf_btag(self._params,
                                 events[self.jet_coll],
                                 self._metadata["year"],
                                 # Assuming n*JetCollection* is defined
@@ -143,7 +143,7 @@ class SF_btag(WeightWrapper):
                                 )
             return WeightData(
                 name = self.name,
-                nominal = out[shape_variation][0]
+                nominal = out["central"][0]
                 )       
             
         else:
