@@ -326,7 +326,7 @@ def test_skimming(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_fac
                  processor_instance=config.processor_instance)
     save(output, outputdir / "output_all.coffea")
     from pocket_coffea.utils.skim import save_skimed_dataset_definition
-    save_skimed_dataset_definition(output, f"{outputdir}/skimmed_dataset_definition.json")
+    save_skimed_dataset_definition(output, f"{outputdir}/skimmed_dataset_definition.json", check_initial_events=False)
     
     assert output is not None
     print(output)

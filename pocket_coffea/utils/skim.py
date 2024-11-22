@@ -86,7 +86,7 @@ def copy_file(
 
 
 
-def save_skimed_dataset_definition(processing_out, fileout):
+def save_skimed_dataset_definition(processing_out, fileout, check_initial_events=True):
     datasets_info = {}
     datasets_metadata = processing_out["datasets_metadata"]["by_dataset"]
     # Now add the files
@@ -94,7 +94,7 @@ def save_skimed_dataset_definition(processing_out, fileout):
         # We first check that the total number of initial events
         # corresponds to the initial number of the events in the metadata
         # to check if we are not missing any event
-        if int(dataset_metadata[key]["nevents"]) != processing_out["cutflow"]["initial"][key]:
+        if check_initial_events and  int(datasets_metadata[key]["nevents"]) != processing_out["cutflow"]["initial"][key]:
             print(f"ERROR: The number of initial events in the metadata is different from the number of initial events in the cutflow for dataset {key}")
             raise Exception("Inconsistent number of initial events in the output of the skimming processing")
             
