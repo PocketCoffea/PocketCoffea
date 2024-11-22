@@ -335,20 +335,22 @@ cfg = Configurator(
 ```
 
 The PocketCoffea output file contains the list of skimmed files with the number of skimmed events in each file. Moreover
-    the root files contain a new branch called `skimRescaleGenWeight` which store for each event the scaling factor
-    needed to recover the sum of genWeight of the original factor, and correct for the skimming efficiency.  The factor
-    is computed as `(original sum of genweight / sum of genweights of skimmed files)` for each file. This factor needs to
-    be multiplied to the sum of genweights accumulated in each chunk by the processor that runs on top of skimmed
-        datasets. Therefore the dataset definition file for skimmed datasets must contain the `isSkim:True` metadata,
-    which is used by the processor to apply the rescaling.
+the root files contain a new branch called `skimRescaleGenWeight` which store for each event the scaling factor
+needed to recover the sum of genWeight of the original factor, and correct for the skimming efficiency.  The factor
+is computed as `(original sum of genweight / sum of genweights of skimmed files)` for each file. This factor needs to
+be multiplied to the sum of genweights accumulated in each chunk by the processor that runs on top of skimmed
+datasets. Therefore the dataset definition file for skimmed datasets must contain the `isSkim:True` metadata,
+which is used by the processor to apply the rescaling.
 
 :::{alert}
- **N.B.**: The skim is performed before the object calibration and preselection step. The analyzer must be careful to
- apply a loose enough skim that is invariant under the shape uncertainties applied later in the analysis. For example
- the selection on the minimum number of jets should be loose enought to not be affected by Jet energy scales, **which
- are applied later**. 
- :::
+**N.B.**: The skim is performed before the object calibration and preselection step. The analyzer must be careful to
+apply a loose enough skim that is invariant under the shape uncertainties applied later in the analysis. For example
+the selection on the minimum number of jets should be loose enought to not be affected by Jet energy scales, **which
+are applied later**. 
+:::
 
+A full tutorial of the necessar steps to produce a skim and then to use the pocketcoffea tools to prepare a new dataset
+configuration file can be found in the [How To section](./recipes.md#skimming-events).
 
 ### Categorization utilities
 PocketCoffea defines different ways to categorize events. 

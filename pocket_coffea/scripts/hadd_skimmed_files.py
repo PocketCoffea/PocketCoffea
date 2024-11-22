@@ -77,10 +77,10 @@ def hadd_skimmed_files(files_list, outputdir, only_datasets, files, events, scal
                 ngroup += 1
                 nfiles = 0
                 nevents_tot = 0
-            else:
-                group.append(file)
-                nfiles += 1
-                nevents_tot += nevents
+            
+            group.append(file)
+            nfiles += 1
+            nevents_tot += nevents
 
         # add last group
         if len(group):
@@ -91,13 +91,15 @@ def hadd_skimmed_files(files_list, outputdir, only_datasets, files, events, scal
     print(f"We will hadd {len(workload)} groups of files.")
     print("Samples:", groups_metadata.keys())
 
+    # Create one output folder for each dataset
+    for outfile, group in workload:
+        basedir = os.path.dirname(outfile)
+        if not os.path.exists(basedir):
+            os.makedirs(basedir)
+
     if not dry:
         p = Pool(scaleout)
-        # Create one output folder for each dataset
-        for outfile, group in workload:
-            basedir = os.path.dirname(outfile)
-            if not os.path.exists(basedir):
-                os.makedirs(basedir)
+        
         results = p.map(partial(do_hadd, overwrite=overwrite), workload)
 
         print("\n\n\n")
@@ -106,7 +108,28 @@ def hadd_skimmed_files(files_list, outputdir, only_datasets, files, events, scal
                 print("#### Failed hadd: ", group)
 
     json.dump(groups_metadata, open("hadd.json", "w"), indent=2)
+    # writing out a script with the hadd commands
+    with open("hadd.sh", "w") as f:
+        for output, group in workload:
+            f.write(f"hadd -ff {output} {' '.join(group)}\n")
+    with open("do_hadd.py", "w") as f:
+        f.write(f"""
+import os
+from multiprocessing import Pool
 
+def do_hadd(cmd):
+    os.system(cmd)
+
+workload = []
+with open("hadd.sh") as f:
+    for line in f:
+        workload.append(line.strip())
+
+p = Pool({scaleout})
+p.map(do_hadd, workload)
+
+print("DONE!")""")
+    
     # Now saving the dataset definition file
     dataset_metadata = df["datasets_metadata"]["by_dataset"]
     dataset_definition = {}

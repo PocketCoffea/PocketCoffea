@@ -12,7 +12,13 @@ class ExecutorFactoryManualABC(ABC):
         self.run_options = run_options
         self.job_name = run_options.get("job-name", "job")
         self.jobs_dir = os.path.join(run_options.get("jobs-dir", "./jobs-dir/"), self.job_name)
-        os.makedirs(self.jobs_dir, exist_ok=True)
+        recreate_jobs = run_options.get("recreate-jobs", None)
+        if not recreate_jobs:
+            if  os.path.exists(self.jobs_dir):
+                print(f"Jobs directory {self.jobs_dir} already exists. Please clean it up before running the jobs.")
+                exit(1)
+            else:
+                os.makedirs(self.jobs_dir)
         self.setup()
         # If handles_submission == True, the executor is responsible for submitting the job
         self.handles_submission = True
@@ -60,9 +66,14 @@ class ExecutorFactoryManualABC(ABC):
         self.config = config
         self.outputdir = outputdir
         self.filesets = filesets
-        splits = self.prepare_splitting(filesets)
-        job_configs = self.prepare_jobs(splits)
-        self.submit_jobs(job_configs)
+        if jobs_to_recreate:=self.run_options.get("recreate-jobs", None):
+            # Don't run the splitting but read the jobs config, recreate the configurator
+            # and submit the jobs
+            self.recreate_jobs(jobs_to_recreate)
+        else:
+            splits = self.prepare_splitting(filesets)
+            job_configs = self.prepare_jobs(splits)
+            self.submit_jobs(job_configs)
 
     def prepare_splitting(self, filesets):
         '''Looking at the run options the fileset can be split in different ways.
@@ -144,3 +155,7 @@ class ExecutorFactoryManualABC(ABC):
     @abstractmethod
     def submit_jobs(self, jobs):
         pass            
+
+    @abstractmethod
+    def recreate_jobs(self, jobs):
+        pass
