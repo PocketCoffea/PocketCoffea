@@ -133,7 +133,7 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
 
     def prepare_jobs(self, splits):
         config_files = [ ]
-        out_config = {
+        jobs_config = {
             "job_name": self.job_name,
             "job_dir": os.path.abspath(self.jobs_dir),
             "output_dir": os.path.abspath(self.outputdir),
@@ -151,13 +151,13 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
             partial_config.set_filesets_manually(split)
             cloudpickle.dump(partial_config, open(f"{self.jobs_dir}/config_job_{i}.pkl", "wb"))
             config_files.append(f"{self.jobs_dir}/config_job_{i}.pkl")
-            out_config["jobs_list"][f"job_{i}"] = {
+            jobs_config["jobs_list"][f"job_{i}"] = {
                 "filesets": split,
                 "config_file": f"{self.jobs_dir}/config_job_{i}.pkl",
                 "output_file": f"{os.path.abspath(self.outputdir)}/output_job_{i}.coffea",
             }
             
-        yaml.dump(out_config, open(f"{self.jobs_dir}/jobs_config.yaml", "w"))
+        yaml.dump(jobs_config, open(f"{self.jobs_dir}/jobs_config.yaml", "w"))
         # save the configuration
         return config_files
 
@@ -246,6 +246,44 @@ echo 'Done'"""
             os.system(f"cd {abs_jobdir_path} && condor_submit jobs_all.sub")
 
 
+    def recreate_jobs(self, jobs_to_recreate):
+        # Read the jobs config
+        if not os.path.exists(f"{self.jobs_dir}/jobs_config.yaml"):
+            print("No jobs_config.yaml found. Exiting.")
+            exit(1)
+        with open(f"{self.jobs_dir}/jobs_config.yaml") as f:
+            jobs_config = yaml.safe_load(f)
+
+        jobs_to_redo = []
+        for j in jobs_to_recreate.split(","):
+            if not j.startswith("job_"):
+                jobs_to_redo.append(f"job_{j}")
+        print(f"Recreating jobs: {jobs_to_redo}")
+        # Check if the job is in the list of jobs to recreate
+        for job in jobs_to_redo:
+            if job not in jobs_config["jobs_list"]:
+                print(f"Job {job} not found in the list of jobs")
+                continue
+            # Open the configurator and modify the fileset.
+            # This is usually done to change a file location
+            # Load the configurator
+            config = cloudpickle.load(open(jobs_config["jobs_list"][job]["config_file"], "rb"))
+            # Modify the fileset
+            config.set_filesets_manually(jobs_config["jobs_list"][job]["filesets"])
+            # Save the configurator
+            cloudpickle.dump(config, open(jobs_config["jobs_list"][job]["config_file"], "wb"))
+            # Resubmit the job
+            dry_run = self.run_options.get("dry-run", False)
+            if dry_run:
+                print(f"Dry run, not resubmitting  {job}")
+            else:
+                os.system(f"rm {self.jobs_dir}/{job}.failed")
+                os.system(f"touch {self.jobs_dir}/{job}.idle")
+                os.system(f"cd {self.jobs_dir} && condor_submit {job}.sub")
+                print(f"Resubmitted {job}")
+
+
+                
 def get_executor_factory(executor_name, **kwargs):
     if executor_name == "iterative":
         return IterativeExecutorFactory(**kwargs)

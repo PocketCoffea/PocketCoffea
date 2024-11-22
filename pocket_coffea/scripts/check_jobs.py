@@ -141,7 +141,7 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit):
                             # Check the log file
                             glob_file = glob.glob(f"{jobs_folder}/logs/job_*.{failed_job.split('_')[1]}.err")
                             if glob_file:
-                                with open(glob_file[0]) as f:
+                                with open(glob_file[-1]) as f:
                                     c = f.readlines()
                                     log_text.append( f"[b]Job {failed_job} failed[/] {failed_jobs_stats[failed_job]} times. Last error:")
                                     log_text.append("\t"+ "".join(c[-3:]))
