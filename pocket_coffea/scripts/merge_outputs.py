@@ -79,14 +79,18 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False):
             job_config = yaml.safe_load(f)
 
         jobs_list = job_config['jobs_list']
+        alldone = True
         output_files = []
         # First check that the jobs are done
-        for job in jobs_list.values():
+        for job_name, job in jobs_list.items():
             # Check output
             if not os.path.exists(job['output_file']):
-                print(f"[red]Job {job['job_name']} is not done yet[/]")
-                exit(1)
+                print(f"[red]Job {job_name} output is missing[/]")
+                alldone = False
             output_files.append(job['output_file'])
+        if not alldone:
+            print(f"[red]Not all jobs are done yet[/]")
+            exit(1)
         print(f"[green]All jobs are done[/]")
         print(output_files)
 

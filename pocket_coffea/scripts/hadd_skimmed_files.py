@@ -55,6 +55,8 @@ def hadd_skimmed_files(files_list, outputdir, only_datasets, files, events, scal
     df = load(files_list)
     workload = []
     groups_metadata = {}
+    if files is None or files > 500:
+        files = 500 # to avoid max size of command args
     
     for dataset in df["skimmed_files"].keys():
         if only_datasets and dataset not in only_datasets:
@@ -113,12 +115,20 @@ def hadd_skimmed_files(files_list, outputdir, only_datasets, files, events, scal
         for output, group in workload:
             f.write(f"hadd -ff {output} {' '.join(group)}\n")
     with open("do_hadd.py", "w") as f:
-        f.write(f"""
-import os
+        f.write(f"""import os
+import sys
 from multiprocessing import Pool
+import subprocess
 
 def do_hadd(cmd):
-    os.system(cmd)
+    try:
+        output = subprocess.check_output(cmd, shell=True)
+    except subprocess.CalledProcessError as grepexc:                                                                                                   
+        print("error code", grepexc.returncode, grepexc.output)
+        return cmd.split(" ")[2]
+    except Exception as e:
+        print("error", e)
+        return cmd.split(" ")[2]
 
 workload = []
 with open("hadd.sh") as f:
@@ -126,9 +136,16 @@ with open("hadd.sh") as f:
         workload.append(line.strip())
 
 p = Pool({scaleout})
-p.map(do_hadd, workload)
+if len(sys.argv)> 1:
+    workload = list(filter(lambda x: sys.argv[1] in x, workload))
 
-print("DONE!")""")
+failed = p.map(do_hadd, workload)
+
+print("DONE!")
+print("Failed files:")
+for f in failed:
+    if f:
+        print(f)""")
     
     # Now saving the dataset definition file
     dataset_metadata = df["datasets_metadata"]["by_dataset"]

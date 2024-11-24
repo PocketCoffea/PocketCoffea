@@ -267,11 +267,11 @@ echo 'Done'"""
             # Open the configurator and modify the fileset.
             # This is usually done to change a file location
             # Load the configurator
-            config = cloudpickle.load(open(jobs_config["jobs_list"][job]["config_file"], "rb"))
+            config = cloudpickle.load(open(f"{self.jobs_dir}/config_{job}.pkl", "rb"))
             # Modify the fileset
             config.set_filesets_manually(jobs_config["jobs_list"][job]["filesets"])
             # Save the configurator
-            cloudpickle.dump(config, open(jobs_config["jobs_list"][job]["config_file"], "wb"))
+            cloudpickle.dump(config, open(f"{self.jobs_dir}/config_{job}.pkl", "wb"))
             # Resubmit the job
             dry_run = self.run_options.get("dry-run", False)
             if dry_run:
