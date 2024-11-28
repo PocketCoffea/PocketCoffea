@@ -21,7 +21,11 @@ def add_jec_variables(jets, event_rho, isMC=True):
 def load_jet_factory(params):
     #read the factory file from params and load it
     with gzip.open(params.jets_calibration.factory_file) as fin:
-        return cloudpickle.load(fin)
+        try:
+            return cloudpickle.load(fin)
+        except Exception as e:
+            print(f"Error loading the jet factory file: {params.jets_calibration.factory_file} --> Please remove the file and rerun the code")
+            raise Exception(f"Error loading the jet factory file: {params.jets_calibration.factory_file} --> Please remove the file and rerun the code")
         
 
 def jet_correction(params, events, jets, factory, jet_type, chunk_metadata, cache):

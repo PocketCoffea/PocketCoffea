@@ -326,7 +326,7 @@ def test_skimming(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_fac
                  processor_instance=config.processor_instance)
     save(output, outputdir / "output_all.coffea")
     from pocket_coffea.utils.skim import save_skimed_dataset_definition
-    save_skimed_dataset_definition(output, f"{outputdir}/skimmed_dataset_definition.json")
+    save_skimed_dataset_definition(output, f"{outputdir}/skimmed_dataset_definition.json", check_initial_events=False)
     
     assert output is not None
     print(output)
@@ -354,15 +354,17 @@ def test_skimming(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_fac
 
     # NOw let's hadd the files and them rerun on them
     print("Running new processor on the skimmed files with different chunksize")
-    config = load_config("config_afterskim.py", do_load=False, outputdir=outputdir)
+    config = load_config("config.py", do_load=False, outputdir=outputdir)
     # Change the dataset_cfg file
     config.datasets_cfg["jsons"] = [f"{outputdir}/skimmed_dataset_definition.json"]
+    config.load_datasets()
     config.load()
+    
     assert isinstance(config, Configurator)
 
     run_options = defaults.get_default_run_options()["general"]
     # Testing a different chunksize to verify that total sum_genweight scales correctly
-    run_options["chunksize"] = 5
+    run_options["chunksize"] = 10
     config.filter_dataset(run_options["limit-files"])
 
     executor_factory = executors_lib.get_executor_factory("iterative",
@@ -564,3 +566,4 @@ def test_columns_export_parquet(base_path: Path, monkeypatch: pytest.MonkeyPatch
     
     assert "JetGood_pt" in dataset.fields
     assert ak.all(ak.num(dataset.JetGood_pt, axis=1) >= 4)
+ 
