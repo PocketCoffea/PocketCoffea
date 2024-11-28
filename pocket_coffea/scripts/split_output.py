@@ -28,7 +28,7 @@ from pocket_coffea.utils.filter_output import filter_output_by_year
 def split_output(inputfile, outputfile, overwrite):
     '''Split coffea output files'''
     if outputfile is None:
-        outputfile = inputfile.replace("all", "{}")
+        outputfile = inputfile.replace(".coffea", "_{}.coffea")
     else:
         outputfile = outputfile.replace(".coffea", "_{}.coffea")
     print(f"[blue]Reading input file: {inputfile}")

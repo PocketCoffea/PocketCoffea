@@ -18,5 +18,5 @@ RUN echo "=======================================" && \
         echo "Installing on alma9"; \
     fi && \
     echo "Installing PocketCoffea" && \
-    python -m pip install -U setuptools==70.3.0 setuptools-scm &&\
+    python -m pip install "setuptools<71" && \
     python -m pip install . --verbose
