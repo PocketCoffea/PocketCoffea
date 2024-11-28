@@ -117,7 +117,7 @@ respectively).
 |[Purdue Analysis Facility](https://analysis-facility.physics.purdue.edu)| dask | dask@purdue-af |
 |[INFN Analysis Facility](https://infn-cms-analysisfacility.readthedocs.io/)| dask | dask@infn-af |
 |Brown brux20 cluster | dask | dask@brux |
-
+|Brown CCV Oscar | dask | dask@oscar |
 
 ---------------------------------------
 
