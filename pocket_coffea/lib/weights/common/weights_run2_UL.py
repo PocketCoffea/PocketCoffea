@@ -6,11 +6,14 @@ from ..weights import WeightData, WeightDataMultiVariation, WeightLambda, Weight
 
 
 def get_ele_trigger_sf(params, year, pt, eta, phi, counts, variations):
-    """Compute the electron trigger scale factors for Run2 (Custom Implementation)"""
+    """Compute the electron trigger scale factors for Run2.
+    Note that this a custom implementation to apply the single electron trigger scale factors in the ttH(bb) Run-2 analysis.
+    This implementation is not supported by the EGM-POG.
+    The procedure to compute the trigger SF correction map can be found at https://github.com/PocketCoffea/AnalysisConfigs/tree/main/configs/ttHbb/semileptonic/semileptonic_triggerSF .
+    The structure of the correction map and the naming convention follows the one of the implementation.
+    """
 
     electronSF = params["lepton_scale_factors"]["electron_sf"]
-    # translate the `year` key into the corresponding key in the correction file provided by the EGM-POG
-    year_pog = electronSF["era_mapping"][year]
 
     electron_correctionset = correctionlib.CorrectionSet.from_file(
         electronSF.trigger_sf[year]["file"]
@@ -18,43 +21,35 @@ def get_ele_trigger_sf(params, year, pt, eta, phi, counts, variations):
     map_name = electronSF.trigger_sf[year]["name"]
 
     output = {}
-    trigger_path = electronSF.trigger_sf[year]["path"]
     for variation in variations:
         if variation == "nominal":
             output[variation] = [
                 electron_correctionset[map_name].evaluate(
-                    year_pog,
-                    "sf",
-                    trigger_path,
-                    eta.to_numpy(),
+                    variation,
                     pt.to_numpy(),
+                    eta.to_numpy(),
                 )
             ]
+            nominal = output[variation][0]
         else:
-            # Nominal sf==1
-            nominal = np.ones_like(pt.to_numpy())
             # Systematic variations
             output[variation] = [
                 nominal,
                 electron_correctionset[map_name].evaluate(
-                    year_pog,
-                    f"{variation}up",
-                    trigger_path,
-                    eta.to_numpy(),
+                    f"{variation}Up",
                     pt.to_numpy(),
+                    eta.to_numpy(),
                 ),
                 electron_correctionset[map_name].evaluate(
-                    year_pog,
-                    f"{variation}down",
-                    electronSF.trigger_sf[year]["path"],
-                    eta.to_numpy(),
+                    f"{variation}Down",
                     pt.to_numpy(),
+                    eta.to_numpy(),
                 ),
             ]
         for i, sf in enumerate(output[variation]):
             output[variation][i] = ak.unflatten(sf, counts)
 
-        return output
+    return output
 
 
 # UL custom electron trigger scale factors
