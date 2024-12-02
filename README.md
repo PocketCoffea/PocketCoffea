@@ -36,7 +36,9 @@ The user can customize the process from the confguration file or by redefining w
 
 - All the documentaton material is hosted at: https://pocketcoffea.readthedocs.io
 
-- Complete analyses example under preparation: 
+- A set of tutorials is available at: https://github.com/PocketCoffea/Tutorials
+
+- Complete analyses examples
   - Z->ee **[analysis example page](https://pocketcoffea.readthedocs.io/en/latest/analysis_example.html)** 
   
 - [Join](https://mattermost.web.cern.ch/cms-exp/channels/pocketcoffea---qa) the Q&A CMS Mattermost channel for technical questions

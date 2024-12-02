@@ -8,6 +8,7 @@ import yaml
 from yaml import Loader, Dumper
 import click
 import time
+from rich import print as rprint
 
 from coffea.util import save
 from coffea import processor
@@ -18,10 +19,10 @@ from pocket_coffea.utils.utils import load_config, path_import, adapt_chunksize
 from pocket_coffea.utils.logging import setup_logging
 from pocket_coffea.utils.time import wait_until
 from pocket_coffea.parameters import defaults as parameters_utils
-from pocket_coffea.executors import executors_base
+from pocket_coffea.executors import executors_base, executors_manual_jobs
 from pocket_coffea.utils.benchmarking import print_processing_stats
 
-@click.command()
+@click.command(context_settings=dict(ignore_unknown_options=True, allow_extra_args=True))
 @click.option('--cfg', required=True, type=str,
               help='Config file with parameters specific to the current run')
 @click.option("-ro", "--custom-run-options", type=str, default=None, help="User provided run options .yaml file")
@@ -37,13 +38,14 @@ from pocket_coffea.utils.benchmarking import print_processing_stats
 @click.option("-ps","--process-separately", is_flag=True, help="Process each dataset separately", default=False )
 @click.option("--executor-custom-setup", type=str, help="Python module to be loaded as custom executor setup")
 @click.option("--filter-years", type=str, help="Filter the data taking period of the datasets to be processed (comma separated list)")
+@click.option("--filter-samples", type=str, help="Filter the samples to be processed (comma separated list)")
+@click.option("--filter-datasets", type=str, help="Filter the datasets to be processed (comma separated list)")
 
 def run(cfg,  custom_run_options, outputdir, test, limit_files,
            limit_chunks, executor, scaleout, chunksize,
            queue, loglevel, process_separately, executor_custom_setup,
-           filter_years):
+           filter_years, filter_samples, filter_datasets):
     '''Run an analysis on NanoAOD files using PocketCoffea processors'''
-
     # Setting up the output dir
     os.makedirs(outputdir, exist_ok=True)
     outfile = os.path.join(
@@ -57,17 +59,19 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         print("Failed to setup logging, aborting.")
         exit(1)
 
-    print("Loading the configuration file...")
+    rprint("[bold]Loading the configuration file...[/]")
     if cfg[-3:] == ".py":
         # Load the script
         config = load_config(cfg, save_config=True, outputdir=outputdir)
-        logging.info(config)
-    
     elif cfg[-4:] == ".pkl":
-        # WARNING: This has to be tested!!
         config = cloudpickle.load(open(cfg,"rb"))
+        if not config.loaded:
+            config.load()
+        config.save_config(outputdir) 
     else:
         raise sys.exit("Please provide a .py/.pkl configuration file")
+
+    rprint(config)
     
     # Now loading the executor or from the set of predefined ones, or from the
     # user defined script
@@ -109,6 +113,20 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     if queue!=None:
         run_options["queue"] = queue
 
+    #Parsing additional runoptions from command line in the format --option=value, or --option. 
+    ctx = click.get_current_context()
+    for arg in ctx.args:
+        if arg.startswith("--"):
+            if "=" in arg:
+                key, value = arg.split("=")
+                run_options[key[2:]] = value
+            else:
+                next_arg = ctx.args[ctx.args.index(arg)+1] if ctx.args.index(arg)+1 < len(ctx.args) else None
+                if next_arg and not next_arg.startswith("--"):
+                    run_options[arg[2:]] = next_arg
+                else:
+                    run_options[arg[2:]] = True
+
 
     ## Default config for testing: iterative executor, with 2 file and 2 chunks
     if test:
@@ -117,6 +135,10 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         run_options["limit-chunks"] = limit_chunks if limit_chunks else 2
         config.filter_dataset(run_options["limit-files"])
 
+    # Print the run options
+    rprint("[bold]Run options:[/]")
+    rprint(run_options)
+    
     # The user can provide a custom executor factory module
     if executor_custom_setup:
         # The user is providing a custom python module that acts as an executor factory.
@@ -125,7 +147,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
             print(f"The user defined executor setup module {executor_custom_setup}"
                   "does not define a `get_executor_factory` function!")
             exit(1)
-
+            
     # if site is known we can load the corresponding module
     elif site == "lxplus":
         from pocket_coffea.executors import executors_lxplus as executors_lib
@@ -141,6 +163,8 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         from pocket_coffea.executors import executors_RWTH as executors_lib
     elif site == "brux":
         from pocket_coffea.executors import executors_brux as executors_lib
+    elif site == "oscar":
+        from pocket_coffea.executors import executors_oscar as executors_lib
     elif site == "casa":
         from pocket_coffea.executors import executors_casa as executors_lib
     elif site == "infn-af":
@@ -150,7 +174,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
 
     if "parsl" in executor_name:
         logging.getLogger().handlers[0].setLevel("ERROR")
-
+        
     # Wait until the starting time, if provided
     if run_options["starting-time"] is not None:
         logging.info(f"Waiting until {run_options['starting-time']} to start processing")
@@ -159,28 +183,41 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     # Load the executor class from the lib and instantiate it
     executor_factory = executors_lib.get_executor_factory(executor_name, run_options=run_options, outputdir=outputdir)
     # Check the type of the executor_factory
-    if not isinstance(executor_factory, executors_base.ExecutorFactoryABC):
-        print("The user defined executor factory lib is not of type BaseExecturoABC!", executor_name, site)
+    if not (isinstance(executor_factory, executors_base.ExecutorFactoryABC) or
+            isinstance(executor_factory, executors_manual_jobs.ExecutorFactoryManualABC)):
+        print("The user defined executor factory lib is not of type ExecutorFactoryABC or ExecutorFactoryManualABC!", executor_name, site)
         
         exit(1)
 
-    # Instantiate the executor
-    executor = executor_factory.get()
-    start_time = time.time()
-
     # Filter on the fly the fileset to process by datataking period
-    filesets_to_run = {}
+    filesets_to_run = config.filesets
     filter_years = filter_years.split(",") if filter_years else None
+    filter_samples = filter_samples.split(",") if filter_samples else None
+    filter_datasets = filter_datasets.split(",") if filter_datasets else None
     if filter_years:
-        for fileset_name, fileset in config.filesets.items():
-            if fileset["metadata"]["year"] in filter_years:
-                filesets_to_run[fileset_name] = fileset
-    else:
-        filesets_to_run = config.filesets
+        filesets_to_run = {dataset: files for dataset, files in filesets_to_run.items() if files["metadata"]["year"] in filter_years}
+    if filter_samples:
+        filesets_to_run = {dataset: files for dataset, files in filesets_to_run.items() if files["metadata"]["sample"] in filter_samples}
+    if filter_datasets:
+        filesets_to_run = {dataset: files for dataset, files in filesets_to_run.items() if dataset in filter_datasets}
 
     if len(filesets_to_run) == 0:
         print("No datasets to process, closing")
         exit(1)
+
+        
+    # Instantiate the executor
+    
+    # Checking if the executor handles the submission or returns a coffea executor
+    if executor_factory.handles_submission:
+        # in this case we just send to the executor the config file
+        executor = executor_factory.submit(config, filesets_to_run, outputdir)
+        exit(0)
+    else:
+        executor = executor_factory.get()
+
+
+    start_time = time.time()
         
     if not process_separately:
         # Running on all datasets at once
@@ -263,7 +300,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
 
 
     # If the processor has skimmed NanoAOD, we export a dataset_definition file
-    if config.save_skimmed_files:
+    if config.save_skimmed_files and config.do_postprocessing:
         from pocket_coffea.utils.skim import save_skimed_dataset_definition
         save_skimed_dataset_definition(output, f"{outputdir}/skimmed_dataset_definition.json")
         

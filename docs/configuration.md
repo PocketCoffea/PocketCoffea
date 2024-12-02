@@ -335,20 +335,22 @@ cfg = Configurator(
 ```
 
 The PocketCoffea output file contains the list of skimmed files with the number of skimmed events in each file. Moreover
-    the root files contain a new branch called `skimRescaleGenWeight` which store for each event the scaling factor
-    needed to recover the sum of genWeight of the original factor, and correct for the skimming efficiency.  The factor
-    is computed as `(original sum of genweight / sum of genweights of skimmed files)` for each file. This factor needs to
-    be multiplied to the sum of genweights accumulated in each chunk by the processor that runs on top of skimmed
-        datasets. Therefore the dataset definition file for skimmed datasets must contain the `isSkim:True` metadata,
-    which is used by the processor to apply the rescaling.
+the root files contain a new branch called `skimRescaleGenWeight` which store for each event the scaling factor
+needed to recover the sum of genWeight of the original factor, and correct for the skimming efficiency.  The factor
+is computed as `(original sum of genweight / sum of genweights of skimmed files)` for each file. This factor needs to
+be multiplied to the sum of genweights accumulated in each chunk by the processor that runs on top of skimmed
+datasets. Therefore the dataset definition file for skimmed datasets must contain the `isSkim:True` metadata,
+which is used by the processor to apply the rescaling.
 
 :::{alert}
- **N.B.**: The skim is performed before the object calibration and preselection step. The analyzer must be careful to
- apply a loose enough skim that is invariant under the shape uncertainties applied later in the analysis. For example
- the selection on the minimum number of jets should be loose enought to not be affected by Jet energy scales, **which
- are applied later**. 
- :::
+**N.B.**: The skim is performed before the object calibration and preselection step. The analyzer must be careful to
+apply a loose enough skim that is invariant under the shape uncertainties applied later in the analysis. For example
+the selection on the minimum number of jets should be loose enought to not be affected by Jet energy scales, **which
+are applied later**. 
+:::
 
+A full tutorial of the necessar steps to produce a skim and then to use the pocketcoffea tools to prepare a new dataset
+configuration file can be found in the [How To section](./recipes.md#skimming-events).
 
 ### Categorization utilities
 PocketCoffea defines different ways to categorize events. 
@@ -702,6 +704,33 @@ cfg = Configurator(
     },
     ...
 )
+
+```
+
+The `HistConf` class has many options, particularly useful to exclude some categories or samples from a specific
+histogram. 
+
+```python
+
+@dataclass
+class HistConf:
+    axes: List[Axis]
+    storage: str = "weight"
+    autofill: bool = True  # Handle the filling automatically
+    variations: bool = True
+    only_variations: List[str] = None
+    exclude_samples: List[str] = None
+    only_samples: List[str] = None
+    exclude_categories: List[str] = None
+    only_categories: List[str] = None
+    no_weights: bool = False  # Do not fill the weights
+    metadata_hist: bool = False  # Non-event variables, for processing metadata
+    hist_obj = None
+    collapse_2D_masks = False  # if 2D masks are applied on the events
+    # and the data_ndim=1, when collapse_2D_mask=True the OR
+    # of the masks on the axis=2 is performed to get the mask
+    # on axis=1, otherwise an exception is raised
+    collapse_2D_masks_mode = "OR"  # Use OR or AND to collapse 2D masks for data_ndim=1 if collapse_2D_masks == True
 
 ```
 

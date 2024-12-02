@@ -10,7 +10,6 @@ boost_histogram>=1.5.0
 hist>=2.8.0
 pyaml
 requests
-bokeh==2.4.2
 parsl
 matplotlib>=3.7
 rich
@@ -19,5 +18,4 @@ omegaconf
 law
 click>=8.0.4
 correctionlib>=2.6.1
-setuptools==70.3.0
-setuptools-scm==8.1.0
+setuptools<71

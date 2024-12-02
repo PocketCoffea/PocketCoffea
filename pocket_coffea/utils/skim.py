@@ -86,16 +86,30 @@ def copy_file(
 
 
 
-def save_skimed_dataset_definition(processing_out, fileout):
+def save_skimed_dataset_definition(processing_out, fileout, check_initial_events=True):
     datasets_info = {}
     datasets_metadata = processing_out["datasets_metadata"]["by_dataset"]
     # Now add the files
     for key in datasets_metadata.keys():
+        # We first check that the total number of initial events
+        # corresponds to the initial number of the events in the metadata
+        # to check if we are not missing any event
+        if check_initial_events and  int(datasets_metadata[key]["nevents"]) != processing_out["cutflow"]["initial"][key]:
+            print(f"ERROR: The number of initial events in the metadata is different from the number of initial events in the cutflow for dataset {key}")
+            raise Exception("Inconsistent number of initial events in the output of the skimming processing")
+            
+        # Count the remaining events
         datasets_info[key] =  {
             "metadata": datasets_metadata[key],
             "files": processing_out["skimmed_files"][key]
         }
         datasets_info[key]["metadata"]["isSkim"] = "True"
+        datasets_info[key]["metadata"]["nevents"] = str(sum(processing_out["nskimmed_events"][key]))
+        skim_efficiency = processing_out["cutflow"]["skim"][key] / processing_out["cutflow"]["initial"][key]
+        datasets_info[key]["metadata"]["skim_efficiency"] = str(skim_efficiency)
+
+      
+        
     # Save the json
     with open(fileout, "w") as f:
         json.dump(datasets_info, f, indent=4)

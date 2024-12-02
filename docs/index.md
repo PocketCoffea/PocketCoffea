@@ -16,7 +16,8 @@ analysis phase space and metadata from CMS groups, and an analysis's run configu
 
 :::{tip}
 - If you wish to jump into practice have a look at the [full analyses example](./analysis_example.md). 
-- Installation instructions are available [here](./installation.md)
+- Tutorials for newcomers [here](https://github.com/PocketCoffea/Tutorials)
+- Installation instructions available [here](./installation.md)
 - If you want a broader introduction to the components of PocketCoffea have a look at [Concepts](./concepts.md).
 - Looking for the configuration manual? [Configuration](./configuration.md)
 :::
