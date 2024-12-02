@@ -106,7 +106,7 @@ cfg = Configurator(
         },
         "shape": {
             "common": {
-                "inclusive": [ "JES_Total_AK4PFchs"],
+                "inclusive": [ "JES_Total_AK4PFchs", "JES_FlavorQCD_AK4PFchs"],
                 "bycategory": {
                     "1btag": ["JER_AK4PFchs"]
                 }
