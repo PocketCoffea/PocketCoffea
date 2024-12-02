@@ -296,32 +296,26 @@ def sf_btag(params, jets, year, njets, variations=["central"]):
                     _get_sf_variation_with_mask(f"down_{variation}", c_mask),
                 ]
 
-            elif "JES" in variation:
+            elif variation.startswith("JES") and "AK4" in variation:
                 # We need to convert the name of the variation
                 # from JES_VariationUp to  up_jesVariation
-                if variation == "JES_TotalUp":
+                if variation.startswith("JES_Total") and variation[-2:] == "Up":
                     btag_jes_var = "up_jes"
-                elif variation == "JES_TotalDown":
+                elif variation.startswith("JES_Total") and variation[-4:] == "Down":
                     btag_jes_var = "down_jes"
                 else:
+                    # we need to remove the possible jet type
+                    variation = variation.replace("_AK4PFchs", "")
+                    variation = variation.replace("_AK4PFPuppi", "")
                     if variation[-2:] == "Up":
                         btag_jes_var = f"up_jes{variation[4:-2]}"
                     elif variation[-4:] == "Down":
                         btag_jes_var = f"down_jes{variation[4:-4]}"
-
                 # This is a special case where a dedicate btagSF is computed for up and down Jes shape variations.
                 # This is not an up/down variation, but a single modified SF.
                 # N.B: It is a central SF
-                # notc_mask = flavour != 4
-                # output["central"] = [_get_sf_variation_with_mask(btag_jes_var, notc_mask)]
-                output["central"] = [
-                    ak.prod(
-                        ak.unflatten(
-                            corr.evaluate("central", flavour, abseta, pt, discr), njets
-                        ),
-                        axis=1,
-                    )
-                ]
+                notc_mask = flavour != 4
+                output["central"] = [_get_sf_variation_with_mask(btag_jes_var, notc_mask)]
             else:
                 # Computing the scale factor only NON c-flavour jets
                 notc_mask = flavour != 4
