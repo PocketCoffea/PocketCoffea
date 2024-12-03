@@ -674,7 +674,7 @@ class Shape:
                 }
                 # create cycler from the colormap and instantiate it to get iterator
                 cmap = CMAP_6 if len(self.nevents) <= 6 else CMAP_10
-                if len(self.nevents) > 10:
+                if len(self.nevents) > 10 and self.verbose>0:
                     print(
                         "Warning: more than 10 samples to plot. "
                         "No official CMS colormap for that case"
