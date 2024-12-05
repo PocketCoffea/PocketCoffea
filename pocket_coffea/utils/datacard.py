@@ -12,6 +12,7 @@ from pocket_coffea.utils.systematics import Systematics, SystematicUncertainty
 
 def rearrange_histograms(
     histograms: dict,
+    datasets_metadata: dict,
     processes: list[Process],
     shape_systematics: list[str],
     year: str,
@@ -49,13 +50,14 @@ def rearrange_histograms(
     for process in processes:
         process_index = new_histogram.axes["process"].index(process.name)
         for sample in process.samples:
-            subsample = f"{sample.split('__')[0]}_{year}"
-            histogram = histograms[sample][subsample]
-            for systematic in new_histogram.axes["systematics"]:
-                systematic_index = new_histogram.axes["systematics"].index(systematic)
-                new_histogram_view[process_index, systematic_index, :] += histogram[
-                    category, systematic, :
-                ].view()
+            datasets = datasets_metadata["by_datataking_period"][year][sample]
+            for dataset in datasets:
+                histogram = histograms[sample][dataset]
+                for systematic in new_histogram.axes["systematics"]:
+                    systematic_index = new_histogram.axes["systematics"].index(systematic)
+                    new_histogram_view[process_index, systematic_index, :] += histogram[
+                        category, systematic, :
+                    ].view()
     return new_histogram
 
 
@@ -96,6 +98,7 @@ class Datacard(Processes, Systematics):
     def __init__(
         self,
         histograms: dict[str, dict[str, hist.Hist]],
+        datasets_metadata: dict[str, dict[str, dict]],
         processes: list[Process],
         systematics: list[SystematicUncertainty],
         year: str,
@@ -119,11 +122,13 @@ class Datacard(Processes, Systematics):
         """
 
         self.histograms = histograms
+        self.datasets_metadata = datasets_metadata
         self.processes = processes
         self.systematics = systematics
         self.year = year
         self.category = category
         self.bin_prefix = bin_prefix
+        self.number_width = 10
 
         # assign IDs to processes
         id_signal = 0  # signal processes have 0 or negative IDs
@@ -141,6 +146,7 @@ class Datacard(Processes, Systematics):
         self._check_histograms()
         self.histogram = rearrange_histograms(
             histograms=self.histograms,
+            datasets_metadata=self.datasets_metadata,
             processes=self.processes,
             shape_systematics=self.shape_systematics_names,
             year=self.year,
@@ -226,20 +232,21 @@ class Datacard(Processes, Systematics):
                 if sample not in self.histograms:
                     raise ValueError(f"Missing histogram for sample {sample}")
 
-                subsample = f"{sample.split('__')[0]}_{self.year}"
-                if subsample not in self.histograms[sample]:
-                    raise ValueError(
-                        f"Sample {sample} for year {self.year} ({subsample})"
-                        f"not found in histograms {self.histograms[sample].keys()}"
+                datasets = self.datasets_metadata["by_datataking_period"][self.year][sample]
+                for dataset in datasets:
+                    if dataset not in self.histograms[sample]:
+                        raise ValueError(
+                            f"Sample {sample} for year {self.year} ({dataset})"
+                            f"not found in histograms {self.histograms[sample].keys()}"
+                        )
+                    missing_systematics = set(self.shape_systematics_names) - set(
+                        self.histograms[sample][dataset].axes["variation"]
                     )
-                missing_systematics = set(self.shape_systematics_names) - set(
-                    self.histograms[sample][subsample].axes["variation"]
-                )
-                if missing_systematics:
-                    raise ValueError(
-                        f"Sample {sample} for year {self.year} is missing the following"
-                        f"systematics: {missing_systematics}"
-                    )
+                    if missing_systematics:
+                        raise ValueError(
+                            f"Sample {sample} for year {self.year} is missing the following"
+                            f"systematics: {missing_systematics}"
+                        )
 
     def preamble(self) -> str:
         preamble = f"imax {self.imax} number of channels{self.linesep}"
@@ -277,7 +284,7 @@ class Datacard(Processes, Systematics):
         # rates
         content += "rate".ljust(self.adjust_first_column)
         content += "".join(
-            f"{self.rate(process)}".ljust(self.adjust_columns)
+            f"{self.rate(process)}"[:self.number_width].ljust(self.adjust_columns)
             for process in self.processes_names
         )
         content += self.linesep
