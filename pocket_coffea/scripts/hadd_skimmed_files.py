@@ -33,13 +33,12 @@ def do_hadd(group, overwrite=False):
     type=str,
     help='Parquet file containing the skimmed files metadata',
 )
-@click.option("-fs", "--filter-samples",  type=str,  help="Filter list of samples (comma separated)")
 @click.option("-o", "--outputdir", type=str, help="Output folder")
+@click.option("-fs", "--filter-samples",  type=str,  help="Filter list of samples (comma separated)")
 @click.option(
-    "--only-datasets", 
+    "--filter-datasets", 
     type=str, 
-    multiple=True, 
-    help="Restricting list of datasets"
+    help="Restricting list of datasets (comma separated))"
 )
 @click.option("-f", "--files", type=int, help="Limit number of files")
 @click.option("-e", "--events", type=int, help="Limit number of files")
@@ -52,16 +51,25 @@ def do_hadd(group, overwrite=False):
 )
 @click.option("--overwrite", is_flag=True, help="Overwrite files")
 @click.option("--dry", is_flag=True, help="Do not execute hadd, save metadata")
-def hadd_skimmed_files(files_list, filter_samples, outputdir, only_datasets, files, events, scaleout, overwrite, dry):
+def hadd_skimmed_files(files_list,  outputdir, filter_samples,
+                       filter_datasets, files, events, scaleout, overwrite, dry):
     '''
     Regroup skimmed datasets by joining different files (like hadd for ROOT files) 
     '''
     df = load(files_list)
+    only_samples = None
+    only_datasets = None
     if filter_samples:
         if "," in filter_samples:
-            samples_to_do = filter_samples.split(",")
+            only_samples = filter_samples.split(",")
         else:
-            samples_to_do = [filter_samples]
+            only_samples = [filter_samples]
+    if filter_datasets:
+        if "," in filter_datasets:
+            only_datasets = filter_datasets.split(",")
+        else:
+            only_datasets = [filter_datasets]
+        
     workload = []
     groups_metadata = {}
     if files is None or files > 500:
@@ -70,6 +78,12 @@ def hadd_skimmed_files(files_list, filter_samples, outputdir, only_datasets, fil
     for dataset in df["skimmed_files"].keys():
         if only_datasets and dataset not in only_datasets:
             continue
+        if only_samples:
+            # Check the samples of this datasets
+            sample = df["datasets_metadata"]["by_dataset"][dataset]["sample"]
+            if sample not in only_samples:
+                continue
+            
         groups_metadata[dataset] = defaultdict(dict)
         nevents_tot = 0
         nfiles = 0
