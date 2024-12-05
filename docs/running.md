@@ -114,7 +114,7 @@ respectively).
 |swan| dask                 | dask@swan    |
 |T3_CH_PSI| dask            | dask@T3_CH_PSI |
 |DESY NAF | dask            | dask@DESY_NAF |
-|RWTH Aachen LX-Cluster | parsl, dask         | parsl-condor@RWTH, dask@RWTH |
+|RWTH Aachen LX-Cluster | parsl, dask         | parsl@RWTH, dask@RWTH |
 |[Purdue Analysis Facility](https://analysis-facility.physics.purdue.edu)| dask | dask@purdue-af |
 |[INFN Analysis Facility](https://infn-cms-analysisfacility.readthedocs.io/)| dask | dask@infn-af |
 |Brown brux20 cluster | dask | dask@brux |
