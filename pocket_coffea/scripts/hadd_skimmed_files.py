@@ -198,8 +198,8 @@ for f in failed:
     if f:
         print(f)""")
 
-        with open("do_hadd_job.py", "w") as f:
-            f.write(f"""#!/bin/python3
+    with open("do_hadd_job_splitbyfile.py", "w") as f:
+        f.write(f"""#!/bin/python3
 import os
 import sys
 import json
@@ -226,22 +226,20 @@ def do_hadd(group):
         print(e)
         return outputfile
 
-
 config = json.load(open("hadd.json"))
-files = config[sys.argv[1]]["files"]
+files = config[sys.argv[1]]["files"][sys.argv[2]]
 
 failed = []
-for group, inputfiles in files.items():
-    out = do_hadd((group, inputfiles))
-    if out:
-        failed.append(out)
+out = do_hadd((sys.argv[2], files))
+if out:
+    failed.append(out)
         
 print("DONE!")
 print("Failed files: ", failed)
 if len(failed):
     sys.exit(1)""")
 
-    # Let's prepare also the condor submission script
+
     abs_local_path = os.path.abspath(".")
     os.makedirs(f"{abs_local_path}/condor", exist_ok=True)
     sub = {
@@ -255,17 +253,41 @@ if len(failed):
         'arguments': "$(dataset)",
         'should_transfer_files':'YES',
         'when_to_transfer_output' : 'ON_EXIT',
-        'transfer_input_files' : f"{abs_local_path}/do_hadd_job.py, {abs_local_path}/hadd.json",
+        'transfer_input_files' : f"{abs_local_path}/do_hadd_job_splitbyfile.py, {abs_local_path}/hadd.json",
     }
     with open("hadd_job.sub", "w") as f:
         for k, v in sub.items():
             f.write(f"{k} = {v}\n")
         # Now adding the arguments
-        f.write("queue dataset from (\n")
+        f.write("queue dataset, group from (\n")
         for dataset, conf in groups_metadata.items():
             f.write(f'{dataset}\n')
         f.write(")\n")
     
+    print("DONE!")
+    
+    sub = {
+        "Executable": "do_hadd_job_splitbyfile.py",
+        "Universe": "vanilla",
+        "Error": f"{abs_local_path}/condor/hadd_job_$(ClusterId).$(ProcId).err",
+        "Output": f"{abs_local_path}/condor/hadd_job_$(ClusterId).$(ProcId).out",
+        "Log": f"{abs_local_path}/condor/hadd_job_$(ClusterId).$(ProcId).log",
+        'MY.SendCredential': True,
+        '+JobFlavour': f'"espresso"',
+        'arguments': "$(dataset) $(group)",
+        'should_transfer_files':'YES',
+        'when_to_transfer_output' : 'ON_EXIT',
+        'transfer_input_files' : f"{abs_local_path}/do_hadd_job_splitbyfile.py, {abs_local_path}/hadd.json",
+    }
+    with open("hadd_job_splitbyfile.sub", "w") as f:
+        for k, v in sub.items():
+            f.write(f"{k} = {v}\n")
+        # Now adding the arguments
+        f.write("queue dataset, group from (\n")
+        for dataset, conf in groups_metadata.items():
+            for group in conf["files"].keys():
+                f.write(f'{dataset} {group}\n')
+        f.write(")\n")
     
     print("DONE!")
 
