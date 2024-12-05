@@ -11,11 +11,14 @@ import click
 
 def do_hadd(group, overwrite=False):
     try:
-        print("Running: ", group[0])
-        if overwrite:
-            subprocess.run(["hadd", "-f", group[0], *group[1]], check=True)
-        else:
-            subprocess.run(["hadd", group[0], *group[1]], check=True)
+        chain = R.TChain('Events')
+        for inputfile in group[1]:
+            chain.Add(inputfile)
+
+        output_file = R.TFile.Open(group[0], "RECREATE")
+        output_tree = chain.CloneTree(-1)  # Clone all entries
+        output_tree.Write()
+        output_file.Close()
         return group[0], 0
     except subprocess.CalledProcessError as e:
         print("Error producing group: ", group[0])
@@ -31,11 +34,11 @@ def do_hadd(group, overwrite=False):
     help='Parquet file containing the skimmed files metadata',
 )
 @click.option("-o", "--outputdir", type=str, help="Output folder")
+@click.option("-fs", "--filter-samples",  type=str,  help="Filter list of samples (comma separated)")
 @click.option(
-    "--only-datasets", 
+    "--filter-datasets", 
     type=str, 
-    multiple=True, 
-    help="Restring list of datasets"
+    help="Restricting list of datasets (comma separated))"
 )
 @click.option("-f", "--files", type=int, help="Limit number of files")
 @click.option("-e", "--events", type=int, help="Limit number of files")
@@ -48,11 +51,25 @@ def do_hadd(group, overwrite=False):
 )
 @click.option("--overwrite", is_flag=True, help="Overwrite files")
 @click.option("--dry", is_flag=True, help="Do not execute hadd, save metadata")
-def hadd_skimmed_files(files_list, outputdir, only_datasets, files, events, scaleout, overwrite, dry):
+def hadd_skimmed_files(files_list,  outputdir, filter_samples,
+                       filter_datasets, files, events, scaleout, overwrite, dry):
     '''
     Regroup skimmed datasets by joining different files (like hadd for ROOT files) 
     '''
     df = load(files_list)
+    only_samples = None
+    only_datasets = None
+    if filter_samples:
+        if "," in filter_samples:
+            only_samples = filter_samples.split(",")
+        else:
+            only_samples = [filter_samples]
+    if filter_datasets:
+        if "," in filter_datasets:
+            only_datasets = filter_datasets.split(",")
+        else:
+            only_datasets = [filter_datasets]
+        
     workload = []
     groups_metadata = {}
     if files is None or files > 500:
@@ -61,6 +78,12 @@ def hadd_skimmed_files(files_list, outputdir, only_datasets, files, events, scal
     for dataset in df["skimmed_files"].keys():
         if only_datasets and dataset not in only_datasets:
             continue
+        if only_samples:
+            # Check the samples of this datasets
+            sample = df["datasets_metadata"]["by_dataset"][dataset]["sample"]
+            if sample not in only_samples:
+                continue
+            
         groups_metadata[dataset] = defaultdict(dict)
         nevents_tot = 0
         nfiles = 0
@@ -92,6 +115,7 @@ def hadd_skimmed_files(files_list, outputdir, only_datasets, files, events, scal
 
     print(f"We will hadd {len(workload)} groups of files.")
     print("Samples:", groups_metadata.keys())
+    json.dump(groups_metadata, open("hadd.json", "w"), indent=2)
 
     # Create one output folder for each dataset
     for outfile, group in workload:
@@ -109,44 +133,7 @@ def hadd_skimmed_files(files_list, outputdir, only_datasets, files, events, scal
             if r != 0:
                 print("#### Failed hadd: ", group)
 
-    json.dump(groups_metadata, open("hadd.json", "w"), indent=2)
-    # writing out a script with the hadd commands
-    with open("hadd.sh", "w") as f:
-        for output, group in workload:
-            f.write(f"hadd -ff {output} {' '.join(group)}\n")
-    with open("do_hadd.py", "w") as f:
-        f.write(f"""import os
-import sys
-from multiprocessing import Pool
-import subprocess
-
-def do_hadd(cmd):
-    try:
-        output = subprocess.check_output(cmd, shell=True)
-    except subprocess.CalledProcessError as grepexc:                                                                                                   
-        print("error code", grepexc.returncode, grepexc.output)
-        return cmd.split(" ")[2]
-    except Exception as e:
-        print("error", e)
-        return cmd.split(" ")[2]
-
-workload = []
-with open("hadd.sh") as f:
-    for line in f:
-        workload.append(line.strip())
-
-p = Pool({scaleout})
-if len(sys.argv)> 1:
-    workload = list(filter(lambda x: sys.argv[1] in x, workload))
-
-failed = p.map(do_hadd, workload)
-
-print("DONE!")
-print("Failed files:")
-for f in failed:
-    if f:
-        print(f)""")
-    
+                
     # Now saving the dataset definition file
     dataset_metadata = df["datasets_metadata"]["by_dataset"]
     dataset_definition = {}
@@ -163,6 +150,145 @@ for f in failed:
 
     json.dump(dataset_definition, open("skimmed_dataset_definition_hadd.json", "w"), indent=2)
 
+    # Preparing the files for submissions
+    # writing out a script with the hadd commands
+    with open("do_hadd.py", "w") as f:
+        f.write(f"""import os
+import sys
+import json
+from multiprocessing import Pool
+import subprocess
+import ROOT as R
+
+def do_hadd(group):
+    try:
+        outputfile, inputfiles = group
+        print("Working on ", outputfile)
+        chain = R.TChain('Events')
+        for inputfile in inputfiles:
+            chain.Add(inputfile)
+
+        output_file = R.TFile.Open(outputfile, "RECREATE")
+        output_tree = chain.CloneTree(-1)  # Clone all entries
+        output_tree.Write()
+        output_file.Close()
+        del chain
+        del output_tree
+        del output_file
+    except Exception as e:
+        print(e)
+        return outputfile
+
+config = json.load(open("hadd.json"))
+workload = []
+p = Pool({scaleout})
+
+for dataset, conf in config.items():
+    if len(sys.argv)> 1 and sys.argv[1] not in dataset:
+        continue
+    for outputfile, inputfiles in conf["files"].items():
+        workload.append((outputfile, inputfiles))
+
+     
+failed = p.map(do_hadd, workload)
+
+print("DONE!")
+print("Failed files:")
+for f in failed:
+    if f:
+        print(f)""")
+
+    with open("do_hadd_job_splitbyfile.py", "w") as f:
+        f.write(f"""#!/bin/python3
+import os
+import sys
+import json
+from multiprocessing import Pool
+import subprocess
+import ROOT as R
+
+def do_hadd(group):
+    try:
+        outputfile, inputfiles = group
+        print("Working on ", outputfile)
+        chain = R.TChain('Events')
+        for inputfile in inputfiles:
+            chain.Add(inputfile)
+
+        output_file = R.TFile.Open(outputfile, "RECREATE")
+        output_tree = chain.CloneTree(-1)  # Clone all entries
+        output_tree.Write()
+        output_file.Close()
+        del chain
+        del output_tree
+        del output_file
+    except Exception as e:
+        print(e)
+        return outputfile
+
+config = json.load(open("hadd.json"))
+files = config[sys.argv[1]]["files"][sys.argv[2]]
+
+failed = []
+out = do_hadd((sys.argv[2], files))
+if out:
+    failed.append(out)
+        
+print("DONE!")
+print("Failed files: ", failed)
+if len(failed):
+    sys.exit(1)""")
+
+
+    abs_local_path = os.path.abspath(".")
+    os.makedirs(f"{abs_local_path}/condor", exist_ok=True)
+    sub = {
+        "Executable": "do_hadd_job.py",
+        "Universe": "vanilla",
+        "Error": f"{abs_local_path}/condor/hadd_job_$(ClusterId).$(ProcId).err",
+        "Output": f"{abs_local_path}/condor/hadd_job_$(ClusterId).$(ProcId).out",
+        "Log": f"{abs_local_path}/condor/hadd_job_$(ClusterId).$(ProcId).log",
+        'MY.SendCredential': True,
+        '+JobFlavour': f'"espresso"',
+        'arguments': "$(dataset)",
+        'should_transfer_files':'YES',
+        'when_to_transfer_output' : 'ON_EXIT',
+        'transfer_input_files' : f"{abs_local_path}/do_hadd_job_splitbyfile.py, {abs_local_path}/hadd.json",
+    }
+    with open("hadd_job.sub", "w") as f:
+        for k, v in sub.items():
+            f.write(f"{k} = {v}\n")
+        # Now adding the arguments
+        f.write("queue dataset, group from (\n")
+        for dataset, conf in groups_metadata.items():
+            f.write(f'{dataset}\n')
+        f.write(")\n")
+    
+    print("DONE!")
+    
+    sub = {
+        "Executable": "do_hadd_job_splitbyfile.py",
+        "Universe": "vanilla",
+        "Error": f"{abs_local_path}/condor/hadd_job_$(ClusterId).$(ProcId).err",
+        "Output": f"{abs_local_path}/condor/hadd_job_$(ClusterId).$(ProcId).out",
+        "Log": f"{abs_local_path}/condor/hadd_job_$(ClusterId).$(ProcId).log",
+        'MY.SendCredential': True,
+        '+JobFlavour': f'"espresso"',
+        'arguments': "$(dataset) $(group)",
+        'should_transfer_files':'YES',
+        'when_to_transfer_output' : 'ON_EXIT',
+        'transfer_input_files' : f"{abs_local_path}/do_hadd_job_splitbyfile.py, {abs_local_path}/hadd.json",
+    }
+    with open("hadd_job_splitbyfile.sub", "w") as f:
+        for k, v in sub.items():
+            f.write(f"{k} = {v}\n")
+        # Now adding the arguments
+        f.write("queue dataset, group from (\n")
+        for dataset, conf in groups_metadata.items():
+            for group in conf["files"].keys():
+                f.write(f'{dataset} {group}\n')
+        f.write(")\n")
+    
     print("DONE!")
 
 
