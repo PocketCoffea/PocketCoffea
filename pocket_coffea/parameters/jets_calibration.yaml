@@ -213,18 +213,18 @@ default_jets_calibration:
     AK4PFPuppi:
       JES_JER_Syst:
         2022_preEE:
-          - "${default_params_dir:}/jec/Summer22/Summer22_V1_MC_L1FastJet_AK4PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer22/Summer22_V1_MC_L2Relative_AK4PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer22/Summer22_V1_MC_UncertaintySources_AK4PFPuppi.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer22/Summer22_V1_MC_Uncertainty_AK4PFPuppi.junc.txt.gz"
+          - "${default_params_dir:}/jec/Summer22/Summer22_22Sep2023_V2_MC_L1FastJet_AK4PFPuppi.jec.txt.gz"
+          - "${default_params_dir:}/jec/Summer22/Summer22_22Sep2023_V2_MC_L2Relative_AK4PFPuppi.jec.txt.gz"
+          - "${default_params_dir:}/jec/Summer22/Summer22_22Sep2023_V2_MC_UncertaintySources_AK4PFPuppi.junc.txt.gz"
+          - "${default_params_dir:}/jec/Summer22/Summer22_22Sep2023_V2_MC_Uncertainty_AK4PFPuppi.junc.txt.gz"
           - "${default_params_dir:}/jec/Summer22/Summer22Run3_V1_MC_PtResolution_AK4PFPuppi.jr.txt.gz"
           - "${default_params_dir:}/jec/Summer22/Summer22Run3_V1_MC_SF_AK4PFPuppi.jersf.txt.gz"
 
         2022_postEE:
-          - "${default_params_dir:}/jec/Summer22EE/Summer22EE_V1_MC_L1FastJet_AK4PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer22EE/Summer22EE_V1_MC_L2Relative_AK4PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer22EE/Summer22EE_V1_MC_UncertaintySources_AK4PFPuppi.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer22EE/Summer22EE_V1_MC_Uncertainty_AK4PFPuppi.junc.txt.gz"
+          - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_V2_MC_L1FastJet_AK4PFPuppi.jec.txt.gz"
+          - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_V2_MC_L2Relative_AK4PFPuppi.jec.txt.gz"
+          - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_V2_MC_UncertaintySources_AK4PFPuppi.junc.txt.gz"
+          - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_V2_MC_Uncertainty_AK4PFPuppi.junc.txt.gz"
           - "${default_params_dir:}/jec/Summer22EE/Summer22EEPrompt22_JRV1_MC_PtResolution_AK4PFPuppi.jr.txt.gz"
           - "${default_params_dir:}/jec/Summer22EE/Summer22EEPrompt22_JRV1_MC_SF_AK4PFPuppi.jersf.txt.gz"
           
