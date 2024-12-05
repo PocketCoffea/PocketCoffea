@@ -23,7 +23,7 @@ def do_dataset(key, config, local_prefix, allowlist_sites, include_redirector, b
     print("> Working on dataset: ", key)
     if key not in config:
         print("Key: not found in the dataset configuration file")
-        exit(1)
+        raise ValueError(f'Key not found: {key}')
     dataset_cfg = config[key]
     if local_prefix:
         dataset_cfg["storage_prefix"] = local_prefix

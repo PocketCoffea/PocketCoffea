@@ -59,7 +59,7 @@ parsl-condor@DESY_NAF:
   queue: ""
   walltime: "12:00:00"
 
-parsl-condor@RWTH:
+parsl@RWTH:
   scaleout: 1
   mem_per_worker: 2 # GB
   logs-dir: logs_parsl
