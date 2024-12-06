@@ -481,13 +481,15 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
 
     def fill_column_accumulators(self, variation):
-        if variation != "nominal":
-            return
-
+        '''
+        Function which fills the columns accumulators for each
+        category and subsample.  If the workflow options contain 'dump_columns_as_arrays_per_chunk' the columns are filled as awkward arrays and exported for each chunk.
+        '''
         if len(self.column_managers) == 0:
             return
 
-        outcols = self.output["columns"]
+        self.output["columns"][variation] = {}
+        outcols = self.output["columns"][variation]
         # TODO Fill column accumulator for different variations
         if self._hasSubsamples:
             # call the filling for each
@@ -513,7 +515,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     # Filling columns to be accumulated for all the chunks
                     # Calling hist manager with a subsample mask
                     if self.column_managers[subs].ncols == 0: break
-                    self.output["columns"][f"{self._sample}__{subs}"]= {
+                    outcols[f"{self._sample}__{subs}"]= {
                         self._dataset : self.column_managers[subs].fill_columns_accumulators(
                                                    self.events,
                                                    self._categories,
@@ -538,7 +540,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     subdirs = [self._dataset, category]
                     dump_ak_array(akarr, fname, self.workflow_options["dump_columns_as_arrays_per_chunk"]+"/", subdirs)
             else:
-                self.output["columns"][self._sample] = { self._dataset: self.column_managers[
+                outcols[self._sample] = { self._dataset: self.column_managers[
                     self._sample
                 ].fill_columns_accumulators(
                     self.events,

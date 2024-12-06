@@ -522,7 +522,7 @@ def test_columns_export(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_pa
     save(output, outputdir / "output_all.coffea")
     
     assert output is not None
-    cls = output["columns"]["TTTo2L2Nu__mu"]["TTTo2L2Nu_2018"]["4jets"]
+    cls = output["columns"]["nominal"]["TTTo2L2Nu__mu"]["TTTo2L2Nu_2018"]["4jets"]
     assert np.all(cls["JetGood_N"].value >= 4)
 
 def test_columns_export_parquet(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
