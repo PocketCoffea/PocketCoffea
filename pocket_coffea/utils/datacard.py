@@ -17,6 +17,7 @@ def rearrange_histograms(
     shape_systematics: list[str],
     year: str,
     category: str,
+    is_data: bool = False,
 ) -> hist.Hist:
     """Rearrange histograms from pocket_coffea output format to match processes
     and systematics in one histogram.
@@ -34,35 +35,57 @@ def rearrange_histograms(
     :return: single histogram with processes and systematics
     :rtype: hist.Hist
     """
-    sample = processes[0].samples[0]
+    assert ((not is_data) & all(not process.is_data for process in processes)) or (
+        is_data & all(process.is_data for process in processes)
+    ), "All processes must be either data or MC"
+    if is_data:
+        if shape_systematics != None:
+            raise ValueError("Datacard for data should not have shape systematics.")
 
-    variable_axis = histograms[sample][f"{sample.split('__')[0]}_{year}"].axes[-1]
+    sample = processes[0].samples[0]
+    datasets = datasets_metadata["by_datataking_period"][year][sample]
+    dataset = list(datasets)[0]
+
+    variable_axis = histograms[sample][dataset].axes[-1]
 
     processes_names = [process.name for process in processes]
-    new_histogram = hist.Hist(
-        hist.axis.StrCategory(processes_names, name="process"),
-        hist.axis.StrCategory(shape_systematics, name="systematics"),
-        variable_axis,
-        storage=hist.storage.Weight(),
-    )
-
+    if is_data:
+        new_histogram = hist.Hist(
+            hist.axis.StrCategory(processes_names, name="process"),
+            variable_axis,
+            storage=hist.storage.Weight(),
+        )
+    else:
+        new_histogram = hist.Hist(
+            hist.axis.StrCategory(processes_names, name="process"),
+            hist.axis.StrCategory(shape_systematics, name="systematics"),
+            variable_axis,
+            storage=hist.storage.Weight(),
+        )
     new_histogram_view = new_histogram.view()
+
     for process in processes:
         process_index = new_histogram.axes["process"].index(process.name)
         for sample in process.samples:
             datasets = datasets_metadata["by_datataking_period"][year][sample]
             for dataset in datasets:
                 histogram = histograms[sample][dataset]
-                for systematic in new_histogram.axes["systematics"]:
-                    systematic_index = new_histogram.axes["systematics"].index(systematic)
-                    new_histogram_view[process_index, systematic_index, :] += histogram[
-                        category, systematic, :
-                    ].view()
+                if is_data:
+                    new_histogram_view[process_index, :] += histogram[category, :].view()
+                else:
+                    for systematic in new_histogram.axes["systematics"]:
+                        systematic_index = new_histogram.axes["systematics"].index(systematic)
+                        new_histogram_view[process_index, systematic_index, :] += histogram[
+                            category, systematic, :
+                        ].view()
     return new_histogram
 
 
 def create_shape_histogram_dict(
-    histogram: hist.Hist, processes: list[Process], shape_systematics: list[str]
+    histogram: hist.Hist,
+    processes: list[Process],
+    shape_systematics: list[str],
+    is_data: bool = False
 ) -> dict[str, hist.Hist]:
     """Create a dictionary of histograms for each process and systematic.
 
@@ -75,19 +98,32 @@ def create_shape_histogram_dict(
     :return: dictionary of histograms, keys are process_systematic
     :rtype: dict[str, hist.Hist]
     """
+    if is_data:
+        if shape_systematics != None:
+            raise ValueError("Datacard for data should not have shape systematics.")
     new_histograms = dict()
     for process in processes:
-        for systematic in shape_systematics:
+        if is_data:
             # create new 1d histogram
             new_histogram = hist.Hist(
                 histogram.axes[-1],
                 storage=hist.storage.Weight(),
             )
             new_histogram_view = new_histogram.view()
+            new_histogram_view[:] = histogram[process.name, :].view()
+            new_histograms[process.name] = new_histogram
+        else:
+            for systematic in shape_systematics:
+                # create new 1d histogram
+                new_histogram = hist.Hist(
+                    histogram.axes[-1],
+                    storage=hist.storage.Weight(),
+                )
+                new_histogram_view = new_histogram.view()
 
-            # add samples that correspond to a process
-            new_histogram_view[:] = histogram[process.name, systematic, :].view()
-            new_histograms[f"{process.name}_{systematic}"] = new_histogram
+                # add samples that correspond to a process
+                new_histogram_view[:] = histogram[process.name, systematic, :].view()
+                new_histograms[f"{process.name}_{systematic}"] = new_histogram
 
     return new_histograms
 
@@ -100,9 +136,10 @@ class Datacard(Processes, Systematics):
         histograms: dict[str, dict[str, hist.Hist]],
         datasets_metadata: dict[str, dict[str, dict]],
         processes: list[Process],
-        systematics: list[SystematicUncertainty],
         year: str,
         category: str,
+        data_processes: list[Process] = None,
+        systematics: list[SystematicUncertainty] = None,
         bin_prefix: str = None,
     ) -> None:
         """Initialize the Datacard.
@@ -124,11 +161,15 @@ class Datacard(Processes, Systematics):
         self.histograms = histograms
         self.datasets_metadata = datasets_metadata
         self.processes = processes
+        self.data_processes = data_processes
         self.systematics = systematics
         self.year = year
         self.category = category
         self.bin_prefix = bin_prefix
         self.number_width = 10
+        self.has_data = data_processes is not None
+        if self.has_data and (len(self.data_processes) != 1):
+            raise NotImplementedError("Only one data process is supported.")
 
         # assign IDs to processes
         id_signal = 0  # signal processes have 0 or negative IDs
@@ -153,6 +194,17 @@ class Datacard(Processes, Systematics):
             category=self.category,
         )
 
+        if self.has_data:
+            self.data_obs = rearrange_histograms(
+                histograms=self.histograms,
+                datasets_metadata=self.datasets_metadata,
+                processes=self.data_processes,
+                shape_systematics=None,
+                year=self.year,
+                category=self.category,
+                is_data=True,
+            )
+
         # helper attributes
         self.linesep = "\n"
         self.sectionsep = "-" * 80
@@ -175,7 +227,10 @@ class Datacard(Processes, Systematics):
     @property
     def observation(self):
         """Number of observed events in the datacard"""
-        return -1
+        if self.has_data:
+            return self.data_obs.sum()["value"]
+        else:
+            return -1
 
     def rate(self, process: str, systematic="nominal") -> float:
         """Rate of a process in the datacard"""
@@ -239,14 +294,15 @@ class Datacard(Processes, Systematics):
                             f"Sample {sample} for year {self.year} ({dataset})"
                             f"not found in histograms {self.histograms[sample].keys()}"
                         )
-                    missing_systematics = set(self.shape_systematics_names) - set(
-                        self.histograms[sample][dataset].axes["variation"]
-                    )
-                    if missing_systematics:
-                        raise ValueError(
-                            f"Sample {sample} for year {self.year} is missing the following"
-                            f"systematics: {missing_systematics}"
+                    if not process.is_data:
+                        missing_systematics = set(self.shape_systematics_names) - set(
+                            self.histograms[sample][dataset].axes["variation"]
                         )
+                        if missing_systematics:
+                            raise ValueError(
+                                f"Sample {sample} for year {self.year} is missing the following"
+                                f"systematics: {missing_systematics}"
+                            )
 
     def preamble(self) -> str:
         preamble = f"imax {self.imax} number of channels{self.linesep}"
@@ -271,13 +327,13 @@ class Datacard(Processes, Systematics):
         content += "process".ljust(self.adjust_first_column)
         # process names
         content += "".join(
-            f"{process.name}".ljust(self.adjust_columns) for process in self.processes
+            f"{process.name}".ljust(self.adjust_columns) for process in self.processes if not process.is_data
         )
         content += self.linesep
         # process ids
         content += "process".ljust(self.adjust_first_column)
         content += "".join(
-            f"{process.id}".ljust(self.adjust_columns) for process in self.processes
+            f"{process.id}".ljust(self.adjust_columns) for process in self.processes if not process.is_data
         )
         content += self.linesep
 
@@ -359,6 +415,16 @@ class Datacard(Processes, Systematics):
             processes=self.processes,
             shape_systematics=self.shape_systematics_names,
         )
+        if self.has_data:
+            shape_histograms_data = create_shape_histogram_dict(
+                histogram=self.data_obs,
+                processes=self.data_processes,
+                shape_systematics=None,
+                is_data=True,
+            )
         with uproot.recreate(shapes_file) as root_file:
+            if self.has_data:
+                for shape, histogram in shape_histograms_data.items():
+                    root_file[shape] = histogram
             for shape, histogram in shape_histograms.items():
                 root_file[shape] = histogram
