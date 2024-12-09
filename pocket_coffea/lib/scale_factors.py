@@ -471,3 +471,29 @@ def sf_pileup_reweight(params, events, year):
     sfdown = puWeightsJSON[puName].evaluate(nPu, 'down')
 
     return sf, sfup, sfdown
+
+def sf_isr(events):
+    '''Up and down variations for the ISR parton shower weights.
+    In order to properly store the weights, a dummy weight of 1 is stored
+    as central value for the ISR correction.
+    Conventions for the PS weights are:
+    [0] is ISR=2 FSR=1; [1] is ISR=1 FSR=2[2] is ISR=0.5 FSR=1; [3] is ISR=1 FSR=0.5;
+    '''
+    isr_up = events.PSWeight[:,2]
+    isr_down = events.PSWeight[:,0]
+    nom = ak.ones_like(isr_up)
+
+    return nom, isr_up, isr_down
+
+def sf_fsr(events):
+    '''Up and down variations for the FSR parton shower weights.
+    In order to properly store the weights, a dummy weight of 1 is stored
+    as central value for the FSR correction.
+    Convention for the PS weights are:
+    [0] is ISR=2 FSR=1; [1] is ISR=1 FSR=2[2] is ISR=0.5 FSR=1; [3] is ISR=1 FSR=0.5;
+    '''
+    fsr_up = events.PSWeight[:,3]
+    fsr_down = events.PSWeight[:,1]
+    nom = ak.ones_like(fsr_up)
+
+    return nom, fsr_up, fsr_down
