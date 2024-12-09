@@ -10,6 +10,7 @@ class Process:
     name: str
     samples: list
     is_signal: bool
+    is_data: bool = False
     label: str = None
 
     def __post_init__(self):
