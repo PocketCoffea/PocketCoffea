@@ -111,7 +111,7 @@ def create_shape_histogram_dict(
             )
             new_histogram_view = new_histogram.view()
             new_histogram_view[:] = histogram[process.name, :].view()
-            new_histograms[process.name] = new_histogram
+            new_histograms[f"{process.name}_nominal"] = new_histogram
         else:
             for systematic in shape_systematics:
                 # create new 1d histogram
@@ -126,7 +126,6 @@ def create_shape_histogram_dict(
                 new_histograms[f"{process.name}_{systematic}"] = new_histogram
 
     return new_histograms
-
 
 class Datacard(Processes, Systematics):
     """Datacard containing processes, systematics and write utilities."""
@@ -428,3 +427,36 @@ class Datacard(Processes, Systematics):
                     root_file[shape] = histogram
             for shape, histogram in shape_histograms.items():
                 root_file[shape] = histogram
+
+def combine_datacards(
+    datacards: dict[Datacard],
+    directory: str,
+    path: str = "combine_cards.sh",
+    card_name: str = "datacard_combined.txt",
+    workspace_name : str = "workspace.root"
+    ) -> None:
+    """Write the bash script to combine datacards from different categories.
+
+    :param datacards: List of datacards to combine
+    :type datacards: list[Datacard]
+    :param output_dir: Directory to save the bash script
+    :type output_dir: str
+    :param output_name: Name of the bash script
+    :type output_name: str
+    """
+    assert path.endswith(".sh"), "Output file must be a bash script and have .sh extension"
+    os.makedirs(directory, exist_ok=True)
+    output_file = os.path.join(directory, path)
+    with open(output_file, "w") as file:
+        file.write("#!/bin/bash\n")
+        file.write("")
+        args = " ".join(
+            f"{card.category}_{card.year}={filename}"
+            for filename, card in datacards.items()
+        )
+        file.write(
+            f"combineCards.py {args} > {card_name}\n"
+        )
+        file.write(
+            f"text2workspace.py {card_name} -o {workspace_name}\n"
+        )
