@@ -308,7 +308,7 @@ jets_calibration:
   collection:  # this is needed to know which collection is corrected with which jet factory
     2016_PreVFP:
       AK4PFchs: "Jet"
-      AK4PFPuppi: "Jet"
+      AK8PFPuppi: "FatJet"
     2016_PostVFP:
       AK4PFchs: "Jet"
       AK8PFPuppi: "FatJet"
@@ -320,16 +320,16 @@ jets_calibration:
       AK8PFPuppi: "FatJet"
     2022_preEE:
       AK4PFPuppi: "Jet"
-      #AK8PFPuppi: "FastJet"
+      #AK8PFPuppi: "FatJet"
     2022_postEE:
       AK4PFPuppi: "Jet"
-      #AK8PFPuppi: "FastJet"
+      #AK8PFPuppi: "FatJet"
     2023_preBPix:
       AK4PFPuppi: "Jet"
-      #AK8PFPuppi: "FastJet"
+      #AK8PFPuppi: "FatJet"
     2023_postBPix:
       AK4PFPuppi: "Jet"
-      #AK8PFPuppi: "FastJet"
+      #AK8PFPuppi: "FatJet"
     
   jec_name_map_MC: "${default_jets_calibration.jec_name_map_MC}"
   jec_name_map_Data: "${default_jets_calibration.jec_name_map_Data}"
