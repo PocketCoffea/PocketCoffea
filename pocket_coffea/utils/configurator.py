@@ -458,6 +458,7 @@ class Configurator:
         for w in wcfg["common"]["inclusive"]:
             if w not in available_variations:
                 print(f"Variation {w} not available in the workflow")
+                print("Available variations: ", available_variations)
                 raise Exception(f"Wrong variation configuration: variation {w} not available in the workflow")
             for sample, wsample in self.variations_config.items():
                 if variation_type == "weights" and w not in self.weights_config[sample]["inclusive"]:
