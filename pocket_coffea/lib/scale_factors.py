@@ -472,7 +472,7 @@ def sf_pileup_reweight(params, events, year):
 
     return sf, sfup, sfdown
 
-def sf_isr(events):
+def sf_partonshower_isr(events):
     '''Up and down variations for the ISR parton shower weights.
     In order to properly store the weights, a dummy weight of 1 is stored
     as central value for the ISR correction.
@@ -485,7 +485,7 @@ def sf_isr(events):
 
     return nom, isr_up, isr_down
 
-def sf_fsr(events):
+def sf_partonshower_fsr(events):
     '''Up and down variations for the FSR parton shower weights.
     In order to properly store the weights, a dummy weight of 1 is stored
     as central value for the FSR correction.

@@ -85,7 +85,7 @@ def sf_ele_trigger(params, events, year, variations=["nominal"]):
     return sf_dict
 
 
-def sf_renscale(events):
+def sf_qcd_renorm_scale(events):
     '''Up and down variations for the renormalization scale weights.
     The up variation of the renormalization scale weight is defined as the ratio of the weight
     with renormalization scale increased by a factor of 2 to the nominal weight ([7]/[4]).
@@ -108,7 +108,7 @@ def sf_renscale(events):
 
     return nom, sf_up, sf_down
 
-def sf_facscale(events):
+def sf_qcd_factor_scale(events):
     '''Up and down variations for the factorization scale weights.
     The up variation of the factorization scale weight is defined as the ratio of the weight
     with factorization scale increased by a factor of 2 to the nominal weight ([5]/[4]).
@@ -168,16 +168,16 @@ class SF_ele_trigger(WeightWrapper):
             )
             return WeightData(name=self.name, nominal=out["nominal"][0])
 
-SF_QCD_renscale = WeightLambda.wrap_func(
-    name="sf_qcd_renscale",
+SF_QCD_renorm_scale = WeightLambda.wrap_func(
+    name="sf_qcd_renorm_scale",
     function=lambda params, metadata, events, size, shape_variations:
-        sf_renscale(events),
+        sf_qcd_renorm_scale(events),
     has_variations=True
     )
 
-SF_QCD_facscale = WeightLambda.wrap_func(
-    name="sf_qcd_facscale",
+SF_QCD_factor_scale = WeightLambda.wrap_func(
+    name="sf_qcd_factor_scale",
     function=lambda params, metadata, events, size, shape_variations:
-        sf_facscale(events),
+        sf_qcd_factor_scale(events),
     has_variations=True
     )

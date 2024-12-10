@@ -13,8 +13,8 @@ from pocket_coffea.lib.scale_factors import (
     sf_jet_puId,
     sf_L1prefiring,
     sf_pileup_reweight,
-    sf_isr,
-    sf_fsr
+    sf_partonshower_isr,
+    sf_partonshower_fsr
 )
 
 
@@ -103,16 +103,16 @@ SF_L1prefiring = WeightLambda.wrap_func(
 
 
 SF_PSWeight_isr = WeightLambda.wrap_func(
-    name="sf_psweight_isr",
+    name="sf_partonshower_isr",
     function=lambda params, metadata, events, size, shape_variations:
-        sf_isr(events),
+        sf_partonshower_isr(events),
     has_variations=True
     )
 
 SF_PSWeight_fsr = WeightLambda.wrap_func(
-    name="sf_psweight_fsr",
+    name="sf_partonshower_fsr",
     function=lambda params, metadata, events, size, shape_variations:
-        sf_fsr(events),
+        sf_partonshower_fsr(events),
     has_variations=True
     )
 
