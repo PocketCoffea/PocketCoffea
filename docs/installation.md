@@ -36,7 +36,7 @@ The apptainer environment is activated on **lxplus** with the following command:
 ```bash
 apptainer shell -B /afs -B /cvmfs/cms.cern.ch \
                 -B /tmp  -B /eos/cms/  -B /etc/sysconfig/ngbauth-submit \
-                -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME="FILE:${XDG_RUNTIME_DIR}/krb5cc" 
+                -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME="FILE:${XDG_RUNTIME_DIR}/krb5cc" \
     /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-stable
 ```
 
@@ -83,15 +83,16 @@ If the user needs to modify locally the central PocketCoffea code, the apptainer
 
 
 ```bash
-#Enter the image
+# Clone locally the PocketCoffea repo
+git clone git@github.com:PocketCoffea/PocketCoffea.git
+cd PocketCoffea
+
+#Enter the Singularity image
 apptainer shell --bind /afs -B /cvmfs/cms.cern.ch \
          --bind /tmp  --bind /eos/cms/ -B /etc/sysconfig/ngbauth-submit \
          -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME="FILE:${XDG_RUNTIME_DIR}/krb5cc"  \
          /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-stable
 
-# Clone locally the PocketCoffea repo
-git clone git@github.com:PocketCoffea/PocketCoffea.git
-cd PocketCoffea
 
 # Create a local virtual environment using the packages defined in the apptainer image
 python -m venv --system-site-packages myenv
@@ -101,6 +102,9 @@ source myenv/bin/activate
 
 # Install in EDITABLE mode
 pip install -e .[dev]
+
+# One could also install additional packages if necessary for anaysis, eg:
+pip install lightgbm 
 ```
 
 The next time the user enters in the apptainer the virtual environment needs to be activated. 
@@ -120,9 +124,12 @@ source myenv/bin/activate
 :::{admonition} Setup the job submission with local core changes
 :class: warning
 **N.B.**: In order to properly propagated the local environment and local code changes to jobs running on condor through
-Dask the user needs to setup the executor options properly with the `local-virtualenv: true` options. Checkout the
-running instructions for more details.  
+Dask, the user needs to setup the executor option `local-virtualenv: true`.
+Checkout the [running instructions](https://pocketcoffea.readthedocs.io/en/stable/running.html) for more details.  
 :::
+
+### SWAN
+It is also possible to setup PocketCoffea within SWAN at CERN. See [Instructions](https://github.com/PocketCoffea/Tutorials/tree/main/Analysis_Facilities_Setup#cern-swan-analysis-facility) in a separate tutorial.
 
 ## Vanilla python package
 The PocketCoffea package has been published on Pypi. It can be installed with
