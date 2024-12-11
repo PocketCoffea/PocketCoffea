@@ -160,7 +160,7 @@ class DaskExecutorFactory(ExecutorFactoryABC):
             memory = self.run_options['mem-per-worker'],
             disk = self.run_options.get('disk-per-worker', "2GB"),
             job_script_prologue = self.get_worker_env(),
-            log_directory = os.path.join(self.outputdir, "dask_log"),
+            log_directory = "/tmp/"+getpass.getuser()+"/dask_log",
         )
         print(self.get_worker_env())
 
@@ -168,7 +168,7 @@ class DaskExecutorFactory(ExecutorFactoryABC):
         print(">> Sending out jobs")
         self.dask_cluster.adapt(minimum=1 if self.run_options["adaptive"]
                                 else self.run_options['scaleout'],
-                      maximum=self.run_options['scaleout'])
+                                maximum=self.run_options['scaleout'])
         
         self.dask_client = Client(self.dask_cluster)
         print(">> Waiting for the first job to start...")
@@ -202,9 +202,9 @@ def get_executor_factory(executor_name, **kwargs):
         return IterativeExecutorFactory(**kwargs)
     elif executor_name == "futures":
         return FuturesExecutorFactory(**kwargs)
-    elif  executor_name == "parsl-condor":
+    elif  executor_name == "parsl":
         return ParslCondorExecutorFactory(**kwargs)
     elif  executor_name == "dask":
         return DaskExecutorFactory(**kwargs)
     else:
-        print("The executor is not recognized!\n available executors are: iterative, futures, parsl-condor, dask")
+        print("The executor is not recognized!\n available executors are: iterative, futures, parsl, dask")

@@ -172,7 +172,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     else:
         from pocket_coffea.executors import executors_base as executors_lib
 
-    if "parsl" in executor_name:
+    if "parsl" in executor_name or "dask" in executor_name:
         logging.getLogger().handlers[0].setLevel("ERROR")
         
     # Wait until the starting time, if provided
