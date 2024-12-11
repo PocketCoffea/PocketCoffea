@@ -139,6 +139,7 @@ class Datacard(Processes, Systematics):
         category: str,
         data_processes: list[Process] = None,
         systematics: list[SystematicUncertainty] = None,
+        mcstat: bool = True,
         bin_prefix: str = None,
     ) -> None:
         """Initialize the Datacard.
@@ -162,11 +163,16 @@ class Datacard(Processes, Systematics):
         self.processes = processes
         self.data_processes = data_processes
         self.systematics = systematics
+        self.mcstat = mcstat
         self.year = year
         self.category = category
         self.bin_prefix = bin_prefix
         self.number_width = 10
         self.has_data = data_processes is not None
+        if self.mcstat:
+            self.threshold = 0
+            self.include_signal = 0
+            self.hist_mode = 1
         if self.has_data and (len(self.data_processes) != 1):
             raise NotImplementedError("Only one data process is supported.")
 
@@ -367,6 +373,12 @@ class Datacard(Processes, Systematics):
             content += line
         return content
 
+    def mcstat_section(self) -> str:
+        content = ""
+        content += f"{self.bin} autoMCStats {self.threshold} {self.include_signal} {self.hist_mode}"
+        content += self.linesep
+        return content
+
     def content(self, shapes_filename: str) -> str:
         content = self.preamble()
         content += self.sectionsep + self.linesep
@@ -382,6 +394,10 @@ class Datacard(Processes, Systematics):
 
         content += self.systematics_section()
         content += self.sectionsep + self.linesep
+
+        if self.mcstat:
+            content += self.mcstat_section()
+            content += self.sectionsep + self.linesep
 
         return content
 
