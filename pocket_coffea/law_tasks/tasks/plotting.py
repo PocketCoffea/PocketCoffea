@@ -66,7 +66,7 @@ class PlotterBase(BaseTask):
             variables=output_coffea["variables"].keys(),
             hist_objs=output_coffea["variables"],
             datasets_metadata=output_coffea["datasets_metadata"],
-            plot_dir=self.output().abs_dirname,
+            plot_dir=self.output().absdirname,
             style_cfg=plotting_parameters,
             verbose=self.plot_verbose,
             workers=self.plot_workers,

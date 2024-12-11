@@ -153,7 +153,6 @@ def create_datasets_paths(
 def modify_dataset_output_path(
     dataset_definition: Union[FileName, dict],
     dataset_configuration: dict,
-    output_path: FileName = None,
     output_file: FileName = None,
 ) -> dict:
     """
@@ -164,13 +163,7 @@ def modify_dataset_output_path(
         the dataset definition as a dictionary.
     :type dataset_definition: Union[FileName, dict]
     :param dataset_configuration: The configuration for the datasets from the configurator.
-        The paths might be different from the ones in the dataset definition json file.
     :type dataset_configuration: dict
-    :param output_path: The output directory for the dataset creation.
-        If provided, this directory will be used to create the full output path
-        for the dataset jsons.
-        Default is None.
-    :type output_path: str or os.PathLike
     :param output_file: The name of the output file. If provided, the modified
         dataset definition will be saved with this filename in the output directory.
         If not provided, the modified dataset definition will not be saved.
@@ -190,17 +183,12 @@ def modify_dataset_output_path(
         for json_output in jsons:
             json_output = str(json_output)
             if json_output.endswith(dataset_json):
-                if output_path is not None:
-                    dataset["json_output"] = os.path.join(
-                        os.path.abspath(output_path), os.path.basename(dataset_json)
-                    )
-                else:
-                    dataset["json_output"] = json_output
+                dataset["json_output"] = json_output
 
     if output_file is not None:
-        output_path = os.path.dirname(output_file)
-        if not os.path.exists(output_path):
-            os.makedirs(output_path, exist_ok=True)
+        output_dir = os.path.dirname(output_file)
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir, exist_ok=True)
         with open(output_file, "w") as f:
             json.dump(dataset_definition, f, indent=4)
 
