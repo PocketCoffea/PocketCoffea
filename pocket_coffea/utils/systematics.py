@@ -1,7 +1,7 @@
 """Systematic Uncertainties and Utilities for Statistical Analysis"""
 
 from dataclasses import dataclass
-
+from pocket_coffea.utils.processes import Process
 
 @dataclass
 class SystematicUncertainty:
@@ -64,4 +64,10 @@ class Systematics:
         """List of Systematics of a specific type."""
         return [
             systematic for systematic in self.systematics if systematic.typ == syst_type
+        ]
+
+    def get_systematics_by_process(self, process: Process) -> list[SystematicUncertainty]:
+        """List of Systematics that affect a specific process."""
+        return [
+            systematic for systematic in self.systematics if process.name in systematic.processes
         ]
