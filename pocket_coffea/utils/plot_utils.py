@@ -600,7 +600,7 @@ class Shape:
             #print(sample_new, samples_list)
             for s_to_group in samples_list:
                 if s_to_group not in self.h_dict.keys():
-                    if self.verbose>=0:
+                    if self.verbose>=1:
                         print(f"{self.name}: WARNING. Sample ",s_to_group," is not in the list of samples: ", list(self.h_dict.keys()), "Skipping it.")
                     cleaned_samples_list[sample_new].remove(s_to_group)
                     continue
