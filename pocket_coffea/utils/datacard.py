@@ -75,9 +75,15 @@ def rearrange_histograms(
                 else:
                     for systematic in new_histogram.axes["systematics"]:
                         systematic_index = new_histogram.axes["systematics"].index(systematic)
-                        new_histogram_view[process_index, systematic_index, :] += histogram[
-                            category, systematic, :
-                        ].view()
+                        if systematic in histogram.axes["variation"]:
+                            new_histogram_view[process_index, systematic_index, :] += histogram[
+                                category, systematic, :
+                            ].view()
+                        else:
+                            print(f"Setting `{systematic}` variation to nominal variation for sample {sample}.")
+                            new_histogram_view[process_index, systematic_index, :] += histogram[
+                                category, "nominal", :
+                            ].view()
     return new_histogram
 
 
@@ -218,7 +224,7 @@ class Datacard(Processes, Systematics):
     def shape_systematics_names(self):
         return ["nominal"] + [
             f"{syst}{shift}"
-            for syst in self.list_type("shape")
+            for syst in [s.name for s in self.get_systematics_by_type("shape")]
             for shift in ("Up", "Down")
         ]
 
@@ -304,8 +310,8 @@ class Datacard(Processes, Systematics):
                             self.histograms[sample][dataset].axes["variation"]
                         )
                         if missing_systematics:
-                            raise ValueError(
-                                f"Sample {sample} for year {self.year} is missing the following"
+                            print(
+                                f"Sample {sample} for year {self.year} is missing the following "
                                 f"systematics: {missing_systematics}"
                             )
 
@@ -373,6 +379,17 @@ class Datacard(Processes, Systematics):
             content += line
         return content
 
+    def rate_parameters_section(self) -> str:
+        content = ""
+        for process in self.processes:
+            if not process.is_signal:
+                line = f"SF_{process.name}".ljust(self.adjust_syst_colum)
+                line += "rateParam".ljust(self.adjust_columns)
+                line += f"* {process.name} 1 [0,5]".ljust(self.adjust_columns)
+                line += self.linesep
+                content += line
+        return content
+
     def mcstat_section(self) -> str:
         content = ""
         content += f"{self.bin} autoMCStats {self.threshold} {self.include_signal} {self.hist_mode}"
@@ -393,6 +410,9 @@ class Datacard(Processes, Systematics):
         content += self.sectionsep + self.linesep
 
         content += self.systematics_section()
+        content += self.sectionsep + self.linesep
+
+        content += self.rate_parameters_section()
         content += self.sectionsep + self.linesep
 
         if self.mcstat:
