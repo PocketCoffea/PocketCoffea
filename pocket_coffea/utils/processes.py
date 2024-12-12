@@ -16,12 +16,8 @@ class Process:
     def __post_init__(self):
         if not self.label:
             self.label = self.name
-
-    def __post_init_post_parse__(self):
-        '''Ensure samples is a list'''
         if not isinstance(self.samples, list):
             self.samples = list(self.samples)
-
 
 @dataclass
 class Processes:
