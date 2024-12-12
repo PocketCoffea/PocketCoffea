@@ -85,9 +85,51 @@ def sf_ele_trigger(params, events, year, variations=["nominal"]):
     return sf_dict
 
 
-########################################################################
-# More complicated WeightWrapper defining dynamic variations depending
-# on the data taking period
+def sf_qcd_renorm_scale(events):
+    '''Up and down variations for the renormalization scale weights.
+    The up variation of the renormalization scale weight is defined as the ratio of the weight
+    with renormalization scale increased by a factor of 2 to the nominal weight ([7]/[4]).
+    The down variation of the renormalization scale weight is defined as the ratio of the weight
+    with renormalization scale decreased by a factor of 2 to the nominal weight ([1]/[4]).
+    Conventions for the LHEScaleWeight (valid for NanoAODv9) are:
+    LHE scale variation weights (w_var / w_nominal);
+    [0] is renscfact=0.5d0 facscfact=0.5d0 ;
+    [1] is renscfact=0.5d0 facscfact=1d0 ;
+    [2] is renscfact=0.5d0 facscfact=2d0 ;
+    [3] is renscfact=1d0 facscfact=0.5d0 ;
+    [4] is renscfact=1d0 facscfact=1d0 ;
+    [5] is renscfact=1d0 facscfact=2d0 ;
+    [6] is renscfact=2d0 facscfact=0.5d0 ;
+    [7] is renscfact=2d0 facscfact=1d0 ;
+    [8] is renscfact=2d0 facscfact=2d0'''
+    sf_up = events.LHEScaleWeight[:,7]/events.LHEScaleWeight[:,4]
+    sf_down = events.LHEScaleWeight[:,1]/events.LHEScaleWeight[:,4]
+    nom = ak.ones_like(sf_up)
+
+    return nom, sf_up, sf_down
+
+def sf_qcd_factor_scale(events):
+    '''Up and down variations for the factorization scale weights.
+    The up variation of the factorization scale weight is defined as the ratio of the weight
+    with factorization scale increased by a factor of 2 to the nominal weight ([5]/[4]).
+    The down variation of the factorization scale weight is defined as the ratio of the weight
+    with factorization scale decreased by a factor of 2 to the nominal weight ([3]/[4]).
+    Conventions for the LHEScaleWeight (valid for NanoAODv9) are:
+    LHE scale variation weights (w_var / w_nominal);
+    [0] is renscfact=0.5d0 facscfact=0.5d0 ;
+    [1] is renscfact=0.5d0 facscfact=1d0 ;
+    [2] is renscfact=0.5d0 facscfact=2d0 ;
+    [3] is renscfact=1d0 facscfact=0.5d0 ;
+    [4] is renscfact=1d0 facscfact=1d0 ;
+    [5] is renscfact=1d0 facscfact=2d0 ;
+    [6] is renscfact=2d0 facscfact=0.5d0 ;
+    [7] is renscfact=2d0 facscfact=1d0 ;
+    [8] is renscfact=2d0 facscfact=2d0'''
+    sf_up = events.LHEScaleWeight[:,5]/events.LHEScaleWeight[:,4]
+    sf_down = events.LHEScaleWeight[:,3]/events.LHEScaleWeight[:,4]
+    nom = ak.ones_like(sf_up)
+
+    return nom, sf_up, sf_down
 
 
 class SF_ele_trigger(WeightWrapper):
@@ -125,3 +167,17 @@ class SF_ele_trigger(WeightWrapper):
                 self._params, events, self._metadata["year"], variations=["nominal"]
             )
             return WeightData(name=self.name, nominal=out["nominal"][0])
+
+SF_QCD_renorm_scale = WeightLambda.wrap_func(
+    name="sf_qcd_renorm_scale",
+    function=lambda params, metadata, events, size, shape_variations:
+        sf_qcd_renorm_scale(events),
+    has_variations=True
+    )
+
+SF_QCD_factor_scale = WeightLambda.wrap_func(
+    name="sf_qcd_factor_scale",
+    function=lambda params, metadata, events, size, shape_variations:
+        sf_qcd_factor_scale(events),
+    has_variations=True
+    )
