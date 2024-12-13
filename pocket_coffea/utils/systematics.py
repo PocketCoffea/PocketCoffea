@@ -48,6 +48,15 @@ class Systematics:
         return [systematic.name for systematic in self.systematics]
 
     @property
+    def variations_names(self) -> list[str]:
+        """List of Names of Shape Variations."""
+        return [
+            f"{syst}{shift}"
+            for syst in [s.name for s in self.get_systematics_by_type("shape")]
+            for shift in ("Up", "Down")
+        ]
+
+    @property
     def n_systematics(self) -> int:
         """Number of Systematics"""
         return len(self.systematics)

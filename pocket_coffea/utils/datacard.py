@@ -13,23 +13,23 @@ from pocket_coffea.utils.systematics import Systematics, SystematicUncertainty
 def create_shape_histogram_dict(
     histogram: hist.Hist,
     processes: list[Process],
-    shape_systematics: list[str],
+    shape_variations: list[str],
     is_data: bool = False
 ) -> dict[str, hist.Hist]:
     """Create a dictionary of histograms for each process and systematic.
 
     :param processes: List of processes
     :type processes: list[Process]
-    :param shape_systematics: List of shape systematics (need to include Up/Down)
-    :type shape_systematics: list[str]
+    :param shape_variations: List of shape variations (need to include Up/Down)
+    :type shape_variations: list[str]
     :param histogram: single histogram as returned by rearrange_histograms
     :type histogram: hist.Hist
     :return: dictionary of histograms, keys are process_systematic
     :rtype: dict[str, hist.Hist]
     """
     if is_data:
-        if shape_systematics != None:
-            raise ValueError("Datacard for data should not have shape systematics.")
+        if shape_variations != None:
+            raise ValueError("Datacard for data should not have systematic shape variations.")
     new_histograms = dict()
     for process in processes:
         if is_data:
@@ -42,7 +42,7 @@ def create_shape_histogram_dict(
             new_histogram_view[:] = histogram[process.name, :].view()
             new_histograms[f"{process.name}_nominal"] = new_histogram
         else:
-            for systematic in shape_systematics:
+            for systematic in shape_variations:
                 # create new 1d histogram
                 new_histogram = hist.Hist(
                     histogram.axes[-1],
@@ -135,12 +135,8 @@ class Datacard(Processes, Systematics):
         self.sectionsep = "-" * 80
 
     @property
-    def shape_variations(self):
-        return ["nominal"] + [
-            f"{syst}{shift}"
-            for syst in [s.name for s in self.get_systematics_by_type("shape")]
-            for shift in ("Up", "Down")
-        ]
+    def shape_variations(self) -> list[str]:
+        return ["nominal"] + self.variations_names
 
     @property
     def bin(self) -> str:
@@ -284,7 +280,7 @@ class Datacard(Processes, Systematics):
         else:
             new_histogram = hist.Hist(
                 hist.axis.StrCategory(processes_names, name="process"),
-                hist.axis.StrCategory(self.shape_variations, name="systematics"),
+                hist.axis.StrCategory(self.shape_variations, name="variations"),
                 variable_axis,
                 storage=hist.storage.Weight(),
             )
@@ -299,8 +295,8 @@ class Datacard(Processes, Systematics):
                     if is_data:
                         new_histogram_view[process_index, :] += histogram[self.category, :].view()
                     else:
-                        for systematic in new_histogram.axes["systematics"]:
-                            systematic_index = new_histogram.axes["systematics"].index(systematic)
+                        for systematic in new_histogram.axes["variations"]:
+                            systematic_index = new_histogram.axes["variations"].index(systematic)
                             if systematic in histogram.axes["variation"]:
                                 new_histogram_view[process_index, systematic_index, :] += histogram[
                                     self.category, systematic, :
@@ -445,13 +441,13 @@ class Datacard(Processes, Systematics):
         shape_histograms = create_shape_histogram_dict(
             histogram=self.histogram,
             processes=self.processes,
-            shape_systematics=self.shape_variations,
+            shape_variations=self.shape_variations,
         )
         if self.has_data:
             shape_histograms_data = create_shape_histogram_dict(
                 histogram=self.data_obs,
                 processes=self.data_processes,
-                shape_systematics=None,
+                shape_variations=None,
                 is_data=True,
             )
         with uproot.recreate(shapes_file) as root_file:
