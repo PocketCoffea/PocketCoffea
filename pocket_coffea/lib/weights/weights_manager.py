@@ -34,7 +34,6 @@ class WeightsManager:
         weightsConf,
         weightsWrappers,
         metadata,
-        weightsConf_subsamples=None,     
         storeIndividual=False,
     ):
         self.params = params
@@ -42,8 +41,8 @@ class WeightsManager:
         self._dataset = metadata["dataset"]
         self._year = metadata["year"]
         self.weightsConf = weightsConf
-        self.weightsConf_subsamples = weightsConf_subsamples
-        self._hasSubsamples = self.weightsConf_subsamples != None
+        self.weightsConf_subsamples = weightsConf["by_subsample"]
+        self._hasSubsamples = len(self.weightsConf_subsamples) > 0
         #load the weights objects from the wrappers
         self._weightsObj = {}
         for w in weightsWrappers:
@@ -69,8 +68,12 @@ class WeightsManager:
         self._available_modifiers_inclusive = []
         self._available_modifiers_bycat = defaultdict(list)
         if self._hasSubsamples:
-            self._available_modifiers_inclusive_subsamples = {}
-            self._available_modifiers_bycat_subsamples = defaultdict(dict)
+            self._available_modifiers_inclusive_subsamples = {
+                sub: [] for sub in self.weightsConf_subsamples
+            }
+            self._available_modifiers_bycat_subsamples = {
+                sub: defaultdict(list) for sub in self.weightsConf_subsamples
+            }
             
         # Loading the map in the constructor so that the histManager can access it
         # Compute first the inclusive weights
@@ -92,7 +95,6 @@ class WeightsManager:
         # The same but looking at the ones specific for the subsamples
         if self._hasSubsamples:
             for subsample, subsample_conf in self.weightsConf_subsamples.items():
-                self._available_modifiers_inclusive_subsamples[subsample] = []
                 for w in subsample_conf["inclusive"]:
                     if w in self._available_modifiers_byweight:
                         self._available_modifiers_inclusive_subsamples[subsample] += self._available_modifiers_byweight[w]
@@ -116,7 +118,6 @@ class WeightsManager:
                 k: {kk: set(vv) for kk, vv in v.items()}
                 for k, v in self._available_modifiers_bycat_subsamples.items()
             }
-        
         
     def compute(self, events, size, shape_variation="nominal"):
         '''
@@ -225,9 +226,12 @@ class WeightsManager:
 
         _weightsCache.clear()
 
-    def get_available_modifiers_byweight(self, weight:str):
+    def get_available_modifiers_byweight(self, weight:str, subsample=None):
         '''
-        Return the available modifiers for the specific weight
+        Return the available modifiers for the specific weight.
+        If no subsample is specified, but subsamples are present, a full list of modified
+        including the subsamples ones is returned.
+        If a subsample is specified, only the modifiers for that subsample are returned (+ the inclusive ones)
         '''
         if weight in self._available_modifiers_byweight:
             return self._available_modifiers_byweight[weight]
