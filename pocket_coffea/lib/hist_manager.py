@@ -154,6 +154,7 @@ class HistManager:
         self.processor_params = processor_params
         self.isMC = isMC
         self.year = year
+        self.sample = sample
         self.subsamples = subsamples
         self.weights_manager = weights_manager
         self.calibrators_manager = calibrators_manager
@@ -538,6 +539,17 @@ class HistManager:
                                     # We get the weights for the current category
                                     weight_varied = weights[category][variation]
 
+                                # Check if there are weights by subsample
+                                if self.weights_manager.has_subsamples:
+                                    if variation == "nominal":
+                                        weight_varied *= self.weights_manager.get_weight_only_subsample(
+                                            self.sample + "__" + subsample, category
+                                        )
+                                    else:
+                                        weight_varied *= self.weights_manager.get_weight_only_subsample(
+                                            self.sample + "__" + subsample, category, variation
+                                        )
+                                    
                                 # Broadcast and mask the weight (using the cached value if possible)
                                 weight_varied = self.mask_and_broadcast_weight(
                                     category,
