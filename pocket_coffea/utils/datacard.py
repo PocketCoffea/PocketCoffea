@@ -10,52 +10,6 @@ from pocket_coffea.utils.processes import Process, Processes
 from pocket_coffea.utils.systematics import Systematics, SystematicUncertainty
 
 
-def create_shape_histogram_dict(
-    histogram: hist.Hist,
-    processes: list[Process],
-    shape_variations: list[str],
-    is_data: bool = False
-) -> dict[str, hist.Hist]:
-    """Create a dictionary of histograms for each process and systematic.
-
-    :param processes: List of processes
-    :type processes: list[Process]
-    :param shape_variations: List of shape variations (need to include Up/Down)
-    :type shape_variations: list[str]
-    :param histogram: single histogram as returned by rearrange_histograms
-    :type histogram: hist.Hist
-    :return: dictionary of histograms, keys are process_systematic
-    :rtype: dict[str, hist.Hist]
-    """
-    if is_data:
-        if shape_variations != None:
-            raise ValueError("Datacard for data should not have systematic shape variations.")
-    new_histograms = dict()
-    for process in processes:
-        if is_data:
-            # create new 1d histogram
-            new_histogram = hist.Hist(
-                histogram.axes[-1],
-                storage=hist.storage.Weight(),
-            )
-            new_histogram_view = new_histogram.view()
-            new_histogram_view[:] = histogram[process.name, :].view()
-            new_histograms[f"{process.name}_nominal"] = new_histogram
-        else:
-            for systematic in shape_variations:
-                # create new 1d histogram
-                new_histogram = hist.Hist(
-                    histogram.axes[-1],
-                    storage=hist.storage.Weight(),
-                )
-                new_histogram_view = new_histogram.view()
-
-                # add samples that correspond to a process
-                new_histogram_view[:] = histogram[process.name, systematic, :].view()
-                new_histograms[f"{process.name}_{systematic}"] = new_histogram
-
-    return new_histograms
-
 class Datacard(Processes, Systematics):
     """Datacard containing processes, systematics and write utilities."""
 
@@ -308,6 +262,55 @@ class Datacard(Processes, Systematics):
                                 ].view()
         return new_histogram
 
+    def create_shape_histogram_dict(
+        self,
+        is_data: bool = False
+    ) -> dict[str, hist.Hist]:
+        """Create a dictionary of histograms for each process and systematic.
+
+        :param is_data: Flag to indicate if the datacard is for data, defaults to False
+        :type is_data: bool, optional
+        :return: dictionary of histograms, keys are process_systematic
+        :rtype: dict[str, hist.Hist]
+        """
+        if is_data:
+            histogram = self.data_obs
+            processes = self.data_processes
+        else:
+            histogram = self.histogram
+            processes = self.processes
+        new_histograms = dict()
+        for process in processes:
+            if is_data:
+                # create new 1d histogram
+                new_histogram = hist.Hist(
+                    histogram.axes[-1],
+                    storage=hist.storage.Weight(),
+                )
+                new_histogram_view = new_histogram.view()
+                new_histogram_view[:] = histogram[process.name, :].view()
+                new_histograms[f"{process.name}_nominal"] = new_histogram
+            else:
+                for systematic in self.get_systematics_by_type("shape"):
+                    for shift in ("Up", "Down"):
+                        variation = f"{systematic.name}{shift}"
+                        # create new 1d histogram
+                        new_histogram = hist.Hist(
+                            histogram.axes[-1],
+                            storage=hist.storage.Weight(),
+                        )
+                        new_histogram_view = new_histogram.view()
+
+                        # add samples that correspond to a process
+                        new_histogram_view[:] = histogram[process.name, variation, :].view()
+                        if systematic.correlated:
+                            new_histograms[f"{process.name}_{variation}"] = new_histogram
+                        else:
+                            # Decorrelate systematics across processes by appending the process name to the shape name
+                            new_histograms[f"{process.name}_{systematic.name}_{process.name}{shift}"] = new_histogram
+
+        return new_histograms
+
     def preamble(self) -> str:
         preamble = f"imax {self.imax} number of channels{self.linesep}"
         preamble += f"jmax {self.jmax} number of background processes{self.linesep}"
@@ -438,18 +441,9 @@ class Datacard(Processes, Systematics):
         with open(card_file, "w") as card:
             card.write(self.content(shapes_filename=shapes_filename))
 
-        shape_histograms = create_shape_histogram_dict(
-            histogram=self.histogram,
-            processes=self.processes,
-            shape_variations=self.shape_variations,
-        )
+        shape_histograms = self.create_shape_histogram_dict(is_data=False)
         if self.has_data:
-            shape_histograms_data = create_shape_histogram_dict(
-                histogram=self.data_obs,
-                processes=self.data_processes,
-                shape_variations=None,
-                is_data=True,
-            )
+            shape_histograms_data = self.create_shape_histogram_dict(is_data=True)
         with uproot.recreate(shapes_file) as root_file:
             if self.has_data:
                 for shape, histogram in shape_histograms_data.items():
