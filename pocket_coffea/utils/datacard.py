@@ -65,7 +65,7 @@ class Datacard(Processes, Systematics):
         datasets_metadata: dict[str, dict[str, dict]],
         cutflow: dict[str, dict[str, float]],
         processes: list[Process],
-        year: str,
+        years: list[str],
         category: str,
         data_processes: list[Process] = None,
         systematics: list[SystematicUncertainty] = None,
@@ -96,10 +96,12 @@ class Datacard(Processes, Systematics):
         self.data_processes = data_processes
         self.systematics = systematics
         self.mcstat = mcstat
-        self.year = year
+        self.years = years
         self.category = category
         self.bin_prefix = bin_prefix
         self.bin_suffix = bin_suffix
+        if self.bin_suffix is None:
+            self.bin_suffix = '_'.join(self.years)
         self.number_width = 10
         self.has_data = data_processes is not None
         if self.mcstat:
@@ -143,10 +145,7 @@ class Datacard(Processes, Systematics):
     @property
     def bin(self) -> str:
         """Name of the bin in the datacard"""
-        if self.year == "all":
-            bin_name = self.category
-        else:
-            bin_name = f"{self.category}_{self.year}"
+        bin_name = self.category
         if self.bin_prefix:
             bin_name = f"{self.bin_prefix}_{bin_name}"
         if self.bin_suffix:
@@ -215,10 +214,10 @@ class Datacard(Processes, Systematics):
 
     def get_datasets_by_sample(self, sample: str) -> list[str]:
         """Get datasets for a given sample."""
-        if self.year != "all":
-            return self.datasets_metadata["by_datataking_period"][self.year][sample]
+        if len(self.years) == 1:
+            return self.datasets_metadata["by_datataking_period"][self.years[0]][sample]
         else:
-            years = self.datasets_metadata["by_datataking_period"].keys()
+            years = [year for year in self.datasets_metadata["by_datataking_period"].keys() if year in self.years]
             return [d for year in years for d in self.datasets_metadata["by_datataking_period"][year][sample]]
 
     def _check_histograms(self) -> None:
@@ -232,13 +231,13 @@ class Datacard(Processes, Systematics):
                     if dataset not in self.histograms[sample]:
                         if self.is_empty_dataset(dataset):
                             print(
-                                f"Sample {sample} for year {self.year} ({dataset}) has 0 events in category `presel`. "
+                                f"Sample {sample} for dataset {dataset} has 0 events in category `presel`. "
                                 f"Skipping this dataset."
                             )
                             continue
                         else:
                             raise ValueError(
-                                f"Sample {sample} for year {self.year} ({dataset}) "
+                                f"Sample {sample} for dataset {dataset} "
                                 f"not found in histograms {self.histograms[sample].keys()}"
                             )
                     if not process.is_data:
@@ -247,7 +246,7 @@ class Datacard(Processes, Systematics):
                         )
                         if missing_systematics:
                             print(
-                                f"Sample {sample} for year {self.year} is missing the following "
+                                f"Sample {sample} for dataset {dataset} is missing the following "
                                 f"systematics: {missing_systematics}"
                             )
 
@@ -297,7 +296,6 @@ class Datacard(Processes, Systematics):
                 for dataset in self.get_datasets_by_sample(sample):
                     if self.is_empty_dataset(dataset): continue
                     histogram = self.histograms[sample][dataset]
-                    if dataset == "TTWJetsToQQ_2016_PostVFP": breakpoint()
                     if is_data:
                         new_histogram_view[process_index, :] += histogram[self.category, :].view()
                     else:
@@ -487,7 +485,7 @@ def combine_datacards(
         file.write("#!/bin/bash\n")
         file.write("")
         args = " ".join(
-            f"{card.category}_{card.year}={filename}"
+            f"{card.bin}={filename}"
             for filename, card in datacards.items()
         )
         file.write(
