@@ -258,7 +258,6 @@ class Configurator:
 
         self.load_variations_config(self.variations_cfg["weights"], variation_type="weights")
         self.load_variations_config(self.variations_cfg["shape"], variation_type="shape")
-        from IPython import embed; embed()
             
         # Collecting overall list of available weights and shape variations per sample
         self.available_weights_variations = {s: ["nominal"] for s in self.samples}
@@ -443,9 +442,10 @@ class Configurator:
                 is_subsample = sample in self.subsamples_list
                 if sample not in self.samples and not is_subsample:
                     print(
-                        f"Requested missing sample or subsample {sample} in the weights configuration"
+                        f"[WARNING] Requested missing sample or subsample {sample} in the weights configuration"
                     )
-                    raise Exception("Wrong weight configuration")
+                    continue
+                    #raise Exception("Wrong weight configuration") #just a warning --> samples can be filtered
                 if is_subsample:
                     basesample = self.subsamples_reversed_map[sample]
             
@@ -565,9 +565,10 @@ class Configurator:
                 is_subsample = sample in self.subsamples_list
                 if sample not in self.samples and not is_subsample:
                     print(
-                        f"Requested missing sample/subsample {sample} in the variations configuration"
+                        f"[WARNING] Requested missing sample/subsample {sample} in the variations configuration"
                     )
-                    raise Exception(f"Wrong variation configuration: sample {sample} not available in the samples list")
+                    continue
+                    # raise Exception(f"Wrong variation configuration: sample {sample} not available in the samples list") --> samples can be filtered
                 if is_subsample:
                     basesample = self.subsamples_reversed_map[sample]
                 if "inclusive" in s_wcfg:
