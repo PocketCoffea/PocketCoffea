@@ -5,12 +5,20 @@ from pocket_coffea.utils.processes import Process
 
 @dataclass
 class SystematicUncertainty:
-    """Store information about one systematic uncertainty"""
+    """Store information about one systematic uncertainty
+
+    :param name: Name of the systematic uncertainty
+    :param typ: Type of the systematic uncertainty (e.g. 'shape', 'lnN')
+    :param processes: List of processes affected by the systematic uncertainty
+    :param value: Value of the systematic uncertainty for all processes
+    :param correlated: Whether the systematic uncertainty is correlated between processes
+    """
 
     name: str
     typ: str
     processes: list[str] | tuple[str] | dict[str, float]
     value: float | tuple[float] = None
+    correlated: bool = True
 
     def __post_init__(self):
         if self.value:
