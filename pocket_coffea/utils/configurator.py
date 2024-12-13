@@ -111,6 +111,7 @@ class Configurator:
 
         self.subsamples = {}
         self.subsamples_list = []  # List of subsamples (for internal checks)
+        self.subsamples_map = {}  # Map of sample: subsamples
         self.subsamples_reversed_map = {}  # Map of subsample: sample
         self.total_samples_list = []  # List of subsamples and inclusive samples names
         self.has_subsamples = {}
@@ -187,6 +188,13 @@ class Configurator:
                 "inclusive": [],
                 "bycategory": {c: [] for c in self.categories.keys()},
                 "is_split_bycat": False,
+                "by_subsample": {
+                    sub: {"inclusive": [],
+                          "bycategory" : {c: [] for c in self.categories.keys()},
+                          "is_split_bycat": False
+                          }
+                    for sub in self.subsamples_map[s]}
+                if self.has_subsamples[s] else {}
             }
             for s in self.samples
         }
@@ -235,6 +243,11 @@ class Configurator:
             s: {
                 "weights": {c: [] for c in self.categories.keys()},
                 "shape": {c: [] for c in self.categories.keys()},
+                "by_subsample": { sub: {
+                    "weights": {c: [] for c in self.categories.keys()},
+                    "shape": {c: [] for c in self.categories}}
+                    for sub in self.subsamples_map[s] 
+                }if self.has_subsamples[s] else {}
             }
             for s in self.samples
             if self.samples_metadata[s]["isMC"]
@@ -245,6 +258,7 @@ class Configurator:
 
         self.load_variations_config(self.variations_cfg["weights"], variation_type="weights")
         self.load_variations_config(self.variations_cfg["shape"], variation_type="shape")
+        from IPython import embed; embed()
             
         # Collecting overall list of available weights and shape variations per sample
         self.available_weights_variations = {s: ["nominal"] for s in self.samples}
@@ -331,6 +345,7 @@ class Configurator:
         for sample in self.samples:
             if sample in subsamples_dict:
                 subscfg = subsamples_dict[sample]
+                self.subsamples_map[sample] = [f"{sample}__{subsam}" for subsam in subscfg.keys()]
                 self.subsamples_reversed_map.update({f"{sample}__{subsam}": sample for subsam in subscfg.keys()})
                     
                 if isinstance(subscfg, dict):
@@ -425,12 +440,15 @@ class Configurator:
         # Now look at specific samples configurations
         if "bysample" in wcfg:
             for sample, s_wcfg in wcfg["bysample"].items():
-                if sample not in self.samples:
+                is_subsample = sample in self.subsamples_list
+                if sample not in self.samples and not is_subsample:
                     print(
-                        f"Requested missing sample {sample} in the weights configuration"
+                        f"Requested missing sample or subsample {sample} in the weights configuration"
                     )
                     raise Exception("Wrong weight configuration")
-
+                if is_subsample:
+                    basesample = self.subsamples_reversed_map[sample]
+            
                 if "inclusive" in s_wcfg:
                     for w in s_wcfg["inclusive"]:
                         if w not in self.available_weights:
@@ -442,7 +460,10 @@ class Configurator:
                             continue
                         self.requested_weights.append(w)
                         # append only to the specific sample
-                        self.weights_config[sample]["inclusive"].append(w)
+                        if is_subsample:
+                            self.weights_config[basesample]["by_subsample"][sample]["inclusive"].append(w)
+                        else:
+                            self.weights_config[sample]["inclusive"].append(w)
 
                 if "bycategory" in s_wcfg:
                     for cat, weights in s_wcfg["bycategory"].items():
@@ -450,17 +471,32 @@ class Configurator:
                             if w not in self.available_weights:
                                 print(f"Weight {w} not available in the configuration. Did you add it in the weights_classes?")
                                 raise Exception("Wrong weight configuration")
-                            if w in self.weights_config[sample]["inclusive"]:
-                                raise Exception(
-                                    f"""Error! Trying to include weight {w}
-                                by category, but it is already included inclusively!"""
+                            if not is_subsample:
+                                if w in self.weights_config[sample]["inclusive"]:
+                                    raise Exception(
+                                        f"""Error! Trying to include weight {w}
+                                        by category, but it is already included inclusively!"""
                                 )
-                            if not self.samples_metadata[sample]["isMC"] and self.available_weights[w].isMC_only:
-                                # Do not add in the data weights configuration if the weight is MC only
-                                continue
-                            self.requested_weights.append(w)
-                            self.weights_config[sample]["bycategory"][cat].append(w)
-                            self.weights_config[sample]["is_split_bycat"] = True
+                                if not self.samples_metadata[sample]["isMC"] and self.available_weights[w].isMC_only:
+                                    # Do not add in the data weights configuration if the weight is MC only
+                                    continue
+                                self.requested_weights.append(w)
+                                self.weights_config[sample]["bycategory"][cat].append(w)
+                                self.weights_config[sample]["is_split_bycat"] = True
+                            else:
+                                # it's a subsample
+                                if w in self.weights_config[basesample]["by_subsample"][sample]["inclusive"]:
+                                    raise Exception(
+                                        f"""Error! Trying to include weight {w}
+                                        by category, but it is already included inclusively for the subsamples!"""
+                                )
+                                if not self.samples_metadata[basesample]["isMC"] and self.available_weights[w].isMC_only:
+                                    # Do not add in the data weights configuration if the weight is MC only
+                                    continue
+                                self.requested_weights.append(w)
+                                self.weights_config[basesample]["by_subsample"][sample]["bycategory"][cat].append(w)
+                                self.weights_config[basesample]["by_subsample"][sample]["is_split_bycat"] = True
+                                
 
                 if "inclusive" not in s_wcfg and "bycategory" not in s_wcfg:
                     print(f"None of the `inclusive` or `bycategory` keys found in the weights configuration for sample {sample}.\n")
@@ -526,26 +562,39 @@ class Configurator:
         # Now look at specific samples configurations
         if "bysample" in wcfg:
             for sample, s_wcfg in wcfg["bysample"].items():
-                if sample not in self.samples:
+                is_subsample = sample in self.subsamples_list
+                if sample not in self.samples and not is_subsample:
                     print(
-                        f"Requested missing sample {sample} in the variations configuration"
+                        f"Requested missing sample/subsample {sample} in the variations configuration"
                     )
                     raise Exception(f"Wrong variation configuration: sample {sample} not available in the samples list")
+                if is_subsample:
+                    basesample = self.subsamples_reversed_map[sample]
                 if "inclusive" in s_wcfg:
                     for w in s_wcfg["inclusive"]:
                         if w not in available_variations:
                             print(f"Variation {w} not available in the workflow")
                             raise Exception(f"Wrong variation configuration: variation {w} not available in the workflow")
-                        if variation_type == "weights" and  w not in self.weights_config[sample]["inclusive"]:
-                            print(f"Error: variation {w} not available for sample {sample} in inclusive category")
-                            raise Exception(f"Wrong variation configuration: variation {w} not available for sample {sample} in inclusive category")
-                        # append only to the specific sample
-                        for wcat in self.variations_config[sample][
-                            variation_type
-                        ].values():
-                            if w not in wcat:
-                                wcat.append(w)
-
+                        if not is_subsample:
+                            if variation_type == "weights" and  w not in self.weights_config[sample]["inclusive"]:
+                                print(f"Error: variation {w} not available for sample {sample} in inclusive category")
+                                raise Exception(f"Wrong variation configuration: variation {w} not available for sample {sample} in inclusive category")
+                            # append only to the specific sample
+                            for wcat in self.variations_config[sample][
+                                    variation_type
+                            ].values():
+                                if w not in wcat:
+                                    wcat.append(w)
+                        else:
+                            if variation_type == "weights" and  w not in self.weights_config[basesample]["by_subsample"][sample]["inclusive"]:
+                                print(f"Error: variation {w} not available for sample {sample} in inclusive category")
+                                raise Exception(f"Wrong variation configuration: variation {w} not available for sample {sample} in inclusive category")
+                            for wcat in self.variations_config[basesample]["by_subsample"][sample][
+                                    variation_type
+                            ].values():
+                                if w not in wcat:
+                                    wcat.append(w)
+                                    
                 if "bycategory" in s_wcfg:
                     for cat, variation in s_wcfg["bycategory"].items():
                         for w in variation:
@@ -554,14 +603,21 @@ class Configurator:
                                     f"Variation {w} not available in the workflow"
                                 )
                                 raise Exception(f"Wrong variation configuration: variation {w} not available in the workflow")
-                            if (variation_type=="weights" and
-                                self.weights_config[sample]["is_split_bycat"] and
-                                w not in self.weights_config[sample]["bycategory"][cat]):
-                                print(f"Error: variation {w} not available for sample {sample} in {cat} category")
-                                raise Exception(f"Wrong variation configuration: variation {w} not available for sample {sample} in {cat} category")
-                            self.variations_config[sample][variation_type][cat].append(
-                                w
-                            )
+                            if not is_subsample:
+                                if (variation_type=="weights" and
+                                    self.weights_config[sample]["is_split_bycat"] and
+                                    w not in self.weights_config[sample]["bycategory"][cat]):
+                                    print(f"Error: variation {w} not available for sample {sample} in {cat} category")
+                                    raise Exception(f"Wrong variation configuration: variation {w} not available for sample {sample} in {cat} category")
+                                self.variations_config[sample][variation_type][cat].append(w)
+                            else:
+                                if (variation_type=="weights" and
+                                    self.weights_config[basesample]["by_subsample"][sample]["is_split_bycat"] and
+                                    w not in self.weights_config[basesample]["by_subsample"][sample]["bycategory"][cat]):
+                                    print(f"Error: variation {w} not available for sample {sample} in {cat} category")
+                                    raise Exception(f"Wrong variation configuration: variation {w} not available for sample {sample} in {cat} category")
+                                self.variations_config[basesample]["by_subsample"][sample][variation_type][cat].append(w)
+            
 
                 if "inclusive" not in s_wcfg and "bycategory" not in s_wcfg:
                     print(f"None of the `inclusive` or `bycategory` keys found in the weights configuration for sample {sample}.\n")
@@ -934,7 +990,7 @@ class Configurator:
     def __str__(self):
         return repr(self)
 
-
+    
     def clone(self):
         '''Create a copy of the configurator in the loaded=False state'''
         return Configurator(
