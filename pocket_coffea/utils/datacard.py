@@ -137,7 +137,7 @@ class Datacard(Processes, Systematics):
             max(
                 [len("process")]
                 + [
-                    len(f"{systematic.name} {systematic.typ}")
+                    len(f"{systematic.datacard_name} {systematic.typ}")
                     for systematic in self.systematics
                 ],
             )
@@ -294,6 +294,7 @@ class Datacard(Processes, Systematics):
                 for systematic in self.get_systematics_by_type("shape"):
                     for shift in ("Up", "Down"):
                         variation = f"{systematic.name}{shift}"
+
                         # create new 1d histogram
                         new_histogram = hist.Hist(
                             histogram.axes[-1],
@@ -302,12 +303,10 @@ class Datacard(Processes, Systematics):
                         new_histogram_view = new_histogram.view()
 
                         # add samples that correspond to a process
-                        new_histogram_view[:] = histogram[process.name, variation, :].view()
-                        if systematic.correlated:
-                            new_histograms[f"{process.name}_{variation}"] = new_histogram
-                        else:
-                            # Decorrelate systematics across processes by appending the process name to the shape name
-                            new_histograms[f"{process.name}_{systematic.name}_{process.name}{shift}"] = new_histogram
+                        if process.name in systematic.processes:
+                            new_histogram_view[:] = histogram[process.name, variation, :].view()
+                            shape_name = f"{process.name}_{systematic.datacard_name}{shift}"
+                            new_histograms[shape_name] = new_histogram
 
         return new_histograms
 
@@ -356,7 +355,7 @@ class Datacard(Processes, Systematics):
     def systematics_section(self) -> str:
         content = ""
         for systematic in self.systematics:
-            line = systematic.name.ljust(self.adjust_syst_colum)
+            line = systematic.datacard_name.ljust(self.adjust_syst_colum)
             line += f" {systematic.typ}"
             line = line.ljust(self.adjust_first_column)
 

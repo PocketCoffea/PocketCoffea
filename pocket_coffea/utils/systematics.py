@@ -11,6 +11,7 @@ class SystematicUncertainty:
     :param typ: Type of the systematic uncertainty (e.g. 'shape', 'lnN')
     :param processes: List of processes affected by the systematic uncertainty
     :param value: Value of the systematic uncertainty for all processes
+    :param datacard_name: Name of the systematic uncertainty in the datacard
     :param correlated: Whether the systematic uncertainty is correlated between processes
     """
 
@@ -18,7 +19,7 @@ class SystematicUncertainty:
     typ: str
     processes: list[str] | tuple[str] | dict[str, float]
     value: float | tuple[float] = None
-    correlated: bool = True
+    datacard_name: str = None
 
     def __post_init__(self):
         if self.value:
@@ -42,6 +43,9 @@ class SystematicUncertainty:
                 )
 
             self.processes = {process: self.value for process in self.processes}
+
+        if self.datacard_name is None:
+            self.datacard_name = self.name
 
 
 @dataclass
