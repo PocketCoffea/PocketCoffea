@@ -291,6 +291,16 @@ class Datacard(Processes, Systematics):
                 new_histogram_view[:] = histogram[process.name, :].view()
                 new_histograms[f"{process.name}_nominal"] = new_histogram
             else:
+                # Save nominal shape
+                new_histogram = hist.Hist(
+                    histogram.axes[-1],
+                    storage=hist.storage.Weight(),
+                )
+                new_histogram_view = new_histogram.view()
+                new_histogram_view[:] = histogram[process.name, "nominal", :].view()
+                shape_name = f"{process.name}_nominal"
+                new_histograms[shape_name] = new_histogram
+                # Save shape variations
                 for systematic in self.get_systematics_by_type("shape"):
                     for shift in ("Up", "Down"):
                         variation = f"{systematic.name}{shift}"
