@@ -50,7 +50,6 @@ my_custom_sf_B  = WeightLambda.wrap_func(
     function=lambda params, metadata, events, size, shape_variations:  (
         np.ones(size)*3.0, np.ones(size)*5.0, np.ones(size)*0.7),
     has_variations=True
-
     )
 
 cfg = Configurator(
@@ -58,8 +57,7 @@ cfg = Configurator(
     datasets = {
         "jsons": ['datasets/datasets_cern.json'],
         "filter" : {
-            #"samples": ['TTTo2L2Nu', 'TTToSemiLeptonic', "DATA_SingleMuon", "DATA_SingleEle"],
-            "samples": ['TTTo2L2Nu'],
+            "samples": ['TTTo2L2Nu'],# 'TTToSemiLeptonic'],#, "DATA_SingleMuon", "DATA_SingleEle"],
             "samples_exclude" : [],
             "year": ['2018','2016_PostVFP']
         },
