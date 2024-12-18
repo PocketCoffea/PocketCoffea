@@ -39,14 +39,14 @@ import numpy as np
 
 
 my_custom_sf_A  = WeightLambda.wrap_func(
-    name="sf_custom_A",
+    name="sf_custom_C",
     function=lambda params, metadata, events, size, shape_variations: (
         np.ones(size)*2.0, np.ones(size)*4.0, np.ones(size)*0.5),
     has_variations=True
     )
 
 my_custom_sf_B  = WeightLambda.wrap_func(
-    name="sf_custom_B",
+    name="sf_custom_D",
     function=lambda params, metadata, events, size, shape_variations:  (
         np.ones(size)*3.0, np.ones(size)*5.0, np.ones(size)*0.7),
     has_variations=True
@@ -57,7 +57,7 @@ cfg = Configurator(
     datasets = {
         "jsons": ['datasets/datasets_cern.json'],
         "filter" : {
-            "samples": ['TTTo2L2Nu'],# 'TTToSemiLeptonic'],#, "DATA_SingleMuon", "DATA_SingleEle"],
+            "samples": ['TTTo2L2Nu', 'TTToSemiLeptonic', "DATA_SingleMuon", "DATA_SingleEle"],
             "samples_exclude" : [],
             "year": ['2018','2016_PostVFP']
         },
@@ -99,15 +99,15 @@ cfg = Configurator(
        },
         "bysample": {
             "TTTo2L2Nu__ele": {
-                "inclusive": ["sf_custom_A"],
+                "inclusive": ["sf_custom_C"],
                 
                 "bycategory": {
-                    "1btag_B": ["sf_custom_B"],
+                    "1btag_B": ["sf_custom_D"],
                 }
             },
             "TTToSemiLeptonic": {
                 "bycategory": {
-                    "1btag_B": ["sf_custom_B"],
+                    "1btag_B": ["sf_custom_C"],
                 }
             }
         }
@@ -131,14 +131,14 @@ cfg = Configurator(
             },
             "bysample": {
                 "TTTo2L2Nu__ele": {
-                    "inclusive": ["sf_custom_A"],
+                    "inclusive": ["sf_custom_C"],
                     "bycategory": {
-                        "1btag_B": ["sf_custom_B"],
+                        "1btag_B": ["sf_custom_D"],
                     }
                 },
                 "TTToSemiLeptonic": {
                     "bycategory": {
-                        "1btag_B": ["sf_custom_B"],
+                        "1btag_B": ["sf_custom_C"],
                     }
                 }
             }

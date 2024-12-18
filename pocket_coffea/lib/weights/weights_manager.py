@@ -416,7 +416,7 @@ class WeightsManager:
                 if modifier not in self._installed_modifiers_inclusive_subsamples[subsample]:
                     # If a modifier is requested, but it is not available, return the nominal weight
                     # for modifiers in subsamples
-                    overall_weight = 1.0
+                    overall_weight = self._weightsIncl_subsamples[subsample].weight()
                 else:
                     overall_weight = self._weightsIncl_subsamples[subsample].weight(modifier=modifier)
 
@@ -440,6 +440,7 @@ class WeightsManager:
                     overall_weight = ( self._weightsIncl_subsamples[subsample].weight() *
                                         self._weightsByCat_subsamples[subsample][category].weight(modifier=modifier))
                 else:
-                    overall_weight = 1.0
-
+                    # return the nominal weight
+                    overall_weight = (self._weightsIncl_subsamples[subsample].weight() *
+                                      self._weightsByCat_subsamples[subsample][category].weight())
         return overall_weight

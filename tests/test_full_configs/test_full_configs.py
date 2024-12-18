@@ -328,8 +328,8 @@ def test_subsamples_and_weights_custom(base_path: Path, monkeypatch: pytest.Monk
 
     # Check the subsamples config
     weights_dict = config.weights_config
-    assert "sf_custom_A" in weights_dict["TTTo2L2Nu"]["inclusive"]
-    assert "sf_custom_B" in weights_dict["TTTo2L2Nu"]["bycategory"]["1btag_B"]
+    assert "sf_custom_C" in weights_dict["TTTo2L2Nu"]["inclusive"]
+    assert "sf_custom_D" in weights_dict["TTTo2L2Nu"]["bycategory"]["1btag_B"]
     
     run_options = defaults.get_default_run_options()["general"]
     run_options["limit-files"] = 1

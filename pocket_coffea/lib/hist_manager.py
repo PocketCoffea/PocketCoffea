@@ -368,6 +368,8 @@ class HistManager:
         '''
         weights = {}
         if shape_variation == "nominal":
+            # This is not including the subsamples nominal+ variations
+            # which will be computed on the fly
             for variation in self.available_weights_variations_bycat[category]:
                 if variation == "nominal":
                     weights["nominal"] = self.weights_manager.get_weight(category)
@@ -588,7 +590,8 @@ class HistManager:
                                 # Check if this variation exists for this category
                                 if variation not in weights[category]:
                                     # it means that the variation is in the axes only
-                                    # because it is requested for another category
+                                    # because it is requested for another category or because the
+                                    # variation is by subsample. 
                                     # In this case we fill with the nominal variation
                                     # We get the weights for the current category
                                     weight_varied = weights[category]["nominal"]
