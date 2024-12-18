@@ -415,6 +415,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self.cfg.variables,
             self._year,
             self._sample,
+            self._hasSubsamples,
             self._subsamples[self._sample].keys(),
             self._categories,
             variations_config=self.cfg.variations_config[self._sample] if self._isMC else None,
