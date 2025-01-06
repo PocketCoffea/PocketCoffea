@@ -32,7 +32,7 @@ def compare_totalweight(output, variables):
                     assert np.isclose(output["variables"][variable][sample][dataset][hist.loc(category), hist.loc("nominal"), :].sum(flow=True).value, sumw)
 
 
-reference_commit = "98fcca4c"
+reference_commit = "3b6cf6c"
 
 def test_new_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_new_weights" )

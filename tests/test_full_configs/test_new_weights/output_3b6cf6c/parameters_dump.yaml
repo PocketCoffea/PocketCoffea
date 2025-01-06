@@ -1,0 +1,1509 @@
+pileupJSONfiles:
+  2016_PreVFP:
+    file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2016preVFP_UL/puWeights.json.gz
+    name: Collisions16_UltraLegacy_goldenJSON
+  2016_PostVFP:
+    file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2016postVFP_UL/puWeights.json.gz
+    name: Collisions16_UltraLegacy_goldenJSON
+  '2017':
+    file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2017_UL/puWeights.json.gz
+    name: Collisions17_UltraLegacy_goldenJSON
+  '2018':
+    file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2018_UL/puWeights.json.gz
+    name: Collisions18_UltraLegacy_goldenJSON
+  2022_preEE:
+    file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2022_Summer22/puWeights.json.gz
+    name: Collisions2022_355100_357900_eraBCD_GoldenJson
+  2022_postEE:
+    file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2022_Summer22EE/puWeights.json.gz
+    name: Collisions2022_359022_362760_eraEFG_GoldenJson
+  2023_preBPix:
+    file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2023_Summer23/puWeights.json.gz
+    name: Collisions2023_366403_369802_eraBC_GoldenJson
+  2023_postBPix:
+    file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2023_Summer23BPix/puWeights.json.gz
+    name: Collisions2023_369803_370790_eraD_GoldenJson
+event_flags:
+  '2018':
+  - goodVertices
+  - globalSuperTightHalo2016Filter
+  - HBHENoiseFilter
+  - HBHENoiseIsoFilter
+  - EcalDeadCellTriggerPrimitiveFilter
+  - BadPFMuonFilter
+  '2017':
+  - goodVertices
+  - globalSuperTightHalo2016Filter
+  - HBHENoiseFilter
+  - HBHENoiseIsoFilter
+  - EcalDeadCellTriggerPrimitiveFilter
+  - BadPFMuonFilter
+  2016_PostVFP:
+  - goodVertices
+  - globalSuperTightHalo2016Filter
+  - HBHENoiseFilter
+  - HBHENoiseIsoFilter
+  - EcalDeadCellTriggerPrimitiveFilter
+  - BadPFMuonFilter
+  2016_PreVFP:
+  - goodVertices
+  - globalSuperTightHalo2016Filter
+  - HBHENoiseFilter
+  - HBHENoiseIsoFilter
+  - EcalDeadCellTriggerPrimitiveFilter
+  - BadPFMuonFilter
+  2022_preEE:
+  - goodVertices
+  - globalSuperTightHalo2016Filter
+  - EcalDeadCellTriggerPrimitiveFilter
+  - BadPFMuonFilter
+  - BadPFMuonDzFilter
+  - hfNoisyHitsFilter
+  - eeBadScFilter
+  - ecalBadCalibFilter
+  2022_postEE:
+  - goodVertices
+  - globalSuperTightHalo2016Filter
+  - EcalDeadCellTriggerPrimitiveFilter
+  - BadPFMuonFilter
+  - BadPFMuonDzFilter
+  - hfNoisyHitsFilter
+  - eeBadScFilter
+  - ecalBadCalibFilter
+  2023_preBPix:
+  - goodVertices
+  - globalSuperTightHalo2016Filter
+  - EcalDeadCellTriggerPrimitiveFilter
+  - BadPFMuonFilter
+  - BadPFMuonDzFilter
+  - hfNoisyHitsFilter
+  - eeBadScFilter
+  - ecalBadCalibFilter
+  2023_postBPix:
+  - goodVertices
+  - globalSuperTightHalo2016Filter
+  - EcalDeadCellTriggerPrimitiveFilter
+  - BadPFMuonFilter
+  - BadPFMuonDzFilter
+  - hfNoisyHitsFilter
+  - eeBadScFilter
+  - ecalBadCalibFilter
+event_flags_data:
+  '2018':
+  - eeBadScFilter
+  '2017':
+  - eeBadScFilter
+  2016_PostVFP:
+  - eeBadScFilter
+  2016_PreVFP:
+  - eeBadScFilter
+  2022_preEE:
+  - eeBadScFilter
+  2022_postEE:
+  - eeBadScFilter
+  2023_preBPix:
+  - eeBadScFilter
+  2023_postBPix:
+  - eeBadScFilter
+lumi:
+  picobarns:
+    2016_PreVFP:
+      B: 5829.427727
+      C: 2601.678092
+      D: 4286.031797
+      E: 4065.974751
+      F: 2865.073752
+      tot: 19648.186119
+    2016_PostVFP:
+      F: 584.321253
+      G: 7653.261227
+      H: 8740.119304
+      tot: 16977.701784
+    '2017':
+      B: 4803.371586
+      C: 9574.029838
+      D: 4247.792714
+      E: 9314.581016
+      F: 13539.905374
+      tot: 41479.680528
+    '2018':
+      A: 14027.614284
+      B: 7066.552169
+      C: 6898.816878
+      D: 31839.492009
+      tot: 59832.47534
+    2022_preEE:
+      C: 5010.4
+      D: 2970.0
+      tot: 7980.4
+    2022_postEE:
+      E: 5807.0
+      F: 17781.9
+      G: 3082.8
+      tot: 26671.7
+    2023_preBPix:
+      C: 17650
+      tot: 17650
+    2023_postBPix:
+      D: 9451
+      tot: 9451
+  goldenJSON:
+    2016_PreVFP: /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/datacert/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
+    2016_PostVFP: /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/datacert/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt
+    '2017': /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/datacert/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt
+    '2018': /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/datacert/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
+    2022_preEE: /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/datacert/Cert_Collisions2022_355100_362760_Golden.json
+    2022_postEE: /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/datacert/Cert_Collisions2022_355100_362760_Golden.json
+    2023_preBPix: /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/datacert/Cert_Collisions2023_366442_370790_Golden.json
+    2023_postBPix: /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/datacert/Cert_Collisions2023_366442_370790_Golden.json
+default_jets_calibration:
+  jec_name_map_MC:
+    JetPt: pt
+    JetMass: mass
+    JetEta: eta
+    JetPhi: phi
+    JetA: area
+    ptGenJet: pt_gen
+    ptRaw: pt_raw
+    massRaw: mass_raw
+    Rho: event_rho
+    METpt: pt
+    METphi: phi
+    UnClusteredEnergyDeltaX: MetUnclustEnUpDeltaX
+    UnClusteredEnergyDeltaY: MetUnclustEnUpDeltaY
+  jec_name_map_Data:
+    JetPt: pt
+    JetMass: mass
+    JetEta: eta
+    JetPhi: phi
+    JetA: area
+    ptRaw: pt_raw
+    massRaw: mass_raw
+    Rho: event_rho
+    METpt: pt
+    METphi: phi
+    UnClusteredEnergyDeltaX: MetUnclustEnUpDeltaX
+    UnClusteredEnergyDeltaY: MetUnclustEnUpDeltaY
+  factory_files_dir: /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/
+  factory_configuration_MC:
+    AK4PFchs:
+      JES_JER_Syst:
+        2016_PreVFP:
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16APV_V7_MC_L1FastJet_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16APV_V7_MC_L2Relative_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/RegroupedV2_Summer19UL16APV_V7_MC_UncertaintySources_AK4PFchs.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16APV_V7_MC_Uncertainty_AK4PFchs.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer20UL16_JRV3_MC_PtResolution_AK4PFchs.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer20UL16_JRV3_MC_SF_AK4PFchs.jersf.txt.gz
+        2016_PostVFP:
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16_V7_MC_L1FastJet_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16_V7_MC_L2Relative_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/RegroupedV2_Summer19UL16_V7_MC_UncertaintySources_AK4PFchs.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16_V7_MC_Uncertainty_AK4PFchs.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer20UL16_JRV3_MC_PtResolution_AK4PFchs.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer20UL16_JRV3_MC_SF_AK4PFchs.jersf.txt.gz
+        '2017':
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_V5_MC_L1FastJet_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_V5_MC_L2Relative_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/RegroupedV2_Summer19UL17_V5_MC_UncertaintySources_AK4PFchs.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_V5_MC_Uncertainty_AK4PFchs.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_JRV3_MC_PtResolution_AK4PFchs.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_JRV3_MC_SF_AK4PFchs.jersf.txt.gz
+        '2018':
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_V5_MC_L1FastJet_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_V5_MC_L2Relative_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/RegroupedV2_Summer19UL18_V5_MC_UncertaintySources_AK4PFchs.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_V5_MC_Uncertainty_AK4PFchs.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_JRV2_MC_PtResolution_AK4PFchs.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_JRV2_MC_SF_AK4PFchs.jersf.txt.gz
+      JES_JER_noJESSyst:
+        2016_PreVFP:
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16APV_V7_MC_L1FastJet_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16APV_V7_MC_L2Relative_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer20UL16_JRV3_MC_PtResolution_AK4PFchs.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer20UL16_JRV3_MC_SF_AK4PFchs.jersf.txt.gz
+        2016_PostVFP:
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16_V7_MC_L1FastJet_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16_V7_MC_L2Relative_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer20UL16_JRV3_MC_PtResolution_AK4PFchs.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer20UL16_JRV3_MC_SF_AK4PFchs.jersf.txt.gz
+        '2017':
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_V5_MC_L1FastJet_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_V5_MC_L2Relative_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_JRV3_MC_PtResolution_AK4PFchs.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_JRV3_MC_SF_AK4PFchs.jersf.txt.gz
+        '2018':
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_V5_MC_L1FastJet_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_V5_MC_L2Relative_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_JRV2_MC_PtResolution_AK4PFchs.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_JRV2_MC_SF_AK4PFchs.jersf.txt.gz
+      JES_noJER:
+        2016_PreVFP:
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16APV_V7_MC_L1FastJet_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16APV_V7_MC_L2Relative_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/RegroupedV2_Summer19UL16APV_V7_MC_UncertaintySources_AK4PFchs.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16APV_V7_MC_Uncertainty_AK4PFchs.junc.txt.gz
+        2016_PostVFP:
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16_V7_MC_L1FastJet_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16_V7_MC_L2Relative_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/RegroupedV2_Summer19UL16_V7_MC_UncertaintySources_AK4PFchs.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16_V7_MC_Uncertainty_AK4PFchs.junc.txt.gz
+        '2017':
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_V5_MC_L1FastJet_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_V5_MC_L2Relative_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/RegroupedV2_Summer19UL17_V5_MC_UncertaintySources_AK4PFchs.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_V5_MC_Uncertainty_AK4PFchs.junc.txt.gz
+        '2018':
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_V5_MC_L1FastJet_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_V5_MC_L2Relative_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/RegroupedV2_Summer19UL18_V5_MC_UncertaintySources_AK4PFchs.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_V5_MC_Uncertainty_AK4PFchs.junc.txt.gz
+    AK8PFPuppi:
+      JES_JER_Syst:
+        2016_PreVFP:
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16APV_V7_MC_L1FastJet_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16APV_V7_MC_L2Relative_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16APV_V7_MC_UncertaintySources_AK8PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16APV_V7_MC_Uncertainty_AK8PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer20UL16_JRV3_MC_PtResolution_AK8PFPuppi.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer20UL16_JRV3_MC_SF_AK8PFPuppi.jersf.txt.gz
+        2016_PostVFP:
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16_V7_MC_L1FastJet_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16_V7_MC_L2Relative_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16_V7_MC_UncertaintySources_AK8PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16_V7_MC_Uncertainty_AK8PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer20UL16_JRV3_MC_PtResolution_AK8PFPuppi.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer20UL16_JRV3_MC_SF_AK8PFPuppi.jersf.txt.gz
+        '2017':
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_V5_MC_L1FastJet_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_V5_MC_L2Relative_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_V5_MC_UncertaintySources_AK8PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_V5_MC_Uncertainty_AK8PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_JRV3_MC_PtResolution_AK8PFPuppi.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_JRV3_MC_SF_AK8PFPuppi.jersf.txt.gz
+        '2018':
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_V5_MC_L1FastJet_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_V5_MC_L2Relative_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_V5_MC_UncertaintySources_AK8PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_V5_MC_Uncertainty_AK8PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_JRV2_MC_PtResolution_AK8PFPuppi.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_JRV2_MC_SF_AK8PFPuppi.jersf.txt.gz
+      JES_JER_noJESSyst:
+        2016_PreVFP:
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16APV_V7_MC_L1FastJet_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16APV_V7_MC_L2Relative_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer20UL16_JRV3_MC_PtResolution_AK8PFPuppi.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer20UL16_JRV3_MC_SF_AK8PFPuppi.jersf.txt.gz
+        2016_PostVFP:
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16_V7_MC_L1FastJet_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16_V7_MC_L2Relative_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer20UL16_JRV3_MC_PtResolution_AK8PFPuppi.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer20UL16_JRV3_MC_SF_AK8PFPuppi.jersf.txt.gz
+        '2017':
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_V5_MC_L1FastJet_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_V5_MC_L2Relative_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_JRV3_MC_PtResolution_AK8PFPuppi.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_JRV3_MC_SF_AK8PFPuppi.jersf.txt.gz
+        '2018':
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_V5_MC_L1FastJet_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_V5_MC_L2Relative_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_JRV2_MC_PtResolution_AK8PFPuppi.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_JRV2_MC_SF_AK8PFPuppi.jersf.txt.gz
+      JES_noJER:
+        2016_PreVFP:
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16APV_V7_MC_L1FastJet_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16APV_V7_MC_L2Relative_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16APV_V7_MC_UncertaintySources_AK8PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16APV_V7_MC_Uncertainty_AK8PFPuppi.junc.txt.gz
+        2016_PostVFP:
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16_V7_MC_L1FastJet_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16_V7_MC_L2Relative_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16_V7_MC_UncertaintySources_AK8PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16_V7_MC_Uncertainty_AK8PFPuppi.junc.txt.gz
+        '2017':
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_V5_MC_L1FastJet_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_V5_MC_L2Relative_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_V5_MC_UncertaintySources_AK8PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_V5_MC_Uncertainty_AK8PFPuppi.junc.txt.gz
+        '2018':
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_V5_MC_L1FastJet_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_V5_MC_L2Relative_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_V5_MC_UncertaintySources_AK8PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_V5_MC_Uncertainty_AK8PFPuppi.junc.txt.gz
+    AK4PFPuppi:
+      JES_JER_Syst:
+        2022_preEE:
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22/Summer22_22Sep2023_V2_MC_L1FastJet_AK4PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22/Summer22_22Sep2023_V2_MC_L2Relative_AK4PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22/Summer22_22Sep2023_V2_MC_UncertaintySources_AK4PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22/Summer22_22Sep2023_V2_MC_Uncertainty_AK4PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22/Summer22Run3_V1_MC_PtResolution_AK4PFPuppi.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22/Summer22Run3_V1_MC_SF_AK4PFPuppi.jersf.txt.gz
+        2022_postEE:
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22EE/Summer22EE_22Sep2023_V2_MC_L1FastJet_AK4PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22EE/Summer22EE_22Sep2023_V2_MC_L2Relative_AK4PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22EE/Summer22EE_22Sep2023_V2_MC_UncertaintySources_AK4PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22EE/Summer22EE_22Sep2023_V2_MC_Uncertainty_AK4PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22EE/Summer22EEPrompt22_JRV1_MC_PtResolution_AK4PFPuppi.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22EE/Summer22EEPrompt22_JRV1_MC_SF_AK4PFPuppi.jersf.txt.gz
+        2023_preBPix:
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_V1_MC_L1FastJet_AK4PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_V1_MC_L2Relative_AK4PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_V1_MC_UncertaintySources_AK4PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_V1_MC_Uncertainty_AK4PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_JRV1_MC_PtResolution_AK4PFPuppi.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_JRV1_MC_SF_AK4PFPuppi.jersf.txt.gz
+        2023_postBPix:
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23BPix/Summer23BPixPrompt23_V1_MC_L1FastJet_AK4PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23BPix/Summer23BPixPrompt23_V1_MC_L2Relative_AK4PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23BPix/Summer23BPixPrompt23_V1_MC_UncertaintySources_AK4PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23BPix/Summer23BPixPrompt23_V1_MC_Uncertainty_AK4PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23BPix/Summer23BPixPrompt23_JRV1_MC_PtResolution_AK4PFPuppi.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23BPix/Summer23BPixPrompt23_JRV1_MC_SF_AK4PFPuppi.jersf.txt.gz
+  factory_configuration_Data:
+    AK4PFPuppi:
+      JES:
+        2022_preEE:
+          C:
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22/Summer22-22Sep2023_RunCD_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22/Summer22-22Sep2023_RunCD_V2_DATA_L2Relative_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22/Summer22-22Sep2023_RunCD_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz
+          D:
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22/Summer22-22Sep2023_RunCD_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22/Summer22-22Sep2023_RunCD_V2_DATA_L2Relative_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22/Summer22-22Sep2023_RunCD_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz
+        2022_postEE:
+          E:
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22EE/Summer22EE-22Sep2023_RunE_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22EE/Summer22EE-22Sep2023_RunE_V2_DATA_L2Relative_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22EE/Summer22EE-22Sep2023_RunE_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz
+          F:
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22EE/Summer22EE-22Sep2023_RunF_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22EE/Summer22EE-22Sep2023_RunF_V2_DATA_L2Relative_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22EE/Summer22EE-22Sep2023_RunF_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz
+          G:
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22EE/Summer22EE-22Sep2023_RunG_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22EE/Summer22EE-22Sep2023_RunG_V2_DATA_L2Relative_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22EE/Summer22EE-22Sep2023_RunG_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz
+        2023_preBPix:
+          Cv1:
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L1FastJet_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L2Relative_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz
+          Cv2:
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L1FastJet_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L2Relative_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz
+          Cv3:
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L1FastJet_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L2Relative_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz
+          Cv4:
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_RunCv4_V1_DATA_L1FastJet_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_RunCv4_V1_DATA_L2Relative_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_RunCv4_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz
+        2023_postBPix:
+          D:
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23BPix/Summer23BPixPrompt23_RunD_V1_DATA_L1FastJet_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23BPix/Summer23BPixPrompt23_RunD_V1_DATA_L2Relative_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23BPix/Summer23BPixPrompt23_RunD_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz
+jets_calibration:
+  factory_file: ./jets_calibrator_JES_JER_Syst.pkl.gz
+  jet_types:
+    MC:
+      AK4PFchs:
+        2016_PreVFP:
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16APV_V7_MC_L1FastJet_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16APV_V7_MC_L2Relative_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/RegroupedV2_Summer19UL16APV_V7_MC_UncertaintySources_AK4PFchs.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16APV_V7_MC_Uncertainty_AK4PFchs.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer20UL16_JRV3_MC_PtResolution_AK4PFchs.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer20UL16_JRV3_MC_SF_AK4PFchs.jersf.txt.gz
+        2016_PostVFP:
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16_V7_MC_L1FastJet_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16_V7_MC_L2Relative_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/RegroupedV2_Summer19UL16_V7_MC_UncertaintySources_AK4PFchs.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16_V7_MC_Uncertainty_AK4PFchs.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer20UL16_JRV3_MC_PtResolution_AK4PFchs.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer20UL16_JRV3_MC_SF_AK4PFchs.jersf.txt.gz
+        '2017':
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_V5_MC_L1FastJet_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_V5_MC_L2Relative_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/RegroupedV2_Summer19UL17_V5_MC_UncertaintySources_AK4PFchs.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_V5_MC_Uncertainty_AK4PFchs.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_JRV3_MC_PtResolution_AK4PFchs.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_JRV3_MC_SF_AK4PFchs.jersf.txt.gz
+        '2018':
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_V5_MC_L1FastJet_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_V5_MC_L2Relative_AK4PFchs.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/RegroupedV2_Summer19UL18_V5_MC_UncertaintySources_AK4PFchs.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_V5_MC_Uncertainty_AK4PFchs.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_JRV2_MC_PtResolution_AK4PFchs.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_JRV2_MC_SF_AK4PFchs.jersf.txt.gz
+      AK4PFPuppi:
+        2022_preEE:
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22/Summer22_22Sep2023_V2_MC_L1FastJet_AK4PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22/Summer22_22Sep2023_V2_MC_L2Relative_AK4PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22/Summer22_22Sep2023_V2_MC_UncertaintySources_AK4PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22/Summer22_22Sep2023_V2_MC_Uncertainty_AK4PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22/Summer22Run3_V1_MC_PtResolution_AK4PFPuppi.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22/Summer22Run3_V1_MC_SF_AK4PFPuppi.jersf.txt.gz
+        2022_postEE:
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22EE/Summer22EE_22Sep2023_V2_MC_L1FastJet_AK4PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22EE/Summer22EE_22Sep2023_V2_MC_L2Relative_AK4PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22EE/Summer22EE_22Sep2023_V2_MC_UncertaintySources_AK4PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22EE/Summer22EE_22Sep2023_V2_MC_Uncertainty_AK4PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22EE/Summer22EEPrompt22_JRV1_MC_PtResolution_AK4PFPuppi.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22EE/Summer22EEPrompt22_JRV1_MC_SF_AK4PFPuppi.jersf.txt.gz
+        2023_preBPix:
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_V1_MC_L1FastJet_AK4PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_V1_MC_L2Relative_AK4PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_V1_MC_UncertaintySources_AK4PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_V1_MC_Uncertainty_AK4PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_JRV1_MC_PtResolution_AK4PFPuppi.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_JRV1_MC_SF_AK4PFPuppi.jersf.txt.gz
+        2023_postBPix:
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23BPix/Summer23BPixPrompt23_V1_MC_L1FastJet_AK4PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23BPix/Summer23BPixPrompt23_V1_MC_L2Relative_AK4PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23BPix/Summer23BPixPrompt23_V1_MC_UncertaintySources_AK4PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23BPix/Summer23BPixPrompt23_V1_MC_Uncertainty_AK4PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23BPix/Summer23BPixPrompt23_JRV1_MC_PtResolution_AK4PFPuppi.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23BPix/Summer23BPixPrompt23_JRV1_MC_SF_AK4PFPuppi.jersf.txt.gz
+      AK8PFPuppi:
+        2016_PreVFP:
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16APV_V7_MC_L1FastJet_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16APV_V7_MC_L2Relative_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16APV_V7_MC_UncertaintySources_AK8PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16APV_V7_MC_Uncertainty_AK8PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer20UL16_JRV3_MC_PtResolution_AK8PFPuppi.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer20UL16_JRV3_MC_SF_AK8PFPuppi.jersf.txt.gz
+        2016_PostVFP:
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16_V7_MC_L1FastJet_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16_V7_MC_L2Relative_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16_V7_MC_UncertaintySources_AK8PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL16_V7_MC_Uncertainty_AK8PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer20UL16_JRV3_MC_PtResolution_AK8PFPuppi.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer20UL16_JRV3_MC_SF_AK8PFPuppi.jersf.txt.gz
+        '2017':
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_V5_MC_L1FastJet_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_V5_MC_L2Relative_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_V5_MC_UncertaintySources_AK8PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_V5_MC_Uncertainty_AK8PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_JRV3_MC_PtResolution_AK8PFPuppi.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL17_JRV3_MC_SF_AK8PFPuppi.jersf.txt.gz
+        '2018':
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_V5_MC_L1FastJet_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_V5_MC_L2Relative_AK8PFPuppi.jec.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_V5_MC_UncertaintySources_AK8PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_V5_MC_Uncertainty_AK8PFPuppi.junc.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_JRV2_MC_PtResolution_AK8PFPuppi.jr.txt.gz
+        - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer19UL18_JRV2_MC_SF_AK8PFPuppi.jersf.txt.gz
+    Data:
+      AK4PFPuppi:
+        2022_preEE:
+          C:
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22/Summer22-22Sep2023_RunCD_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22/Summer22-22Sep2023_RunCD_V2_DATA_L2Relative_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22/Summer22-22Sep2023_RunCD_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz
+          D:
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22/Summer22-22Sep2023_RunCD_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22/Summer22-22Sep2023_RunCD_V2_DATA_L2Relative_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22/Summer22-22Sep2023_RunCD_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz
+        2022_postEE:
+          E:
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22EE/Summer22EE-22Sep2023_RunE_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22EE/Summer22EE-22Sep2023_RunE_V2_DATA_L2Relative_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22EE/Summer22EE-22Sep2023_RunE_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz
+          F:
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22EE/Summer22EE-22Sep2023_RunF_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22EE/Summer22EE-22Sep2023_RunF_V2_DATA_L2Relative_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22EE/Summer22EE-22Sep2023_RunF_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz
+          G:
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22EE/Summer22EE-22Sep2023_RunG_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22EE/Summer22EE-22Sep2023_RunG_V2_DATA_L2Relative_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer22EE/Summer22EE-22Sep2023_RunG_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz
+        2023_preBPix:
+          Cv1:
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L1FastJet_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L2Relative_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz
+          Cv2:
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L1FastJet_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L2Relative_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz
+          Cv3:
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L1FastJet_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L2Relative_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz
+          Cv4:
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_RunCv4_V1_DATA_L1FastJet_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_RunCv4_V1_DATA_L2Relative_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23/Summer23Prompt23_RunCv4_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz
+        2023_postBPix:
+          D:
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23BPix/Summer23BPixPrompt23_RunD_V1_DATA_L1FastJet_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23BPix/Summer23BPixPrompt23_RunD_V1_DATA_L2Relative_AK4PFPuppi.txt.gz
+          - /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/jec/Summer23BPix/Summer23BPixPrompt23_RunD_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz
+  collection:
+    2016_PreVFP:
+      AK4PFchs: Jet
+      AK8PFPuppi: FatJet
+    2016_PostVFP:
+      AK4PFchs: Jet
+      AK8PFPuppi: FatJet
+    '2017':
+      AK4PFchs: Jet
+      AK8PFPuppi: FatJet
+    '2018':
+      AK4PFchs: Jet
+      AK8PFPuppi: FatJet
+    2022_preEE:
+      AK4PFPuppi: Jet
+    2022_postEE:
+      AK4PFPuppi: Jet
+    2023_preBPix:
+      AK4PFPuppi: Jet
+    2023_postBPix:
+      AK4PFPuppi: Jet
+  jec_name_map_MC:
+    JetPt: pt
+    JetMass: mass
+    JetEta: eta
+    JetPhi: phi
+    JetA: area
+    ptGenJet: pt_gen
+    ptRaw: pt_raw
+    massRaw: mass_raw
+    Rho: event_rho
+    METpt: pt
+    METphi: phi
+    UnClusteredEnergyDeltaX: MetUnclustEnUpDeltaX
+    UnClusteredEnergyDeltaY: MetUnclustEnUpDeltaY
+  jec_name_map_Data:
+    JetPt: pt
+    JetMass: mass
+    JetEta: eta
+    JetPhi: phi
+    JetA: area
+    ptRaw: pt_raw
+    massRaw: mass_raw
+    Rho: event_rho
+    METpt: pt
+    METphi: phi
+    UnClusteredEnergyDeltaX: MetUnclustEnUpDeltaX
+    UnClusteredEnergyDeltaY: MetUnclustEnUpDeltaY
+  apply_jec_nominal:
+    2016_PreVFP: false
+    2016_PostVFP: false
+    '2017': false
+    '2018': false
+    2022_preEE: true
+    2022_postEE: true
+    2023_preBPix: true
+    2023_postBPix: true
+jet_scale_factors:
+  jet_collection:
+    btag: JetGood
+    ctag: JetGood
+    puId: JetGood
+  btagSF:
+    2016_PreVFP:
+      file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2016preVFP_UL/btagging.json.gz
+      name: deepJet_shape
+    2016_PostVFP:
+      file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2016postVFP_UL/btagging.json.gz
+      name: deepJet_shape
+    '2017':
+      file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2017_UL/btagging.json.gz
+      name: deepJet_shape
+    '2018':
+      file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2018_UL/btagging.json.gz
+      name: deepJet_shape
+    2022_preEE:
+      file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2022_Summer22/btagging.json.gz
+      name: deepJet_shape
+    2022_postEE:
+      file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2022_Summer22EE/btagging.json.gz
+      name: deepJet_shape
+    2023_preBPix:
+      file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2023_Summer23/btagging.json.gz
+      name: deepJet_shape
+    2023_postBPix:
+      file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2023_Summer23BPix/btagging.json.gz
+      name: deepJet_shape
+  ctagSF:
+    2016_PreVFP:
+      SF_file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2016preVFP_UL/ctagging.json.gz
+      Calib_file: /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/ctagSF_calibrationSF.json
+      name: deepJet_shape
+    2016_PostVFP:
+      SF_file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2016postVFP_UL/ctagging.json.gz
+      Calib_file: /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/ctagSF_calibrationSF.json
+      name: deepJet_shape
+    '2017':
+      SF_file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2017_UL/ctagging.json.gz
+      Calib_file: /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/ctagSF_calibrationSF.json
+      name: deepJet_shape
+    '2018':
+      SF_file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2018_UL/ctagging.json.gz
+      Calib_file: /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/ctagSF_calibrationSF.json
+      name: deepJet_shape
+    2022_preEE:
+      SF_file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2022_27Jun2023/ctagging.json.gz
+      Calib_file: /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/ctagSF_calibrationSF.json
+      name: deepJet_shape
+    2022_postEE:
+      SF_file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2022_27Jun2023EE/ctagging.json.gz
+      Calib_file: /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/ctagSF_calibrationSF.json
+      name: deepJet_shape
+    2023_preBPix:
+      SF_file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2023_Summer23/ctagging.json.gz
+      Calib_file: /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/ctagSF_calibrationSF.json
+      name: deepJet_shape
+    2023_postBPix:
+      SF_file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2023_Summer23BPix/ctagging.json.gz
+      Calib_file: /afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/parameters/ctagSF_calibrationSF.json
+      name: deepJet_shape
+  jet_puId:
+    2016_PreVFP:
+      file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2016preVFP_UL/jmar.json.gz
+      working_point:
+        L: 1
+        M: 3
+        T: 7
+      name: PUJetID_eff
+    2016_PostVFP:
+      file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2016postVFP_UL/jmar.json.gz
+      working_point:
+        L: 1
+        M: 3
+        T: 7
+      name: PUJetID_eff
+    '2017':
+      file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2017_UL/jmar.json.gz
+      working_point:
+        L: 4
+        M: 6
+        T: 7
+      name: PUJetID_eff
+    '2018':
+      file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2018_UL/jmar.json.gz
+      working_point:
+        L: 4
+        M: 6
+        T: 7
+      name: PUJetID_eff
+  vetomaps:
+    2022_preEE:
+      file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2022_Summer22/jetvetomaps.json.gz
+      name: Summer22_23Sep2023_RunCD_V1
+    2022_postEE:
+      file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2022_Summer22EE/jetvetomaps.json.gz
+      name: Summer22EE_23Sep2023_RunEFG_V1
+    2023_preBPIX:
+      file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2023_Summer23/jetvetomaps.json.gz
+      name: Summer23Prompt23_RunC_V1
+    2023_postBPIX:
+      file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2023_Summer23BPix/jetvetomaps.json.gz
+      name: Summer23BPixPrompt23_RunD_V1
+btagging:
+  working_point:
+    2016_PreVFP:
+      reference:
+        btagging_WP: https://btv-wiki.docs.cern.ch/ScaleFactors/UL2016preVFP/
+      btagging_algorithm: btagDeepFlavB
+      btagging_WP:
+        L: 0.0508
+        M: 0.2598
+        H: 0.6502
+      bbtagging_algorithm: btagDDBvL
+      bbtagging_WP: 0.86
+      bbtagSF_DDBvL_M1_loPt: 0.86
+      bbtagSF_DDBvL_M1_loPt_up: 0.97
+      bbtagSF_DDBvL_M1_loPt_down: 0.82
+      bbtagSF_DDBvL_M1_hiPt: 0.86
+      bbtagSF_DDBvL_M1_hiPt_up: 0.97
+      bbtagSF_DDBvL_M1_hiPt_down: 0.82
+    2016_PostVFP:
+      reference:
+        btagging_WP: https://btv-wiki.docs.cern.ch/ScaleFactors/UL2016postVFP/
+      btagging_algorithm: btagDeepFlavB
+      btagging_WP:
+        L: 0.048
+        M: 0.2489
+        H: 0.6377
+      bbtagging_algorithm: btagDDBvL
+      bbtagging_WP: 0.86
+      bbtagSF_DDBvL_M1_loPt: 0.86
+      bbtagSF_DDBvL_M1_loPt_up: 0.97
+      bbtagSF_DDBvL_M1_loPt_down: 0.82
+      bbtagSF_DDBvL_M1_hiPt: 0.86
+      bbtagSF_DDBvL_M1_hiPt_up: 0.97
+      bbtagSF_DDBvL_M1_hiPt_down: 0.82
+    '2017':
+      reference:
+        btagging_WP: https://btv-wiki.docs.cern.ch/ScaleFactors/UL2017/
+      btagging_algorithm: btagDeepFlavB
+      btagging_WP:
+        L: 0.0532
+        M: 0.304
+        H: 0.7476
+      bbtagging_algorithm: btagDDBvL
+      bbtagging_WP: 0.86
+      bbtagSF_DDBvL_M1_loPt: 0.82
+      bbtagSF_DDBvL_M1_loPt_up: 0.86
+      bbtagSF_DDBvL_M1_loPt_down: 0.77
+      bbtagSF_DDBvL_M1_hiPt: 0.77
+      bbtagSF_DDBvL_M1_hiPt_up: 0.83
+      bbtagSF_DDBvL_M1_hiPt_down: 0.67
+    '2018':
+      reference:
+        btagging_WP: https://btv-wiki.docs.cern.ch/ScaleFactors/UL2018/
+      btagging_algorithm: btagDeepFlavB
+      btagging_WP:
+        L: 0.049
+        M: 0.2783
+        H: 0.71
+      bbtagging_algorithm: btagDDBvL
+      bbtagging_WP: 0.86
+      bbtagSF_DDBvL_M1_loPt: 0.81
+      bbtagSF_DDBvL_M1_loPt_up: 0.88
+      bbtagSF_DDBvL_M1_loPt_down: 0.76
+      bbtagSF_DDBvL_M1_hiPt: 0.76
+      bbtagSF_DDBvL_M1_hiPt_up: 0.82
+      bbtagSF_DDBvL_M1_hiPt_down: 0.71
+    2022_preEE:
+      reference:
+        btagging_WP: https://btv-wiki.docs.cern.ch/ScaleFactors/Run3Summer22/#ak4-b-tagging
+      btagging_algorithm: btagDeepFlavB
+      btagging_WP:
+        L: 0.0583
+        M: 0.3086
+        T: 0.7183
+        XT: 0.8111
+        XXT: 0.9512
+      bbtagging_algorithm: btagDDBvL
+      bbtagging_WP: 0.86
+      bbtagSF_DDBvL_M1_loPt: 0.81
+      bbtagSF_DDBvL_M1_loPt_up: 0.88
+      bbtagSF_DDBvL_M1_loPt_down: 0.76
+      bbtagSF_DDBvL_M1_hiPt: 0.76
+      bbtagSF_DDBvL_M1_hiPt_up: 0.82
+      bbtagSF_DDBvL_M1_hiPt_down: 0.71
+    2022_postEE:
+      reference:
+        btagging_WP: https://btv-wiki.docs.cern.ch/ScaleFactors/Run3Summer22EE/
+      btagging_algorithm: btagDeepFlavB
+      btagging_WP:
+        L: 0.0614
+        M: 0.3196
+        T: 0.73
+        XT: 0.8184
+        XXT: 0.9542
+      bbtagging_algorithm: btagDDBvL
+      bbtagging_WP: 0.86
+      bbtagSF_DDBvL_M1_loPt: 0.81
+      bbtagSF_DDBvL_M1_loPt_up: 0.88
+      bbtagSF_DDBvL_M1_loPt_down: 0.76
+      bbtagSF_DDBvL_M1_hiPt: 0.76
+      bbtagSF_DDBvL_M1_hiPt_up: 0.82
+      bbtagSF_DDBvL_M1_hiPt_down: 0.71
+    2023_preBPix:
+      reference:
+        btagging_WP: https://btv-wiki.docs.cern.ch/ScaleFactors/Run3Summer23/
+      btagging_algorithm: btagDeepFlavB
+      btagging_WP:
+        L: 0.0479
+        M: 0.2431
+        T: 0.6553
+        XT: 0.7667
+        XXT: 0.9459
+      bbtagging_algorithm: btagDDBvL
+      bbtagging_WP: 0.86
+      bbtagSF_DDBvL_M1_loPt: 0.81
+      bbtagSF_DDBvL_M1_loPt_up: 0.88
+      bbtagSF_DDBvL_M1_loPt_down: 0.76
+      bbtagSF_DDBvL_M1_hiPt: 0.76
+      bbtagSF_DDBvL_M1_hiPt_up: 0.82
+      bbtagSF_DDBvL_M1_hiPt_down: 0.71
+    2023_postBPix:
+      reference:
+        btagging_WP: https://btv-wiki.docs.cern.ch/ScaleFactors/Run3Summer23BPix/
+      btagging_algorithm: btagDeepFlavB
+      btagging_WP:
+        L: 0.048
+        M: 0.2435
+        T: 0.6563
+        XT: 0.7671
+        XXT: 0.9483
+      bbtagging_algorithm: btagDDBvL
+      bbtagging_WP: 0.86
+      bbtagSF_DDBvL_M1_loPt: 0.81
+      bbtagSF_DDBvL_M1_loPt_up: 0.88
+      bbtagSF_DDBvL_M1_loPt_down: 0.76
+      bbtagSF_DDBvL_M1_hiPt: 0.76
+      bbtagSF_DDBvL_M1_hiPt_up: 0.82
+      bbtagSF_DDBvL_M1_hiPt_down: 0.71
+lepton_scale_factors:
+  electron_sf:
+    collection: ElectronGood
+    id:
+      mvaIso_WP80: wp80iso
+      mvaIso_WP90: wp90iso
+      mvaNoIso_WP80: wp80noiso
+      mvaNoIso_WP90: wp90noiso
+      mvaFall17V2Iso_WP80: wp80iso
+      mvaFall17V2Iso_WP90: wp90iso
+      mvaFall17V2noIso_WP80: wp80noiso
+      mvaFall17V2noIso_WP90: wp90noiso
+    JSONfiles:
+      2016_PreVFP:
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016preVFP_UL/electron.json.gz
+        name: UL-Electron-ID-SF
+        reco:
+          pt_lt_20: RecoBelow20
+          pt_gt_20: RecoAbove20
+      2016_PostVFP:
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016postVFP_UL/electron.json.gz
+        name: UL-Electron-ID-SF
+        reco:
+          pt_lt_20: RecoBelow20
+          pt_gt_20: RecoAbove20
+      '2017':
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2017_UL/electron.json.gz
+        name: UL-Electron-ID-SF
+        reco:
+          pt_lt_20: RecoBelow20
+          pt_gt_20: RecoAbove20
+      '2018':
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2018_UL/electron.json.gz
+        name: UL-Electron-ID-SF
+        reco:
+          pt_lt_20: RecoBelow20
+          pt_gt_20: RecoAbove20
+      2022_preEE:
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/electron.json.gz
+        fileSS: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/electronSS.json.gz
+        name: Electron-ID-SF
+        reco:
+          pt_lt_20: RecoBelow20
+          pt_gt_20_lt_75: Reco20to75
+          pt_gt_75: RecoAbove75
+      2022_postEE:
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electron.json.gz
+        fileSS: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electronSS.json.gz
+        name: Electron-ID-SF
+        reco:
+          pt_lt_20: RecoBelow20
+          pt_gt_20_lt_75: Reco20to75
+          pt_gt_75: RecoAbove75
+      2023_preBPix:
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electron.json.gz
+        fileSS: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electronSS.json.gz
+        name: Electron-ID-SF
+        reco:
+          pt_lt_20: RecoBelow20
+          pt_gt_20_lt_75: Reco20to75
+          pt_gt_75: RecoAbove75
+      2023_postBPix:
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electron.json.gz
+        fileSS: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electronSS.json.gz
+        name: Electron-ID-SF
+        reco:
+          pt_lt_20: RecoBelow20
+          pt_gt_20_lt_75: Reco20to75
+          pt_gt_75: RecoAbove75
+    era_mapping:
+      2016_PreVFP: 2016preVFP
+      2016_PostVFP: 2016postVFP
+      '2017': '2017'
+      '2018': '2018'
+      2022_preEE: 2022Re-recoBCD
+      2022_postEE: 2022Re-recoE+PromptFG
+      2023_preBPix: 2023PromptC
+      2023_postBPix: 2023PromptD
+    apply_ele_scale_and_smearing:
+      2016_PreVFP: false
+      2016_PostVFP: false
+      '2017': false
+      '2018': false
+      2022_preEE: true
+      2022_postEE: true
+      2023_preBPix: false
+      2023_postBPix: false
+    trigger_sf:
+      2016_PreVFP:
+        name: ???
+        file: ???
+      2016_PostVFP:
+        name: ???
+        file: ???
+      '2017':
+        name: ???
+        file: ???
+      '2018':
+        name: ???
+        file: ???
+      2022_preEE:
+        2022_preEE: null
+        name: Electron-HLT-SF
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/electronHlt.json.gz
+        path: ???
+      2022_postEE:
+        name: Electron-HLT-SF
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electronHlt.json.gz
+        path: ???
+      2023_preBPix:
+        name: Electron-HLT-SF
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electronHlt.json.gz
+        path: ???
+      2023_postBPix:
+        name: Electron-HLT-SF
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electronHlt.json.gz
+        path: ???
+  muon_sf:
+    collection: MuonGood
+    sf_name:
+      2016_PreVFP:
+        id: NUM_TightID_DEN_TrackerMuons
+        iso: NUM_LooseRelIso_DEN_TightIDandIPCut
+        trigger: NUM_IsoMu24_or_IsoTkMu24_DEN_CutBasedIdTight_and_PFIsoTight
+      2016_PostVFP:
+        id: NUM_TightID_DEN_TrackerMuons
+        iso: NUM_LooseRelIso_DEN_TightIDandIPCut
+        trigger: NUM_IsoMu24_or_IsoTkMu24_DEN_CutBasedIdTight_and_PFIsoTight
+      '2017':
+        id: NUM_TightID_DEN_TrackerMuons
+        iso: NUM_LooseRelIso_DEN_TightIDandIPCut
+        trigger: NUM_IsoMu27_DEN_CutBasedIdTight_and_PFIsoTight
+      '2018':
+        id: NUM_TightID_DEN_TrackerMuons
+        iso: NUM_LooseRelIso_DEN_TightIDandIPCut
+        trigger: NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight
+      2022_preEE:
+        id: NUM_TightID_DEN_TrackerMuons
+        iso: NUM_LoosePFIso_DEN_TightID
+      2022_postEE:
+        id: NUM_TightID_DEN_TrackerMuons
+        iso: NUM_LoosePFIso_DEN_TightID
+      2023_preBPix:
+        id: NUM_TightID_DEN_TrackerMuons
+        iso: NUM_LoosePFIso_DEN_TightID
+      2023_postBPix:
+        id: NUM_TightID_DEN_TrackerMuons
+        iso: NUM_LoosePFIso_DEN_TightID
+    JSONfiles:
+      2016_PreVFP:
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2016preVFP_UL/muon_Z.json.gz
+      2016_PostVFP:
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2016postVFP_UL/muon_Z.json.gz
+      '2017':
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2017_UL/muon_Z.json.gz
+      '2018':
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2018_UL/muon_Z.json.gz
+      2022_preEE:
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2022_Summer22/muon_Z.json.gz
+      2022_postEE:
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2022_Summer22EE/muon_Z.json.gz
+      2023_preBPix:
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2023_Summer23/muon_Z.json.gz
+      2023_postBPix:
+        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2023_Summer23BPix/muon_Z.json.gz
+MET_xy:
+  Data:
+    2016_PreVFP:
+      B:
+      - - -0.0214894
+        - -0.188255
+      - - 0.0876624
+        - 0.812885
+      C:
+      - - -0.032209
+        - 0.067288
+      - - 0.113917
+        - 0.743906
+      D:
+      - - -0.0293663
+        - 0.21106
+      - - 0.11331
+        - 0.815787
+      E:
+      - - -0.0132046
+        - 0.20073
+      - - 0.134809
+        - 0.679068
+      F:
+      - - -0.0543566
+        - 0.816597
+      - - 0.114225
+        - 1.17266
+    2016_PostVFP:
+      F:
+      - - 0.134616
+        - -0.89965
+      - - 0.0397736
+        - 1.0385
+      G:
+      - - 0.121809
+        - -0.584893
+      - - 0.0558974
+        - 0.891234
+      H:
+      - - 0.0868828
+        - -0.703489
+      - - 0.0888774
+        - 0.902632
+    '2017':
+      B:
+      - - -0.211161
+        - 0.419333
+      - - 0.251789
+        - -1.28089
+      C:
+      - - -0.185184
+        - -0.164009
+      - - 0.200941
+        - -0.56853
+      D:
+      - - -0.201606
+        - 0.426502
+      - - 0.188208
+        - -0.58313
+      E:
+      - - -0.162472
+        - 0.176329
+      - - 0.138076
+        - -0.250239
+      F:
+      - - -0.210639
+        - 0.72934
+      - - 0.198626
+        - 1.028
+    '2018':
+      A:
+      - - 0.263733
+        - -1.91115
+      - - 0.0431304
+        - -0.112043
+      B:
+      - - 0.400466
+        - -3.05914
+      - - 0.146125
+        - -0.533233
+      C:
+      - - 0.430911
+        - -1.42865
+      - - 0.0620083
+        - -1.46021
+      D:
+      - - 0.457327
+        - -1.56856
+      - - 0.0684071
+        - -0.928372
+  MC:
+    2016_PreVFP:
+    - - -0.153497
+      - -0.231751
+    - - 0.00731978
+      - 0.243323
+    2016_PostVFP:
+    - - -0.188743
+      - 0.136539
+    - - 0.0127927
+      - 0.117747
+    '2017':
+    - - -0.300155
+      - 1.90608
+    - - 0.300213
+      - -2.02232
+    '2018':
+    - - 0.183518
+      - 0.546754
+    - - 0.192263
+      - -0.42121
+systematic_variations:
+  weight_variations:
+    sf_ele_trigger:
+      2016_PreVFP:
+      - stat
+      - pileup
+      - era
+      - ht
+      2016_PostVFP:
+      - stat
+      - pileup
+      - era
+      - ht
+      '2017':
+      - stat
+      - pileup
+      - era
+      - ht
+      '2018':
+      - stat
+      - pileup
+      - era
+      - ht
+      2022_preEE:
+      - stat
+      - pileup
+      - era
+      - ht
+      2022_postEE:
+      - stat
+      - pileup
+      - era
+      - ht
+      2023_preBPix:
+      - stat
+      - pileup
+      - era
+      - ht
+      2023_postBPix:
+      - stat
+      - pileup
+      - era
+      - ht
+    sf_btag:
+      2016_PreVFP:
+      - hf
+      - lf
+      - hfstats1
+      - hfstats2
+      - lfstats1
+      - lfstats2
+      - cferr1
+      - cferr2
+      2016_PostVFP:
+      - hf
+      - lf
+      - hfstats1
+      - hfstats2
+      - lfstats1
+      - lfstats2
+      - cferr1
+      - cferr2
+      '2017':
+      - hf
+      - lf
+      - hfstats1
+      - hfstats2
+      - lfstats1
+      - lfstats2
+      - cferr1
+      - cferr2
+      '2018':
+      - hf
+      - lf
+      - hfstats1
+      - hfstats2
+      - lfstats1
+      - lfstats2
+      - cferr1
+      - cferr2
+      2022_preEE:
+      - hf
+      - lf
+      - hfstats1
+      - hfstats2
+      - lfstats1
+      - lfstats2
+      - cferr1
+      - cferr2
+      2022_postEE:
+      - hf
+      - lf
+      - hfstats1
+      - hfstats2
+      - lfstats1
+      - lfstats2
+      - cferr1
+      - cferr2
+    sf_ctag:
+      2016_PreVFP:
+      - Extrap
+      - Interp
+      - LHEScaleWeight_muF
+      - LHEScaleWeight_muR
+      - PSWeightFSR
+      - PSWeightISR
+      - PUWeight
+      - Stat
+      - XSec_BRUnc_DYJets_b
+      - XSec_BRUnc_DYJets_c
+      - XSec_BRUnc_WJets_c
+      - jer
+      - jesTotal
+      2016_PostVFP:
+      - Extrap
+      - Interp
+      - LHEScaleWeight_muF
+      - LHEScaleWeight_muR
+      - PSWeightFSR
+      - PSWeightISR
+      - PUWeight
+      - Stat
+      - XSec_BRUnc_DYJets_b
+      - XSec_BRUnc_DYJets_c
+      - XSec_BRUnc_WJets_c
+      - jer
+      - jesTotal
+      '2017':
+      - Extrap
+      - Interp
+      - LHEScaleWeight_muF
+      - LHEScaleWeight_muR
+      - PSWeightFSR
+      - PSWeightISR
+      - PUWeight
+      - Stat
+      - XSec_BRUnc_DYJets_b
+      - XSec_BRUnc_DYJets_c
+      - XSec_BRUnc_WJets_c
+      - jer
+      - jesTotal
+      '2018':
+      - Extrap
+      - Interp
+      - LHEScaleWeight_muF
+      - LHEScaleWeight_muR
+      - PSWeightFSR
+      - PSWeightISR
+      - PUWeight
+      - Stat
+      - XSec_BRUnc_DYJets_b
+      - XSec_BRUnc_DYJets_c
+      - XSec_BRUnc_WJets_c
+      - jer
+      - jesTotal
+      2022_preEE:
+      - Extrap
+      - Interp
+      - LHEScaleWeight_muF
+      - LHEScaleWeight_muR
+      - PSWeightFSR
+      - PSWeightISR
+      - PUWeight
+      - Stat
+      - XSec_BRUnc_DYJets_b
+      - XSec_BRUnc_DYJets_c
+      - XSec_BRUnc_WJets_c
+      - jer
+      - jesTotal
+      2022_postEE:
+      - Extrap
+      - Interp
+      - LHEScaleWeight_muF
+      - LHEScaleWeight_muR
+      - PSWeightFSR
+      - PSWeightISR
+      - PUWeight
+      - Stat
+      - XSec_BRUnc_DYJets_b
+      - XSec_BRUnc_DYJets_c
+      - XSec_BRUnc_WJets_c
+      - jer
+      - jesTotal
+      2023_preBPix:
+      - Extrap
+      - Interp
+      - LHEScaleWeight_muF
+      - LHEScaleWeight_muR
+      - PSWeightFSR
+      - PSWeightISR
+      - PUWeight
+      - Stat
+      - XSec_BRUnc_DYJets_b
+      - XSec_BRUnc_DYJets_c
+      - XSec_BRUnc_WJets_c
+      - jer
+      - jesTotal
+      2023_postBPix:
+      - Extrap
+      - Interp
+      - LHEScaleWeight_muF
+      - LHEScaleWeight_muR
+      - PSWeightFSR
+      - PSWeightISR
+      - PUWeight
+      - Stat
+      - XSec_BRUnc_DYJets_b
+      - XSec_BRUnc_DYJets_c
+      - XSec_BRUnc_WJets_c
+      - jer
+      - jesTotal
+  shape_variations:
+    JES: null
+plotting_style:
+  collapse_datasets: true
+  fontsize: 22
+  fontsize_legend: 18
+  experiment_label_loc: 2
+  opts_figure:
+    datamc:
+      figsize:
+      - 12
+      - 9
+    datamc_ratio:
+      figsize:
+      - 12
+      - 12
+      gridspec_kw:
+        height_ratios:
+        - 3
+        - 1
+      sharex: true
+    partial:
+      figsize:
+      - 12
+      - 15
+      gridspec_kw:
+        height_ratios:
+        - 3
+        - 1
+      sharex: true
+    systematics:
+      figsize:
+      - 12
+      - 9
+    systematics_ratio:
+      figsize:
+      - 12
+      - 12
+      gridspec_kw:
+        height_ratios:
+        - 3
+        - 1
+      sharex: true
+  opts_data:
+    color: black
+    elinewidth: 1
+    label: Data
+    linestyle: solid
+    linewidth: 0
+    marker: .
+    markersize: 5.0
+  opts_mc:
+    histtype: fill
+    stack: true
+    flow: sum
+    edges: false
+  opts_sig:
+    histtype: step
+    stack: false
+    flow: sum
+    edges: true
+    linestyle: solid
+    linewidth: 1
+  opts_syst:
+    down:
+      color: blue
+      linestyle: dotted
+      linewidth: 1
+    nominal:
+      color: black
+      linestyle: solid
+      linewidth: 1
+    up:
+      color: red
+      linestyle: dashed
+      linewidth: 1
+  opts_unc:
+    Down:
+      elinewidth: 1
+      linestyle: dotted
+      linewidth: 1
+      marker: .
+      markersize: 1.0
+    Up:
+      elinewidth: 1
+      linestyle: dashed
+      linewidth: 1
+      marker: .
+      markersize: 1.0
+    total:
+      color:
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.4
+      facecolor:
+      - 0.0
+      - 0.0
+      - 0.0
+      - 0.0
+      hatch: ////
+      linewidth: 0
+      step: post
+      zorder: 2
+  opts_ylim:
+    datamc:
+      ylim_log:
+        lo: 0.01
+  print_info:
+    category: false
+    year: false
+  plot_upper_label:
+    by_year:
+      2016_PreVFP: 19.648186119000002
+      2016_PostVFP: 16.977701784
+      '2017': 41.479680527999996
+      '2018': 59.832475339999995
+      2022_preEE: 7.9803999999999995
+      2022_postEE: 26.6717
+      2023_preBPix: 17.65
+      2023_postBPix: 9.451
+  categorical_axes_data:
+    year: years
+    cat: categories
+  categorical_axes_mc:
+    year: years
+    cat: categories
+    variation: variations
+object_preselection:
+  Muon:
+    pt: 26.0
+    eta: 2.4
+    iso: 0.15
+    id: tightId
+  Electron:
+    pt: 15.0
+    eta: 2.4
+    iso: 0.06
+    id: mvaFall17V2Iso_WP80
+  Jet:
+    dr_lepton: 0.4
+    pt: 30.0
+    eta: 2.4
+    jetId: 2
+    puId:
+      wp: L
+      value: 4
+      maxpt: 50.0
+    btag:
+      wp: M
+HLT_triggers:
+  2016_PreVFP:
+    SingleEle:
+    - Ele27_WPTight_Gsf
+    SingleMuon:
+    - IsoMu24
+    - IsoTkMu24
+  2016_PostVFP:
+    SingleEle:
+    - Ele27_WPTight_Gsf
+    SingleMuon:
+    - IsoMu24
+    - IsoTkMu24
+  '2017':
+    SingleEle:
+    - Ele32_WPTight_Gsf_L1DoubleEG
+    - Ele28_eta2p1_WPTight_Gsf_HT150
+    SingleMuon:
+    - IsoMu27
+  '2018':
+    SingleEle:
+    - Ele32_WPTight_Gsf
+    - Ele28_eta2p1_WPTight_Gsf_HT150
+    SingleMuon:
+    - IsoMu24
