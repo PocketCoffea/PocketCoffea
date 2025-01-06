@@ -64,7 +64,7 @@ cfg = Configurator(
         "subsamples": {
             "TTTo2L2Nu": {
                 "ele": [get_nObj_min(1, coll="ElectronGood"), get_nObj_eq(0, coll="MuonGood")],
-                "mu":  [get_nObj_eq(0, coll="ElectronGood"), get_nObj_min(1, coll="MuonGood")],
+                "ele2":  [get_nObj_min(1, coll="ElectronGood"), get_nObj_eq(0, coll="MuonGood")], # it's the same on purpose
             },
             "DATA_SingleMuon": {
                 "clean": [get_HLTsel(primaryDatasets=["SingleEle"], invert=True)], # crosscleaning SingleELe trigger on SIngleMuon
@@ -80,9 +80,8 @@ cfg = Configurator(
     preselections = [passthrough],
     categories = {
         "baseline": [passthrough],
-        "1btag": [get_nObj_min(1, coll="BJetGood")],
-        "1btag_B": [get_nObj_min(1, coll="BJetGood")],
-        "2btag": [get_nObj_min(2, coll="BJetGood")],
+        "A": [get_nObj_min(1, coll="BJetGood")],
+        "B": [get_nObj_min(1, coll="BJetGood")],
     },
 
     weights = {
@@ -92,9 +91,8 @@ cfg = Configurator(
                           "sf_mu_id","sf_mu_iso"
                           ],
             "bycategory": {
-                "1btag": ["sf_btag"],
-                "2btag": ["sf_btag"],
-                "1btag_B": ["sf_btag"],
+                "A": ["sf_btag"],
+                "B": ["sf_btag"],
             },
        },
         "bysample": {
@@ -102,12 +100,12 @@ cfg = Configurator(
                 "inclusive": ["sf_custom_C"],
                 
                 "bycategory": {
-                    "1btag_B": ["sf_custom_D"],
+                    "B": ["sf_custom_D"],
                 }
             },
             "TTToSemiLeptonic": {
                 "bycategory": {
-                    "1btag_B": ["sf_custom_C"],
+                    "B": ["sf_custom_C"],
                 }
             }
         }
@@ -124,21 +122,20 @@ cfg = Configurator(
                                "sf_mu_id", "sf_mu_iso",
                                ],
                 "bycategory" : {
-                    "1btag": ["sf_btag"],
-                    "2btag": ["sf_btag"],
-                    "1btag_B": ["sf_btag"],
+                    "A": ["sf_btag"],
+                    "B": ["sf_btag"],
                 }
             },
             "bysample": {
                 "TTTo2L2Nu__ele": {
                     "inclusive": ["sf_custom_C"],
                     "bycategory": {
-                        "1btag_B": ["sf_custom_D"],
+                        "B": ["sf_custom_D"],
                     }
                 },
                 "TTToSemiLeptonic": {
                     "bycategory": {
-                        "1btag_B": ["sf_custom_C"],
+                        "B": ["sf_custom_C"],
                     }
                 }
             }

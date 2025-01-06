@@ -320,18 +320,16 @@ def test_subsamples_and_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch
     assert np.isclose(h[{"cat":"1btag_B", "variation":"sf_custom_BUp"}].values().sum() / h[{"cat":"1btag", "variation":"nominal"}].values().sum(), 5.)
     assert np.isclose(h[{"cat":"1btag_B", "variation":"sf_custom_BDown"}].values().sum() / h[{"cat":"1btag", "variation":"nominal"}].values().sum(), 0.7)
 # ----------------------------------------------------------------------------------------
-def test_subsamples_and_weights_custom(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
+def test_subsamples_and_weights_splitbysubsamples(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_subsamples" )
-    outputdir = tmp_path_factory.mktemp("test_categorization_subsamples_and_weights_custom")
-    config = load_config("config_weights_and_subsamples_custom.py", save_config=True, outputdir=outputdir)
+    outputdir = tmp_path_factory.mktemp("test_categorization_subsamples_and_weights_splitbysubsamples")
+    config = load_config("config_weights_and_subsamples_splitbysubsamples.py", save_config=True, outputdir=outputdir)
     assert isinstance(config, Configurator)
 
     # Check the subsamples config
     weights_dict = config.weights_config
-    breakpoint()
-    assert "sf_custom_C" not in weights_dict["TTTo2L2Nu"]["inclusive"]
-    assert "sf_custom_D" in weights_dict["TTTo2L2Nu"]["bycategory"]["1btag_B"]
-    assert "sf_custom_C" in weights_dict["TTToSemiLeptonic"]["bycategory"]["1btag_B"]
+    assert "sf_custom_C" in weights_dict["TTToSemiLeptonic"]["bycategory"]["B"]
+    assert "sf_custom_C" in weights_dict["TTTo2L2Nu"]["by_subsample"]["TTTo2L2Nu__ele"]["inclusive"]
     
     run_options = defaults.get_default_run_options()["general"]
     run_options["limit-files"] = 1
@@ -355,6 +353,42 @@ def test_subsamples_and_weights_custom(base_path: Path, monkeypatch: pytest.Monk
                  processor_instance=config.processor_instance)
     save(output, outputdir / "output_all.coffea")
 
+     # some checks
+    assert output is not None
+    sw = output["sumw"]
+    assert np.isclose(sw["B"]["TTTo2L2Nu_2018"]["TTTo2L2Nu"] / sw["A"]["TTTo2L2Nu_2018"]["TTTo2L2Nu"], 1.)
+    # Ele 2 has the same cut but not additional scale factor applied by suybsample
+    assert np.isclose(sw["A"]["TTTo2L2Nu_2018"]["TTTo2L2Nu__ele"] / sw["A"]["TTTo2L2Nu_2018"]["TTTo2L2Nu__ele2"], 2.)
+    assert np.isclose(sw["B"]["TTTo2L2Nu_2018"]["TTTo2L2Nu__ele"] / sw["B"]["TTTo2L2Nu_2018"]["TTTo2L2Nu__ele2"], 6.)
+
+    # check histograms
+    h1 = output["variables"]["nJetGood"]["TTTo2L2Nu__ele"]["TTTo2L2Nu_2018"]
+    h2 = output["variables"]["nJetGood"]["TTTo2L2Nu__ele2"]["TTTo2L2Nu_2018"]
+
+    assert np.isclose(h1[{"cat":"A", "variation":"nominal"}].values().sum() / h2[{"cat":"A", "variation":"nominal"}].values().sum(), 2.)
+    assert np.isclose(h1[{"cat":"B", "variation":"nominal"}].values().sum() / h2[{"cat":"B", "variation":"nominal"}].values().sum(), 6.)
+    assert np.isclose(h1[{"cat":"B", "variation":"nominal"}].values().sum() / h1[{"cat":"A", "variation":"nominal"}].values().sum(), 3.)
+    
+    # Checking variations
+    # N.B: the variation is checked w.r.t the nominal of a category without the custom weight,
+    # if not the factor include the nominal custom weight
+    assert np.isclose(h1[{"cat":"A", "variation":"sf_custom_CUp"}].values().sum() / h2[{"cat":"A", "variation":"nominal"}].values().sum(), 4.)
+    assert np.isclose(h1[{"cat":"B", "variation":"sf_custom_CUp"}].values().sum() / h2[{"cat":"B", "variation":"nominal"}].values().sum(), 4.*3.)
+    assert np.isclose(h1[{"cat":"B", "variation":"sf_custom_CUp"}].values().sum() / h1[{"cat":"B", "variation":"nominal"}].values().sum(), 2.) #4./2.
+
+    assert np.isclose(h1[{"cat":"A", "variation":"sf_custom_CDown"}].values().sum() / h2[{"cat":"A", "variation":"nominal"}].values().sum(), 0.5)
+    assert np.isclose(h1[{"cat":"B", "variation":"sf_custom_CDown"}].values().sum() / h2[{"cat":"B", "variation":"nominal"}].values().sum(), 1.5)
+    assert np.isclose(h1[{"cat":"B", "variation":"sf_custom_CDown"}].values().sum() / h1[{"cat":"B", "variation":"nominal"}].values().sum(), 0.25) #0.5./2.
+    
+    assert np.isclose(h1[{"cat":"A", "variation":"sf_custom_DUp"}].values().sum() / h2[{"cat":"A", "variation":"nominal"}].values().sum(), 2.) #like nominal
+    assert np.isclose(h1[{"cat":"B", "variation":"sf_custom_DUp"}].values().sum() / h2[{"cat":"B", "variation":"nominal"}].values().sum(), 5.*2.)
+    assert np.isclose(h1[{"cat":"B", "variation":"sf_custom_DUp"}].values().sum() / h1[{"cat":"B", "variation":"nominal"}].values().sum(), 5./3.) 
+
+    assert np.isclose(h1[{"cat":"A", "variation":"sf_custom_DDown"}].values().sum() / h2[{"cat":"A", "variation":"nominal"}].values().sum(), 2.)
+    assert np.isclose(h1[{"cat":"B", "variation":"sf_custom_DDown"}].values().sum() / h2[{"cat":"B", "variation":"nominal"}].values().sum(), 0.7*2.)
+    assert np.isclose(h1[{"cat":"B", "variation":"sf_custom_DDown"}].values().sum() / h1[{"cat":"B", "variation":"nominal"}].values().sum(), 0.7/3.) 
+    
+    
 #---------------------------------------------------------------------------------------
 
 def test_skimming(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):

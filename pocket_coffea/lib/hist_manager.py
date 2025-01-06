@@ -189,7 +189,7 @@ class HistManager:
                 sub : defaultdict(list) for sub in self.subsamples
             }
         else:
-            self.available_weights_variations_by_subsample = None
+            self.available_weights_variations_bysubsample = None
             self.available_weights_variations_bysubsample_bycat = None
             self.available_shape_variations_bysubsample = None
             self.available_shape_variations_bysubsample_bycat = None
@@ -381,6 +381,7 @@ class HistManager:
         else:
             # Save only the nominal weights if a shape variation is being processed
             weights["nominal"] = self.weights_manager.get_weight(category)
+
         return weights
 
     def fill_histograms(
@@ -584,7 +585,7 @@ class HistManager:
                             for variation in histo.hist_obj.axes["variation"]:
                                 if variation in self.available_shape_variations:
                                     # We ignore other shape variations when
-                                    # we are already working on a shape variation
+                                    # we are working on the nominal shape variation
                                     continue
                                 # Only weights variations, since we are working on nominal sample
                                 # Check if this variation exists for this category
@@ -602,20 +603,24 @@ class HistManager:
                                 # Check if there are weights by subsample
                                 if self.has_subsamples:
                                     if variation == "nominal":
-                                        weight_varied *= self.weights_manager.get_weight_only_subsample(
+                                        weight_sub = self.weights_manager.get_weight_only_subsample(
                                             self.sample + "__" + subsample, category
                                         )
                                     else:
-                                        weight_varied *= self.weights_manager.get_weight_only_subsample(
+                                        # If the variation is here only because it was requested for another category
+                                        # the weight manager will return the nominal subsample weight
+                                        weight_sub = self.weights_manager.get_weight_only_subsample(
                                             self.sample + "__" + subsample, category, variation
                                         )
-                                    
+                                else:
+                                    weight_sub = 1.
+
                                 # Broadcast and mask the weight (using the cached value if possible)
                                 weight_varied = self.mask_and_broadcast_weight(
                                     category,
                                     subsample,
                                     variation,
-                                    weight_varied,
+                                    weight_varied*weight_sub, # This creates a copy of the weight
                                     mask,
                                     data_structure,
                                 )
@@ -657,14 +662,23 @@ class HistManager:
                             # Working on shape variation! only nominal weights
                             # (also using the cache which is cleaned for each shape variation
                             # at the beginning of the function)
-                            weights_nom = self.mask_and_broadcast_weight(
+                            weight_nom = weights[category]["nominal"]
+                            if self.has_subsamples:
+                                weight_sub = self.weights_manager.get_weight_only_subsample(
+                                    self.sample + "__" + subsample, category
+                                )
+                            else:
+                                weight_sub = 1.
+                                
+                            weight_nom = self.mask_and_broadcast_weight(
                                 category,
                                 subsample,
                                 "nominal",
-                                weights[category]["nominal"],
+                                weight_nom * weight_sub,
                                 mask,
                                 data_structure,
                             )
+                            
                             if custom_weight != None and name in custom_weight:
                                 weight_nom = weight_nom * self.mask_and_broadcast_weight(
                                     category + "customW",
@@ -677,13 +691,13 @@ class HistManager:
                                     data_structure,
                                 )
                             # Then we apply the notnone mask
-                            weights_nom = weights_nom[all_axes_isnotnone]
+                            weight_nom = weight_nom[all_axes_isnotnone]
                             # Fill the histogram
                             try:
                                 self.histograms[subsample][name].hist_obj.fill(
                                     cat=category,
                                     variation=shape_variation,
-                                    weight=weights_nom,
+                                    weight=weight_nom,
                                     **{**fill_categorical, **fill_numeric_masked},
                                 )
                             except Exception as e:

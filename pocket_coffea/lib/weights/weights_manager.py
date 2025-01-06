@@ -382,10 +382,9 @@ class WeightsManager:
                         # Get the nominal by cat and modified inclusive
                         overall_weight *= ( self._weightsIncl_subsamples[subsample].weight() *
                                             self._weightsByCat_subsamples[subsample][category].weight(modifier=modifier))
-                    # We don't need a else here as"
+                    # We don't need a else here as
                     # if the modifier is not defined without subsample then the code above is already
                     # checking that the modifier may exist in the subsample
-                    
                         
         return overall_weight
 
