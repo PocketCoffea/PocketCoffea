@@ -13,7 +13,6 @@
           "root://eoscms.cern.ch//eos/cms/store/mc/RunIISummer20UL18NanoAODv9/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/106X_upgrade2018_realistic_v16_L1v1-v1/280000/01881676-C30A-2142-B3B2-7A8449DAF8EF.root"
         ]
 },
-
      "DATA_SingleMuon_2018_EraA": {
         "metadata": {
             "das_names": "['/SingleMuon/Run2018A-UL2018_MiniAODv2_NanoAODv9-v2/NANOAOD']",
@@ -26,6 +25,21 @@
             "size": "211774345140"
         },
         "files": [
-            "root://eoscms.cern.ch//eos/cms/store/data/Run2018A/SingleMuon/NANOAOD/UL2018_MiniAODv2_NanoAODv9-v2/2550000/C1FD87EB-3052-524A-8DAD-1C95A6EABBF0.root"]
+            "root://eoscms.cern.ch//eos/cms/store/data/Run2018A/SingleMuon/NANOAOD/UL2018_MiniAODv2_NanoAODv9_GT36-v1/2820000/06EFD7A6-A6F1-E145-B1F8-C6794FE4EDDD.root"]
+     },
+
+    "DATA_EGamma_2018_EraA": {
+        "metadata": {
+            "das_names": "['/EGamma/Run2018A-UL2018_MiniAODv2_NanoAODv9-v1/NANOAOD']",
+            "sample": "DATA_SingleEle",
+            "year": "2018",
+            "isMC": "False",
+            "primaryDataset": "SingleEle",
+            "era": "A",
+            "nevents": "241608232",
+            "size": "211774345140"
+        },
+        "files": [
+            "root://eoscms.cern.ch//eos/cms/store/data/Run2018A/EGamma/NANOAOD/UL2018_MiniAODv2_NanoAODv9_GT36-v1/2830000/10D2F672-4042-5F49-B8D5-73B90AF52CFD.root"]
      }
 }
