@@ -268,8 +268,8 @@ def test_subsamples(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_f
 
 # ----------------------------------------------------------------------------------------
 def test_subsamples_and_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
-    monkeypatch.chdir(base_path / "test_categorization" )
-    outputdir = tmp_path_factory.mktemp("test_categorization_subsamples_and_weights")
+    monkeypatch.chdir(base_path / "test_subsamples" )
+    outputdir = tmp_path_factory.mktemp("test_subsamples_and_weights")
     config = load_config("config_weights_and_subsamples.py", save_config=True, outputdir=outputdir)
     assert isinstance(config, Configurator)
 
@@ -321,15 +321,17 @@ def test_subsamples_and_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch
     assert np.isclose(h[{"cat":"1btag_B", "variation":"sf_custom_BDown"}].values().sum() / h[{"cat":"1btag", "variation":"nominal"}].values().sum(), 0.7)
 # ----------------------------------------------------------------------------------------
 def test_subsamples_and_weights_custom(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
-    monkeypatch.chdir(base_path / "test_categorization" )
+    monkeypatch.chdir(base_path / "test_subsamples" )
     outputdir = tmp_path_factory.mktemp("test_categorization_subsamples_and_weights_custom")
     config = load_config("config_weights_and_subsamples_custom.py", save_config=True, outputdir=outputdir)
     assert isinstance(config, Configurator)
 
     # Check the subsamples config
     weights_dict = config.weights_config
-    assert "sf_custom_C" in weights_dict["TTTo2L2Nu"]["inclusive"]
+    breakpoint()
+    assert "sf_custom_C" not in weights_dict["TTTo2L2Nu"]["inclusive"]
     assert "sf_custom_D" in weights_dict["TTTo2L2Nu"]["bycategory"]["1btag_B"]
+    assert "sf_custom_C" in weights_dict["TTToSemiLeptonic"]["bycategory"]["1btag_B"]
     
     run_options = defaults.get_default_run_options()["general"]
     run_options["limit-files"] = 1

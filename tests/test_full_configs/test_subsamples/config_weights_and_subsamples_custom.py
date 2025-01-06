@@ -38,14 +38,14 @@ from pocket_coffea.lib.weights.weights import WeightLambda
 import numpy as np
 
 
-my_custom_sf_A  = WeightLambda.wrap_func(
+my_custom_sf_C  = WeightLambda.wrap_func(
     name="sf_custom_C",
     function=lambda params, metadata, events, size, shape_variations: (
         np.ones(size)*2.0, np.ones(size)*4.0, np.ones(size)*0.5),
     has_variations=True
     )
 
-my_custom_sf_B  = WeightLambda.wrap_func(
+my_custom_sf_D  = WeightLambda.wrap_func(
     name="sf_custom_D",
     function=lambda params, metadata, events, size, shape_variations:  (
         np.ones(size)*3.0, np.ones(size)*5.0, np.ones(size)*0.7),
@@ -114,7 +114,7 @@ cfg = Configurator(
     },
      
     # Passing a list of WeightWrapper objects
-    weights_classes = common_weights + [my_custom_sf_A, my_custom_sf_B],
+    weights_classes = common_weights + [my_custom_sf_C, my_custom_sf_D],
 
     variations = {
         "weights": {
@@ -142,7 +142,6 @@ cfg = Configurator(
                     }
                 }
             }
-        
         },
     },
 
