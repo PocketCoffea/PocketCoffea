@@ -19,7 +19,7 @@ from dask_jobqueue import HTCondorCluster
 
 class ParslCondorExecutorFactory(ExecutorFactoryABC):
     '''
-    Parsl executor based on condor for RWTH
+    Parsl executor based on condor for RWTH LX cluster
     '''
     def __init__(self, run_options, outputdir, **kwargs):
         self.outputdir = outputdir
@@ -56,8 +56,6 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
 
 
     def setup(self):
-        print("All run_options:", self.run_options)
-        
         ''' Start Condor cluster here'''
         self.setup_proxyfile()
 
@@ -89,7 +87,7 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
             )
 
         self.condor_cluster = parsl.load(condor_htex)
-        print('Ready to run with parsl')
+        print('Ready to run with parsl.')
 
     def get(self):
         return coffea_processor.parsl_executor(**self.customized_args())
@@ -107,7 +105,7 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
         
 class DaskExecutorFactory(ExecutorFactoryABC):
     '''
-    Attempt to setup DASK at RWTH LX cluster via HTCondor
+    DASK at RWTH LX cluster via HTCondor
     '''
 
     def __init__(self, run_options, outputdir, **kwargs):
