@@ -600,7 +600,7 @@ class Shape:
             #print(sample_new, samples_list)
             for s_to_group in samples_list:
                 if s_to_group not in self.h_dict.keys():
-                    if self.verbose>=0:
+                    if self.verbose>=1:
                         print(f"{self.name}: WARNING. Sample ",s_to_group," is not in the list of samples: ", list(self.h_dict.keys()), "Skipping it.")
                     cleaned_samples_list[sample_new].remove(s_to_group)
                     continue
@@ -788,6 +788,8 @@ class Shape:
                 den_variances = den_variances * (1./den_integral)**2
 
         ratio = num / den
+        # Blinding ratio for certain variables (if defined in plotting config)
+        ratio = self.blind_hist(cat,ratio)
         # Total uncertainty propagation of num / den :
         # ratio_variance = np.power(ratio,2)*( num_variances*np.power(num, -2) + den_variances*np.power(den, -2))
         # Only the uncertainty of num (DATA) propagated:
@@ -1039,6 +1041,23 @@ class Shape:
 
         self.format_figure(cat, ratio=False)
 
+    def blind_hist(self, cat, hist):
+        if self.style.has_blind_hists and cat in self.style.blind_hists.categories:
+            for blind_hname, blind_range in self.style.blind_hists.histograms.items():
+                if not self.name.startswith(blind_hname):
+                    continue
+                else:
+                    if self.verbose>0:
+                        print("Blinding histogram:", self.name, "in category:", cat, 'in range', blind_range)
+                    if len(blind_range)!=2:
+                        if self.verbose>0:
+                            print("WARNING: The range for blinding region is not correct:", blind_hname, blind_range)
+                        continue
+                    hist_edges = np.array(self.style.opts_axes["xedges"])
+                    bins_to_zero = (hist_edges[:-1] >= blind_range[0]) & (hist_edges[:-1] < blind_range[1])
+                    hist[bins_to_zero] = 0
+        return hist
+
     def plot_data(self, cat, ax=None):
         '''Plots the data histogram as an errorbar plot.'''
         stacks = self._get_stacks(cat)
@@ -1055,20 +1074,7 @@ class Shape:
         y = self._merge_flow_bins(stacks["data_sum"].values(flow=self.style.flow))
 
         # Blinding data for certain variables (if defined in plotting config)
-        if self.style.has_blind_hists and cat in self.style.blind_hists.categories:
-            for blind_hname, blind_range in self.style.blind_hists.histograms.items():
-                if not self.name.startswith(blind_hname):
-                    continue
-                else:
-                    if self.verbose>0:
-                        print("Blinding histogram:", self.name, "in category:", cat, 'in range', blind_range)
-                    if len(blind_range)!=2:
-                        if self.verbose>0:
-                            print("WARNING: The range for blinding region is not correct:", blind_hname, blind_range)
-                        continue
-                    hist_edges = np.array(self.style.opts_axes["xedges"])
-                    bins_to_zero = (hist_edges[:-1] >= blind_range[0]) & (hist_edges[:-1] < blind_range[1])
-                    y[bins_to_zero] = 0
+        y = self.blind_hist(cat,y)
 
         yerr = np.sqrt(y)
         integral = sum(y) * np.array(self.style.opts_axes["xbinwidth"])
