@@ -11,6 +11,8 @@ def get_ele_sf(
     If 'reco', the appropriate corrections are chosen by using the argument `pt_region`.
     '''
     electronSF = params["lepton_scale_factors"]["electron_sf"]
+    # translate the `year` key into the corresponding key in the correction file provided by the EGM-POG
+    year_pog = electronSF["era_mapping"][year]
 
     if key in ['reco', 'id']:
         electron_correctionset = correctionlib.CorrectionSet.from_file(
@@ -22,9 +24,6 @@ def get_ele_sf(
             sfname = electronSF.JSONfiles[year]["reco"][pt_region]
         elif key == 'id':
             sfname = electronSF["id"][params.object_preselection["Electron"]["id"]]
-
-        # translate the `year` key into the corresponding key in the correction file provided by the EGM-POG
-        year_pog = electronSF["era_mapping"][year]
         
         if year in ["2023_preBPix", "2023_postBPix"]:
             # Starting from 2023 SFs require the phi:
@@ -60,39 +59,49 @@ def get_ele_sf(
             ak.unflatten(sfup, counts),
             ak.unflatten(sfdown, counts),
         )
-    elif key == 'trigger':
-        electron_correctionset = correctionlib.CorrectionSet.from_file(
-            electronSF.trigger_sf[year]["file"]
-        )
-        map_name = electronSF.trigger_sf[year]["name"]
-
-        output = {}
-        for variation in variations:
-            if variation == "nominal":
-                output[variation] = [
-                    electron_correctionset[map_name].evaluate(
-                        variation, pt.to_numpy(), eta.to_numpy()
-                    )
-                ]
-            else:
-                # Nominal sf==1
-                nominal = np.ones_like(pt.to_numpy())
-                # Systematic variations
-                output[variation] = [
-                    nominal,
-                    electron_correctionset[map_name].evaluate(
-                        f"{variation}Up", pt.to_numpy(), eta.to_numpy()
-                    ),
-                    electron_correctionset[map_name].evaluate(
-                        f"{variation}Down", pt.to_numpy(), eta.to_numpy()
-                    ),
-                ]
-            for i, sf in enumerate(output[variation]):
-                output[variation][i] = ak.unflatten(sf, counts)
-
-        return output
     else:
-        raise Exception(f"Invalid key `{key}` for get_ele_sf. Available keys are 'reco', 'id', 'trigger'.")
+        raise Exception(f"Invalid key `{key}` for get_ele_sf. Available keys are 'reco', 'id'.")
+
+
+def sf_ele_trigger(params, events, year):
+    """Compute electron trigger scale factors using the EGM JSON files with correctionlib.
+    Returns the per-event scale factor for the trigger.
+
+    Returns:
+    --------
+    tuple: (sf, sfup, sfdown) per-event scale factor
+    """
+    electronSF = params.lepton_scale_factors.electron_sf
+    year_pog = electronSF.era_mapping[year]
+    map_name = electronSF.trigger_sf[year].name
+    trigger_path = electronSF.trigger_sf[year].path
+
+    coll = electronSF.collection
+    ele_pt = events[coll].pt
+    ele_eta = events[coll].etaSC
+
+    ele_pt_flat, ele_eta_flat, ele_counts = (
+        ak.flatten(ele_pt).to_numpy(),
+        ak.flatten(ele_eta).to_numpy(),
+        ak.num(ele_pt),
+    )
+
+    electron_correctionset = correctionlib.CorrectionSet.from_file(
+        electronSF.trigger_sf[year].file
+    )
+    corr_eval = electron_correctionset[map_name].evaluate
+
+    # get sf, sfup, sfdown per electron
+    scale_factors = [
+        ak.unflatten(
+            corr_eval(year_pog, variation, trigger_path, ele_eta_flat, ele_pt_flat),
+            ele_counts,
+        )
+        for variation in ("sf", "sfup", "sfdown")
+    ]
+
+    # return a per-event scale factor by multiplying all electron scale factors
+    return tuple(ak.prod(sf, axis=1) for sf in scale_factors)
 
 
 def get_mu_sf(params, year, pt, eta, counts, key=''):
@@ -212,39 +221,6 @@ def sf_ele_id(params, events, year):
     return ak.prod(sf_id, axis=1), ak.prod(sfup_id, axis=1), ak.prod(sfdown_id, axis=1)
 
 
-def sf_ele_trigger(params, events, year, variations=["nominal"]):
-    '''
-    This function computes the semileptonic electron trigger SF by considering the leading electron in the event.
-    This computation is valid only in the case of the semileptonic final state.
-    Additionally, also the up and down variations of the SF for a set of systematic uncertainties are returned.
-    '''
-    coll = params.lepton_scale_factors.electron_sf.collection
-    ele_pt = events[coll].pt
-    ele_eta = events[coll].etaSC
-
-    ele_pt_flat, ele_eta_flat, ele_counts = (
-        ak.flatten(ele_pt),
-        ak.flatten(ele_eta),
-        ak.num(ele_pt),
-    )
-    sf_dict = get_ele_sf(
-        params,
-        year,
-        pt=ele_pt_flat,
-        eta=ele_eta_flat,
-        phi=None,
-        counts=ele_counts,
-        key='trigger',
-        variations=variations,
-    )
-
-    for variation in sf_dict.keys():
-        for i, sf in enumerate(sf_dict[variation]):
-            sf_dict[variation][i] = ak.prod(sf, axis=1)
-
-    return sf_dict
-
-
 def sf_mu(params, events, year, key=''):
     '''
     This function computes the per-muon id SF and returns the corresponding per-event SF, obtained by multiplying the per-muon SF in each event.
@@ -320,32 +296,26 @@ def sf_btag(params, jets, year, njets, variations=["central"]):
                     _get_sf_variation_with_mask(f"down_{variation}", c_mask),
                 ]
 
-            elif "JES" in variation:
+            elif variation.startswith("JES") and "AK4" in variation:
                 # We need to convert the name of the variation
                 # from JES_VariationUp to  up_jesVariation
-                if variation == "JES_TotalUp":
+                if variation.startswith("JES_Total") and variation[-2:] == "Up":
                     btag_jes_var = "up_jes"
-                elif variation == "JES_TotalDown":
+                elif variation.startswith("JES_Total") and variation[-4:] == "Down":
                     btag_jes_var = "down_jes"
                 else:
+                    # we need to remove the possible jet type
+                    variation = variation.replace("_AK4PFchs", "")
+                    variation = variation.replace("_AK4PFPuppi", "")
                     if variation[-2:] == "Up":
                         btag_jes_var = f"up_jes{variation[4:-2]}"
                     elif variation[-4:] == "Down":
                         btag_jes_var = f"down_jes{variation[4:-4]}"
-
                 # This is a special case where a dedicate btagSF is computed for up and down Jes shape variations.
                 # This is not an up/down variation, but a single modified SF.
                 # N.B: It is a central SF
-                # notc_mask = flavour != 4
-                # output["central"] = [_get_sf_variation_with_mask(btag_jes_var, notc_mask)]
-                output["central"] = [
-                    ak.prod(
-                        ak.unflatten(
-                            corr.evaluate("central", flavour, abseta, pt, discr), njets
-                        ),
-                        axis=1,
-                    )
-                ]
+                notc_mask = flavour != 4
+                output["central"] = [_get_sf_variation_with_mask(btag_jes_var, notc_mask)]
             else:
                 # Computing the scale factor only NON c-flavour jets
                 notc_mask = flavour != 4
@@ -501,3 +471,29 @@ def sf_pileup_reweight(params, events, year):
     sfdown = puWeightsJSON[puName].evaluate(nPu, 'down')
 
     return sf, sfup, sfdown
+
+def sf_partonshower_isr(events):
+    '''Up and down variations for the ISR parton shower weights.
+    In order to properly store the weights, a dummy weight of 1 is stored
+    as central value for the ISR correction.
+    Conventions for the PS weights are:
+    [0] is ISR=2 FSR=1; [1] is ISR=1 FSR=2[2] is ISR=0.5 FSR=1; [3] is ISR=1 FSR=0.5;
+    '''
+    isr_up = events.PSWeight[:,2]
+    isr_down = events.PSWeight[:,0]
+    nom = ak.ones_like(isr_up)
+
+    return nom, isr_up, isr_down
+
+def sf_partonshower_fsr(events):
+    '''Up and down variations for the FSR parton shower weights.
+    In order to properly store the weights, a dummy weight of 1 is stored
+    as central value for the FSR correction.
+    Conventions for the PS weights are:
+    [0] is ISR=2 FSR=1; [1] is ISR=1 FSR=2[2] is ISR=0.5 FSR=1; [3] is ISR=1 FSR=0.5;
+    '''
+    fsr_up = events.PSWeight[:,3]
+    fsr_down = events.PSWeight[:,1]
+    nom = ak.ones_like(fsr_up)
+
+    return nom, fsr_up, fsr_down

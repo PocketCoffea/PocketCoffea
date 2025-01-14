@@ -54,11 +54,29 @@ class Configurator:
         columns=None,
         workflow_options=None,
         save_skimmed_files=None,
+        do_postprocessing=True,
     ):
         '''
         Constructur of the Configurator class.
         It saves the configuration of the analysis and the workflow to be used to load
-        the internal objects in the load() method.'''
+        the internal objects in the load() method.
+
+        Args:
+        - workflow: the workflow class to be used in the analysis
+        - parameters: the OmegaConf object with the parameters of the analysis
+        - datasets: the dictionary describing the datasets to be used in the analysis
+        - skim: the list of cuts to be applied in the skimming step
+        - preselections: the list of preselections to apply
+        - categories: the dictionary of categories to be used in the analysis
+        - weights: the dictionary of weights to be used in the analysis
+        - variations: the dictionary of variations to be used in the analysis
+        - variables: the dictionary of variables to be used in the analysis
+        - weights_classes: the list of WeightWrapper classes to be used in the analysis
+        - columns: the dictionary of columns to be used in the analysis
+        - workflow_options: the dictionary of options to be passed to the workflow
+        - save_skimmed_files:  if !=None and str, it is used to save the skimmed files in the specified folder
+        - do_postprocessing: if False the postprocessing step is skipped      
+        '''
 
         # Save the workflow object and its options
         self.workflow = workflow
@@ -71,7 +89,9 @@ class Configurator:
             print("Error during resolution of OmegaConf parameters magic, please check your parameters files.")
             raise(e)
         
-        self.save_skimmed_files = save_skimmed_files
+        self.save_skimmed_files = save_skimmed_files != None
+        self.save_skimmed_files_folder = save_skimmed_files
+        self.do_postprocessing = do_postprocessing
         # Save
         # Load dataset
         self.datasets_cfg = datasets
@@ -79,6 +99,7 @@ class Configurator:
         self.filesets = {}
         self.datasets = []
         self.samples = []
+        self.samples_metadata = {}
 
         self.subsamples = {}
         self.subsamples_list = []  # List of subsamples (for internal checks)
@@ -110,13 +131,37 @@ class Configurator:
         self.columns = {}
         self.columns_cfg = columns
 
+        self.filesets_loaded = False
         self.loaded = False
 
     def load(self):
         '''This function loads the configuration for samples/weights/variations and creates
         the necessary objects for the processor to use. It also loads the workflow'''
-        self.samples_metadata = {}
-        self.load_datasets()
+        if not self.filesets_loaded:
+            # Avoid reloading the datasets if the configurator already loaded them manually.
+            # This happens when the configurator is manipulated to restrict the fileset before pickling (condor submission)
+            self.load_datasets()
+
+        # Now loading and storing the metadata of the filtered filesets
+        if len(self.filesets) == 0:
+            print("File set is empty: please check you dataset definition...")
+            raise Exception("Wrong filesets configuration")
+        else:
+            for name, d in self.filesets.items():
+                m = d["metadata"]
+                if name not in self.datasets:
+                    self.datasets.append(name)
+                if m["sample"] not in self.samples:
+                    self.samples.append(m["sample"])
+                if m["year"] not in self.years:
+                    self.years.append(m["year"])
+                if 'era' in m.keys():
+                    if (m["era"]) not in self.eras:
+                        self.eras.append(m["era"])
+                self.samples_metadata[m["sample"]] = {
+                    "isMC": m["isMC"] =="True",
+                }
+            
         self.load_subsamples()
 
         # Categories: object handling categorization
@@ -235,26 +280,13 @@ class Configurator:
             else:
                 self.filesets.update(ds_dict)
 
-        # Now loading and storing the metadata of the filtered filesets
-        if len(self.filesets) == 0:
-            print("File set is empty: please check you dataset definition...")
-            raise Exception("Wrong filesets configuration")
-        else:
-            for name, d in self.filesets.items():
-                m = d["metadata"]
-                if name not in self.datasets:
-                    self.datasets.append(name)
-                if m["sample"] not in self.samples:
-                    self.samples.append(m["sample"])
-                if m["year"] not in self.years:
-                    self.years.append(m["year"])
-                if 'era' in m.keys():
-                    if (m["era"]) not in self.eras:
-                        self.eras.append(m["era"])
-                self.samples_metadata[m["sample"]] = {
-                    "isMC": m["isMC"] =="True",
-                }
-                        
+    def set_filesets_manually(self, filesets):
+        '''This function sets the filesets directly, usually before the configuration is loaded.
+        This is useful to pickle an unloaded version of the configuration restricting the filesets a priori.
+        It is used in the condor submission script.
+        The `filesets_loaded` attribute is set to True to avoid reloading the datasets.'''
+        self.filesets = filesets
+        self.filesets_loaded = True
 
     def load_subsamples(self):
         # subsamples configuration
@@ -394,6 +426,18 @@ class Configurator:
                             self.weights_config[sample]["bycategory"][cat].append(w)
                             self.weights_config[sample]["is_split_bycat"] = True
 
+                if "inclusive" not in s_wcfg and "bycategory" not in s_wcfg:
+                    print(f"None of the `inclusive` or `bycategory` keys found in the weights configuration for sample {sample}.\n")
+                    print(
+                        """The dictionary structure should be like:\n
+                        'bysample': {
+                            'sample_name': {
+                                'inclusive': ['weight1', 'weight2'],
+                                'bycategory': {'cat1': ['weight1', 'weight2']}
+                        }\n"""
+                    )
+                    raise Exception("Wrong weight configuration")
+
     def load_variations_config(self, wcfg, variation_type):
         '''This function loads the variations definition and prepares a list of
         weights to be applied for each sample and category'''
@@ -414,11 +458,12 @@ class Configurator:
         for w in wcfg["common"]["inclusive"]:
             if w not in available_variations:
                 print(f"Variation {w} not available in the workflow")
-                raise Exception("Wrong variation configuration")
+                print("Available variations: ", available_variations)
+                raise Exception(f"Wrong variation configuration: variation {w} not available in the workflow")
             for sample, wsample in self.variations_config.items():
-                if w not in self.weights_config[sample]["inclusive"]:
+                if variation_type == "weights" and w not in self.weights_config[sample]["inclusive"]:
                     print(f"Error: variation {w} not available for sample {sample} in inclusive category")
-                    raise Exception("Wrong variation configuration")
+                    raise Exception(f"Wrong variation configuration: variation {w} not available for sample {sample} in inclusive category")
                 # add the variation to all the categories and samples
                 for wcat in wsample[variation_type].values():
                     wcat.append(w)
@@ -428,12 +473,13 @@ class Configurator:
                 for w in variations:
                     if w not in available_variations:
                         print(f"Variation {w} not available in the workflow")
-                        raise Exception("Wrong variation configuration")
+                        raise Exception(f"Wrong variation configuration: variation {w} not available in the workflow")
                     for sample, wsample in self.variations_config.items():
-                        if (self.weights_config[sample]["is_split_bycat"] and
+                        if (variation_type == "weights" and
+                            self.weights_config[sample]["is_split_bycat"] and
                             w not in self.weights_config[sample]["bycategory"][cat]):
                             print(f"Error: variation {w} not available for sample {sample} in {cat} category")
-                            raise Exception("Wrong variation configuration")
+                            raise Exception(f"Wrong variation configuration: variation {w} not available for sample {sample} in {cat} category")
                         if w not in wsample[variation_type][cat]:
                             wsample[variation_type][cat].append(w)
 
@@ -444,15 +490,15 @@ class Configurator:
                     print(
                         f"Requested missing sample {sample} in the variations configuration"
                     )
-                    raise Exception("Wrong variation configuration")
+                    raise Exception(f"Wrong variation configuration: sample {sample} not available in the samples list")
                 if "inclusive" in s_wcfg:
                     for w in s_wcfg["inclusive"]:
                         if w not in available_variations:
                             print(f"Variation {w} not available in the workflow")
-                            raise Exception("Wrong variation configuration")
-                        if w not in self.weights_config[sample]["inclusive"]:
+                            raise Exception(f"Wrong variation configuration: variation {w} not available in the workflow")
+                        if variation_type == "weights" and  w not in self.weights_config[sample]["inclusive"]:
                             print(f"Error: variation {w} not available for sample {sample} in inclusive category")
-                            raise Exception("Wrong variation configuration")
+                            raise Exception(f"Wrong variation configuration: variation {w} not available for sample {sample} in inclusive category")
                         # append only to the specific sample
                         for wcat in self.variations_config[sample][
                             variation_type
@@ -467,14 +513,27 @@ class Configurator:
                                 print(
                                     f"Variation {w} not available in the workflow"
                                 )
-                                raise Exception("Wrong variation configuration")
-                            if (self.weights_config[sample]["is_split_bycat"] and
-                            w not in self.weights_config[sample]["bycategory"][cat]):
+                                raise Exception(f"Wrong variation configuration: variation {w} not available in the workflow")
+                            if (variation_type=="weights" and
+                                self.weights_config[sample]["is_split_bycat"] and
+                                w not in self.weights_config[sample]["bycategory"][cat]):
                                 print(f"Error: variation {w} not available for sample {sample} in {cat} category")
-                                raise Exception("Wrong variation configuration")
+                                raise Exception(f"Wrong variation configuration: variation {w} not available for sample {sample} in {cat} category")
                             self.variations_config[sample][variation_type][cat].append(
                                 w
                             )
+
+                if "inclusive" not in s_wcfg and "bycategory" not in s_wcfg:
+                    print(f"None of the `inclusive` or `bycategory` keys found in the weights configuration for sample {sample}.\n")
+                    print(
+                        """The dictionary structure should be like:\n
+                        'bysample': {
+                            'sample_name': {
+                                'inclusive': ['weight1', 'weight2'],
+                                'bycategory': {'cat1': ['weight1', 'weight2']}
+                        }\n"""
+                    )
+                    raise Exception("Wrong weight configuration")
 
     def load_columns_config(self, wcfg):
         if wcfg == None:
@@ -597,11 +656,17 @@ class Configurator:
         # categories
         ocfg["categories"] = self.categories.serialize()
 
-        ocfg["workflow"] = {
-            "name": self.workflow.__name__,
-            "workflow_options": self.workflow_options,
-            "srcfile": inspect.getsourcefile(self.workflow),
-        }
+        try:
+            ocfg["workflow"] = {
+                "name": self.workflow.__name__,
+                "workflow_options": self.workflow_options,
+                "srcfile": inspect.getsourcefile(self.workflow),
+            }
+        except TypeError:
+            ocfg["workflow"] = {
+                "name": self.workflow.__name__,
+                "workflow_options": self.workflow_options,
+            }
 
         ocfg["weights"] = {}
         for sample, weights in self.weights_config.items():
@@ -675,3 +740,23 @@ class Configurator:
 
     def __str__(self):
         return repr(self)
+
+
+    def clone(self):
+        '''Create a copy of the configurator in the loaded=False state'''
+        return Configurator(
+            workflow=self.workflow,
+            parameters=self.parameters,
+            datasets=self.datasets_cfg,
+            skim=self.skim_cfg,
+            preselections=self.preselections_cfg,
+            categories=self.categories_cfg,
+            weights=self.weights_cfg,
+            weights_classes=self.weights_classes,
+            variations=self.variations_cfg,
+            variables=self.variables,
+            columns=self.columns_cfg,
+            workflow_options=self.workflow_options,
+            save_skimmed_files=self.save_skimmed_files_folder,
+            do_postprocessing=self.do_postprocessing,
+        )

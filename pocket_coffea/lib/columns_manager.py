@@ -182,7 +182,7 @@ class ColumnsManager:
                     print(f"Error in category {category} and collection {outarray.collection} and column {col}")
                     print(e)
                     raise e
-            #zipping all the arrays by cat
+
             # Check that all the columns have the same first axis size
             # get dim from first key
             dim = len(out_by_cat[list(out_by_cat.keys())[0]])
@@ -193,6 +193,7 @@ class ColumnsManager:
                         When exporting akward arrays all the columns should have flatten=False option to keep the event dimension consistent"
                     )
             
+            # Zipping all the arrays by cat
             self.output[category] = ak.zip(out_by_cat, depth_limit=1)
                 
         #return full output with all categories

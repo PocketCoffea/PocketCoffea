@@ -1,6 +1,6 @@
 import awkward as ak
 from .cut_definition import Cut
-from .triggers import get_trigger_mask
+from .triggers import get_trigger_mask_byprimarydataset,  apply_trigger_mask
 import correctionlib
 import numpy as np
 from coffea.lumi_tools import LumiMask
@@ -15,15 +15,7 @@ def passthrough_f(events, **kargs):
 
 
 ##############################
-## Factory method for HLT
-def _get_trigger_mask_proxy(events, params, processor_params, year, isMC, **kwargs):
-    '''
-    Helper function to call the HLT trigger mask
-    '''
-    return get_trigger_mask(
-        events, processor_params.HLT_triggers, year, isMC, params["primaryDatasets"], params["invert"]
-    )
-
+## Factory methods for HLT triggers
 
 def get_HLTsel(primaryDatasets=None, invert=False):
     '''Create the HLT trigger mask
@@ -50,7 +42,29 @@ def get_HLTsel(primaryDatasets=None, invert=False):
     return Cut(
         name=name,
         params={"primaryDatasets": primaryDatasets, "invert": invert},
-        function=_get_trigger_mask_proxy,
+        function=lambda events, params, processor_params, year, isMC,  **kwargs:  get_trigger_mask_byprimarydataset(
+            events,
+            trigger_dict=processor_params.HLT_triggers,
+            year=year,
+            isMC=isMC,
+            primaryDatasets=params["primaryDatasets"],
+            invert=params["invert"])
+    )
+
+def get_HLTsel_custom(trigger_list, invert=False):
+    '''Create the HLT trigger mask using a custom list of triggers.
+
+    The Cut function does not read the triggers configuration, but uses the list of triggers provided dynamically.
+    '''
+    triggers_to_apply = [t.lstrip("HLT_") for t in trigger_list]
+    return Cut(
+        name="HLT_trigger_"+ "_".join(trigger_list),
+        params={"triggers_to_apply": triggers_to_apply,  "invert": invert},
+        function=lambda events, params, processor_params, year, isMC, **kwargs:  apply_trigger_mask(
+            events,
+            triggers_to_apply=params["triggers_to_apply"],
+            year=year,
+            invert=params["invert"])
     )
 
 ###########################

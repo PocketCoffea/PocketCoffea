@@ -35,7 +35,7 @@ def plot_shapes_comparison(
     for sample, cat, year, variation, label in shapes:
         print(sample, cat, year, variation)
         datasets = H[sample].keys()
-        datasets_by_year = list(filter(lambda x : x.endswith(year), datasets))
+        datasets_by_year = list(filter(lambda x : year in x, datasets))
         h_by_year = {k :val for k, val in H[sample].items() if k in datasets_by_year}
         if len(h_by_year) == 0:
             raise ValueError(f"No datasets found for {sample} in year {year} in histogram {var}")

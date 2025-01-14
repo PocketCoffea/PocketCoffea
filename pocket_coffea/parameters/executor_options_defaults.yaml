@@ -25,6 +25,18 @@ dask@lxplus:
   conda-env: false
   local-virtualenv: false
 
+  
+condor@lxplus:
+  cores-per-worker: 1
+  mem-per-worker: "2GB"
+  disk-per-worker: "2GB"
+  worker-image: /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-latest
+  queue: "microcentury"
+  custom-setup-commands: null
+  conda-env: false
+  local-virtualenv: false
+  max-retries: 3
+
 
 dask@T3_CH_PSI:
   scaleout: 10
@@ -47,7 +59,7 @@ parsl-condor@DESY_NAF:
   queue: ""
   walltime: "12:00:00"
 
-parsl-condor@RWTH:
+parsl@RWTH:
   scaleout: 1
   mem_per_worker: 2 # GB
   logs-dir: logs_parsl
@@ -69,6 +81,7 @@ dask@RWTH:
 
 dask@brux:
   scaleout: 336
+  chunksize: 100000
   mem-per-worker: "4GB"
   disk-per-worker: "4GB"
   local-virtualenv: false
@@ -77,6 +90,8 @@ dask@brux:
   walltime: "6:00:00"
   adaptive: false
   sched-url: null
+  skip-bad-files: true
+  retries: 3
 
 dask@purdue-af:
   gateway-address: "http://dask-gateway-k8s.geddes.rcac.purdue.edu/"
@@ -92,3 +107,18 @@ dask@infn-af:
 
 dask@swan:
   sched-url: null
+
+dask@oscar:
+  scaleout: 64
+  chunksize: 100000
+  mem-per-worker: "7.5GB"
+  disk-per-worker: "4GB"
+  local-virtualenv: false
+  conda-env: True
+  cores-per-worker: 1
+  walltime: "6:00:00"
+  adaptive: false
+  sched-url: null
+  skip-bad-files: true
+  retries: 3
+  queue: "batch"
