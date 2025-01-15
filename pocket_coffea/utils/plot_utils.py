@@ -816,7 +816,7 @@ class Shape:
             if cache:
                 self._stacksCache[cat] = stacks
             if not self.is_data_only:
-                self.syst_manager.update()
+                self.syst_manager.update(cat, stacks)
         else:
             stacks = self._stacksCache[cat]
         return stacks
@@ -1482,11 +1482,10 @@ class SystManager:
             self.systematics.append("mcstat")
         self.syst_dict = defaultdict(dict)
 
-    def update(self):
+    def update(self, cat, stacks):
         '''Updates the dictionary of systematic uncertainties with the new cached stacks.'''
-        for cat, stacks in self.shape._stacksCache.items():
-            for syst_name in self.systematics:
-                self.syst_dict[cat][syst_name] = SystUnc(self.shape, stacks, syst_name)
+        for syst_name in self.systematics:
+            self.syst_dict[cat][syst_name] = SystUnc(self.shape, stacks, syst_name)
 
     def total(self, cat):
         return SystUnc(self.shape, name="total", syst_list=list(self.syst_dict[cat].values()))
