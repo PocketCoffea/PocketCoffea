@@ -30,7 +30,7 @@ def filter_output_by_year(o, year):
                 o_filtered[key][k][s] = filter_dictionary(_dict, year)
     
     o_filtered["datasets_metadata"]["by_datataking_period"] = {k : val for k, val in o["datasets_metadata"]["by_datataking_period"].items() if k == year}
-    o_filtered["datasets_metadata"]["by_dataset"] = defaultdict(dict, {k : val for k, val in o["datasets_metadata"]["by_dataset"].items() if k.endswith(year)})
+    o_filtered["datasets_metadata"]["by_dataset"] = defaultdict(dict, {k : val for k, val in o["datasets_metadata"]["by_dataset"].items() if val["year"] == year})
     return o_filtered
 
 def compare_dict_types(d1, d2, path=""):
