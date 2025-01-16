@@ -32,7 +32,7 @@ def compare_totalweight(output, variables):
                     assert np.isclose(output["variables"][variable][sample][dataset][hist.loc(category), hist.loc("nominal"), :].sum(flow=True).value, sumw)
 
 
-reference_commit = "98fcca4c"
+reference_commit = "3b6cf6c"
 
 def test_new_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_new_weights" )
@@ -206,33 +206,35 @@ def test_subsamples(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_f
 
     assert output is not None
     assert output["cutflow"] == {
-        'initial': {'DATA_EGamma_2018_EraA': 501,
-                    'DATA_SingleMuon_2018_EraA': 501,
+        'initial': {'DATA_EGamma_2018_EraA': 500,
+                    'DATA_SingleMuon_2018_EraA': 500,
                     'TTTo2L2Nu_2018': 500},
-        'skim': {'DATA_EGamma_2018_EraA': 333,
-                 'DATA_SingleMuon_2018_EraA': 421,
+        'skim': {'DATA_EGamma_2018_EraA': 354,
+                 'DATA_SingleMuon_2018_EraA': 434,
                  'TTTo2L2Nu_2018': 326},
-        'presel': {'DATA_EGamma_2018_EraA': 333,
-                   'DATA_SingleMuon_2018_EraA': 421,
+        'presel': {'DATA_EGamma_2018_EraA': 354,
+                   'DATA_SingleMuon_2018_EraA': 434,
                    'TTTo2L2Nu_2018': 326},
-        'baseline': {'DATA_EGamma_2018_EraA': {'DATA_SingleEle': 333},
-                     'DATA_SingleMuon_2018_EraA': {'DATA_SingleMuon': 421,
-                                                   'DATA_SingleMuon__clean': 421},
+        'baseline': {'DATA_EGamma_2018_EraA': {'DATA_SingleEle': 354},
+                     'DATA_SingleMuon_2018_EraA': {'DATA_SingleMuon': 434,
+                                                   'DATA_SingleMuon__clean': 433},
                      'TTTo2L2Nu_2018': {'TTTo2L2Nu': 326,
                                         'TTTo2L2Nu__ele': 107,
                                         'TTTo2L2Nu__mu': 156}},
-        '1btag': {'DATA_EGamma_2018_EraA': {'DATA_SingleEle': 16},
-                  'DATA_SingleMuon_2018_EraA': {'DATA_SingleMuon': 50,
-                                                'DATA_SingleMuon__clean': 50},
+        '1btag': {'DATA_EGamma_2018_EraA': {'DATA_SingleEle': 24},
+                  'DATA_SingleMuon_2018_EraA': {'DATA_SingleMuon': 36,
+                                                'DATA_SingleMuon__clean': 36},
                   'TTTo2L2Nu_2018': {'TTTo2L2Nu': 279,
                                      'TTTo2L2Nu__ele': 89,
                                      'TTTo2L2Nu__mu': 138}},
         '2btag': {'DATA_EGamma_2018_EraA': {'DATA_SingleEle': 2},
-                  'DATA_SingleMuon_2018_EraA': {'DATA_SingleMuon': 5,
-                                                'DATA_SingleMuon__clean': 5},
+                  'DATA_SingleMuon_2018_EraA': {'DATA_SingleMuon': 1,
+                                                'DATA_SingleMuon__clean': 1},
                   'TTTo2L2Nu_2018': {'TTTo2L2Nu': 115,
                                      'TTTo2L2Nu__ele': 39,
-                                     'TTTo2L2Nu__mu': 55}}}
+                                     'TTTo2L2Nu__mu': 55}},
+        
+    }
     
     compare_totalweight(output, ["nJetGood"])
 

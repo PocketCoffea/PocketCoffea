@@ -426,6 +426,18 @@ class Configurator:
                             self.weights_config[sample]["bycategory"][cat].append(w)
                             self.weights_config[sample]["is_split_bycat"] = True
 
+                if "inclusive" not in s_wcfg and "bycategory" not in s_wcfg:
+                    print(f"None of the `inclusive` or `bycategory` keys found in the weights configuration for sample {sample}.\n")
+                    print(
+                        """The dictionary structure should be like:\n
+                        'bysample': {
+                            'sample_name': {
+                                'inclusive': ['weight1', 'weight2'],
+                                'bycategory': {'cat1': ['weight1', 'weight2']}
+                        }\n"""
+                    )
+                    raise Exception("Wrong weight configuration")
+
     def load_variations_config(self, wcfg, variation_type):
         '''This function loads the variations definition and prepares a list of
         weights to be applied for each sample and category'''
@@ -446,6 +458,7 @@ class Configurator:
         for w in wcfg["common"]["inclusive"]:
             if w not in available_variations:
                 print(f"Variation {w} not available in the workflow")
+                print("Available variations: ", available_variations)
                 raise Exception(f"Wrong variation configuration: variation {w} not available in the workflow")
             for sample, wsample in self.variations_config.items():
                 if variation_type == "weights" and w not in self.weights_config[sample]["inclusive"]:
@@ -509,6 +522,18 @@ class Configurator:
                             self.variations_config[sample][variation_type][cat].append(
                                 w
                             )
+
+                if "inclusive" not in s_wcfg and "bycategory" not in s_wcfg:
+                    print(f"None of the `inclusive` or `bycategory` keys found in the weights configuration for sample {sample}.\n")
+                    print(
+                        """The dictionary structure should be like:\n
+                        'bysample': {
+                            'sample_name': {
+                                'inclusive': ['weight1', 'weight2'],
+                                'bycategory': {'cat1': ['weight1', 'weight2']}
+                        }\n"""
+                    )
+                    raise Exception("Wrong weight configuration")
 
     def load_columns_config(self, wcfg):
         if wcfg == None:

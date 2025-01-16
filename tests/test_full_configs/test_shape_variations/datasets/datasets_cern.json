@@ -39,7 +39,7 @@
             "size": "211774345140"
         },
         "files": [
-            "root://eoscms.cern.ch//eos/cms/store/data/Run2018A/SingleMuon/NANOAOD/UL2018_MiniAODv2_NanoAODv9-v2/2550000/C1FD87EB-3052-524A-8DAD-1C95A6EABBF0.root"]
+            "root://eoscms.cern.ch//eos/cms/store/data/Run2018A/SingleMuon/NANOAOD/UL2018_MiniAODv2_NanoAODv9_GT36-v1/2820000/06EFD7A6-A6F1-E145-B1F8-C6794FE4EDDD.root"]
      },
 
     "DATA_EGamma_2018_EraA": {
@@ -54,6 +54,6 @@
             "size": "211774345140"
         },
         "files": [
-            "root://eoscms.cern.ch//eos/cms/store/data/Run2018A/EGamma/NANOAOD/UL2018_MiniAODv2_NanoAODv9-v1/270000/D6E273DF-728E-7E44-BAD3-6B28D95C3A31.root"]
+            "root://eoscms.cern.ch//eos/cms/store/data/Run2018A/EGamma/NANOAOD/UL2018_MiniAODv2_NanoAODv9_GT36-v1/2830000/10D2F672-4042-5F49-B8D5-73B90AF52CFD.root"]
      }
 }

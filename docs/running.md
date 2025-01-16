@@ -114,7 +114,7 @@ respectively).
 |swan| dask                 | dask@swan    |
 |T3_CH_PSI| dask            | dask@T3_CH_PSI |
 |DESY NAF | dask            | dask@DESY_NAF |
-|RWTH Aachen LX-Cluster | parsl, dask         | parsl-condor@RWTH, dask@RWTH |
+|RWTH Aachen LX-Cluster | parsl, dask         | parsl@RWTH, dask@RWTH |
 |[Purdue Analysis Facility](https://analysis-facility.physics.purdue.edu)| dask | dask@purdue-af |
 |[INFN Analysis Facility](https://infn-cms-analysisfacility.readthedocs.io/)| dask | dask@infn-af |
 |Brown brux20 cluster | dask | dask@brux |
@@ -274,7 +274,7 @@ session, detach from it, exit lxplus, and at the next login reattch to the runni
 
 This service needs to be activate, only once, for your user with `systemctl --user enable --now tmux.service`. The full
 documentation about this (new) feature is available on the [Service
-Portal](https://cern.service-now.com/service-portal?id=kb_article&n=KB0008111).
+Portal](https://cern.service-now.com/service-portal?id=kb_article\&n=KB0008111).
 
 Once setup you can start a tmux session as:
 ```bash

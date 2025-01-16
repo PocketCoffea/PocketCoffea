@@ -13,6 +13,8 @@ from pocket_coffea.lib.scale_factors import (
     sf_jet_puId,
     sf_L1prefiring,
     sf_pileup_reweight,
+    sf_partonshower_isr,
+    sf_partonshower_fsr
 )
 
 
@@ -99,6 +101,21 @@ SF_L1prefiring = WeightLambda.wrap_func(
     has_variations=True
     )
 
+
+SF_PSWeight_isr = WeightLambda.wrap_func(
+    name="sf_partonshower_isr",
+    function=lambda params, metadata, events, size, shape_variations:
+        sf_partonshower_isr(events),
+    has_variations=True
+    )
+
+SF_PSWeight_fsr = WeightLambda.wrap_func(
+    name="sf_partonshower_fsr",
+    function=lambda params, metadata, events, size, shape_variations:
+        sf_partonshower_fsr(events),
+    has_variations=True
+    )
+
         
 ########################################
 # Btag scale factors have weights depending on the shape_variation
@@ -133,7 +150,7 @@ class SF_btag(WeightWrapper):
             )
 
 
-        elif "JES_" in shape_variation:
+        elif shape_variation.startswith("JES"):
             out = sf_btag(self._params,
                                 events[self.jet_coll],
                                 self._metadata["year"],
@@ -295,6 +312,8 @@ common_weights = [
     SF_ctag,
     SF_ctag_calib,
     SF_jet_puId,
+    SF_PSWeight_isr,
+    SF_PSWeight_fsr
 ]
 
 

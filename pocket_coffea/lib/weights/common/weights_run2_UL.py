@@ -6,11 +6,14 @@ from ..weights import WeightData, WeightDataMultiVariation, WeightLambda, Weight
 
 
 def get_ele_trigger_sf(params, year, pt, eta, phi, counts, variations):
-    """Compute the electron trigger scale factors for Run2 (Custom Implementation)"""
+    """Compute the electron trigger scale factors for Run2.
+    Note that this a custom implementation to apply the single electron trigger scale factors in the ttH(bb) Run-2 analysis.
+    This implementation is not supported by the EGM-POG.
+    The procedure to compute the trigger SF correction map can be found at https://github.com/PocketCoffea/AnalysisConfigs/tree/main/configs/ttHbb/semileptonic/semileptonic_triggerSF .
+    The structure of the correction map and the naming convention follows the one of the implementation.
+    """
 
     electronSF = params["lepton_scale_factors"]["electron_sf"]
-    # translate the `year` key into the corresponding key in the correction file provided by the EGM-POG
-    year_pog = electronSF["era_mapping"][year]
 
     electron_correctionset = correctionlib.CorrectionSet.from_file(
         electronSF.trigger_sf[year]["file"]
@@ -18,43 +21,35 @@ def get_ele_trigger_sf(params, year, pt, eta, phi, counts, variations):
     map_name = electronSF.trigger_sf[year]["name"]
 
     output = {}
-    trigger_path = electronSF.trigger_sf[year]["path"]
     for variation in variations:
         if variation == "nominal":
             output[variation] = [
                 electron_correctionset[map_name].evaluate(
-                    year_pog,
-                    "sf",
-                    trigger_path,
-                    eta.to_numpy(),
+                    variation,
                     pt.to_numpy(),
+                    eta.to_numpy(),
                 )
             ]
+            nominal = output[variation][0]
         else:
-            # Nominal sf==1
-            nominal = np.ones_like(pt.to_numpy())
             # Systematic variations
             output[variation] = [
                 nominal,
                 electron_correctionset[map_name].evaluate(
-                    year_pog,
-                    f"{variation}up",
-                    trigger_path,
-                    eta.to_numpy(),
+                    f"{variation}Up",
                     pt.to_numpy(),
+                    eta.to_numpy(),
                 ),
                 electron_correctionset[map_name].evaluate(
-                    year_pog,
-                    f"{variation}down",
-                    electronSF.trigger_sf[year]["path"],
-                    eta.to_numpy(),
+                    f"{variation}Down",
                     pt.to_numpy(),
+                    eta.to_numpy(),
                 ),
             ]
         for i, sf in enumerate(output[variation]):
             output[variation][i] = ak.unflatten(sf, counts)
 
-        return output
+    return output
 
 
 # UL custom electron trigger scale factors
@@ -90,9 +85,51 @@ def sf_ele_trigger(params, events, year, variations=["nominal"]):
     return sf_dict
 
 
-########################################################################
-# More complicated WeightWrapper defining dynamic variations depending
-# on the data taking period
+def sf_qcd_renorm_scale(events):
+    '''Up and down variations for the renormalization scale weights.
+    The up variation of the renormalization scale weight is defined as the ratio of the weight
+    with renormalization scale increased by a factor of 2 to the nominal weight ([7]/[4]).
+    The down variation of the renormalization scale weight is defined as the ratio of the weight
+    with renormalization scale decreased by a factor of 2 to the nominal weight ([1]/[4]).
+    Conventions for the LHEScaleWeight (valid for NanoAODv9) are:
+    LHE scale variation weights (w_var / w_nominal);
+    [0] is renscfact=0.5d0 facscfact=0.5d0 ;
+    [1] is renscfact=0.5d0 facscfact=1d0 ;
+    [2] is renscfact=0.5d0 facscfact=2d0 ;
+    [3] is renscfact=1d0 facscfact=0.5d0 ;
+    [4] is renscfact=1d0 facscfact=1d0 ;
+    [5] is renscfact=1d0 facscfact=2d0 ;
+    [6] is renscfact=2d0 facscfact=0.5d0 ;
+    [7] is renscfact=2d0 facscfact=1d0 ;
+    [8] is renscfact=2d0 facscfact=2d0'''
+    sf_up = events.LHEScaleWeight[:,7]/events.LHEScaleWeight[:,4]
+    sf_down = events.LHEScaleWeight[:,1]/events.LHEScaleWeight[:,4]
+    nom = ak.ones_like(sf_up)
+
+    return nom, sf_up, sf_down
+
+def sf_qcd_factor_scale(events):
+    '''Up and down variations for the factorization scale weights.
+    The up variation of the factorization scale weight is defined as the ratio of the weight
+    with factorization scale increased by a factor of 2 to the nominal weight ([5]/[4]).
+    The down variation of the factorization scale weight is defined as the ratio of the weight
+    with factorization scale decreased by a factor of 2 to the nominal weight ([3]/[4]).
+    Conventions for the LHEScaleWeight (valid for NanoAODv9) are:
+    LHE scale variation weights (w_var / w_nominal);
+    [0] is renscfact=0.5d0 facscfact=0.5d0 ;
+    [1] is renscfact=0.5d0 facscfact=1d0 ;
+    [2] is renscfact=0.5d0 facscfact=2d0 ;
+    [3] is renscfact=1d0 facscfact=0.5d0 ;
+    [4] is renscfact=1d0 facscfact=1d0 ;
+    [5] is renscfact=1d0 facscfact=2d0 ;
+    [6] is renscfact=2d0 facscfact=0.5d0 ;
+    [7] is renscfact=2d0 facscfact=1d0 ;
+    [8] is renscfact=2d0 facscfact=2d0'''
+    sf_up = events.LHEScaleWeight[:,5]/events.LHEScaleWeight[:,4]
+    sf_down = events.LHEScaleWeight[:,3]/events.LHEScaleWeight[:,4]
+    nom = ak.ones_like(sf_up)
+
+    return nom, sf_up, sf_down
 
 
 class SF_ele_trigger(WeightWrapper):
@@ -130,3 +167,17 @@ class SF_ele_trigger(WeightWrapper):
                 self._params, events, self._metadata["year"], variations=["nominal"]
             )
             return WeightData(name=self.name, nominal=out["nominal"][0])
+
+SF_QCD_renorm_scale = WeightLambda.wrap_func(
+    name="sf_qcd_renorm_scale",
+    function=lambda params, metadata, events, size, shape_variations:
+        sf_qcd_renorm_scale(events),
+    has_variations=True
+    )
+
+SF_QCD_factor_scale = WeightLambda.wrap_func(
+    name="sf_qcd_factor_scale",
+    function=lambda params, metadata, events, size, shape_variations:
+        sf_qcd_factor_scale(events),
+    has_variations=True
+    )
