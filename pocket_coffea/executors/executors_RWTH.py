@@ -70,7 +70,7 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
                         provider=CondorProvider(
                             nodes_per_block=1,
                             cores_per_slot=self.run_options.get("cores-per-worker", 1),
-                            mem_per_slot=self.run_options.get("mem_per_worker", 2),
+                            mem_per_slot=self.run_options.get("mem-per-worker", 4),
                             init_blocks=self.run_options["scaleout"],
                             max_blocks=(self.run_options["scaleout"]) + 5,
                             worker_init="\n".join(self.get_worker_env()),

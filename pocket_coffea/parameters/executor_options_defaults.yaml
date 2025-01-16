@@ -3,7 +3,7 @@ general:
   chunksize: 150000
   limit-files: null
   limit-chunks: null
-  retries: 20
+  retries: 2
   tree-reduction: 20
   skip-bad-files: false
   voms-proxy: null
@@ -61,7 +61,7 @@ parsl-condor@DESY_NAF:
 
 parsl@RWTH:
   scaleout: 1
-  mem_per_worker: 2 # GB
+  mem-per-worker: 2 # GB
   logs-dir: logs_parsl
   local-virtualenv: false
   conda-env: True
