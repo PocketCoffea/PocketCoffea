@@ -160,7 +160,8 @@ class PlotManager:
         density=False,
         verbose=1,
         save=True,
-        index_file=None
+        index_file=None,
+        cache=True
     ) -> None:
 
         self.shape_objects = {}
@@ -175,6 +176,7 @@ class PlotManager:
         self.nhists = len(variables)
         self.toplabel = toplabel
         self.verbose=verbose
+        self.cache = cache
 
         # Reading the datasets_metadata to
         # build the correct shapes for each datataking year
@@ -220,7 +222,8 @@ class PlotManager:
                     density=self.density,
                     toplabel=toplabel_to_use,
                     year=year,
-                    verbose=self.verbose
+                    verbose=self.verbose,
+                    cache=self.cache
                 )
         if self.save:
             self.make_dirs()
@@ -355,6 +358,7 @@ class Shape:
         density=False,
         year = None,
         verbose=1,
+        cache=True
     ) -> None:
         self.h_dict = h_dict
         self.name = name
@@ -368,6 +372,7 @@ class Shape:
         self.sample_is_MC = {}
         self.year=year
         self.verbose = verbose
+        self.cache = cache
         self._stacksCache = defaultdict(dict)
         assert (
             type(h_dict) in [dict, defaultdict]
@@ -723,7 +728,7 @@ class Shape:
                     print("Warning: the rescaling sample is not among the samples in the histograms. Nothing will be rescaled! ")
                     print("\t Rescale requested for:", sample, ";  hists exist:", self.h_dict.keys())
 
-    def _get_stacks(self, cat, spliteras=False, cache=False):
+    def _get_stacks(self, cat, spliteras=False):
         '''Builds the data and MC stacks, applying a slicing by category.
         The stacks are cached in a dictionary so that they are not recomputed every time.
         If spliteras is True, the extra axis "era" is kept in the data stack to
@@ -813,7 +818,7 @@ class Shape:
                 }
                 stacks["data"] = hist.Stack.from_dict(self.h_dict_data)
                 stacks["data_sum"] = self._stack_sum(stack = stacks["data"])
-            if cache:
+            if self.cache:
                 self._stacksCache[cat] = stacks
             if not self.is_data_only:
                 self.syst_manager.update(cat, stacks)
@@ -1317,7 +1322,7 @@ class Shape:
 
         self.format_figure(cat, ratio=ratio)
 
-    def plot_datamc_all(self, ratio=True, syst=True, spliteras=False, save=True, format='png', clear_cache=True):
+    def plot_datamc_all(self, ratio=True, syst=True, spliteras=False, save=True, format='png'):
         '''Plots the data and MC histograms for each year and category contained in the histograms.
         If ratio is True, also the Data/MC ratio plot is plotted.
         If syst is True, also the total systematic uncertainty is plotted.'''
@@ -1345,8 +1350,6 @@ class Shape:
             else:
                 plt.show(self.fig)
             plt.close(self.fig)
-        if clear_cache:
-            self._stacksCache.clear()
 
     def plot_comparison(self, cat, ratio=True, ax=None, rax=None):
         '''Plots the comparison of the histograms'''
