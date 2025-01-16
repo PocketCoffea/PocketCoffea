@@ -113,9 +113,9 @@ jet_scale_factors:
         '2022_postEE':
             file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2022_Summer22EE/jetvetomaps.json.gz
             name: "Summer22EE_23Sep2023_RunEFG_V1"
-        '2023_preBPIX':
+        '2023_preBPix':
             file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2023_Summer23/jetvetomaps.json.gz
             name: "Summer23Prompt23_RunC_V1"
-        '2023_postBPIX':
+        '2023_postBPix':
             file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2023_Summer23BPix/jetvetomaps.json.gz
             name: "Summer23BPixPrompt23_RunD_V1"
