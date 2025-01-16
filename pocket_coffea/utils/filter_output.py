@@ -3,7 +3,7 @@
 from collections import defaultdict
 
 def filter_dictionary(d, string):
-    d_filtered = {k : val for k,val in d.items() if k.endswith(string)}
+    d_filtered = {k : val for k,val in d.items() if string in k}
     if type(d) == defaultdict:
         return defaultdict(dict, d_filtered)
     elif type(d) == dict:
