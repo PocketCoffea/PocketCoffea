@@ -668,6 +668,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Only apply JEC if variations are asked or if the nominal JEC is requested
         if has_jes or has_jer or jet_calib_params.apply_jec_nominal[self._year]:
             for jet_type, jet_coll_name in jet_calib_params.collection[self._year].items():
+                # If the nominal JEC are not requested and there is no variation corresponding to `jet_type`, do not compute the correction
+                if not jet_calib_params.apply_jec_nominal[self._year] and not any([v.split("_")[-1] == jet_type for v in variations]):
+                    continue
                 cache = cachetools.Cache(np.inf)
                 caches.append(cache)
                 jets_calibrated[jet_coll_name] = jet_correction(

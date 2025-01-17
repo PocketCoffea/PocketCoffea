@@ -160,7 +160,8 @@ class PlotManager:
         density=False,
         verbose=1,
         save=True,
-        index_file=None
+        index_file=None,
+        cache=True
     ) -> None:
 
         self.shape_objects = {}
@@ -175,6 +176,7 @@ class PlotManager:
         self.nhists = len(variables)
         self.toplabel = toplabel
         self.verbose=verbose
+        self.cache = cache
 
         # Reading the datasets_metadata to
         # build the correct shapes for each datataking year
@@ -220,7 +222,8 @@ class PlotManager:
                     density=self.density,
                     toplabel=toplabel_to_use,
                     year=year,
-                    verbose=self.verbose
+                    verbose=self.verbose,
+                    cache=self.cache
                 )
         if self.save:
             self.make_dirs()
@@ -279,7 +282,6 @@ class PlotManager:
         else:
             for shape in shape_names:
                 self.plot_datamc(shape, ratio=ratio, syst=syst, spliteras=spliteras, format=format)
-
 
     def plot_comparison(self, name, ratio=True, format="png"):
         '''Plots one histogram, for all years and categories.'''
@@ -356,6 +358,7 @@ class Shape:
         density=False,
         year = None,
         verbose=1,
+        cache=True
     ) -> None:
         self.h_dict = h_dict
         self.name = name
@@ -369,6 +372,7 @@ class Shape:
         self.sample_is_MC = {}
         self.year=year
         self.verbose = verbose
+        self.cache = cache
         self._stacksCache = defaultdict(dict)
         assert (
             type(h_dict) in [dict, defaultdict]
@@ -376,6 +380,7 @@ class Shape:
         self.group_samples()
         self.exclude_samples()
         self.rescale_samples()
+        self.replace_missing_variations()
         self.load_attributes()
         self.load_syst_manager()
 
@@ -471,6 +476,64 @@ class Shape:
 
         return dense_axes
 
+    def replace_missing_variations(self):
+        '''Replaces the missing categories in the MC histograms with the nominal values.'''
+        d = {s: v for s, v in self.h_dict.items() if s in self.samples_mc}
+        h0 = self.h_dict[list(d.keys())[0]]
+        # Define the categorical axes dict with the categorical axis name as key and the list of available categories as value
+        categorical_axes_dict = {axis_name : set() for axis_name in [ax.name for ax in h0.axes if type(ax) in [hist.axis.StrCategory, hist.axis.IntCategory]]}
+
+        # Save the union of the categories for each axis across samples
+        for axis_name in categorical_axes_dict.keys():
+            for s, h in d.items():
+                ax = [ax for ax in h.axes if ax.name == axis_name][0]
+                categorical_axes_dict[axis_name] |= {ax.value(i) for i in range(len(ax))}
+
+        categories_sorted = {}
+        for axis_name in categorical_axes_dict.keys():
+            for s, h in d.items():
+                ax = [ax for ax in h.axes if ax.name == axis_name][0]
+                if len(ax) == len(categorical_axes_dict[axis_name]):
+                    categories_sorted[axis_name] = [ax.value(i) for i in range(len(ax))]
+
+        # Use the union of sets to define categorical_axes
+        for i, (axis_name, categories) in enumerate(categorical_axes_dict.items()):
+            for s, h in d.items():
+                ax = [ax for ax in h.axes if ax.name == axis_name][0]
+                categories_per_sample = {ax.value(i) for i in range(len(ax))}
+                if categories_per_sample != categories:
+                    if len(categorical_axes_dict) != 2:
+                        raise NotImplementedError("The number of categorical axes is different from 2. This case is not implemented yet. Only the axes `cat` and `variation` are supported.")
+                    if not axis_name == "variation":
+                        raise NotImplementedError(f"The axis `variation` is the only axis that could differ across samples. The axis `{axis_name}` is not supported.")
+                    categories_missing = categories - categories_per_sample
+                    # Copy the histogram h and extend the axis including the missing categories
+                    axes_to_copy = [ax for ax in h.axes if ax.name != axis_name]
+                    axis_name_other = list(categorical_axes_dict.keys())[1-i]
+                    axis_other = [ax for ax in h.axes if ax.name == axis_name_other][0]
+                    if type(ax) == hist.axis.StrCategory:
+                        axis_new = hist.axis.StrCategory(categories_sorted[axis_name], name=axis_name, label=ax.label)
+                    elif type(ax) == hist.axis.IntCategory:
+                        axis_new = hist.axis.IntCategory(categories_sorted[axis_name], name=axis_name, label=ax.label)
+                    # Create new histogram with the missing categories
+                    new_hist = hist.Hist(axis_other, axis_new, *self.dense_axes, storage=h._storage_type)
+                    warn_msg = f"WARNING: Sample {s} is missing variations in the axis `{axis_name}`. Filling the {axis_name} with nominal values.\nMissing variations: {categories_missing}"
+                    warn_flag = False
+                    for category_other in categorical_axes_dict[axis_name_other]:
+                        for category in categories:
+                            fields = {axis_name: category, axis_name_other: category_other}
+                            fields.update({dense_axis.name : dense_axis.centers for dense_axis in self.dense_axes})
+                            # Fill the missing categories with the nominal values
+                            if category in categories_missing:
+                                warn_flag = True
+                                weight = h[{axis_name_other: category_other, axis_name: "nominal", }].values()
+                            else:
+                                weight = h[{axis_name_other: category_other, axis_name: category}].values()
+                            new_hist.fill(**fields, weight=weight)
+                    if warn_flag:
+                        print(warn_msg)
+                    self.h_dict[s] = new_hist
+
     def _categorical_axes(self, is_mc=True):
         '''Returns the list of categorical axes of a histogram.'''
         # Since MC and data have different categorical axes, the argument mc needs to specified
@@ -478,24 +541,40 @@ class Shape:
             d = {s: v for s, v in self.h_dict.items() if s in self.samples_mc}
         else:
             d = {s: v for s, v in self.h_dict.items() if s in self.samples_data}
-        categorical_axes_dict = {s: [] for s in d.keys()}
+        h0 = self.h_dict[list(d.keys())[0]]
+        # Define the categorical axes dict with the categorical axis name as key and the list of available categories as value
+        categorical_axes_dict = {axis_name : set() for axis_name in [ax.name for ax in h0.axes if type(ax) in [hist.axis.StrCategory, hist.axis.IntCategory]]}
 
-        for s, h in d.items():
-            for ax in h.axes:
-                if type(ax) in [hist.axis.StrCategory, hist.axis.IntCategory]:
-                    categorical_axes_dict[s].append(ax)
-        categorical_axes = list(categorical_axes_dict.values())
+        # Save the union of the categories for each axis across samples
+        for axis_name in categorical_axes_dict.keys():
+            for s, h in d.items():
+                ax = [ax for ax in h.axes if ax.name == axis_name][0]
+                categorical_axes_dict[axis_name] |= {ax.value(i) for i in range(len(ax))}
+
+        # Use the union of sets to define categorical_axes
+        #categorical_axes = list(categorical_axes_dict.values())
         error_msg = f"The Shape object `{self.name}` contains histograms with different categorical axes in the %1 datasets.\nMismatching axes:\n"
         if is_mc:
             error_msg = error_msg.replace("%1", "MC")
         else:
             error_msg = error_msg.replace("%1", "Data")
-        for v in categorical_axes:
-            for i, axis in enumerate(v):
-                if axis != categorical_axes[0][i]:
-                    error_msg += f"{axis}\n" + f"{categorical_axes[0][i]}"
+        for i, (axis_name, categories) in enumerate(categorical_axes_dict.items()):
+            for s, h in d.items():
+                ax = [ax for ax in h.axes if ax.name == axis_name][0]
+                categories_per_sample = {ax.value(i) for i in range(len(ax))}
+                if categories_per_sample != categories:
+                    if not is_mc:
+                        raise NotImplementedError("The data histograms have different categories. This case is not implemented yet.")
+                    if len(categorical_axes_dict) != 2:
+                        raise NotImplementedError("The number of categorical axes is different from 2. This case is not implemented yet. Only the axes `cat` and `variation` are supported.")
+                    if not axis_name == "variation":
+                        raise NotImplementedError(f"The axis `variation` is the only axis that could differ across samples. The axis `{axis_name}` is not supported.")
+                    categories_missing = categories - categories_per_sample
+                    error_msg += f"{axis_name}\n" + f"Missing categories: {categories_missing}"
                     raise Exception(error_msg)
-        categorical_axes = categorical_axes[0]
+
+        h0 = self.h_dict[list(d.keys())[0]]
+        categorical_axes = [ax for ax in h0.axes if type(ax) in [hist.axis.StrCategory, hist.axis.IntCategory]]
 
         return categorical_axes
 
@@ -528,9 +607,9 @@ class Shape:
             if not cat:
                 raise Exception("The category `cat` should be passed when the `stack` option is not specified.")
             if is_mc:
-                stack = self._stacksCache[cat]["mc"]
+                stack = self._get_stacks(cat)["mc"]
             else:
-                stack = self._stacksCache[cat]["data"]
+                stack = self._get_stacks(cat)["data"]
         if len(stack) == 1:
             return stack[0]
         else:
@@ -600,7 +679,7 @@ class Shape:
             #print(sample_new, samples_list)
             for s_to_group in samples_list:
                 if s_to_group not in self.h_dict.keys():
-                    if self.verbose>=0:
+                    if self.verbose>=1:
                         print(f"{self.name}: WARNING. Sample ",s_to_group," is not in the list of samples: ", list(self.h_dict.keys()), "Skipping it.")
                     cleaned_samples_list[sample_new].remove(s_to_group)
                     continue
@@ -721,6 +800,8 @@ class Shape:
                 stacks["mc"] = hist.Stack.from_dict(h_dict_mc)
                 stacks["mc_nominal"] = hist.Stack.from_dict(h_dict_mc_nominal)
                 stacks["mc_nominal_sum"] = self._stack_sum(stack = stacks["mc_nominal"])
+                if any(np.isnan(stacks["mc_nominal_sum"].values())):
+                    raise ValueError(f"NaN values found in the nominal MC stack of histogram {self.name} for category {cat}.")
 
             if not self.is_mc_only:
                 # Sum over eras if specified as extra argument
@@ -741,19 +822,22 @@ class Shape:
                 }
                 stacks["data"] = hist.Stack.from_dict(self.h_dict_data)
                 stacks["data_sum"] = self._stack_sum(stack = stacks["data"])
-            self._stacksCache[cat] = stacks
+            if self.cache:
+                self._stacksCache[cat] = stacks
             if not self.is_data_only:
-                self.syst_manager.update()
-        return self._stacksCache[cat]
+                self.syst_manager.update(cat, stacks)
+        else:
+            stacks = self._stacksCache[cat]
+        return stacks
 
     def _is_empty(self, cat):
         '''Checks if the data and MC stacks are empty.'''
         is_empty = True
         if not self.is_data_only:
-            if sum(self._stacksCache[cat]["mc_nominal_sum"].values()) != 0:
+            if sum(self._get_stacks(cat)["mc_nominal_sum"].values()) != 0:
                 is_empty = False
         if not self.is_mc_only:
-            if sum(self._stacksCache[cat]["data_sum"].values()) != 0:
+            if sum(self._get_stacks(cat)["data_sum"].values()) != 0:
                 is_empty = False
         return is_empty
 
@@ -1405,11 +1489,10 @@ class SystManager:
             self.systematics.append("mcstat")
         self.syst_dict = defaultdict(dict)
 
-    def update(self):
+    def update(self, cat, stacks):
         '''Updates the dictionary of systematic uncertainties with the new cached stacks.'''
-        for cat, stacks in self.shape._stacksCache.items():
-            for syst_name in self.systematics:
-                self.syst_dict[cat][syst_name] = SystUnc(self.shape, stacks, syst_name)
+        for syst_name in self.systematics:
+            self.syst_dict[cat][syst_name] = SystUnc(self.shape, stacks, syst_name)
 
     def total(self, cat):
         return SystUnc(self.shape, name="total", syst_list=list(self.syst_dict[cat].values()))

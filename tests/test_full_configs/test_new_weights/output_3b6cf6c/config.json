@@ -1,0 +1,380 @@
+{
+  "datasets": {
+    "names": [
+      "TTTo2L2Nu_2018",
+      "DATA_SingleMuon_2018_EraA"
+    ],
+    "samples": [
+      "TTTo2L2Nu",
+      "DATA_SingleMuon"
+    ],
+    "filesets": {
+      "TTTo2L2Nu_2018": {
+        "metadata": {
+          "das_names": "['/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM']",
+          "sample": "TTTo2L2Nu",
+          "year": "2018",
+          "isMC": "True",
+          "xsec": "88.29",
+          "nevents": "xxxx",
+          "size": "xxx"
+        },
+        "files": [
+          "root://eoscms.cern.ch//eos/cms/store/mc/RunIISummer20UL18NanoAODv9/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/106X_upgrade2018_realistic_v16_L1v1-v1/280000/01881676-C30A-2142-B3B2-7A8449DAF8EF.root"
+        ]
+      },
+      "DATA_SingleMuon_2018_EraA": {
+        "metadata": {
+          "das_names": "['/SingleMuon/Run2018A-UL2018_MiniAODv2_NanoAODv9-v2/NANOAOD']",
+          "sample": "DATA_SingleMuon",
+          "year": "2018",
+          "isMC": "False",
+          "primaryDataset": "SingleMuon",
+          "era": "A",
+          "nevents": "241608232",
+          "size": "211774345140"
+        },
+        "files": [
+          "root://eoscms.cern.ch//eos/cms/store/data/Run2018A/SingleMuon/NANOAOD/UL2018_MiniAODv2_NanoAODv9_GT36-v1/2820000/06EFD7A6-A6F1-E145-B1F8-C6794FE4EDDD.root"
+        ]
+      }
+    },
+    "subsamples": {
+      "TTTo2L2Nu": {
+        "type": "StandardSelection",
+        "categories": {
+          "TTTo2L2Nu": [
+            {
+              "name": "passthrough",
+              "params": {},
+              "collection": "events",
+              "function": {
+                "name": "passthrough_f",
+                "module": "pocket_coffea.lib.cut_functions",
+                "src_file": "/afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/lib/cut_functions.py",
+                "f_hash": 8739575591676
+              },
+              "id": "passthrough__4312430902945349370"
+            }
+          ]
+        },
+        "is_multidim": false,
+        "multidim_collection": null
+      },
+      "DATA_SingleMuon": {
+        "type": "StandardSelection",
+        "categories": {
+          "DATA_SingleMuon": [
+            {
+              "name": "passthrough",
+              "params": {},
+              "collection": "events",
+              "function": {
+                "name": "passthrough_f",
+                "module": "pocket_coffea.lib.cut_functions",
+                "src_file": "/afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/lib/cut_functions.py",
+                "f_hash": 8739575591676
+              },
+              "id": "passthrough__4312430902945349370"
+            }
+          ]
+        },
+        "is_multidim": false,
+        "multidim_collection": null
+      }
+    }
+  },
+  "skim": [
+    {
+      "name": "nPVgood_1",
+      "params": {
+        "N": 1
+      },
+      "collection": "events",
+      "function": {
+        "name": "<lambda>",
+        "module": "pocket_coffea.lib.cut_functions",
+        "src_file": "/afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/lib/cut_functions.py",
+        "f_hash": 8739406885668
+      },
+      "id": "nPVgood_1__5160786318848973792"
+    },
+    {
+      "name": "event_flags",
+      "params": {},
+      "collection": "events",
+      "function": {
+        "name": "apply_event_flags",
+        "module": "pocket_coffea.lib.cut_functions",
+        "src_file": "/afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/lib/cut_functions.py",
+        "f_hash": 8739566579816
+      },
+      "id": "event_flags__-5556434242875846328"
+    },
+    {
+      "name": "golden_json_lumi",
+      "params": {},
+      "collection": "events",
+      "function": {
+        "name": "apply_golden_json",
+        "module": "pocket_coffea.lib.cut_functions",
+        "src_file": "/afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/lib/cut_functions.py",
+        "f_hash": 8739566606326
+      },
+      "id": "golden_json_lumi__-4328446572600444178"
+    }
+  ],
+  "preselections": [
+    {
+      "name": "passthrough",
+      "params": {},
+      "collection": "events",
+      "function": {
+        "name": "passthrough_f",
+        "module": "pocket_coffea.lib.cut_functions",
+        "src_file": "/afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/lib/cut_functions.py",
+        "f_hash": 8739575591676
+      },
+      "id": "passthrough__4312430902945349370"
+    }
+  ],
+  "categories": {
+    "type": "StandardSelection",
+    "categories": {
+      "baseline": [
+        {
+          "name": "passthrough",
+          "params": {},
+          "collection": "events",
+          "function": {
+            "name": "passthrough_f",
+            "module": "pocket_coffea.lib.cut_functions",
+            "src_file": "/afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/lib/cut_functions.py",
+            "f_hash": 8739575591676
+          },
+          "id": "passthrough__4312430902945349370"
+        }
+      ],
+      "1btag": [
+        {
+          "name": "nBJetGood_min1",
+          "params": {
+            "N": 1,
+            "coll": "BJetGood"
+          },
+          "collection": "events",
+          "function": {
+            "name": "min_nObj",
+            "module": "pocket_coffea.lib.cut_functions",
+            "src_file": "/afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/lib/cut_functions.py",
+            "f_hash": 8739566442530
+          },
+          "id": "nBJetGood_min1__1363236961483188897"
+        }
+      ],
+      "2btag": [
+        {
+          "name": "nBJetGood_min2",
+          "params": {
+            "N": 2,
+            "coll": "BJetGood"
+          },
+          "collection": "events",
+          "function": {
+            "name": "min_nObj",
+            "module": "pocket_coffea.lib.cut_functions",
+            "src_file": "/afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/pocket_coffea/lib/cut_functions.py",
+            "f_hash": 8739566442530
+          },
+          "id": "nBJetGood_min2__-2493285007509896896"
+        }
+      ]
+    },
+    "is_multidim": false,
+    "multidim_collection": null
+  },
+  "workflow": {
+    "name": "BasicProcessor",
+    "workflow_options": {},
+    "srcfile": "/afs/cern.ch/work/d/dvalsecc/private/ttHbb/PocketCoffea/tests/test_full_configs/test_new_weights/workflow.py"
+  },
+  "weights": {
+    "TTTo2L2Nu": {
+      "bycategory": {
+        "baseline": [],
+        "1btag": [
+          "sf_mu_trigger",
+          "sf_btag"
+        ],
+        "2btag": [
+          "sf_mu_trigger",
+          "sf_btag"
+        ]
+      },
+      "inclusive": [
+        "genWeight",
+        "lumi",
+        "XS",
+        "pileup",
+        "sf_ele_id",
+        "sf_ele_reco",
+        "sf_mu_id",
+        "sf_mu_iso"
+      ]
+    }
+  },
+  "variations": {
+    "TTTo2L2Nu": {
+      "weights": {
+        "baseline": [
+          "pileup",
+          "sf_ele_id",
+          "sf_ele_reco",
+          "sf_mu_id",
+          "sf_mu_iso"
+        ],
+        "1btag": [
+          "pileup",
+          "sf_ele_id",
+          "sf_ele_reco",
+          "sf_mu_id",
+          "sf_mu_iso",
+          "sf_btag",
+          "sf_mu_trigger"
+        ],
+        "2btag": [
+          "pileup",
+          "sf_ele_id",
+          "sf_ele_reco",
+          "sf_mu_id",
+          "sf_mu_iso",
+          "sf_btag"
+        ]
+      },
+      "shape": {
+        "baseline": [],
+        "1btag": [],
+        "2btag": []
+      },
+      "by_subsample": {}
+    }
+  },
+  "variables": {
+    "ElectronGood_eta": {
+      "axes": [],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "ElectronGood_pt": {
+      "axes": [],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "ElectronGood_phi": {
+      "axes": [],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "ElectronGood_etaSC": {
+      "axes": [],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "JetGood_eta": {
+      "axes": [],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "JetGood_pt": {
+      "axes": [],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "JetGood_phi": {
+      "axes": [],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    },
+    "nJetGood": {
+      "axes": [],
+      "storage": "weight",
+      "autofill": true,
+      "variations": true,
+      "only_variations": null,
+      "exclude_samples": null,
+      "only_samples": null,
+      "exclude_categories": null,
+      "only_categories": null,
+      "no_weights": false,
+      "metadata_hist": false
+    }
+  },
+  "columns": {
+    "DATA_SingleMuon": {
+      "baseline": [],
+      "1btag": [],
+      "2btag": []
+    },
+    "TTTo2L2Nu": {
+      "baseline": [],
+      "1btag": [],
+      "2btag": []
+    }
+  }
+}
