@@ -517,17 +517,21 @@ class Shape:
                         axis_new = hist.axis.IntCategory(categories_sorted[axis_name], name=axis_name, label=ax.label)
                     # Create new histogram with the missing categories
                     new_hist = hist.Hist(axis_other, axis_new, *self.dense_axes, storage=h._storage_type)
+                    warn_msg = f"WARNING: Sample {s} is missing variations in the axis `{axis_name}`. Filling the {axis_name} with nominal values.\nMissing variations: {categories_missing}"
+                    warn_flag = False
                     for category_other in categorical_axes_dict[axis_name_other]:
                         for category in categories:
                             fields = {axis_name: category, axis_name_other: category_other}
                             fields.update({dense_axis.name : dense_axis.centers for dense_axis in self.dense_axes})
                             # Fill the missing categories with the nominal values
                             if category in categories_missing:
-                                print(f"WARNING: (sample: {s}, cat: {category_other}) Sample {s} is missing the {axis_name} {category} in the axis `{axis_name}`. Filling the {axis_name} with nominal values.")
+                                warn_flag = True
                                 weight = h[{axis_name_other: category_other, axis_name: "nominal", }].values()
                             else:
                                 weight = h[{axis_name_other: category_other, axis_name: category}].values()
                             new_hist.fill(**fields, weight=weight)
+                    if warn_flag:
+                        print(warn_msg)
                     self.h_dict[s] = new_hist
 
     def _categorical_axes(self, is_mc=True):
