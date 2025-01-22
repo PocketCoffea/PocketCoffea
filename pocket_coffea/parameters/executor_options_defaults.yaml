@@ -60,8 +60,8 @@ parsl-condor@DESY_NAF:
   walltime: "12:00:00"
 
 parsl@RWTH:
-  scaleout: 1
-  mem-per-worker: 2 # GB
+  scaleout: 20
+  mem-per-worker: 4
   logs-dir: logs_parsl
   local-virtualenv: false
   conda-env: True
@@ -70,8 +70,8 @@ parsl@RWTH:
 
 dask@RWTH:
   scaleout: 10
-  mem-per-worker: "2GB"
-  disk-per-worker: "2GB"
+  mem-per-worker: "4GB"
+  disk-per-worker: "4GB"
   local-virtualenv: false
   conda-env: True
   cores-per-worker: 1
