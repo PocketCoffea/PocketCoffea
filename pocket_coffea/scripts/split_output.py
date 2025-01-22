@@ -45,6 +45,7 @@ def split_output(inputfile, outputfile, overwrite):
 )
 
 def main(inputfile, outputfile, overwrite):
+    '''Split coffea output files'''
     split_output(inputfile, outputfile, overwrite)
 
 if __name__ == "__main__":

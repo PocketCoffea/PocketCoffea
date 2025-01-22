@@ -137,6 +137,7 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False):
 )
 
 def main(inputfiles, outputfile, jobs_config, force):
+    '''Merge coffea output files'''
     merge_outputs(inputfiles, outputfile, jobs_config, force)
 
 if __name__ == "__main__":
