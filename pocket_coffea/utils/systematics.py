@@ -18,6 +18,7 @@ class SystematicUncertainty:
     name: str
     typ: str
     processes: list[str] | tuple[str] | dict[str, float]
+    years: list[str] | tuple[str]
     value: float | tuple[float] = None
     datacard_name: str = None
 

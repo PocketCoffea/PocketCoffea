@@ -9,6 +9,7 @@ class Process:
 
     name: str
     samples: Iterable
+    years: Iterable
     is_signal: bool
     is_data: bool = False
     label: str = None
@@ -28,19 +29,19 @@ class Processes:
     @property
     def processes_names(self) -> list[str]:
         """List of Names of all Processes."""
-        return [process.name for process in self.processes]
+        return [f"{process.name}_{year}" for process in self.processes for year in process.years]
 
     @property
     def signal_processes(self) -> list[str]:
         """List of Names of all Signal Processes."""
-        return [process.name for process in self.processes if process.is_signal]
+        return [f"{process.name}_{year}" for process in self.processes for year in process.years if process.is_signal]
 
     @property
     def background_processes(self) -> list[str]:
         """List of Names of all Background Processes."""
-        return [process.name for process in self.processes if not process.is_signal]
+        return [f"{process.name}_{year}" for process in self.processes for year in process.years if not process.is_signal]
 
     @property
     def n_processes(self) -> int:
         """Number of Processes"""
-        return len(self.processes)
+        return len(self.processes_names)

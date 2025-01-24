@@ -66,16 +66,18 @@ class Datacard(Processes, Systematics):
             raise NotImplementedError("Only one data process is supported.")
 
         # assign IDs to processes
+        self.process_id = {}
         id_signal = 0  # signal processes have 0 or negative IDs
         id_background = 1  # background processes have positive IDs
         for process in self.processes:
-            if process.is_signal:
-                process.id = id_signal
-                id_signal -= 1
-            else:
-                process.id = id_background
-                id_background += 1
-        self.processes = sorted(self.processes, key=lambda proc: proc.id)
+            for year in process.years:
+                if process.is_signal:
+                    self.process_id[f"{process.name}_{year}"] = id_signal
+                    id_signal -= 1
+                else:
+                    self.process_id[f"{process.name}_{year}"] = id_background
+                    id_background += 1
+        #self.processes = sorted(self.processes, key=lambda proc: proc.id)
 
         # check histograms and rearrange them
         self._check_histograms()
@@ -124,7 +126,7 @@ class Datacard(Processes, Systematics):
     @property
     def jmax(self):
         """Number of background processes"""
-        return len(self.background_processes)
+        return len(self.background_processes) + len(self.signal_processes) - 1
 
     @property
     def kmax(self):
@@ -162,13 +164,13 @@ class Datacard(Processes, Systematics):
         """Check if dataset is empty"""
         return self.cutflow["presel"][dataset] == 0
 
-    def get_datasets_by_sample(self, sample: str) -> list[str]:
+    def get_datasets_by_sample(self, sample: str, year: str = None) -> list[str]:
         """Get datasets for a given sample."""
-        if len(self.years) == 1:
-            return self.datasets_metadata["by_datataking_period"][self.years[0]][sample]
-        else:
+        if year is None:
             years = [year for year in self.datasets_metadata["by_datataking_period"].keys() if year in self.years]
             return [d for year in years for d in self.datasets_metadata["by_datataking_period"][year][sample]]
+        else:
+            return self.datasets_metadata["by_datataking_period"][year][sample]
 
     def _check_histograms(self) -> None:
         """Check if histograms are available for all processes and systematics."""
@@ -177,28 +179,29 @@ class Datacard(Processes, Systematics):
                 if sample not in self.histograms:
                     raise ValueError(f"Missing histogram for sample {sample}")
 
-                for dataset in self.get_datasets_by_sample(sample):
-                    if dataset not in self.histograms[sample]:
-                        if self.is_empty_dataset(dataset):
-                            print(
-                                f"Sample {sample} for dataset {dataset} has 0 events in category `presel`. "
-                                f"Skipping this dataset."
+                for year in process.years:
+                    for dataset in self.get_datasets_by_sample(sample, year):
+                        if dataset not in self.histograms[sample]:
+                            if self.is_empty_dataset(dataset):
+                                print(
+                                    f"Sample {sample} for dataset {dataset} has 0 events in category `presel`. "
+                                    f"Skipping this dataset."
+                                )
+                                continue
+                            else:
+                                raise ValueError(
+                                    f"Sample {sample} for dataset {dataset} "
+                                    f"not found in histograms {self.histograms[sample].keys()}"
+                                )
+                        if not process.is_data:
+                            missing_systematics = set(self.shape_variations) - set(
+                                self.histograms[sample][dataset].axes["variation"]
                             )
-                            continue
-                        else:
-                            raise ValueError(
-                                f"Sample {sample} for dataset {dataset} "
-                                f"not found in histograms {self.histograms[sample].keys()}"
-                            )
-                    if not process.is_data:
-                        missing_systematics = set(self.shape_variations) - set(
-                            self.histograms[sample][dataset].axes["variation"]
-                        )
-                        if missing_systematics:
-                            print(
-                                f"Sample {sample} for dataset {dataset} is missing the following "
-                                f"systematics: {missing_systematics}"
-                            )
+                            if missing_systematics:
+                                print(
+                                    f"Sample {sample} for dataset {dataset} is missing the following "
+                                    f"systematics: {missing_systematics}"
+                                )
 
     def rearrange_histograms(
         self,
@@ -224,14 +227,15 @@ class Datacard(Processes, Systematics):
         dataset = list(self.get_datasets_by_sample(processes[0].samples[0]))[0]
         variable_axis = self.histograms[processes[0].samples[0]][dataset].axes[-1]
 
-        processes_names = [process.name for process in processes]
         if is_data:
+            processes_names = [process.name for process in processes]
             new_histogram = hist.Hist(
                 hist.axis.StrCategory(processes_names, name="process"),
                 variable_axis,
                 storage=hist.storage.Weight(),
             )
         else:
+            processes_names = [f"{process.name}_{year}" for process in processes for year in process.years]
             new_histogram = hist.Hist(
                 hist.axis.StrCategory(processes_names, name="process"),
                 hist.axis.StrCategory(self.shape_variations, name="variations"),
@@ -241,25 +245,30 @@ class Datacard(Processes, Systematics):
         new_histogram_view = new_histogram.view()
 
         for process in processes:
-            process_index = new_histogram.axes["process"].index(process.name)
             for sample in process.samples:
-                for dataset in self.get_datasets_by_sample(sample):
-                    if self.is_empty_dataset(dataset): continue
-                    histogram = self.histograms[sample][dataset]
+                for year in process.years:
                     if is_data:
-                        new_histogram_view[process_index, :] += histogram[self.category, :].view()
+                        assert year is None, "Data process should not have a year"
+                        process_index = new_histogram.axes["process"].index(process.name)
                     else:
-                        for systematic in new_histogram.axes["variations"]:
-                            systematic_index = new_histogram.axes["variations"].index(systematic)
-                            if systematic in histogram.axes["variation"]:
-                                new_histogram_view[process_index, systematic_index, :] += histogram[
-                                    self.category, systematic, :
-                                ].view()
-                            else:
-                                print(f"Setting `{systematic}` variation to nominal variation for sample {sample}.")
-                                new_histogram_view[process_index, systematic_index, :] += histogram[
-                                    self.category, "nominal", :
-                                ].view()
+                        process_index = new_histogram.axes["process"].index(f"{process.name}_{year}")
+                    for dataset in self.get_datasets_by_sample(sample, year):
+                        if self.is_empty_dataset(dataset): continue
+                        histogram = self.histograms[sample][dataset]
+                        if is_data:
+                            new_histogram_view[process_index, :] += histogram[self.category, :].view()
+                        else:
+                            for systematic in new_histogram.axes["variations"]:
+                                systematic_index = new_histogram.axes["variations"].index(systematic)
+                                if systematic in histogram.axes["variation"]:
+                                    new_histogram_view[process_index, systematic_index, :] += histogram[
+                                        self.category, systematic, :
+                                    ].view()
+                                else:
+                                    print(f"Setting `{systematic}` variation to nominal variation for sample {sample}.")
+                                    new_histogram_view[process_index, systematic_index, :] += histogram[
+                                        self.category, "nominal", :
+                                    ].view()
         return new_histogram
 
     def create_shape_histogram_dict(
@@ -281,48 +290,53 @@ class Datacard(Processes, Systematics):
             processes = self.processes
         new_histograms = dict()
         for process in processes:
-            if is_data:
-                # create new 1d histogram
-                new_histogram = hist.Hist(
-                    histogram.axes[-1],
-                    storage=hist.storage.Weight(),
-                )
-                new_histogram_view = new_histogram.view()
-                new_histogram_view[:] = histogram[process.name, :].view()
-                new_histograms[f"{process.name}_nominal"] = new_histogram
-            else:
-                # Save nominal shape
-                new_histogram = hist.Hist(
-                    histogram.axes[-1],
-                    storage=hist.storage.Weight(),
-                )
-                new_histogram_view = new_histogram.view()
-                new_histogram_view[:] = histogram[process.name, "nominal", :].view()
-                shape_name = f"{process.name}_nominal"
-                new_histograms[shape_name] = new_histogram
-                # Save shape variations
-                for systematic in self.get_systematics_by_type("shape"):
-                    for shift in ("Up", "Down"):
-                        variation = f"{systematic.name}{shift}"
+            for year in process.years:
+                if is_data:
+                    process_name_byyear = process.name
+                else:
+                    process_name_byyear = f"{process.name}_{year}"
+                if is_data:
+                    # create new 1d histogram
+                    new_histogram = hist.Hist(
+                        histogram.axes[-1],
+                        storage=hist.storage.Weight(),
+                    )
+                    new_histogram_view = new_histogram.view()
+                    new_histogram_view[:] = histogram[process_name_byyear, :].view()
+                    new_histograms[f"{process_name_byyear}_nominal"] = new_histogram
+                else:
+                    # Save nominal shape
+                    new_histogram = hist.Hist(
+                        histogram.axes[-1],
+                        storage=hist.storage.Weight(),
+                    )
+                    new_histogram_view = new_histogram.view()
+                    new_histogram_view[:] = histogram[process_name_byyear, "nominal", :].view()
+                    shape_name = f"{process_name_byyear}_nominal"
+                    new_histograms[shape_name] = new_histogram
+                    # Save shape variations
+                    for systematic in self.get_systematics_by_type("shape"):
+                        for shift in ("Up", "Down"):
+                            variation = f"{systematic.name}{shift}"
 
-                        # create new 1d histogram
-                        new_histogram = hist.Hist(
-                            histogram.axes[-1],
-                            storage=hist.storage.Weight(),
-                        )
-                        new_histogram_view = new_histogram.view()
+                            # create new 1d histogram
+                            new_histogram = hist.Hist(
+                                histogram.axes[-1],
+                                storage=hist.storage.Weight(),
+                            )
+                            new_histogram_view = new_histogram.view()
 
-                        # add samples that correspond to a process
-                        if process.name in systematic.processes:
-                            new_histogram_view[:] = histogram[process.name, variation, :].view()
-                            shape_name = f"{process.name}_{systematic.datacard_name}{shift}"
-                            new_histograms[shape_name] = new_histogram
+                            # add samples that correspond to a process
+                            if process.name in systematic.processes and year in systematic.years:
+                                new_histogram_view[:] = histogram[process_name_byyear, variation, :].view()
+                                shape_name = f"{process_name_byyear}_{systematic.datacard_name}{shift}"
+                                new_histograms[shape_name] = new_histogram
 
         return new_histograms
 
     def preamble(self) -> str:
         preamble = f"imax {self.imax} number of channels{self.linesep}"
-        preamble += f"jmax {self.jmax} number of background processes{self.linesep}"
+        preamble += f"jmax {self.jmax} number of processes minus 1{self.linesep}"
         preamble += f"kmax {self.kmax} number of nuisance parameters{self.linesep}"
         return preamble
 
@@ -337,19 +351,19 @@ class Datacard(Processes, Systematics):
 
     def expectation_section(self) -> str:
         content = "bin".ljust(self.adjust_first_column)
-        content += f"{self.bin}".ljust(self.adjust_columns) * len(self.processes)
+        content += f"{self.bin}".ljust(self.adjust_columns) * self.n_processes
         content += self.linesep
 
         content += "process".ljust(self.adjust_first_column)
         # process names
         content += "".join(
-            f"{process.name}".ljust(self.adjust_columns) for process in self.processes if not process.is_data
+            f"{process.name}_{year}".ljust(self.adjust_columns) for process in self.processes for year in process.years if not process.is_data
         )
         content += self.linesep
         # process ids
         content += "process".ljust(self.adjust_first_column)
         content += "".join(
-            f"{process.id}".ljust(self.adjust_columns) for process in self.processes if not process.is_data
+            f"{self.process_id[f'{process.name}_{year}']}".ljust(self.adjust_columns) for process in self.processes for year in process.years if not process.is_data
         )
         content += self.linesep
 
@@ -371,14 +385,15 @@ class Datacard(Processes, Systematics):
 
             # processes
             for process in self.processes:
-                if process.name in systematic.processes:
-                    value = systematic.processes[process.name]
-                    if isinstance(value, tuple):
-                        line += f"{value[0]}/{value[1]}".ljust(self.adjust_columns)
+                for year in process.years:
+                    if process.name in systematic.processes and year in systematic.years:
+                        value = systematic.processes[process.name]
+                        if isinstance(value, tuple):
+                            line += f"{value[0]}/{value[1]}".ljust(self.adjust_columns)
+                        else:
+                            line += f"{value}".ljust(self.adjust_columns)
                     else:
-                        line += f"{value}".ljust(self.adjust_columns)
-                else:
-                    line += " -".ljust(self.adjust_columns)
+                        line += " -".ljust(self.adjust_columns)
 
             line += self.linesep
             content += line
@@ -387,12 +402,13 @@ class Datacard(Processes, Systematics):
     def rate_parameters_section(self) -> str:
         content = ""
         for process in self.processes:
-            if not process.is_signal:
-                line = f"SF_{process.name}".ljust(self.adjust_syst_colum)
-                line += "rateParam".ljust(self.adjust_columns)
-                line += f"* {process.name} 1 [0,5]".ljust(self.adjust_columns)
-                line += self.linesep
-                content += line
+            for year in process.years:
+                if not process.is_signal:
+                    line = f"SF_{process.name}".ljust(self.adjust_syst_colum)
+                    line += "rateParam".ljust(self.adjust_columns)
+                    line += f"* {process.name}_{year} 1 [0,5]".ljust(self.adjust_columns)
+                    line += self.linesep
+                    content += line
         return content
 
     def mcstat_section(self) -> str:
@@ -465,7 +481,9 @@ def combine_datacards(
     directory: str,
     path: str = "combine_cards.sh",
     card_name: str = "datacard_combined.txt",
-    workspace_name : str = "workspace.root"
+    workspace_name : str = "workspace.root",
+    channel_masks : list[str] = None,
+    suffix: str = None,
     ) -> None:
     """Write the bash script to combine datacards from different categories.
 
@@ -479,6 +497,7 @@ def combine_datacards(
     assert path.endswith(".sh"), "Output file must be a bash script and have .sh extension"
     os.makedirs(directory, exist_ok=True)
     output_file = os.path.join(directory, path)
+
     print(f"Writing combination script to {output_file}")
     with open(output_file, "w") as file:
         file.write("#!/bin/bash\n")
@@ -491,5 +510,46 @@ def combine_datacards(
             f"combineCards.py {args} > {card_name}\n"
         )
         file.write(
-            f"text2workspace.py {card_name} -o {workspace_name}\n"
+            f"text2workspace.py {card_name} -o {workspace_name} --channel-masks \n"
         )
+
+    # Save fit scripts
+    freezeParameters = ["SF_diboson", "SF_singletop", "SF_tt_dilepton", "SF_ttv", "SF_vjets"]
+
+    args = {
+        "run_MultiDimFit.sh": [
+            "-M MultiDimFit",
+            f"-d {workspace_name}",
+            "-n .snapshot_all_channels",
+            f"--freezeParameters {','.join(freezeParameters)}",
+            "--cminDefaultMinimizerStrategy 2",
+            "--robustFit=1",
+            "--saveWorkspace",
+        ],
+        "run_FitDiagnostics.sh": [
+            "-M FitDiagnostics",
+            f"-d {workspace_name}",
+            "-n .snapshot_all_channels",
+            f"--freezeParameters {','.join(freezeParameters)}",
+            "--cminDefaultMinimizerStrategy 2",
+            "--robustFit=1",
+            "--saveWorkspace",
+            "--saveShapes",
+            "--saveWithUncertainties"
+        ],
+    }
+    if channel_masks:
+        for cat in channel_masks:
+            args[f"run_MultiDimFit_mask_{cat}.sh"] = args["run_MultiDimFit.sh"] + [f"--setParameters mask_{cat}=1"]
+            args[f"run_FitDiagnostics_mask_{cat}.sh"] = args["run_FitDiagnostics.sh"] + [f"--setParameters mask_{cat}=1"]
+            args[f"run_MultiDimFit_mask_{cat}.sh"][2] = "-n .snapshot_CR_CR_ttlf"
+            args[f"run_FitDiagnostics_mask_{cat}.sh"][2] = "-n .snapshot_CR_CR_ttlf"
+    scripts = {path : f"combine {' '.join(l)}"+" \n" for path, l in args.items()}
+
+    for script_name, command in scripts.items():
+        script_name = script_name.replace(".sh", f"_{suffix}.sh") if suffix else script_name
+        output_file = os.path.join(directory, script_name)
+        print(f"Writing fit script to {output_file}")
+        with open(output_file, "w") as file:
+            file.write("#!/bin/bash\n")
+            file.write(command)
