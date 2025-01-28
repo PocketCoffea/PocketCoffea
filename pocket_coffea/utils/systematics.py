@@ -65,7 +65,7 @@ class Systematics:
         """List of Names of Shape Variations."""
         return [
             f"{syst}{shift}"
-            for syst in [s.name for s in self.get_systematics_by_type("shape")]
+            for syst in [s.datacard_name for s in self.get_systematics_by_type("shape")]
             for shift in ("Up", "Down")
         ]
 

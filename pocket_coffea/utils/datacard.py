@@ -1,6 +1,7 @@
 """Datacard Class and Utilities for CMS Combine Tool"""
 
 import os
+import numpy as np
 from functools import cached_property
 
 import hist
@@ -85,6 +86,8 @@ class Datacard(Processes, Systematics):
 
         if self.has_data:
             self.data_obs = self.rearrange_histograms(is_data=True)
+
+        self._check_shapes()
 
         # helper attributes
         self.linesep = "\n"
@@ -174,6 +177,11 @@ class Datacard(Processes, Systematics):
 
     def _check_histograms(self) -> None:
         """Check if histograms are available for all processes and systematics."""
+        available_variations = []
+        for systematic in self.get_systematics_by_type("shape"):
+                for shift in ("Up", "Down"):
+                    available_variations.append(f"{systematic.name}{shift}")
+
         for process in self.processes:
             for sample in process.samples:
                 if sample not in self.histograms:
@@ -194,7 +202,7 @@ class Datacard(Processes, Systematics):
                                     f"not found in histograms {self.histograms[sample].keys()}"
                                 )
                         if not process.is_data:
-                            missing_systematics = set(self.shape_variations) - set(
+                            missing_systematics = set(available_variations) - set(
                                 self.histograms[sample][dataset].axes["variation"]
                             )
                             if missing_systematics:
@@ -202,6 +210,34 @@ class Datacard(Processes, Systematics):
                                     f"Sample {sample} for dataset {dataset} is missing the following "
                                     f"systematics: {missing_systematics}"
                                 )
+
+    def _check_shapes(self, threshold: float = 1.0, raise_error: bool = False) -> None:
+        """Sanity checks for saved shapes.
+        If each variation differs by more than 100% from the nominal, an error is raised."""
+        # Loop over variations in self.histogram as saved after rearranging
+        for process in self.processes:
+            for year in process.years:
+                process_name_byyear = f"{process.name}_{year}"
+                process_index = self.histogram.axes["process"].index(process_name_byyear)
+                variation_index_nominal = self.histogram.axes["variation"].index("nominal")
+                for variation in self.histogram.axes["variation"]:
+                    if variation == "nominal":
+                        continue
+                    variation_index = self.histogram.axes["variation"].index(variation)
+                    nominal = self.histogram[process_index, variation_index_nominal, :].values()
+                    var = self.histogram[process_index, variation_index, :].values()
+                    diff_rel = np.where(nominal != 0, (var - nominal) / nominal, 0)
+                    if any(diff_rel > threshold):
+                        diff_avg = sum(diff_rel) / len(diff_rel)
+                        error_message = (
+                            f"Variation {variation} for process {process_name_byyear} "
+                            f"differs by more than {threshold:.0%} from nominal in some bins of the {self.category} category. "
+                            f"Average difference: {diff_avg:.0%}"
+                        )
+                        if raise_error:
+                            raise ValueError(error_message)
+                        else:
+                            print(error_message)
 
     def rearrange_histograms(
         self,
@@ -238,7 +274,7 @@ class Datacard(Processes, Systematics):
             processes_names = [f"{process.name}_{year}" for process in processes for year in process.years]
             new_histogram = hist.Hist(
                 hist.axis.StrCategory(processes_names, name="process"),
-                hist.axis.StrCategory(self.shape_variations, name="variations"),
+                hist.axis.StrCategory(self.shape_variations, name="variation"),
                 variable_axis,
                 storage=hist.storage.Weight(),
             )
@@ -258,17 +294,24 @@ class Datacard(Processes, Systematics):
                         if is_data:
                             new_histogram_view[process_index, :] += histogram[self.category, :].view()
                         else:
-                            for systematic in new_histogram.axes["variations"]:
-                                systematic_index = new_histogram.axes["variations"].index(systematic)
-                                if systematic in histogram.axes["variation"]:
-                                    new_histogram_view[process_index, systematic_index, :] += histogram[
-                                        self.category, systematic, :
-                                    ].view()
-                                else:
-                                    print(f"Setting `{systematic}` variation to nominal variation for sample {sample}.")
-                                    new_histogram_view[process_index, systematic_index, :] += histogram[
-                                        self.category, "nominal", :
-                                    ].view()
+                            # Save nominal variation
+                            variation_index_nominal = new_histogram.axes["variation"].index("nominal")
+                            new_histogram_view[process_index, variation_index_nominal, :] += histogram[
+                                self.category, "nominal", :
+                            ].view()
+                            for systematic in self.get_systematics_by_type("shape"):
+                                for shift in ("Up", "Down"):
+                                    variation = f"{systematic.name}{shift}"
+                                    variation_index = new_histogram.axes["variation"].index(f"{systematic.datacard_name}{shift}")
+                                    if variation in histogram.axes["variation"]:
+                                        new_histogram_view[process_index, variation_index, :] += histogram[
+                                            self.category, variation, :
+                                        ].view()
+                                    else:
+                                        print(f"Setting `{variation}` variation to nominal variation for sample {sample}.")
+                                        new_histogram_view[process_index, variation_index, :] += histogram[
+                                            self.category, "nominal", :
+                                        ].view()
         return new_histogram
 
     def create_shape_histogram_dict(
@@ -317,7 +360,7 @@ class Datacard(Processes, Systematics):
                     # Save shape variations
                     for systematic in self.get_systematics_by_type("shape"):
                         for shift in ("Up", "Down"):
-                            variation = f"{systematic.name}{shift}"
+                            variation = f"{systematic.datacard_name}{shift}"
 
                             # create new 1d histogram
                             new_histogram = hist.Hist(
@@ -514,7 +557,7 @@ def combine_datacards(
         )
 
     # Save fit scripts
-    freezeParameters = ["SF_diboson", "SF_singletop", "SF_tt_dilepton", "SF_ttv", "SF_vjets"]
+    freezeParameters = ["SF_diboson", "SF_singletop", "SF_tt_dilepton", "SF_ttv", "SF_vjets", "r"]
 
     args = {
         "run_MultiDimFit.sh": [
