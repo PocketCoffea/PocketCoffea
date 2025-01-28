@@ -74,6 +74,7 @@ class Style:
 
         self.has_labels = "labels_mc" in style_cfg
         self.has_samples_groups = "samples_groups" in style_cfg
+        self.has_only_samples = "only_samples" in style_cfg
         self.has_exclude_samples = "exclude_samples" in style_cfg
         self.has_rescale_samples = "rescale_samples" in style_cfg
         self.has_colors_mc = "colors_mc" in style_cfg
@@ -378,7 +379,7 @@ class Shape:
             type(h_dict) in [dict, defaultdict]
         ), "The Shape object receives a dictionary of hist.Hist objects as argument."
         self.group_samples()
-        self.exclude_samples()
+        self.filter_samples()
         self.rescale_samples()
         self.replace_missing_variations()
         self.load_attributes()
@@ -706,17 +707,26 @@ class Shape:
                 h_dict_grouped[s] = h
         self.h_dict = deepcopy(h_dict_grouped)
 
-    def exclude_samples(self):
-        if not self.style.has_exclude_samples:
+    def filter_samples(self):
+        '''Filters samples according to the list of samples in the style options.
+        If the option `only_samples` is specified, only the samples in the list are kept.
+        If the option `exclude_samples` is specified, the samples in the list are removed.
+        If both options are specified, the samples in the list `only_samples` are kept, provided they are not in the list `exclude_samples`.
+        '''
+        if not any([self.style.has_only_samples, self.style.has_exclude_samples]):
             return
-
-        samples_to_exclude = self.style.exclude_samples
-        h_dict_excluded = {}
+        h_dict_filtered = {}
         for s, h in self.h_dict.items():
-            if s not in samples_to_exclude:
-                h_dict_excluded[s] = h
-
-        self.h_dict = deepcopy(h_dict_excluded)
+            if self.style.has_only_samples and self.style.has_exclude_samples:
+                if s in self.style.only_samples and s not in self.style.exclude_samples:
+                    h_dict_filtered[s] = h
+            elif self.style.has_only_samples:
+                if s in self.style.only_samples:
+                    h_dict_filtered[s] = h
+            elif self.style.has_exclude_samples:
+                if s not in self.style.exclude_samples:
+                    h_dict_filtered[s] = h
+        self.h_dict = deepcopy(h_dict_filtered)
 
     def rescale_samples(self):
         if not self.style.has_rescale_samples:
