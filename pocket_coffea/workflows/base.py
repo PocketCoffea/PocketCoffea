@@ -757,12 +757,44 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 # e.g. `JES_Total_AK4PFchs` will vary only the `AK4PFchs` jets,
                 # while `JES_Total_AK8PFPuppi` will vary only the `AK8PFPuppi` jets
                 jet_coll_name = jet_calib_params.collection[self._year][jet_type]
+
+                # Scale the MET with the delta between nominal jets and varied ones
+                if jet_calib_params.rescale_MET[self._year]:
+                    met_branch =  jet_calib_params.rescale_MET_branch[self._year]
+                    new_MET = met_correction_after_jec(
+                        self.events,
+                        met_branch,
+                        self.events[jet_coll_name],
+                        jets_calibrated[jet_coll_name][variation_name].up
+                    )
+                    self.events[met_branch] = ak.with_field(
+                        self.events[met_branch], new_MET["pt"], "pt"
+                    )
+                    self.events[met_branch] = ak.with_field(
+                        self.events[met_branch], new_MET["phi"], "phi"
+                    )
+                
                 self.events[jet_coll_name] = jets_calibrated[jet_coll_name][variation_name].up
 
                 yield variation + "Up"
 
                 # restore nominal before saving the down-variated collection
                 self.events = nominal_events
+                # Scale the MET with the delta between nominal jets and varied ones
+                if jet_calib_params.rescale_MET[self._year]:
+                    met_branch =  jet_calib_params.rescale_MET_branch[self._year]
+                    new_MET = met_correction_after_jec(
+                        self.events,
+                        met_branch,
+                        self.events[jet_coll_name],
+                        jets_calibrated[jet_coll_name][variation_name].down
+                    )
+                    self.events[met_branch] = ak.with_field(
+                        self.events[met_branch], new_MET["pt"], "pt"
+                    )
+                    self.events[met_branch] = ak.with_field(
+                        self.events[met_branch], new_MET["phi"], "phi"
+                    )
                 self.events[jet_coll_name] = jets_calibrated[jet_coll_name][variation_name].down
 
                 yield variation + "Down"

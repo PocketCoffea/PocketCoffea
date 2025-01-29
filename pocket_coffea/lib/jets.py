@@ -69,9 +69,10 @@ def met_correction(params, MET, jets):
     met_factory = CorrectedMETFactory(params.jet_calibration.jec_name_map) # to be fixed
     return met_factory.build(MET, jets, {})
     
-def met_xy_correction(params, events, year, era):
-    metx = events.MET.pt * np.cos(events.MET.phi)
-    mety = events.MET.pt * np.sin(events.MET.phi)
+def met_xy_correction(params, events, METcol,  year, era):
+    '''Apply MET xy corrections to MET collection'''
+    metx = events[METcol].pt * np.cos(events[METcol].phi)
+    mety = events[METcol].pt * np.sin(events[METcol].phi)
     nPV = events.PV.npvs
 
     if era == "MC":
