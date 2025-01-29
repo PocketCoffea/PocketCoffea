@@ -46,6 +46,25 @@ def jet_correction(params, events, jets, factory, jet_type, chunk_metadata, cach
             add_jec_variables(jets, rho, isMC=False), cache
         )
 
+def met_correction_after_jec(events, METcoll, jets_pre_jec, jets_post_jec):
+    '''This function rescale the MET vector by minus delta of the jets after JEC correction
+    and before the jEC correction.
+    This can be used also to rescale the MET when updating on the fly the JEC calibration. '''
+    orig_tot_px = ak.sum(jets_pre_jec.px, axis=1)
+    orig_tot_py = ak.sum(jets_pre_jec.py, axis=1)
+    new_tot_px = ak.sum(jets_post_jec.px, axis=1)
+    new_tot_py = ak.sum(jets_post_jec.py, axis=1)
+    new_met_px = events[METcoll].px - (new_tot_px - orig_tot_px)
+    new_met_py = events[METcoll].py - (new_tot_py - orig_tot_py)
+    newpx =  events[METcoll].px - (new_tot_px - orig_tot_px) 
+    newpy =  events[METcoll].py - (new_tot_py - orig_tot_py) 
+    
+    newMetPhi = np.arctan2(newpy, newpx)
+    newMetPt = (newpx**2 + newpy**2)**0.5
+    
+    return  {"pt": newMetPt, "phi": newMetPhi}
+
+
 def met_correction(params, MET, jets):
     met_factory = CorrectedMETFactory(params.jet_calibration.jec_name_map) # to be fixed
     return met_factory.build(MET, jets, {})
