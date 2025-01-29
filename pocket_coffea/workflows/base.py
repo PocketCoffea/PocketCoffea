@@ -17,7 +17,7 @@ from coffea.analysis_tools import PackedSelection
 from ..lib.weights.weights_manager import WeightsManager
 from ..lib.columns_manager import ColumnsManager
 from ..lib.hist_manager import HistManager
-from ..lib.jets import jet_correction, met_correction, load_jet_factory
+from ..lib.jets import jet_correction, met_correction_after_jec, load_jet_factory
 from ..lib.leptons import get_ele_smeared, get_ele_scaled
 from ..lib.categorization import CartesianSelection
 from ..utils.skim import uproot_writeable, copy_file
@@ -696,6 +696,21 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 self.events = nominal_events
                 # Just assign the nominal calibration
                 for jet_coll_name, jet_coll in jets_calibrated.items():
+                    # Compute MET rescaling
+                    if jet_calib_params.rescale_MET[self._year]:
+                        met_branch =  jet_calib_params.rescale_MET_branch[self._year]
+                        new_MET = met_correction_after_jec(
+                            self.events,
+                            met_branch,
+                            self.events[jet_coll_name], jet_coll
+                        )
+                        self.events[met_branch] = ak.with_field(
+                            self.events[met_branch], new_MET["pt"], "pt"
+                        )
+                        self.events[met_branch] = ak.with_field(
+                            self.events[met_branch], new_MET["phi"], "phi"
+                        )
+                        
                     self.events[jet_coll_name] = jet_coll
 
                 if self.params.lepton_scale_factors.electron_sf["apply_ele_scale_and_smearing"][self._year]:
