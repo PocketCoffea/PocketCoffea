@@ -206,7 +206,9 @@ def get_dataset_files_replicas(
             possible_sites = list(rses.keys())
             if blocklist_sites:
                 possible_sites = list(
-                    filter(lambda key: key not in blocklist_sites, possible_sites)
+                    filter(lambda key: (
+                        (key not in blocklist_sites) and (key.replace("_Disk","") not in blocklist_sites)
+                        ),  possible_sites)
                 )
 
             if len(possible_sites) == 0 and not partial_allowed and not include_redirector:
