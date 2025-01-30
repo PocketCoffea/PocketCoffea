@@ -56,6 +56,10 @@ def analyze_W_flat(W_idx, children_idx, genparts_statusFlags, genparts_pdgId,
     
     # First go to children until don't find anymore the same copy
     for iev, W_id in enumerate(W_idx):
+        # Special case where the W is not found
+        # This is needed to allow the analysis of the direct decay case (no W saved)
+        if W_id == -1:
+            continue
         #print("-----\nevent: ", iev)
         current_part = W_id # start from the W
         while True:
