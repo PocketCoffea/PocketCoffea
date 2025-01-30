@@ -525,8 +525,7 @@ def combine_datacards(
     path: str = "combine_cards.sh",
     card_name: str = "datacard_combined.txt",
     workspace_name : str = "workspace.root",
-    channel_masks : list[str] = None,
-    suffix: str = None,
+    channel_masks : bool = False,
     ) -> None:
     """Write the bash script to combine datacards from different categories.
 
@@ -552,47 +551,119 @@ def combine_datacards(
         file.write(
             f"combineCards.py {args} > {card_name}\n"
         )
+        command = f"text2workspace.py {card_name} -o {workspace_name} \n"
+        if channel_masks:
+            command = command.replace(" \n", " --channel-masks \n")
         file.write(
-            f"text2workspace.py {card_name} -o {workspace_name} --channel-masks \n"
+            command
         )
+
+
+def create_scripts(
+    datacards: dict[Datacard],
+    directory: str,
+    card_name: str = "datacard_combined.txt",
+    workspace_name : str = "workspace.root",
+    channel_masks : list[str] = None,
+    suffix: str = None,
+    ) -> None:
+    """
+    Write the bash scripts to run the fit with CMS Combine Tool."""
 
     # Save fit scripts
     freezeParameters = ["SF_diboson", "SF_singletop", "SF_tt_dilepton", "SF_ttv", "SF_vjets", "r"]
+    freezeParameters_asimov = ["SF_diboson", "SF_singletop", "SF_tt_dilepton", "SF_ttv", "SF_vjets"]
 
     args = {
-        "run_MultiDimFit.sh": [
-            "-M MultiDimFit",
+        "run_MultiDimFit.sh": [[
+            "combine -M MultiDimFit",
             f"-d {workspace_name}",
             "-n .snapshot_all_channels",
             f"--freezeParameters {','.join(freezeParameters)}",
-            "--cminDefaultMinimizerStrategy 2",
-            "--robustFit=1",
+            "--cminDefaultMinimizerStrategy 2 --robustFit=1",
             "--saveWorkspace",
-        ],
-        "run_FitDiagnostics.sh": [
-            "-M FitDiagnostics",
+        ]],
+        "run_FitDiagnostics.sh": [[
+            "combine -M FitDiagnostics",
             f"-d {workspace_name}",
             "-n .snapshot_all_channels",
             f"--freezeParameters {','.join(freezeParameters)}",
-            "--cminDefaultMinimizerStrategy 2",
-            "--robustFit=1",
+            "--cminDefaultMinimizerStrategy 2 --robustFit=1",
             "--saveWorkspace",
             "--saveShapes",
             "--saveWithUncertainties"
+        ]],
+        "run_MultiDimFit_scan1d.sh": [[
+            "combine -M MultiDimFit",
+            f"-d {workspace_name}",
+            "-n .scan1d",
+            f"--freezeParameters {','.join(freezeParameters)}",
+            "-t -1 --toysFrequentist --expectSignal=1",
+            "--cminDefaultMinimizerStrategy 2 --robustFit=1",
+            "--saveWorkspace",
+            "-v 2 --algo grid --points=30 --rMin 0 --rMax 2",
+        ]],
+        "run_MultiDimFit_toysFrequentist.sh": [[
+            "combine -M MultiDimFit",
+            f"-d {workspace_name}",
+            "-n .asimov_fit",
+            f"--freezeParameters {','.join(freezeParameters_asimov)}",
+            "-t -1 --toysFrequentist --expectSignal=1",
+            "--cminDefaultMinimizerStrategy 2 --robustFit=1",
+            "--saveWorkspace -v 2",
+        ]],
+        "run_MultiDimFit_toysFrequentist_scan1d.sh": [[
+            "combine -M MultiDimFit",
+            f"-d {workspace_name}",
+            "-n .asimov_scan1d",
+            f"--freezeParameters {','.join(freezeParameters_asimov)}",
+            "-t -1 --toysFrequentist --expectSignal=1",
+            "--cminDefaultMinimizerStrategy 2 --robustFit=1",
+            "--saveWorkspace",
+            "-v 2 --algo grid --points=30 --rMin 0 --rMax 2",
+        ]],
+        "run_impacts.sh": [
+            [f"combineTool.py -M Impacts -d {workspace_name}",
+            f"--freezeParameters {','.join(freezeParameters)}",
+            "-t -1 --toysFrequentist --expectSignal=1 --cminDefaultMinimizerStrategy 2 --robustFit=1",
+            "-v 2 --rMin 0 --rMax 2 -m 125 --doInitialFit"],
+            [f"combineTool.py -M Impacts -d {workspace_name}",
+            f"--freezeParameters {','.join(freezeParameters)}",
+            "-t -1 --toysFrequentist --expectSignal=1 --cminDefaultMinimizerStrategy 2 --robustFit=1",
+            "-v 2 --rMin 0 --rMax 2 -m 125 --doFits --job-mode slurm --job-dir jobs --parallel 100"]
         ],
+        "plot_impacts.sh": [
+            [f"combineTool.py -M Impacts -d {workspace_name}",
+            f"--freezeParameters {','.join(freezeParameters)}",
+            "-t -1 --toysFrequentist --expectSignal=1 --cminDefaultMinimizerStrategy 2 --robustFit=1",
+            "-v 2 --rMin 0 --rMax 2 -m 125 -o impacts.json"],
+            ["plotImpacts.py -i impacts.json -o impacts"]
+        ],
+        # -v 2 --rMin -5 --rMax 5 --robustHesse=1 --robustHesseSave 1 --saveFitResult
+        "run_correlation_matrix.sh": [
+            "combine -M MultiDimFit",
+            f"-d {workspace_name}",
+            "-n .covariance_matrix",
+            f"--freezeParameters {','.join(freezeParameters_asimov)}",
+            "-t -1 --toysFrequentist --expectSignal=1",
+            "--cminDefaultMinimizerStrategy 2 --robustFit=1",
+            "-v 2 --rMin -5 --rMax 5 --robustHesse=1 --robustHesseSave 1 --saveFitResult",
+        ]
     }
     if channel_masks:
         for cat in channel_masks:
-            args[f"run_MultiDimFit_mask_{cat}.sh"] = args["run_MultiDimFit.sh"] + [f"--setParameters mask_{cat}=1"]
-            args[f"run_FitDiagnostics_mask_{cat}.sh"] = args["run_FitDiagnostics.sh"] + [f"--setParameters mask_{cat}=1"]
-            args[f"run_MultiDimFit_mask_{cat}.sh"][2] = "-n .snapshot_CR_CR_ttlf"
-            args[f"run_FitDiagnostics_mask_{cat}.sh"][2] = "-n .snapshot_CR_CR_ttlf"
-    scripts = {path : f"combine {' '.join(l)}"+" \n" for path, l in args.items()}
+            args[f"run_MultiDimFit_mask_{cat}.sh"][0] = args["run_MultiDimFit.sh"][0] + [f"--setParameters mask_{cat}=1"]
+            args[f"run_FitDiagnostics_mask_{cat}.sh"][0] = args["run_FitDiagnostics.sh"][0] + [f"--setParameters mask_{cat}=1"]
+            args[f"run_MultiDimFit_mask_{cat}.sh"][0][2] = "-n .snapshot_CR_CR_ttlf"
+            args[f"run_FitDiagnostics_mask_{cat}.sh"][0][2] = "-n .snapshot_CR_CR_ttlf"
+    scripts = {}
+    for path, lines in args.items():
+        scripts[path] = [f"{' '.join(l)}\n" for l in lines]
 
-    for script_name, command in scripts.items():
+    for script_name, commands in scripts.items():
         script_name = script_name.replace(".sh", f"_{suffix}.sh") if suffix else script_name
         output_file = os.path.join(directory, script_name)
         print(f"Writing fit script to {output_file}")
         with open(output_file, "w") as file:
             file.write("#!/bin/bash\n")
-            file.write(command)
+            file.writelines(commands)
