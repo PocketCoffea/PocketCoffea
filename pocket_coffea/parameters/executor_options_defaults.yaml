@@ -122,3 +122,13 @@ dask@oscar:
   skip-bad-files: true
   retries: 3
   queue: "batch"
+
+condor@ic:
+  cores-per-worker: 1
+  mem-per-worker: "2GB"
+  disk-per-worker: "2GB"
+  custom-setup-commands: null
+  conda-env: true
+  local-virtualenv: false
+  max-retries: 3
+  +MaxRuntime: 10799
