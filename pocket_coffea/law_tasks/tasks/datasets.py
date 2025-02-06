@@ -123,6 +123,7 @@ class CreateDatasets(BaseTask):
         self.merged_datasets = modify_dataset_output_path(
             dataset_definition=self.merged_datasets,
             dataset_configuration=self.dataset_config,
+            # output_path=self.local_path(), # ! this would overwrite config.py
         )
 
     def output(self):
