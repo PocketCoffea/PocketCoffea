@@ -374,6 +374,9 @@ class Configurator:
             # do now check if the weights is not string but custom
             for wsample in self.weights_config.values():
                 # add the weight to all the categories and samples
+                if not self.samples_metadata[wsample]["isMC"] and self.available_weights[w].isMC_only:
+                    # Do not add in the data weights configuration if the weight is MC only
+                    continue
                 wsample["inclusive"].append(w)
 
         if "bycategory" in wcfg["common"]:
@@ -384,6 +387,9 @@ class Configurator:
                         raise Exception("Wrong weight configuration")
                     self.requested_weights.append(w)
                     for wsample in self.weights_config.values():
+                        if not self.samples_metadata[wsample]["isMC"] and self.available_weights[w].isMC_only:
+                            # Do not add in the data weights configuration if the weight is MC only
+                            continue
                         wsample["is_split_bycat"] = True
                         # looping on all the samples for this category
                         if w in wsample["inclusive"]:
@@ -407,6 +413,10 @@ class Configurator:
                         if w not in self.available_weights:
                             print(f"Weight {w} not available in the configuration. Did you add it in the weights_classes?")
                             raise Exception("Wrong weight configuration")
+                        
+                        if not self.samples_metadata[sample]["isMC"] and self.available_weights[w].isMC_only:
+                            # Do not add in the data weights configuration if the weight is MC only
+                            continue
                         self.requested_weights.append(w)
                         # append only to the specific sample
                         self.weights_config[sample]["inclusive"].append(w)
@@ -422,6 +432,9 @@ class Configurator:
                                     f"""Error! Trying to include weight {w}
                                 by category, but it is already included inclusively!"""
                                 )
+                            if not self.samples_metadata[sample]["isMC"] and self.available_weights[w].isMC_only:
+                                # Do not add in the data weights configuration if the weight is MC only
+                                continue
                             self.requested_weights.append(w)
                             self.weights_config[sample]["bycategory"][cat].append(w)
                             self.weights_config[sample]["is_split_bycat"] = True

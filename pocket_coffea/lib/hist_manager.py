@@ -350,11 +350,11 @@ class HistManager:
         events. The categories mask will be applied.
         '''
 
-        # Preloading weights
-        if self.isMC:
-            weights = {}
-            for category in self.available_categories:
-                weights[category] = self.__prefetch_weights(category, shape_variation)
+        # Preloading weights BOTH FOR data and MC
+        weights = {}
+        for category in self.available_categories:
+            weights[category] = self.__prefetch_weights(category, shape_variation)
+            
         # Cleaning the weights cache decorator between calls.
         self._weights_cache.clear()
         # Looping on the histograms to read the values only once
@@ -629,7 +629,46 @@ class HistManager:
                                 raise Exception(
                                     f"Cannot fill histogram: {name}, {histo} {e}"
                                 )
+                    ##################################################################################
+                    elif not hist.no_weights and not self.iMC:   #DATA
+                        # Broadcast and mask the weight (using the cached value if possible)
+                        weight_data = weights[category]["nominal"]
+                        weight_data = self.mask_and_broadcast_weight(
+                            category,
+                            subsample,
+                            variation,
+                            weight_data,
+                            mask,
+                            data_structure,
+                        )
+                        if custom_weight != None and name in custom_weight:
+                            weight_data = weight_data * self.mask_and_broadcast_weight(
+                                category + "customW",
+                                subsample,
+                                variation,
+                                custom_weight[
+                                    name
+                                ],  # passing the custom weight to be masked and broadcasted
+                                mask,
+                                data_structure,
+                            )
 
+                        # Then we apply the notnone mask
+                        weight_data = weight_data[ak.to_numpy(all_axes_isnotnone)]
+                        # Fill the histogram
+                        try:
+                            # Data histograms don't have variations but now can be weighted
+                            self.histograms[subsample][name].hist_obj.fill(
+                                cat=category,
+                                weight=weight_data,
+                                **{**fill_categorical, **fill_numeric_masked},
+                            )
+                        except Exception as e:
+                            raise Exception(
+                                f"Cannot fill histogram for Data: {name}, {histo} {e}"
+                            )
+
+                    ######################################################
                     elif (
                         histo.no_weights and self.isMC
                     ):  # NO Weights modifier for the histogram
@@ -644,7 +683,7 @@ class HistManager:
                                 f"Cannot fill histogram: {name}, {histo} {e}"
                             )
 
-                    elif not self.isMC:
+                    elif histo.no_weights and not self.isMC:
                         # Fill histograms for Data
                         try:
                             self.histograms[subsample][name].hist_obj.fill(
