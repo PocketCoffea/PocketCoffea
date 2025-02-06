@@ -158,7 +158,6 @@ class Configurator:
                 "is_split_bycat": False,
             }
             for s in self.samples
-            if self.samples_metadata[s]["isMC"]
         }
         ## Defining the available weight strings
         ## If the users hasn't passed a list of WeightWrapper classes, the configurator
