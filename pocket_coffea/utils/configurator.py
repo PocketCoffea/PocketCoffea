@@ -178,7 +178,6 @@ class Configurator:
                 "is_split_bycat": False,
             }
             for s in self.samples
-            if self.samples_metadata[s]["isMC"]
         }
         ## Defining the available weight strings
         ## If the users hasn't passed a list of WeightWrapper classes, the configurator
@@ -193,10 +192,10 @@ class Configurator:
         
         # The list of strings is taken from the names of the list of weights classes
         # passed to the configurator.
-        self.available_weights = []
+        self.available_weights = {}
         self.requested_weights = []
         for w in self.weights_classes:
-            self.available_weights.append(w.name)
+            self.available_weights[w.name] = w
          
         self.load_weights_config(self.weights_cfg)
         # keeping a unique list of requested weight to load
@@ -372,9 +371,9 @@ class Configurator:
                 raise Exception("Wrong weight configuration")
             self.requested_weights.append(w)
             # do now check if the weights is not string but custom
-            for wsample in self.weights_config.values():
+            for sample, wsample in self.weights_config.items():
                 # add the weight to all the categories and samples
-                if not self.samples_metadata[wsample]["isMC"] and self.available_weights[w].isMC_only:
+                if not self.samples_metadata[sample]["isMC"] and self.available_weights[w].isMC_only:
                     # Do not add in the data weights configuration if the weight is MC only
                     continue
                 wsample["inclusive"].append(w)
@@ -386,8 +385,8 @@ class Configurator:
                         print(f"Weight {w} not available in the configuration. Did you add it in the weights_classes?")
                         raise Exception("Wrong weight configuration")
                     self.requested_weights.append(w)
-                    for wsample in self.weights_config.values():
-                        if not self.samples_metadata[wsample]["isMC"] and self.available_weights[w].isMC_only:
+                    for  sample, wsample in self.weights_config.items():
+                        if not self.samples_metadata[sample]["isMC"] and self.available_weights[w].isMC_only:
                             # Do not add in the data weights configuration if the weight is MC only
                             continue
                         wsample["is_split_bycat"] = True

@@ -324,7 +324,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 "sample": self._sample,
                 "dataset": self._dataset,
                 "part": self._samplePart,
-                "xsec": self._xsec,
+                "xsec": self._xsec if self._isMC else None,
                 "isMC": self._isMC,
             }
         )
@@ -405,7 +405,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self._categories,
             variations_config=self.cfg.variations_config[self._sample] if self._isMC else None,
             processor_params=self.params,
-            weights_manager=self.weights_manager if self._isMC else None,
+            weights_manager=self.weights_manager,
             custom_axes=self.custom_axes,
             isMC=self._isMC,
         )

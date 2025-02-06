@@ -121,6 +121,42 @@ def test_custom_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_pa
 
     compare_totalweight(output, ["nJetGood"])
 
+
+    
+def test_custom_weights_on_data(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
+    monkeypatch.chdir(base_path / "test_custom_weights" )
+    outputdir = tmp_path_factory.mktemp("test_custom_weights_on_data")
+    config = load_config("config_weights_data.py", save_config=True, outputdir=outputdir)
+    assert isinstance(config, Configurator)
+
+    run_options = defaults.get_default_run_options()["general"]
+    run_options["limit-files"] = 1
+    run_options["limit-chunks"] = 1
+    run_options["chunksize"] = 500
+    config.filter_dataset(run_options["limit-files"])
+
+    executor_factory = executors_lib.get_executor_factory("iterative",
+                                                          run_options=run_options,                                                          outputdir=outputdir)
+
+    executor = executor_factory.get()
+
+    run = Runner(
+        executor=executor,
+        chunksize=run_options["chunksize"],
+        maxchunks=run_options["limit-chunks"],
+        schema=processor.NanoAODSchema,
+        format="root"
+    )
+    output = run(config.filesets, treename="Events",
+                 processor_instance=config.processor_instance)
+    save(output, outputdir / "output_all.coffea")
+    
+    assert output is not None
+
+    # Check the output
+    H = output["variables"]["nJetGood"]["DATA_SingleMuon"]["DATA_SingleMuon_2018_EraA"]
+    assert np.isclose(H[{"cat":"2jets_B"}].values().sum()/ H[{"cat":"2jets_A"}].values().sum(), 2.0)
+
     
 def test_cartesian_categorization(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_categorization" )

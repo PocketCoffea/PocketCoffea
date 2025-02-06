@@ -209,6 +209,14 @@ class HistManager:
                         vv = [f"{var}Up", f"{var}Down"]
                         self.available_shape_variations += vv
                         self.available_shape_variations_bycat[cat] += vv
+        else:  # DATA
+            # Add a "weight_variation" nominal for data in each category
+            for cat in self.categories_config.keys():
+                self.available_weights_variations += ["nominal"]
+                self.available_weights_variations_bycat[cat].append("nominal")
+                
+            
+        
         # Reduce to set over all the categories
         self.available_weights_variations = set(self.available_weights_variations)
         self.available_shape_variations = set(self.available_shape_variations)
@@ -630,13 +638,13 @@ class HistManager:
                                     f"Cannot fill histogram: {name}, {histo} {e}"
                                 )
                     ##################################################################################
-                    elif not hist.no_weights and not self.iMC:   #DATA
+                    elif not histo.no_weights and not self.isMC:   #DATA
                         # Broadcast and mask the weight (using the cached value if possible)
                         weight_data = weights[category]["nominal"]
                         weight_data = self.mask_and_broadcast_weight(
                             category,
                             subsample,
-                            variation,
+                            "nominal",
                             weight_data,
                             mask,
                             data_structure,
@@ -645,7 +653,7 @@ class HistManager:
                             weight_data = weight_data * self.mask_and_broadcast_weight(
                                 category + "customW",
                                 subsample,
-                                variation,
+                                "nominal",
                                 custom_weight[
                                     name
                                 ],  # passing the custom weight to be masked and broadcasted
