@@ -76,7 +76,7 @@ def get_default_run_options():
 
 def get_defaults_and_compose(*files: List[str]):
     default_params = get_default_parameters()
-    return merge_parameters_from_files(default_params, files)
+    return merge_parameters_from_files(default_params, *files)
 
 
 def merge_parameters(main_config: OmegaConf, *configs: List[OmegaConf], update=True):
