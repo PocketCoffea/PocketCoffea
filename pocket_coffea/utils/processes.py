@@ -12,6 +12,7 @@ class Process:
     years: Iterable
     is_signal: bool
     is_data: bool = False
+    has_rateParam: bool = True
     label: str = None
 
     def __post_init__(self):

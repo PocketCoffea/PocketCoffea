@@ -446,7 +446,7 @@ class Datacard(Processes, Systematics):
         content = ""
         for process in self.processes:
             for year in process.years:
-                if not process.is_signal:
+                if not process.is_signal and process.has_rateParam:
                     line = f"SF_{process.name}".ljust(self.adjust_syst_colum)
                     line += "rateParam".ljust(self.adjust_columns)
                     line += f"* {process.name}_{year} 1 [0,5]".ljust(self.adjust_columns)
@@ -612,6 +612,15 @@ def create_scripts(
             "--cminDefaultMinimizerStrategy 2 --robustFit=1",
             "--saveWorkspace -v 2",
         ]],
+        "run_FitDiagnostics_toysFrequentist.sh": [[
+            "combine -M FitDiagnostics",
+            f"-d {workspace_name}",
+            "-n .asimov_fit",
+            f"--freezeParameters {','.join(freezeParameters_asimov)}",
+            "-t -1 --toysFrequentist --expectSignal=1",
+            "--cminDefaultMinimizerStrategy 2 --robustFit=1",
+            "--saveWorkspace -v 2",
+        ]],
         "run_MultiDimFit_toysFrequentist_scan1d.sh": [[
             "combine -M MultiDimFit",
             f"-d {workspace_name}",
@@ -641,13 +650,13 @@ def create_scripts(
         ],
         # -v 2 --rMin -5 --rMax 5 --robustHesse=1 --robustHesseSave 1 --saveFitResult
         "run_correlation_matrix.sh": [
-            "combine -M MultiDimFit",
+            ["combine -M MultiDimFit",
             f"-d {workspace_name}",
             "-n .covariance_matrix",
             f"--freezeParameters {','.join(freezeParameters_asimov)}",
             "-t -1 --toysFrequentist --expectSignal=1",
             "--cminDefaultMinimizerStrategy 2 --robustFit=1",
-            "-v 2 --rMin -5 --rMax 5 --robustHesse=1 --robustHesseSave 1 --saveFitResult",
+            "-v 2 --rMin -5 --rMax 5 --robustHesse=1 --robustHesseSave 1 --saveFitResult"]
         ]
     }
     if channel_masks:
