@@ -527,10 +527,23 @@ class Shape:
                             # Fill the missing categories with the nominal values
                             if category in categories_missing:
                                 warn_flag = True
-                                weight = h[{axis_name_other: category_other, axis_name: "nominal", }].values()
+                                weight = h[{axis_name_other: category_other, axis_name: "nominal"}].values()
                             else:
                                 weight = h[{axis_name_other: category_other, axis_name: category}].values()
-                            new_hist.fill(**fields, weight=weight)
+                            if self.dense_dim == 1:
+                                new_hist.fill(**fields, weight=weight)
+                            elif self.dense_dim == 2:
+                                fields_categorical = {k: v for k, v in fields.items() if k in [axis_name, axis_name_other]}
+                                fields_dense = {k: v for k, v in fields.items() if k not in [axis_name, axis_name_other]}
+                                x = fields_dense[self.dense_axes[0].name]
+                                y = fields_dense[self.dense_axes[1].name]
+                                # Create meshgrid for 2D histograms from last two fields, get the corresponding weight from the weight matrix and fill the new histogram
+                                Y, X = np.meshgrid(y, x)
+                                fields_dense[self.dense_axes[0].name] = X.flatten()
+                                fields_dense[self.dense_axes[1].name] = Y.flatten()
+                                new_hist.fill(**fields_categorical, **fields_dense, weight=weight.flatten())
+                            else:
+                                raise NotImplementedError("Histograms of dimension higher than 2 are not supported.")
                     if warn_flag:
                         print(warn_msg)
                     self.h_dict[s] = new_hist
