@@ -169,6 +169,8 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         from pocket_coffea.executors import executors_casa as executors_lib
     elif site == "infn-af":
         from pocket_coffea.executors import executors_infn_af as executors_lib
+    elif site == "ic":
+        from pocket_coffea.executors import executors_ic as executors_lib 
     else:
         from pocket_coffea.executors import executors_base as executors_lib
 
