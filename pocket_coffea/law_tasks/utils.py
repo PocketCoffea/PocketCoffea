@@ -196,6 +196,15 @@ def modify_dataset_output_path(
 
 
 def import_analysis_config(cfg: FileName) -> tuple[Configurator, ModuleType]:
+    """Import the analysis configuration module and return the Configurator object.
+
+    :param cfg: path to the config.py file
+    :type cfg: FileName
+    :raises AttributeError: if config.py has no attribute `cfg`
+    :raises TypeError: if cfg is not of type Configurator (pocket_coffea)
+    :return: Configurator object and the imported module
+    :rtype: tuple[Configurator, ModuleType]
+    """
     config_module = pocket_utils.path_import(cfg)
 
     try:
