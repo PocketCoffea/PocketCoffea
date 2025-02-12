@@ -1,5 +1,5 @@
 typing-extensions>=3.7;python_version<'3.8'
-coffea==0.7.22
+coffea==0.7.25
 numba>=0.57.0
 numpy>=1.22.0
 awkward>=1.10.3,<2
