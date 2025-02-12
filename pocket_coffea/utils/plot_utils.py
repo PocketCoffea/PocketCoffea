@@ -518,32 +518,19 @@ class Shape:
                         axis_new = hist.axis.IntCategory(categories_sorted[axis_name], name=axis_name, label=ax.label)
                     # Create new histogram with the missing categories
                     new_hist = hist.Hist(axis_other, axis_new, *self.dense_axes, storage=h._storage_type)
+                    new_hist_view = new_hist.view()
                     warn_msg = f"WARNING: Sample {s} is missing variations in the axis `{axis_name}`. Filling the {axis_name} with nominal values.\nMissing variations: {categories_missing}"
                     warn_flag = False
                     for category_other in categorical_axes_dict[axis_name_other]:
+                        index_other = axis_other.index(category_other)
                         for category in categories:
-                            fields = {axis_name: category, axis_name_other: category_other}
-                            fields.update({dense_axis.name : dense_axis.centers for dense_axis in self.dense_axes})
+                            index_category = axis_new.index(category)
                             # Fill the missing categories with the nominal values
                             if category in categories_missing:
                                 warn_flag = True
-                                weight = h[{axis_name_other: category_other, axis_name: "nominal"}].values()
+                                new_hist_view[index_other, index_category, :] = h[{axis_name_other: category_other, axis_name: "nominal"}].view()
                             else:
-                                weight = h[{axis_name_other: category_other, axis_name: category}].values()
-                            if self.dense_dim == 1:
-                                new_hist.fill(**fields, weight=weight)
-                            elif self.dense_dim == 2:
-                                fields_categorical = {k: v for k, v in fields.items() if k in [axis_name, axis_name_other]}
-                                fields_dense = {k: v for k, v in fields.items() if k not in [axis_name, axis_name_other]}
-                                x = fields_dense[self.dense_axes[0].name]
-                                y = fields_dense[self.dense_axes[1].name]
-                                # Create meshgrid for 2D histograms from last two fields, get the corresponding weight from the weight matrix and fill the new histogram
-                                Y, X = np.meshgrid(y, x)
-                                fields_dense[self.dense_axes[0].name] = X.flatten()
-                                fields_dense[self.dense_axes[1].name] = Y.flatten()
-                                new_hist.fill(**fields_categorical, **fields_dense, weight=weight.flatten())
-                            else:
-                                raise NotImplementedError("Histograms of dimension higher than 2 are not supported.")
+                                new_hist_view[index_other, index_category, :] = h[{axis_name_other: category_other, axis_name: category}].view()
                     if warn_flag:
                         print(warn_msg)
                     self.h_dict[s] = new_hist
