@@ -3,7 +3,7 @@ general:
   chunksize: 150000
   limit-files: null
   limit-chunks: null
-  retries: 2
+  retries: 10
   tree-reduction: 20
   skip-bad-files: false
   voms-proxy: null
