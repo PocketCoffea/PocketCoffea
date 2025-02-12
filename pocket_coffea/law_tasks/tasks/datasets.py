@@ -86,9 +86,6 @@ from pocket_coffea.utils.dataset import build_datasets
 class CreateDatasets(BaseTask):
     """Create dataset json files"""
 
-    # # datasets are independent of the version
-    # version = None
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # if wildcard in --datasets-definition parameter create a list
@@ -123,7 +120,6 @@ class CreateDatasets(BaseTask):
         self.merged_datasets = modify_dataset_output_path(
             dataset_definition=self.merged_datasets,
             dataset_configuration=self.dataset_config,
-            # output_path=self.local_path(), # ! this would overwrite config.py
         )
 
     def output(self):
