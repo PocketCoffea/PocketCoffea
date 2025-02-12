@@ -35,10 +35,11 @@ import click
 @click.option('--no-systematics-ratio', is_flag=True, help='Plot the ratio of the shifts for the systematic uncertainties', required=False, default=False)
 @click.option('--compare', is_flag=True, help='Plot comparison of the samples, instead of data/MC', required=False, default=False)
 @click.option('--index-file', type=str, help='Path of the index file to be copied recursively in the plots directory and its subdirectories', required=False, default=None)
+@click.option('--no-cache', is_flag=True, help='Do not cache the histograms for faster plotting', required=False, default=False)
 
 def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfile,
                workers, only_cat, only_year, only_syst, exclude_hist, only_hist, split_systematics, partial_unc_band, no_syst,
-               overwrite, log, density, verbose, format, systematics_shifts, no_ratio, no_systematics_ratio, compare, index_file):
+               overwrite, log, density, verbose, format, systematics_shifts, no_ratio, no_systematics_ratio, compare, index_file, no_cache):
     '''Plot histograms produced by PocketCoffea processors'''
 
     # Using the `input_dir` argument, read the default config and coffea files (if not set with argparse):
@@ -102,7 +103,8 @@ def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfile,
         density=density,
         verbose=verbose,
         save=True,
-        index_file=index_file
+        index_file=index_file,
+        cache=not no_cache
     )
 
     print("Started plotting.  Please wait...")

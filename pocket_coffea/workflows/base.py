@@ -184,7 +184,10 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             #sumgenweight after the skimming
             skimmed_sumw = ak.sum(self.events.genWeight)
             # the scaling factor is the original sumgenweight / the skimmed sumgenweight
-            self.events["skimRescaleGenWeight"] =  np.ones(self.nEvents_after_skim) * self.output['sum_genweights'][self._dataset] / skimmed_sumw
+            if skimmed_sumw == 0:
+                self.events["skimRescaleGenWeight"] = np.zeros(self.events.genWeight)
+            else:
+                self.events["skimRescaleGenWeight"] =  np.ones(self.nEvents_after_skim) * self.output['sum_genweights'][self._dataset] / skimmed_sumw
             self.output['sum_genweights_skimmed'] = { self._dataset : skimmed_sumw }
         
         filename = (
@@ -1038,5 +1041,13 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Rescale the histograms and sumw using the sum of the genweights
         if not self.workflow_options.get("donotscale_sumgenweights", False):
             self.rescale_sumgenweights(accumulator)
+        # Check if histograms have any nan value
+        for var, vardata in accumulator["variables"].items():
+            for samplename, dataset_in_sample in vardata.items():
+                for dataset, histo in dataset_in_sample.items():
+                    if any(np.isnan(histo.values().flatten())):
+                        raise Exception(
+                            f"NaN values in the histogram {var} for dataset {dataset} after rescaling"
+                        )
 
         return accumulator
