@@ -19,3 +19,5 @@ law
 click>=8.0.4
 correctionlib>=2.6.1
 setuptools<71
+dask
+dask-jobqueue
