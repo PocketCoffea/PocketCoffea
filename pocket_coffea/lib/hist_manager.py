@@ -214,7 +214,6 @@ class HistManager:
         self.available_shape_variations = set(self.available_shape_variations)
         # Prepare the variations Axes summing all the required variations
         # The variation config is organized as the weights one, by sample and by category
-
         for name, hcfg in deepcopy(hist_config).items():
             # Check if the histogram is active for the current sample
             # We only check for the parent sample, not for subsamples
@@ -331,7 +330,7 @@ class HistManager:
                     )
         else:
             # Save only the nominal weights if a shape variation is being processed
-            weights["nominal"] = weights_manager.get_weight(category)
+            weights["nominal"] = self.weights_manager.get_weight(category)
         return weights
 
     def fill_histograms(
@@ -586,6 +585,14 @@ class HistManager:
                                         f"Cannot fill histogram: {name}, {histo} {e}"
                                     )
                         else:
+                            # Check if this shape variation is requested for this category
+                            if shape_variation not in self.available_shape_variations_bycat[category]:
+                                # it means that the variation is in the axes only
+                                # because it is requested for another category.
+                                # We cannot fill just with the nominal, because we are running the shape
+                                # variation and the observable hist will be different, also if with nominal weights.
+                                continue
+                                
                             # Working on shape variation! only nominal weights
                             # (also using the cache which is cleaned for each shape variation
                             # at the beginning of the function)
@@ -598,7 +605,7 @@ class HistManager:
                                 data_structure,
                             )
                             if custom_weight != None and name in custom_weight:
-                                weight_varied = weight_varied * self.mask_and_broadcast_weight(
+                                weight_nom = weight_nom * self.mask_and_broadcast_weight(
                                     category + "customW",
                                     subsample,
                                     "nominal",

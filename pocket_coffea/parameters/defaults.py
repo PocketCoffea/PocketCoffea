@@ -31,7 +31,8 @@ def get_default_parameters():
     - lumi
     - jet_scale_factors: btagSF, jetPuID
     - btagging
-    - lepton_scale_factors.
+    - lepton_scale_factors
+    - MET_xy corrections.
 
     The use can use this function to get a basic set of parameters to customize
     in each analysis.
@@ -48,6 +49,7 @@ def get_default_parameters():
     lepton_scale_factors = OmegaConf.load(
         os.path.join(basedir, 'lepton_scale_factors.yaml')
     )
+    met_xy = OmegaConf.load(os.path.join(basedir, "met_xy.yaml"))
     syst_variations = OmegaConf.load(os.path.join(basedir, 'variations.yaml'))
     plotting_style = OmegaConf.load(os.path.join(basedir, 'plotting_style.yaml'))
 
@@ -59,6 +61,7 @@ def get_default_parameters():
         jet_scale_factors,
         btagging,
         lepton_scale_factors,
+        met_xy,
         syst_variations,
         plotting_style
     )
@@ -73,7 +76,7 @@ def get_default_run_options():
 
 def get_defaults_and_compose(*files: List[str]):
     default_params = get_default_parameters()
-    return merge_parameters_from_files(default_params, files)
+    return merge_parameters_from_files(default_params, *files)
 
 
 def merge_parameters(main_config: OmegaConf, *configs: List[OmegaConf], update=True):

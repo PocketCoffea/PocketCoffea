@@ -77,7 +77,7 @@ def test_sf_ele_id(events, params):
 
 
 def test_sf_ele_trigger(events, params):
-    from pocket_coffea.lib.weights.common import common_weights
+    from pocket_coffea.lib.weights.common import weights_run3
     events["Electron"] = ak.with_field(
             events.Electron,
             events.Electron.eta+events.Electron.deltaEtaSC, "etaSC"

@@ -1,12 +1,13 @@
-from pocket_coffea.utils.network import get_proxy_path
+
 import os
-import getpass
+from multiprocessing import Lock
+from collections import defaultdict
 import re
 import json
 import time
 import requests
 from rucio.client import Client
-from collections import defaultdict
+from pocket_coffea.utils.network import get_proxy_path
 
 
 # Rucio needs the default configuration --> taken from CMS cvmfs defaults
@@ -47,15 +48,19 @@ def get_xrootd_sites_map():
 
     This function returns the list of xrootd prefix rules for each site.
     """
+
     sites_xrootd_access = defaultdict(dict)
     # Check if the cache file has been modified in the last 10 minutes
     cache_valid = False
     if os.path.exists(".sites_map.json"):
         file_time = os.path.getmtime(".sites_map.json")
         current_time = time.time()
-        ten_minutes_ago = current_time - 600
-        if file_time > ten_minutes_ago:
+        #ten_minutes_ago = current_time - 600
+        twenty_minutes_ago = current_time - 1200
+        if file_time > twenty_minutes_ago:
             cache_valid = True
+
+    lock = Lock()
 
     if not os.path.exists(".sites_map.json") or not cache_valid:
         print("Loading SITECONF info")
@@ -89,7 +94,11 @@ def get_xrootd_sites_map():
                         else:
                             sites_xrootd_access[site["rse"]] = proc["prefix"]
 
-        json.dump(sites_xrootd_access, open(".sites_map.json", "w"))
+        lock.acquire()
+        try:
+            json.dump(sites_xrootd_access, open(".sites_map.json", "w"))
+        finally:
+            lock.release()
 
     return json.load(open(".sites_map.json"))
 
@@ -197,7 +206,9 @@ def get_dataset_files_replicas(
             possible_sites = list(rses.keys())
             if blocklist_sites:
                 possible_sites = list(
-                    filter(lambda key: key not in blocklist_sites, possible_sites)
+                    filter(lambda key: (
+                        (key not in blocklist_sites) and (key.replace("_Disk","") not in blocklist_sites)
+                        ),  possible_sites)
                 )
 
             if len(possible_sites) == 0 and not partial_allowed and not include_redirector:

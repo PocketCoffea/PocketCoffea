@@ -21,7 +21,11 @@ def add_jec_variables(jets, event_rho, isMC=True):
 def load_jet_factory(params):
     #read the factory file from params and load it
     with gzip.open(params.jets_calibration.factory_file) as fin:
-        return cloudpickle.load(fin)
+        try:
+            return cloudpickle.load(fin)
+        except Exception as e:
+            print(f"Error loading the jet factory file: {params.jets_calibration.factory_file} --> Please remove the file and rerun the code")
+            raise Exception(f"Error loading the jet factory file: {params.jets_calibration.factory_file} --> Please remove the file and rerun the code")
         
 
 def jet_correction(params, events, jets, factory, jet_type, chunk_metadata, cache):
@@ -45,6 +49,23 @@ def jet_correction(params, events, jets, factory, jet_type, chunk_metadata, cach
 def met_correction(params, MET, jets):
     met_factory = CorrectedMETFactory(params.jet_calibration.jec_name_map) # to be fixed
     return met_factory.build(MET, jets, {})
+    
+def met_xy_correction(params, events, year, era):
+    metx = events.MET.pt * np.cos(events.MET.phi)
+    mety = events.MET.pt * np.sin(events.MET.phi)
+    nPV = events.PV.npvs
+
+    if era == "MC":
+        params_ = params["MET_xy"]["MC"][year]
+    else:
+        params_ = params["MET_xy"]["Data"][year][era]
+
+    metx = metx - (params_[0][0] * nPV + params_[0][1])
+    mety = mety - (params_[1][0] * nPV + params_[1][1])
+    pt_corr = np.hypot(metx, mety)
+    phi_corr = np.arctan2(mety, metx)
+    
+    return pt_corr, phi_corr
 
 
 def jet_correction_correctionlib(
@@ -214,7 +235,7 @@ def jet_correction_correctionlib(
         return jets_corrected
 
 
-def jet_selection(events, jet_type, params, year, leptons_collection=""):
+def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tagger=""):
 
     jets = events[jet_type]
     cuts = params.object_preselection[jet_type]
@@ -243,10 +264,49 @@ def jet_selection(events, jet_type, params, year, leptons_collection=""):
   
         mask_good_jets = mask_presel & mask_lepton_cleaning & mask_jetpuid
 
+        if jet_tagger != "":
+            if "PNet" in jet_tagger:
+                B   = "btagPNetB"
+                CvL = "btagPNetCvL"
+                CvB = "btagPNetCvB"
+            elif "DeepFlav" in jet_tagger:
+                B   = "btagDeepFlavB"
+                CvL = "btagDeepFlavCvL"
+                CvB = "btagDeepFlavCvB"
+            elif "RobustParT" in jet_tagger:
+                B   = "btagRobustParTAK4B"
+                CvL = "btagRobustParTAK4CvL"
+                CvB = "btagRobustParTAK4CvB"
+            else:
+                raise NotImplementedError(f"This tagger is not implemented: {jet_tagger}")
+            
+            if B not in jets.fields or CvL not in jets.fields or CvB not in jets.fields:
+                raise NotImplementedError(f"{B}, {CvL}, and/or {CvB} are not available in the input.")
+
+            jets["btagB"] = jets[B]
+            jets["btagCvL"] = jets[CvL]
+            jets["btagCvB"] = jets[CvB]
+
     elif jet_type == "FatJet":
         # Apply the msd and preselection cuts
         mask_msd = events.FatJet.msoftdrop > cuts["msd"]
         mask_good_jets = mask_presel & mask_msd
+
+        if jet_tagger != "":
+            if "PNetMD" in jet_tagger:
+                BB   = "particleNet_XbbVsQCD"
+                CC   = "particleNet_XccVsQCD"
+            elif "PNet" in jet_tagger:
+                BB   = "particleNetWithMass_HbbvsQCD"
+                CC   = "particleNetWithMass_HccvsQCD"
+            else:
+                raise NotImplementedError(f"This tagger is not implemented: {jet_tagger}")
+            
+            if BB not in jets.fields or CC not in jets.fields:
+                raise NotImplementedError(f"{BB} and/or {CC} are not available in the input.")
+
+            jets["btagBB"] = jets[BB]
+            jets["btagCC"] = jets[CC]
 
     return jets[mask_good_jets], mask_good_jets
 
@@ -258,20 +318,20 @@ def btagging(Jet, btag, wp, veto=False):
         return Jet[Jet[btag["btagging_algorithm"]] > btag["btagging_WP"][wp]]
 
 
-def CvsLsorted(jets, tagger):
-    if tagger == "PNet":
-        ctag = "btagPNetCvL"
-    elif tagger == "DeepFlav":
-        ctag = "btagDeepFlavCvL"
-    elif tagger == "RobustParT":
-        ctag = "btagRobustParTAK4CvL"
-    else:
-        raise NotImplementedError(f"This tagger is not implemented: {tagger}")
-    
-    return jets[ak.argsort(jets[ctag], axis=1, ascending=False)]
+def CvsLsorted(jets,temp=None):    
+    if temp is not None:
+        raise NotImplementedError(f"Using the tagger name while calling `CvsLsorted` is deprecated. Please use `jet_tagger={temp}` as an argument to `jet_selection`.")
+    return jets[ak.argsort(jets["btagCvL"], axis=1, ascending=False)]
+
+def ProbBsorted(jets,temp=None):    
+    if temp is not None:
+        raise NotImplementedError(f"Using the tagger name while calling `ProbBsorted` is deprecated. Please use `jet_tagger={temp}` as an argument to `jet_selection`.")
+    return jets[ak.argsort(jets["btagB"], axis=1, ascending=False)]
 
 
-def get_dijet(jets, tagger = None):
+def get_dijet(jets, taggerVars=True):
+    if isinstance(taggerVars,str):
+        raise NotImplementedError(f"Using the tagger name while calling `get_dijet` is deprecated. Please use `jet_tagger={taggerVars}` as an argument to `jet_selection`.")
     
     fields = {
         "pt": 0.,
@@ -300,28 +360,13 @@ def get_dijet(jets, tagger = None):
     fields["j1pt"] = ak.where( (njet >= 2), jets[:,0].pt, -1)
     fields["j2pt"] = ak.where( (njet >= 2), jets[:,1].pt, -1)
 
-
-    #print("The fields of jets:", jets.fields)
-    if "jetId" in jets.fields and tagger!=None:
+    if "jetId" in jets.fields and taggerVars:
         '''This dijet fuction should work for GenJets as well. But the btags are not available for them
         Thus, one has to check if a Jet is a GenJet or reco Jet. The jetId variable is only available in reco Jets'''
-        if tagger == "PNet":
-            CvL = "btagPNetCvL"
-            CvB = "btagPNetCvB"
-        elif tagger == "DeepFlav":
-            CvL = "btagDeepFlavCvL"
-            CvB = "btagDeepFlavCvB"
-        elif tagger == "RobustParT":
-            CvL = "btagRobustParTAK4CvL"
-            CvB = "btagRobustParTAK4CvB"
-        else:
-            raise NotImplementedError(f"This tagger is not implemented: {tagger}")
-
-        fields["j1CvsL"] = ak.where( (njet >= 2), jets[:,0][CvL], -1)
-        fields["j2CvsL"] = ak.where( (njet >= 2), jets[:,1][CvL], -1)
-        fields["j1CvsB"] = ak.where( (njet >= 2), jets[:,0][CvB], -1)
-        fields["j2CvsB"] = ak.where( (njet >= 2), jets[:,1][CvB], -1)
-    
+        fields["j1CvsL"] = ak.where( (njet >= 2), jets[:,0]["btagCvL"], -1)
+        fields["j2CvsL"] = ak.where( (njet >= 2), jets[:,1]["btagCvL"], -1)
+        fields["j1CvsB"] = ak.where( (njet >= 2), jets[:,0]["btagCvB"], -1)
+        fields["j2CvsB"] = ak.where( (njet >= 2), jets[:,1]["btagCvB"], -1)
     
     dijet = ak.zip(fields, with_name="PtEtaPhiMCandidate")
 

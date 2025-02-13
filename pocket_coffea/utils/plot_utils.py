@@ -377,10 +377,6 @@ class Shape:
         self.exclude_samples()
         self.rescale_samples()
         self.load_attributes()
-        # IMPORTANT: the flow bins should be summed before loading the SystManager,
-        # so that the systematic uncertainties are built with the flow bins included in the first and last bins
-        if self.style.flow:
-            self.sum_flow_bins()
         self.load_syst_manager()
 
     def load_attributes(self):
@@ -604,12 +600,12 @@ class Shape:
             #print(sample_new, samples_list)
             for s_to_group in samples_list:
                 if s_to_group not in self.h_dict.keys():
-                    if self.verbose>=0:
-                        print("WARNING. Sample ",s_to_group," is not in the list of samples: ", list(self.h_dict.keys()), "Skipping it.")
+                    if self.verbose>=1:
+                        print(f"{self.name}: WARNING. Sample ",s_to_group," is not in the list of samples: ", list(self.h_dict.keys()), "Skipping it.")
                     cleaned_samples_list[sample_new].remove(s_to_group)
                     continue
                 if self.verbose>=1:
-                    print("\t Sample ",s_to_group," will be grouped into sample", sample_new)
+                    print(f"\t {self.name}: Sample ",s_to_group," will be grouped into sample", sample_new)
 
         for sample_new, samples_list in cleaned_samples_list.items():
             if len(samples_list)==0:
@@ -657,46 +653,6 @@ class Shape:
                     print("Warning: the rescaling sample is not among the samples in the histograms. Nothing will be rescaled! ")
                     print("\t Rescale requested for:", sample, ";  hists exist:", self.h_dict.keys())
 
-    def sum_flow_bins(self):
-        '''Add the underflow and overflow bins to the first and last bins, respectively.
-        The operation is performed for each sample and for each category for data histograms.
-        It is performed for each sample, category and variation for MC histograms.
-        The underflow and overflow bins are set to zero after summing them to the first and last bins.'''
-        if self.dense_dim > 1:
-            print(f"WARNING: cannot sum flow bins of histogram {self.name} with dimension {self.dense_dim}.")
-            print("The method `sum_flow_bins` will be skipped.")
-            return
-
-        xaxis_name = self.dense_axes[0].name
-
-        for s, h in self.h_dict.items():
-            if s in self.samples_mc:
-                if len(self.categorical_axes_mc) != 2:
-                    raise NotImplementedError(
-                        "The flow option is only implemented for histograms with two categorical axes `cat` and `variation`."
-                    )
-                assert self.categorical_axes_mc[0].name == "cat", "The first categorical axis should be named `cat`."
-                assert self.categorical_axes_mc[1].name == "variation", "The second categorical axis should be named `variation`."
-                for cat, variation in product(self.categorical_axes_mc[0], self.categorical_axes_mc[1]):
-                    self.h_dict[s][{'cat' : cat, 'variation' : variation, xaxis_name : 0}] += self.h_dict[s][{'cat' : cat, 'variation' : variation, xaxis_name : hist.underflow}]
-                    self.h_dict[s][{'cat' : cat, 'variation' : variation, xaxis_name : -1}] += self.h_dict[s][{'cat' : cat, 'variation' : variation, xaxis_name : hist.overflow}]
-                    # Set the underflow and overflow bins to zero after summing them
-                    self.h_dict[s][{'cat' : cat, 'variation' : variation, xaxis_name : hist.underflow}] = [0.0, 0.0]
-                    self.h_dict[s][{'cat' : cat, 'variation' : variation, xaxis_name : hist.overflow}] = [0.0, 0.0]
-
-            elif s in self.samples_data:
-                if len(self.categorical_axes_data) != 1:
-                    raise NotImplementedError(
-                        "The flow option is only implemented for histograms with one categorical axis `cat`."
-                    )
-                assert self.categorical_axes_data[0].name == "cat", "The first categorical axis should be named `cat`."
-                for cat in self.categorical_axes_data[0]:
-                    self.h_dict[s][{'cat' : cat, xaxis_name : 0}] += self.h_dict[s][{'cat' : cat, xaxis_name : hist.underflow}]
-                    self.h_dict[s][{'cat' : cat, xaxis_name : -1}] += self.h_dict[s][{'cat' : cat, xaxis_name : hist.overflow}]
-                    # Set the underflow and overflow bins to zero after summing them
-                    self.h_dict[s][{'cat' : cat, xaxis_name : hist.underflow}] = [0.0, 0.0]
-                    self.h_dict[s][{'cat' : cat, xaxis_name : hist.overflow}] = [0.0, 0.0]
-
     def _get_stacks(self, cat, spliteras=False):
         '''Builds the data and MC stacks, applying a slicing by category.
         The stacks are cached in a dictionary so that they are not recomputed every time.
@@ -718,7 +674,7 @@ class Shape:
                 }
                 # create cycler from the colormap and instantiate it to get iterator
                 cmap = CMAP_6 if len(self.nevents) <= 6 else CMAP_10
-                if len(self.nevents) > 10:
+                if len(self.nevents) > 10 and self.verbose>0:
                     print(
                         "Warning: more than 10 samples to plot. "
                         "No official CMS colormap for that case"
@@ -801,16 +757,25 @@ class Shape:
                 is_empty = False
         return is_empty
 
+    def _merge_flow_bins(self, values):
+        '''Add the underflow and overflow bins to the first and last bins, respectively.'''
+        values_copy = deepcopy(values)
+        if self.style.flow:
+            values_copy[1] += values_copy[0]  # Merge underflow bin
+            values_copy[-2] += values_copy[-1]  # Merge overflow bin
+            values_copy = values_copy[1:-1]  # Remove the original underflow and overflow bins
+        return values_copy
+
     def get_datamc_ratio(self, cat):
         '''Computes the data/MC ratio and the corresponding uncertainty.'''
         stacks = self._get_stacks(cat)
         hnum = stacks["data_sum"]
         hden = stacks["mc_nominal_sum"]
 
-        num = hnum.values()
-        den = hden.values()
-        num_variances = hnum.variances()
-        den_variances = hden.variances()
+        num = self._merge_flow_bins(hnum.values(flow=self.style.flow))
+        den = self._merge_flow_bins(hden.values(flow=self.style.flow))
+        num_variances = self._merge_flow_bins(hnum.variances(flow=self.style.flow))
+        den_variances = self._merge_flow_bins(hden.variances(flow=self.style.flow))
 
         if self.density:
             num_integral = sum(num * np.array(self.style.opts_axes["xbinwidth"]) )
@@ -823,7 +788,9 @@ class Shape:
                 den_variances = den_variances * (1./den_integral)**2
 
         ratio = num / den
-        # Total uncertainy propagation of num / den :
+        # Blinding ratio for certain variables (if defined in plotting config)
+        ratio = self.blind_hist(cat,ratio)
+        # Total uncertainty propagation of num / den :
         # ratio_variance = np.power(ratio,2)*( num_variances*np.power(num, -2) + den_variances*np.power(den, -2))
         # Only the uncertainty of num (DATA) propagated:
         ratio_variance = num_variances * np.power(den, -2)
@@ -850,8 +817,8 @@ class Shape:
         else:
             hden = stacks['mc_nominal'][ref]
 
-        den = hden.values()
-        den_variances = hden.variances()
+        den = self._merge_flow_bins(hden.values(flow=self.style.flow))
+        den_variances = self._merge_flow_bins(hden.variances(flow=self.style.flow))
 
         if self.density:
             den_integral = sum(den * np.array(self.style.opts_axes["xbinwidth"]) )
@@ -869,8 +836,8 @@ class Shape:
             histograms_list.append(stacks['data_sum'])
         for hnum in histograms_list:
             #print("Process:", hnum.name, type(hnum))
-            num = hnum.values()
-            num_variances = hnum.variances()
+            num = self._merge_flow_bins(hnum.values(flow=self.style.flow))
+            num_variances = self._merge_flow_bins(hnum.variances(flow=self.style.flow))
 
             if self.density:
                 num_integral = sum(num * np.array(self.style.opts_axes["xbinwidth"]) )
@@ -938,10 +905,10 @@ class Shape:
         stacks = self._get_stacks(cat)
         ylabel = "Counts" if not self.density else "A.U."
         self.ax.set_ylabel(ylabel, fontsize=self.style.fontsize)
-        self.ax.legend(fontsize=self.style.fontsize, ncol=2, loc="upper right")
         self.ax.tick_params(axis='x', labelsize=self.style.fontsize)
         self.ax.tick_params(axis='y', labelsize=self.style.fontsize)
         self.ax.set_xlim(self.style.opts_axes["xedges"][0], self.style.opts_axes["xedges"][-1])
+        handles, labels = self.ax.get_legend_handles_labels()
         if self.log:
             self.ax.set_yscale("log")
             if self.is_data_only:
@@ -957,6 +924,19 @@ class Shape:
             exp = math.floor(math.log(arg_log, 10))
             y_lim_hi = self.style.opts_ylim["datamc"]["ylim_log"].get("hi", 10 ** (exp*1.75))
             self.ax.set_ylim((self.style.opts_ylim["datamc"]["ylim_log"]["lo"], y_lim_hi))
+            # Revert handles and labels in logarithmic plot
+            if self.is_mc_only:
+                handles_to_reverse = handles[:-1]
+                labels_to_reverse = labels[:-1]
+                handles_last = [handles[-1]]
+                labels_last = [labels[-1]]
+            else:
+                handles_to_reverse = handles[:-2]
+                labels_to_reverse = labels[:-2]
+                handles_last = handles[-2:]
+                labels_last = labels[-2:]
+            handles = handles_to_reverse[::-1] + handles_last
+            labels = labels_to_reverse[::-1] + labels_last
         else:
             if self.is_data_only:
                 reference_shape = stacks["data_sum"].values()
@@ -976,6 +956,7 @@ class Shape:
             if not np.isnan(ymax):
                 if ymax==0: ymax=1
                 self.ax.set_ylim((0, 2.0 * ymax))
+        self.ax.legend(handles, labels, fontsize=self.style.fontsize_legend, ncol=2, loc="upper right")
         if ratio:
             self.ax.set_xlabel("")
             self.rax.set_xlabel(self.style.opts_axes["xlabel"], fontsize=self.style.fontsize)
@@ -989,7 +970,6 @@ class Shape:
             self.rax.set_ylim((0.5, 1.5))
 
         if self.style.has_labels or self.style.has_signal_samples:
-            handles, labels = self.ax.get_legend_handles_labels()
             labels_new = []
             handles_new = []
             for i, l in enumerate(labels):
@@ -1015,7 +995,7 @@ class Shape:
             self.ax.legend(
                 handles,
                 labels,
-                fontsize=self.style.fontsize,
+                fontsize=self.style.fontsize_legend,
                 ncol=2,
                 loc="upper right",
             )
@@ -1061,22 +1041,7 @@ class Shape:
 
         self.format_figure(cat, ratio=False)
 
-    def plot_data(self, cat, ax=None):
-        '''Plots the data histogram as an errorbar plot.'''
-        stacks = self._get_stacks(cat)
-        if self.dense_dim > 1:
-            print(f"WARNING: cannot plot data for histogram {self.name} with dimension {self.dense_dim}.")
-            print("The method `plot_data` will be skipped.")
-            return
-
-        if ax:
-            self.ax = ax
-        else:
-            if not hasattr(self, "ax"):
-                self.define_figure(ratio=False)
-        y = stacks["data_sum"].values()
-
-        # Blinding data for certain variables (if defined in plotting config)
+    def blind_hist(self, cat, hist):
         if self.style.has_blind_hists and cat in self.style.blind_hists.categories:
             for blind_hname, blind_range in self.style.blind_hists.histograms.items():
                 if not self.name.startswith(blind_hname):
@@ -1090,7 +1055,26 @@ class Shape:
                         continue
                     hist_edges = np.array(self.style.opts_axes["xedges"])
                     bins_to_zero = (hist_edges[:-1] >= blind_range[0]) & (hist_edges[:-1] < blind_range[1])
-                    y[bins_to_zero] = 0
+                    hist[bins_to_zero] = 0
+        return hist
+
+    def plot_data(self, cat, ax=None):
+        '''Plots the data histogram as an errorbar plot.'''
+        stacks = self._get_stacks(cat)
+        if self.dense_dim > 1:
+            print(f"WARNING: cannot plot data for histogram {self.name} with dimension {self.dense_dim}.")
+            print("The method `plot_data` will be skipped.")
+            return
+
+        if ax:
+            self.ax = ax
+        else:
+            if not hasattr(self, "ax"):
+                self.define_figure(ratio=False)
+        y = self._merge_flow_bins(stacks["data_sum"].values(flow=self.style.flow))
+
+        # Blinding data for certain variables (if defined in plotting config)
+        y = self.blind_hist(cat,y)
 
         yerr = np.sqrt(y)
         integral = sum(y) * np.array(self.style.opts_axes["xbinwidth"])
@@ -1199,7 +1183,7 @@ class Shape:
 
             # If the histogram is in density mode, the systematic uncertainty has to be normalized to the integral of the MC stack
             if self.density:
-                mc_integral = sum(self._get_stacks(cat)["mc_nominal_sum"].values()) * np.array(self.style.opts_axes["xbinwidth"])
+                mc_integral = sum(self._get_stacks(cat)["mc_nominal_sum"].values(flow=self.style.flow)) * np.array(self.style.opts_axes["xbinwidth"])
                 up = up / mc_integral
                 down = down / mc_integral
 
@@ -1425,10 +1409,10 @@ class SystManager:
         '''Updates the dictionary of systematic uncertainties with the new cached stacks.'''
         for cat, stacks in self.shape._stacksCache.items():
             for syst_name in self.systematics:
-                self.syst_dict[cat][syst_name] = SystUnc(self.shape.style, stacks, syst_name)
+                self.syst_dict[cat][syst_name] = SystUnc(self.shape, stacks, syst_name)
 
     def total(self, cat):
-        return SystUnc(style = self.style, name="total", syst_list=list(self.syst_dict[cat].values()))
+        return SystUnc(self.shape, name="total", syst_list=list(self.syst_dict[cat].values()))
 
     def mcstat(self, cat):
         return self.syst_dict[cat]["mcstat"]
@@ -1445,8 +1429,10 @@ class SystUnc:
     returning a `SystUnc` instance corresponding to their sum in quadrature.'''
 
     def __init__(
-            self, style: Style, stacks: dict = None, name: str = None, syst_list: list = None
+            self, shape: Shape, stacks: dict = None, name: str = None, syst_list: list = None
     ) -> None:
+        self.shape = shape
+        self.style = shape.style
         self.name = name
         self.is_mcstat = self.name == "mcstat"
 
@@ -1454,7 +1440,6 @@ class SystUnc:
         self.nominal = 0.0
         self.err2_up = 0.0
         self.err2_down = 0.0
-        self.style = style
         if stacks:
             if syst_list:
                 raise Exception(
@@ -1462,10 +1447,11 @@ class SystUnc:
                 )
             else:
                 self.syst_list = [self]
+            self.bins = stacks["mc_nominal_sum"].axes[0].edges
+            self.h_mc_nominal = stacks["mc_nominal_sum"]
+            self.nominal = self.shape._merge_flow_bins(self.h_mc_nominal.values(flow=self.style.flow))
             self._get_err2(stacks)
             # Full nominal MC including all MC samples
-            self.h_mc_nominal = stacks["mc_nominal_sum"]
-            self.nominal, self.bins = stacks["mc_nominal_sum"].to_numpy()
         elif syst_list:
             self.syst_list = syst_list
             assert (
@@ -1484,7 +1470,7 @@ class SystUnc:
         '''Sum in quadrature of two systematic uncertainties.
         In case multiple objects are summed, the information on the systematic uncertainties that
         have been summed is stored in self.syst_list.'''
-        return SystUnc(style=self.style, name=f"{self.name}_{other.name}", syst_list=[self, other])
+        return SystUnc(self.shape, name=f"{self.name}_{other.name}", syst_list=[self, other])
 
     @property
     def up(self):
@@ -1570,16 +1556,16 @@ class SystUnc:
         for h in stacks["mc"]:
             # Nominal variation for a single MC sample
             h_nom = h[{'variation': 'nominal'}]
-            nom = h_nom.values()
+            nom = self.shape._merge_flow_bins(h_nom.values(flow=self.style.flow))
             # Sum in quadrature of mcstat
             if self.is_mcstat:
-                mcstat_err2 = h_nom.variances()
+                mcstat_err2 = self.shape._merge_flow_bins(h_nom.variances(flow=self.style.flow))
                 self.err2_up += mcstat_err2
                 self.err2_down += mcstat_err2
                 continue
             # Up/down variations for a single MC sample
-            var_up = h[{'variation': f'{self.name}Up'}].values()
-            var_down = h[{'variation': f'{self.name}Down'}].values()
+            var_up = self.shape._merge_flow_bins(h[{'variation': f'{self.name}Up'}].values(flow=self.style.flow))
+            var_down = self.shape._merge_flow_bins(h[{'variation': f'{self.name}Down'}].values(flow=self.style.flow))
             # Compute the uncertainties corresponding to the up/down variations
             err_up = var_up - nom
             err_down = var_down - nom
@@ -1640,7 +1626,7 @@ class SystUnc:
     def format_figure(self, ratio=True):
         """Formats the figure's axes, labels, ticks, xlim and ylim."""
         self.ax.set_ylabel("Counts", fontsize=self.style.fontsize)
-        self.ax.legend(fontsize=self.style.fontsize, ncol=2, loc="upper right")
+        self.ax.legend(fontsize=self.style.fontsize_legend, ncol=2, loc="upper right")
         self.ax.tick_params(axis="x", labelsize=self.style.fontsize)
         self.ax.tick_params(axis="y", labelsize=self.style.fontsize)
         self.ax.set_xlim(
@@ -1689,7 +1675,7 @@ class SystUnc:
             self.ax.legend(
                 handles,
                 labels,
-                fontsize=self.style.fontsize,
+                fontsize=self.style.fontsize_legend,
                 ncol=1,
                 loc="upper right",
             )

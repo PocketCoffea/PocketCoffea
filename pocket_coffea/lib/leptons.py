@@ -1,5 +1,74 @@
 import awkward as ak
 import numpy as np
+import correctionlib
+
+
+def get_ele_scaled(ele, jsonFileName, isMC, runNr):
+    evaluator = correctionlib.CorrectionSet.from_file(jsonFileName)
+    evaluator_scale = evaluator["Scale"]
+    ele_gain_flat = ak.flatten(ele["seedGain"])
+    ele_eta_flat = ak.flatten(ele["etaSC"])
+    ele_r9_flat = ak.flatten(ele["r9"])
+    ele_pt_flat = ak.flatten(ele["pt"])
+    ele_counts = ak.num(ele["pt"])
+    ele_runNr_flat = np.repeat(runNr, ele_counts)
+    if not isMC: # for data return nominal
+        scale = evaluator_scale.evaluate(
+            "total_correction", 
+            ele_gain_flat, 
+            ele_runNr_flat, 
+            ele_eta_flat, 
+            ele_r9_flat, 
+            ele_pt_flat
+        )
+        ele_pt_corrected = ak.unflatten(scale * ele_pt_flat, counts=ele_counts)
+        return {"nominal": ele_pt_corrected}
+    else: # for MC return shifts
+        scale_MC_unc = evaluator_scale.evaluate(
+            "total_uncertainty", 
+            ele_gain_flat, 
+            ele_runNr_flat, 
+            ele_eta_flat, 
+            ele_r9_flat, 
+            ele_pt_flat
+        )
+        ele_pt_scale_up = ak.unflatten((1+scale_MC_unc) * ele_pt_flat, counts=ele_counts)
+        ele_pt_scale_down = ak.unflatten((1-scale_MC_unc) * ele_pt_flat, counts=ele_counts)
+        return {"Up": ele_pt_scale_up, "Down": ele_pt_scale_down}
+
+def get_ele_smeared(mc_ele, jsonFileName, isMC, nominal=True, seed=125):
+    
+    if not isMC:
+        return
+    evaluator = correctionlib.CorrectionSet.from_file(jsonFileName)
+    evaluator_smearing = evaluator["Smearing"]
+    ele_eta_flat = ak.flatten(mc_ele["etaSC"])
+    ele_r9_flat = ak.flatten(mc_ele["r9"])
+    ele_pt_flat = ak.flatten(mc_ele["pt"])
+    ele_counts = ak.num(mc_ele["pt"])
+    rng = np.random.default_rng(seed=seed)
+    rho = evaluator_smearing.evaluate(
+        "rho",
+        ele_eta_flat,
+        ele_r9_flat
+    )
+    if nominal:
+        smearing = rng.normal(loc=1., scale=rho)
+        mc_ele_pt_corrected = ak.unflatten(smearing * ele_pt_flat, counts=ele_counts)
+        return {"nominal": mc_ele_pt_corrected}
+    else:
+        unc_rho = evaluator_smearing.evaluate(
+            "err_rho", 
+            ele_eta_flat, 
+            ele_r9_flat
+        )
+        smearing_up = rng.normal(loc=1., scale=rho + unc_rho)
+        smearing_down = rng.normal(loc=1., scale=rho - unc_rho)
+        mc_ele_pt_up = ak.unflatten(smearing_up * ele_pt_flat, counts=ele_counts)
+        mc_ele_pt_down = ak.unflatten(smearing_down * ele_pt_flat, counts=ele_counts)
+        return {"Up": mc_ele_pt_up, "Down": mc_ele_pt_down}
+
+
 
 def lepton_selection(events, lepton_flavour, params):
 
