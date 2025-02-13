@@ -1656,8 +1656,8 @@ class SystUnc:
                 if not all(stacks["mc_nominal_sum"].values() == h_var):
                     # Then, we check if the variation is empty
                     if all(h_var == np.zeros_like(h_var)):
-                        raise Exception(
-                            f"Empty variation found for systematic {self.name} in histogram {self.shape.name}. "+
+                        print(
+                            f"WARNING: Empty variation found for systematic {self.name} in histogram {self.shape.name}. "+
                             "Please check if the input histograms are filled properly."
                         )
 
