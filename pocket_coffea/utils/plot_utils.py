@@ -79,6 +79,7 @@ class Style:
         self.has_rescale_samples = "rescale_samples" in style_cfg
         self.has_colors_mc = "colors_mc" in style_cfg
         self.has_signal_samples = "signal_samples" in style_cfg
+        self.has_order_mc = "order_mc" in style_cfg
 
         self.has_blind_hists = False
         if "blind_hists" in style_cfg:
@@ -783,6 +784,12 @@ class Shape:
                 self.nevents = dict(
                     sorted(self.nevents.items(), key=lambda x: x[1], reverse=reverse)
                 )
+                # If the order of MC samples is specified in the plotting style, move the sample to the beginning of the dictionary
+                if self.style.has_order_mc:
+                    for sample in reversed(self.style.order_mc):
+                        if sample in self.nevents:
+                            self.nevents = {sample: self.nevents[sample], **self.nevents}
+
                 # order colors accordingly
                 self.colors = {sample: self.colors[sample] for sample in self.nevents}
 
