@@ -1,0 +1,59 @@
+{
+"TTTo2L2Nu_2018": {
+        "metadata": {
+          "das_names": "['/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v1/NANOAODSIM']",
+          "sample": "TTTo2L2Nu",
+          "year": "2018",
+          "isMC": "True",
+          "xsec": "88.29",
+	  "nevents": "145020000",
+          "size": "309022244066"
+        },
+        "files": [
+          "root://eoscms.cern.ch//eos/cms/store/mc/RunIISummer20UL18NanoAODv9/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/106X_upgrade2018_realistic_v16_L1v1-v1/280000/01881676-C30A-2142-B3B2-7A8449DAF8EF.root"
+        ]
+},
+    "TTToSemiLeptonic_2016_PostVFP": {
+        "metadata": {
+           "das_names": "['/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM']",
+            "sample": "TTToSemiLeptonic",
+            "year": "2016_PostVFP",
+            "isMC": "True",
+            "xsec": "366.2852",
+            "nevents": "144722000",
+            "size": "308305217244"
+        },
+        "files": [
+            "root://eoscms.cern.ch//eos/cms/store/mc/RunIISummer20UL16NanoAODv9/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/106X_mcRun2_asymptotic_v17-v1/70000/6F78A4CF-97BC-7741-B6E4-DE51CF82EE6E.root"]
+    },
+
+     "DATA_SingleMuon_2018_EraA": {
+        "metadata": {
+            "das_names": "['/SingleMuon/Run2018A-UL2018_MiniAODv2_NanoAODv9-v2/NANOAOD']",
+            "sample": "DATA_SingleMuon",
+            "year": "2018",
+            "isMC": "False",
+            "primaryDataset": "SingleMuon",
+            "era": "A",
+            "nevents": "241608232",
+            "size": "211774345140"
+        },
+        "files": [
+            "root://eoscms.cern.ch//eos/cms/store/data/Run2018A/SingleMuon/NANOAOD/UL2018_MiniAODv2_NanoAODv9_GT36-v1/2820000/06EFD7A6-A6F1-E145-B1F8-C6794FE4EDDD.root"]
+     },
+
+    "DATA_EGamma_2018_EraA": {
+        "metadata": {
+            "das_names": "['/EGamma/Run2018A-UL2018_MiniAODv2_NanoAODv9-v1/NANOAOD']",
+            "sample": "DATA_SingleEle",
+            "year": "2018",
+            "isMC": "False",
+            "primaryDataset": "SingleEle",
+            "era": "A",
+            "nevents": "241608232",
+            "size": "211774345140"
+        },
+        "files": [
+            "root://eoscms.cern.ch//eos/cms/store/data/Run2018A/EGamma/NANOAOD/UL2018_MiniAODv2_NanoAODv9_GT36-v1/2830000/10D2F672-4042-5F49-B8D5-73B90AF52CFD.root"]
+     }
+}
