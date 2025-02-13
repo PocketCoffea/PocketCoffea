@@ -153,6 +153,7 @@ class PlotManager:
         datasets_metadata,
         plot_dir,
         style_cfg,
+        has_mcstat=True,
         toplabel=None,
         only_cat=None,
         only_year=None,
@@ -221,6 +222,7 @@ class PlotManager:
                     only_cat=self.only_cat,
                     log=self.log,
                     density=self.density,
+                    has_mcstat=has_mcstat,
                     toplabel=toplabel_to_use,
                     year=year,
                     verbose=self.verbose,
@@ -353,6 +355,7 @@ class Shape:
         name,
         plot_dir,
         style_cfg,
+        has_mcstat=True,
         toplabel=None,
         only_cat=None,
         log=False,
@@ -366,6 +369,7 @@ class Shape:
         self.plot_dir = plot_dir
         self.only_cat = only_cat if only_cat is not None else []
         self.style = Style(style_cfg)
+        self.has_mcstat = has_mcstat
         self.toplabel = toplabel if toplabel else ""
         self.log = log
         self.density = density
@@ -1257,6 +1261,10 @@ class Shape:
             print(f"WARNING: cannot plot data/MC for histogram {self.name} with dimension {self.dense_dim}.")
             print("The method `plot_systematic_uncertainty` will be skipped.")
             return
+        if len(self.syst_manager.systematics) == 0:
+            print(f"WARNING: no systematics found for histogram {self.name}.")
+            print("The method `plot_systematic_uncertainty` will be skipped.")
+            return
 
         if ax:
             self.ax = ax
@@ -1476,7 +1484,7 @@ class Shape:
 class SystManager:
     '''This class handles the systematic uncertainties of 1D MC histograms.'''
 
-    def __init__(self, shape: Shape, style: Style, has_mcstat=True) -> None:
+    def __init__(self, shape: Shape, style: Style) -> None:
         self.shape = shape
         self.style = style
         assert all(
@@ -1495,7 +1503,7 @@ class SystManager:
             self.variations_down
         ), "The number of up and down variations is mismatching."
         self.systematics = [s.split("Up")[0] for s in self.variations_up]
-        if has_mcstat:
+        if self.shape.has_mcstat:
             self.systematics.append("mcstat")
         self.syst_dict = defaultdict(dict)
 
@@ -1543,6 +1551,7 @@ class SystUnc:
             self.bins = stacks["mc_nominal_sum"].axes[0].edges
             self.h_mc_nominal = stacks["mc_nominal_sum"]
             self.nominal = self.shape._merge_flow_bins(self.h_mc_nominal.values(flow=self.style.flow))
+            self.check_empty_variations(stacks)
             self._get_err2(stacks)
             # Full nominal MC including all MC samples
         elif syst_list:
@@ -1625,6 +1634,17 @@ class SystUnc:
     @property
     def _n_empty(self):
         return len([s for s in self.syst_list if s._is_empty])
+
+    def check_empty_variations(self, stacks):
+        '''Method used in the constructor to check if any of the systematic variations is empty.'''
+        for h in stacks["mc"]:
+            for variation in h.axes[0]:
+                h_var = h[{'variation': variation}].values()
+                if all(h_var == np.zeros_like(h_var)):
+                    raise Exception(
+                        f"Empty variation found for systematic {self.name} in histogram {self.shape.name}. "+
+                        "Please check if the input histograms are filled properly."
+                    )
 
     def _get_err2_from_syst(self):
         '''Method used in the constructor to instanstiate a SystUnc object from
