@@ -1640,11 +1640,14 @@ class SystUnc:
         for h in stacks["mc"]:
             for variation in h.axes[0]:
                 h_var = h[{'variation': variation}].values()
-                if all(h_var == np.zeros_like(h_var)):
-                    raise Exception(
-                        f"Empty variation found for systematic {self.name} in histogram {self.shape.name}. "+
-                        "Please check if the input histograms are filled properly."
-                    )
+                # First, we check that the variation is not equal to the nominal
+                if not all(stacks["mc_nominal_sum"].values() == h_var):
+                    # Then, we check if the variation is empty
+                    if all(h_var == np.zeros_like(h_var)):
+                        raise Exception(
+                            f"Empty variation found for systematic {self.name} in histogram {self.shape.name}. "+
+                            "Please check if the input histograms are filled properly."
+                        )
 
     def _get_err2_from_syst(self):
         '''Method used in the constructor to instanstiate a SystUnc object from
