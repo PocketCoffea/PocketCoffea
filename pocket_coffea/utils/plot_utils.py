@@ -786,9 +786,14 @@ class Shape:
                 )
                 # If the order of MC samples is specified in the plotting style, move the sample to the beginning of the dictionary
                 if self.style.has_order_mc:
-                    for sample in reversed(self.style.order_mc):
-                        if sample in self.nevents:
-                            self.nevents = {sample: self.nevents[sample], **self.nevents}
+                    if self.log:
+                        nevents_new =  {k : val for k, val in self.nevents.items() if k not in self.style.order_mc}
+                        nevents_new.update({k : val for k, val in self.nevents.items() if k in self.style.order_mc})
+                        self.nevents = nevents_new
+                    else:
+                        for sample in reversed(self.style.order_mc):
+                            if sample in self.nevents:
+                                self.nevents = {sample: self.nevents[sample], **self.nevents}
 
                 # order colors accordingly
                 self.colors = {sample: self.colors[sample] for sample in self.nevents}
