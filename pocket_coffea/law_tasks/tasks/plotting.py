@@ -9,7 +9,6 @@ from pocket_coffea.law_tasks.tasks.base import BaseTask
 from pocket_coffea.law_tasks.tasks.runner import Runner
 from pocket_coffea.law_tasks.utils import (
     exclude_samples_from_plotting,
-    filter_items_by_regex,
     load_plotting_style,
     load_sample_names,
 )
@@ -50,13 +49,7 @@ class PlotterBase(BaseTask):
 
         if self.variables:
             # get variables that should not be plotted
-            vars_to_pop = []
-            for variable in self.variables:
-                vars_to_pop.extend(
-                    filter_items_by_regex(
-                        variable, output_coffea["variables"], match=False
-                    )
-                )
+            vars_to_pop = set(output_coffea["variables"].keys()) - set(self.variables)
 
             for key in vars_to_pop:
                 output_coffea["variables"].pop(key, None)
