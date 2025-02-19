@@ -161,6 +161,8 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         from pocket_coffea.executors import executors_DESY_NAF as executors_lib
     elif site == "RWTH":
         from pocket_coffea.executors import executors_RWTH as executors_lib
+    elif site == "CLAIX":
+        from pocket_coffea.executors import executors_CLAIX as executors_lib
     elif site == "brux":
         from pocket_coffea.executors import executors_brux as executors_lib
     elif site == "oscar":
