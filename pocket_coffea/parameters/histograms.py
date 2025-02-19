@@ -10,7 +10,7 @@ default_axis_settings = {
         "start": 0,
         'stop': 150,
         "lim": (0, 150),
-        'label': "$p_{T}^{\mu}$ [GeV]",
+        'label': r"$p_{T}^{\mu}$ [GeV]",
     },
     'muon_eta': {
         "field": "eta",
@@ -18,7 +18,7 @@ default_axis_settings = {
         "start": -2.5,
         'stop': 2.5,
         "lim": (-2.5, 2.5),
-        'label': "$\eta_{\mu}$",
+        'label': r"$\eta_{\mu}$",
     },
     'muon_phi': {
         "field": "phi",
@@ -26,7 +26,7 @@ default_axis_settings = {
         "start": -math.pi,
         'stop': math.pi,
         "lim": (-math.pi, math.pi),
-        'label': "$\phi_{\mu}$",
+        'label': r"$\phi_{\mu}$",
     },
     'electron_pt': {
         "field": "pt",
@@ -34,7 +34,7 @@ default_axis_settings = {
         "start": 0,
         'stop': 500,
         "lim": (0, 500),
-        'label': "$p_{T}^{e}$ [GeV]",
+        'label': r"$p_{T}^{e}$ [GeV]",
     },
     'electron_eta': {
         "field": "eta",
@@ -42,7 +42,7 @@ default_axis_settings = {
         "start": -2.5,
         'stop': 2.5,
         "lim": (-2.5, 2.5),
-        'label': "$\eta_{e}$",
+        'label': r"$\eta_{e}$",
     },
     "electron_etaSC": {
         "field": "etaSC",
@@ -77,7 +77,7 @@ default_axis_settings = {
             2.5,
         ],
         'lim': (-2.5, 2.5),
-        'label': "Electron Supercluster $\eta$",
+        'label': r"Electron Supercluster $\eta$",
     },
     'electron_phi': {
         "field": "phi",
@@ -85,7 +85,7 @@ default_axis_settings = {
         "start": -math.pi,
         'stop': math.pi,
         "lim": (-math.pi, math.pi),
-        'label': "$\phi_{e}$",
+        'label': r"$\phi_{e}$",
     },
     'lepton_pt': {
         "field": "pt",
@@ -93,7 +93,7 @@ default_axis_settings = {
         "start": 0,
         'stop': 300,
         "lim": (0, 300),
-        'label': "$p_{T}^{\ell}$ [GeV]",
+        'label': r"$p_{T}^{\ell}$ [GeV]",
     },
     'lepton_eta': {
         "field": "eta",
@@ -101,7 +101,7 @@ default_axis_settings = {
         "start": -2.5,
         'stop': 2.5,
         "lim": (-2.5, 2.5),
-        'label': "$\eta_{\ell}$",
+        'label': r"$\eta_{\ell}$",
     },
     'lepton_phi': {
         "field": "phi",
@@ -109,7 +109,7 @@ default_axis_settings = {
         "start": -math.pi,
         'stop': math.pi,
         "lim": (-math.pi, math.pi),
-        'label': "$\phi_{\ell}$",
+        'label': r"$\phi_{\ell}$",
     },
     'lepton_pdgId': {
         "field": "pdgId",
@@ -125,7 +125,7 @@ default_axis_settings = {
         "start": 0,
         'stop': 300,
         "lim": (0, 300),
-        'label': "$p_{T}^{j}$ [GeV]",
+        'label': r"$p_{T}^{j}$ [GeV]",
     },
     'jet_eta': {
         "field": "eta",
@@ -133,7 +133,7 @@ default_axis_settings = {
         "start": -2.5,
         'stop': 2.5,
         "lim": (-2.5, 2.5),
-        'label': "$\eta_{j}$",
+        'label': r"$\eta_{j}$",
     },
     'jet_phi': {
         "field": "phi",
@@ -141,7 +141,7 @@ default_axis_settings = {
         "start": -math.pi,
         'stop': math.pi,
         "lim": (-math.pi, math.pi),
-        'label': "$\phi_{j}$",
+        'label': r"$\phi_{j}$",
     },
     'genjet_pt': {
         "field": "pt",
@@ -149,7 +149,7 @@ default_axis_settings = {
         "start": 0,
         'stop': 300,
         "lim": (0, 300),
-        'label': "$p_{T}^{j}$ [GeV]",
+        'label': r"$p_{T}^{j}$ [GeV]",
     },
     'genjet_eta': {
         "field": "eta",
@@ -157,7 +157,7 @@ default_axis_settings = {
         "start": -2.5,
         'stop': 2.5,
         "lim": (-2.5, 2.5),
-        'label': "$\eta_{j}$",
+        'label': r"$\eta_{j}$",
     },
     'genjet_phi': {
         "field": "phi",
@@ -165,7 +165,7 @@ default_axis_settings = {
         "start": -math.pi,
         'stop': math.pi,
         "lim": (-math.pi, math.pi),
-        'label': "$\phi_{j}$",
+        'label': r"$\phi_{j}$",
     },
     'genjet_hadronFlavour': {
         "field": "hadronFlavour",
@@ -461,7 +461,7 @@ default_axis_settings = {
         "start": 0,
         'stop': 1500,
         "lim": (0, 500),
-        'label': "$p_{T}^{parton}$ [GeV]",
+        'label': r"$p_{T}^{parton}$ [GeV]",
     },
     'parton_eta': {
         "field": "eta",
@@ -469,7 +469,7 @@ default_axis_settings = {
         "start": -4,
         'stop': 4,
         "lim": (-4, 4),
-        'label': "$\eta_{parton}$",
+        'label': r"$\eta_{parton}$",
     },
     'parton_phi': {
         "field": "phi",
@@ -477,7 +477,7 @@ default_axis_settings = {
         "start": -math.pi,
         'stop': math.pi,
         "lim": (-math.pi, math.pi),
-        'label': "$\phi_{parton}$",
+        'label': r"$\phi_{parton}$",
     },
     'parton_dRMatchedJet': {
         "field": "dRMatchedJet",
@@ -485,7 +485,7 @@ default_axis_settings = {
         "start": 0,
         'stop': 5,
         "lim": (0, 1),
-        'label': 'min ${\Delta}R_{parton,jet}$',
+        'label': r'min ${\Delta}R_{parton,jet}$',
     },
     'parton_pdgId': {
         "field": "pdgId",
@@ -509,7 +509,7 @@ default_axis_settings = {
         "start": -math.pi,
         'stop': math.pi,
         "lim": (-math.pi, math.pi),
-        'label': "MET $\phi$",
+        'label': r"MET $\phi$",
     },
     'mll': {
         "field": "mll",
@@ -517,7 +517,7 @@ default_axis_settings = {
         "start": 0,
         'stop': 1500,
         "lim": (0, 500),
-        'label': "$m_{\ell\ell}$ [GeV]",
+        'label': r"$m_{\ell\ell}$ [GeV]",
     },
 }
 
