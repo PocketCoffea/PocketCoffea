@@ -68,21 +68,20 @@ class Systematics(dict[str, SystematicUncertainty]):
         assert all(isinstance(syst, SystematicUncertainty) for syst in systematics), (
             "All elements must be of type SystematicUncertainty"
         )
-        super().__init__({systematic.name: systematic for systematic in systematics})
+        super().__init__({systematic.datacard_name: systematic for systematic in systematics})
 
     @property
     def variations_names(self) -> list[str]:
         """List of Names of Shape Variations."""
         return [
             f"{syst}{shift}"
-            for syst in [s.datacard_name for s in self.get_systematics_by_type("shape")]
+            for syst in [syst.datacard_name for name, syst in self.get_systematics_by_type("shape").items()]
             for shift in ("Up", "Down")
         ]
 
-    @property
     def n_systematics(self) -> int:
         """Number of Systematics"""
-        return len(self.systematics)
+        return len(self.keys())
 
     def list_type(self, syst_type: str) -> list[str]:
         """List of Names of Systematics of a specific type."""

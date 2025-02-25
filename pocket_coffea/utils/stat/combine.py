@@ -9,10 +9,7 @@ import uproot
 
 from pocket_coffea.utils.stat.processes import Processes
 from pocket_coffea.utils.stat.systematics import Systematics
-from pocket_coffea.utils.stat.utils import (
-    create_shape_histogram_dict,
-    rearrange_histograms,
-)
+from pocket_coffea.utils.stat.utils import rebin_hist
 
 
 class Datacard:
@@ -73,7 +70,10 @@ class Datacard:
             raise NotImplementedError("Only one data process is supported.")
         # If bin edges are passed, rebin histograms
         if self.bins_edges:
-            self.histograms = self.rebin_hist()
+            self.histograms = rebin_hist(
+                bins_edges=self.bins_edges,
+                histograms=self.histograms
+            )
 
         # assign IDs to processes
         self.process_id = {}
@@ -104,7 +104,7 @@ class Datacard:
 
     @property
     def shape_variations(self) -> list[str]:
-        return ["nominal"] + self.variations_names
+        return ["nominal"] + self.systematics.variations_names
 
     @property
     def bin(self) -> str:
@@ -138,7 +138,7 @@ class Datacard:
     @property
     def jmax(self):
         """Number of background processes + number of signal processes - 1"""
-        return len(self.background_processes) + len(self.signal_processes) - 1
+        return len(self.processes.background_processes) + len(self.processes.signal_processes) - 1
 
     @property
     def kmax(self):
@@ -152,7 +152,7 @@ class Datacard:
                 [len("process")]
                 + [
                     len(f"{systematic.datacard_name} {systematic.typ}")
-                    for systematic in self.systematics
+                    for systematic in self.systematics.values()
                 ],
             )
             + 4
@@ -224,7 +224,7 @@ class Datacard:
         """Sanity checks for saved shapes.
         If each variation differs by more than 100% from the nominal, an error is raised."""
         # Loop over variations in self.histogram as saved after rearranging
-        for process in self.processes:
+        for process in self.processes.values():
             for year in process.years:
                 process_name_byyear = f"{process.name}_{year}"
                 process_index = self.histogram.axes["process"].index(process_name_byyear)
@@ -248,58 +248,6 @@ class Datacard:
                         else:
                             print(error_message)
 
-    # Taken from https://gist.github.com/kdlong/d697ee691c696724fc656186c25f8814
-    def rebin_hist(self):
-        edges = self.bins_edges
-        h_dict_new = {}
-        for sample, dict_dataset in self.histograms.items():
-            h_dict_new[sample] = {}
-            for dataset, h in dict_dataset.items():
-                axis_name = h.axes[-1].name
-                if type(edges) == int:
-                    return h[{axis_name : hist.rebin(edges)}]
-
-                ax = h.axes[axis_name]
-                ax_idx = [a.name for a in h.axes].index(axis_name)
-                if not all([np.isclose(x, ax.edges).any() for x in edges]):
-                    raise ValueError(f"Cannot rebin histogram due to incompatible edges for axis '{ax.name}'\n"
-                                        f"Edges of histogram are {ax.edges}, requested rebinning to {edges}")
-
-                # If you rebin to a subset of initial range, keep the overflow and underflow
-                overflow = ax.traits.overflow or (edges[-1] < ax.edges[-1] and not np.isclose(edges[-1], ax.edges[-1]))
-                underflow = ax.traits.underflow or (edges[0] > ax.edges[0] and not np.isclose(edges[0], ax.edges[0]))
-                flow = overflow or underflow
-                new_ax = hist.axis.Variable(edges, name=ax.name, overflow=overflow, underflow=underflow)
-                axes = list(h.axes)
-                axes[ax_idx] = new_ax
-
-                hnew = hist.Hist(*axes, name=h.name, storage=h._storage_type())
-
-                # Offset from bin edge to avoid numeric issues
-                offset = 0.5*np.min(ax.edges[1:]-ax.edges[:-1])
-                edges_eval = edges+offset
-                edge_idx = ax.index(edges_eval)
-                # Avoid going outside the range, reduceat will add the last index anyway
-                if edge_idx[-1] == ax.size+ax.traits.overflow:
-                    edge_idx = edge_idx[:-1]
-
-                if underflow:
-                    # Only if the original axis had an underflow should you offset
-                    if ax.traits.underflow:
-                        edge_idx += 1
-                    edge_idx = np.insert(edge_idx, 0, 0)
-
-                # Take is used because reduceat sums i:len(array) for the last entry, in the case
-                # where the final bin isn't the same between the initial and rebinned histogram, you
-                # want to drop this value. Add tolerance of 1/2 min bin width to avoid numeric issues
-                hnew.values(flow=flow)[...] = np.add.reduceat(h.values(flow=flow), edge_idx, 
-                        axis=ax_idx).take(indices=range(new_ax.size+underflow+overflow), axis=ax_idx)
-                if hnew._storage_type() == hist.storage.Weight():
-                    hnew.variances(flow=flow)[...] = np.add.reduceat(h.variances(flow=flow), edge_idx, 
-                            axis=ax_idx).take(indices=range(new_ax.size+underflow+overflow), axis=ax_idx)
-                h_dict_new[sample][dataset] = hnew
-        return h_dict_new
-
     def rearrange_histograms(
         self,
         is_data: bool = False,
@@ -316,23 +264,23 @@ class Datacard:
             processes = self.data_processes
         else:
             processes = self.processes
-        assert ((not is_data) & all(not process.is_data for process in processes)) or (
-            is_data & all(process.is_data for process in processes)
+        assert ((not is_data) & all(not process.is_data for process in processes.values())) or (
+            is_data & all(process.is_data for process in processes.values())
         ), "All processes must be either data or MC"
 
         # Extract variable axis from the first dataset
-        dataset = list(self.get_datasets_by_sample(processes[0].samples[0]))[0]
-        variable_axis = self.histograms[processes[0].samples[0]][dataset].axes[-1]
+        dataset = list(self.get_datasets_by_sample(list(processes.values())[0].samples[0]))[0]
+        variable_axis = self.histograms[list(processes.values())[0].samples[0]][dataset].axes[-1]
 
         if is_data:
-            processes_names = [process.name for process in processes]
+            processes_names = processes.keys()
             new_histogram = hist.Hist(
                 hist.axis.StrCategory(processes_names, name="process"),
                 variable_axis,
                 storage=hist.storage.Weight(),
             )
         else:
-            processes_names = [f"{process.name}_{year}" for process in processes for year in process.years]
+            processes_names = [f"{process_name}_{year}" for process_name, process in processes.items() for year in process.years]
             new_histogram = hist.Hist(
                 hist.axis.StrCategory(processes_names, name="process"),
                 hist.axis.StrCategory(self.shape_variations, name="variation"),
@@ -341,7 +289,7 @@ class Datacard:
             )
         new_histogram_view = new_histogram.view()
 
-        for process in processes:
+        for process in processes.values():
             for sample in process.samples:
                 for year in process.years:
                     if is_data:
@@ -360,9 +308,9 @@ class Datacard:
                             new_histogram_view[process_index, variation_index_nominal, :] += histogram[
                                 self.category, "nominal", :
                             ].view()
-                            for systematic in self.systematics.get_systematics_by_type("shape"):
+                            for syst_name, systematic in self.systematics.get_systematics_by_type("shape").items():
                                 for shift in ("Up", "Down"):
-                                    variation = f"{systematic}{shift}"
+                                    variation = f"{syst_name}{shift}"
                                     variation_index = new_histogram.axes["variation"].index(f"{systematic.datacard_name}{shift}")
                                     if variation in histogram.axes["variation"]:
                                         new_histogram_view[process_index, variation_index, :] += histogram[
@@ -393,7 +341,7 @@ class Datacard:
             histogram = self.histogram
             processes = self.processes
         new_histograms = dict()
-        for process in processes:
+        for process in processes.values():
             for year in process.years:
                 if is_data:
                     process_name_byyear = process.name
@@ -419,7 +367,7 @@ class Datacard:
                     shape_name = f"{process_name_byyear}_nominal"
                     new_histograms[shape_name] = new_histogram
                     # Save shape variations
-                    for systematic in self.systematics.get_systematics_by_type("shape"):
+                    for systematic in self.systematics.get_systematics_by_type("shape").values():
                         for shift in ("Up", "Down"):
                             variation = f"{systematic.datacard_name}{shift}"
 
@@ -455,7 +403,7 @@ class Datacard:
 
     def expectation_section(self) -> str:
         content = "bin".ljust(self.adjust_first_column)
-        content += f"{self.bin}".ljust(self.adjust_columns) * self.n_processes
+        content += f"{self.bin}".ljust(self.adjust_columns) * self.processes.n_processes
         content += self.linesep
 
         content += "process".ljust(self.adjust_first_column)
@@ -475,23 +423,23 @@ class Datacard:
         content += "rate".ljust(self.adjust_first_column)
         content += "".join(
             f"{self.rate(process)}"[:self.number_width].ljust(self.adjust_columns)
-            for process in self.processes
+            for process in self.processes.signal_processes + self.processes.background_processes
         )
         content += self.linesep
         return content
 
     def systematics_section(self) -> str:
         content = ""
-        for systematic in self.systematics:
+        for systematic in self.systematics.values():
             line = systematic.datacard_name.ljust(self.adjust_syst_colum)
             line += f" {systematic.typ}"
             line = line.ljust(self.adjust_first_column)
 
             # processes
-            for process in self.processes:
+            for process in self.processes.values():
                 for year in process.years:
-                    if process in systematic.processes and year in systematic.years:
-                        value = systematic.processes[process]
+                    if process.name in systematic.processes and year in systematic.years:
+                        value = systematic.processes[process.name]
                         if isinstance(value, tuple):
                             line += f"{value[0]}/{value[1]}".ljust(self.adjust_columns)
                         else:
@@ -505,7 +453,7 @@ class Datacard:
 
     def rate_parameters_section(self) -> str:
         content = ""
-        for process in self.processes:
+        for process in self.processes.values():
             for year in process.years:
                 if not process.is_signal and process.has_rateParam:
                     line = f"SF_{process.name}".ljust(self.adjust_syst_colum)
