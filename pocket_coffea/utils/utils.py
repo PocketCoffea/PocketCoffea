@@ -44,10 +44,10 @@ def load_config(cfg, do_load=True, save_config=True, outputdir=None):
             config.save_config(outputdir)
     except AttributeError as e:
         print("Error: ", e)
-        raise("The provided configuration module does not contain a `cfg` attribute of type Configurator. Please check your configuration!")
+        raise Exception("The provided configuration module does not contain a `cfg` attribute of type Configurator. Please check your configuration!")
 
     if not isinstance(config, Configurator):
-        raise("The configuration module attribute `cfg` is not of type Configurator. Please check yuor configuration!")
+        raise Exception("The configuration module attribute `cfg` is not of type Configurator. Please check yuor configuration!")
     return config
 
 def adapt_chunksize(nevents, run_options):

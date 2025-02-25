@@ -1718,9 +1718,9 @@ class SystUnc:
         if self.log:
             self.ax.set_yscale("log")
             exp = math.floor(math.log(self.nominal.max(), 10)) + 3
-            y_lim_hi = self.style.opts_figure["systematics"]["ylim_log"].get("hi", 10**exp)
+            y_lim_hi = self.style.opts_ylim["systematics"]["ylim_log"].get("hi", 10**exp)
             self.ax.set_ylim(
-                (self.style.opts_ylim["datamc"]["ylim_log"]["lo"], y_lim_hi)
+                (self.style.opts_ylim["systematics"]["ylim_log"]["lo"], y_lim_hi)
             )
         else:
             self.ax.set_ylim((0, 1.5 * self.nominal.max()))
