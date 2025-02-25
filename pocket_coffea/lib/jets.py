@@ -54,8 +54,6 @@ def met_correction_after_jec(events, METcoll, jets_pre_jec, jets_post_jec):
     orig_tot_py = ak.sum(jets_pre_jec.py, axis=1)
     new_tot_px = ak.sum(jets_post_jec.px, axis=1)
     new_tot_py = ak.sum(jets_post_jec.py, axis=1)
-    new_met_px = events[METcoll].px - (new_tot_px - orig_tot_px)
-    new_met_py = events[METcoll].py - (new_tot_py - orig_tot_py)
     newpx =  events[METcoll].px - (new_tot_px - orig_tot_px) 
     newpy =  events[METcoll].py - (new_tot_py - orig_tot_py) 
     
