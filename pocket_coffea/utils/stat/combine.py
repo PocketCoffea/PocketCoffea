@@ -1,0 +1,752 @@
+"""Datacard Class and Utilities for CMS Combine Tool"""
+
+import os
+import numpy as np
+from functools import cached_property
+
+import hist
+import uproot
+
+from pocket_coffea.utils.stat.processes import Processes
+from pocket_coffea.utils.stat.systematics import Systematics
+from pocket_coffea.utils.stat.utils import (
+    create_shape_histogram_dict,
+    rearrange_histograms,
+)
+
+
+class Datacard:
+    """Datacard containing processes, systematics and write utilities."""
+
+    def __init__(
+        self,
+        histograms: dict[str, dict[str, hist.Hist]],
+        datasets_metadata: dict[str, dict[str, dict]],
+        cutflow: dict[str, dict[str, float]],
+        processes: list[Process],
+        years: list[str],
+        category: str,
+        data_processes: list[Process] = None,
+        systematics: list[SystematicUncertainty] = None,
+        mcstat: bool = True,
+        bins_edges: list[float] = None,
+        bin_prefix: str = None,
+        bin_suffix: str = None,
+    ) -> None:
+        """Initialize the Datacard.
+
+        :param histograms: Dict with histograms for each sample
+        :type histograms: dict
+        :param processes: processes
+        :type processes: Processes
+        :param systematics: systematic uncertainties
+        :type systematics: Systematics
+        :param year: year of data taking
+        :type year: str
+        :param category: Category in datacard
+        :type category: str
+        :param bin_prefix: prefix for the bin name, defaults to None
+        :type bin_prefix: str, optional
+        """
+
+        self.histograms = histograms
+        self.datasets_metadata = datasets_metadata
+        self.cutflow = cutflow
+        self.processes = processes
+        self.data_processes = data_processes
+        self.systematics = systematics
+        self.mcstat = mcstat
+        self.bins_edges = bins_edges
+        self.years = years
+        self.category = category
+        self.bin_prefix = bin_prefix
+        self.bin_suffix = bin_suffix
+        if self.bin_suffix is None:
+            self.bin_suffix = '_'.join(self.years)
+        self.number_width = 10
+        self.has_data = data_processes is not None
+        if self.mcstat:
+            self.threshold = 0
+            self.include_signal = 0
+            self.hist_mode = 1
+        if self.has_data and (len(self.data_processes) != 1):
+            raise NotImplementedError("Only one data process is supported.")
+        # If bin edges are passed, rebin histograms
+        if self.bins_edges:
+            self.histograms = self.rebin_hist()
+
+        # assign IDs to processes
+        self.process_id = {}
+        id_signal = 0  # signal processes have 0 or negative IDs
+        id_background = 1  # background processes have positive IDs
+        for process in self.processes:
+            for year in process.years:
+                if process.is_signal:
+                    self.process_id[f"{process.name}_{year}"] = id_signal
+                    id_signal -= 1
+                else:
+                    self.process_id[f"{process.name}_{year}"] = id_background
+                    id_background += 1
+        #self.processes = sorted(self.processes, key=lambda proc: proc.id)
+
+        # check histograms and rearrange them
+        self._check_histograms()
+        self.histogram = self.rearrange_histograms(is_data=False)
+
+        if self.has_data:
+            self.data_obs = self.rearrange_histograms(is_data=True)
+
+        self._check_shapes()
+
+        # helper attributes
+        self.linesep = "\n"
+        self.sectionsep = "-" * 80
+
+    @property
+    def shape_variations(self) -> list[str]:
+        return ["nominal"] + self.variations_names
+
+    @property
+    def bin(self) -> str:
+        """Name of the bin in the datacard"""
+        bin_name = self.category
+        if self.bin_prefix:
+            bin_name = f"{self.bin_prefix}_{bin_name}"
+        if self.bin_suffix:
+            bin_name = f"{bin_name}_{self.bin_suffix}"
+        return bin_name
+
+    @property
+    def observation(self):
+        """Number of observed events in the datacard"""
+        if self.has_data:
+            return self.data_obs.sum()["value"]
+        else:
+            return -1
+
+    def rate(self, process: str, systematic="nominal") -> float:
+        """Rate of a process in the datacard"""
+        # TODO: fix histograms (e.g. negative bins)!
+
+        return self.histogram[process, systematic, :].sum()["value"]
+
+    @property
+    def imax(self):
+        """Number of bins in the datacard"""
+        return 1
+
+    @property
+    def jmax(self):
+        """Number of background processes"""
+        return len(self.background_processes) + len(self.signal_processes) - 1
+
+    @property
+    def kmax(self):
+        """Number of nuisance parameters in the datacard"""
+        return len(self.systematics)
+
+    @cached_property
+    def adjust_first_column(self):
+        return (
+            max(
+                [len("process")]
+                + [
+                    len(f"{systematic.datacard_name} {systematic.typ}")
+                    for systematic in self.systematics
+                ],
+            )
+            + 4
+        )
+
+    @cached_property
+    def adjust_syst_colum(self):
+        return max(len(systematic) for systematic in self.systematics)
+
+    @cached_property
+    def adjust_columns(self):
+        return (
+            max(
+                *[len(process) for process in self.processes],
+                len(self.bin),
+            )
+            + 4
+        )
+
+    def is_empty_dataset(self, dataset: str) -> bool:
+        """Check if dataset is empty"""
+        return self.cutflow["presel"][dataset] == 0
+
+    def get_datasets_by_sample(self, sample: str, year: str = None) -> list[str]:
+        """Get datasets for a given sample."""
+        if year is None:
+            years = [year for year in self.datasets_metadata["by_datataking_period"].keys() if year in self.years]
+            return [d for year in years for d in self.datasets_metadata["by_datataking_period"][year][sample]]
+        else:
+            return self.datasets_metadata["by_datataking_period"][year][sample]
+
+    def _check_histograms(self) -> None:
+        """Check if histograms are available for all processes and systematics."""
+        available_variations = []
+        for systematic in self.get_systematics_by_type("shape"):
+                for shift in ("Up", "Down"):
+                    available_variations.append(f"{systematic.name}{shift}")
+
+        for process in self.processes:
+            for sample in process.samples:
+                if sample not in self.histograms:
+                    raise ValueError(f"Missing histogram for sample {sample}")
+
+                for year in process.years:
+                    for dataset in self.get_datasets_by_sample(sample, year):
+                        if dataset not in self.histograms[sample]:
+                            if self.is_empty_dataset(dataset):
+                                print(
+                                    f"Sample {sample} for dataset {dataset} has 0 events in category `presel`. "
+                                    f"Skipping this dataset."
+                                )
+                                continue
+                            else:
+                                raise ValueError(
+                                    f"Sample {sample} for dataset {dataset} "
+                                    f"not found in histograms {self.histograms[sample].keys()}"
+                                )
+                        if not process.is_data:
+                            missing_systematics = set(available_variations) - set(
+                                self.histograms[sample][dataset].axes["variation"]
+                            )
+                            if missing_systematics:
+                                print(
+                                    f"Sample {sample} for dataset {dataset} is missing the following "
+                                    f"systematics: {missing_systematics}"
+                                )
+
+    def _check_shapes(self, threshold: float = 1.0, raise_error: bool = False) -> None:
+        """Sanity checks for saved shapes.
+        If each variation differs by more than 100% from the nominal, an error is raised."""
+        # Loop over variations in self.histogram as saved after rearranging
+        for process in self.processes:
+            for year in process.years:
+                process_name_byyear = f"{process.name}_{year}"
+                process_index = self.histogram.axes["process"].index(process_name_byyear)
+                variation_index_nominal = self.histogram.axes["variation"].index("nominal")
+                for variation in self.histogram.axes["variation"]:
+                    if variation == "nominal":
+                        continue
+                    variation_index = self.histogram.axes["variation"].index(variation)
+                    nominal = self.histogram[process_index, variation_index_nominal, :].values()
+                    var = self.histogram[process_index, variation_index, :].values()
+                    diff_rel = np.where(nominal != 0, (var - nominal) / nominal, 0)
+                    if any(diff_rel > threshold):
+                        diff_avg = sum(diff_rel) / len(diff_rel)
+                        error_message = (
+                            f"Variation {variation} for process {process_name_byyear} "
+                            f"differs by more than {threshold:.0%} from nominal in some bins of the {self.category} category. "
+                            f"Average difference: {diff_avg:.0%}"
+                        )
+                        if raise_error:
+                            raise ValueError(error_message)
+                        else:
+                            print(error_message)
+
+    # Taken from https://gist.github.com/kdlong/d697ee691c696724fc656186c25f8814
+    def rebin_hist(self):
+        edges = self.bins_edges
+        h_dict_new = {}
+        for sample, dict_dataset in self.histograms.items():
+            h_dict_new[sample] = {}
+            for dataset, h in dict_dataset.items():
+                axis_name = h.axes[-1].name
+                if type(edges) == int:
+                    return h[{axis_name : hist.rebin(edges)}]
+
+                ax = h.axes[axis_name]
+                ax_idx = [a.name for a in h.axes].index(axis_name)
+                if not all([np.isclose(x, ax.edges).any() for x in edges]):
+                    raise ValueError(f"Cannot rebin histogram due to incompatible edges for axis '{ax.name}'\n"
+                                        f"Edges of histogram are {ax.edges}, requested rebinning to {edges}")
+
+                # If you rebin to a subset of initial range, keep the overflow and underflow
+                overflow = ax.traits.overflow or (edges[-1] < ax.edges[-1] and not np.isclose(edges[-1], ax.edges[-1]))
+                underflow = ax.traits.underflow or (edges[0] > ax.edges[0] and not np.isclose(edges[0], ax.edges[0]))
+                flow = overflow or underflow
+                new_ax = hist.axis.Variable(edges, name=ax.name, overflow=overflow, underflow=underflow)
+                axes = list(h.axes)
+                axes[ax_idx] = new_ax
+
+                hnew = hist.Hist(*axes, name=h.name, storage=h._storage_type())
+
+                # Offset from bin edge to avoid numeric issues
+                offset = 0.5*np.min(ax.edges[1:]-ax.edges[:-1])
+                edges_eval = edges+offset
+                edge_idx = ax.index(edges_eval)
+                # Avoid going outside the range, reduceat will add the last index anyway
+                if edge_idx[-1] == ax.size+ax.traits.overflow:
+                    edge_idx = edge_idx[:-1]
+
+                if underflow:
+                    # Only if the original axis had an underflow should you offset
+                    if ax.traits.underflow:
+                        edge_idx += 1
+                    edge_idx = np.insert(edge_idx, 0, 0)
+
+                # Take is used because reduceat sums i:len(array) for the last entry, in the case
+                # where the final bin isn't the same between the initial and rebinned histogram, you
+                # want to drop this value. Add tolerance of 1/2 min bin width to avoid numeric issues
+                hnew.values(flow=flow)[...] = np.add.reduceat(h.values(flow=flow), edge_idx, 
+                        axis=ax_idx).take(indices=range(new_ax.size+underflow+overflow), axis=ax_idx)
+                if hnew._storage_type() == hist.storage.Weight():
+                    hnew.variances(flow=flow)[...] = np.add.reduceat(h.variances(flow=flow), edge_idx, 
+                            axis=ax_idx).take(indices=range(new_ax.size+underflow+overflow), axis=ax_idx)
+                h_dict_new[sample][dataset] = hnew
+        return h_dict_new
+
+    def rearrange_histograms(
+        self,
+        is_data: bool = False,
+    ) -> hist.Hist:
+        """Rearrange histograms from pocket_coffea output format to match processes
+        and systematics in one histogram.
+
+        :param is_data: Flag to indicate if the datacard is for data, defaults to False
+        :type is_data: bool, optional
+        :return: Rearranged histogram
+        :rtype: hist.Hist
+        """
+        if is_data:
+            processes = self.data_processes
+        else:
+            processes = self.processes
+        assert ((not is_data) & all(not process.is_data for process in processes)) or (
+            is_data & all(process.is_data for process in processes)
+        ), "All processes must be either data or MC"
+
+        # Extract variable axis from the first dataset
+        dataset = list(self.get_datasets_by_sample(processes[0].samples[0]))[0]
+        variable_axis = self.histograms[processes[0].samples[0]][dataset].axes[-1]
+
+        if is_data:
+            processes_names = [process.name for process in processes]
+            new_histogram = hist.Hist(
+                hist.axis.StrCategory(processes_names, name="process"),
+                variable_axis,
+                storage=hist.storage.Weight(),
+            )
+        else:
+            processes_names = [f"{process.name}_{year}" for process in processes for year in process.years]
+            new_histogram = hist.Hist(
+                hist.axis.StrCategory(processes_names, name="process"),
+                hist.axis.StrCategory(self.shape_variations, name="variation"),
+                variable_axis,
+                storage=hist.storage.Weight(),
+            )
+        new_histogram_view = new_histogram.view()
+
+        for process in processes:
+            for sample in process.samples:
+                for year in process.years:
+                    if is_data:
+                        assert year is None, "Data process should not have a year"
+                        process_index = new_histogram.axes["process"].index(process.name)
+                    else:
+                        process_index = new_histogram.axes["process"].index(f"{process.name}_{year}")
+                    for dataset in self.get_datasets_by_sample(sample, year):
+                        if self.is_empty_dataset(dataset): continue
+                        histogram = self.histograms[sample][dataset]
+                        if is_data:
+                            new_histogram_view[process_index, :] += histogram[self.category, :].view()
+                        else:
+                            # Save nominal variation
+                            variation_index_nominal = new_histogram.axes["variation"].index("nominal")
+                            new_histogram_view[process_index, variation_index_nominal, :] += histogram[
+                                self.category, "nominal", :
+                            ].view()
+                            for systematic in self.get_systematics_by_type("shape"):
+                                for shift in ("Up", "Down"):
+                                    variation = f"{systematic.name}{shift}"
+                                    variation_index = new_histogram.axes["variation"].index(f"{systematic.datacard_name}{shift}")
+                                    if variation in histogram.axes["variation"]:
+                                        new_histogram_view[process_index, variation_index, :] += histogram[
+                                            self.category, variation, :
+                                        ].view()
+                                    else:
+                                        print(f"Setting `{variation}` variation to nominal variation for sample {sample}.")
+                                        new_histogram_view[process_index, variation_index, :] += histogram[
+                                            self.category, "nominal", :
+                                        ].view()
+        return new_histogram
+
+    def create_shape_histogram_dict(
+        self,
+        is_data: bool = False
+    ) -> dict[str, hist.Hist]:
+        """Create a dictionary of histograms for each process and systematic.
+
+        :param is_data: Flag to indicate if the datacard is for data, defaults to False
+        :type is_data: bool, optional
+        :return: dictionary of histograms, keys are process_systematic
+        :rtype: dict[str, hist.Hist]
+        """
+        if is_data:
+            histogram = self.data_obs
+            processes = self.data_processes
+        else:
+            histogram = self.histogram
+            processes = self.processes
+        new_histograms = dict()
+        for process in processes:
+            for year in process.years:
+                if is_data:
+                    process_name_byyear = process.name
+                else:
+                    process_name_byyear = f"{process.name}_{year}"
+                if is_data:
+                    # create new 1d histogram
+                    new_histogram = hist.Hist(
+                        histogram.axes[-1],
+                        storage=hist.storage.Weight(),
+                    )
+                    new_histogram_view = new_histogram.view()
+                    new_histogram_view[:] = histogram[process_name_byyear, :].view()
+                    new_histograms[f"{process_name_byyear}_nominal"] = new_histogram
+                else:
+                    # Save nominal shape
+                    new_histogram = hist.Hist(
+                        histogram.axes[-1],
+                        storage=hist.storage.Weight(),
+                    )
+                    new_histogram_view = new_histogram.view()
+                    new_histogram_view[:] = histogram[process_name_byyear, "nominal", :].view()
+                    shape_name = f"{process_name_byyear}_nominal"
+                    new_histograms[shape_name] = new_histogram
+                    # Save shape variations
+                    for systematic in self.get_systematics_by_type("shape"):
+                        for shift in ("Up", "Down"):
+                            variation = f"{systematic.datacard_name}{shift}"
+
+                            # create new 1d histogram
+                            new_histogram = hist.Hist(
+                                histogram.axes[-1],
+                                storage=hist.storage.Weight(),
+                            )
+                            new_histogram_view = new_histogram.view()
+
+                            # add samples that correspond to a process
+                            if process.name in systematic.processes and year in systematic.years:
+                                new_histogram_view[:] = histogram[process_name_byyear, variation, :].view()
+                                shape_name = f"{process_name_byyear}_{systematic.datacard_name}{shift}"
+                                new_histograms[shape_name] = new_histogram
+
+        return new_histograms
+
+    def preamble(self) -> str:
+        preamble = f"imax {self.imax} number of channels{self.linesep}"
+        preamble += f"jmax {self.jmax} number of processes minus 1{self.linesep}"
+        preamble += f"kmax {self.kmax} number of nuisance parameters{self.linesep}"
+        return preamble
+
+    def shape_section(self, shapes_name: str) -> str:
+        """shapes process channel file histogram [histogram_with_systematics]"""
+        return f"shapes * {self.bin} {shapes_name} $PROCESS_nominal $PROCESS_$SYSTEMATIC{self.linesep}"  # noqa
+
+    def observation_section(self) -> str:
+        content = f"bin {self.bin}{self.linesep}"
+        content += f"observation {self.observation}{self.linesep}"
+        return content
+
+    def expectation_section(self) -> str:
+        content = "bin".ljust(self.adjust_first_column)
+        content += f"{self.bin}".ljust(self.adjust_columns) * self.n_processes
+        content += self.linesep
+
+        content += "process".ljust(self.adjust_first_column)
+        # process names
+        content += "".join(
+            f"{process.name}_{year}".ljust(self.adjust_columns) for process in self.processes for year in process.years if not process.is_data
+        )
+        content += self.linesep
+        # process ids
+        content += "process".ljust(self.adjust_first_column)
+        content += "".join(
+            f"{self.process_id[f'{process.name}_{year}']}".ljust(self.adjust_columns) for process in self.processes for year in process.years if not process.is_data
+        )
+        content += self.linesep
+
+        # rates
+        content += "rate".ljust(self.adjust_first_column)
+        content += "".join(
+            f"{self.rate(process)}"[:self.number_width].ljust(self.adjust_columns)
+            for process in self.processes_names
+        )
+        content += self.linesep
+        return content
+
+    def systematics_section(self) -> str:
+        content = ""
+        for systematic in self.systematics:
+            line = systematic.datacard_name.ljust(self.adjust_syst_colum)
+            line += f" {systematic.typ}"
+            line = line.ljust(self.adjust_first_column)
+
+            # processes
+            for process in self.processes:
+                for year in process.years:
+                    if process.name in systematic.processes and year in systematic.years:
+                        value = systematic.processes[process.name]
+                        if isinstance(value, tuple):
+                            line += f"{value[0]}/{value[1]}".ljust(self.adjust_columns)
+                        else:
+                            line += f"{value}".ljust(self.adjust_columns)
+                    else:
+                        line += " -".ljust(self.adjust_columns)
+
+            line += self.linesep
+            content += line
+        return content
+
+    def rate_parameters_section(self) -> str:
+        content = ""
+        for process in self.processes:
+            for year in process.years:
+                if not process.is_signal and process.has_rateParam:
+                    line = f"SF_{process.name}".ljust(self.adjust_syst_colum)
+                    line += "rateParam".ljust(self.adjust_columns)
+                    line += f"* {process.name}_{year} 1 [0,5]".ljust(self.adjust_columns)
+                    line += self.linesep
+                    content += line
+        return content
+
+    def mcstat_section(self) -> str:
+        content = ""
+        content += f"{self.bin} autoMCStats {self.threshold} {self.include_signal} {self.hist_mode}"
+        content += self.linesep
+        return content
+
+    def content(self, shapes_filename: str) -> str:
+        content = self.preamble()
+        content += self.sectionsep + self.linesep
+
+        content += self.shape_section(shapes_name=shapes_filename)
+        content += self.sectionsep + self.linesep
+
+        content += self.observation_section()
+        content += self.sectionsep + self.linesep
+
+        content += self.expectation_section()
+        content += self.sectionsep + self.linesep
+
+        content += self.systematics_section()
+        content += self.sectionsep + self.linesep
+
+        content += self.rate_parameters_section()
+        content += self.sectionsep + self.linesep
+
+        if self.mcstat:
+            content += self.mcstat_section()
+            content += self.sectionsep + self.linesep
+
+        return content
+
+    def dump(
+        self,
+        directory: os.PathLike,
+        card_name: str = "datacard.txt",
+        shapes_name: str = "shapes.root",
+    ) -> None:
+        """Dump datacard and shapes to a directory.
+
+        :param directory: Directory to dump the datacard and shapes
+        :type directory: os.PathLike
+        :param card_name: name of the datacard file, defaults to "datacard.txt"
+        :type card_name: str, optional
+        :param shapes_filename: name of the shapes file, defaults to "shapes.root"
+        :type shapes_filename: str, optional
+        """
+
+        card_file = os.path.join(directory, card_name)
+        shapes_file = os.path.join(directory, shapes_name)
+
+        os.makedirs(directory, exist_ok=True)
+
+        with open(card_file, "w") as card:
+            card.write(self.content(shapes_filename=shapes_name))
+
+        shape_histograms = self.create_shape_histogram_dict(is_data=False)
+        if self.has_data:
+            shape_histograms_data = self.create_shape_histogram_dict(is_data=True)
+        with uproot.recreate(shapes_file) as root_file:
+            if self.has_data:
+                for shape, histogram in shape_histograms_data.items():
+                    root_file[shape] = histogram
+            for shape, histogram in shape_histograms.items():
+                root_file[shape] = histogram
+
+def combine_datacards(
+    datacards: dict[Datacard],
+    directory: str,
+    path: str = "combine_cards.sh",
+    card_name: str = "datacard_combined.txt",
+    workspace_name : str = "workspace.root",
+    channel_masks : bool = False,
+    ) -> None:
+    """Write the bash script to combine datacards from different categories.
+
+    :param datacards: List of datacards to combine
+    :type datacards: list[Datacard]
+    :param output_dir: Directory to save the bash script
+    :type output_dir: str
+    :param output_name: Name of the bash script
+    :type output_name: str
+    """
+    assert path.endswith(".sh"), "Output file must be a bash script and have .sh extension"
+    os.makedirs(directory, exist_ok=True)
+    output_file = os.path.join(directory, path)
+
+    print(f"Writing combination script to {output_file}")
+    with open(output_file, "w") as file:
+        file.write("#!/bin/bash\n")
+        file.write("")
+        args = " ".join(
+            f"{card.bin}={filename}"
+            for filename, card in datacards.items()
+        )
+        file.write(
+            f"combineCards.py {args} > {card_name}\n"
+        )
+        command = f"text2workspace.py {card_name} -o {workspace_name} \n"
+        if channel_masks:
+            command = command.replace(" \n", " --channel-masks \n")
+        file.write(
+            command
+        )
+
+
+def create_scripts(
+    datacards: dict[Datacard],
+    directory: str,
+    card_name: str = "datacard_combined.txt",
+    workspace_name : str = "workspace.root",
+    categories_masked : list[str] = None,
+    suffix: str = None,
+    ) -> None:
+    """
+    Write the bash scripts to run the fit with CMS Combine Tool."""
+
+    # Save fit scripts
+    freezeParameters = ["r"]
+
+    args = {
+        "run_MultiDimFit.sh": [[
+            "combine -M MultiDimFit",
+            f"-d {workspace_name}",
+            "-n .snapshot_all_channels",
+            f"--freezeParameters {','.join(freezeParameters)}",
+            "--cminDefaultMinimizerStrategy 2 --robustFit=1",
+            "--saveWorkspace",
+        ]],
+        "run_FitDiagnostics.sh": [[
+            "combine -M FitDiagnostics",
+            f"-d {workspace_name}",
+            "-n .snapshot_all_channels",
+            f"--freezeParameters {','.join(freezeParameters)}",
+            "--cminDefaultMinimizerStrategy 2 --robustFit=1",
+            "--saveWorkspace",
+            "--saveShapes",
+            "--saveWithUncertainties"
+        ]],
+        "run_MultiDimFit_scan1d.sh": [[
+            "combine -M MultiDimFit",
+            f"-d {workspace_name}",
+            "-n .scan1d",
+            f"--freezeParameters {','.join(freezeParameters)}",
+            "-t -1 --toysFrequentist --expectSignal=1",
+            "--cminDefaultMinimizerStrategy 2 --robustFit=1",
+            "--saveWorkspace",
+            "-v 2 --algo grid --points=30 --rMin 0 --rMax 2",
+        ]],
+        "run_MultiDimFit_toysFrequentist.sh": [[
+            "combine -M MultiDimFit",
+            f"-d {workspace_name}",
+            "-n .asimov_fit",
+            "-t -1 --toysFrequentist --expectSignal=1",
+            "--cminDefaultMinimizerStrategy 2 --robustFit=1",
+            "--saveWorkspace -v 2",
+        ]],
+        "run_FitDiagnostics_toysFrequentist.sh": [[
+            "combine -M FitDiagnostics",
+            f"-d {workspace_name}",
+            "-n .asimov_fit",
+            "-t -1 --toysFrequentist --expectSignal=1",
+            "--cminDefaultMinimizerStrategy 2 --robustFit=1",
+            "--saveWorkspace -v 2",
+        ]],
+        "run_MultiDimFit_toysFrequentist_scan1d.sh": [[
+            "combine -M MultiDimFit",
+            f"-d {workspace_name}",
+            "-n .asimov_scan1d",
+            "-t -1 --toysFrequentist --expectSignal=1",
+            "--cminDefaultMinimizerStrategy 2 --robustFit=1",
+            "--saveWorkspace",
+            "-v 2 --algo grid --points=30 --rMin 0 --rMax 2",
+        ]],
+        "run_impacts.sh": [
+            [f"combineTool.py -M Impacts -d {workspace_name}",
+            f"--freezeParameters {','.join(freezeParameters)}",
+            "-t -1 --toysFrequentist --expectSignal=1 --cminDefaultMinimizerStrategy 2 --robustFit=1",
+            "-v 2 --rMin 0 --rMax 2 -m 125 --doInitialFit"],
+            [f"combineTool.py -M Impacts -d {workspace_name}",
+            f"--freezeParameters {','.join(freezeParameters)}",
+            "-t -1 --toysFrequentist --expectSignal=1 --cminDefaultMinimizerStrategy 2 --robustFit=1",
+            "-v 2 --rMin 0 --rMax 2 -m 125 --doFits --job-mode slurm --job-dir jobs --parallel 100"]
+        ],
+        "plot_impacts.sh": [
+            [f"combineTool.py -M Impacts -d {workspace_name}",
+            f"--freezeParameters {','.join(freezeParameters)}",
+            "-t -1 --toysFrequentist --expectSignal=1 --cminDefaultMinimizerStrategy 2 --robustFit=1",
+            "-v 2 --rMin 0 --rMax 2 -m 125 -o impacts.json"],
+            ["plotImpacts.py -i impacts.json -o impacts"]
+        ],
+        # -v 2 --rMin -5 --rMax 5 --robustHesse=1 --robustHesseSave 1 --saveFitResult
+        "run_correlation_matrix.sh": [
+            ["combine -M MultiDimFit",
+            f"-d {workspace_name}",
+            "-n .covariance_matrix",
+            "-t -1 --toysFrequentist --expectSignal=1",
+            "--cminDefaultMinimizerStrategy 2 --robustFit=1",
+            "-v 2 --rMin -5 --rMax 5 --robustHesse=1 --robustHesseSave 1 --saveFitResult"]
+        ]
+    }
+    if categories_masked:
+        args.update({
+            f"run_MultiDimFit_mask_{'_'.join(categories_masked)}.sh" : [[
+                "combine -M MultiDimFit",
+                f"-d {workspace_name}",
+                f"-n .snapshot_{'_'.join(categories_masked)}",
+                f"--freezeParameters {','.join(freezeParameters)}",
+                "--cminDefaultMinimizerStrategy 2 --robustFit=1",
+                "--saveWorkspace",
+                f"--setParameters {','.join([f'mask_{cat}=1' for cat in categories_masked ])}"
+            ]],
+            f"run_FitDiagnostics_mask_{'_'.join(categories_masked)}.sh" : [[
+                "combine -M FitDiagnostics",
+                f"-d {workspace_name}",
+                f"-n .snapshot_{'_'.join(categories_masked)}",
+                f"--freezeParameters {','.join(freezeParameters)}",
+                "--cminDefaultMinimizerStrategy 2 --robustFit=1",
+                "--saveWorkspace",
+                "--saveShapes",
+                "--saveWithUncertainties",
+                f"--setParameters {','.join([f'mask_{cat}=1' for cat in categories_masked ])}"
+            ]],
+        })
+
+    scripts = {}
+    for path, lines in args.items():
+        scripts[path] = [f"{' '.join(l)}\n" for l in lines]
+
+    for script_name, commands in scripts.items():
+        script_name = script_name.replace(".sh", f"_{suffix}.sh") if suffix else script_name
+        output_file = os.path.join(directory, script_name)
+        print(f"Writing fit script to {output_file}")
+        with open(output_file, "w") as file:
+            file.write("#!/bin/bash\n")
+            file.writelines(commands)
