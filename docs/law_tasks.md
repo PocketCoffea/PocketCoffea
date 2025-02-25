@@ -150,3 +150,15 @@ If a task has already been executed and you want to rerun it you can use the `--
 ```bash
 law run Plotter --cfg config.py --remove-output 0,i,1
 ```
+
+## File Transfer to WLCG
+
+You can transfer files to the WLCG. For this you have to specify a directory on the WLCG where the files should be transferred to. This can be done in the law configuration file with
+```bash
+[wlcg_fs]
+base: root://eosuser.cern.ch///eos/user/<u>/<user>/analysis_outputs
+```
+You need to create a Kerberos Ticket (`kinit user@CERN.CH`) to be able to transer the files.
+
+Currently the following tasks support file transfer:
+- DatacardProducer
