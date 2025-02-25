@@ -21,28 +21,31 @@ class Process:
         if not isinstance(self.samples, list):
             self.samples = list(self.samples)
 
-@dataclass
-class Processes:
+class Processes(dict[str, Process]):
     """Class to store information of a list of processes"""
 
-    processes: list[Process]
+    def __init__(self, processes: list[Process]) -> None:
+        """Store list of processes in a dictionary with custom functions.
 
-    @property
-    def processes_names(self) -> list[str]:
-        """List of Names of all Processes."""
-        return [f"{process.name}_{year}" for process in self.processes for year in process.years]
+        :param processes: List of processes
+        :type processes: list[Process]
+        """
+        assert all(isinstance(process, Process) for process in processes), (
+            "All elements must be of type Process"
+        )
+        super().__init__({process.name: process for process in processes})
 
     @property
     def signal_processes(self) -> list[str]:
         """List of Names of all Signal Processes."""
-        return [f"{process.name}_{year}" for process in self.processes for year in process.years if process.is_signal]
+        return [f"{name}_{year}" for name, process in self.items() for year in process.years if process.is_signal]
 
     @property
     def background_processes(self) -> list[str]:
         """List of Names of all Background Processes."""
-        return [f"{process.name}_{year}" for process in self.processes for year in process.years if not process.is_signal]
+        return [f"{name}_{year}" for name, process in self.items() for year in process.years if not process.is_signal]
 
     @property
     def n_processes(self) -> int:
         """Number of Processes"""
-        return len(self.processes_names)
+        return len(self.signal_processes) + len(self.background_processes)

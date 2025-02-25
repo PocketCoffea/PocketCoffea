@@ -23,11 +23,11 @@ class Datacard:
         histograms: dict[str, dict[str, hist.Hist]],
         datasets_metadata: dict[str, dict[str, dict]],
         cutflow: dict[str, dict[str, float]],
-        processes: list[Process],
         years: list[str],
+        processes: Processes,
+        systematics: Systematics,
         category: str,
-        data_processes: list[Process] = None,
-        systematics: list[SystematicUncertainty] = None,
+        data_processes: Processes = None,
         mcstat: bool = True,
         bins_edges: list[float] = None,
         bin_prefix: str = None,
@@ -79,7 +79,7 @@ class Datacard:
         self.process_id = {}
         id_signal = 0  # signal processes have 0 or negative IDs
         id_background = 1  # background processes have positive IDs
-        for process in self.processes:
+        for process in self.processes.values():
             for year in process.years:
                 if process.is_signal:
                     self.process_id[f"{process.name}_{year}"] = id_signal
@@ -137,7 +137,7 @@ class Datacard:
 
     @property
     def jmax(self):
-        """Number of background processes"""
+        """Number of background processes + number of signal processes - 1"""
         return len(self.background_processes) + len(self.signal_processes) - 1
 
     @property
@@ -187,11 +187,11 @@ class Datacard:
     def _check_histograms(self) -> None:
         """Check if histograms are available for all processes and systematics."""
         available_variations = []
-        for systematic in self.get_systematics_by_type("shape"):
+        for systematic in self.systematics.get_systematics_by_type("shape"):
                 for shift in ("Up", "Down"):
-                    available_variations.append(f"{systematic.name}{shift}")
+                    available_variations.append(f"{systematic}{shift}")
 
-        for process in self.processes:
+        for process in self.processes.values():
             for sample in process.samples:
                 if sample not in self.histograms:
                     raise ValueError(f"Missing histogram for sample {sample}")
@@ -360,9 +360,9 @@ class Datacard:
                             new_histogram_view[process_index, variation_index_nominal, :] += histogram[
                                 self.category, "nominal", :
                             ].view()
-                            for systematic in self.get_systematics_by_type("shape"):
+                            for systematic in self.systematics.get_systematics_by_type("shape"):
                                 for shift in ("Up", "Down"):
-                                    variation = f"{systematic.name}{shift}"
+                                    variation = f"{systematic}{shift}"
                                     variation_index = new_histogram.axes["variation"].index(f"{systematic.datacard_name}{shift}")
                                     if variation in histogram.axes["variation"]:
                                         new_histogram_view[process_index, variation_index, :] += histogram[
@@ -419,7 +419,7 @@ class Datacard:
                     shape_name = f"{process_name_byyear}_nominal"
                     new_histograms[shape_name] = new_histogram
                     # Save shape variations
-                    for systematic in self.get_systematics_by_type("shape"):
+                    for systematic in self.systematics.get_systematics_by_type("shape"):
                         for shift in ("Up", "Down"):
                             variation = f"{systematic.datacard_name}{shift}"
 
@@ -461,13 +461,13 @@ class Datacard:
         content += "process".ljust(self.adjust_first_column)
         # process names
         content += "".join(
-            f"{process.name}_{year}".ljust(self.adjust_columns) for process in self.processes for year in process.years if not process.is_data
+            f"{process.name}_{year}".ljust(self.adjust_columns) for process in self.processes.values() for year in process.years if not process.is_data
         )
         content += self.linesep
         # process ids
         content += "process".ljust(self.adjust_first_column)
         content += "".join(
-            f"{self.process_id[f'{process.name}_{year}']}".ljust(self.adjust_columns) for process in self.processes for year in process.years if not process.is_data
+            f"{self.process_id[f'{process.name}_{year}']}".ljust(self.adjust_columns) for process in self.processes.values() for year in process.years if not process.is_data
         )
         content += self.linesep
 
@@ -475,7 +475,7 @@ class Datacard:
         content += "rate".ljust(self.adjust_first_column)
         content += "".join(
             f"{self.rate(process)}"[:self.number_width].ljust(self.adjust_columns)
-            for process in self.processes_names
+            for process in self.processes
         )
         content += self.linesep
         return content
@@ -490,8 +490,8 @@ class Datacard:
             # processes
             for process in self.processes:
                 for year in process.years:
-                    if process.name in systematic.processes and year in systematic.years:
-                        value = systematic.processes[process.name]
+                    if process in systematic.processes and year in systematic.years:
+                        value = systematic.processes[process]
                         if isinstance(value, tuple):
                             line += f"{value[0]}/{value[1]}".ljust(self.adjust_columns)
                         else:
@@ -620,133 +620,4 @@ def combine_datacards(
         )
 
 
-def create_scripts(
-    datacards: dict[Datacard],
-    directory: str,
-    card_name: str = "datacard_combined.txt",
-    workspace_name : str = "workspace.root",
-    categories_masked : list[str] = None,
-    suffix: str = None,
-    ) -> None:
-    """
-    Write the bash scripts to run the fit with CMS Combine Tool."""
 
-    # Save fit scripts
-    freezeParameters = ["r"]
-
-    args = {
-        "run_MultiDimFit.sh": [[
-            "combine -M MultiDimFit",
-            f"-d {workspace_name}",
-            "-n .snapshot_all_channels",
-            f"--freezeParameters {','.join(freezeParameters)}",
-            "--cminDefaultMinimizerStrategy 2 --robustFit=1",
-            "--saveWorkspace",
-        ]],
-        "run_FitDiagnostics.sh": [[
-            "combine -M FitDiagnostics",
-            f"-d {workspace_name}",
-            "-n .snapshot_all_channels",
-            f"--freezeParameters {','.join(freezeParameters)}",
-            "--cminDefaultMinimizerStrategy 2 --robustFit=1",
-            "--saveWorkspace",
-            "--saveShapes",
-            "--saveWithUncertainties"
-        ]],
-        "run_MultiDimFit_scan1d.sh": [[
-            "combine -M MultiDimFit",
-            f"-d {workspace_name}",
-            "-n .scan1d",
-            f"--freezeParameters {','.join(freezeParameters)}",
-            "-t -1 --toysFrequentist --expectSignal=1",
-            "--cminDefaultMinimizerStrategy 2 --robustFit=1",
-            "--saveWorkspace",
-            "-v 2 --algo grid --points=30 --rMin 0 --rMax 2",
-        ]],
-        "run_MultiDimFit_toysFrequentist.sh": [[
-            "combine -M MultiDimFit",
-            f"-d {workspace_name}",
-            "-n .asimov_fit",
-            "-t -1 --toysFrequentist --expectSignal=1",
-            "--cminDefaultMinimizerStrategy 2 --robustFit=1",
-            "--saveWorkspace -v 2",
-        ]],
-        "run_FitDiagnostics_toysFrequentist.sh": [[
-            "combine -M FitDiagnostics",
-            f"-d {workspace_name}",
-            "-n .asimov_fit",
-            "-t -1 --toysFrequentist --expectSignal=1",
-            "--cminDefaultMinimizerStrategy 2 --robustFit=1",
-            "--saveWorkspace -v 2",
-        ]],
-        "run_MultiDimFit_toysFrequentist_scan1d.sh": [[
-            "combine -M MultiDimFit",
-            f"-d {workspace_name}",
-            "-n .asimov_scan1d",
-            "-t -1 --toysFrequentist --expectSignal=1",
-            "--cminDefaultMinimizerStrategy 2 --robustFit=1",
-            "--saveWorkspace",
-            "-v 2 --algo grid --points=30 --rMin 0 --rMax 2",
-        ]],
-        "run_impacts.sh": [
-            [f"combineTool.py -M Impacts -d {workspace_name}",
-            f"--freezeParameters {','.join(freezeParameters)}",
-            "-t -1 --toysFrequentist --expectSignal=1 --cminDefaultMinimizerStrategy 2 --robustFit=1",
-            "-v 2 --rMin 0 --rMax 2 -m 125 --doInitialFit"],
-            [f"combineTool.py -M Impacts -d {workspace_name}",
-            f"--freezeParameters {','.join(freezeParameters)}",
-            "-t -1 --toysFrequentist --expectSignal=1 --cminDefaultMinimizerStrategy 2 --robustFit=1",
-            "-v 2 --rMin 0 --rMax 2 -m 125 --doFits --job-mode slurm --job-dir jobs --parallel 100"]
-        ],
-        "plot_impacts.sh": [
-            [f"combineTool.py -M Impacts -d {workspace_name}",
-            f"--freezeParameters {','.join(freezeParameters)}",
-            "-t -1 --toysFrequentist --expectSignal=1 --cminDefaultMinimizerStrategy 2 --robustFit=1",
-            "-v 2 --rMin 0 --rMax 2 -m 125 -o impacts.json"],
-            ["plotImpacts.py -i impacts.json -o impacts"]
-        ],
-        # -v 2 --rMin -5 --rMax 5 --robustHesse=1 --robustHesseSave 1 --saveFitResult
-        "run_correlation_matrix.sh": [
-            ["combine -M MultiDimFit",
-            f"-d {workspace_name}",
-            "-n .covariance_matrix",
-            "-t -1 --toysFrequentist --expectSignal=1",
-            "--cminDefaultMinimizerStrategy 2 --robustFit=1",
-            "-v 2 --rMin -5 --rMax 5 --robustHesse=1 --robustHesseSave 1 --saveFitResult"]
-        ]
-    }
-    if categories_masked:
-        args.update({
-            f"run_MultiDimFit_mask_{'_'.join(categories_masked)}.sh" : [[
-                "combine -M MultiDimFit",
-                f"-d {workspace_name}",
-                f"-n .snapshot_{'_'.join(categories_masked)}",
-                f"--freezeParameters {','.join(freezeParameters)}",
-                "--cminDefaultMinimizerStrategy 2 --robustFit=1",
-                "--saveWorkspace",
-                f"--setParameters {','.join([f'mask_{cat}=1' for cat in categories_masked ])}"
-            ]],
-            f"run_FitDiagnostics_mask_{'_'.join(categories_masked)}.sh" : [[
-                "combine -M FitDiagnostics",
-                f"-d {workspace_name}",
-                f"-n .snapshot_{'_'.join(categories_masked)}",
-                f"--freezeParameters {','.join(freezeParameters)}",
-                "--cminDefaultMinimizerStrategy 2 --robustFit=1",
-                "--saveWorkspace",
-                "--saveShapes",
-                "--saveWithUncertainties",
-                f"--setParameters {','.join([f'mask_{cat}=1' for cat in categories_masked ])}"
-            ]],
-        })
-
-    scripts = {}
-    for path, lines in args.items():
-        scripts[path] = [f"{' '.join(l)}\n" for l in lines]
-
-    for script_name, commands in scripts.items():
-        script_name = script_name.replace(".sh", f"_{suffix}.sh") if suffix else script_name
-        output_file = os.path.join(directory, script_name)
-        print(f"Writing fit script to {output_file}")
-        with open(output_file, "w") as file:
-            file.write("#!/bin/bash\n")
-            file.writelines(commands)
