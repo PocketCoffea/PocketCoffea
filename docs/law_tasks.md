@@ -98,7 +98,7 @@ The important part is the `[modules]` section, where all the modules that you wa
 ```bash
 [modules]
 
-# must be accessible in to python (PYTHONPATH)
+# must be accessible to python (PYTHONPATH)
 pocket_coffea.law_tasks.tasks.datasets
 pocket_coffea.law_tasks.tasks.runner
 pocket_coffea.law_tasks.tasks.plotting
@@ -142,11 +142,11 @@ To execute a task you simply use `law run` followed by the task name and the par
 
 Let's assume you have your configuration file in a folder `config/config.py`, you want to run on lxplus with the dask executor and you want to scale out to 50 workers. In the plots you dont want to plot the data and you want the y-axis to be logarithmic. You can run the plotting task like this:
 ```bash
-law run Plotting --cfg config/config.py --version version01 --executor dask@lxplus --scaleout 50 --blind True --log-scale 
+law run Plotter --cfg config/config.py --version version01 --executor dask@lxplus --scaleout 50 --blind True --log-scale 
 ```
 The version parameter is used to create a new directory in the output directory to for example separate different configurations. The parameters `--blind` and `--log-scale` are both boolean parameters, so to set them to `True` you can just specify them without a value.
 
 If a task has already been executed and you want to rerun it you can use the `--remove-output <DEPTH>` flag, where `<DEPTH>` can be an integer or a tuple. The first integer specifies the depth of the dependency tree. For the second value you can choose between `d` (dry), `i` (interactive) and `a` (all). The third value is a boolean that specifies if the task should be executed after the removal (1) or not (0).
 ```bash
-law run Plotting --cfg config.py --remove-output 0,i,1
+law run Plotter --cfg config.py --remove-output 0,i,1
 ```
