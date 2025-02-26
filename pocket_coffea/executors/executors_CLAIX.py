@@ -11,7 +11,7 @@ import dask.config
 
 class DaskExecutorFactory(ExecutorFactoryABC):
     '''
-    Attempt to setup DASK at RWTH LX cluster via SLURM
+    Attempt to setup DASK at RWTH CLAIX cluster via SLURM
     '''
 
     def __init__(self, run_options, outputdir, **kwargs):
@@ -24,7 +24,7 @@ class DaskExecutorFactory(ExecutorFactoryABC):
             'export MALLOC_TRIM_THRESHOLD_=0',
             f'export X509_USER_PROXY={self.x509_path}',
             'export X509_CERT_DIR=/cvmfs/grid.cern.ch/etc/grid-security/certificates',
-            'ulimit -u unlimited',
+            'ulimit -u unlimited', # operation not applicable on CLAIX
             ]
         
         # Adding list of custom setup commands from user defined run options
