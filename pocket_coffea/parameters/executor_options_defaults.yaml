@@ -79,6 +79,19 @@ dask@RWTH:
   adaptive: false
   sched-url: null
 
+dask@CLAIX:
+  scaleout: 10
+  cores-per-worker: 1
+  mem-per-worker: "2GB"
+  disk-per-worker: "2GB"
+  queue: "c23ms"
+  walltime: "1:00:00"
+  adaptive: false
+  performance-report: false
+  custom-setup-commands: null
+  conda-env: true
+  local-virtualenv: false
+
 dask@brux:
   scaleout: 336
   chunksize: 100000
