@@ -168,6 +168,19 @@ def get_dilepton(electrons, muons, transverse=False):
         (nlep == 2), leptons[:,0].phi, -1)
     fields["l2phi"] = ak.where(
         (nlep == 2), leptons[:,1].phi, -1)
+    fields["l1pt"] = ak.where(
+        (nlep == 2), leptons[:,0].pt, -1)
+    fields["l2pt"] = ak.where(
+        (nlep == 2), leptons[:,1].pt, -1)
+    fields["l1eta"] = ak.where(
+        (nlep == 2), leptons[:,0].eta, -1)
+    fields["l2eta"] = ak.where(
+        (nlep == 2), leptons[:,1].eta, -1)
+    fields["l1mass"] = ak.where(
+        (nlep == 2), leptons[:,0].mass, -1)
+    fields["l2mass"] = ak.where(
+        (nlep == 2), leptons[:,1].mass, -1)
+    
 
     if transverse:
         fields["eta"] = ak.zeros_like(fields["pt"])
