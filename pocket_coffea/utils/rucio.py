@@ -39,7 +39,6 @@ def get_rucio_client(proxy=None) -> Client:
         print("Wrong Rucio configuration, impossible to create client")
         raise e
 
-
    
 def get_xrootd_sites_map():
     """
@@ -57,7 +56,8 @@ def get_xrootd_sites_map():
         current_time = time.time()
         #ten_minutes_ago = current_time - 600
         twenty_minutes_ago = current_time - 1200
-        if file_time > twenty_minutes_ago:
+        sixty_minutes_ago = current_time - 3600
+        if file_time > sixty_minutes_ago:
             cache_valid = True
 
     lock = Lock()
