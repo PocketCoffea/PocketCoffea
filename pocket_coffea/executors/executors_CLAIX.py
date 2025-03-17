@@ -11,7 +11,7 @@ import dask.config
 
 class DaskExecutorFactory(ExecutorFactoryABC):
     '''
-    Attempt to setup DASK at RWTH CLAIX cluster via SLURM
+    DASK at RWTH CLAIX cluster via SLURM
     '''
 
     def __init__(self, run_options, outputdir, **kwargs):
@@ -20,13 +20,20 @@ class DaskExecutorFactory(ExecutorFactoryABC):
 
     def get_worker_env(self):
         env_worker = [
+            'echo "Current date and time: `date`"',
+            'echo "Hostname=`hostname`"',
+            f'echo CWD: {os.getcwd()}',
             'export XRD_RUNFORKHANDLER=1',
             'export MALLOC_TRIM_THRESHOLD_=0',
             f'export X509_USER_PROXY={self.x509_path}',
             'export X509_CERT_DIR=/cvmfs/grid.cern.ch/etc/grid-security/certificates',
-            'ulimit -u unlimited', # operation not applicable on CLAIX
+            'ulimit -u 32768',
+            #'echo "Which Shell?  $SHELL"',
+            #'echo "Swtiching to bash"',
+            #'/usr/local_rwth/bin/bash',
+            #'echo "Which Shell now?  $SHELL"'
             ]
-        
+
         # Adding list of custom setup commands from user defined run options
         if self.run_options.get("custom-setup-commands", None):
             env_worker += self.run_options["custom-setup-commands"]
@@ -34,35 +41,19 @@ class DaskExecutorFactory(ExecutorFactoryABC):
         # Now checking for conda environment  conda-env:true
         if self.run_options.get("conda-env", False):
 
-
             if "CONDA_PREFIX" in os.environ:
-                env_worker.append(f'export PATH={os.environ["CONDA_PREFIX"]}/bin:$PATH')
-
-            # Check if CONDA_ROOT_PREFIX or MAMBA_ROOT_PREFIX is set
-            if "MAMBA_ROOT_PREFIX" in os.environ:
-                env_worker.append(f'source {os.environ["MAMBA_ROOT_PREFIX"]}/etc/profile.d/conda.sh')
-                env_worker.append(f'mamba activate {os.environ["CONDA_DEFAULT_ENV"]}')
-            elif "CONDA_ROOT_PREFIX" in os.environ:
-                env_worker.append(f'source {os.environ["CONDA_ROOT_PREFIX"]}/etc/profile.d/conda.sh')
-                env_worker.append(f'conda activate {os.environ["CONDA_DEFAULT_ENV"]}')
-            elif "CONDA_PREFIX" in os.environ: #currently active Conda environment.
-                env_worker.append(f'source {os.environ["CONDA_PREFIX"]}/etc/profile.d/conda.sh')
-                env_worker.append(f'conda activate {os.environ["CONDA_DEFAULT_ENV"]}')
-            elif "MAMBA_PREFIX" in os.environ:
-                env_worker.append(f'source {os.environ["MAMBA_PREFIX"]}/etc/profile.d/conda.sh')
-                env_worker.append(f'mamba activate {os.environ["MAMBA_DEFAULT_ENV"]}')
+                env_worker.append('echo "Conda has been activated, hopefully... We are ready to roll!"')
             else:
                 raise Exception("CONDA/Mamba_PREFIX or ROOT_PREFIX not found! Something is wrong with your Conda/Mamba installation.")
 
-    
         # if local-virtual-env: true the dask job is configured to pickup
-        # the local virtual environment. 
+        # the local virtual environment.
         if self.run_options.get("local-virtualenv", False):
             env_worker.append(f"source {sys.prefix}/bin/activate")
 
         return env_worker
-    
-        
+
+
     def setup(self):
         ''' Start the DASK cluster here'''
 
@@ -90,25 +81,23 @@ class DaskExecutorFactory(ExecutorFactoryABC):
         print(self.get_worker_env())
         print(">> Checking environment inside SLURM job")
         print(">> Python version:", os.popen("python --version").read())
-        print(">> Conda environment:", os.popen("conda info --envs").read())
+        if "CONDA_EXE" in os.environ:
+            print(">> Conda environment:", os.popen(f"{os.environ['CONDA_EXE']} info").read())
+        if "MAMBA_EXE" in os.environ:
+            print(">> Mamba environment:", os.popen(f"{os.environ['MAMBA_EXE']} info").read())
 
         #Cluster adaptive number of jobs only if requested
         print(">> Sending out jobs")
         self.dask_cluster.adapt(minimum=1 if self.run_options["adaptive"]
                                 else self.run_options['scaleout'],
                                 maximum=self.run_options['scaleout'])
-        
+
         self.dask_client = Client(self.dask_cluster)
         print(">> Waiting for the first job to start...")
         self.dask_client.wait_for_workers(1)
         print(">> You can connect to the Dask viewer at http://localhost:8787")
 
-        # if self.run_options["performance-report"]:
-        #     self.performance_report_path = os.path.join(self.outputdir, f"{log_folder}/dask-report.html")
-        #     print(f"Saving performance report to {self.performance_report_path}")
-        #     self.performance_report(filename=performance_report_path):
 
-        
     def get(self):
         return coffea_processor.dask_executor(**self.customized_args())
 
@@ -133,4 +122,4 @@ def get_executor_factory(executor_name, **kwargs):
     elif  executor_name == "dask":
         return DaskExecutorFactory(**kwargs)
     else:
-        print("The executor is not recognized!\n available executors are: iterative, futures, parsl, dask")
+        print("The executor is not recognized!\n available executors are: iterative, futures, dask")

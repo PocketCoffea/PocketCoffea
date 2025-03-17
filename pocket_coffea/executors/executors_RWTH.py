@@ -132,7 +132,7 @@ class DaskExecutorFactory(ExecutorFactoryABC):
             if "CONDA_ROOT_PREFIX" in os.environ:
                 env_worker.append(f"{os.environ['CONDA_ROOT_PREFIX']} activate {os.environ['CONDA_DEFAULT_ENV']}")
             elif "MAMBA_ROOT_PREFIX" in os.environ:
-                env_worker.append(f"{os.environ['MAMBA_ROOT_PREFIX']} activate {os.environ['CONDA_DEFAULT_ENV']}")
+                env_worker.append(f"{os.environ['MAMBA_EXE']} activate {os.environ['CONDA_DEFAULT_ENV']}")
             else:
                 raise Exception("CONDA prefix not found in env! Something is wrong with your conda installation if you want to use conda in the dask cluster.")
 
