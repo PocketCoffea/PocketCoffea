@@ -66,7 +66,9 @@ parsl@RWTH:
   local-virtualenv: false
   conda-env: True
   cores-per-worker: 1
-  walltime: "6:00:00"
+  walltime: "3:00:00"
+  worker-debug: False
+  tree-reduction: 4
 
 dask@RWTH:
   scaleout: 10
@@ -75,9 +77,10 @@ dask@RWTH:
   local-virtualenv: false
   conda-env: True
   cores-per-worker: 1
-  walltime: "6:00:00"
+  walltime: "3:00:00"
   adaptive: false
   sched-url: null
+  tree-reduction: 4
 
 dask@brux:
   scaleout: 336
