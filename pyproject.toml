@@ -46,6 +46,7 @@ dependencies = {file = ["requirements.txt"]}
 dev = ["snakeviz", "memray", "flake8", "black", "pytest>=6", "pytest-cov>=3", "pre-commit", "nox"]
 docs = ["sphinx>=4.0", "myst-parser>=0.13", "sphinx-book-theme>=0.1.0", "sphinx-copybutton", "sphinx-markdown-tables", "nox"]
 test = ["pytest>=6", "pytest-cov>=3"]
+dask = ["dask>=2024.8.1"]                                                                                                                                 
 
 [tool.setuptools.packages.find]
 include = ["pocket_coffea*"]
@@ -68,8 +69,8 @@ make-plots="pocket_coffea.scripts.plot.make_plots:make_plots"
 build-datasets="pocket_coffea.scripts.dataset.build_datasets:build_datasets"
 dataset-discovery-cli="pocket_coffea.scripts.dataset:dataset_discovery_cli"
 hadd-skimmed-files="pocket_coffea.scripts.hadd_skimmed_files:hadd_skimmed_files"
-merge-outputs="pocket_coffea.scripts.merge_outputs:merge_outputs"
-split-output="pocket_coffea.scripts.split_output:split_output"
+merge-outputs="pocket_coffea.scripts.merge_outputs:main"
+split-output="pocket_coffea.scripts.split_output:main"
 print-parameters="pocket_coffea.scripts.print_parameters:print_parameters"
 make-config="pocket_coffea.sripts.make_config:make_config"
 check-jobs="pocket_coffea.scripts.check_jobs:check_jobs"

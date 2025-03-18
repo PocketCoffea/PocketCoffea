@@ -13,35 +13,6 @@ from itertools import islice
 from functools import reduce
 
 
-@click.command()
-@click.argument(
-    'inputfiles',
-    required=False,
-    type=str,
-    nargs=-1,
-)
-@click.option(
-    "-o",
-    "--outputfile",
-    required=True,
-    type=str,
-    help="Output file",
-)
-@click.option(
-    "-jc",
-    "--jobs-config",
-    required=False,
-    type=str,
-    help="Job configuration file",
-)
-# overwrite option
-@click.option(
-    "-f",
-    "--force",
-    is_flag=True,
-    help="Overwrite output file if it exists",
-)
-
 def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False):
     '''Merge coffea output files'''
     if os.path.exists(outputfile) and not force:
@@ -135,6 +106,39 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False):
         print(f"[green]Saving output to {outputfile}...[/]")
         save(total_output, outputfile)
         print(f"[green]Done![/]")
-        
+
+@click.command()
+@click.argument(
+    'inputfiles',
+    required=False,
+    type=str,
+    nargs=-1,
+)
+@click.option(
+    "-o",
+    "--outputfile",
+    required=True,
+    type=str,
+    help="Output file",
+)
+@click.option(
+    "-jc",
+    "--jobs-config",
+    required=False,
+    type=str,
+    help="Job configuration file",
+)
+# overwrite option
+@click.option(
+    "-f",
+    "--force",
+    is_flag=True,
+    help="Overwrite output file if it exists",
+)
+
+def main(inputfiles, outputfile, jobs_config, force):
+    '''Merge coffea output files'''
+    merge_outputs(inputfiles, outputfile, jobs_config, force)
+
 if __name__ == "__main__":
-    merge_outputs()
+    main()
