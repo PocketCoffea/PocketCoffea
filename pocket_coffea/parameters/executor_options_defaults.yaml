@@ -109,6 +109,31 @@ dask@brux:
   skip-bad-files: true
   retries: 3
 
+dask@rubin:
+  scaleout: 336
+  chunksize: 80000
+  mem-per-worker: "4GB"
+  disk-per-worker: "3GB"
+  local-virtualenv: false
+  conda-env: True
+  cores-per-worker: 1
+  walltime: "6:00:00"
+  adaptive: false
+  sched-url: null
+  skip-bad-files: true
+  retries: 1
+
+condor@rubin:
+  cores-per-worker: 1
+  mem-per-worker: "4GB"
+  disk-per-worker: "2GB"
+  conda-env: true
+  local-virtualenv: false
+  notify-user: "youremail@umd.edu"
+  worker-image: /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-latest
+  max-run-time: 21600
+  max-retries: 1
+
 dask@purdue-af:
   gateway-address: "http://dask-gateway-k8s.geddes.rcac.purdue.edu/"
   gateway-proxy-address: "traefik-dask-gateway-k8s.cms.geddes.rcac.purdue.edu:8786"
