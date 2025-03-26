@@ -64,10 +64,10 @@ parsl@RWTH:
   mem-per-worker: 4
   logs-dir: logs_parsl
   local-virtualenv: false
-  conda-env: True
+  conda-env: true
   cores-per-worker: 1
   walltime: "3:00:00"
-  worker-debug: False
+  worker-debug: false
   tree-reduction: 4
 
 dask@RWTH:
