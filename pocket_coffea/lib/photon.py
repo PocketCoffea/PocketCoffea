@@ -1,10 +1,10 @@
 import numpy as np
 import awkward as ak
 
-def photon_selection(events, photon, params, leptons_collection=""):
+def photon_selection(events, photon_collection, params, leptons_collection=""):
 
     photons = events["Photon"]
-    cuts = params.object_preselection[photon]
+    cuts = params.object_preselection[photon_collection]
     # Requirements on pT and eta
     passes_eta = abs(photons.eta) < cuts["eta"]
     passes_transition = np.invert(( abs(photons.eta) >= 1.4442) & (abs(photons.eta) <= 1.5660))
