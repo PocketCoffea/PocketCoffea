@@ -17,7 +17,7 @@ from coffea.analysis_tools import PackedSelection
 from ..lib.weights.weights_manager import WeightsManager
 from ..lib.columns_manager import ColumnsManager
 from ..lib.hist_manager import HistManager
-from ..lib.jets import jet_correction, met_correction, load_jet_factory
+from ..lib.jets import jet_correction, met_correction_after_jec, load_jet_factory
 from ..lib.leptons import get_ele_smeared, get_ele_scaled
 from ..lib.categorization import CartesianSelection
 from ..utils.skim import uproot_writeable, copy_file
@@ -376,11 +376,14 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             # If subsamples are defined we also save their metadata
             if self._hasSubsamples:
                 for subs, subsam_mask in self._subsamples[self._sample].get_masks():
+                    # get the subsample specific weight
                     mask_withsub = mask_on_events & subsam_mask
                     self.output["cutflow"][category][self._dataset][f"{self._sample}__{subs}"] = ak.sum(mask_withsub)
                     if self._isMC:
-                        self.output["sumw"][category][self._dataset][f"{self._sample}__{subs}"] = ak.sum(w * mask_withsub)
-                        self.output["sumw2"][category][self._dataset][f"{self._sample}__{subs}"] = ak.sum((w**2) * mask_withsub)
+                        w_tot = w * self.weights_manager.get_weight_only_subsample(subsample=f"{self._sample}__{subs}",
+                                                                                   category=category)
+                        self.output["sumw"][category][self._dataset][f"{self._sample}__{subs}"] = ak.sum(w_tot * mask_withsub)
+                        self.output["sumw2"][category][self._dataset][f"{self._sample}__{subs}"] = ak.sum(((w_tot)**2) * mask_withsub)
 
 
     def define_custom_axes_extra(self):
@@ -407,6 +410,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self.cfg.variables,
             self._year,
             self._sample,
+            self._hasSubsamples,
             self._subsamples[self._sample].keys(),
             self._categories,
             variations_config=self.cfg.variations_config[self._sample] if self._isMC else None,
@@ -702,6 +706,24 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 self.events = nominal_events
                 # Just assign the nominal calibration
                 for jet_coll_name, jet_coll in jets_calibrated.items():
+                    # Compute MET rescaling
+                    if jet_calib_params.rescale_MET[self._year]:
+                        met_branch =  jet_calib_params.rescale_MET_branch[self._year]
+                        new_MET = met_correction_after_jec(
+                            self.events,
+                            met_branch,
+                            self.events[jet_coll_name], jet_coll
+                        )
+                        self.events[met_branch] = ak.with_field(
+                            self.events[met_branch], new_MET["pt"], "pt"
+                        )
+                        self.events[met_branch] = ak.with_field(
+                            self.events[met_branch], new_MET["phi"], "phi"
+                        )
+                        
+                    self.events = met_correction_after_jec(
+                        self.events, jet_coll_name, jet_calib_params, self._year
+                    )
                     self.events[jet_coll_name] = jet_coll
 
                 if self.params.lepton_scale_factors.electron_sf["apply_ele_scale_and_smearing"][self._year]:
