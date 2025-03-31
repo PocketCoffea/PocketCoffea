@@ -316,23 +316,21 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         The Histmanager will ask the WeightsManager to have the available weights
         variations to create histograms axis.
         '''
-        if self._isMC:
-            # Creating the WeightsManager with all the configured weights
-            self.weights_manager = WeightsManager(
-                self.params,
-                self.weights_config_allsamples[self._sample],
-                self.weights_classes,
-                storeIndividual=False,
-                metadata={
-                    "year": self._year,
-                    "sample": self._sample,
-                    "dataset": self._dataset,
-                    "part": self._samplePart,
-                    "xsec": self._xsec,
-                },
-            )
-        else:
-            self.weights_manager = None
+        # Creating the WeightsManager with all the configured weights
+        self.weights_manager = WeightsManager(
+            self.params,
+            self.weights_config_allsamples[self._sample],
+            self.weights_classes,
+            storeIndividual=False,
+            metadata={
+                "year": self._year,
+                "sample": self._sample,
+                "dataset": self._dataset,
+                "part": self._samplePart,
+                "xsec": self._xsec if self._isMC else None,
+                "isMC": self._isMC,
+            }
+        )
     
     def compute_weights(self, variation):
         '''
@@ -340,11 +338,10 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         The current shape variation is passed to be used for the weights
         calculation. 
         '''
-        if self._isMC:
-            # Compute the weights
-            self.weights_manager.compute(self.events,
-                                         size=self.nEvents_after_presel,
-                                         shape_variation=variation)
+        # Compute the weights
+        self.weights_manager.compute(self.events,
+                                     size=self.nEvents_after_presel,
+                                     shape_variation=variation)
 
     def compute_weights_extra(self, variation):
         '''Function that can be defined by user processors
@@ -411,7 +408,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self._categories,
             variations_config=self.cfg.variations_config[self._sample] if self._isMC else None,
             processor_params=self.params,
-            weights_manager=self.weights_manager if self._isMC else None,
+            weights_manager=self.weights_manager,
             custom_axes=self.custom_axes,
             isMC=self._isMC,
         )

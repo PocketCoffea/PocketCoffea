@@ -53,7 +53,8 @@ class WeightWrapperMeta(ABCMeta):
 
     def wrap_func(cls, name:str,
                   function: Callable[[Any, int, str], Any],
-                  has_variations=False, variations=None):
+                  has_variations=False, variations=None,
+                  isMC_only=True):
         '''
         Method to create a new WeightLambda class with the given function.
         The lambda function takes as input the parameters, metadata, events, size and shape_variations.
@@ -67,6 +68,7 @@ class WeightWrapperMeta(ABCMeta):
         attrs = {'_function': function,
                  'name': name,
                  'has_variations': has_variations,
+                 'isMC_only': isMC_only,
                  '__module__': cls.__module__
                  }
         
@@ -119,6 +121,7 @@ class WeightWrapper(ABC, metaclass=WeightWrapperMeta):
     '''
     name: ClassVar[str] = "base_weight"
     has_variations: ClassVar[bool] = False
+    isMC_only: ClassVar[bool] = True
     _variations: List[str] = [] # default empty variation == "Up"/Down  
     
     def __init__(self, params=None, metadata=None):
