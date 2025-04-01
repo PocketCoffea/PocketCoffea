@@ -86,6 +86,8 @@ from pocket_coffea.utils.dataset import build_datasets
 class CreateDatasets(BaseTask):
     """Create dataset json files"""
 
+    version = None
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # if wildcard in --datasets-definition parameter create a list
