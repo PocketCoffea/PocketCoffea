@@ -44,10 +44,10 @@ def load_config(cfg, do_load=True, save_config=True, outputdir=None):
             config.save_config(outputdir)
     except AttributeError as e:
         print("Error: ", e)
-        raise("The provided configuration module does not contain a `cfg` attribute of type Configurator. Please check your configuration!")
+        raise Exception("The provided configuration module does not contain a `cfg` attribute of type Configurator. Please check your configuration!")
 
     if not isinstance(config, Configurator):
-        raise("The configuration module attribute `cfg` is not of type Configurator. Please check yuor configuration!")
+        raise Exception("The configuration module attribute `cfg` is not of type Configurator. Please check yuor configuration!")
     return config
 
 def adapt_chunksize(nevents, run_options):
@@ -100,7 +100,7 @@ def dump_ak_array(
     awkward.to_parquet(akarr, local_file)
     if xrootd:
         copyproc = XRootD.client.CopyProcess()
-        copyproc.add_job(local_file, destination)
+        copyproc.add_job(local_file, destination, force=True)
         copyproc.prepare()
         status, response = copyproc.run()
         if status.status != 0:

@@ -68,8 +68,7 @@ class datasetconfig(luigi.Config):
     )
     parallelize = luigi.IntParameter(
         description=(
-            "Number of parallel processes to be used to fetch the datasets, "
-            "default: 4"
+            "Number of parallel processes to be used to fetch the datasets, default: 4"
         ),
         default=4,
     )
@@ -100,7 +99,9 @@ class runnerconfig(luigi.Config):
 
 
 class plottingconfig(luigi.Config):
-    plot_dir = luigi.Parameter(default=law.NO_STR, description="Output folder for plots")
+    plot_dir = luigi.Parameter(
+        default=law.NO_STR, description="Output folder for plots"
+    )
     plot_verbose = luigi.IntParameter(
         default=0, description="verbosity level for PlotManager (default: 0)"
     )

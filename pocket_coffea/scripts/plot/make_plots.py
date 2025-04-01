@@ -1,13 +1,17 @@
 import os
 import sys
 import re
+import glob
 
 from omegaconf import OmegaConf
 from coffea.util import load
 
 from pocket_coffea.utils.plot_utils import PlotManager
 from pocket_coffea.parameters import defaults
+from coffea.processor import accumulate 
 import click
+
+import concurrent.futures
 
 @click.command()
 @click.option('-inp', '--input-dir', help='Directory with cofea files and parameters', type=str, default=os.getcwd(), required=False)
@@ -15,7 +19,8 @@ import click
 @click.option('-op', '--overwrite-parameters', type=str, multiple=True,
               default=None, help='YAML file with plotting parameters to overwrite default parameters', required=False)
 @click.option("-o", "--outputdir", type=str, help="Output folder", required=False)
-@click.option("-i", "--inputfile", type=str, help="Input file", required=False)
+# @click.option("-i", "--inputfile", type=str, help="Input file", required=False)
+@click.option("-i", "--inputfile", type=str, multiple=True, help="Input file(s) or patterns", required=True)
 @click.option('-j', '--workers', type=int, default=8, help='Number of parallel workers to use for plotting', required=False)
 @click.option('-oc', '--only-cat', type=str, multiple=True, help='Filter categories with string', required=False)
 @click.option('-oy', '--only-year', type=str, multiple=True, help='Filter datataking years with string', required=False)
@@ -35,10 +40,11 @@ import click
 @click.option('--no-systematics-ratio', is_flag=True, help='Plot the ratio of the shifts for the systematic uncertainties', required=False, default=False)
 @click.option('--compare', is_flag=True, help='Plot comparison of the samples, instead of data/MC', required=False, default=False)
 @click.option('--index-file', type=str, help='Path of the index file to be copied recursively in the plots directory and its subdirectories', required=False, default=None)
+@click.option('--no-cache', is_flag=True, help='Do not cache the histograms for faster plotting', required=False, default=False)
 
 def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfile,
                workers, only_cat, only_year, only_syst, exclude_hist, only_hist, split_systematics, partial_unc_band, no_syst,
-               overwrite, log, density, verbose, format, systematics_shifts, no_ratio, no_systematics_ratio, compare, index_file):
+               overwrite, log, density, verbose, format, systematics_shifts, no_ratio, no_systematics_ratio, compare, index_file, no_cache):
     '''Plot histograms produced by PocketCoffea processors'''
 
     # Using the `input_dir` argument, read the default config and coffea files (if not set with argparse):
@@ -70,8 +76,23 @@ def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfile,
 
     style_cfg = parameters['plotting_style']
 
-    if os.path.isfile( inputfile ): accumulator = load(inputfile)
-    else: sys.exit(f"Input file '{inputfile}' does not exist")
+    # Expand wildcards and filter out invalid files
+    all_files = []
+    for pattern in inputfile:
+        matched_files = glob.glob(pattern)  # Expand wildcards
+        valid_files = [file for file in matched_files if os.path.isfile(file)]
+        all_files.extend(valid_files)
+    if not all_files: sys.exit("No valid input files found.")
+
+    def load_single_file(file):
+        """Helper function to load a single file."""
+        print(f"Loading: {file}")
+        return load(file)
+    # Use ThreadPoolExecutor to load files concurrently
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        files = list(executor.map(load_single_file, all_files))
+
+    if files: accumulator = accumulate(files)
 
     if not overwrite:
         if os.path.exists(outputdir):
@@ -102,7 +123,8 @@ def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfile,
         density=density,
         verbose=verbose,
         save=True,
-        index_file=index_file
+        index_file=index_file,
+        cache=not no_cache
     )
 
     print("Started plotting.  Please wait...")

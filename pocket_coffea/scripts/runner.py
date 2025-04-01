@@ -81,7 +81,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     else:
         executor_name = executor
         site = None
-    print("Running with executor", executor_name, site)
+    print("Running with executor:", executor_name, "at", site)
 
     # Getting the default run_options
     run_options_defaults = parameters_utils.get_default_run_options()
@@ -161,8 +161,12 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         from pocket_coffea.executors import executors_DESY_NAF as executors_lib
     elif site == "RWTH":
         from pocket_coffea.executors import executors_RWTH as executors_lib
+    elif site == "CLAIX":
+        from pocket_coffea.executors import executors_CLAIX as executors_lib
     elif site == "brux":
         from pocket_coffea.executors import executors_brux as executors_lib
+    elif site == "rubin":
+        from pocket_coffea.executors import executors_rubin as executors_lib
     elif site == "oscar":
         from pocket_coffea.executors import executors_oscar as executors_lib
     elif site == "casa":

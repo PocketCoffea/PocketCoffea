@@ -3,7 +3,7 @@ general:
   chunksize: 150000
   limit-files: null
   limit-chunks: null
-  retries: 20
+  retries: 10
   tree-reduction: 20
   skip-bad-files: false
   voms-proxy: null
@@ -60,8 +60,8 @@ parsl-condor@DESY_NAF:
   walltime: "12:00:00"
 
 parsl@RWTH:
-  scaleout: 1
-  mem_per_worker: 2 # GB
+  scaleout: 20
+  mem-per-worker: 4
   logs-dir: logs_parsl
   local-virtualenv: false
   conda-env: True
@@ -70,14 +70,27 @@ parsl@RWTH:
 
 dask@RWTH:
   scaleout: 10
-  mem-per-worker: "2GB"
-  disk-per-worker: "2GB"
+  mem-per-worker: "4GB"
+  disk-per-worker: "4GB"
   local-virtualenv: false
   conda-env: True
   cores-per-worker: 1
   walltime: "6:00:00"
   adaptive: false
   sched-url: null
+
+dask@CLAIX:
+  scaleout: 10
+  cores-per-worker: 1
+  mem-per-worker: "2GB"
+  disk-per-worker: "2GB"
+  queue: "c23ms"
+  walltime: "1:00:00"
+  adaptive: false
+  performance-report: false
+  custom-setup-commands: null
+  conda-env: true
+  local-virtualenv: false
 
 dask@brux:
   scaleout: 336
@@ -92,6 +105,31 @@ dask@brux:
   sched-url: null
   skip-bad-files: true
   retries: 3
+
+dask@rubin:
+  scaleout: 336
+  chunksize: 80000
+  mem-per-worker: "4GB"
+  disk-per-worker: "3GB"
+  local-virtualenv: false
+  conda-env: True
+  cores-per-worker: 1
+  walltime: "6:00:00"
+  adaptive: false
+  sched-url: null
+  skip-bad-files: true
+  retries: 1
+
+condor@rubin:
+  cores-per-worker: 1
+  mem-per-worker: "4GB"
+  disk-per-worker: "2GB"
+  conda-env: true
+  local-virtualenv: false
+  notify-user: "youremail@umd.edu"
+  worker-image: /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-latest
+  max-run-time: 21600
+  max-retries: 1
 
 dask@purdue-af:
   gateway-address: "http://dask-gateway-k8s.geddes.rcac.purdue.edu/"
