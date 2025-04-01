@@ -123,6 +123,7 @@ class plottingconfig(luigi.Config):
         description="Output format of the plots", default="pdf"
     )
     variables = law.CSVParameter(description="List of variables to plot", default=())
+    year = luigi.Parameter(description="Year of the data taking", default=law.NO_STR)
 
 
 class plottingsystematicsconfig(luigi.Config):
