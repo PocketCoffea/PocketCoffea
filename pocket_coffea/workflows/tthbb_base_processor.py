@@ -62,6 +62,7 @@ class ttHbbBaseProcessor(BaseProcessorABC):
         self.events["nElectronGood"] = ak.num(self.events.ElectronGood)
         self.events["nLeptonGood"] = (
             self.events["nMuonGood"] + self.events["nElectronGood"]
+        )
         self.events["nPhotonGood"] = ak.num(self.events.PhotonGood)
         self.events["nJetGood"] = ak.num(self.events.JetGood)
         self.events["nBJetGood"] = ak.num(self.events.BJetGood)
