@@ -41,7 +41,7 @@ class ttHbbBaseProcessor(BaseProcessorABC):
         )
         self.events["LeptonGood"] = leptons[ak.argsort(leptons.pt, ascending=False)]
 
-        self.events["PhotonGood"] = photon_selection(self.events, "Photon", self.params, "LeptonGood")
+        #self.events["PhotonGood"] = photon_selection(self.events, "Photon", self.params, "LeptonGood")
      
         self.events["JetGood"], self.jetGoodMask = jet_selection(
             self.events, "Jet", self.params,
@@ -63,7 +63,7 @@ class ttHbbBaseProcessor(BaseProcessorABC):
         self.events["nLeptonGood"] = (
             self.events["nMuonGood"] + self.events["nElectronGood"]
         )
-        self.events["nPhotonGood"] = ak.num(self.events.PhotonGood)
+        #self.events["nPhotonGood"] = ak.num(self.events.PhotonGood)
         self.events["nJetGood"] = ak.num(self.events.JetGood)
         self.events["nBJetGood"] = ak.num(self.events.BJetGood)
         # self.events["nfatjet"]   = ak.num(self.events.FatJetGood)
