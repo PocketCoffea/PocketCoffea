@@ -83,7 +83,9 @@ class Plotter(PlotterBase):
         blind_str = "blind" if self.blind else "data-mc"
         yscale_str = "log" if self.log_scale else "lin"
         if self.plot_dir != law.NO_STR:
-            return self.local_file_target(self.plot_dir, blind_str, yscale_str, ".plots_done")
+            return self.local_file_target(
+                self.plot_dir, blind_str, yscale_str, ".plots_done"
+            )
         return self.local_file_target(blind_str, yscale_str, ".plots_done")
 
     def run(self):
@@ -103,7 +105,9 @@ class PlotSystematics(PlotterBase):
         syst_str = "systematics_ratio" if self.ratio else "systematics"
         yscale_str = "log" if self.log_scale else "lin"
         if self.plot_dir != law.NO_STR:
-            return self.local_file_target(self.plot_dir, syst_str, yscale_str, ".plots_done")
+            return self.local_file_target(
+                self.plot_dir, syst_str, yscale_str, ".plots_done"
+            )
         return self.local_file_target(syst_str, yscale_str, ".plots_done")
 
     def run(self):
