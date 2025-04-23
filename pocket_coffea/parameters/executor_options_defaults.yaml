@@ -66,7 +66,7 @@ parsl@RWTH:
   local-virtualenv: false
   conda-env: true
   cores-per-worker: 1
-  walltime: "3:00:00"
+  walltime: "6:00:00"
   worker-debug: false
   tree-reduction: 4
 
@@ -77,7 +77,7 @@ dask@RWTH:
   local-virtualenv: false
   conda-env: True
   cores-per-worker: 1
-  walltime: "3:00:00"
+  walltime: "6:00:00"
   adaptive: false
   sched-url: null
   tree-reduction: 4
@@ -88,7 +88,7 @@ dask@CLAIX:
   mem-per-worker: "2GB"
   disk-per-worker: "2GB"
   queue: "c23ms"
-  walltime: "1:00:00"
+  walltime: "6:00:00"
   adaptive: false
   performance-report: false
   custom-setup-commands: null
