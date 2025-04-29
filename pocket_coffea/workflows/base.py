@@ -17,7 +17,7 @@ from coffea.analysis_tools import PackedSelection
 from ..lib.weights.weights_manager import WeightsManager
 from ..lib.columns_manager import ColumnsManager
 from ..lib.hist_manager import HistManager
-from ..lib.jets import jet_correction, met_correction, load_jet_factory
+from ..lib.jets import jet_correction, met_correction_after_jec, load_jet_factory
 from ..lib.leptons import get_ele_smeared, get_ele_scaled
 from ..lib.categorization import CartesianSelection
 from ..utils.skim import uproot_writeable, copy_file
@@ -316,23 +316,21 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         The Histmanager will ask the WeightsManager to have the available weights
         variations to create histograms axis.
         '''
-        if self._isMC:
-            # Creating the WeightsManager with all the configured weights
-            self.weights_manager = WeightsManager(
-                self.params,
-                self.weights_config_allsamples[self._sample],
-                self.weights_classes,
-                storeIndividual=False,
-                metadata={
-                    "year": self._year,
-                    "sample": self._sample,
-                    "dataset": self._dataset,
-                    "part": self._samplePart,
-                    "xsec": self._xsec,
-                },
-            )
-        else:
-            self.weights_manager = None
+        # Creating the WeightsManager with all the configured weights
+        self.weights_manager = WeightsManager(
+            self.params,
+            self.weights_config_allsamples[self._sample],
+            self.weights_classes,
+            storeIndividual=False,
+            metadata={
+                "year": self._year,
+                "sample": self._sample,
+                "dataset": self._dataset,
+                "part": self._samplePart,
+                "xsec": self._xsec if self._isMC else None,
+                "isMC": self._isMC,
+            }
+        )
     
     def compute_weights(self, variation):
         '''
@@ -340,11 +338,10 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         The current shape variation is passed to be used for the weights
         calculation. 
         '''
-        if self._isMC:
-            # Compute the weights
-            self.weights_manager.compute(self.events,
-                                         size=self.nEvents_after_presel,
-                                         shape_variation=variation)
+        # Compute the weights
+        self.weights_manager.compute(self.events,
+                                     size=self.nEvents_after_presel,
+                                     shape_variation=variation)
 
     def compute_weights_extra(self, variation):
         '''Function that can be defined by user processors
@@ -411,7 +408,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self._categories,
             variations_config=self.cfg.variations_config[self._sample] if self._isMC else None,
             processor_params=self.params,
-            weights_manager=self.weights_manager if self._isMC else None,
+            weights_manager=self.weights_manager,
             custom_axes=self.custom_axes,
             isMC=self._isMC,
         )
@@ -702,6 +699,21 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 self.events = nominal_events
                 # Just assign the nominal calibration
                 for jet_coll_name, jet_coll in jets_calibrated.items():
+                    # Compute MET rescaling
+                    if jet_calib_params.rescale_MET[self._year]:
+                        met_branch =  jet_calib_params.rescale_MET_branch[self._year]
+                        new_MET = met_correction_after_jec(
+                            self.events,
+                            met_branch,
+                            self.events[jet_coll_name], jet_coll
+                        )
+                        self.events[met_branch] = ak.with_field(
+                            self.events[met_branch], new_MET["pt"], "pt"
+                        )
+                        self.events[met_branch] = ak.with_field(
+                            self.events[met_branch], new_MET["phi"], "phi"
+                        )
+                        
                     self.events[jet_coll_name] = jet_coll
 
                 if self.params.lepton_scale_factors.electron_sf["apply_ele_scale_and_smearing"][self._year]:
@@ -745,12 +757,44 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 # e.g. `JES_Total_AK4PFchs` will vary only the `AK4PFchs` jets,
                 # while `JES_Total_AK8PFPuppi` will vary only the `AK8PFPuppi` jets
                 jet_coll_name = jet_calib_params.collection[self._year][jet_type]
+
+                # Scale the MET with the delta between nominal jets and varied ones
+                if jet_calib_params.rescale_MET[self._year]:
+                    met_branch =  jet_calib_params.rescale_MET_branch[self._year]
+                    new_MET = met_correction_after_jec(
+                        self.events,
+                        met_branch,
+                        self.events[jet_coll_name],
+                        jets_calibrated[jet_coll_name][variation_name].up
+                    )
+                    self.events[met_branch] = ak.with_field(
+                        self.events[met_branch], new_MET["pt"], "pt"
+                    )
+                    self.events[met_branch] = ak.with_field(
+                        self.events[met_branch], new_MET["phi"], "phi"
+                    )
+                
                 self.events[jet_coll_name] = jets_calibrated[jet_coll_name][variation_name].up
 
                 yield variation + "Up"
 
                 # restore nominal before saving the down-variated collection
                 self.events = nominal_events
+                # Scale the MET with the delta between nominal jets and varied ones
+                if jet_calib_params.rescale_MET[self._year]:
+                    met_branch =  jet_calib_params.rescale_MET_branch[self._year]
+                    new_MET = met_correction_after_jec(
+                        self.events,
+                        met_branch,
+                        self.events[jet_coll_name],
+                        jets_calibrated[jet_coll_name][variation_name].down
+                    )
+                    self.events[met_branch] = ak.with_field(
+                        self.events[met_branch], new_MET["pt"], "pt"
+                    )
+                    self.events[met_branch] = ak.with_field(
+                        self.events[met_branch], new_MET["phi"], "phi"
+                    )
                 self.events[jet_coll_name] = jets_calibrated[jet_coll_name][variation_name].down
 
                 yield variation + "Down"
