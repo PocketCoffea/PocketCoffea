@@ -383,10 +383,13 @@ class Shape:
         assert (
             type(h_dict) in [dict, defaultdict]
         ), "The Shape object receives a dictionary of hist.Hist objects as argument."
+        self.is_mc_only = len(self.samples_data) == 0
+        self.is_data_only = len(self.samples_mc) == 0
         self.group_samples()
         self.filter_samples()
         self.rescale_samples()
-        self.replace_missing_variations()
+        if not self.is_data_only:
+            self.replace_missing_variations()
         self.load_attributes()
         self.load_syst_manager()
 
@@ -395,9 +398,6 @@ class Shape:
         if self.verbose>1:
             print(self.h_dict)
             print("samples:", self.samples_mc)
-
-        self.is_mc_only = len(self.samples_data) == 0
-        self.is_data_only = len(self.samples_mc) == 0
 
         #self.signal_samples =  self.style.signal_samples
 
