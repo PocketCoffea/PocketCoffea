@@ -46,6 +46,9 @@ def get_log_scale_str(log_scale_x: bool = False, log_scale_y: bool = False) -> s
         return "lin"
 
 
+class NoMatchingVariableError(Exception):
+    """Exception raised when no matching variable is found in coffea output"""
+
 
 @luigi.util.inherits(plottingconfig)
 @luigi.util.inherits(Runner)
@@ -76,6 +79,7 @@ class PlotterBase(BaseTask):
                 plotting_parameters, data_samples
             )
 
+        available_variables = list(output_coffea["variables"].keys())
         if self.variables:
             # get variables that should not be plotted
             vars_to_pop = []
@@ -88,6 +92,12 @@ class PlotterBase(BaseTask):
 
             for key in vars_to_pop:
                 output_coffea["variables"].pop(key, None)
+
+        if not output_coffea["variables"]:
+            raise NoMatchingVariableError(
+                f"Could not find any matching variable of {self.variables} in the coffea output.\n"
+                f"Available variables are: {available_variables}"
+            )
 
         # plot histograms
         return PlotManager(
