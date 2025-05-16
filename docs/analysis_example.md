@@ -731,7 +731,7 @@ To produce plots, for each category and variable defined in the configuration a 
 $ pocket-coffea make-plots --help
 
 usage: pocket-coffea make-plots [-h] [--input-dir INPUT_DIR] [--cfg CFG] [-op OVERWRITE_PARAMETERS [OVERWRITE_PARAMETERS ...]] [-o OUTPUTDIR] [-i INPUTFILE] [-j WORKERS] [-oc ONLY_CAT [ONLY_CAT ...]] [-os ONLY_SYST [ONLY_SYST ...]] [-e EXCLUDE_HIST [EXCLUDE_HIST ...]] [-oh ONLY_HIST [ONLY_HIST ...]] [--split-systematics] [--partial-unc-band]
-                     [--overwrite] [--log] [--density] [-v VERBOSE]
+                     [--overwrite] [--log-x] [--log-y] [--density] [-v VERBOSE]
 
 Plot histograms from coffea file
 
@@ -759,7 +759,8 @@ optional arguments:
   --split-systematics   Split systematic uncertainties in the ratio plot
   --partial-unc-band    Plot only the partial uncertainty band corresponding to the systematics specified as the argument `only_syst`
   --overwrite, --over   Overwrite plots in output folder
-  --log                 Set y-axis scale to log
+  --log-x               Set x-axis scale to log
+  --log-y               Set y-axis scale to log
   --density             Set density parameter to have a normalized plot
   -v VERBOSE, --verbose VERBOSE
                         Verbose level for debugging. Higher the number more stuff is printed.
