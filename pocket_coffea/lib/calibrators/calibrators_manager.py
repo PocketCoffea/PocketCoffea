@@ -52,17 +52,7 @@ class CalibratorsManager():
                         # if not, add it
                         self.available_variations.append(variation)
 
-    def calibration_loop(self, events):
-        '''Loop over all the available variations and yield the
-        modified events. Keep a reference to the original events.'''
-        self.original_events = events
-        for variation in available_variations:
-            # Call the calibrator objects in sequence
-            # This will call all the calibatros in the sequence
-            # for the given variation
-            events_out = self.calibrate(self.original_events, variation)
-            # Yield the modified events
-            yield variation, events_out
+    
                         
     def calibrate(self, events, variation):
         '''Call the calibrator objects in sequence.
@@ -71,9 +61,16 @@ class CalibratorsManager():
         of calibrators in case they need it. 
         '''
         if variation not in self.available_variations:
+            # THis should never happens, as the configurator should 
+            # filter the requested variations
             raise ValueError(f"Variation {variation} not available. Available variations: {self.available_variations}")
         self.original_coll = {}
         for calibrator in self.calibrator_sequence:
+            # If the variation is not handled by the calibrator
+            # it will return the nominal collection. 
+            # we don't want to control this in the manager, we 
+            # want to get back the collection to replace, also if it is the 
+            # nominal one.
             colls = calibrator.calibrate(events, self.original_coll, variation)
             for col in colls:
                 if col not in self.original_coll:
@@ -84,5 +81,15 @@ class CalibratorsManager():
         return events
 
                 
-        
+    def calibration_loop(self, events, variations):
+        '''Loop over all the requested variations and yield the
+        modified events. Keep a reference to the original events.'''
+        self.original_events = events
+        for variation in variations:
+            # Call the calibrator objects in sequence
+            # This will call all the calibatros in the sequence
+            # for the given variation
+            events_out = self.calibrate(self.original_events, variation)
+            # Yield the modified events
+            yield variation, events_out
 
