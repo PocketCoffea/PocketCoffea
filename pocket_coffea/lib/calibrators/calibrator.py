@@ -62,10 +62,13 @@ class Calibrator(ABC, metaclass=CalibratorRegistry):
     @abstractmethod
     def calibrate(self, events, variation):
         ''' The events objects is passed to the calibrator:
-        the calibrated_collections are replaced in the object depending
-        on the variation key requested. The method is called also for variations
+        the calibrated_collections are computed and returned to the manager.
+        The method is called also for variations
         not defined by the correct calibrator. In this was the calibrator can
         react and customize its output depending on the requested variation.
+
+        The calibrator MUST NOT replace in place the events collection.
+        The CalibratorsManager will take care of replacing the collection and of possible coordination between calibrators.
         '''
         pass
 
