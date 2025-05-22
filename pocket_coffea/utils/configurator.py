@@ -51,6 +51,7 @@ class Configurator:
         variations,
         variables,
         weights_classes=None,    
+        calibrators=None,
         columns=None,
         workflow_options=None,
         save_skimmed_files=None,
@@ -72,6 +73,7 @@ class Configurator:
         - variations: the dictionary of variations to be used in the analysis
         - variables: the dictionary of variables to be used in the analysis
         - weights_classes: the list of WeightWrapper classes to be used in the analysis
+        - calibrators: the list of Calibrator classes to be used in the analysis (ordered)
         - columns: the dictionary of columns to be used in the analysis
         - workflow_options: the dictionary of options to be passed to the workflow
         - save_skimmed_files:  if !=None and str, it is used to save the skimmed files in the specified folder
@@ -124,6 +126,9 @@ class Configurator:
         ## Weights configuration
         self.weights_cfg = weights
         self.weights_classes = weights_classes
+
+        # Calibrator classes
+        self.calibrators = calibrators
      
         self.variations_cfg = variations
        
@@ -202,6 +207,20 @@ class Configurator:
         self.requested_weights = list(set(self.requested_weights))
         self.weights_classes = list(filter(lambda x: x.name in self.requested_weights, self.weights_classes))
         
+        ## Calibrators configuration
+        if self.calibrators is None:
+            print("WARNING: No calibrators passed to the configurator, using the sequence")
+            from pocket_coffea.lib.calibrators.common import default_calibrators_sequence
+            self.calibrators = default_calibrators_sequence
+        # Get the list of available variations from the calibrator classes
+        # They define the strings available for the variation configuration
+        # The full list of variations are defined for each chunk and specialized by era
+        # when the calibrator is instantiated.
+        self.available_calibrators_variations = []
+        for calibrator in self.calibrators:
+            if calibrator.has_variations:
+                self.available_calibrators_variations += calibrator.name
+
         ## Variations configuration
         # The structure is very similar to the weights one,
         # but the common and inclusive collections are fully flattened on a
@@ -460,7 +479,11 @@ class Configurator:
             # the WeigthWrapper class will define the available variations
             available_variations = self.available_weights 
         elif variation_type=="shape":
-            available_variations = self.workflow.available_variations()
+            # The variations strings are the names define in the calibrator 
+            # classes. Only the general name is used in the configuration, 
+            # then the calibrator specializes the available shape variations for each 
+            # chunk, as the weight. 
+            available_variations = self.available_calibrators_variations
         # Read the config and save the list of variations names for each sample (and category if needed)
 
         if "common" not in wcfg:
@@ -691,6 +714,15 @@ class Configurator:
                 out["inclusive"].append(w)
             ocfg["weights"][sample] = out
 
+        # Save Weight classes name and file
+        ocfg["weights_classes"] = {}
+        for w in self.weights_classes:
+            ocfg["weights_classes"][w.name] = w.serialize()
+        
+        ocfg["calibrators"] = [
+            c.serialize() for c in self.calibrators
+        ]
+
         ocfg["variations"] = self.variations_config
         ocfg["variables"] = {
             key: val.serialize() for key, val in self.variables.items()
@@ -765,6 +797,7 @@ class Configurator:
             categories=self.categories_cfg,
             weights=self.weights_cfg,
             weights_classes=self.weights_classes,
+            calibrators=self.calibrators,
             variations=self.variations_cfg,
             variables=self.variables,
             columns=self.columns_cfg,

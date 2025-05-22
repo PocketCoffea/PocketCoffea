@@ -4,6 +4,7 @@ import awkward as ak
 
 from pocket_coffea.lib.jets import ()
 
+
 class JetsCalibrator(Calibrator):
     def __init__(self, params, metadata):
         super().__init__(params, metadata)
@@ -55,3 +56,8 @@ class MuonsCalibrator(Calibrator):
 
     def calibrate(self, events, variation):
         pass
+
+
+default_calibrators_sequence = [
+    JetsCalibrator,
+    METCalibrator,
