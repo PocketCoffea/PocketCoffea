@@ -27,7 +27,6 @@ class CalibratorsManager():
         self.calibrator_types = calibrators_list
         self.calibrator_sequence = []
         self.calibrated_collections = defaultdict(list)
-        self.events = events
         self.metadata = metadata
 
         # Initialize all the calibrators
@@ -44,7 +43,7 @@ class CalibratorsManager():
                 self.calibrated_collections[calibrated_collection].append(C)
             
         # Create the list of variations
-        self.available_variations = []
+        self.available_variations = ["nominal"]
         for calibrator in self.calibrator_sequence:
             if calibrator.has_variations:
                 for variation in calibrator.variations:
@@ -53,15 +52,37 @@ class CalibratorsManager():
                         # if not, add it
                         self.available_variations.append(variation)
 
+    def calibration_loop(self, events):
+        '''Loop over all the available variations and yield the
+        modified events. Keep a reference to the original events.'''
+        self.original_events = events
+        for variation in available_variations:
+            # Call the calibrator objects in sequence
+            # This will call all the calibatros in the sequence
+            # for the given variation
+            events_out = self.calibrate(self.original_events, variation)
+            # Yield the modified events
+            yield variation, events_out
+                        
     def calibrate(self, events, variation):
-        '''Call the calibrator object with the variation name in sequence. '''
+        '''Call the calibrator objects in sequence.
+        The calibrators returns the collections to replace in the events.
+        The original collections are stored in a dictionary and passed to the chain
+        of calibrators in case they need it. 
+        '''
+        if variation not in self.available_variations:
+            raise ValueError(f"Variation {variation} not available. Available variations: {self.available_variations}")
         self.original_coll = {}
         for calibrator in self.calibrator_sequence:
-            colls = calibrator.calibrate(events, variation)
+            colls = calibrator.calibrate(events, self.original_coll, variation)
             for col in colls:
                 if col not in self.original_coll:
                     # Store the original column only once
                     self.original_coll[col] = events[col]
+                # Store the calibrated column in the events object
+                events[col] = colls[col]
+        return events
 
+                
         
 
