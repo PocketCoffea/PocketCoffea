@@ -59,9 +59,11 @@ class Calibrator(ABC, metaclass=CalibratorRegistry):
     def variations(self):
         return self._variations
 
+    
     @abstractmethod
-    def calibrate(self, events, variation):
-        ''' The events objects is passed to the calibrator:
+    def calibrate(self, events, events_original_collections, variation):
+        ''' The events objects is passed to the calibrator alongside
+        a dictionary with the original collection. 
         the calibrated_collections are computed and returned to the manager.
         The method is called also for variations
         not defined by the correct calibrator. In this was the calibrator can

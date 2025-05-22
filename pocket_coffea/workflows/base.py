@@ -20,6 +20,7 @@ from ..lib.hist_manager import HistManager
 from ..lib.jets import jet_correction, met_correction_after_jec, load_jet_factory
 from ..lib.leptons import get_ele_smeared, get_ele_scaled
 from ..lib.categorization import CartesianSelection
+from ..lib.calibrators.calibrators_manager import CalibratorsManager
 from ..utils.skim import uproot_writeable, copy_file
 from ..utils.utils import dump_ak_array
 
@@ -137,6 +138,16 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self._era = self.events.metadata["era"]
         # Loading metadata for subsamples
         self._hasSubsamples = self.cfg.has_subsamples[self._sample]
+        # Store all metadata in a single dict for easier access
+        self._metadata = {
+            "year": self._year,
+            "sample": self._sample,
+            "samplePart": self._samplePart,
+            "dataset": self._dataset,
+            "isMC": self._isMC,
+            "isSkim": self._isSkim,
+            "era": self._era,
+        }
 
     def load_metadata_extra(self):
         '''
@@ -607,41 +618,28 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     )
                     self.output["processing_metadata"][f"throughput_per_chunk_{k}"][
                         self._sample][self._dataset] = hepc.hist_obj
+
+
+    def initialize_calibrators(self):
+        '''Creates the calibator manager and initialize all the calibrators.'''
+        self.calibrators_manager = CalibratorsManager(
+            self.cfg.calibrators,
+            self.events,
+            self.params,
+            self._metadata
+        )
+
+    def loop_over_variations(self):
+        for variation, events_calibrated in self.calibrators_manager.calibration_loop(
+            self.events
+        ):
+            print("Variation:", variation)
+            print("Events:", events_calibrated, id(events_calibrated))
+            # We need to set the events to the calibrated ones
+            # and call the function to apply the preselection
+            self.events = events_calibrated
+            yield variation
         
-
-    @classmethod
-    def available_variations(cls):
-        '''
-        Identifiers of the weights variabtions available thorugh this processor.
-        By default they are all the weights defined in the WeightsManager
-        '''
-        vars = []
-        available_jet_types = [
-            "AK4PFchs",
-            "AK4PFPuppi",
-            "AK8PFPuppi"
-        ]
-        available_jet_variations = [
-            "JES_Total",
-            'JES_FlavorQCD',
-            'JES_RelativeBal',
-            'JES_HF',
-            'JES_BBEC1',
-            'JES_EC2',
-            'JES_Absolute',
-            'JES_Absolute_2018',
-            'JES_HF_2018',
-            'JES_EC2_2018',
-            'JES_RelativeSample_2018',
-            'JES_BBEC1_2018',
-            'JER',
-        ]
-        # Here we define the naming scheme for the jet variations
-        # For each jet type, we define the variations names as `{variation}_{jet_type}`
-        available_jet_variations = [f"{v}_{jt}" for v in available_jet_variations for jt in available_jet_types]
-        vars += available_jet_variations
-        return vars
-
     def get_shape_variations(self):
         '''
         Generator for shape variations.
@@ -906,6 +904,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         #########################
 
         self.process_extra_after_skim()
+        # Define and load the calibators
+        self.initialize_calibrators()
         # Define and load the weights manager
         self.define_weights()
         # Create the HistManager and ColumnManager before systematic variations
@@ -915,7 +915,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self.define_column_accumulators()
         self.define_column_accumulators_extra()
 
-        for variation in self.get_shape_variations():
+        for variation in self.loop_over_variations():
             # Apply preselections
             self.apply_object_preselection(variation)
             self.count_objects(variation)
