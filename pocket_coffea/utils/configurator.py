@@ -12,6 +12,7 @@ from warnings import warn
 
 from ..lib.cut_definition import Cut
 from ..lib.categorization import StandardSelection, CartesianSelection
+from ..lib.calibrators.common.common import default_calibrators_sequence
 from ..parameters.cuts import passthrough
 from ..lib.hist_manager import Axis, HistConf
 from ..utils import build_jets_calibrator
@@ -209,8 +210,8 @@ class Configurator:
         
         ## Calibrators configuration
         if self.calibrators is None:
-            print("WARNING: No calibrators passed to the configurator, using the sequence")
-            from pocket_coffea.lib.calibrators.common import default_calibrators_sequence
+            print("WARNING: No calibrators passed to the configurator, using the default sequence")
+            from pocket_coffea.lib.calibrators.common.common import default_calibrators_sequence
             self.calibrators = default_calibrators_sequence
         # Get the list of available variations from the calibrator classes
         # They define the strings available for the variation configuration
@@ -715,10 +716,9 @@ class Configurator:
             ocfg["weights"][sample] = out
 
         # Save Weight classes name and file
-        ocfg["weights_classes"] = {}
-        for w in self.weights_classes:
-            ocfg["weights_classes"][w.name] = w.serialize()
-        
+        ocfg["weights_classes"] = [
+            w.name for w in self.weight_classes
+        ]
         ocfg["calibrators"] = [
             c.serialize() for c in self.calibrators
         ]

@@ -15,7 +15,7 @@ class JetsCalibrator(Calibrator):
         # initialize the calibrator
         pass
 
-    def calibrate(self, events, variation):
+    def calibrate(self, events, orig_colls, variation):
         pass
 
 
@@ -29,7 +29,7 @@ class METCalibrator(Calibrator):
         # initialize the calibrator
         pass
 
-    def calibrate(self, events, variation):
+    def calibrate(self, events, orig_colls, variation):
         pass
 
 
@@ -56,8 +56,3 @@ class MuonsCalibrator(Calibrator):
 
     def calibrate(self, events, variation):
         pass
-
-
-default_calibrators_sequence = [
-    JetsCalibrator,
-    METCalibrator,
