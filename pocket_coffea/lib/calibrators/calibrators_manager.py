@@ -12,6 +12,9 @@ class CalibratorsManager():
     The CalibratorManager exposes the set of shape variations created by the calibrator sequence.
     The variations are used to create the list of variations used to fill the histograms and columns.
 
+    The CalibratorManager keeps a dictionary of calibrated collections by each calibrator: the name is expected
+    to have the format "collection.field" (e.g. "Electron.pt").
+
     The CalibratorManager keeps in memory the original collection. 
     Moreover the calibrator knows which collections are calibrated by each calibrator.
     If a calibrator needs the original collection, it can be passed by the manager.
@@ -24,7 +27,7 @@ class CalibratorsManager():
                  params,
                  metadata=None,
                  ):
-        self.calibrator_types = calibrators_list
+        self.calibrator_list = calibrators_list
         self.calibrator_sequence = []
         self.calibrated_collections = defaultdict(list)
         self.metadata = metadata
@@ -32,13 +35,13 @@ class CalibratorsManager():
         self.available_variations_bycalibrator = defaultdict(list)
 
         # Initialize all the calibrators
-        for calibrator in calibrator_types:
-            if calibrator.isMC_only and not events.isMC:
+        for calibrator in self.calibrator_list:
+            if calibrator.isMC_only and not metadata["isMC"]:
                 # do not run the calibrator on data if it is MC only
                 continue
             
             C = calibrator(params, metadata)
-            c.initialize(events)
+            C.initialize(events)
             self.calibrator_sequence.append(C)
             # storing the list of calibrator touching a collection in a dictionary
             for calibrated_collection in C.calibrated_collections:
@@ -53,7 +56,7 @@ class CalibratorsManager():
                         # if not, add it
                         self.available_variations.append(variation)
                         # Store the variations by calibrator        
-                        self.available_variations_bycalibrator[variation].append(calibrator.name)
+                        self.available_variations_bycalibrator[calibrator.name].append(variation)
 
 
     
