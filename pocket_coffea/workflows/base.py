@@ -420,6 +420,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             variations_config=self.cfg.variations_config[self._sample] if self._isMC else None,
             processor_params=self.params,
             weights_manager=self.weights_manager,
+            calibrators_manager=self.calibrators_manager
             custom_axes=self.custom_axes,
             isMC=self._isMC,
         )
@@ -621,7 +622,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
 
     def initialize_calibrators(self):
-        '''Creates the calibator manager and initialize all the calibrators.'''
+        '''Creates the calibator manager and initialize all the calibrators.
+        This prepares also the list of avaialable shape variations for this chunk.
+        That will be utilized by the HistManager to create the histograms variations axes.'''
         self.calibrators_manager = CalibratorsManager(
             self.cfg.calibrators,
             self.events,

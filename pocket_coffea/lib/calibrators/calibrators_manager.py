@@ -28,6 +28,8 @@ class CalibratorsManager():
         self.calibrator_sequence = []
         self.calibrated_collections = defaultdict(list)
         self.metadata = metadata
+        self.available_variations = ["nominal"]
+        self.available_variations_bycalibrator = defaultdict(list)
 
         # Initialize all the calibrators
         for calibrator in calibrator_types:
@@ -43,7 +45,6 @@ class CalibratorsManager():
                 self.calibrated_collections[calibrated_collection].append(C)
             
         # Create the list of variations
-        self.available_variations = ["nominal"]
         for calibrator in self.calibrator_sequence:
             if calibrator.has_variations:
                 for variation in calibrator.variations:
@@ -51,6 +52,9 @@ class CalibratorsManager():
                         # check if the variation is already in the list
                         # if not, add it
                         self.available_variations.append(variation)
+                        # Store the variations by calibrator        
+                        self.available_variations_bycalibrator[variation].append(calibrator.name)
+
 
     
                         
@@ -93,3 +97,12 @@ class CalibratorsManager():
             # Yield the modified events
             yield variation, events_out
 
+    def get_available_variations(self, calibrator_name=None):
+        """
+        '''Return the list of available variations for 
+        a specific calibrator or all the variations
+        if calibrator_name is None, return all the variations"""
+        if calibrator_name is None:
+            return self.available_variations
+        else:
+            return self.available_variations_bycalibrator.get(calibrator_name, [])
