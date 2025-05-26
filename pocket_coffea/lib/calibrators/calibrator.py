@@ -42,6 +42,7 @@ class Calibrator(ABC, metaclass=CalibratorRegistry):
     has_variations: ClassVar[bool] = False
     isMC_only: ClassVar[bool] = False
     _variations: List[str] = [] # default empty variations
+    # The calibrated collections format is expected to be "collection.field"
     calibrated_collections: List[str] = []
     
     def __init__(self, params=None, metadata=None):
@@ -52,7 +53,13 @@ class Calibrator(ABC, metaclass=CalibratorRegistry):
     @abstractmethod
     def initialize(self, events):
         ''' Method called once for chunk for the calibrator to prepare
-        all the necessary data'''
+        all the necessary data.
+        The list of the variations is set here depending on the chunk metadata.
+        N.B: the events object is passed to the calibrator before any calibrator is applied.
+        If the calibrator prepares the variation values here, it is not incorporating 
+        the changes that may be applied by other calibrators. If the user want
+        to prepare the variations based on the events calibrated in the chain, 
+        it should be done in the calibrate method.'''
         pass
 
     @property
