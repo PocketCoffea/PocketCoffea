@@ -12,7 +12,6 @@ from warnings import warn
 
 from ..lib.cut_definition import Cut
 from ..lib.categorization import StandardSelection, CartesianSelection
-from ..lib.calibrators.common.common import default_calibrators_sequence
 from ..parameters.cuts import passthrough
 from ..lib.hist_manager import Axis, HistConf
 from ..utils import build_jets_calibrator
