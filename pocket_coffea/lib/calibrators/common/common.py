@@ -56,7 +56,4 @@ class MuonsCalibrator(Calibrator):
 
 
 default_calibrators_sequence = [
-    JetsCalibrator,
-    METCalibrator,
-    ElectronsCalibrator,
 ]

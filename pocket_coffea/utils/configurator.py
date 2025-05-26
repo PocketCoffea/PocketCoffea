@@ -716,7 +716,7 @@ class Configurator:
 
         # Save Weight classes name and file
         ocfg["weights_classes"] = [
-            w.name for w in self.weight_classes
+            w.name for w in self.weights_classes
         ]
         ocfg["calibrators"] = [
             c.serialize() for c in self.calibrators
