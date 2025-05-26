@@ -420,7 +420,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             variations_config=self.cfg.variations_config[self._sample] if self._isMC else None,
             processor_params=self.params,
             weights_manager=self.weights_manager,
-            calibrators_manager=self.calibrators_manager
+            calibrators_manager=self.calibrators_manager,
             custom_axes=self.custom_axes,
             isMC=self._isMC,
         )

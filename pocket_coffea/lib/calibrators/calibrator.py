@@ -77,7 +77,12 @@ class Calibrator(ABC, metaclass=CalibratorRegistry):
         react and customize its output depending on the requested variation.
 
         The calibrator MUST NOT replace in place the events collection.
-        The CalibratorsManager will take care of replacing the collection and of possible coordination between calibrators.
+        The CalibratorsManager will take care of replacing the collection 
+        and of possible coordination between calibrators.
+
+        If the variation is not handled by the calibrator, it should return
+        the nominal collection, or the collection that is supposed to be
+        returned in case of no variation.
         '''
         pass
 

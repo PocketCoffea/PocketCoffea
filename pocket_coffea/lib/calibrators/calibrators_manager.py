@@ -33,6 +33,7 @@ class CalibratorsManager():
         self.metadata = metadata
         self.available_variations = ["nominal"]
         self.available_variations_bycalibrator = defaultdict(list)
+        self.original_coll = {}
 
         # Initialize all the calibrators
         for calibrator in self.calibrator_list:
@@ -59,6 +60,19 @@ class CalibratorsManager():
                         self.available_variations_bycalibrator[calibrator.name].append(variation)
 
 
+    def reset_events_to_original(self, events):
+        '''Take the original collection and reset the events to that, practically undoing any calibration'''
+        for col in self.original_coll:
+            if "." not in col:
+                # If the col is not in the format "collection.field", we store it as is
+                events[col] = self.original_coll[col]
+            else:
+                # If the col is in the format "collection.field", we need to split it
+                collection, field = col.split(".")
+                events[collection, field] = self.original_coll[col]
+
+        # Clear the original collection ict
+        self.original_coll.clear()
     
                         
     def calibrate(self, events, variation):
@@ -71,7 +85,7 @@ class CalibratorsManager():
             # THis should never happens, as the configurator should 
             # filter the requested variations
             raise ValueError(f"Variation {variation} not available. Available variations: {self.available_variations}")
-        self.original_coll = {}
+        
         for calibrator in self.calibrator_sequence:
             # If the variation is not handled by the calibrator
             # it will return the nominal collection. 
@@ -80,25 +94,42 @@ class CalibratorsManager():
             # nominal one.
             colls = calibrator.calibrate(events, self.original_coll, variation)
             for col in colls:
-                if col not in self.original_coll:
-                    # Store the original column only once
-                    self.original_coll[col] = events[col]
-                # Store the calibrated column in the events object
-                events[col] = colls[col]
+                if col not in calibrator.calibrated_collections:
+                    raise ValueError(f"Calibrator {calibrator.name} is trying to calibrated a collection that it does not declarye to handle:{col}. ")
+                
+                if "." not in col:
+                    if col not in self.original_coll:     
+                        self.original_coll[col] = events[col]
+                    # replacing the value
+                    events[col] = colls[col]
+
+                else:
+                    # If the col is in the format "collection.field", we need to split it
+                    collection, field = col.split(".")
+                    if col not in self.original_coll:
+                        self.original_coll[col] = events[collection, field]
+                    events[collection, field] = colls[col]
         return events
 
                 
-    def calibration_loop(self, events, variations):
+    def calibration_loop(self, events, variations=None):
         '''Loop over all the requested variations and yield the
         modified events. Keep a reference to the original events.'''
-        self.original_events = events
+        if variations is None:
+            variations = self.available_variations
+            
         for variation in variations:
             # Call the calibrator objects in sequence
             # This will call all the calibatros in the sequence
             # for the given variation
-            events_out = self.calibrate(self.original_events, variation)
+            events_out = self.calibrate(events, variation)
             # Yield the modified events
             yield variation, events_out
+            # Reset the events to the original collections
+            self.reset_events_to_original(events)
+            # This is needed to make sure that the next variation is handled properly 
+            # in case calibrations are computed on the fly on the modified values
+
 
     def get_available_variations(self, calibrator_name=None):
         """

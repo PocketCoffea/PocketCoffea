@@ -53,3 +53,10 @@ class MuonsCalibrator(Calibrator):
 
     def calibrate(self, events, variation):
         pass
+
+
+default_calibrators_sequence = [
+    JetsCalibrator,
+    METCalibrator,
+    ElectronsCalibrator,
+]
