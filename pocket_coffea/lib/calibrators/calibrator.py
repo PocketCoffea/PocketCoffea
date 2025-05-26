@@ -86,18 +86,18 @@ class Calibrator(ABC, metaclass=CalibratorRegistry):
         '''
         pass
 
-
-    def serialize(self, src_code=False):
+    @classmethod
+    def serialize(cls, src_code=False):
         out = {
-            "name": self.name,
+            "name": cls.name,
             "class": {
-                "name": self.__class__.__name__,
-                "module": self.__class__.__module__,
-                "src_file": inspect.getsourcefile(self.__class__),
-                "f_hash": hash(self.__class__)
+                "name": cls.__class__.__name__,
+                "module": cls.__class__.__module__,
+                "src_file": inspect.getsourcefile(cls.__class__),
+                "f_hash": hash(cls.__class__)
                 
             }
         }
         if src_code:
-            out["class"]["src_code"] = inspect.getsource(self.__class__)
+            out["class"]["src_code"] = inspect.getsource(cls.__class__)
         return out
