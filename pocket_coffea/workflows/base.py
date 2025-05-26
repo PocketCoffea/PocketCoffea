@@ -629,7 +629,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self.cfg.calibrators,
             self.events,
             self.params,
-            self._metadata
+            self._metadata,
+            # Additional arg to pass the jmefactory to the jet calibrator --> hacky
+            jme_factory=self.jmefactory,
         )
 
     def loop_over_variations(self):

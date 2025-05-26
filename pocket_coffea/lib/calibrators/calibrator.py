@@ -45,9 +45,9 @@ class Calibrator(ABC, metaclass=CalibratorRegistry):
     # The calibrated collections format is expected to be "collection.field"
     calibrated_collections: List[str] = []
     
-    def __init__(self, params=None, metadata=None):
-        self._params = params
-        self._metadata = metadata
+    def __init__(self, params=None, metadata=None, **kwargs):
+        self.params = params
+        self.metadata = metadata
         # Variations must be setup in the constructor of the derived class.
         
     @abstractmethod
