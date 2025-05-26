@@ -1,5 +1,6 @@
 
 import pytest
+import os
 from pocket_coffea.lib.calibrators.common.common import (
     JetsCalibrator, 
     METCalibrator, 
@@ -7,6 +8,7 @@ from pocket_coffea.lib.calibrators.common.common import (
     MuonsCalibrator)
 from pocket_coffea.lib.calibrators.calibrator import Calibrator
 from pocket_coffea.lib.calibrators.calibrators_manager import CalibratorsManager
+from pocket_coffea.utils import build_jets_calibrator
 
 from pocket_coffea.parameters import defaults
 import awkward as ak
@@ -367,3 +369,24 @@ def test_calibrators_sequence(events, params):
         else:
             raise ValueError(f"Unknown variation: {variation}")
 
+
+
+def test_jets_calibrator(events, params):
+    if not os.path.exists(params.jets_calibration.factory_file):
+        build_jets_calibrator.build(params.jets_calibration)
+
+    from pocket_coffea.lib.jets import load_jet_factory
+    jmefactory = load_jet_factory(params)
+    jets_calibrator = JetsCalibrator(params=params, metadata={"isMC": True, "year": "2018"}, jme_factory=jmefactory)
+    jets_calibrator.initialize(events)
+
+    orig_events = ak.copy(events)
+    out1 = jets_calibrator.calibrate(events, {}, variation="nominal")
+
+    assert "Jet" in out1
+    variation = jets_calibrator.variations[0]
+    out2 = jets_calibrator.calibrate(events, {}, variation=variation)
+
+    assert "Jet" in out2
+    assert ak.all(out2["Jet"].pt != orig_events.Jet.pt)
+    assert ak.all(out2["Jet"].pt != out1["Jet"].pt)  # Assuming a 2% correction for the variation

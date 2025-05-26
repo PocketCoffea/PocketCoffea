@@ -20,12 +20,16 @@ class CalibratorsManager():
     If a calibrator needs the original collection, it can be passed by the manager.
     This can be useful if a calibrator needs to use the original collection to calibrate another one after a previous
     calibrator has already modified the collection.
+
+    kwargs can be passed to the constructor to pass objects necessary for
+    the calibrators to work, such as jme-factor, loaded once by the processor.  TO BE IMPROVED
     """
     
     def __init__(self, calibrators_list: List[Calibrator], 
                  events,
                  params,
                  metadata=None,
+                 **kwargs
                  ):
         self.calibrator_list = calibrators_list
         self.calibrator_sequence = []
@@ -41,7 +45,7 @@ class CalibratorsManager():
                 # do not run the calibrator on data if it is MC only
                 continue
             
-            C = calibrator(params, metadata)
+            C = calibrator(params, metadata, **kwargs)
             C.initialize(events)
             self.calibrator_sequence.append(C)
             # storing the list of calibrator touching a collection in a dictionary
@@ -117,7 +121,7 @@ class CalibratorsManager():
         modified events. Keep a reference to the original events.'''
         if variations is None:
             variations = self.available_variations
-            
+
         for variation in variations:
             # Call the calibrator objects in sequence
             # This will call all the calibatros in the sequence
