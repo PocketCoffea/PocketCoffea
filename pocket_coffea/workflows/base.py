@@ -185,7 +185,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             skimmed_sumw = ak.sum(self.events.genWeight)
             # the scaling factor is the original sumgenweight / the skimmed sumgenweight
             if skimmed_sumw == 0:
-                self.events["skimRescaleGenWeight"] = np.zeros(self.events.genWeight)
+                self.events["skimRescaleGenWeight"] = np.zeros(self.nEvents_after_skim)
             else:
                 self.events["skimRescaleGenWeight"] =  np.ones(self.nEvents_after_skim) * self.output['sum_genweights'][self._dataset] / skimmed_sumw
             self.output['sum_genweights_skimmed'] = { self._dataset : skimmed_sumw }
