@@ -282,7 +282,6 @@ default_jets_calibration:
             - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_RunCv4_V1_DATA_L2Relative_AK4PFPuppi.txt.gz"
             - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_RunCv4_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
           
-
         2023_postBPix:
           D:
             - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_RunD_V1_DATA_L1FastJet_AK4PFPuppi.txt.gz"
@@ -294,245 +293,125 @@ default_jets_calibration:
     full_variations: 
       2016_PreVFP: 
         AK4PFchs: 
-          - JES_AbsoluteMPFBias
-          - JES_AbsoluteScale
-          - JES_AbsoluteStat
+          - JES_Absolute
+          - JES_Absolute_2016
           - JES_FlavorQCD
-          - JES_Fragmentation
-          - JES_PileUpDataMC
-          - JES_PileUpPtBB
-          - JES_PileUpPtEC1
-          - JES_PileUpPtEC2
-          - JES_PileUpPtHF
-          - JES_PileUpPtRef
-          - JES_RelativeFSR
-          - JES_RelativeJEREC1
-          - JES_RelativeJEREC2
-          - JES_RelativeJERHF
-          - JES_RelativePtBB
-          - JES_RelativePtEC1
-          - JES_RelativePtEC2
-          - JES_RelativePtHF
+          - JES_BBEC1
+          - JES_EC2
+          - JES_EC2_2016
+          - JES_HF
+          - JES_HF_2016
+          - JES_BBEC1
+          - JES_BBEC1_2016
           - JES_RelativeBal
-          - JES_RelativeSample
-          - JES_RelativeStatEC
-          - JES_RelativeStatFSR
-          - JES_RelativeStatHF
-          - JES_SinglePionECAL
-          - JES_SinglePionHCAL
-          - JES_TimePtEta
+          - JES_RelativeSample_2016
           - JER
       2016_PostVFP: 
         AK4PFchs:
-          - JES_AbsoluteMPFBias
-          - JES_AbsoluteScale
-          - JES_AbsoluteStat
+          - JES_Absolute
+          - JES_Absolute_2016
           - JES_FlavorQCD
-          - JES_Fragmentation
-          - JES_PileUpDataMC
-          - JES_PileUpPtBB
-          - JES_PileUpPtEC1
-          - JES_PileUpPtEC2
-          - JES_PileUpPtHF
-          - JES_PileUpPtRef
-          - JES_RelativeFSR
-          - JES_RelativeJEREC1
-          - JES_RelativeJEREC2
-          - JES_RelativeJERHF
-          - JES_RelativePtBB
-          - JES_RelativePtEC1
-          - JES_RelativePtEC2
-          - JES_RelativePtHF
+          - JES_BBEC1
+          - JES_EC2
+          - JES_EC2_2016
+          - JES_HF
+          - JES_HF_2016
+          - JES_BBEC1
+          - JES_BBEC1_2016
           - JES_RelativeBal
-          - JES_RelativeSample
-          - JES_RelativeStatEC
-          - JES_RelativeStatFSR
-          - JES_RelativeStatHF
-          - JES_SinglePionECAL
-          - JES_SinglePionHCAL
-          - JES_TimePtEta
+          - JES_RelativeSample_2016
           - JER
       "2017": 
-        AK4PFchs:
-          - JES_AbsoluteMPFBias
-          - JES_AbsoluteScale
-          - JES_AbsoluteStat
+        AK4PFchs:          
+          - JES_Absolute
+          - JES_Absolute_2017
           - JES_FlavorQCD
-          - JES_Fragmentation
-          - JES_PileUpDataMC
-          - JES_PileUpPtBB
-          - JES_PileUpPtEC1
-          - JES_PileUpPtEC2
-          - JES_PileUpPtHF
-          - JES_PileUpPtRef
-          - JES_RelativeFSR
-          - JES_RelativeJEREC1
-          - JES_RelativeJEREC2
-          - JES_RelativeJERHF
-          - JES_RelativePtBB
-          - JES_RelativePtEC1
-          - JES_RelativePtEC2
-          - JES_RelativePtHF
+          - JES_BBEC1
+          - JES_EC2
+          - JES_EC2_2017
+          - JES_HF
+          - JES_HF_2017
+          - JES_BBEC1
+          - JES_BBEC1_2017
           - JES_RelativeBal
-          - JES_RelativeSample
-          - JES_RelativeStatEC
-          - JES_RelativeStatFSR
-          - JES_RelativeStatHF
-          - JES_SinglePionECAL
-          - JES_SinglePionHCAL
-          - JES_TimePtEta
+          - JES_RelativeSample_2017
           - JER
   
       "2018": 
         AK4PFchs:
-          - JES_AbsoluteMPFBias
-          - JES_AbsoluteScale
-          - JES_AbsoluteStat
+          - JES_Absolute
+          - JES_Absolute_2018
           - JES_FlavorQCD
-          - JES_Fragmentation
-          - JES_PileUpDataMC
-          - JES_PileUpPtBB
-          - JES_PileUpPtEC1
-          - JES_PileUpPtEC2
-          - JES_PileUpPtHF
-          - JES_PileUpPtRef
-          - JES_RelativeFSR
-          - JES_RelativeJEREC1
-          - JES_RelativeJEREC2
-          - JES_RelativeJERHF
-          - JES_RelativePtBB
-          - JES_RelativePtEC1
-          - JES_RelativePtEC2
-          - JES_RelativePtHF
+          - JES_BBEC1
+          - JES_EC2
+          - JES_EC2_2018
+          - JES_HF
+          - JES_HF_2018
+          - JES_BBEC1
+          - JES_BBEC1_2018
           - JES_RelativeBal
-          - JES_RelativeSample
-          - JES_RelativeStatEC
-          - JES_RelativeStatFSR
-          - JES_RelativeStatHF
-          - JES_SinglePionECAL
-          - JES_SinglePionHCAL
-          - JES_TimePtEta
+          - JES_RelativeSample_2018
           - JER
 
       2022_preEE:
         AK4PFPuppi: 
-          - JES_AbsoluteMPFBias
-          - JES_AbsoluteScale
-          - JES_AbsoluteStat
+          - JES_Absolute
+          - JES_Absolute_2022
           - JES_FlavorQCD
-          - JES_Fragmentation
-          - JES_PileUpDataMC
-          - JES_PileUpPtBB
-          - JES_PileUpPtEC1
-          - JES_PileUpPtEC2
-          - JES_PileUpPtHF
-          - JES_PileUpPtRef
-          - JES_RelativeFSR
-          - JES_RelativeJEREC1
-          - JES_RelativeJEREC2
-          - JES_RelativeJERHF
-          - JES_RelativePtBB
-          - JES_RelativePtEC1
-          - JES_RelativePtEC2
-          - JES_RelativePtHF
+          - JES_BBEC1
+          - JES_EC2
+          - JES_EC2_2022
+          - JES_HF
+          - JES_HF_2022
+          - JES_BBEC1
+          - JES_BBEC1_2022
           - JES_RelativeBal
-          - JES_RelativeSample
-          - JES_RelativeStatEC
-          - JES_RelativeStatFSR
-          - JES_RelativeStatHF
-          - JES_SinglePionECAL
-          - JES_SinglePionHCAL
-          - JES_TimePtEta
+          - JES_RelativeSample_2022
           - JER
       2022_postEE:
         AK4PFPuppi: 
-          - JES_AbsoluteMPFBias
-          - JES_AbsoluteScale
-          - JES_AbsoluteStat
+          - JES_Absolute
+          - JES_Absolute_2022
           - JES_FlavorQCD
-          - JES_Fragmentation
-          - JES_PileUpDataMC
-          - JES_PileUpPtBB
-          - JES_PileUpPtEC1
-          - JES_PileUpPtEC2
-          - JES_PileUpPtHF
-          - JES_PileUpPtRef
-          - JES_RelativeFSR
-          - JES_RelativeJEREC1
-          - JES_RelativeJEREC2
-          - JES_RelativeJERHF
-          - JES_RelativePtBB
-          - JES_RelativePtEC1
-          - JES_RelativePtEC2
-          - JES_RelativePtHF
+          - JES_BBEC1
+          - JES_EC2
+          - JES_EC2_2022
+          - JES_HF
+          - JES_HF_2022
+          - JES_BBEC1
+          - JES_BBEC1_2022
           - JES_RelativeBal
-          - JES_RelativeSample
-          - JES_RelativeStatEC
-          - JES_RelativeStatFSR
-          - JES_RelativeStatHF
-          - JES_SinglePionECAL
-          - JES_SinglePionHCAL
-          - JES_TimePtEta
+          - JES_RelativeSample_2022
           - JER
       2023_preBPix:
         AK4PFPuppi:      
-          - JES_AbsoluteMPFBias
-          - JES_AbsoluteScale
-          - JES_AbsoluteStat
+          - JES_Absolute
+          - JES_Absolute_2023
           - JES_FlavorQCD
-          - JES_Fragmentation
-          - JES_PileUpDataMC
-          - JES_PileUpPtBB
-          - JES_PileUpPtEC1
-          - JES_PileUpPtEC2
-          - JES_PileUpPtHF
-          - JES_PileUpPtRef
-          - JES_RelativeFSR
-          - JES_RelativeJEREC1
-          - JES_RelativeJEREC2
-          - JES_RelativeJERHF
-          - JES_RelativePtBB
-          - JES_RelativePtEC1
-          - JES_RelativePtEC2
-          - JES_RelativePtHF
+          - JES_BBEC1
+          - JES_EC2
+          - JES_EC2_2023
+          - JES_HF
+          - JES_HF_2023
+          - JES_BBEC1
+          - JES_BBEC1_2023
           - JES_RelativeBal
-          - JES_RelativeSample
-          - JES_RelativeStatEC
-          - JES_RelativeStatFSR
-          - JES_RelativeStatHF
-          - JES_SinglePionECAL
-          - JES_SinglePionHCAL
-          - JES_TimePtEta
+          - JES_RelativeSample_2023
           - JER
       2023_postBPix:
         AK4PFPuppi:      
-          - JES_AbsoluteMPFBias
-          - JES_AbsoluteScale
-          - JES_AbsoluteStat
+          - JES_Absolute
+          - JES_Absolute_2023
           - JES_FlavorQCD
-          - JES_Fragmentation
-          - JES_PileUpDataMC
-          - JES_PileUpPtBB
-          - JES_PileUpPtEC1
-          - JES_PileUpPtEC2
-          - JES_PileUpPtHF
-          - JES_PileUpPtRef
-          - JES_RelativeFSR
-          - JES_RelativeJEREC1
-          - JES_RelativeJEREC2
-          - JES_RelativeJERHF
-          - JES_RelativePtBB
-          - JES_RelativePtEC1
-          - JES_RelativePtEC2
-          - JES_RelativePtHF
+          - JES_BBEC1
+          - JES_EC2
+          - JES_EC2_2023
+          - JES_HF
+          - JES_HF_2023
+          - JES_BBEC1
+          - JES_BBEC1_2023
           - JES_RelativeBal
-          - JES_RelativeSample
-          - JES_RelativeStatEC
-          - JES_RelativeStatFSR
-          - JES_RelativeStatHF
-          - JES_SinglePionECAL
-          - JES_SinglePionHCAL
-          - JES_TimePtEta
+          - JES_RelativeSample_2023
           - JER
       
     total_variation: 
@@ -646,5 +525,5 @@ jets_calibration:
   # By default only the total variations are included
   # The user can customize the wanted variations by changing the variations key in the user parameters.
   # the key default_jets_calibration.variations.full_variations contains the full setup of JET variations.
-  # setup `jets_calibration.variations == default_jets_calibration.variations.full_variations` to use all variations
+  # setup `jets_calibration.variations == "${default_jets_calibration.variations.full_variations}"` to use all variations
   variations: "${default_jets_calibration.variations.total_variation}"

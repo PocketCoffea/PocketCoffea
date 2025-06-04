@@ -4,6 +4,7 @@ from pocket_coffea.lib.cut_functions import get_nObj_min, get_nObj_eq, get_nBtag
 from pocket_coffea.parameters.histograms import *
 from pocket_coffea.parameters.btag import btag_variations
 from pocket_coffea.lib.weights_manager import WeightCustom
+from pocket_coffea.lib.calibrators.common.common import JetsCalibrator
 import numpy as np
 
 
@@ -76,6 +77,8 @@ cfg =  {
         }
     },
 
+    "calibrators": [JetsCalibrator],
+
     "variations": {
         "weights": {
             "common": {
@@ -92,18 +95,7 @@ cfg =  {
         },
         "shape": {
             "common":{
-                "inclusive": ["JES_Total",
-                              'JES_FlavorQCD',
-                              'JES_RelativeBal',
-                              'JES_HF',
-                              'JES_BBEC1',
-                              'JES_EC2',
-                              'JES_Absolute',
-                              'JES_Absolute_2018',
-                              'JES_HF_2018',
-                              'JES_EC2_2018',
-                              'JES_RelativeSample_2018',
-                              'JES_BBEC1_2018']
+                "inclusive": ["jet_calibration"]
             }
         }
     },
