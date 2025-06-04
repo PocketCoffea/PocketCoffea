@@ -219,7 +219,7 @@ class Configurator:
         self.available_calibrators_variations = []
         for calibrator in self.calibrators:
             if calibrator.has_variations:
-                self.available_calibrators_variations += calibrator.name
+                self.available_calibrators_variations.append(calibrator.name)
 
         ## Variations configuration
         # The structure is very similar to the weights one,
@@ -484,6 +484,8 @@ class Configurator:
             # then the calibrator specializes the available shape variations for each 
             # chunk, as the weight. 
             available_variations = self.available_calibrators_variations
+
+        print(available_variations)
         # Read the config and save the list of variations names for each sample (and category if needed)
 
         if "common" not in wcfg:

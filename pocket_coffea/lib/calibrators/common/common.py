@@ -5,6 +5,15 @@ import cachetools
 from pocket_coffea.lib.jets import jet_correction, met_correction_after_jec, load_jet_factory
 
 class JetsCalibrator(Calibrator):
+    """
+    """
+    
+    name = "jet_calibration"
+    has_variations = True
+    isMC_only = False
+    calibrated_collections = ["Jet", "FatJet"]
+
+
     def __init__(self, params, metadata, jme_factory, **kwargs):
         super().__init__(params, metadata)
         self.jme_factory = jme_factory
@@ -12,10 +21,20 @@ class JetsCalibrator(Calibrator):
         self.caches = [] 
         self._year = self.metadata["year"]
         self.jets_calibrated = {}
+        self.jets_calibrated_types = [ ]
 
     def initialize(self, events):
         # Load the calibration of each jet type requested by the parameters
         for jet_type, jet_coll_name in self.jet_calib_param.collection[self._year].items():
+            # Check if the collection is enables in the parameters
+            if self.metadata["isMC"]:
+                if self.jet_calib_param.apply_jec_MC[self._year][jet_type] == False:
+                    # If the collection is not enabled, we skip it
+                    continue
+            else:
+                if self.jet_calib_param.apply_jec_Data[self._year][jet_type] == False:
+                    # If the collection is not enabled, we skip it
+                    continue
             cache = cachetools.Cache(np.inf)
             self.caches.append(cache)
             self.jets_calibrated[jet_coll_name] = jet_correction(
@@ -31,10 +50,16 @@ class JetsCalibrator(Calibrator):
                 },
                 cache=cache
             )
+            # Add to the list of the types calibrated
+            self.jets_calibrated_types.append(jet_type)
+
         # Prepare the list of available variations
         # For this we just read from the parameters
         available_jet_variations = []
         for jet_type in self.jet_calib_param.collection[self._year].keys():
+            if jet_type not in self.jets_calibrated_types:
+                # If the jet type is not calibrated, we skip it
+                continue
             if jet_type in self.jet_calib_param.variations[self._year]:
                 # If the jet type has variations, we add them to the list
                 # of variations available for this calibrator
@@ -46,6 +71,7 @@ class JetsCalibrator(Calibrator):
                     # we want to vary independently each jet type
         self._variations = list(sorted(set(available_jet_variations)))  # remove duplicates
 
+
     def calibrate(self, events, orig_colls, variation):
         # The values have been already calculated in the initialize method
         # We just need to apply the corrections to the events
@@ -56,15 +82,16 @@ class JetsCalibrator(Calibrator):
                 out[jet_coll_name] = jets
         else:
             # get the jet type from the variation name
-            jet_type = variation.split("_")[0]
+            variation_parts = variation.split("_")
+            jet_type = variation_parts[0]
             if jet_type not in self.jet_calib_param.collection[self._year]:
                 raise ValueError(f"Jet type {jet_type} not found in the parameters for year {self._year}.")
             # get the variation type from the variation name
             if variation.endswith("Up"):
-                variation_type = variation.split("_")[1][:-2]  # remove 'Up'
+                variation_type = "_".join(variation_parts[1:])[:-2]  # remove 'Up'
                 direction = "up"
             elif variation.endswith("Down"):
-                variation_type = variation.split("_")[1][:-4]  # remove 'Down'
+                variation_type = "_".join(variation_parts[1:])[:-4]  # remove 'Down'
                 direction = "down"
             else:
                 raise ValueError(f"JET Variation {variation} is not recognized. It should end with 'Up' or 'Down'.")
@@ -95,7 +122,7 @@ class METCalibrator(Calibrator):
         pass
 
 
-class ElectronsCalibrator(Calibrator):
+class ElectronsScaleCalibrator(Calibrator):
     def __init__(self, params, metadata):
         super().__init__(params, metadata)
         # initialize variations

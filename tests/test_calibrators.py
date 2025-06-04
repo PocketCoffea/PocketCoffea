@@ -4,7 +4,7 @@ import os
 from pocket_coffea.lib.calibrators.common.common import (
     JetsCalibrator, 
     METCalibrator, 
-    ElectronsCalibrator, 
+    ElectronsScaleCalibrator, 
     MuonsCalibrator)
 from pocket_coffea.lib.calibrators.calibrator import Calibrator
 from pocket_coffea.lib.calibrators.calibrators_manager import CalibratorsManager
@@ -389,4 +389,4 @@ def test_jets_calibrator(events, params):
 
     assert "Jet" in out2
     assert ak.all(out2["Jet"].pt != orig_events.Jet.pt)
-    assert ak.all(out2["Jet"].pt != out1["Jet"].pt)  # Assuming a 2% correction for the variation
+    assert ak.all(out2["Jet"].pt != out1["Jet"].pt)

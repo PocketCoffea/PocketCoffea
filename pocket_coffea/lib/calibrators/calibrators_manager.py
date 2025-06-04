@@ -86,7 +86,7 @@ class CalibratorsManager():
         of calibrators in case they need it. 
         '''
         if variation not in self.available_variations:
-            # THis should never happens, as the configurator should 
+            # This should never happens, as the configurator should 
             # filter the requested variations
             raise ValueError(f"Variation {variation} not available. Available variations: {self.available_variations}")
         
@@ -100,13 +100,11 @@ class CalibratorsManager():
             for col in colls:
                 if col not in calibrator.calibrated_collections:
                     raise ValueError(f"Calibrator {calibrator.name} is trying to calibrated a collection that it does not declarye to handle:{col}. ")
-                
                 if "." not in col:
                     if col not in self.original_coll:     
                         self.original_coll[col] = events[col]
                     # replacing the value
                     events[col] = colls[col]
-
                 else:
                     # If the col is in the format "collection.field", we need to split it
                     collection, field = col.split(".")
