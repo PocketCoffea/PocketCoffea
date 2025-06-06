@@ -46,7 +46,8 @@ Input datasets for the analyses are defined in a JSON file following the syntax 
                   "isMC": true,
                   "xsec": 6077.22,
                   "part": "M-50"
-              }
+              },
+              "dbs_instance": "prod/global"  # No need to include it, using prod/global by default
             }
         ]
     },
@@ -75,7 +76,8 @@ Input datasets for the analyses are defined in a JSON file following the syntax 
                     "isMC": false,
                     "primaryDataset": "SingleMuon",
                     "era": "B"
-                }
+                },
+                "dbs_instance": "prod/global" 
             }
          ]
     }
@@ -208,4 +210,27 @@ Moreover the output contains the total number of events contained in the dataset
             }
 }
 ```
- 
+
+## Private USER samples
+To be able to access privately produced samples, published on **DBS**, it is enought to set a different `dbs_instance` in the dataset definition file: 
+
+```
+{
+    "DYJetsToLL_M-50":{
+        "sample": "DYJetsToLL",
+        "json_output": "datasets/DYJetsToLL_M-50.json",
+        "files":[
+            { "das_names": 
+                ["/DYJetsToLL_M-50_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM"],
+              "metadata": {
+                  "year":"2018",
+                  "isMC": true,
+                  "xsec": 6077.22,
+                  "part": "M-50"
+              },
+              "dbs_instance": "prod/phys03" 
+            }
+        ]
+    },
+}
+```
