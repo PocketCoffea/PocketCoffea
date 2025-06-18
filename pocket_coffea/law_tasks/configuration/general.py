@@ -70,6 +70,10 @@ class datasetconfig(luigi.Config):
         ),
         default=4,
     )
+    sort_replicas = luigi.Parameter(
+        description="Sort replicas (default: 'geoip')",
+        default="geoip",
+    )
 
 
 class runnerconfig(luigi.Config):
