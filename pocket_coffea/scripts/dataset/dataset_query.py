@@ -106,6 +106,7 @@ class DataDiscoveryCLI:
         self.replica_results = defaultdict(list)
         self.replica_results_metadata = {}
         self.replica_results_bysite = {}
+        self.sort_replicas: str = "geoip"
 
         self.commands = [
             "help",
@@ -116,6 +117,7 @@ class DataDiscoveryCLI:
             "list-selected",
             "replicas",
             "list-replicas",
+            "set-sorting",
             "save",
             "clear",
             "allow-sites",
@@ -139,6 +141,7 @@ Some basic commands:
   - [bold cyan]query-results[/]: List the results of the last dataset query
   - [bold cyan]list-selected[/]: Print a list of the selected datasets
   - [bold cyan]list-replicas[/]: Print the selected files replicas for the selected dataset
+  - [bold cyan][set-sorting][/]: Set the sorting mode for replicas
   - [bold cyan]sites-filters[/]: show the active sites filters and ask to clear them
   - [bold cyan]allow-sites[/]: Restrict the grid sites available for replicas query only to the requested list
   - [bold cyan]block-sites[/]: Exclude grid sites from the available sites for replicas query
@@ -165,6 +168,8 @@ Some basic commands:
                 self.do_replicas()
             elif command == "list-replicas":
                 self.do_list_replicas()
+            elif command == "set-sorting":
+                self.do_set_replicas_sorting()
             elif command == "save":
                 self.do_save()
             elif command == "clear":
@@ -402,6 +407,7 @@ Some basic commands:
                         regex_sites=self.sites_regex,
                         mode="full",
                         client=self.rucio_client,
+                        sort=self.sort_replicas,
                     )
                 except Exception as e:
                     print(f"\n[red bold] Exception: {e}[/]")
@@ -592,6 +598,31 @@ Some basic commands:
                     T.add(f"[cyan]{f}")
 
             self.console.print(tree)
+
+    def do_set_replicas_sorting(self, sort: str = None):
+        """Set the sorting mode for the replicas.
+        If `sort` is None, it will ask the user for the sorting mode.
+        If user input is empty, the sorting mode will not be changed.
+
+        Parameters
+        ----------
+        sort : str, optional
+            how to sort replicas, by default None
+            if None, it will ask the user for the sorting mode.
+        """
+        print(
+            f"[bold cyan]Current sorting mode for replicas: [green]{self.sort_replicas}"
+        )
+        if sort is None:
+            sort = Prompt.ask(
+                "[yellow]How to sort replicas? (leave empty to make no changes)"
+            )
+        if sort != "":
+            self.sort_replicas = sort
+            print(
+                f"[bold green]New sorting mode for replicas: [cyan]{self.sort_replicas}"
+            )
+
 
     def do_save(self, filename=None):
         """Save the replica information in yaml format"""        

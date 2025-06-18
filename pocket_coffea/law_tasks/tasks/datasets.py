@@ -156,4 +156,6 @@ class CreateDatasets(BaseTask):
             blocklist_sites=self.blocklist_sites,
             regex_sites=self.regex_sites,
             parallelize=self.parallelize,
+            include_redirector=self.include_redirector,
+            sort_replicas=self.sort_replicas,
         )
