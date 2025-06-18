@@ -1,4 +1,3 @@
-
 import os
 from multiprocessing import Lock
 from collections import defaultdict
@@ -55,8 +54,6 @@ def get_xrootd_sites_map():
     if os.path.exists(".sites_map.json"):
         file_time = os.path.getmtime(".sites_map.json")
         current_time = time.time()
-        #ten_minutes_ago = current_time - 600
-        twenty_minutes_ago = current_time - 1200
         sixty_minutes_ago = current_time - 3600
         if file_time > sixty_minutes_ago:
             cache_valid = True
@@ -132,6 +129,7 @@ def get_dataset_files_replicas(
     partial_allowed=False,
     client=None,
     scope="cms",
+    sort: str = "geoip",
 ):
     """
     This function queries the Rucio server to get information about the location
@@ -159,6 +157,8 @@ def get_dataset_files_replicas(
         client: rucio Client, optional
         partial_allowed: bool, default False
         scope:  rucio scope, "cms"
+        sort: str, default 'geoip'
+            sort replicas (for details check rucio documentation)
 
     Returns
     -------
@@ -181,7 +181,9 @@ def get_dataset_files_replicas(
     outsites = []
     outfiles = []
     for filedata in client.list_replicas(
-        [{"scope": scope, "name": dataset}], client_location=detect_client_location()
+        [{"scope": scope, "name": dataset}],
+        client_location=detect_client_location(),
+        sort=sort,
     ):
         outfile = []
         outsite = []
