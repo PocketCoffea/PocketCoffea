@@ -7,6 +7,7 @@ import json
 import time
 import requests
 from rucio.client import Client
+from rucio.common.client import detect_client_location
 from pocket_coffea.utils.network import get_proxy_path
 
 
@@ -179,10 +180,17 @@ def get_dataset_files_replicas(
     client = client if client else get_rucio_client()
     outsites = []
     outfiles = []
-    for filedata in client.list_replicas([{"scope": scope, "name": dataset}]):
+    for filedata in client.list_replicas(
+        [{"scope": scope, "name": dataset}], client_location=detect_client_location()
+    ):
         outfile = []
         outsite = []
         rses = filedata["rses"]
+        # NOTE: rses are not sorted!
+        # pfns are sorted (https://rucio.cern.ch/documentation/html/client_api/replicaclient.html#rucio.client.replicaclient.ReplicaClient.list_replicas)
+        pfns = filedata["pfns"]
+        rses_sorted = [pfn["rse"] for pfn in pfns.values()]
+        rses = {rse: rses[rse] for rse in rses_sorted}
         found = False
         if allowlist_sites:
             for site in allowlist_sites:
