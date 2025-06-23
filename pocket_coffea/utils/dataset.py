@@ -18,7 +18,17 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from .network import get_proxy_path
 from . import rucio
 
-def do_dataset(key, config, local_prefix, allowlist_sites, include_redirector, blocklist_sites, regex_sites, **kwargs):
+def do_dataset(
+    key,
+    config,
+    local_prefix,
+    allowlist_sites,
+    include_redirector,
+    blocklist_sites,
+    regex_sites,
+    sort_replicas: str = "geoip",
+    **kwargs,
+):
     print("*" * 40)
     print("> Working on dataset: ", key)
     if key not in config:
@@ -38,6 +48,7 @@ def do_dataset(key, config, local_prefix, allowlist_sites, include_redirector, b
                 "blocklist_sites": blocklist_sites,
                 "regex_sites": regex_sites,
             },
+            sort_replicas=sort_replicas,
         )
     except:
         raise Exception(f"Error getting info about dataset: {key}")
@@ -46,9 +57,21 @@ def do_dataset(key, config, local_prefix, allowlist_sites, include_redirector, b
 
 
 
-def build_datasets(cfg, keys=None, overwrite=False, download=False, check=False, split_by_year=False, local_prefix=None,
-                   allowlist_sites=None, include_redirector=False, blocklist_sites=None, regex_sites=None, parallelize=4):
-
+def build_datasets(
+    cfg,
+    keys=None,
+    overwrite=False,
+    download=False,
+    check=False,
+    split_by_year=False,
+    local_prefix=None,
+    allowlist_sites=None,
+    include_redirector=False,
+    blocklist_sites=None,
+    regex_sites=None,
+    sort_replicas="geoip",
+    parallelize=4,
+):
     config = json.load(open(cfg))
 
     if not keys:
@@ -65,7 +88,8 @@ def build_datasets(cfg, keys=None, overwrite=False, download=False, check=False,
         "include_redirector": include_redirector,
         "blocklist_sites": blocklist_sites,
         "regex_sites": regex_sites,
-        "parallelize": parallelize
+        "parallelize": parallelize,
+        "sort_replicas": sort_replicas,
     }
     
     if parallelize == 1:
@@ -84,7 +108,16 @@ def build_datasets(cfg, keys=None, overwrite=False, download=False, check=False,
             dataset.download()
 
 class Sample:
-    def __init__(self, name, das_names, sample, metadata, sites_cfg, **kwargs):
+    def __init__(
+        self,
+        name,
+        das_names,
+        sample,
+        metadata,
+        sites_cfg,
+        sort_replicas: str = "geoip",
+        **kwargs,
+    ):
         '''
         Class representing a single analysis sample.
         - The name is the unique key of the sample in the dataset file.
@@ -110,6 +143,7 @@ class Sample:
         self.fileslist_concrete = []
         self.parentslist = []
         self.sites_cfg = sites_cfg
+        self.sort_replicas: str = sort_replicas
 
         print(
             f">> Query for sample: {self.metadata['sample']},  das_name: {self.metadata['das_names']}"
@@ -157,7 +191,7 @@ class Sample:
             if self.metadata.get("dbs_instance", "prod/global") == "prod/global":
                 # Now query rucio to get the concrete dataset passing the sites filtering options
                 files_replicas, sites, sites_counts = rucio.get_dataset_files_replicas(
-                    das_name, **self.sites_cfg, mode="first"
+                    das_name, **self.sites_cfg, mode="first", sort=self.sort_replicas
                 )
             else:
                 # Use DBS to get the site
@@ -216,7 +250,14 @@ class Sample:
 
 
 class Dataset:
-    def __init__(self, name, cfg, sites_cfg=None, append_parents=False):
+    def __init__(
+        self,
+        name,
+        cfg,
+        sites_cfg=None,
+        sort_replicas: str = "geoip",
+        append_parents=False,
+    ):
         self.cfg = cfg
         self.prefix = cfg.get("storage_prefix", None)
         self.name = name
@@ -235,6 +276,7 @@ class Dataset:
                 "regex_sites": None,
             }
         )
+        self.sort_replicas = sort_replicas
         self.append_parents = append_parents
         self.get_samples(self.cfg["files"])
 
@@ -257,6 +299,7 @@ class Dataset:
                 sample=self.sample,
                 metadata=scfg["metadata"],
                 sites_cfg=self.sites_cfg,
+                sort_replicas=self.sort_replicas,
                 **kwargs,
             )
             self.samples_obj.append(sample)

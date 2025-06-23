@@ -13,7 +13,7 @@ requests
 parsl
 matplotlib>=3.7
 rich
-rucio-clients==37.3.0
+rucio-clients>=37.5.0
 onnxruntime
 omegaconf
 law
