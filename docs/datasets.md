@@ -94,6 +94,8 @@ The same dataset can contain different group of dataset (**DAS**) names, each  w
 dictionary**. Each group will be interpreted by the `build_datasets` script to create unique set of files, with a
 unique label build as `{user_defined_label}__{part}__{year}_{Era}`.
 
+## Create the Dataset JSON Files
+
 To build a JSON file with a list of datasets, run the following script:
 
 ```bash
@@ -105,7 +107,7 @@ To build a JSON file with a list of datasets, run the following script:
 
 usage: build_datasets [--help] [--cfg CFG] [-k KEYS [KEYS ...]] [-d] [-o] [-c] [-s] [-l LOCAL_PREFIX] 
 			[-ws WHITELIST_SITE -ws WHITELIST_SITE ...] [-bs BLACKLIST_SITE -bs BLACKLIST_SITES ...] 
-			[-rs REGEX_SITES] [-ir] [-p 8]
+			[-rs REGEX_SITES] [-sort SORTING] [-ir] [-p 8]
 
   Build dataset fileset in json format
 
@@ -124,6 +126,7 @@ Options:
   -bs, --blocklist-sites TEXT  List of sites in blacklist
   -rs, --regex-sites TEXT      example: -rs 'T[123]_(FR|IT|DE|BE|CH|UK)_\w+'
                                to serve data from sites in Europe.
+  -sort, --sort-replicas TEXT  Sort replicas (default: geoip).
   -ir, --include-redirector    Use the redirector path if no site is available
                                after the specified whitelist, blacklist and
                                regexes are applied for sites.
