@@ -4,7 +4,9 @@ from rich import print
 
 from pocket_coffea.utils import dataset
 
-@click.command()
+CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
+
+@click.command(context_settings=CONTEXT_SETTINGS)
 @click.option(
     '--cfg',
     default=os.getcwd() + "/datasets/datasets_definitions.json",

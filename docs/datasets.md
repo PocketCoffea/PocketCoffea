@@ -103,7 +103,7 @@ To build a JSON file with a list of datasets, run the following script:
 /____/\_,_/_/_/\_,_/____/\_,_/\__/\_,_/___/\__/\__/ 
                                                    
 
-usage: build_datasets [-h] [--cfg CFG] [-k KEYS [KEYS ...]] [-d] [-o] [-c] [-s] [-l LOCAL_PREFIX] 
+usage: build_datasets [--help] [--cfg CFG] [-k KEYS [KEYS ...]] [-d] [-o] [-c] [-s] [-l LOCAL_PREFIX] 
 			[-ws WHITELIST_SITE -ws WHITELIST_SITE ...] [-bs BLACKLIST_SITE -bs BLACKLIST_SITES ...] 
 			[-rs REGEX_SITES] [-ir] [-p 8]
 
@@ -128,7 +128,7 @@ Options:
                                after the specified whitelist, blacklist and
                                regexes are applied for sites.
   -p, --parallelize INTEGER
-  --help                       Show this message and exit.
+  -h, --help                   Show this message and exit.
 ```
 
 The **DBS** and **Rucio** services are used to get information about the requested CMS datasets.
