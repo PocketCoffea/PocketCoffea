@@ -44,7 +44,7 @@ cfg = Configurator(
     datasets = {
         "jsons": ['datasets/datasets_cern.json'],
         "filter" : {
-            "samples": ['TTTo2L2Nu', "DATA_SingleEle"],
+            "samples": ['TTTo2L2Nu', "DATA_SingleMuon"],
             "samples_exclude" : [],
             "year": ['2018']
         },
@@ -61,7 +61,7 @@ cfg = Configurator(
     "dump_columns_as_arrays_per_chunk": "./columns"},
     
     skim = [get_nPVgood(1), eventFlags, goldenJson,
-            get_HLTsel(primaryDatasets=["SingleEle"])], 
+            get_HLTsel(primaryDatasets=["SingleMuon"])], 
 
     preselections = [passthrough],
     categories = {
