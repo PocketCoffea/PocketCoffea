@@ -57,20 +57,27 @@ class datasetconfig(luigi.Config):
         description="Prefix of the local path where the datasets are stored",
         default="",
     )
-    allowlist_sites = luigi.TupleParameter(
+    allowlist_sites = law.CSVParameter(
         description="List of sites to be whitelisted", default=()
     )
-    blocklist_sites = luigi.TupleParameter(
+    blocklist_sites = law.CSVParameter(
         description="List of sites to be blacklisted", default=()
     )
     regex_sites = luigi.Parameter(
         description="Regex string to be used to filter the sites", default=""
+    )
+    include_redirector = luigi.BoolParameter(
+        description="Include redirector in the site list", default=False
     )
     parallelize = luigi.IntParameter(
         description=(
             "Number of parallel processes to be used to fetch the datasets, default: 4"
         ),
         default=4,
+    )
+    sort_replicas = luigi.Parameter(
+        description="Sort replicas (default: 'geoip')",
+        default="geoip",
     )
 
 
