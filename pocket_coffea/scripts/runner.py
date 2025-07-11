@@ -270,6 +270,8 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
             # Adding the remaining datasets that were not grouped
             for dataset, files in filesets_to_group.items():
                 filesets_groups[dataset] = {dataset:files}
+
+            print("All datasets to process:", filesets_groups.keys())
         else:
             filesets_groups = {dataset:{dataset:files} for dataset, files in filesets_to_run.items()}
 
