@@ -277,6 +277,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
 
         # Running separately on each dataset
         for group_name, fileset_ in filesets_groups.items():
+            dataset_start_time = time.time()
             datasets = list(fileset_.keys())
             if len(datasets) == 1:
                 dataset = datasets[0]
@@ -305,7 +306,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
                          processor_instance=config.processor_instance)
             print(f"Saving output to {outfile.format(group_name)}")
             save(output, outfile.format(group_name))
-            print_processing_stats(output, start_time, run_options["scaleout"])
+            print_processing_stats(output, dataset_start_time, run_options["scaleout"])
 
 
     # If the processor has skimmed NanoAOD, we export a dataset_definition file

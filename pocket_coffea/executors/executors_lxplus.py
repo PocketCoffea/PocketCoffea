@@ -131,6 +131,37 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
     def get(self):
         pass
 
+    def get_worker_env(self):
+        env_worker = [
+            'export XRD_RUNFORKHANDLER=1',
+            'export MALLOC_TRIM_THRESHOLD_=0',
+            ]
+        if not self.run_options['ignore-grid-certificate']:
+            env_worker.append(f'export X509_USER_PROXY={self.x509_path.split("/")[-1]}')
+        
+        # Adding list of custom setup commands from user defined run options
+        if self.run_options.get("custom-setup-commands", None):
+            env_worker += self.run_options["custom-setup-commands"]
+
+        # Now checking for conda environment  conda-env:true
+        if self.run_options.get("conda-env", False):
+            env_worker.append(f'export PATH={os.environ["CONDA_PREFIX"]}/bin:$PATH')
+            if "CONDA_ROOT_PREFIX" in os.environ:
+                env_worker.append(f"{os.environ['CONDA_ROOT_PREFIX']} activate {os.environ['CONDA_DEFAULT_ENV']}")
+            elif "MAMBA_ROOT_PREFIX" in os.environ:
+                env_worker.append(f"{os.environ['MAMBA_ROOT_PREFIX']} activate {os.environ['CONDA_DEFAULT_ENV']}")
+            else:
+                raise Exception("CONDA prefix not found in env! Something is wrong with your conda installation if you want to use conda in the dask cluster.")
+
+        # if local-virtual-env: true the dask job is configured to pickup
+        # the local virtual environment. 
+        if self.run_options.get("local-virtualenv", False):
+            env_worker.append(f"source {sys.prefix}/bin/activate")
+            pythonpath = sys.prefix.rsplit('/', 1)[0]
+            env_worker.append(f"export PYTHONPATH={pythonpath}:$PYTHONPATH")
+
+        return env_worker
+
     def prepare_jobs(self, splits):
         config_files = [ ]
         jobs_config = {
@@ -167,11 +198,13 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
         abs_output_path = os.path.abspath(self.outputdir)
         abs_jobdir_path = os.path.abspath(self.jobs_dir)
         os.makedirs(f"{self.jobs_dir}/logs", exist_ok=True)
+        
+        env_extras_list=self.get_worker_env()
+        env_extras= "\n".join(env_extras_list)
 
         script = f"""#!/bin/bash
-export X509_USER_PROXY={self.x509_path.split("/")[-1]}
-export XRD_RUNFORKHANDLER=1
-export MALLOC_TRIM_THRESHOLD_=0
+{env_extras}
+
 JOBDIR={abs_jobdir_path}
 
 rm -f $JOBDIR/job_$1.idle

@@ -30,7 +30,8 @@ import concurrent.futures
 @click.option('--partial-unc-band', is_flag=True, help='Plot only the partial uncertainty band corresponding to the systematics specified as the argument `only_syst`', required=False)
 @click.option('-ns','--no-syst', is_flag=True, help='Do not include systematics', required=False, default=False)
 @click.option('--overwrite', '--over', is_flag=True, help='Overwrite plots in output folder', required=False)
-@click.option('--log', is_flag=True, help='Set y-axis scale to log', required=False, default=False)
+@click.option('--log-x', is_flag=True, help='Set x-axis scale to log', required=False, default=False)
+@click.option('--log-y', is_flag=True, help='Set y-axis scale to log', required=False, default=False)
 @click.option('--density', is_flag=True, help='Set density parameter to have a normalized plot', required=False, default=False)
 @click.option('-v', '--verbose', type=int, default=1, help='Verbose level for debugging. Higher the number more stuff is printed.', required=False)
 @click.option('--format', type=str, default='png', help='File format of the output plots', required=False)
@@ -43,7 +44,7 @@ import concurrent.futures
 
 def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfiles,
                workers, only_cat, only_year, only_syst, exclude_hist, only_hist, split_systematics, partial_unc_band, no_syst,
-               overwrite, log, density, verbose, format, systematics_shifts, no_ratio, no_systematics_ratio, compare, index_file, no_cache):
+               overwrite, log_x, log_y, density, verbose, format, systematics_shifts, no_ratio, no_systematics_ratio, compare, index_file, no_cache):
     '''Plot histograms produced by PocketCoffea processors'''
 
     # Using the `input_dir` argument, read the default config and coffea files (if not set with argparse):
@@ -118,7 +119,8 @@ def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfiles,
         only_cat=only_cat,
         only_year=only_year,
         workers=workers,
-        log=log,
+        log_x=log_x,
+        log_y=log_y,
         density=density,
         verbose=verbose,
         save=True,

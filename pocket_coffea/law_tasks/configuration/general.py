@@ -52,20 +52,27 @@ class datasetconfig(luigi.Config):
         description="Prefix of the local path where the datasets are stored",
         default="",
     )
-    allowlist_sites = luigi.TupleParameter(
+    allowlist_sites = law.CSVParameter(
         description="List of sites to be whitelisted", default=()
     )
-    blocklist_sites = luigi.TupleParameter(
+    blocklist_sites = law.CSVParameter(
         description="List of sites to be blacklisted", default=()
     )
     regex_sites = luigi.Parameter(
         description="Regex string to be used to filter the sites", default=""
+    )
+    include_redirector = luigi.BoolParameter(
+        description="Include redirector in the site list", default=False
     )
     parallelize = luigi.IntParameter(
         description=(
             "Number of parallel processes to be used to fetch the datasets, default: 4"
         ),
         default=4,
+    )
+    sort_replicas = luigi.Parameter(
+        description="Sort replicas (default: 'geoip')",
+        default="geoip",
     )
 
 
@@ -90,40 +97,6 @@ class runnerconfig(luigi.Config):
     scaleout = luigi.IntParameter(description="Overwrite scaleout config", default=10)
     process_separately = luigi.BoolParameter(
         description="Process each dataset separately", default=False
-    )
-
-
-class plottingconfig(luigi.Config):
-    plot_dir = luigi.Parameter(
-        default=law.NO_STR, description="Output folder for plots"
-    )
-    plot_verbose = luigi.IntParameter(
-        default=0, description="verbosity level for PlotManager (default: 0)"
-    )
-    plot_style = luigi.Parameter(
-        default=law.NO_STR, description="yaml file with plotting style"
-    )
-    blind = luigi.BoolParameter(
-        default=True, description="If True, only MC is plotted. default=True"
-    )
-    plot_workers = luigi.IntParameter(
-        default=4, description="number of workers to plot in parallel"
-    )
-    plot_syst = luigi.BoolParameter(
-        default=False, description="Wether to plot systematic uncertainty bands"
-    )
-    log_scale = luigi.BoolParameter(
-        default=False, description="Set y-axis to log scale"
-    )
-    plot_format = luigi.Parameter(
-        description="Output format of the plots", default="pdf"
-    )
-    variables = law.CSVParameter(description="List of variables to plot", default=())
-
-
-class plottingsystematicsconfig(luigi.Config):
-    ratio = luigi.BoolParameter(
-        default=True, description="Plot the ratio of the systematic shifts"
     )
 
 
