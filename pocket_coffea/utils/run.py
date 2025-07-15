@@ -118,7 +118,7 @@ class DaskRunner(BaseRunner):
                 queue=self.run_options['queue'],
                 cores=self.run_options['workers'],
                 processes=self.run_options['workers'],
-                memory=self.run_options['mem_per_worker'],
+                memory=self.run_options['mem-per-worker'],
                 walltime=self.run_options["walltime"],
                 env_extra=self.env_extra,
                 local_directory=os.path.join(self.output_dir, self.log_folder),

@@ -347,11 +347,19 @@ def ProbBsorted(jets,temp=None):
     return jets[ak.argsort(jets["btagB"], axis=1, ascending=False)]
 
 
-def get_dijet(jets, taggerVars=True):
+def get_dijet(jets, taggerVars=True, remnant_jet = False):
     if isinstance(taggerVars,str):
         raise NotImplementedError(f"Using the tagger name while calling `get_dijet` is deprecated. Please use `jet_tagger={taggerVars}` as an argument to `jet_selection`.")
     
     fields = {
+        "pt": 0.,
+        "eta": 0.,
+        "phi": 0.,
+        "mass": 0.,
+    }
+    
+    if remnant_jet:
+        fields_remnant = {
         "pt": 0.,
         "eta": 0.,
         "phi": 0.,
@@ -362,6 +370,8 @@ def get_dijet(jets, taggerVars=True):
     njet = ak.num(jets[~ak.is_none(jets, axis=1)])
     
     dijet = jets[:, 0] + jets[:, 1]
+    if remnant_jet:
+        remnant = jets[:, 2:]
 
     for var in fields.keys():
         fields[var] = ak.where(
@@ -369,6 +379,14 @@ def get_dijet(jets, taggerVars=True):
             getattr(dijet, var),
             fields[var]
         )
+        
+    if remnant_jet:
+        for var in fields_remnant.keys():
+            fields_remnant[var] = ak.where(
+                (njet > 2),
+                ak.sum(getattr(remnant, var), axis=1),
+                fields_remnant[var]
+            )
 
     fields["deltaR"] = ak.where( (njet >= 2), jets[:,0].delta_r(jets[:,1]), -1)
     fields["deltaPhi"] = ak.where( (njet >= 2), abs(jets[:,0].delta_phi(jets[:,1])), -1)
@@ -377,6 +395,11 @@ def get_dijet(jets, taggerVars=True):
     fields["j2Phi"] = ak.where( (njet >= 2), jets[:,1].phi, -1)
     fields["j1pt"] = ak.where( (njet >= 2), jets[:,0].pt, -1)
     fields["j2pt"] = ak.where( (njet >= 2), jets[:,1].pt, -1)
+    fields["j1eta"] = ak.where( (njet >= 2), jets[:,0].eta, -1)
+    fields["j2eta"] = ak.where( (njet >= 2), jets[:,1].eta, -1)
+    fields["j1mass"] = ak.where( (njet >= 2), jets[:,0].mass, -1)
+    fields["j2mass"] = ak.where( (njet >= 2), jets[:,1].mass, -1)
+
 
     if "jetId" in jets.fields and taggerVars:
         '''This dijet fuction should work for GenJets as well. But the btags are not available for them
@@ -387,5 +410,10 @@ def get_dijet(jets, taggerVars=True):
         fields["j2CvsB"] = ak.where( (njet >= 2), jets[:,1]["btagCvB"], -1)
     
     dijet = ak.zip(fields, with_name="PtEtaPhiMCandidate")
+    if remnant_jet:
+        remnant = ak.zip(fields_remnant, with_name="PtEtaPhiMCandidate")
 
-    return dijet
+    if not remnant_jet:
+        return dijet
+    else:
+        return dijet, remnant

@@ -81,7 +81,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     else:
         executor_name = executor
         site = None
-    print("Running with executor", executor_name, site)
+    print("Running with executor:", executor_name, "at", site)
 
     # Getting the default run_options
     run_options_defaults = parameters_utils.get_default_run_options()
@@ -161,8 +161,12 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         from pocket_coffea.executors import executors_DESY_NAF as executors_lib
     elif site == "RWTH":
         from pocket_coffea.executors import executors_RWTH as executors_lib
+    elif site == "CLAIX":
+        from pocket_coffea.executors import executors_CLAIX as executors_lib
     elif site == "brux":
         from pocket_coffea.executors import executors_brux as executors_lib
+    elif site == "rubin":
+        from pocket_coffea.executors import executors_rubin as executors_lib
     elif site == "oscar":
         from pocket_coffea.executors import executors_oscar as executors_lib
     elif site == "casa":
@@ -268,6 +272,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
 
         # Running separately on each dataset
         for group_name, fileset_ in filesets_groups.items():
+            dataset_start_time = time.time()
             datasets = list(fileset_.keys())
             if len(datasets) == 1:
                 dataset = datasets[0]
@@ -296,7 +301,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
                          processor_instance=config.processor_instance)
             print(f"Saving output to {outfile.format(group_name)}")
             save(output, outfile.format(group_name))
-            print_processing_stats(output, start_time, run_options["scaleout"])
+            print_processing_stats(output, dataset_start_time, run_options["scaleout"])
 
 
     # If the processor has skimmed NanoAOD, we export a dataset_definition file

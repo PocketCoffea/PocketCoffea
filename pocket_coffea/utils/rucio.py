@@ -1,4 +1,3 @@
-
 import os
 from multiprocessing import Lock
 from collections import defaultdict
@@ -7,6 +6,7 @@ import json
 import time
 import requests
 from rucio.client import Client
+from rucio.common.client import detect_client_location
 from pocket_coffea.utils.network import get_proxy_path
 
 
@@ -39,7 +39,6 @@ def get_rucio_client(proxy=None) -> Client:
         print("Wrong Rucio configuration, impossible to create client")
         raise e
 
-
    
 def get_xrootd_sites_map():
     """
@@ -55,9 +54,8 @@ def get_xrootd_sites_map():
     if os.path.exists(".sites_map.json"):
         file_time = os.path.getmtime(".sites_map.json")
         current_time = time.time()
-        #ten_minutes_ago = current_time - 600
-        twenty_minutes_ago = current_time - 1200
-        if file_time > twenty_minutes_ago:
+        sixty_minutes_ago = current_time - 3600
+        if file_time > sixty_minutes_ago:
             cache_valid = True
 
     lock = Lock()
@@ -131,6 +129,7 @@ def get_dataset_files_replicas(
     partial_allowed=False,
     client=None,
     scope="cms",
+    sort: str = "geoip",
 ):
     """
     This function queries the Rucio server to get information about the location
@@ -158,6 +157,8 @@ def get_dataset_files_replicas(
         client: rucio Client, optional
         partial_allowed: bool, default False
         scope:  rucio scope, "cms"
+        sort: str, default 'geoip'
+            sort replicas (for details check rucio documentation)
 
     Returns
     -------
@@ -179,10 +180,19 @@ def get_dataset_files_replicas(
     client = client if client else get_rucio_client()
     outsites = []
     outfiles = []
-    for filedata in client.list_replicas([{"scope": scope, "name": dataset}]):
+    for filedata in client.list_replicas(
+        [{"scope": scope, "name": dataset}],
+        client_location=detect_client_location(),
+        sort=sort,
+    ):
         outfile = []
         outsite = []
         rses = filedata["rses"]
+        # NOTE: rses are not sorted!
+        # pfns are sorted (https://rucio.cern.ch/documentation/html/client_api/replicaclient.html#rucio.client.replicaclient.ReplicaClient.list_replicas)
+        pfns = filedata["pfns"]
+        rses_sorted = [pfn["rse"] for pfn in pfns.values()]
+        rses = {rse: rses[rse] for rse in rses_sorted}
         found = False
         if allowlist_sites:
             for site in allowlist_sites:

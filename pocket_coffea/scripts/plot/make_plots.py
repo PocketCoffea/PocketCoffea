@@ -1,13 +1,17 @@
 import os
 import sys
 import re
+import glob
 
 from omegaconf import OmegaConf
 from coffea.util import load
 
 from pocket_coffea.utils.plot_utils import PlotManager
 from pocket_coffea.parameters import defaults
+from coffea.processor import accumulate 
 import click
+
+import concurrent.futures
 
 @click.command()
 @click.option('-inp', '--input-dir', help='Directory with cofea files and parameters', type=str, default=os.getcwd(), required=False)
@@ -15,7 +19,8 @@ import click
 @click.option('-op', '--overwrite-parameters', type=str, multiple=True,
               default=None, help='YAML file with plotting parameters to overwrite default parameters', required=False)
 @click.option("-o", "--outputdir", type=str, help="Output folder", required=False)
-@click.option("-i", "--inputfile", type=str, help="Input file", required=False)
+# @click.option("-i", "--inputfile", type=str, help="Input file", required=False)
+@click.option("-i", "--inputfile", type=str, multiple=True, help="Input file(s) or patterns", required=True)
 @click.option('-j', '--workers', type=int, default=8, help='Number of parallel workers to use for plotting', required=False)
 @click.option('-oc', '--only-cat', type=str, multiple=True, help='Filter categories with string', required=False)
 @click.option('-oy', '--only-year', type=str, multiple=True, help='Filter datataking years with string', required=False)
@@ -26,7 +31,8 @@ import click
 @click.option('--partial-unc-band', is_flag=True, help='Plot only the partial uncertainty band corresponding to the systematics specified as the argument `only_syst`', required=False)
 @click.option('-ns','--no-syst', is_flag=True, help='Do not include systematics', required=False, default=False)
 @click.option('--overwrite', '--over', is_flag=True, help='Overwrite plots in output folder', required=False)
-@click.option('--log', is_flag=True, help='Set y-axis scale to log', required=False, default=False)
+@click.option('--log-x', is_flag=True, help='Set x-axis scale to log', required=False, default=False)
+@click.option('--log-y', is_flag=True, help='Set y-axis scale to log', required=False, default=False)
 @click.option('--density', is_flag=True, help='Set density parameter to have a normalized plot', required=False, default=False)
 @click.option('-v', '--verbose', type=int, default=1, help='Verbose level for debugging. Higher the number more stuff is printed.', required=False)
 @click.option('--format', type=str, default='png', help='File format of the output plots', required=False)
@@ -39,7 +45,7 @@ import click
 
 def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfile,
                workers, only_cat, only_year, only_syst, exclude_hist, only_hist, split_systematics, partial_unc_band, no_syst,
-               overwrite, log, density, verbose, format, systematics_shifts, no_ratio, no_systematics_ratio, compare, index_file, no_cache):
+               overwrite, log_x, log_y, density, verbose, format, systematics_shifts, no_ratio, no_systematics_ratio, compare, index_file, no_cache):
     '''Plot histograms produced by PocketCoffea processors'''
 
     # Using the `input_dir` argument, read the default config and coffea files (if not set with argparse):
@@ -71,8 +77,23 @@ def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfile,
 
     style_cfg = parameters['plotting_style']
 
-    if os.path.isfile( inputfile ): accumulator = load(inputfile)
-    else: sys.exit(f"Input file '{inputfile}' does not exist")
+    # Expand wildcards and filter out invalid files
+    all_files = []
+    for pattern in inputfile:
+        matched_files = glob.glob(pattern)  # Expand wildcards
+        valid_files = [file for file in matched_files if os.path.isfile(file)]
+        all_files.extend(valid_files)
+    if not all_files: sys.exit("No valid input files found.")
+
+    def load_single_file(file):
+        """Helper function to load a single file."""
+        print(f"Loading: {file}")
+        return load(file)
+    # Use ThreadPoolExecutor to load files concurrently
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        files = list(executor.map(load_single_file, all_files))
+
+    if files: accumulator = accumulate(files)
 
     if not overwrite:
         if os.path.exists(outputdir):
@@ -99,7 +120,8 @@ def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfile,
         only_cat=only_cat,
         only_year=only_year,
         workers=workers,
-        log=log,
+        log_x=log_x,
+        log_y=log_y,
         density=density,
         verbose=verbose,
         save=True,
