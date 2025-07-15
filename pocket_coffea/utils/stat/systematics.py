@@ -1,16 +1,26 @@
 """Systematic Uncertainties and Utilities for Statistical Analysis"""
 
 from dataclasses import dataclass
-
+from pocket_coffea.utils.stat.processes import Process
 
 @dataclass
 class SystematicUncertainty:
-    """Store information about one systematic uncertainty"""
+    """Store information about one systematic uncertainty
+
+    :param name: Name of the systematic uncertainty
+    :param typ: Type of the systematic uncertainty (e.g. 'shape', 'lnN')
+    :param processes: List of processes affected by the systematic uncertainty
+    :param value: Value of the systematic uncertainty for all processes
+    :param datacard_name: Name of the systematic uncertainty in the datacard
+    :param correlated: Whether the systematic uncertainty is correlated between processes
+    """
 
     name: str
     typ: str
     processes: list[str] | tuple[str] | dict[str, float]
+    years: list[str] | tuple[str]
     value: float | tuple[float] = None
+    datacard_name: str = None
 
     def __post_init__(self):
         if self.value is None and not isinstance(self.processes, dict):
@@ -42,6 +52,9 @@ class SystematicUncertainty:
 
         self.processes = {process: self.value for process in self.processes}
 
+        if self.datacard_name is None:
+            self.datacard_name = self.name
+
 
 class Systematics(dict[str, SystematicUncertainty]):
     """Store information of a list of systematic uncertainties"""
@@ -55,12 +68,29 @@ class Systematics(dict[str, SystematicUncertainty]):
         assert all(isinstance(syst, SystematicUncertainty) for syst in systematics), (
             "All elements must be of type SystematicUncertainty"
         )
-        super().__init__({systematic.name: systematic for systematic in systematics})
+        super().__init__({systematic.datacard_name: systematic for systematic in systematics})
+
+    @property
+    def variations_names(self) -> list[str]:
+        """List of Names of Shape Variations."""
+        return [
+            f"{syst}{shift}"
+            for syst in [syst.datacard_name for name, syst in self.get_systematics_by_type("shape").items()]
+            for shift in ("Up", "Down")
+        ]
+
+    def n_systematics(self) -> int:
+        """Number of Systematics"""
+        return len(self.keys())
 
     def list_type(self, syst_type: str) -> list[str]:
         """List of Names of Systematics of a specific type."""
         return [key for key in self if self[key].typ == syst_type]
 
-    def get_systematics_by_type(self, syst_type: str) -> list[SystematicUncertainty]:
-        """List of Systematics of a specific type."""
+    def get_systematics_by_type(self, syst_type: str) -> dict[SystematicUncertainty]:
+        """Dict of Systematics of a specific type."""
         return {name: syst for name, syst in self.items() if syst.typ == syst_type}
+
+    def get_systematics_by_process(self, process: Process) -> list[SystematicUncertainty]:
+        """List of Systematics that affect a specific process."""
+        return {name: syst for name, syst in self.items() if process.name in syst.processes}

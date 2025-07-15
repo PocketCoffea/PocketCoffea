@@ -1,25 +1,25 @@
 """Physical Processes as Dataclasses and Utilities"""
 
-from dataclasses import dataclass, field
-
+from typing import Iterable
+from dataclasses import dataclass
 
 @dataclass
 class Process:
-    """Class to store information of a physical process."""
+    """Class to store information of a physical process"""
 
     name: str
+    samples: Iterable
+    years: Iterable
     is_signal: bool
-    samples: list[str] = None
+    is_data: bool = False
+    has_rateParam: bool = True
     label: str = None
-    id: int = field(init=False, default=None)
 
     def __post_init__(self):
         if not self.label:
             self.label = self.name
-
-        if self.samples is None:
-            self.samples = [self.name]
-
+        if not isinstance(self.samples, list):
+            self.samples = list(self.samples)
 
 class Processes(dict[str, Process]):
     """Class to store information of a list of processes"""
@@ -38,13 +38,14 @@ class Processes(dict[str, Process]):
     @property
     def signal_processes(self) -> list[str]:
         """List of Names of all Signal Processes."""
-        return [name for name, process in self.items() if process.is_signal]
+        return [f"{name}_{year}" for name, process in self.items() for year in process.years if process.is_signal]
 
     @property
     def background_processes(self) -> list[str]:
         """List of Names of all Background Processes."""
-        return [name for name, process in self.items() if not process.is_signal]
+        return [f"{name}_{year}" for name, process in self.items() for year in process.years if not process.is_signal]
 
-    def get_all_samples(self) -> set:
-        """Get all samples from all processes."""
-        return {sample for process in self.values() for sample in process.samples}
+    @property
+    def n_processes(self) -> int:
+        """Number of Processes"""
+        return len(self.signal_processes) + len(self.background_processes)

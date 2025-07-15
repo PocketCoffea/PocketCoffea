@@ -92,6 +92,9 @@ plotting_style:
       datamc:
         ylim_log:
           lo: 0.01
+      systematics:
+        ylim_log:
+          lo: 0.01
 
     print_info:
       category: False
