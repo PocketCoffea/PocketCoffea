@@ -1,4 +1,4 @@
-# Run a PocketCoffea Analysis with law
+# Running with law
 
 ## Introduction
 

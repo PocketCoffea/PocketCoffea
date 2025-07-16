@@ -67,11 +67,14 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         config = cloudpickle.load(open(cfg,"rb"))
         if not config.loaded:
             config.load()
-        config.save_config(outputdir) 
+        config.save_config(outputdir)
+        rprint("[italic]The configuration file is saved at {outputdir} [/]")
     else:
         raise sys.exit("Please provide a .py/.pkl configuration file")
 
-    rprint(config)
+    #if len(config)>100: # len() does not work. Not sure how else once could check how big is the config
+    print(f"The config is too big to print to stdout... Look inside {outputdir} instead.")
+    #rprint(config)
     
     # Now loading the executor or from the set of predefined ones, or from the
     # user defined script
@@ -267,6 +270,8 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
             # Adding the remaining datasets that were not grouped
             for dataset, files in filesets_to_group.items():
                 filesets_groups[dataset] = {dataset:files}
+
+            print("All datasets to process:", filesets_groups.keys())
         else:
             filesets_groups = {dataset:{dataset:files} for dataset, files in filesets_to_run.items()}
 
