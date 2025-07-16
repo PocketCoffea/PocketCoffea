@@ -33,17 +33,29 @@ class Datacard:
         """Initialize the Datacard.
 
         :param histograms: Dict with histograms for each sample
-        :type histograms: dict
+        :type histograms: dict[str, dict[str, hist.Hist]]
+        :param datasets_metadata: Metadata for datasets
+        :type datasets_metadata: dict[str, dict[str, dict]]
+        :param cutflow: Cutflow information for datasets
+        :type cutflow: dict[str, dict[str, float]]
+        :param years: Years of data taking
+        :type years: list[str]
         :param processes: processes
         :type processes: Processes
         :param systematics: systematic uncertainties
         :type systematics: Systematics
-        :param year: year of data taking
-        :type year: str
         :param category: Category in datacard
         :type category: str
+        :param data_processes: Data processes, defaults to None
+        :type data_processes: Processes, optional
+        :param mcstat: Whether to include MC statistics, defaults to True
+        :type mcstat: bool, optional
+        :param bins_edges: Bin edges for rebinning histograms, defaults to None
+        :type bins_edges: list[float], optional
         :param bin_prefix: prefix for the bin name, defaults to None
         :type bin_prefix: str, optional
+        :param bin_suffix: suffix for the bin name, defaults to None
+        :type bin_suffix: str, optional
         """
 
         self.histograms = histograms
@@ -470,6 +482,15 @@ class Datacard:
         return content
 
     def content(self, shapes_filename: str) -> str:
+        """
+        Generate the content of the datacard.
+
+        :param shapes_filename: The filename of the root file containing the shape histograms.
+        :type shapes_filename: str
+
+        :returns: Content of the datacard as a string.
+        :rtype: str
+        """
         content = self.preamble()
         content += self.sectionsep + self.linesep
 
@@ -538,12 +559,18 @@ def combine_datacards(
     ) -> None:
     """Write the bash script to combine datacards from different categories.
 
-    :param datacards: List of datacards to combine
-    :type datacards: list[Datacard]
-    :param output_dir: Directory to save the bash script
-    :type output_dir: str
-    :param output_name: Name of the bash script
-    :type output_name: str
+    :param datacards: Dictionary mapping output filenames to Datacard objects to combine.
+    :type datacards: dict[Datacard]
+    :param directory: Directory to save the bash script and combined datacard.
+    :type directory: str
+    :param path: Path (relative to directory) for the bash script file. Must end with .sh.
+    :type path: str
+    :param card_name: Name of the combined datacard file.
+    :type card_name: str
+    :param workspace_name: Name of the output workspace file.
+    :type workspace_name: str
+    :param channel_masks: Whether to add --channel-masks option to text2workspace.py.
+    :type channel_masks: bool
     """
     assert path.endswith(".sh"), "Output file must be a bash script and have .sh extension"
     os.makedirs(directory, exist_ok=True)

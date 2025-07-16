@@ -1,16 +1,30 @@
 """Physical Processes as Dataclasses and Utilities"""
 
+from dataclasses import dataclass, field
 from typing import Iterable
-from dataclasses import dataclass
+
 
 @dataclass
 class Process:
-    """Class to store information of a physical process"""
+    """Class to store information of a physical process
+    
+    :param name: Name of the process
+    :param samples: Iterable of sample names associated with the process
+    :param years: Iterable of years the process is relevant for, defaults to [None]
+    :param is_signal: Whether the process is a signal process, defaults to False
+    :param is_data: Whether the process is data, defaults to False
+    :param has_rateParam: Whether the process has a rate parameter, defaults to True
+    :param label: Label for the process, defaults to `name` if not specified
+
+    Hints for the use with the Datacard class:
+    - The years parameter is needed for MC processes
+    - The years parameter has to be [None] for data processes
+    """
 
     name: str
     samples: Iterable
-    years: Iterable
-    is_signal: bool
+    years: Iterable = field(default_factory=lambda: [None])
+    is_signal: bool = False
     is_data: bool = False
     has_rateParam: bool = True
     label: str = None

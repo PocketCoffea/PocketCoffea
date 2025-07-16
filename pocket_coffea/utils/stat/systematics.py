@@ -5,14 +5,15 @@ from pocket_coffea.utils.stat.processes import Process
 
 @dataclass
 class SystematicUncertainty:
-    """Store information about one systematic uncertainty
+    """
+    Store information about one systematic uncertainty.
 
-    :param name: Name of the systematic uncertainty
-    :param typ: Type of the systematic uncertainty (e.g. 'shape', 'lnN')
-    :param processes: List of processes affected by the systematic uncertainty
-    :param value: Value of the systematic uncertainty for all processes
-    :param datacard_name: Name of the systematic uncertainty in the datacard
-    :param correlated: Whether the systematic uncertainty is correlated between processes
+    :param name: Name of the systematic uncertainty.
+    :param typ: Type of the systematic uncertainty (e.g. 'shape', 'lnN').
+    :param processes: List or tuple of process names affected, or a dict mapping process names to values.
+    :param years: List or tuple of years the uncertainty applies to.
+    :param value: Value (float or tuple of floats) of the uncertainty for all processes, or None if using a dict for processes.
+    :param datacard_name: Name of the systematic uncertainty in the datacard. Defaults to `name` if not specified.
     """
 
     name: str
