@@ -97,6 +97,7 @@ class DataDiscoveryCLI:
         self.last_query_list = None
         self.sites_allowlist = None
         self.sites_blocklist = None
+        self.sites_prioritylist = None
         self.sites_regex = None
         self.last_replicas_results = None
         self.final_output = None
@@ -122,6 +123,7 @@ class DataDiscoveryCLI:
             "clear",
             "allow-sites",
             "block-sites",
+            "priority-sites",
             "regex-sites",
             "sites-filters",
             "quit",
@@ -145,6 +147,7 @@ Some basic commands:
   - [bold cyan]sites-filters[/]: show the active sites filters and ask to clear them
   - [bold cyan]allow-sites[/]: Restrict the grid sites available for replicas query only to the requested list
   - [bold cyan]block-sites[/]: Exclude grid sites from the available sites for replicas query
+  - [bold cyan]priority-sites[/]: Set priority for sites by which to order the replicas
   - [bold cyan]regex-sites[/]: Select sites with a regex for replica queries: e.g.  "T[123]_(FR|IT|BE|CH|DE)_\w+"
   - [bold cyan]save[/]: Save the selected datasets as a dataset definition file and also the replicas query results to file (json or yaml) for further processing
   - [bold cyan]clear[/]: Clear the selected datasets and replicas
@@ -178,6 +181,8 @@ Some basic commands:
                 self.do_allowlist_sites()
             elif command == "block-sites":
                 self.do_blocklist_sites()
+            elif command == "priority-sites":
+                self.do_prioritylist_sites()
             elif command == "regex-sites":
                 self.do_regex_sites()
             elif command == "sites-filters":
@@ -404,6 +409,7 @@ Some basic commands:
                         dataset,
                         allowlist_sites=self.sites_allowlist,
                         blocklist_sites=self.sites_blocklist,
+                        prioritylist_sites=self.sites_prioritylist,
                         regex_sites=self.sites_regex,
                         mode="full",
                         client=self.rucio_client,
@@ -551,6 +557,20 @@ Some basic commands:
         for s in self.sites_blocklist:
             print(f"- {s}")
 
+    def do_prioritylist_sites(self, sites=None):
+        if sites is None:
+            sites = Prompt.ask(
+                "[yellow]List to order the available sites by (space-separated list, overwrites previous priority)"
+            ).split(" ")
+        if self.sites_prioritylist is not None:
+            print("[yellow]Overwriting priority order")
+        self.sites_prioritylist = sites
+        print("[green]Order of priority for available sites")
+        if len(self.sites_prioritylist) > 0:
+            for s in self.sites_prioritylist:
+                print(f"- {s}")
+        print("[yellow]Remember to set sorting to `priority`")
+
     def do_regex_sites(self, regex=None):
         if regex is None:
             regex = Prompt.ask("[yellow]Regex to restrict the available sites")
@@ -569,14 +589,23 @@ Some basic commands:
             for s in self.sites_blocklist:
                 print(f"- {s}")
 
+        print("[bold green]Priority-listed sites:")
+        if self.sites_prioritylist:
+            for s in self.sites_prioritylist:
+                print(f"- {s}")
+
         print(f"[bold cyan]Sites regex: [italics]{self.sites_regex}")
+
+        print(f"[bold green]Sorting set to: {self.sort_replicas}")
 
         if ask_clear:
             if Confirm.ask("Clear sites restrinction?", default=False):
                 self.sites_allowlist = None
                 self.sites_blocklist = None
                 self.sites_regex = None
+                self.sites_prioritylist = None
                 print("[bold green]Sites filters cleared")
+
 
     def do_list_replicas(self):
         selection = Prompt.ask(
@@ -613,6 +642,7 @@ Some basic commands:
         print(
             f"[bold cyan]Current sorting mode for replicas: [green]{self.sort_replicas}"
         )
+        print("[bold cyan]Available sorting options: [yellow] geoip, priority")
         if sort is None:
             sort = Prompt.ask(
                 "[yellow]How to sort replicas? (leave empty to make no changes)"
@@ -767,10 +797,11 @@ Some basic commands:
 @click.option("--fileset-output", help="Output name for fileset", type=str, required=False, default="output_fileset")
 @click.option("--allow-sites", help="List of sites to be allowlisted", nargs="+", type=str)
 @click.option("--block-sites", help="List of sites to be blocklisted", nargs="+", type=str)
+@click.option("--priority-sites", help="List of priority order for sites", nargs="+", type=str)
 @click.option("--regex-sites", help="Regex string to be used to filter the sites", type=str)
 @click.option("--query-results-strategy", help="Mode for query results selection: [all|manual]", type=str, default="all")
 @click.option("--replicas-strategy", help="Mode for selecting replicas for datasets: [manual|round-robin|first|choose]", default="round-robin", required=False)
-def dataset_discovery_cli(dataset_definition, output, fileset_output, allow_sites, block_sites, regex_sites, query_results_strategy, replicas_strategy):
+def dataset_discovery_cli(dataset_definition, output, fileset_output, allow_sites, block_sites, priority_sites, regex_sites, query_results_strategy, replicas_strategy):
     '''CLI for interactive dataset discovery'''
     cli = DataDiscoveryCLI()
 
@@ -778,6 +809,8 @@ def dataset_discovery_cli(dataset_definition, output, fileset_output, allow_site
         cli.sites_allowlist = allow_sites
     if block_sites:
         cli.sites_blocklist = block_sites
+    if priority_sites:
+        cli.sites_prioritylist = priority_sites
     if regex_sites:
         cli.sites_regex = regex_sites
 
