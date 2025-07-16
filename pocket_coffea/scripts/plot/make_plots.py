@@ -14,7 +14,7 @@ import click
 import concurrent.futures
 
 @click.command()
-@click.option('-inp', '--input-dir', help='Directory with cofea files and parameters', type=str, default=os.getcwd(), required=False)
+@click.option('-inp', '--input-dir', help='Directory with coffea files and parameters', type=str, default=os.getcwd(), required=False)
 @click.option('--cfg', help='YAML file with all the analysis parameters', required=False)
 @click.option('-op', '--overwrite-parameters', type=str, multiple=True,
               default=None, help='YAML file with plotting parameters to overwrite default parameters', required=False)
