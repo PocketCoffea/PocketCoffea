@@ -1,7 +1,9 @@
 """Systematic Uncertainties and Utilities for Statistical Analysis"""
 
 from dataclasses import dataclass
+
 from pocket_coffea.utils.stat.processes import Process
+
 
 @dataclass
 class SystematicUncertainty:
@@ -66,17 +68,23 @@ class Systematics(dict[str, SystematicUncertainty]):
         :param systematics: List of systematic uncertainties
         :type systematics: list[SystematicUncertainty]
         """
-        assert all(isinstance(syst, SystematicUncertainty) for syst in systematics), (
-            "All elements must be of type SystematicUncertainty"
+        if not all(isinstance(syst, SystematicUncertainty) for syst in systematics):
+            raise TypeError(
+                f"All elements of {systematics} must be of type SystematicUncertainty"
+            )
+        super().__init__(
+            {systematic.datacard_name: systematic for systematic in systematics}
         )
-        super().__init__({systematic.datacard_name: systematic for systematic in systematics})
 
     @property
     def variations_names(self) -> list[str]:
         """List of Names of Shape Variations."""
         return [
             f"{syst}{shift}"
-            for syst in [syst.datacard_name for name, syst in self.get_systematics_by_type("shape").items()]
+            for syst in [
+                syst.datacard_name
+                for name, syst in self.get_systematics_by_type("shape").items()
+            ]
             for shift in ("Up", "Down")
         ]
 
@@ -92,6 +100,10 @@ class Systematics(dict[str, SystematicUncertainty]):
         """Dict of Systematics of a specific type."""
         return {name: syst for name, syst in self.items() if syst.typ == syst_type}
 
-    def get_systematics_by_process(self, process: Process) -> list[SystematicUncertainty]:
+    def get_systematics_by_process(
+        self, process: Process
+    ) -> list[SystematicUncertainty]:
         """List of Systematics that affect a specific process."""
-        return {name: syst for name, syst in self.items() if process.name in syst.processes}
+        return {
+            name: syst for name, syst in self.items() if process.name in syst.processes
+        }

@@ -5,8 +5,8 @@ from operator import add
 from pathlib import Path
 from typing import Iterable
 
-import numpy as np
 import hist
+import numpy as np
 import uproot
 from coffea.util import load
 

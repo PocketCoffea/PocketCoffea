@@ -35,6 +35,7 @@ class Process:
         if not isinstance(self.samples, list):
             self.samples = list(self.samples)
 
+
 class Processes(dict[str, Process]):
     """Class to store information of a list of processes"""
 
@@ -44,20 +45,29 @@ class Processes(dict[str, Process]):
         :param processes: List of processes
         :type processes: list[Process]
         """
-        assert all(isinstance(process, Process) for process in processes), (
-            "All elements must be of type Process"
-        )
+        if not all(isinstance(process, Process) for process in processes):
+            raise TypeError(f"All elements of {processes} must be of type Process")
         super().__init__({process.name: process for process in processes})
 
     @property
     def signal_processes(self) -> list[str]:
         """List of Names of all Signal Processes."""
-        return [f"{name}_{year}" for name, process in self.items() for year in process.years if process.is_signal]
+        return [
+            f"{name}_{year}"
+            for name, process in self.items()
+            for year in process.years
+            if process.is_signal
+        ]
 
     @property
     def background_processes(self) -> list[str]:
         """List of Names of all Background Processes."""
-        return [f"{name}_{year}" for name, process in self.items() for year in process.years if not process.is_signal]
+        return [
+            f"{name}_{year}"
+            for name, process in self.items()
+            for year in process.years
+            if not process.is_signal
+        ]
 
     @property
     def n_processes(self) -> int:
