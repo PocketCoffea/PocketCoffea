@@ -236,7 +236,7 @@ Some basic commands:
             )
         else:
             print("First [bold red]query (Q)[/] for a dataset")
-    
+
     def generate_default_metadata(self, dataset):
         year = self.extract_year_from_dataset_name(dataset)
         isMC = self.is_mc_dataset(dataset)
@@ -558,6 +558,7 @@ Some basic commands:
             print(f"- {s}")
 
     def do_prioritylist_sites(self, sites=None):
+        """Choose prioritised sites by which to order replicas independent of location and availability."""
         if sites is None:
             sites = Prompt.ask(
                 "[yellow]List to order the available sites by (space-separated list, overwrites previous priority)"
@@ -630,6 +631,7 @@ Some basic commands:
 
     def do_set_replicas_sorting(self, sort: str = None):
         """Set the sorting mode for the replicas.
+
         If `sort` is None, it will ask the user for the sorting mode.
         If user input is empty, the sorting mode will not be changed.
 
@@ -723,19 +725,17 @@ Some basic commands:
             self.final_output = None
             print(f"[green]Selected datasets list emptied![/]")
 
-
     # Define a empty-list function
     def do_clear(self):
         if Confirm.ask("[red]Do you want to empty your selected samples list?[/]", default=False):
-          self.selected_datasets = []
-          self.selected_datasets_metadata = []
-          self.replica_results = defaultdict(list)
-          self.replica_results_metadata = {}
-          self.replica_results_bysite = {}
-          self.final_output = None
-          print(f"[green]Selected datasets list emptied![/]")
+            self.selected_datasets = []
+            self.selected_datasets_metadata = []
+            self.replica_results = defaultdict(list)
+            self.replica_results_metadata = {}
+            self.replica_results_bysite = {}
+            self.final_output = None
+            print(f"[green]Selected datasets list emptied![/]")
 
-        
     def load_dataset_definition(
         self,
         dataset_definition,
@@ -786,11 +786,9 @@ Some basic commands:
         self.do_list_selected()
         return out_replicas
 
-
-    
-
 # This is the main function that will be called by the CLI
-      
+
+
 @click.command()
 @click.option("--dataset-definition", help="Dataset definition file", type=str, required=False)
 @click.option("--output", help="Output name for dataset discovery output (no fileset preprocessing)", type=str, required=False, default="output_dataset.json")
@@ -802,7 +800,7 @@ Some basic commands:
 @click.option("--query-results-strategy", help="Mode for query results selection: [all|manual]", type=str, default="all")
 @click.option("--replicas-strategy", help="Mode for selecting replicas for datasets: [manual|round-robin|first|choose]", default="round-robin", required=False)
 def dataset_discovery_cli(dataset_definition, output, fileset_output, allow_sites, block_sites, priority_sites, regex_sites, query_results_strategy, replicas_strategy):
-    '''CLI for interactive dataset discovery'''
+    """CLI for interactive dataset discovery."""
     cli = DataDiscoveryCLI()
 
     if allow_sites:
@@ -828,5 +826,6 @@ def dataset_discovery_cli(dataset_definition, output, fileset_output, allow_site
 
     cli.start_cli()
 
+
 if __name__ == "__main__":
-    dataset_query_cli()
+    dataset_discovery_cli()

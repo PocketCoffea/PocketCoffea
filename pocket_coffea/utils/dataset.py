@@ -25,6 +25,7 @@ def do_dataset(
     allowlist_sites,
     include_redirector,
     blocklist_sites,
+    prioritylist_sites,
     regex_sites,
     sort_replicas: str = "geoip",
     **kwargs,
@@ -46,6 +47,7 @@ def do_dataset(
                 "allowlist_sites": allowlist_sites,
                 "include_redirector": include_redirector,
                 "blocklist_sites": blocklist_sites,
+                "prioritylist_sites": prioritylist_sites,
                 "regex_sites": regex_sites,
             },
             sort_replicas=sort_replicas,
@@ -54,7 +56,6 @@ def do_dataset(
         raise Exception(f"Error getting info about dataset: {key}")
 
     return dataset
-
 
 
 def build_datasets(
@@ -68,6 +69,7 @@ def build_datasets(
     allowlist_sites=None,
     include_redirector=False,
     blocklist_sites=None,
+    prioritylist_sites=None,
     regex_sites=None,
     sort_replicas="geoip",
     parallelize=4,
@@ -87,6 +89,7 @@ def build_datasets(
         "allowlist_sites": allowlist_sites,
         "include_redirector": include_redirector,
         "blocklist_sites": blocklist_sites,
+        "prioritylist_sites": prioritylist_sites,
         "regex_sites": regex_sites,
         "parallelize": parallelize,
         "sort_replicas": sort_replicas,
@@ -118,8 +121,8 @@ class Sample:
         sort_replicas: str = "geoip",
         **kwargs,
     ):
-        '''
-        Class representing a single analysis sample.
+        """Represent a single analysis sample.
+
         - The name is the unique key of the sample in the dataset file.
         - The DAS name is the unique identifier of the sample in CMS
         - The sample represent the type of events: DATA/Wjets/ttHbb/ttBB. It is used to group the same type of events
@@ -127,8 +130,8 @@ class Sample:
          -- year
          -- isMC: true/false
          -- era: A/B/C/D (only for data)
-        - sites_cfg is a dictionary contaning allowlist, blocklist and regex to filter the SITES
-        '''
+        - sites_cfg is a dictionary contaning allowlist, blocklist, prioritylist and regex to filter the SITES
+        """
         self.name = name
         self.das_names = das_names
         self.metadata = {}
@@ -273,6 +276,7 @@ class Dataset:
             else {
                 "allowlist_sites": None,
                 "blocklist_sites": None,
+                "prioritylist_sites": None,
                 "regex_sites": None,
             }
         )

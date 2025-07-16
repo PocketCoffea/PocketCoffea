@@ -9,7 +9,6 @@ from rucio.client import Client
 from rucio.common.client import detect_client_location
 from pocket_coffea.utils.network import get_proxy_path
 
-
 # Rucio needs the default configuration --> taken from CMS cvmfs defaults
 if "RUCIO_HOME" not in os.environ:
     os.environ["RUCIO_HOME"] = "/cvmfs/cms.cern.ch/rucio/current"
@@ -116,8 +115,9 @@ def _get_pfn_for_site(path, rules):
     else:
         # not adding any slash as the path usually starts with it
         if path.startswith("/"):
-             path = path[1:]
+            path = path[1:]
         return rules + "/" + path
+
 
 def get_dataset_files_replicas(
     dataset,
@@ -132,9 +132,7 @@ def get_dataset_files_replicas(
     scope="cms",
     sort: str = "geoip",
 ):
-    """
-    This function queries the Rucio server to get information about the location
-    of all the replicas of the files in a CMS dataset.
+    """Query the Rucio server to get information about the location of all the replicas of the files in a CMS dataset.
 
     The sites can be filtered in 3 different ways:
     - `allowlist_sites`: list of sites to select from. If the file is not found there, raise an Exception.
@@ -150,7 +148,6 @@ def get_dataset_files_replicas(
 
     Parameters
     ----------
-
         dataset: str
         allowlist_sites: list
         blocklist_sites: list
@@ -214,14 +211,14 @@ def get_dataset_files_replicas(
                     )
                     outsite.append(site)
                     found = True
-                    
+
         else:
             possible_sites = list(rses.keys())
             if blocklist_sites:
                 possible_sites = list(
                     filter(lambda key: (
-                        (key not in blocklist_sites) and (key.replace("_Disk","") not in blocklist_sites)
-                        ),  possible_sites)
+                        (key not in blocklist_sites) and (key.replace("_Disk", "") not in blocklist_sites)
+                        ), possible_sites)
                 )
 
             if len(possible_sites) == 0 and not partial_allowed and not include_redirector:
@@ -263,7 +260,6 @@ def get_dataset_files_replicas(
                     )
                     outsite.append(site)
                     found = True
-
 
         if not found and include_redirector:
             # The file was not found at any of the allowed sites
@@ -307,7 +303,6 @@ def get_dataset_files_replicas(
             sites_counts[site] += 1
 
     return outfiles, outsites, sites_counts
-
 
 
 def get_dataset_files_from_dbs(
