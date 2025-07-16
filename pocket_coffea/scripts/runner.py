@@ -72,8 +72,8 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     else:
         raise sys.exit("Please provide a .py/.pkl configuration file")
 
-    #logging.info(config)
-    rprint("The config is now too big to print to stdout...")
+    #if len(config)>100: # len() does not work. Not sure how else once could check how big is the config
+    print(f"The config is too big to print to stdout... Look inside {outputdir} instead.")
     #rprint(config)
     
     # Now loading the executor or from the set of predefined ones, or from the
