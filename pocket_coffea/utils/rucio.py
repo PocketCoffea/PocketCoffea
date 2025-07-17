@@ -9,7 +9,6 @@ from rucio.client import Client
 from rucio.common.client import detect_client_location
 from pocket_coffea.utils.network import get_proxy_path
 
-
 # Rucio needs the default configuration --> taken from CMS cvmfs defaults
 if "RUCIO_HOME" not in os.environ:
     os.environ["RUCIO_HOME"] = "/cvmfs/cms.cern.ch/rucio/current"
@@ -116,14 +115,16 @@ def _get_pfn_for_site(path, rules):
     else:
         # not adding any slash as the path usually starts with it
         if path.startswith("/"):
-             path = path[1:]
+            path = path[1:]
         return rules + "/" + path
+
 
 def get_dataset_files_replicas(
     dataset,
     allowlist_sites=None,
     include_redirector=False,
     blocklist_sites=None,
+    prioritylist_sites=None,
     regex_sites=None,
     mode="full",
     partial_allowed=False,
@@ -131,13 +132,12 @@ def get_dataset_files_replicas(
     scope="cms",
     sort: str = "geoip",
 ):
-    """
-    This function queries the Rucio server to get information about the location
-    of all the replicas of the files in a CMS dataset.
+    """Query the Rucio server to get information about the location of all the replicas of the files in a CMS dataset.
 
     The sites can be filtered in 3 different ways:
     - `allowlist_sites`: list of sites to select from. If the file is not found there, raise an Exception.
     - `blocklist_sites`: list of sites to avoid. If the file has no left site, raise an Exception
+    - `prioritylist_sites`: list of priorised sites. Sorts these sites to front if available and sort is 'priority'
     - `regex_sites`: regex expression to restrict the list of sites.
 
     The fileset returned by the function is controlled by the `mode` parameter:
@@ -148,10 +148,10 @@ def get_dataset_files_replicas(
 
     Parameters
     ----------
-
         dataset: str
         allowlist_sites: list
         blocklist_sites: list
+        prioritylist_sites: list
         regex_sites: list
         mode:  str, default "full"
         client: rucio Client, optional
@@ -183,7 +183,7 @@ def get_dataset_files_replicas(
     for filedata in client.list_replicas(
         [{"scope": scope, "name": dataset}],
         client_location=detect_client_location(),
-        sort=sort,
+        sort=sort if sort in ["geoip", "custom_table", "random"] else None,
     ):
         outfile = []
         outsite = []
@@ -211,14 +211,14 @@ def get_dataset_files_replicas(
                     )
                     outsite.append(site)
                     found = True
-                    
+
         else:
             possible_sites = list(rses.keys())
             if blocklist_sites:
                 possible_sites = list(
                     filter(lambda key: (
-                        (key not in blocklist_sites) and (key.replace("_Disk","") not in blocklist_sites)
-                        ),  possible_sites)
+                        (key not in blocklist_sites) and (key.replace("_Disk", "") not in blocklist_sites)
+                        ), possible_sites)
                 )
 
             if len(possible_sites) == 0 and not partial_allowed and not include_redirector:
@@ -261,7 +261,6 @@ def get_dataset_files_replicas(
                     outsite.append(site)
                     found = True
 
-
         if not found and include_redirector:
             # The file was not found at any of the allowed sites
             # But with this option we add the INFN redirector prefix
@@ -274,10 +273,16 @@ def get_dataset_files_replicas(
                 print("\t WARNING! The file was NOT found at any of the allowed sites. Setting its prefix to INFN! \n ", outfile)
                 found = True
 
-                    
         if not found and not partial_allowed:
             raise Exception(f"No SITE available for file: \n {filedata['name']}")
         else:
+            # Sort by prioritylist if applicable
+            if prioritylist_sites and sort.lower() == "priority":
+                for priority in prioritylist_sites[::-1]:
+                    if priority in outsite:
+                        original_idx = outsite.index(priority)
+                        outsite.insert(0, outsite.pop(original_idx))
+                        outfile.insert(0, outfile.pop(original_idx))
             if mode == "full":
                 outfiles.append(outfile)
                 outsites.append(outsite)
@@ -298,7 +303,6 @@ def get_dataset_files_replicas(
             sites_counts[site] += 1
 
     return outfiles, outsites, sites_counts
-
 
 
 def get_dataset_files_from_dbs(
