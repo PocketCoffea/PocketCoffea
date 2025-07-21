@@ -11,7 +11,7 @@ PocketCoffea defines a customizable structure to process NanoAOD events and defi
 is done thanks to a `BaseProcessor` class which defines a `workflow` of operations to go from NanoAOD to histograms.
 The user can customize the process from the configuration file or by redefining well-defined steps in the workflow.
 
-The framework handles cleanly the analysis's parameters and metadata, separing in a transparent way the definition of an
+The framework handles cleanly the analysis's parameters and metadata, separating in a transparent way the definition of an
 analysis phase space and metadata from CMS groups, and an analysis's run configuration. 
 
 :::{tip}
@@ -26,15 +26,15 @@ analysis phase space and metadata from CMS groups, and an analysis's run configu
 :titlesonly:
 changelog.md
 installation.md
-running.md
-law_tasks.md
-analysis_example.md
-recipes.md
-plots.md
 concepts.md
+running.md
+analysis_example.md
 configuration.md
+plots.md
 parameters.md
 datasets.md
+recipes.md
+law_tasks.md
 performance.md
 api.md
 ```

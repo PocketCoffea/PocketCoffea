@@ -34,18 +34,45 @@ WIP
 
 
 ## Define a custom weight
-
+WIP
 
 ### Define a custom weights with custom variations
+WIP
 
 ## Apply corrections
+Here we describe how to apply certain corrections recommended by CMS POGs.
+
 ### MET-xy
-From a purely physical point of view, the distribution of the $\phi$-component of the missing transverse momentum (a.k.a. MET) should be uniform due to rotational symmetry. However, for a variety of detector-related reasons, the distribution is not uniform in practice, but shows a sinus-like behaviour. To correct this behaviour, the x- and y-component of the MET can be altered in accordance to the recommendation of JME. In the PocketCoffea workflow, these corrections can be applied using the `met_xy_correction()` function:
+From a purely physical point of view, the distribution of the $\phi$-component of the missing transverse momentum (a.k.a. MET) should be uniform due to rotational symmetry. However, for a variety of detector-related reasons, the distribution is not uniform in practice, but shows a sinus-like behavior. To correct this behavior, the x- and y-component of the MET can be altered in accordance to the recommendation of JME. In the PocketCoffea workflow, these corrections can be applied using the `met_xy_correction()` function:
+
 ```
 from pocket_coffea.lib.jets import met_xy_correction
 met_pt_corr, met_phi_corr = met_xy_correction(self.params, self.events, self._year, self._era)
-```
+```  
 Note, that this shift also alters the $p_\mathrm{T}$ component! Also, the corrections are only implemented for Run2 UL (thus far).
+
+### Jet energy regression
+Starting from Run3 datasetes the ParticleNet jet energy regression corrections are part of the `Jet` object in NanoAOD. But they are not applied by default. In PocketCoffea the regression can be turned On/Off via configuration in the `Jet` object of `object_preselection.yaml` as follows:
+
+```yaml
+object_preselection:
+  ...
+  Jet:
+	pt: 20
+    ...
+    regression:
+      do: True
+      cut_btagB: 0.12
+      cut_btagCvL: 0.12
+```
+
+The corrections are applied in `jet_correction()` method in `lib/jets.py`. The implementation is based on [this presentation](https://indico.cern.ch/event/1476286/contributions/6220149/subcontributions/514978/attachments/2965734/5217706/PNetRegDiscussion_MKolosova_12Nov2024.pdf) from HH4b folks.
+
+In principle this regression was designed to be applied to all jets (heavy flavor and light flavor), but according to the JME, there are some issues with its application to light flavor jets. This is why the cuts on b/c-tagging scores are introduced above. The regression is applied to the jets that pass an **OR** of these cuts: `(j.btagPNetB>cut_btagB) | (j.btagPNetCvL>cut_btagCvL)`  
+
+Further references:  
+* The analysis note: [AN-2022/094](https://cms.cern.ch/iCMS/jsp/db_notes/noteInfo.jsp?cmsnoteid=CMS%20AN-2022/094)
+* Measuring response in Z+b events: [presenation](https://indico.cern.ch/event/1451196/contributions/6181213/attachments/2949253/5183620/cooperstein_HH4b_oct162024.pdf)
 
 ## Create a custom executor to use `onnxruntime`
 
@@ -54,6 +81,7 @@ This example shows running on CERN lxplus and assumes a prior understanding of h
 At the time of writing, `onnxruntime` is not installed in the singularity container, which means that you will need to run with a custom environment. Instructions for this are given in [Running the analysis](./running.md)
 
 The following code is a custom executor which is meant to be filled in with details such as the path to the `model.onnx` file and options used in the `InferenceSession`.
+
 ```python
 from pocket_coffea.executors.executors_lxplus import DaskExecutorFactory
 from dask.distributed import WorkerPlugin, Worker, Client
