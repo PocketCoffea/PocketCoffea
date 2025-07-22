@@ -46,7 +46,7 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 )
 @click.option("-l", "--local-prefix", type=str, default=None)
 @click.option(
-    "-ws",
+    "-as",
     "--allowlist-sites",
     multiple=True,
     help="List of sites in whitelist"

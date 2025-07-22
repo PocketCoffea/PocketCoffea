@@ -122,7 +122,7 @@ Options:
   -c, --check                     Check existence of the datasets
   -s, --split-by-year             Split datasets by year
   -l, --local-prefix TEXT
-  -ws, --allowlist-sites TEXT     List of sites in whitelist
+  -as, --allowlist-sites TEXT     List of sites in whitelist
   -bs, --blocklist-sites TEXT     List of sites in blacklist
   -ps, --prioritylist-sites TEXT  List of priorities to sort sites (requires
                                   sort: priority)
