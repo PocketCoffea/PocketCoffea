@@ -51,7 +51,7 @@ class DatacardProducer(BaseTask):
 
         datacard = Datacard(
             histograms=histograms,
-            processes=stat_config.processes,
+            mc_processes=stat_config.processes,
             systematics=stat_config.systematics,
             subsamples_reversed_map=configurator.subsamples_reversed_map,
             year=self.year,

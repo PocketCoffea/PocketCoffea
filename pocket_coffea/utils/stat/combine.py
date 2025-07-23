@@ -7,7 +7,7 @@ import hist
 import numpy as np
 import uproot
 
-from pocket_coffea.utils.stat.processes import Processes
+from pocket_coffea.utils.stat.processes import DataProcesses, MCProcesses
 from pocket_coffea.utils.stat.systematics import Systematics
 from pocket_coffea.utils.stat.utils import rebin_hist
 
@@ -21,10 +21,10 @@ class Datacard:
         datasets_metadata: dict[str, dict[str, dict]],
         cutflow: dict[str, dict[str, float]],
         years: list[str],
-        processes: Processes,
+        mc_processes: MCProcesses,
         systematics: Systematics,
         category: str,
-        data_processes: Processes = None,
+        data_processes: DataProcesses = None,
         mcstat: bool = True,
         bins_edges: list[float] = None,
         bin_prefix: str = None,
@@ -40,14 +40,14 @@ class Datacard:
         :type cutflow: dict[str, dict[str, float]]
         :param years: Years of data taking
         :type years: list[str]
-        :param processes: processes
-        :type processes: Processes
+        :param mc_processes: mc_processes
+        :type mc_processes: MCProcesses
         :param systematics: systematic uncertainties
         :type systematics: Systematics
         :param category: Category in datacard
         :type category: str
         :param data_processes: Data processes, defaults to None
-        :type data_processes: Processes, optional
+        :type data_processes: DataProcesses, optional
         :param mcstat: Whether to include MC statistics, defaults to True
         :type mcstat: bool, optional
         :param bins_edges: Bin edges for rebinning histograms, defaults to None
@@ -61,7 +61,7 @@ class Datacard:
         self.histograms = histograms
         self.datasets_metadata = datasets_metadata
         self.cutflow = cutflow
-        self.processes = processes
+        self.mc_processes = mc_processes
         self.data_processes = data_processes
         self.systematics = systematics
         self.mcstat = mcstat
@@ -90,7 +90,7 @@ class Datacard:
         self.process_id = {}
         id_signal = 0  # signal processes have 0 or negative IDs
         id_background = 1  # background processes have positive IDs
-        for process in self.processes.values():
+        for process in self.mc_processes.values():
             for year in process.years:
                 if process.is_signal:
                     self.process_id[f"{process.name}_{year}"] = id_signal
@@ -150,8 +150,8 @@ class Datacard:
     def jmax(self):
         """Number of background processes + number of signal processes - 1"""
         return (
-            len(self.processes.background_processes)
-            + len(self.processes.signal_processes)
+            len(self.mc_processes.background_processes)
+            + len(self.mc_processes.signal_processes)
             - 1
         )
 
@@ -181,7 +181,7 @@ class Datacard:
     def adjust_columns(self):
         return (
             max(
-                *[len(process) for process in self.processes],
+                *[len(process) for process in self.mc_processes],
                 len(self.bin),
             )
             + 4
@@ -192,7 +192,18 @@ class Datacard:
         return self.cutflow["presel"][dataset] == 0
 
     def get_datasets_by_sample(self, sample: str, year: str = None) -> list[str]:
-        """Get datasets for a given sample."""
+        """
+        Retrieve the list of dataset names for a given sample and optionally a specific year.
+
+        :param sample: The sample name for which to retrieve datasets.
+        :type sample: str
+        :param year: The year (data-taking period) to filter datasets.
+            If None (default), datasets from all years in self.years are returned.
+        :type year: str, optional, default=None
+
+        :return: List of dataset names corresponding to the sample (and year, if specified).
+        :rtype: list[str]
+        """
         if year is None:
             years = [
                 year
@@ -214,7 +225,7 @@ class Datacard:
             for shift in ("Up", "Down"):
                 available_variations.append(f"{systematic}{shift}")
 
-        for process in self.processes.values():
+        for process in self.mc_processes.values():
             for sample in process.samples:
                 if sample not in self.histograms:
                     raise ValueError(f"Missing histogram for sample {sample}")
@@ -247,7 +258,7 @@ class Datacard:
         """Sanity checks for saved shapes.
         If each variation differs by more than 100% from the nominal, an error is raised."""
         # Loop over variations in self.histogram as saved after rearranging
-        for process in self.processes.values():
+        for process in self.mc_processes.values():
             for year in process.years:
                 process_name_byyear = f"{process.name}_{year}"
                 process_index = self.histogram.axes["process"].index(
@@ -292,7 +303,7 @@ class Datacard:
         if is_data:
             processes = self.data_processes
         else:
-            processes = self.processes
+            processes = self.mc_processes
         assert (
             (not is_data) & all(not process.is_data for process in processes.values())
         ) or (is_data & all(process.is_data for process in processes.values())), (
@@ -330,7 +341,9 @@ class Datacard:
 
         for process in processes.values():
             for sample in process.samples:
-                for year in process.years:
+                # data processes do not have attribute years
+                years = process.years if not is_data else [None]
+                for year in years:
                     if is_data:
                         assert year is None, "Data process should not have a year"
                         process_index = new_histogram.axes["process"].index(
@@ -400,10 +413,11 @@ class Datacard:
             processes = self.data_processes
         else:
             histogram = self.histogram
-            processes = self.processes
+            processes = self.mc_processes
         new_histograms = dict()
         for process in processes.values():
-            for year in process.years:
+            years = process.years if not is_data else [None]
+            for year in years:
                 if is_data:
                     process_name_byyear = process.name
                 else:
@@ -473,14 +487,16 @@ class Datacard:
 
     def expectation_section(self) -> str:
         content = "bin".ljust(self.adjust_first_column)
-        content += f"{self.bin}".ljust(self.adjust_columns) * self.processes.n_processes
+        content += (
+            f"{self.bin}".ljust(self.adjust_columns) * self.mc_processes.n_processes
+        )
         content += self.linesep
 
         content += "process".ljust(self.adjust_first_column)
         # process names
         content += "".join(
             f"{process.name}_{year}".ljust(self.adjust_columns)
-            for process in self.processes.values()
+            for process in self.mc_processes.values()
             for year in process.years
             if not process.is_data
         )
@@ -489,7 +505,7 @@ class Datacard:
         content += "process".ljust(self.adjust_first_column)
         content += "".join(
             f"{self.process_id[f'{process.name}_{year}']}".ljust(self.adjust_columns)
-            for process in self.processes.values()
+            for process in self.mc_processes.values()
             for year in process.years
             if not process.is_data
         )
@@ -499,8 +515,8 @@ class Datacard:
         content += "rate".ljust(self.adjust_first_column)
         content += "".join(
             f"{self.rate(process)}"[: self.number_width].ljust(self.adjust_columns)
-            for process in self.processes.signal_processes
-            + self.processes.background_processes
+            for process in self.mc_processes.signal_processes
+            + self.mc_processes.background_processes
         )
         content += self.linesep
         return content
@@ -513,7 +529,7 @@ class Datacard:
             line = line.ljust(self.adjust_first_column)
 
             # processes
-            for process in self.processes.values():
+            for process in self.mc_processes.values():
                 for year in process.years:
                     if (
                         process.name in systematic.processes
@@ -533,7 +549,7 @@ class Datacard:
 
     def rate_parameters_section(self) -> str:
         content = ""
-        for process in self.processes.values():
+        for process in self.mc_processes.values():
             for year in process.years:
                 if not process.is_signal and process.has_rateParam:
                     line = f"SF_{process.name}".ljust(self.adjust_syst_colum)
@@ -622,7 +638,7 @@ class Datacard:
     def __repr__(self) -> str:
         """Return a string representation of the Datacard."""
         process_names = (
-            list(self.processes.keys()) + list(self.data_processes.keys())
+            list(self.mc_processes.keys()) + list(self.data_processes.keys())
             if self.has_data
             else []
         )
