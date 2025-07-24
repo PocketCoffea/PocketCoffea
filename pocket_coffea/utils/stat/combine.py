@@ -9,11 +9,45 @@ import uproot
 
 from pocket_coffea.utils.stat.processes import DataProcesses, MCProcesses
 from pocket_coffea.utils.stat.systematics import Systematics
-from pocket_coffea.utils.histogram import rebin_hist
+
+# https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/latest/part2/bin-wise-stats/
+AUTO_MC_STATS = {
+    "threshold": 0,
+    "include_signal": 0,
+    "hist_mode": 1,
+}
 
 
 class Datacard:
-    """Datacard containing processes, systematics and write utilities."""
+    """Datacard containing processes, systematics and write utilities.
+
+    :param histograms: Dict with histograms for each sample
+    :type histograms: dict[str, dict[str, hist.Hist]]
+    :param datasets_metadata: Metadata for datasets
+    :type datasets_metadata: dict[str, dict[str, dict]]
+    :param cutflow: Cutflow information for datasets
+    :type cutflow: dict[str, dict[str, float]]
+    :param years: Years of data taking
+    :type years: list[str]
+    :param mc_processes: mc_processes
+    :type mc_processes: MCProcesses
+    :param systematics: systematic uncertainties
+    :type systematics: Systematics
+    :param category: Category in datacard
+    :type category: str
+    :param data_processes: Data processes, defaults to None
+    :type data_processes: DataProcesses, optional
+    :param mcstat: Whether to include MC statistics,
+        you can also pass a dict with the options accepted by combine,
+        defaults to True
+    :type mcstat: bool | dict, optional
+    :param bins_edges: Bin edges for rebinning histograms, defaults to None
+    :type bins_edges: list[float], optional
+    :param bin_prefix: prefix for the bin name, defaults to None
+    :type bin_prefix: str, optional
+    :param bin_suffix: suffix for the bin name, defaults to None
+    :type bin_suffix: str, optional
+    """
 
     def __init__(
         self,
@@ -25,38 +59,12 @@ class Datacard:
         systematics: Systematics,
         category: str,
         data_processes: DataProcesses = None,
-        mcstat: bool = True,
+        mcstat: bool | dict = True,
         bins_edges: list[float] = None,
         bin_prefix: str = None,
         bin_suffix: str = None,
     ) -> None:
-        """Initialize the Datacard.
-
-        :param histograms: Dict with histograms for each sample
-        :type histograms: dict[str, dict[str, hist.Hist]]
-        :param datasets_metadata: Metadata for datasets
-        :type datasets_metadata: dict[str, dict[str, dict]]
-        :param cutflow: Cutflow information for datasets
-        :type cutflow: dict[str, dict[str, float]]
-        :param years: Years of data taking
-        :type years: list[str]
-        :param mc_processes: mc_processes
-        :type mc_processes: MCProcesses
-        :param systematics: systematic uncertainties
-        :type systematics: Systematics
-        :param category: Category in datacard
-        :type category: str
-        :param data_processes: Data processes, defaults to None
-        :type data_processes: DataProcesses, optional
-        :param mcstat: Whether to include MC statistics, defaults to True
-        :type mcstat: bool, optional
-        :param bins_edges: Bin edges for rebinning histograms, defaults to None
-        :type bins_edges: list[float], optional
-        :param bin_prefix: prefix for the bin name, defaults to None
-        :type bin_prefix: str, optional
-        :param bin_suffix: suffix for the bin name, defaults to None
-        :type bin_suffix: str, optional
-        """
+        """Initialize the Datacard."""
 
         self.histograms = histograms
         self.datasets_metadata = datasets_metadata
@@ -74,10 +82,10 @@ class Datacard:
             self.bin_suffix = "_".join(self.years)
         self.number_width = 10
         self.has_data = data_processes is not None
-        if self.mcstat:
-            self.threshold = 0
-            self.include_signal = 0
-            self.hist_mode = 1
+
+        # handle automatic MC statistics
+        self._parse_mcstat_argument()
+
         if self.has_data and (len(self.data_processes) != 1):
             raise NotImplementedError("Only one data process is supported.")
         # If bin edges are passed, rebin histograms
@@ -112,6 +120,54 @@ class Datacard:
         # helper attributes
         self.linesep = "\n"
         self.sectionsep = "-" * 80
+
+    def _parse_mcstat_argument(self) -> None:
+        """Parse the mcstat argument.
+
+        Raises
+        ------
+        ValueError
+            If there are unknown keys in the mcstat dict.
+        TypeError
+            If mcstat is not a bool or a dict.
+        """
+        if isinstance(self.mcstat, dict):
+            # set values from the dict or use defaults
+            self.threshold = self.mcstat.pop("threshold", AUTO_MC_STATS["threshold"])
+            self.include_signal = self.mcstat.pop(
+                "include_signal", AUTO_MC_STATS["include_signal"]
+            )
+            self.hist_mode = self.mcstat.pop("hist_mode", AUTO_MC_STATS["hist_mode"])
+
+            # check if there are any unknown keys
+            if self.mcstat:
+                raise ValueError(
+                    f"Unknown keys in mcstat: {', '.join(self.mcstat.keys())}. "
+                    "Allowed keys are: " + ", ".join(AUTO_MC_STATS.keys())
+                )
+
+            # set self.mcstat to True for further use
+            self.mcstat = True
+        elif isinstance(self.mcstat, bool) and self.mcstat:
+            self.threshold = AUTO_MC_STATS["threshold"]
+            self.include_signal = AUTO_MC_STATS["include_signal"]
+            self.hist_mode = AUTO_MC_STATS["hist_mode"]
+        else:
+            raise TypeError(
+                "mcstat must be a bool or a dict with at least one of the following keys: "
+                + ", ".join(AUTO_MC_STATS.keys())
+            )
+
+    @property
+    def mcstat_config(self) -> dict:
+        """Return the configuration for MC statistics."""
+        if not self.mcstat:
+            return {}
+        return {
+            "threshold": self.threshold,
+            "include_signal": self.include_signal,
+            "hist_mode": self.hist_mode,
+        }
 
     @property
     def shape_variations(self) -> list[str]:
