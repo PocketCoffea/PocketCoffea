@@ -53,7 +53,7 @@ class SystematicUncertainty:
                     f"Value must be a tuple with 2 elements, got {len(self.value)}"
                 )
 
-        self.processes = {process: self.value for process in self.processes}
+            self.processes = {process: self.value for process in self.processes}
 
         if self.datacard_name is None:
             self.datacard_name = self.name
