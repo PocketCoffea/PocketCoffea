@@ -34,6 +34,40 @@ def jet_correction(params, events, jets, factory, jet_type, chunk_metadata, cach
     else:
         rho = events.Rho.fixedGridRhoFastjetAll
 
+    # print("Jet type: ", jet_type)
+    if jet_type in ['AK4PFPuppi', 'AK4PFchs'] and params.object_preselection.Jet.get("regression", False):
+        if params.object_preselection.Jet.regression.do:
+            #print("Will apply PNet Jet regression!")
+            #print(len(jets), type(jets))
+            #print(jets)
+            #print(jets.pt)
+            #print(jets.mass)
+            
+            j_flat, nj = ak.flatten(jets), ak.num(jets)
+
+            # Obtain the regressed PT and Mass
+            reg_j_pt   = j_flat['pt']   * (1-j_flat['rawFactor'])*j_flat['PNetRegPtRawCorr']*j_flat['PNetRegPtRawCorrNeutrino']
+            reg_j_mass = j_flat['mass'] * (1-j_flat['rawFactor'])*j_flat['PNetRegPtRawCorr']*j_flat['PNetRegPtRawCorrNeutrino']
+
+            # Select which jets to apply the regression to (cuts are plrovided via parameter yaml)
+            cuts = params.object_preselection.Jet.regression
+            reg_mask = (j_flat['btagPNetB']>=cuts['cut_btagB']) | (j_flat['btagPNetCvL']>=cuts['cut_btagCvL'])
+
+            new_j_pt_flat = ak.where(reg_mask, reg_j_pt, j_flat['pt'])
+            new_j_pt = ak.unflatten(new_j_pt_flat, nj) 
+
+            new_j_mass_flat = ak.where(reg_mask, reg_j_mass, j_flat['mass'])
+            new_j_mass = ak.unflatten(new_j_mass_flat, nj)
+
+            # Replace the PT and Mass variables in the original jets collection
+            jets = ak.with_field(jets, new_j_pt, 'pt')
+            jets = ak.with_field(jets, new_j_mass, 'mass')
+            # After regression the jets must be JES and JER-corrected (done below)
+
+            #print(jets['pt'])
+            #print(jets['mass'])
+
+             
     if chunk_metadata["isMC"]:
         return factory["MC"][jet_type][chunk_metadata["year"]].build(
             add_jec_variables(jets, rho, isMC=True), cache
@@ -257,7 +291,6 @@ def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tag
 
     jets = events[jet_type]
     cuts = params.object_preselection[jet_type]
-    # Only jets that are more distant than dr to ALL leptons are tagged as good jets
     # Mask for  jets not passing the preselection
     mask_presel = (
         (jets.pt > cuts["pt"])
@@ -265,6 +298,7 @@ def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tag
         & (jets.jetId >= cuts["jetId"])
     )
     # Lepton cleaning
+    # Only jets that are more distant than dr to ALL leptons are tagged as good jets
     if leptons_collection != "":
         dR_jets_lep = jets.metric_table(events[leptons_collection])
         mask_lepton_cleaning = ak.prod(dR_jets_lep > cuts["dr_lepton"], axis=2) == 1

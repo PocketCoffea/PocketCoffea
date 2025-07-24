@@ -14,13 +14,12 @@ import click
 import concurrent.futures
 
 @click.command()
-@click.option('-inp', '--input-dir', help='Directory with cofea files and parameters', type=str, default=os.getcwd(), required=False)
+@click.option('-inp', '--input-dir', help='Directory with coffea files and parameters', type=str, default=os.getcwd(), required=False)
 @click.option('--cfg', help='YAML file with all the analysis parameters', required=False)
 @click.option('-op', '--overwrite-parameters', type=str, multiple=True,
               default=None, help='YAML file with plotting parameters to overwrite default parameters', required=False)
 @click.option("-o", "--outputdir", type=str, help="Output folder", required=False)
-# @click.option("-i", "--inputfile", type=str, help="Input file", required=False)
-@click.option("-i", "--inputfile", type=str, multiple=True, help="Input file(s) or patterns", required=True)
+@click.option("-i", "--inputfiles", type=str, multiple=True, help="Input file(s) or patterns", required=False)
 @click.option('-j', '--workers', type=int, default=8, help='Number of parallel workers to use for plotting', required=False)
 @click.option('-oc', '--only-cat', type=str, multiple=True, help='Filter categories with string', required=False)
 @click.option('-oy', '--only-year', type=str, multiple=True, help='Filter datataking years with string', required=False)
@@ -43,7 +42,7 @@ import concurrent.futures
 @click.option('--index-file', type=str, help='Path of the index file to be copied recursively in the plots directory and its subdirectories', required=False, default=None)
 @click.option('--no-cache', is_flag=True, help='Do not cache the histograms for faster plotting', required=False, default=False)
 
-def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfile,
+def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfiles,
                workers, only_cat, only_year, only_syst, exclude_hist, only_hist, split_systematics, partial_unc_band, no_syst,
                overwrite, log_x, log_y, density, verbose, format, systematics_shifts, no_ratio, no_systematics_ratio, compare, index_file, no_cache):
     '''Plot histograms produced by PocketCoffea processors'''
@@ -51,8 +50,8 @@ def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfile,
     # Using the `input_dir` argument, read the default config and coffea files (if not set with argparse):
     if cfg==None:
         cfg = os.path.join(input_dir, "parameters_dump.yaml")
-    if inputfile==None:
-        inputfile = os.path.join(input_dir, "output_all.coffea")
+    if not inputfiles:
+        inputfiles = (os.path.join(input_dir, "output_all.coffea"),)
     if outputdir==None:
         outputdir = os.path.join(input_dir, "plots")
 
@@ -79,7 +78,7 @@ def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfile,
 
     # Expand wildcards and filter out invalid files
     all_files = []
-    for pattern in inputfile:
+    for pattern in inputfiles:
         matched_files = glob.glob(pattern)  # Expand wildcards
         valid_files = [file for file in matched_files if os.path.isfile(file)]
         all_files.extend(valid_files)

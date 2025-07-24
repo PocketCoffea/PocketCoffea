@@ -1,4 +1,4 @@
-# Run a PocketCoffea Analysis with law
+# Running with law
 
 ## Introduction
 
@@ -158,7 +158,7 @@ You can transfer files to the WLCG. For this you have to specify a directory on 
 [wlcg_fs]
 base: root://eosuser.cern.ch///eos/user/<u>/<user>/analysis_outputs
 ```
-You need to create a Kerberos Ticket (`kinit user@CERN.CH`) to be able to transer the files.
+You need to create a Kerberos Ticket (`kinit user@CERN.CH`) to be able to transfer the files.
 
 Currently the following tasks support file transfer:
 - DatacardProducer
