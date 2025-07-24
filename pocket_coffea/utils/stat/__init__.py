@@ -1,3 +1,4 @@
+from pocket_coffea.utils.stat.combine import Datacard
 from pocket_coffea.utils.stat.processes import (
     DataProcess,
     DataProcesses,
@@ -9,8 +10,9 @@ from pocket_coffea.utils.stat.systematics import Systematics, SystematicUncertai
 __all__ = [
     "DataProcess",
     "DataProcesses",
+    "Datacard",
     "MCProcess",
     "MCProcesses",
-    "Systematics",
     "SystematicUncertainty",
+    "Systematics",
 ]
