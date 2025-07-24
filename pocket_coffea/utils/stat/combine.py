@@ -9,7 +9,7 @@ import uproot
 
 from pocket_coffea.utils.stat.processes import DataProcesses, MCProcesses
 from pocket_coffea.utils.stat.systematics import Systematics
-from pocket_coffea.utils.stat.utils import rebin_hist
+from pocket_coffea.utils.histogram import rebin_hist
 
 
 class Datacard:
