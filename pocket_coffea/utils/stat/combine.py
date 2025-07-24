@@ -7,6 +7,7 @@ import hist
 import numpy as np
 import uproot
 
+from pocket_coffea.utils.histogram import rebin_hist
 from pocket_coffea.utils.stat.processes import DataProcesses, MCProcesses
 from pocket_coffea.utils.stat.systematics import Systematics
 
@@ -89,7 +90,7 @@ class Datacard:
         if self.has_data and (len(self.data_processes) != 1):
             raise NotImplementedError("Only one data process is supported.")
         # If bin edges are passed, rebin histograms
-        if self.bins_edges:
+        if self.bins_edges is not None:
             self.histograms = rebin_hist(
                 bins_edges=self.bins_edges, histograms=self.histograms
             )
@@ -693,6 +694,32 @@ class Datacard:
 
     def __repr__(self) -> str:
         """Return a string representation of the Datacard."""
+
+        s = "Datacard("
+        s += f"histograms={repr(self.histograms)}, "
+        s += f"datasets_metadata={repr(self.datasets_metadata)}, "
+        s += f"cutflow={repr(self.cutflow)}, "
+        s += f"years={repr(self.years)}, "
+        s += f"mc_processes={repr(self.mc_processes)}, "
+        s += f"systematics={repr(self.systematics)}, "
+        s += f"category={repr(self.category)}, "
+        s += f"data_processes={repr(self.data_processes)}, "
+
+        if self.mcstat:
+            s += f"mcstat={repr(self.mcstat_config)}, "
+        else:
+            s += "mcstat=False, "
+
+        s += f"bins_edges={repr(self.bins_edges)}, "
+        s += f"bin_prefix={repr(self.bin_prefix)}, "
+        s += f"bin_suffix={repr(self.bin_suffix)}, "
+
+        s += ")"
+
+        return s
+
+    def __str__(self) -> str:
+        """Return a string representation of the Datacard."""
         process_names = (
             list(self.mc_processes.keys()) + list(self.data_processes.keys())
             if self.has_data
@@ -700,12 +727,38 @@ class Datacard:
         )
         syst_names = list(self.systematics.keys())
 
+        indent = " " * 2
+
+        # Create simplified representation for histograms
+        def simplify_hist_dict(hist_dict):
+            """Convert histogram dict to simplified representation"""
+            simplified = {}
+            for sample, datasets in hist_dict.items():
+                simplified[sample] = {}
+                for dataset, histogram in datasets.items():
+                    # Get the name of the last regular axis (variable axis)
+                    axis_name = histogram.axes[-1].name
+                    # Calculate total sum of all values
+                    weighted_sum_flow = histogram.sum(flow=True)
+                    weighted_sum = histogram.sum(flow=False)
+                    weighted_sum_str = f"{weighted_sum} ({weighted_sum_flow} with flow)"
+                    simplified[sample][dataset] = (
+                        f"Hist(..., name={axis_name}, sum={weighted_sum_str})"
+                    )
+            return simplified
+
+        histogram_str = simplify_hist_dict(self.histograms)
+
         return (
-            f"Datacard(category='{self.category}', "
-            f"years={self.years}, "
-            f"processes={process_names}, "
-            f"systematics={syst_names[:3]}{'...' if len(syst_names) > 3 else ''}, "
-            f"has_data={self.has_data})"
+            "Datacard(\n"
+            f"{indent}histograms={histogram_str},\n"
+            f"{indent}category='{self.category}',\n"
+            f"{indent}years={self.years},\n"
+            f"{indent}processes={process_names},\n"
+            f"{indent}systematics={syst_names[:3]}{'...' if len(syst_names) > 3 else ''},\n"
+            f"{indent}has_data={self.has_data}\n"
+            f"{indent}mcstat={self.mcstat_config if self.mcstat else 'mcstat=False'}\n"
+            ")"
         )
 
 
