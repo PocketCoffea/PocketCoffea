@@ -158,7 +158,29 @@ You can transfer files to the WLCG. For this you have to specify a directory on 
 [wlcg_fs]
 base: root://eosuser.cern.ch///eos/user/<u>/<user>/analysis_outputs
 ```
-You need to create a Kerberos Ticket (`kinit user@CERN.CH`) to be able to transfer the files.
+
+The file transfer requires `gfal2` to be installed (see the [law installation instructions](https://github.com/riga/law?tab=readme-ov-file#installation-and-dependencies)).
+
+You need to have a proxy certificate to be able to transfer the files (the same that is used for getting dataset information). Alternatively you can create a Kerberos ticket with `kinit`.
 
 Currently the following tasks support file transfer:
 - DatacardProducer
+
+### DatacardProducer
+The `DatacardProducer` task creates a datacard and corresponding shapes file. It requires a python file containing the following information:
+- `MCProcesses`: the configuration of Monte Carlo processes that should be included in the datacard
+- `Systematics`: the configuration of systematic uncertainties that should be written to the datacard
+
+Furthermore it can contain the following optional information:
+- `DataProcesses`: the configuration of data processes that should be included in the datacard
+- `mcstat`: the configuration for the automatic statistical uncertainties
+- `bins_edges`: the configuration of the bin edges for the histograms
+- `bin_prefix`: the prefix for the bin in the datacard
+- `suffix`: the suffix for the bin in the datacard
+
+For detailed information check the corresponing section in the documentation about the `Datacard` class.
+
+To run the task, use the following command (with optional transfer to WLCG):
+```bash
+law run DatacardProducer --cfg config.py --version version01 --stat-config stat_config.py --variable <variable-name> --category <category-name> --years <year1,year2,...> (--transfer)
+```

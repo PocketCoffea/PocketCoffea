@@ -116,4 +116,4 @@ class datacardconfig(luigi.Config):
     stat_config = luigi.Parameter(description="Path to the stat config file")
     variable = luigi.Parameter(description="Variable to produce datacard for")
     category = luigi.Parameter(description="Category to produce datacard for")
-    year = luigi.Parameter(description="Year to produce datacard for")
+    years = law.CSVParameter(description="Years to produce datacard for")
