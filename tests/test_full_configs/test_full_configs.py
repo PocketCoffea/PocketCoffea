@@ -7,6 +7,7 @@ from pathlib import Path
 from pocket_coffea.executors import executors_base as executors_lib
 from coffea import processor
 from coffea.processor import Runner
+from coffea.nanoevents import NanoAODSchema
 from coffea.util import load, save
 from utils import compare_outputs
 import numpy as np
@@ -55,7 +56,7 @@ def test_new_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
     output = run(config.filesets, treename="Events",
@@ -93,7 +94,7 @@ def test_custom_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_pa
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
     output = run(config.filesets, treename="Events",
@@ -144,7 +145,7 @@ def test_custom_weights_on_data(base_path: Path, monkeypatch: pytest.MonkeyPatch
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
     output = run(config.filesets, treename="Events",
@@ -185,7 +186,7 @@ def test_cartesian_categorization(base_path: Path, monkeypatch: pytest.MonkeyPat
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
     output = run(config.filesets, treename="Events",
@@ -231,7 +232,7 @@ def test_subsamples(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_f
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
     output = run(config.filesets, treename="Events",
@@ -293,7 +294,7 @@ def test_subsamples_and_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
     output = run(config.filesets, treename="Events",
@@ -349,7 +350,7 @@ def test_skimming(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_fac
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
     output = run(config.filesets, treename="Events",
@@ -377,7 +378,7 @@ def test_skimming(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_fac
         if output["datasets_metadata"]["by_dataset"][dataset]["isMC"] == "True":
             tot_sumw = 0.
             for file in files:
-                ev = NanoEventsFactory.from_root(file, schemaclass=NanoAODSchema).events()
+                ev = NanoEventsFactory.from_root({file: "Events"}, schemaclass=NanoAODSchema).events()
                 sumw = ak.sum(ev.genWeight * ev.skimRescaleGenWeight)
                 tot_sumw += sumw
             assert np.isclose(tot_sumw, output["sum_genweights"][dataset])
@@ -407,7 +408,7 @@ def test_skimming(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_fac
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
     output2 = run(config.filesets, treename="Events",
@@ -448,7 +449,7 @@ def test_skimming_hadd(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_pat
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
     output = run(config.filesets, treename="Events",
@@ -474,7 +475,7 @@ def test_skimming_hadd(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_pat
         if output["datasets_metadata"]["by_dataset"][dataset]["isMC"] == "True":
             tot_sumw = 0.
             for file in files:
-                ev = NanoEventsFactory.from_root(file, schemaclass=NanoAODSchema).events()
+                ev = NanoEventsFactory.from_root({file: "Events"}, schemaclass=NanoAODSchema).events()
                 sumw = ak.sum(ev.genWeight * ev.skimRescaleGenWeight)
                 tot_sumw += sumw
             assert np.isclose(tot_sumw, output["sum_genweights"][dataset])
@@ -509,7 +510,7 @@ def test_skimming_hadd(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_pat
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
     output2 = run(config.filesets, treename="Events",
@@ -544,7 +545,7 @@ def test_columns_export(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_pa
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
     output = run(config.filesets, treename="Events",
@@ -578,7 +579,7 @@ def test_columns_export_parquet(base_path: Path, monkeypatch: pytest.MonkeyPatch
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
     output = run(config.filesets, treename="Events",

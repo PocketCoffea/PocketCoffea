@@ -62,7 +62,7 @@ class DaskExecutorFactory(ExecutorFactoryABC):
         return args
     
     def get(self):
-        return coffea_processor.dask_executor(**self.customized_args())
+        return coffea_processor.DaskExecutor(**self.customized_args())
 
     def close(self):
         self.dask_client.close()
