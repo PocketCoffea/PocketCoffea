@@ -173,6 +173,7 @@ class Sample:
                 verify=False,
             )
             filesjson = r.json()
+            invalid_list = []
             for fj in filesjson:
                 if 'is_file_valid' not in fj.keys():
                     # print("fj=", fj)
@@ -180,11 +181,11 @@ class Sample:
                 else:
                     if fj["is_file_valid"] == 0:
                         #print(fj)
-                        print(f"\t WARNING: A file not valid on DAS: {fj['logical_file_name']}")
+                        print(f"\t WARNING: This file is Not Valid on DAS: {fj['logical_file_name']}")
                         print("\t We are skipping it")
-                        #raise Exception(f"Invalid files in sample {self}!")
+                        invalid_list.append(fj['logical_file_name'])                        
                         continue
-                    
+                        
                     self.fileslist_redirector.append(fj['logical_file_name'])
                     self.metadata["nevents"] += fj['event_count']
                     self.metadata["size"] += fj['file_size']
@@ -194,7 +195,7 @@ class Sample:
             if self.metadata.get("dbs_instance", "prod/global") == "prod/global":
                 # Now query rucio to get the concrete dataset passing the sites filtering options
                 files_replicas, sites, sites_counts = rucio.get_dataset_files_replicas(
-                    das_name, **self.sites_cfg, mode="first", sort=self.sort_replicas
+                    das_name, **self.sites_cfg, mode="first", sort=self.sort_replicas, invalid_list=invalid_list
                 )
             else:
                 # Use DBS to get the site

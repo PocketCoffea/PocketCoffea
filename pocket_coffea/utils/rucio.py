@@ -120,17 +120,18 @@ def _get_pfn_for_site(path, rules):
 
 
 def get_dataset_files_replicas(
-    dataset,
-    allowlist_sites=None,
-    include_redirector=False,
-    blocklist_sites=None,
-    prioritylist_sites=None,
-    regex_sites=None,
-    mode="full",
-    partial_allowed=False,
-    client=None,
-    scope="cms",
-    sort: str = "geoip",
+        dataset,
+        allowlist_sites=None,
+        include_redirector=False,
+        blocklist_sites=None,
+        prioritylist_sites=None,
+        regex_sites=None,
+        mode="full",
+        partial_allowed=False,
+        client=None,
+        scope="cms",
+        sort: str = "geoip",
+        invalid_list=[],
 ):
     """Query the Rucio server to get information about the location of all the replicas of the files in a CMS dataset.
 
@@ -158,7 +159,10 @@ def get_dataset_files_replicas(
         partial_allowed: bool, default False
         scope:  rucio scope, "cms"
         sort: str, default 'geoip'
-            sort replicas (for details check rucio documentation)
+            Sort replicas (for details check rucio documentation)
+        invalid_list: list
+            A list of invalid files for this dataset (to be exluded in the output).
+            Rucio does not know of invalid files, so these need to be obtained beforehand from DAS.
 
     Returns
     -------
@@ -194,6 +198,10 @@ def get_dataset_files_replicas(
         rses_sorted = [pfn["rse"] for pfn in pfns.values()]
         rses = {rse: rses[rse] for rse in rses_sorted}
         found = False
+        if filedata["name"] in invalid_list:
+            #print(f"The following file is invalid, we skip it:\n {filedata['name']}")
+            continue
+
         if allowlist_sites:
             for site in allowlist_sites:
                 if site in rses:
