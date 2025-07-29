@@ -492,15 +492,49 @@ jets_calibration:
   jec_name_map_MC: "${default_jets_calibration.jec_name_map_MC}"
   jec_name_map_Data: "${default_jets_calibration.jec_name_map_Data}"
   
-  apply_jec_nominal:
-    2016_PreVFP: False
-    2016_PostVFP: False
-    "2017": False
-    "2018": False
-    2022_preEE: True
-    2022_postEE: True
-    2023_preBPix: True
-    2023_postBPix: True
+  apply_jec_MC:  # this is needed to know which collection is corrected with which jet factory
+    2016_PreVFP: 
+      AK4PFchs: True
+      AK8PFPuppi: True
+    2016_PostVFP: 
+      AK4PFchs: True
+      AK8PFPuppi: True
+    "2017": 
+      AK4PFchs: True
+      AK8PFPuppi: True
+    "2018": 
+      AK4PFchs: True
+      AK8PFPuppi: True
+    2022_preEE: 
+      AK4PFPuppi: True
+    2022_postEE: 
+      AK4PFPuppi: True
+    2023_preBPix: 
+      AK4PFPuppi: True
+    2023_postBPix: 
+      AK4PFPuppi: True
+
+  apply_jec_Data:  # this is needed to know which collection is corrected with which jet factory
+    2016_PreVFP: 
+      AK4PFchs: False
+      AK8PFPuppi: False
+    2016_PostVFP: 
+      AK4PFchs: False
+      AK8PFPuppi: False
+    "2017": 
+      AK4PFchs: False
+      AK8PFPuppi: False
+    "2018": 
+      AK4PFchs: False
+      AK8PFPuppi: False
+    2022_preEE: 
+      AK4PFPuppi: True
+    2022_postEE: 
+      AK4PFPuppi: True
+    2023_preBPix: 
+      AK4PFPuppi: True
+    2023_postBPix: 
+      AK4PFPuppi: True
 
   rescale_MET:
     2016_PreVFP: False
