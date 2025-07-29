@@ -9,7 +9,7 @@ from pocket_coffea.parameters.dask_env import setup_dask
 
 import parsl
 from parsl.providers import CondorProvider
-from parsl.channels import LocalChannel
+#from parsl.channels import LocalChannel
 from parsl.config import Config
 from parsl.executors import HighThroughputExecutor
 from parsl.launchers import SrunLauncher, SingleNodeLauncher
@@ -29,10 +29,13 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
         env_worker = [
             'export XRD_RUNFORKHANDLER=1',
             'export MALLOC_TRIM_THRESHOLD_=0',
-            f'export X509_USER_PROXY={self.x509_path}',
+#            f'export X509_USER_PROXY={self.x509_path}',
             'ulimit -u 32768',
             'source /cvmfs/grid.desy.de/etc/profile.d/grid-ui-env.sh'
             ]
+        
+        if not self.run_options['ignore-grid-certificate']:
+            env_worker.append(f'export X509_USER_PROXY={self.x509_path}')
 
         # Adding list of custom setup commands from user defined run options
         if self.run_options.get("custom-setup-commands", None):
@@ -63,7 +66,7 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
                     HighThroughputExecutor(
                         label="coffea_parsl_condor",
                         address=address_by_hostname(),
-                        max_workers=1,
+                        # max_workers=1,
                         # Condor
                         provider=CondorProvider(
                             nodes_per_block=1,
