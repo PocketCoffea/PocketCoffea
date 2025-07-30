@@ -589,8 +589,8 @@ def test_columns_export_parquet(base_path: Path, monkeypatch: pytest.MonkeyPatch
     assert output is not None
 
     # build the parquet dataset from output
-    ak.to_parquet.dataset("./columns/TTTo2L2Nu_2018/mu/4jets")
-    ak.to_parquet.dataset("./columns/DATA_SingleMuon_2018_EraA/2btag")
+    ak.to_parquet_dataset("./columns/TTTo2L2Nu_2018/mu/4jets")
+    ak.to_parquet_dataset("./columns/DATA_SingleMuon_2018_EraA/2btag")
     # load the parquet dataset
     dataset = ak.from_parquet("./columns/TTTo2L2Nu_2018/mu/4jets")
     assert dataset is not None

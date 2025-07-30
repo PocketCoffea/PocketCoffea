@@ -501,7 +501,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                                                subsample_mask=self._subsamples[self._sample].get_mask(subs),
                                                weights_manager=self.weights_manager
                                                )
-                    fname = (self.events.behavior["__events_factory__"]._partition_key.replace( "/", "_" )
+                    fname = (self.events.attrs["@events_factory"]._partition_key.replace( "/", "_" )
                         + ".parquet")
                     for category, akarr in out_arrays.items():
                         # building the file name
@@ -532,7 +532,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                                                weights_manager=self.weights_manager
                                                )
                 # building the file name
-                fname = (self.events.behavior["__events_factory__"]._partition_key.replace( "/", "_" )
+                fname = (self.events.attrs["@events_factory"]._partition_key.replace( "/", "_" )
                          + ".parquet")
                 for category, akarr in out_arrays.items():
                     subdirs = [self._dataset, category]
