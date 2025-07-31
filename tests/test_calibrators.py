@@ -48,7 +48,7 @@ def test_calibrator_mechanism(events, params):
                 "test_obj_variation_2Down"
             ]
 
-        def calibrate(self, events, events_orig, variation):
+        def calibrate(self, events, events_orig, variation, already_applied_calibrators=None):
             self.cache = {
                 "nominal": {
                     "Electron.pt": events.Electron.pt * 1.2
@@ -153,7 +153,7 @@ def test_calibrator_variations_single(events, params):
                 "test_obj_variation_2Down"
             ]
 
-        def calibrate(self, events, events_orig, variation):
+        def calibrate(self, events, events_orig, variation, already_applied_calibrators=None):
             self.cache = {
                 "nominal": {
                     "Electron.pt": events.Electron.pt * 1.2
@@ -244,7 +244,7 @@ def test_calibrators_sequence(events, params):
                 "test_obj_variation_2Down"
             ]
 
-        def calibrate(self, events, events_orig, variation):
+        def calibrate(self, events, events_orig, variation, already_applied_calibrators=None):
             self.cache = {
                 "nominal": {
                     "Electron.pt": events.Electron.pt * 1.2
@@ -281,7 +281,10 @@ def test_calibrators_sequence(events, params):
                 "test_obj_variation_4Down"
             ]
 
-        def calibrate(self, events, events_orig, variation):
+        def calibrate(self, events, events_orig, variation, already_applied_calibrators=None):
+            assert already_applied_calibrators is not None, "Already applied calibrators should be provided"
+            assert "test_obj_calibrator3" in already_applied_calibrators, "test_obj_calibrator3 should be applied before test_obj_calibrator4"
+            # Create some custom electron pt variation"
             self.cache = {
                 "nominal": {
                     "Electron.pt": events.Electron.pt + 5.

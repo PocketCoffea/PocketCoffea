@@ -635,11 +635,14 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         )
 
     def loop_over_variations(self):
+        # Get the requested shape variations by calibrator
         for variation, events_calibrated in self.calibrators_manager.calibration_loop(
-            self.events
+            self.events,
+            # Running only the shape variations activated in the configuration
+            # for the current sample. 
+            # The shape variations are defined by the calibrator name 
+            variations_for_calibrators=self.cfg.available_shape_variations[self._sample]
         ):
-            print("Variation:", variation)
-            print("Events:", events_calibrated, id(events_calibrated))
             # We need to set the events to the calibrated ones
             # and call the function to apply the preselection
             self.events = events_calibrated

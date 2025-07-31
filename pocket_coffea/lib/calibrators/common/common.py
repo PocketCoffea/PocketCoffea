@@ -141,9 +141,7 @@ class METCalibrator(Calibrator):
         uncalibrated_jets = orig_colls["Jet"]
         calibrated_jets = events["Jet"]
         new_MET = met_correction_after_jec(events, self.met_branch, uncalibrated_jets, calibrated_jets)
-        print("Old met:", events[self.met_branch]["pt"])
         # Return the new MET collection
-        print("New met:", new_MET["pt"])
         return {f"{self.met_branch}.pt" : new_MET["pt"],
                 f"{self.met_branch}.phi" : new_MET["phi"]}
 
