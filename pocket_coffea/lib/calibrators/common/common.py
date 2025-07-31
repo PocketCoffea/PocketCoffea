@@ -3,6 +3,7 @@ import numpy as np
 import awkward as ak
 import cachetools
 from pocket_coffea.lib.jets import jet_correction, met_correction_after_jec, load_jet_factory
+from .pnet_regression import PNetRegressionCalibrator
 
 class JetsCalibrator(Calibrator):
     """
