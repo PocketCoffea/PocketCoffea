@@ -5,6 +5,7 @@ from pocket_coffea.lib.cut_functions import get_nObj_min, get_nObj_eq, get_HLTse
 from pocket_coffea.parameters.cuts import passthrough
 from pocket_coffea.parameters.histograms import *
 from pocket_coffea.lib.categorization import StandardSelection, CartesianSelection, MultiCut
+from pocket_coffea.lib.calibrators.common import default_calibrators_sequence 
 
 import workflow
 from workflow import BasicProcessor
@@ -30,6 +31,7 @@ defaults.register_configuration_dir("config_dir", localdir+"/params")
 parameters = defaults.merge_parameters_from_files(default_parameters,
                                                     f"{localdir}/params/object_preselection.yaml",
                                                     f"{localdir}/params/triggers.yaml",
+                                                    f"{localdir}/params/jets_calibration.yaml",
                                                    update=True)
 
 #Creating custom weight
@@ -88,6 +90,7 @@ cfg = Configurator(
     },
     # Passing a list of WeightWrapper objects
     weights_classes = common_weights,
+    calibrators = default_calibrators_sequence,
 
     variations = {
         "weights": {
@@ -106,10 +109,7 @@ cfg = Configurator(
         },
         "shape": {
             "common": {
-                "inclusive": [ "JES_Total_AK4PFchs"],
-                "bycategory": {
-                    "1btag": ["JER_AK4PFchs"]
-                }
+                "inclusive": [ "jet_calibration"],
             },
         }
     },
