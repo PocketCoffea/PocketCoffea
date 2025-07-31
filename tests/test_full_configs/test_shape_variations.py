@@ -20,10 +20,10 @@ def base_path() -> Path:
     return Path(__file__).parent
 
 
-def test_shape_variations(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
+def test_shape_variations_JEC(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_shape_variations" )
     outputdir = tmp_path_factory.mktemp("test_shape_variations")
-    config = load_config("config.py", save_config=True, outputdir=outputdir)
+    config = load_config("config_JEC.py", save_config=True, outputdir=outputdir)
     assert isinstance(config, Configurator)
 
     run_options = defaults.get_default_run_options()["general"]
@@ -61,7 +61,7 @@ def test_shape_variations(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_
     assert not np.isclose(H[{"cat":"baseline", "variation":"nominal"}].values().sum()/ H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalUp"}].values().sum(),  1.)
 
 
-def test_shape_variation_alljesvars(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
+def test_shape_variation_default_sequence(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_shape_variations" )
     outputdir = tmp_path_factory.mktemp("test_shape_variations")
     config = load_config("config_allvars.py", save_config=True, outputdir=outputdir)

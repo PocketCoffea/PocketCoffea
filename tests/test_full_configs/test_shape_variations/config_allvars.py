@@ -5,7 +5,7 @@ from pocket_coffea.lib.cut_functions import get_nObj_min, get_nObj_eq, get_HLTse
 from pocket_coffea.parameters.cuts import passthrough
 from pocket_coffea.parameters.histograms import *
 from pocket_coffea.lib.categorization import StandardSelection, CartesianSelection, MultiCut
-from pocket_coffea.lib.calibrators.common.common import JetsCalibrator
+from pocket_coffea.lib.calibrators.common import default_calibrators_sequence 
 
 import workflow
 from workflow import BasicProcessor
@@ -90,7 +90,7 @@ cfg = Configurator(
     },
     # Passing a list of WeightWrapper objects
     weights_classes = common_weights,
-    calibrators = [JetsCalibrator],
+    calibrators = default_calibrators_sequence,
 
     variations = {
         "weights": {

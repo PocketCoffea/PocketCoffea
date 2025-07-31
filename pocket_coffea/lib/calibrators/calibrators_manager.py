@@ -79,7 +79,7 @@ class CalibratorsManager():
         self.original_coll.clear()
     
                         
-    def calibrate(self, events, variation):
+    def calibrate(self, events, variation, debug=False):
         '''Call the calibrator objects in sequence.
         The calibrators returns the collections to replace in the events.
         The original collections are stored in a dictionary and passed to the chain
@@ -90,16 +90,23 @@ class CalibratorsManager():
             # filter the requested variations
             raise ValueError(f"Variation {variation} not available. Available variations: {self.available_variations}")
         
+        applied_calibrators = []
+        # Store the original collections before applying the calibrators
         for calibrator in self.calibrator_sequence:
+            if debug:
+                print(f"Applying calibrator: {calibrator.name} for variation: {variation}")
             # If the variation is not handled by the calibrator
             # it will return the nominal collection. 
             # we don't want to control this in the manager, we 
             # want to get back the collection to replace, also if it is the 
             # nominal one.
-            colls = calibrator.calibrate(events, self.original_coll, variation)
+            colls = calibrator.calibrate(events, self.original_coll, variation, 
+                                         already_applied_calibrators=applied_calibrators)
+            if debug:
+                print(f"Calibrator {calibrator.name} returned collections: {colls.keys()}")
             for col in colls:
                 if col not in calibrator.calibrated_collections:
-                    raise ValueError(f"Calibrator {calibrator.name} is trying to calibrated a collection that it does not declarye to handle:{col}. ")
+                    raise ValueError(f"Calibrator {calibrator.name} is trying to calibrated a collection that it does not declare to handle:{col}. ")
                 if "." not in col:
                     if col not in self.original_coll:     
                         self.original_coll[col] = events[col]
@@ -111,20 +118,24 @@ class CalibratorsManager():
                     if col not in self.original_coll:
                         self.original_coll[col] = events[collection, field]
                     events[collection, field] = colls[col]
+            # Keep track of the calibrators applied
+            applied_calibrators.append(calibrator.name)
         return events
 
                 
-    def calibration_loop(self, events, variations=None):
+    def calibration_loop(self, events, variations=None, debug=False):
         '''Loop over all the requested variations and yield the
         modified events. Keep a reference to the original events.'''
         if variations is None:
             variations = self.available_variations
 
         for variation in variations:
+            if debug:
+                print(f"Applying calibrators for variation: {variation}")
             # Call the calibrator objects in sequence
-            # This will call all the calibatros in the sequence
+            # This will call all the calibrators in the sequence
             # for the given variation
-            events_out = self.calibrate(events, variation)
+            events_out = self.calibrate(events, variation, debug=debug)
             # Yield the modified events
             yield variation, events_out
             # Reset the events to the original collections

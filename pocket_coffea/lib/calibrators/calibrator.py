@@ -68,7 +68,7 @@ class Calibrator(ABC, metaclass=CalibratorRegistry):
 
     
     @abstractmethod
-    def calibrate(self, events, events_original_collections, variation):
+    def calibrate(self, events, events_original_collections, variation, already_applied_calibrators=None):
         ''' The events objects is passed to the calibrator alongside
         a dictionary with the original collection. 
         the calibrated_collections are computed and returned to the manager.
@@ -83,6 +83,10 @@ class Calibrator(ABC, metaclass=CalibratorRegistry):
         If the variation is not handled by the calibrator, it should return
         the nominal collection, or the collection that is supposed to be
         returned in case of no variation.
+
+        A list of the calibrators already applied to the events
+        is passed to the calibrator. This is useful for the calibrators that
+        need to know which calibrators have been already applied to the events.
         '''
         pass
 

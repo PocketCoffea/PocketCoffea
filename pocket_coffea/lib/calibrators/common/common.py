@@ -8,7 +8,6 @@ from .pnet_regression import PNetRegressionCalibrator
 class JetsCalibrator(Calibrator):
     """
     """
-    
     name = "jet_calibration"
     has_variations = True
     isMC_only = False
@@ -73,7 +72,7 @@ class JetsCalibrator(Calibrator):
         self._variations = list(sorted(set(available_jet_variations)))  # remove duplicates
 
 
-    def calibrate(self, events, orig_colls, variation):
+    def calibrate(self, events, orig_colls, variation, already_applied_calibrators=None):
         # The values have been already calculated in the initialize method
         # We just need to apply the corrections to the events
         out = {}
@@ -109,23 +108,49 @@ class JetsCalibrator(Calibrator):
             
         return out
 
-
+###########################################
 class METCalibrator(Calibrator):
-    def __init__(self, params, metadata):
+
+    name = "met_rescaling"
+    has_variations = False
+    isMC_only = False
+    '''
+    The MET calibrator applies the JEC to the MET collection.'''
+    def __init__(self, params, metadata, **kwargs):
         super().__init__(params, metadata)
-        # initialize variations
+        jet_calib_param = params.jets_calibration
+        self.met_calib_active = jet_calib_param.rescale_MET[metadata["year"]]
+        self.met_branch = jet_calib_param.rescale_MET_branch[metadata["year"]]
+        self.calibrated_collections = [f"{self.met_branch}.pt", f"{self.met_branch}.phi"]
 
     def initialize(self, events):
-        # initialize the calibrator
         pass
 
-    def calibrate(self, events, orig_colls, variation):
-        pass
+    def calibrate(self, events, orig_colls, variation, already_applied_calibrators=None):
+        '''The MET calibrator applies the difference from the uncalibrated Jets and the calibrated Jets after JEC to the MET collection.
+        In case the Jets in the nano are already calibrated, the delta will be 0 and the MET will not be changed.'''
+        # we can check if the Jets calibrator has been applied
+        if "jet_calibration" not in already_applied_calibrators:
+            raise ValueError("Jets calibrator must be applied before the MET calibrator.")
+        if "Jet" not in orig_colls:
+            # this means that the jets calibration has been skipped
+            # we just return the MET as is
+            return {}
+        
+        # Get the uncalibrated and calibrated jets
+        uncalibrated_jets = orig_colls["Jet"]
+        calibrated_jets = events["Jet"]
+        new_MET = met_correction_after_jec(events, self.met_branch, uncalibrated_jets, calibrated_jets)
+        print("Old met:", events[self.met_branch]["pt"])
+        # Return the new MET collection
+        print("New met:", new_MET["pt"])
+        return {f"{self.met_branch}.pt" : new_MET["pt"],
+                f"{self.met_branch}.phi" : new_MET["phi"]}
 
-
+##############################################
 class ElectronsScaleCalibrator(Calibrator):
     def __init__(self, params, metadata):
-        super().__init__(params, metadata)
+        super().__init__(params, metadata, **kwargs)
         # initialize variations
 
     def initialize(self, events):
@@ -136,8 +161,8 @@ class ElectronsScaleCalibrator(Calibrator):
         pass
 
 class MuonsCalibrator(Calibrator):
-    def __init__(self, params, metadata):
-        super().__init__(params, metadata)
+    def __init__(self, params, metadata, **kwargs):
+        super().__init__(params, metadata, **kwargs)
         # initialize variations
 
     def initialize(self, events):
@@ -147,6 +172,7 @@ class MuonsCalibrator(Calibrator):
     def calibrate(self, events, variation):
         pass
 
-
+#########################################3
 default_calibrators_sequence = [
+    JetsCalibrator, METCalibrator
 ]
