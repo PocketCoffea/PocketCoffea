@@ -312,7 +312,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     # If the processor has skimmed NanoAOD, we export a dataset_definition file
     if config.save_skimmed_files and config.do_postprocessing:
         from pocket_coffea.utils.skim import save_skimed_dataset_definition
-        save_skimed_dataset_definition(output, f"{outputdir}/skimmed_dataset_definition.json")
+        save_skimed_dataset_definition(output, f"{outputdir}/skimmed_dataset_definition.json", check_initial_events=not test)
         
     # Closing the executor if needed
     executor_factory.close()
