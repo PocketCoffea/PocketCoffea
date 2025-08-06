@@ -12,6 +12,24 @@ from pocket_coffea.utils.skim import save_skimed_dataset_definition
 from itertools import islice
 from functools import reduce
 
+def merge_group_reduction(output_files, N_reduction=5):
+    with Progress() as progress:
+        task1 = progress.add_task("[red]Merging...", total=len(output_files))
+    
+        def reduce_in_groups(func, iterable, group_size):
+            result = None
+            it = iter(iterable)
+            while batch := list(islice(it, group_size)):
+                loaded_batch = [load(f) for f in batch]
+                if result is None:
+                    result = func(loaded_batch)
+                else:
+                    result = func([result, func(loaded_batch)])
+                progress.update(task1, advance=len(batch))
+            return result
+       
+        return reduce_in_groups(accumulate, output_files, N_reduction)
+        
 
 def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False):
     '''Merge coffea output files'''
@@ -39,8 +57,8 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False):
                     print(f"    {f}")
             raise TypeError("Type mismatch found between the values of the input dictionaries. Please check the input files.")
 
-        out = accumulate([load(f) for f in inputfiles])
-        save(out, outputfile)
+        total_out =  merge_group_reduction(inputfiles, N_reduction=5)
+        save(total_out, outputfile)
         print(f"[green]Output saved to {outputfile}")
 
     else:
@@ -73,26 +91,8 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False):
         # Since it was jobs, there was no postprocessing
         # we do it now after merging all the output
         print(f"Merging output...")
-
-        with Progress() as progress:
-
-            task1 = progress.add_task("[red]Merging...", total=len(output_files))
-
-            def reduce_in_groups(func, iterable, group_size):
-                result = None
-                it = iter(iterable)
-                while batch := list(islice(it, group_size)):
-                    loaded_batch = [load(f) for f in batch]
-                    if result is None:
-                        result = func(loaded_batch)
-                    else:
-                        result = func([result, func(loaded_batch)])
-                    progress.update(task1, advance=len(batch))
-                return result
-
-            # Example usage:
-            total_output = reduce_in_groups(accumulate, output_files, 5)
-        
+        total_output = merge_group_reduction(output_files, N_reduction=5)
+            
         # Apply postprocessing
         print(f"Applying postprocessing...")
         total_output = configurator.processor_instance.postprocess(total_output)
