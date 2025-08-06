@@ -258,10 +258,13 @@ echo 'Done'"""
             jobs_config = yaml.safe_load(f)
 
         if jobs_to_recreate == "auto":
-            jobs_to_recreate = [f.replace(".failed","") for f in os.listdir(self.jobs_dir) if f.endswith(".failed")]
+            failedjobs = [f.replace(".failed","") for f in os.listdir(self.jobs_dir) if f.endswith(".failed")]
+            runningjobs = [f.replace(".running","") for f in os.listdir(self.jobs_dir) if f.endswith(".running")]
+            idlejobs = [f.replace(".idle","") for f in os.listdir(self.jobs_dir) if f.endswith(".idle")]
+            jobs_to_recreate = failedjobs + runningjobs + idlejobs
             if len(jobs_to_recreate) == 0:
-                print(f"Could not automatically find '*.failed' files in {self.jobs_dir}! Exiting.")
-                exit(1)
+                print(f"Could not automatically find *.failed/*.running/*.idle files in {self.jobs_dir}. All jobs probably succeeded! Exiting.")
+                exit()
             jobs_to_recreate = ','.join(jobs_to_recreate)
 
         jobs_to_redo = []
@@ -277,9 +280,10 @@ echo 'Done'"""
         xrootdfailurefilelist = os.popen(f"grep -il {self.jobs_dir}/logs/*.err -e 'XRootD error'").read().split()
         xrootdfailurejoblist = ["job_"+f.split("/")[-1].split(".")[-2] for f in xrootdfailurefilelist]
         # move processed logs to a backup directory
-        backupdir = f"{self.jobs_dir}/logs/processed"
-        os.system(f"mkdir -p {backupdir}")
-        os.system(f"mv {' '.join(xrootdfailurefilelist)} {backupdir}")
+        if len(xrootdfailurefilelist) > 0:
+            backupdir = f"{self.jobs_dir}/logs/processed"
+            os.system(f"mkdir -p {backupdir}")
+            os.system(f"mv {' '.join(xrootdfailurefilelist)} {backupdir}")
 
         sitemap = get_xrootd_sites_map()
         
@@ -306,12 +310,19 @@ echo 'Done'"""
                 config.set_filesets_manually(new_fileset)
                 cloudpickle.dump(config, open(f"{self.jobs_dir}/config_{job}.pkl", "wb"))
 
+            # If the job failed due to timeout, increase the timelimit
+            if job in runningjobs:
+                update_queue(f"{self.jobs_dir}/{job}.sub",job)
+
             # Resubmit the job
             dry_run = self.run_options.get("dry-run", False)
             if dry_run:
                 print(f"Dry run, not resubmitting  {job}")
             else:
-                os.system(f"rm {self.jobs_dir}/{job}.failed")
+                if job in failedjobs:
+                    os.system(f"rm {self.jobs_dir}/{job}.failed")
+                elif job in runningjobs:
+                    os.system(f"rm {self.jobs_dir}/{job}.running")
                 os.system(f"touch {self.jobs_dir}/{job}.idle")
                 os.system(f"cd {self.jobs_dir} && condor_submit {job}.sub")
                 print(f"Resubmitted {job}")
@@ -339,6 +350,35 @@ def find_other_file(filepath,sitemap):
                         
     print(f"WARNING: No alternative site found for {filepath}. Redoing with the same file!")
     return filepath    
+
+def update_queue(subfile,job):
+    with open(subfile, 'r') as fl:
+        lines = fl.readlines()
+    
+    with open(subfile, 'w') as fl:
+        for ln in lines:
+            if ln.startswith("+JobFlavour"):
+                q = ln.split('"')[-2]
+                idx = queues.index(q)
+                if idx + 1 < len(queues):
+                    newq = queues[idx+1]
+                    print(f"Bumping {job} from {q} to {newq}")
+                else:
+                    print(f"{job}: Already at the highest queue! Cannot bump up.")
+                    newq = q
+                fl.write(f'+JobFlavour = "{newq}"\n')
+            else:
+                fl.write(ln)
+
+queues = [
+    "espresso",
+    "microcentury",
+    "longlunch",
+    "workday",
+    "tomorrow",
+    "testmatch",
+    "nextweek"
+]
                 
 def get_executor_factory(executor_name, **kwargs):
     if executor_name == "iterative":
