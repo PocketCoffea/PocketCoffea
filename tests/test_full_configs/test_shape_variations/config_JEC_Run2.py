@@ -29,7 +29,7 @@ default_parameters = defaults.get_default_parameters()
 defaults.register_configuration_dir("config_dir", localdir+"/params")
 
 parameters = defaults.merge_parameters_from_files(default_parameters,
-                                                    f"{localdir}/params/object_preselection.yaml",
+                                                    f"{localdir}/params/object_preselection_run2.yaml",
                                                     f"{localdir}/params/triggers.yaml",
                                                    update=True)
 

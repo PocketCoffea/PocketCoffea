@@ -650,7 +650,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         
     def get_shape_variations(self):
         '''
-        Generator for shape variations.
+        Generator for shape variations
         '''
         if self._isMC:
             # nominal is assumed to be the first

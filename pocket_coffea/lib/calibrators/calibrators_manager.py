@@ -13,7 +13,8 @@ class CalibratorsManager():
     The variations are used to create the list of variations used to fill the histograms and columns.
 
     The CalibratorManager keeps a dictionary of calibrated collections by each calibrator: the name is expected
-    to have the format "collection.field" (e.g. "Electron.pt").
+    to have the format "collection.field" (e.g. "Electron.pt"). The CalibratorManager checkes that each calibrator
+    returns the collections it is supposed to handle, otherwise it raises an error.
 
     The CalibratorManager keeps in memory the original collection. 
     Moreover the calibrator knows which collections are calibrated by each calibrator.
