@@ -113,7 +113,7 @@ respectively).
 |lxplus| dask               | dask@lxplus    |
 |swan| dask                 | dask@swan    |
 |T3_CH_PSI| dask            | dask@T3_CH_PSI |
-|DESY NAF | dask            | dask@DESY_NAF |
+|DESY NAF | dask,parsl      | dask@DESY_NAF, parsl@DESY |
 |RWTH Aachen LX-Cluster | parsl, dask         | parsl@RWTH, dask@RWTH |
 |RWTH CLAIX | dask         | dask@CLAIX |
 |[Purdue Analysis Facility](https://analysis-facility.physics.purdue.edu)| dask | dask@purdue-af |
