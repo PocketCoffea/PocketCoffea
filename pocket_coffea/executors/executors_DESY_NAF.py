@@ -30,11 +30,8 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
             'export XRD_RUNFORKHANDLER=1',
             'source /cvmfs/grid.desy.de/etc/profile.d/grid-ui-env.sh',
             f'export X509_USER_PROXY={self.x509_path}',
-            #f'export PYTHONPATH=$PYTHONPATH:{os.getcwd()}',
             'export MALLOC_TRIM_THRESHOLD_=0',
-            #'ulimit -s unlimited',
             'ulimit -u 32768',
-            #f'cd {os.getcwd()}',
             'echo conda prefix: $CONDA_PREFIX'
         ]
 
@@ -71,6 +68,7 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
                         prefetch_capacity=0,
                         # Condor settings are here:
                         provider=CondorProvider(
+                            launcher=SingleNodeLauncher(debug=False, fail_on_any=False),
                             nodes_per_block=1,
                             cores_per_slot = self.run_options.get("cores-per-worker", 1),
                             mem_per_slot   = self.run_options.get("mem-per-worker", 4),
