@@ -48,6 +48,8 @@ class Calibrator(ABC, metaclass=CalibratorRegistry):
     def __init__(self, params=None, metadata=None, **kwargs):
         self.params = params
         self.metadata = metadata
+        self.isMC = self.metadata["isMC"]
+        self.year = self.metadata["year"]
         # Variations must be setup in the constructor of the derived class.
         
     @abstractmethod

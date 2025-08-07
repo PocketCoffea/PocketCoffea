@@ -864,7 +864,6 @@ class Configurator:
             # Combine tables based on available width
             # For narrow terminals, stack everything vertically
             # For wide terminals, use multiple columns
-            print(display_width)
             if display_width < 120:
                 # Narrow terminal: stack all tables vertically
                 with console.capture() as capture:

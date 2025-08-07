@@ -110,21 +110,32 @@ class CalibratorsManager():
                     raise ValueError(f"Calibrator {calibrator.name} is trying to calibrated a collection that it does not declare to handle:{col}. ")
                 if "." not in col:
                     if col not in self.original_coll:     
-                        self.original_coll[col] = events[col]
+                        try:
+                            # If the collection is not in the original collection, we store it
+                            self.original_coll[col] = events[col]
+                        except ValueError:
+                            # This means that the column is not present in the events and it is created by the calibrator
+                            # and it is not a problem
+                            self.original_coll[col] = None
                     # replacing the value
                     events[col] = colls[col]
                 else:
                     # If the col is in the format "collection.field", we need to split it
                     collection, field = col.split(".")
                     if col not in self.original_coll:
-                        self.original_coll[col] = events[collection, field]
+                        try:
+                            self.original_coll[col] = events[collection, field]
+                        except ValueError:
+                            # This means that the column is not present in the events and it is created by the calibrator
+                            # and it is not a problem
+                            self.original_coll[col] = None
                     events[collection, field] = colls[col]
             # Keep track of the calibrators applied
             applied_calibrators.append(calibrator.name)
         return events
 
 
-    def calibration_loop(self, events, variations=None, variations_for_calibrators=None, debug=False):
+    def calibration_loop(self, events, variations=None, variations_for_calibrators=None, debug=True):
         '''Loop over all the requested variations and yield the
         modified events. Keep a reference to the original events.'''
 

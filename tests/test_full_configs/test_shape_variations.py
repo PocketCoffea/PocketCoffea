@@ -103,6 +103,40 @@ def test_shape_variations_JEC_run3(base_path: Path, monkeypatch: pytest.MonkeyPa
     # assert not np.isclose(H[{"cat":"baseline", "variation":"nominal"}].values().sum()/ H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalUp"}].values().sum(),  1.)
 
 
+def test_shape_variations_ele_SS_run3(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
+    monkeypatch.chdir(base_path / "test_shape_variations" )
+    outputdir = tmp_path_factory.mktemp("test_shape_variations")
+    config = load_config("config_eleSS_Run3.py", save_config=True, outputdir=outputdir)
+    assert isinstance(config, Configurator)
+
+    run_options = defaults.get_default_run_options()["general"]
+    run_options["limit-files"] = 1
+    run_options["limit-chunks"] = 1
+    run_options["chunksize"] = 100
+    config.filter_dataset(run_options["limit-files"])
+
+    executor_factory = executors_lib.get_executor_factory("iterative",
+                                                          run_options=run_options,outputdir=outputdir)
+
+    executor = executor_factory.get()
+
+    run = Runner(
+        executor=executor,
+        chunksize=run_options["chunksize"],
+        maxchunks=run_options["limit-chunks"],
+        schema=processor.NanoAODSchema,
+        format="root"
+    )
+    output = run(config.filesets, treename="Events",
+                 processor_instance=config.processor_instance)
+    save(output, outputdir / "output_all.coffea")
+    assert output is not None
+    
+    # Check the output
+    pt_orig = output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"]["ElectronGood_pt_original"]
+    pt = output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"]["ElectronGood_pt"]
+    assert np.all(pt_orig != pt)
+
 
 def test_shape_variation_default_sequence(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_shape_variations" )
