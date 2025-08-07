@@ -18,26 +18,36 @@ To build the JSON dataset, run the script `build_dataset.py`:
 /____/\_,_/_/_/\_,_/____/\_,_/\__/\_,_/___/\__/\__/ 
                                                    
 
-usage: build_datasets.py [-h] [--cfg CFG] [-k KEYS [KEYS ...]] [-d] [-o] [-c] [-s] [-l LOCAL_PREFIX] [-ws WHITELIST_SITES [WHITELIST_SITES ...]] [-bs BLACKLIST_SITES [BLACKLIST_SITES ...]] [-rs REGEX_SITES]
+usage: build_datasets [--help] [--cfg CFG] [-k KEYS [KEYS ...]] [-d] [-o] [-c] [-s] [-l LOCAL_PREFIX] 
+			[-ws WHITELIST_SITE -ws WHITELIST_SITE ...] [-bs BLACKLIST_SITE -bs BLACKLIST_SITES ...] [-ps PRIORITYLIST_SITE -ps PRIORITYLIST_SITES ...] 
+			[-rs REGEX_SITES] [-sort SORTING] [-ir] [-p 8]
 
-Build dataset fileset in json format
+  Build dataset fileset in json format
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --cfg CFG             Config file with parameters specific to the current run
-  -k KEYS [KEYS ...], --keys KEYS [KEYS ...]
-                        Dataset keys to select
-  -o, --overwrite       Overwrite existing file definition json
-  -c, --check           Check file existance in the local prefix
-  -s, --split-by-year   Split output files by year
-  -l LOCAL_PREFIX, --local-prefix LOCAL_PREFIX
-                        Local prefix
-  -ws WHITELIST_SITES [WHITELIST_SITES ...], --whitelist-sites WHITELIST_SITES [WHITELIST_SITES ...]
-                        List of sites in the whitelist
-  -bs BLACKLIST_SITES [BLACKLIST_SITES ...], --blacklist-sites BLACKLIST_SITES [BLACKLIST_SITES ...]
-                        List of sites in the blacklist
-  -rs REGEX_SITES, --regex-sites REGEX_SITES
-                        Regex to filter sites
+Options:
+  --cfg TEXT                      Config file with parameters specific to the
+                                  current run  [required]
+  -k, --keys TEXT                 Keys of the datasets to be created. If None,
+                                  the keys are read from the datasets
+                                  definition file.
+  -d, --download                  Download datasets from DAS
+  -o, --overwrite                 Overwrite existing .json datasets
+  -c, --check                     Check existence of the datasets
+  -s, --split-by-year             Split datasets by year
+  -l, --local-prefix TEXT
+  -ws, --allowlist-sites TEXT     List of sites in whitelist
+  -bs, --blocklist-sites TEXT     List of sites in blacklist
+  -ps, --prioritylist-sites TEXT  List of priorities to sort sites (requires
+                                  sort: priority)
+  -rs, --regex-sites TEXT         example: -rs
+                                  'T[123]_(FR|IT|DE|BE|CH|UK)_\w+' to serve
+                                  data from sites in Europe.
+  -sort, --sort-replicas TEXT     Sort replicas (default: geoip).
+  -ir, --include-redirector       Use the redirector path if no site is
+                                  available after the specified whitelist,
+                                  blacklist and regexes are applied for sites.
+  -p, --parallelize INTEGER
+  -h, --help                      Show this message and exit.
 
 ```
 

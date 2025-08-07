@@ -40,10 +40,14 @@ class WeightsManager:
         self._sample = metadata["sample"]
         self._dataset = metadata["dataset"]
         self._year = metadata["year"]
+        self._isMC = metadata["isMC"]
         self.weightsConf = weightsConf
         #load the weights objects from the wrappers
         self._weightsObj = {}
         for w in weightsWrappers:
+            # Check if the weight can be applied on data
+            if not self._isMC and w.isMC_only:
+                continue
             # this allows to have variations depending on the metadata
             self._weightsObj[w.name] = w(params, metadata)
         # Store the available variations for the weights

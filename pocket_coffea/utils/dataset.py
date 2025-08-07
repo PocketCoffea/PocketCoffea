@@ -18,7 +18,18 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from .network import get_proxy_path
 from . import rucio
 
-def do_dataset(key, config, local_prefix, allowlist_sites, include_redirector, blocklist_sites, regex_sites, **kwargs):
+def do_dataset(
+    key,
+    config,
+    local_prefix,
+    allowlist_sites,
+    include_redirector,
+    blocklist_sites,
+    prioritylist_sites,
+    regex_sites,
+    sort_replicas: str = "geoip",
+    **kwargs,
+):
     print("*" * 40)
     print("> Working on dataset: ", key)
     if key not in config:
@@ -36,8 +47,10 @@ def do_dataset(key, config, local_prefix, allowlist_sites, include_redirector, b
                 "allowlist_sites": allowlist_sites,
                 "include_redirector": include_redirector,
                 "blocklist_sites": blocklist_sites,
+                "prioritylist_sites": prioritylist_sites,
                 "regex_sites": regex_sites,
             },
+            sort_replicas=sort_replicas,
         )
     except:
         raise Exception(f"Error getting info about dataset: {key}")
@@ -45,10 +58,22 @@ def do_dataset(key, config, local_prefix, allowlist_sites, include_redirector, b
     return dataset
 
 
-
-def build_datasets(cfg, keys=None, overwrite=False, download=False, check=False, split_by_year=False, local_prefix=None,
-                   allowlist_sites=None, include_redirector=False, blocklist_sites=None, regex_sites=None, parallelize=4):
-
+def build_datasets(
+    cfg,
+    keys=None,
+    overwrite=False,
+    download=False,
+    check=False,
+    split_by_year=False,
+    local_prefix=None,
+    allowlist_sites=None,
+    include_redirector=False,
+    blocklist_sites=None,
+    prioritylist_sites=None,
+    regex_sites=None,
+    sort_replicas="geoip",
+    parallelize=4,
+):
     config = json.load(open(cfg))
 
     if not keys:
@@ -64,8 +89,10 @@ def build_datasets(cfg, keys=None, overwrite=False, download=False, check=False,
         "allowlist_sites": allowlist_sites,
         "include_redirector": include_redirector,
         "blocklist_sites": blocklist_sites,
+        "prioritylist_sites": prioritylist_sites,
         "regex_sites": regex_sites,
-        "parallelize": parallelize
+        "parallelize": parallelize,
+        "sort_replicas": sort_replicas,
     }
     
     if parallelize == 1:
@@ -84,9 +111,18 @@ def build_datasets(cfg, keys=None, overwrite=False, download=False, check=False,
             dataset.download()
 
 class Sample:
-    def __init__(self, name, das_names, sample, metadata, sites_cfg, **kwargs):
-        '''
-        Class representing a single analysis sample.
+    def __init__(
+        self,
+        name,
+        das_names,
+        sample,
+        metadata,
+        sites_cfg,
+        sort_replicas: str = "geoip",
+        **kwargs,
+    ):
+        """Represent a single analysis sample.
+
         - The name is the unique key of the sample in the dataset file.
         - The DAS name is the unique identifier of the sample in CMS
         - The sample represent the type of events: DATA/Wjets/ttHbb/ttBB. It is used to group the same type of events
@@ -94,8 +130,8 @@ class Sample:
          -- year
          -- isMC: true/false
          -- era: A/B/C/D (only for data)
-        - sites_cfg is a dictionary contaning allowlist, blocklist and regex to filter the SITES
-        '''
+        - sites_cfg is a dictionary contaning allowlist, blocklist, prioritylist and regex to filter the SITES
+        """
         self.name = name
         self.das_names = das_names
         self.metadata = {}
@@ -110,6 +146,7 @@ class Sample:
         self.fileslist_concrete = []
         self.parentslist = []
         self.sites_cfg = sites_cfg
+        self.sort_replicas: str = sort_replicas
 
         print(
             f">> Query for sample: {self.metadata['sample']},  das_name: {self.metadata['das_names']}"
@@ -136,6 +173,7 @@ class Sample:
                 verify=False,
             )
             filesjson = r.json()
+            invalid_list = []
             for fj in filesjson:
                 if 'is_file_valid' not in fj.keys():
                     # print("fj=", fj)
@@ -143,11 +181,11 @@ class Sample:
                 else:
                     if fj["is_file_valid"] == 0:
                         #print(fj)
-                        print(f"\t WARNING: A file not valid on DAS: {fj['logical_file_name']}")
+                        print(f"\t WARNING: This file is Not Valid on DAS: {fj['logical_file_name']}")
                         print("\t We are skipping it")
-                        #raise Exception(f"Invalid files in sample {self}!")
+                        invalid_list.append(fj['logical_file_name'])                        
                         continue
-                    
+                        
                     self.fileslist_redirector.append(fj['logical_file_name'])
                     self.metadata["nevents"] += fj['event_count']
                     self.metadata["size"] += fj['file_size']
@@ -157,7 +195,7 @@ class Sample:
             if self.metadata.get("dbs_instance", "prod/global") == "prod/global":
                 # Now query rucio to get the concrete dataset passing the sites filtering options
                 files_replicas, sites, sites_counts = rucio.get_dataset_files_replicas(
-                    das_name, **self.sites_cfg, mode="first"
+                    das_name, **self.sites_cfg, mode="first", sort=self.sort_replicas, invalid_list=invalid_list
                 )
             else:
                 # Use DBS to get the site
@@ -216,7 +254,14 @@ class Sample:
 
 
 class Dataset:
-    def __init__(self, name, cfg, sites_cfg=None, append_parents=False):
+    def __init__(
+        self,
+        name,
+        cfg,
+        sites_cfg=None,
+        sort_replicas: str = "geoip",
+        append_parents=False,
+    ):
         self.cfg = cfg
         self.prefix = cfg.get("storage_prefix", None)
         self.name = name
@@ -232,9 +277,11 @@ class Dataset:
             else {
                 "allowlist_sites": None,
                 "blocklist_sites": None,
+                "prioritylist_sites": None,
                 "regex_sites": None,
             }
         )
+        self.sort_replicas = sort_replicas
         self.append_parents = append_parents
         self.get_samples(self.cfg["files"])
 
@@ -257,6 +304,7 @@ class Dataset:
                 sample=self.sample,
                 metadata=scfg["metadata"],
                 sites_cfg=self.sites_cfg,
+                sort_replicas=self.sort_replicas,
                 **kwargs,
             )
             self.samples_obj.append(sample)

@@ -3,6 +3,81 @@ import awkward as ak
 import correctionlib
 
 
+def get_pho_sf(params, year, pt, eta, counts, key=''):
+    '''
+    This function computes the per-photon id or pxseed SF.
+    '''
+    photonSF = params["photon_scale_factors"]["photon_sf"]
+    # translate the `year` key into the corresponding key in the correction file provided by the EGM-POG
+    year_pog = photonSF["era_mapping"][year]
+
+    photon_correctionset = correctionlib.CorrectionSet.from_file(
+        photonSF.JSONfiles[year]['file']
+    )        
+
+    if key == "id":
+    
+        sfName = photonSF.sf_name[year][key]
+    
+        sf = photon_correctionset[sfName].evaluate(
+        year_pog, "nominal", "Medium", np.abs(eta.to_numpy()), pt.to_numpy()
+        )
+        sfup = photon_correctionset[sfName].evaluate(
+        year_pog, "systup", "Medium" , np.abs(eta.to_numpy()), pt.to_numpy() 
+        )
+        sfdown = photon_correctionset[sfName].evaluate(
+        year_pog, "systdown", "Medium", np.abs(eta.to_numpy()), pt.to_numpy()
+        )
+
+    elif key == "pxseed":
+
+        sfName = photonSF.sf_name[year][key]
+    
+        sf = photon_correctionset[sfName].evaluate(
+        year_pog, "nominal", "Medium", 'EBInc')
+
+        sfup = photon_correctionset[sfName].evaluate(
+        year_pog, "systup", "Medium"  , 'EBInc')
+            
+        sfdown = photon_correctionset[sfName].evaluate(
+        year_pog, "systdown", "Medium", 'EBInc')
+
+    else:
+
+        raise Exception(f"Photon SF key {key} not recognized")
+
+  
+    # The unflattened arrays are returned in order to have one row per event.
+    return (
+        ak.unflatten(sf, counts),
+        ak.unflatten(sfup, counts),
+        ak.unflatten(sfdown, counts),
+    )
+
+
+def sf_photon(params, events, year, key=''):
+    '''
+    This function computes the per-photon id SF and returns the corresponding per-event SF, obtained by multiplying the per-photon SF in each event.
+    Additionally, also the up and down variations of the SF are returned.
+    '''
+    coll = params.photon_scale_factors.photon_sf.collection
+    pho_pt = events[coll].pt
+    pho_eta = events[coll].eta
+
+    # Since `correctionlib` does not support jagged arrays as an input, the pt and eta arrays are flattened.
+    pho_pt_flat, pho_eta_flat, pho_counts = (
+        ak.flatten(pho_pt),
+        ak.flatten(pho_eta),
+        ak.num(pho_pt),
+    )
+    sf, sfup, sfdown = get_pho_sf(params, year, pho_pt_flat, pho_eta_flat, pho_counts, key)
+
+    # The SF arrays corresponding to all the photons are multiplied along the
+    # photon axis in order to obtain a per-event scale factor.
+    return ak.prod(sf, axis=1), ak.prod(sfup, axis=1), ak.prod(sfdown, axis=1)
+
+
+
 def get_ele_sf(
         params, year, pt, eta, phi, counts=None, key='', pt_region=None, variations=["nominal"]
 ):

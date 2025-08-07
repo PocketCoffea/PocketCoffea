@@ -121,6 +121,42 @@ def test_custom_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_pa
 
     compare_totalweight(output, ["nJetGood"])
 
+
+    
+def test_custom_weights_on_data(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
+    monkeypatch.chdir(base_path / "test_custom_weights" )
+    outputdir = tmp_path_factory.mktemp("test_custom_weights_on_data")
+    config = load_config("config_weights_data.py", save_config=True, outputdir=outputdir)
+    assert isinstance(config, Configurator)
+
+    run_options = defaults.get_default_run_options()["general"]
+    run_options["limit-files"] = 1
+    run_options["limit-chunks"] = 1
+    run_options["chunksize"] = 500
+    config.filter_dataset(run_options["limit-files"])
+
+    executor_factory = executors_lib.get_executor_factory("iterative",
+                                                          run_options=run_options,                                                          outputdir=outputdir)
+
+    executor = executor_factory.get()
+
+    run = Runner(
+        executor=executor,
+        chunksize=run_options["chunksize"],
+        maxchunks=run_options["limit-chunks"],
+        schema=processor.NanoAODSchema,
+        format="root"
+    )
+    output = run(config.filesets, treename="Events",
+                 processor_instance=config.processor_instance)
+    save(output, outputdir / "output_all.coffea")
+    
+    assert output is not None
+
+    # Check the output
+    H = output["variables"]["nJetGood"]["DATA_SingleMuon"]["DATA_SingleMuon_2018_EraA"]
+    assert np.isclose(H[{"cat":"2jets_B"}].values().sum()/ H[{"cat":"2jets_A"}].values().sum(), 2.0)
+
     
 def test_cartesian_categorization(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_categorization" )
@@ -172,15 +208,13 @@ def test_subsamples(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_f
     assert isinstance(config, Configurator)
 
     # Check the subsamples config
-    assert config.samples == ['TTTo2L2Nu', 'DATA_SingleMuon', 'DATA_SingleEle']
+    assert config.samples == ['TTTo2L2Nu', 'DATA_SingleMuon']
     assert config.has_subsamples["TTTo2L2Nu"] == True
     assert config.has_subsamples["DATA_SingleMuon"] == True
-    assert config.has_subsamples["DATA_SingleEle"] == False
     assert config.subsamples_list == ['DATA_SingleMuon__clean', 'TTTo2L2Nu__ele', 'TTTo2L2Nu__mu']
     assert config.subsamples_reversed_map == {'TTTo2L2Nu__ele': 'TTTo2L2Nu',
                                               'TTTo2L2Nu__mu': 'TTTo2L2Nu',
-                                              'DATA_SingleMuon__clean': 'DATA_SingleMuon',
-                                              'DATA_SingleEle': 'DATA_SingleEle'}
+                                              'DATA_SingleMuon__clean': 'DATA_SingleMuon'}
 
     run_options = defaults.get_default_run_options()["general"]
     run_options["limit-files"] = 1
@@ -206,29 +240,23 @@ def test_subsamples(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_f
 
     assert output is not None
     assert output["cutflow"] == {
-        'initial': {'DATA_EGamma_2018_EraA': 500,
-                    'DATA_SingleMuon_2018_EraA': 500,
+        'initial': {'DATA_SingleMuon_2018_EraA': 500,
                     'TTTo2L2Nu_2018': 500},
-        'skim': {'DATA_EGamma_2018_EraA': 354,
-                 'DATA_SingleMuon_2018_EraA': 434,
+        'skim': {'DATA_SingleMuon_2018_EraA': 434,
                  'TTTo2L2Nu_2018': 326},
-        'presel': {'DATA_EGamma_2018_EraA': 354,
-                   'DATA_SingleMuon_2018_EraA': 434,
+        'presel': {'DATA_SingleMuon_2018_EraA': 434,
                    'TTTo2L2Nu_2018': 326},
-        'baseline': {'DATA_EGamma_2018_EraA': {'DATA_SingleEle': 354},
-                     'DATA_SingleMuon_2018_EraA': {'DATA_SingleMuon': 434,
+        'baseline': {'DATA_SingleMuon_2018_EraA': {'DATA_SingleMuon': 434,
                                                    'DATA_SingleMuon__clean': 433},
                      'TTTo2L2Nu_2018': {'TTTo2L2Nu': 326,
                                         'TTTo2L2Nu__ele': 107,
                                         'TTTo2L2Nu__mu': 156}},
-        '1btag': {'DATA_EGamma_2018_EraA': {'DATA_SingleEle': 24},
-                  'DATA_SingleMuon_2018_EraA': {'DATA_SingleMuon': 36,
+        '1btag': {'DATA_SingleMuon_2018_EraA': {'DATA_SingleMuon': 36,
                                                 'DATA_SingleMuon__clean': 36},
                   'TTTo2L2Nu_2018': {'TTTo2L2Nu': 279,
                                      'TTTo2L2Nu__ele': 89,
                                      'TTTo2L2Nu__mu': 138}},
-        '2btag': {'DATA_EGamma_2018_EraA': {'DATA_SingleEle': 2},
-                  'DATA_SingleMuon_2018_EraA': {'DATA_SingleMuon': 1,
+        '2btag': {'DATA_SingleMuon_2018_EraA': {'DATA_SingleMuon': 1,
                                                 'DATA_SingleMuon__clean': 1},
                   'TTTo2L2Nu_2018': {'TTTo2L2Nu': 115,
                                      'TTTo2L2Nu__ele': 39,
@@ -560,10 +588,10 @@ def test_columns_export_parquet(base_path: Path, monkeypatch: pytest.MonkeyPatch
     assert output is not None
 
     # build the parquet dataset from output
-    ak.to_parquet.dataset("./columns/TTTo2L2Nu_2018/ele/4jets")
-    ak.to_parquet.dataset("./columns/DATA_EGamma_2018_EraA/2btag")
+    ak.to_parquet.dataset("./columns/TTTo2L2Nu_2018/mu/4jets")
+    ak.to_parquet.dataset("./columns/DATA_SingleMuon_2018_EraA/2btag")
     # load the parquet dataset
-    dataset = ak.from_parquet("./columns/TTTo2L2Nu_2018/ele/4jets")
+    dataset = ak.from_parquet("./columns/TTTo2L2Nu_2018/mu/4jets")
     assert dataset is not None
     
     assert "JetGood_pt" in dataset.fields

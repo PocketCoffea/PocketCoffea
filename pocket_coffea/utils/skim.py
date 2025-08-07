@@ -63,7 +63,7 @@ def copy_file(
     )
     merged_subdirs = "/".join(subdirs) if xrootd else os.path.sep.join(subdirs)
     destination = (
-        location + merged_subdirs + f"/{fname}"
+        f"{location}/" + merged_subdirs + f"/{fname}"
         if xrootd
         else os.path.join(location, os.path.join(merged_subdirs, fname))
     )

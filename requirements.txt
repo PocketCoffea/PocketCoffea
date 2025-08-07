@@ -1,5 +1,5 @@
 typing-extensions>=3.7;python_version<'3.8'
-coffea==0.7.25
+coffea==0.7.29
 numba>=0.57.0
 numpy>=1.22.0
 awkward>=1.10.3,<2
@@ -13,7 +13,8 @@ requests
 parsl
 matplotlib>=3.7
 rich
-rucio-clients>=35.2.1
+rucio-clients>=37.5.0
+onnxruntime
 omegaconf
 law
 click>=8.0.4

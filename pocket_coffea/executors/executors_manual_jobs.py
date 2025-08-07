@@ -8,10 +8,10 @@ from math import ceil
 
 class ExecutorFactoryManualABC(ABC):
 
-    def __init__(self, run_options, **kwargs):
+    def __init__(self, run_options, outputdir, **kwargs):
         self.run_options = run_options
         self.job_name = run_options.get("job-name", "job")
-        self.jobs_dir = os.path.join(run_options.get("jobs-dir", "./jobs-dir/"), self.job_name)
+        self.jobs_dir = os.path.join(run_options.get("jobs-dir", outputdir), self.job_name)
         recreate_jobs = run_options.get("recreate-jobs", None)
         if not recreate_jobs:
             if  os.path.exists(self.jobs_dir):

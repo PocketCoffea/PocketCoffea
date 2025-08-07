@@ -100,7 +100,7 @@ def dump_ak_array(
     awkward.to_parquet(akarr, local_file)
     if xrootd:
         copyproc = XRootD.client.CopyProcess()
-        copyproc.add_job(local_file, destination)
+        copyproc.add_job(local_file, destination, force=True)
         copyproc.prepare()
         status, response = copyproc.run()
         if status.status != 0:

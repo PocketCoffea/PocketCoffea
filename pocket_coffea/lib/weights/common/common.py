@@ -5,6 +5,7 @@ import awkward as ak
 from pocket_coffea.lib.scale_factors import (
     sf_ele_reco,
     sf_ele_id,
+    sf_photon,
     sf_mu,
     sf_btag,
     sf_btag_calib,
@@ -116,7 +117,21 @@ SF_PSWeight_fsr = WeightLambda.wrap_func(
     has_variations=True
     )
 
-        
+
+SF_pho_pxseed = WeightLambda.wrap_func(
+    name="sf_pho_pxseed",
+    function=lambda params, metadata, events, size, shape_variations:
+        sf_photon(params, events, metadata["year"], 'pxseed'),
+    has_variations=True
+    )
+
+SF_pho_id = WeightLambda.wrap_func(
+    name="sf_pho_id",
+    function=lambda params, metadata, events, size, shape_variations:
+        sf_photon(params, events, metadata["year"], 'id'),
+    has_variations=True
+    )
+
 ########################################
 # Btag scale factors have weights depending on the shape_variation
 
@@ -304,6 +319,8 @@ common_weights = [
     pileup,
     SF_ele_reco,
     SF_ele_id,
+    SF_pho_pxseed,
+    SF_pho_id,
     SF_mu_id,
     SF_mu_iso,
     SF_mu_trigger,
