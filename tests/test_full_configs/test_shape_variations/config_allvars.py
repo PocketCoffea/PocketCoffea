@@ -31,7 +31,6 @@ defaults.register_configuration_dir("config_dir", localdir+"/params")
 parameters = defaults.merge_parameters_from_files(default_parameters,
                                                     f"{localdir}/params/object_preselection_run2.yaml",
                                                     f"{localdir}/params/triggers.yaml",
-                                                    f"{localdir}/params/jets_calibration.yaml",
                                                    update=True)
 
 #Creating custom weight
@@ -119,6 +118,7 @@ cfg = Configurator(
         **jet_hists(),
         **count_hist("JetGood"),
         **count_hist("BJetGood"),
+        "MET_pt": HistConf([Axis(coll="MET", field="pt", label="MET pT [GeV]", bins=50, start=0, stop=200)]),
     },
 
     columns = {

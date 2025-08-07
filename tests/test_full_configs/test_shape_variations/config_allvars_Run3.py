@@ -5,7 +5,7 @@ from pocket_coffea.lib.cut_functions import get_nObj_min, get_nObj_eq, get_HLTse
 from pocket_coffea.parameters.cuts import passthrough
 from pocket_coffea.parameters.histograms import *
 from pocket_coffea.lib.categorization import StandardSelection, CartesianSelection, MultiCut
-from pocket_coffea.lib.calibrators.common.common import JetsCalibrator
+from pocket_coffea.lib.calibrators.common import default_calibrators_sequence 
 
 import workflow
 from workflow import BasicProcessor
@@ -53,6 +53,9 @@ cfg = Configurator(
             "TTTo2L2Nu": {
                 "ele": [get_nObj_min(1, coll="ElectronGood"), get_nObj_eq(0, coll="MuonGood")],
                 "mu":  [get_nObj_eq(0, coll="ElectronGood"), get_nObj_min(1, coll="MuonGood")],
+            },
+            "DATA_SingleMuon": {
+                "clean": [get_HLTsel(primaryDatasets=["SingleEle"], invert=True)], # crosscleaning SingleELe trigger on SIngleMuon
             }
         }
     },
@@ -85,7 +88,7 @@ cfg = Configurator(
     },
     # Passing a list of WeightWrapper objects
     weights_classes = common_weights,
-    calibrators = [JetsCalibrator],
+    calibrators = default_calibrators_sequence,
 
     variations = {
         "weights": {
@@ -114,8 +117,7 @@ cfg = Configurator(
         **jet_hists(),
         **count_hist("JetGood"),
         **count_hist("BJetGood"),
-         "MET_pt": HistConf([Axis(coll="MET", field="pt", label="MET pT [GeV]", bins=50, start=0, stop=200)]),
-   
+        "MET_pt": HistConf([Axis(coll="PuppiMET", field="pt", label="MET pT [GeV]", bins=50, start=0, stop=200)]),
     },
 
     columns = {
