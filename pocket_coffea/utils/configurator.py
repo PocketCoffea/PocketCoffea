@@ -10,6 +10,12 @@ import logging
 from omegaconf import OmegaConf
 from warnings import warn
 
+from rich.console import Console
+from rich.table import Table
+from rich.panel import Panel
+from rich.columns import Columns
+from rich.text import Text
+
 from ..lib.cut_definition import Cut
 from ..lib.categorization import StandardSelection, CartesianSelection
 from ..parameters.cuts import passthrough
@@ -275,7 +281,6 @@ class Configurator:
 
         # Mark the configurator as loaded
         self.loaded = True
-        
 
     def load_datasets(self):
         for json_dataset in self.datasets_cfg["jsons"]:
@@ -485,9 +490,7 @@ class Configurator:
             # chunk, as the weight. 
             available_variations = self.available_calibrators_variations
 
-        print(available_variations)
         # Read the config and save the list of variations names for each sample (and category if needed)
-
         if "common" not in wcfg:
             print("Variation configuration error: missing 'common' weights key")
             raise Exception("Wrong variation configuration")
@@ -751,6 +754,152 @@ class Configurator:
         # dump also the parameters
 
     def __repr__(self):
+        try:
+            # Auto-detect terminal width, but with sensible defaults
+            # If not in a terminal (e.g., Jupyter), use a reasonable width
+            import os
+            terminal_width = None
+            try:
+                terminal_width = os.get_terminal_size().columns
+            except OSError:
+                # Not in a terminal (e.g., Jupyter notebook)
+                terminal_width = 120
+            
+            # Clamp to reasonable bounds
+            display_width = max(80, min(terminal_width, 200))
+            
+            console = Console(width=display_width, force_terminal=True)
+            
+            if not self.loaded:
+                # Simple panel for unloaded configurator
+                content = Text()
+                content.append("Configurator instance (not loaded yet)\n", style="bold red")
+                content.append(f"Workflow: {self.workflow}\n", style="cyan")
+                content.append(f"Workflow options: {self.workflow_options}", style="dim")
+                
+                panel = Panel(content, title="[bold blue]PocketCoffea Configurator[/bold blue]", 
+                            border_style="blue", expand=False)
+                
+                with console.capture() as capture:
+                    console.print(panel)
+                return capture.get()
+            
+            # Create main info table
+            main_table = Table(title="Workflow overview", show_header=True, header_style="bold magenta")
+            main_table.add_column("Property", style="cyan", width=20)
+            main_table.add_column("Value", style="white")
+            
+            main_table.add_row("Workflow", str(self.workflow))
+            main_table.add_row("Workflow Options", format(self.workflow_options))
+            main_table.add_row("N. Datasets", str(len(self.datasets)))
+            
+            # Create datasets table
+            datasets_table = Table(title="Datasets", show_header=True, header_style="bold green")
+            datasets_table.add_column("Dataset", style="yellow", width=25)
+            datasets_table.add_column("Sample", style="cyan", width=20)
+            datasets_table.add_column("Files", style="magenta", width=8, justify="right")
+            datasets_table.add_column("Events", style="blue", width=12, justify="right")
+            
+            for dataset, meta in self.filesets.items():
+                metadata = meta["metadata"]
+                datasets_table.add_row(
+                    dataset[:25] + "..." if len(dataset) > 25 else dataset,
+                    metadata['sample'],
+                    str(len(meta['files'])),
+                    str(metadata['nevents'])
+                )
+            
+            # Create subsamples table
+            subsamples_table = Table(title="Subsamples", show_header=True, header_style="bold cyan")
+            subsamples_table.add_column("Sample", style="yellow", width=30)
+            subsamples_table.add_column("Cuts", style="white")
+            
+            for subsample, cuts in self.subsamples.items():
+                cuts_str = str(cuts)[:80] + "..." if len(str(cuts)) > 80 else str(cuts)
+                subsamples_table.add_row(subsample, cuts_str)
+            
+            # Create configuration table
+            config_table = Table(title="Configuration", show_header=True, header_style="bold red")
+            config_table.add_column("Component", style="cyan", width=20)
+            config_table.add_column("Details", style="white")
+            
+            config_table.add_row("Skim", str([c.name for c in self.skim]))
+            config_table.add_row("Preselection", str([c.name for c in self.preselections]))
+            config_table.add_row("Categories", str(self.categories))
+            config_table.add_row("Variables", format(list(self.variables.keys())))
+            # Handle columns_cfg which can be None
+            columns_display = "None" if self.columns_cfg is None else format(list(self.columns_cfg.keys()))
+            config_table.add_row("Columns", columns_display)
+
+            # Create variations table with better dictionary visualization
+            variations_table = Table(title="Variations", show_header=True, header_style="bold yellow")
+            variations_table.add_column("Sample", style="cyan", width=20)
+            variations_table.add_column("Type", style="yellow", width=10)
+            variations_table.add_column("Available Variations", style="white")
+            
+            # Show weight variations per sample
+            for sample in sorted(self.available_weights_variations.keys()):
+                variations = self.available_weights_variations[sample]
+                variations_str = ", ".join(variations[:5])  # Show first 5
+                if len(variations) > 5:
+                    variations_str += f" ... (+{len(variations)-5} more)"
+                variations_table.add_row(sample, "Weights", variations_str)
+            
+            # Show shape variations per sample 
+            for sample in sorted(self.available_shape_variations.keys()):
+                variations = self.available_shape_variations[sample]
+                if variations:  # Only show if there are shape variations
+                    variations_str = ", ".join(variations[:5])  # Show first 5
+                    if len(variations) > 5:
+                        variations_str += f" ... (+{len(variations)-5} more)"
+                    variations_table.add_row(sample, "Shape", variations_str)
+                else:
+                    variations_table.add_row(sample, "Shape", "[dim]None[/dim]")
+            
+            # If no variations at all, show a message
+            if (not any(self.available_weights_variations.values()) and 
+                not any(self.available_shape_variations.values())):
+                variations_table.add_row("[dim]No variations configured[/dim]", "", "")
+            
+            # Combine tables based on available width
+            # For narrow terminals, stack everything vertically
+            # For wide terminals, use multiple columns
+            print(display_width)
+            if display_width < 120:
+                # Narrow terminal: stack all tables vertically
+                with console.capture() as capture:
+                    console.print(Panel(Text("PocketCoffea Configurator", style="bold blue"), style="blue"))
+                    console.print(main_table)
+                    console.print()
+                    console.print(config_table)
+                    console.print()
+                    console.print(datasets_table)
+                    console.print()
+                    console.print(subsamples_table)
+                    console.print()
+                    console.print(variations_table)
+            else:
+                # Wide terminal: use columns for better space utilization
+                tables_group_top = Columns([main_table, config_table], equal=False, expand=True)
+                tables_group_middle = Columns([datasets_table, subsamples_table], equal=False, expand=True)
+                tables_group_bottom = Columns([variations_table], equal=False, expand=True)
+
+                with console.capture() as capture:
+                    console.print(Panel(Text("PocketCoffea Configurator", style="bold blue"), style="blue"))
+                    console.print(tables_group_top)
+                    console.print()
+                    console.print(tables_group_middle)
+                    console.print()
+                    console.print(tables_group_bottom)
+            
+            return capture.get()
+            
+        except Exception as e:
+            # Fallback to basic representation if Rich fails
+            return self._basic_repr()
+    
+    def _basic_repr(self):
+        """Fallback method for when Rich is not available or fails"""
         if not self.loaded:
             s = [
             'Configurator instance (not loaded yet):',
