@@ -13,12 +13,14 @@ import cloudpickle
 import yaml
 from copy import deepcopy
 
-def get_worker_env(run_options,x509_path):
+def get_worker_env(run_options,x509_path,exec_name="dask"):
     env_worker = [
         'export XRD_RUNFORKHANDLER=1',
-        'export MALLOC_TRIM_THRESHOLD_=0',
-        'ulimit -u unlimited',
+        'export MALLOC_TRIM_THRESHOLD_=0'        ,
         ]
+    if exec_name == "dask":
+        env_worker.append('ulimit -u unlimited')
+
     if not run_options['ignore-grid-certificate']:
         env_worker.append(f'export X509_USER_PROXY={x509_path}')
     
@@ -40,7 +42,11 @@ def get_worker_env(run_options,x509_path):
     # the local virtual environment. 
     if run_options.get("local-virtualenv", False):
         env_worker.append(f"source {sys.prefix}/bin/activate")
-        env_worker.append(f"export PYTHONPATH={sys.prefix}/lib:$PYTHONPATH")
+        if exec_name == "dask":
+            env_worker.append(f"export PYTHONPATH={sys.prefix}/lib:$PYTHONPATH")
+        elif exec_name == "condor":
+            pythonpath = sys.prefix.rsplit('/', 1)[0]
+            env_worker.append(f"export PYTHONPATH={pythonpath}")
 
     return env_worker
 
@@ -89,7 +95,7 @@ class DaskExecutorFactory(ExecutorFactoryABC):
                     "when_to_transfer_output": "ON_EXIT",
                     "+JobFlavour": f'"{self.run_options["queue"]}"'
                 },
-                env_extra=get_worker_env(self.run_options,self.x509_path),
+                env_extra=get_worker_env(self.run_options,self.x509_path,"dask"),
             )
 
         #Cluster adaptive number of jobs only if requested
@@ -168,8 +174,10 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
         abs_jobdir_path = os.path.abspath(self.jobs_dir)
         os.makedirs(f"{self.jobs_dir}/logs", exist_ok=True)
         
-        env_extras_list=get_worker_env(self.run_options,self.x509_path)
+        env_extras_list=get_worker_env(self.run_options,self.x509_path,"condor")
         env_extras= "\n".join(env_extras_list)
+
+        pythonpath = sys.prefix.rsplit('/', 1)[0]
 
         script = f"""#!/bin/bash
 {env_extras}
@@ -181,7 +189,7 @@ rm -f $JOBDIR/job_$1.idle
 echo "Starting job $1"
 touch $JOBDIR/job_$1.running
 
-pocket-coffea run --cfg $2 -o output EXECUTOR --chunksize $4
+python {pythonpath}/pocket_coffea/scripts/runner.py --cfg $2 -o output EXECUTOR --chunksize $4
 # Do things only if the job is successful
 if [ $? -eq 0 ]; then
     echo 'Job successful'
