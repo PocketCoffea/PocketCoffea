@@ -111,11 +111,11 @@ respectively).
 | Site | Supported executor | Executor string|
 |------|--------------------|----------------|
 |lxplus| dask               | dask@lxplus    |
-|swan| dask                 | dask@swan    |
+|swan| dask                 | dask@swan      |
 |T3_CH_PSI| dask            | dask@T3_CH_PSI |
-|DESY NAF | dask            | dask@DESY_NAF |
-|RWTH Aachen LX-Cluster | parsl, dask         | parsl@RWTH, dask@RWTH |
-|RWTH CLAIX | dask         | dask@CLAIX |
+|DESY NAF | parsl           | parsl@DESY     |
+|RWTH Aachen LX-Cluster | parsl, dask    | parsl@RWTH, dask@RWTH |
+|RWTH CLAIX | dask          | dask@CLAIX |
 |[Purdue Analysis Facility](https://analysis-facility.physics.purdue.edu)| dask | dask@purdue-af |
 |[INFN Analysis Facility](https://infn-cms-analysisfacility.readthedocs.io/)| dask | dask@infn-af |
 |Brown brux20 cluster | dask | dask@brux |
@@ -167,26 +167,27 @@ dask@lxplus:
 
 
 ### Executor options
-The dataset splitting (chunksize), the number of workers, and the other options, which may be executor-specific, must be
-configured by the user passing to `pocket-coffea run` a .yaml file containing options. These options are overwritten over the
-default options for the requested executor. 
+The dataset splitting (chunksize), the number of workers, memory and most other options
+can be re-configured by the user via custom `my_run_options.yaml` file, that is passed to
+`pocket-coffea run` command. These options are overwrite the default parameters of the
+requested executor.
 
-For example:
-```bash
+For example: `$> cat my_run_options.yaml`
 
-$> cat my_run_options.yaml
-
+```yaml
 scaleout: 400
 chunksize: 50000
 queue: "espresso"
 mem-per-worker: 6GB
-
-
+```
+then use `--custom-run-options my_run_options.yaml` to `run`:
+```bash
 $> pocket-coffea run  --cfg analysis_config.py -o output --executor dask@lxplus  --custom-run-options my_run_options.yaml
 ```
 
-The user can also modify on the fly some run options using arguments of the `pocket-coffea run` script. For example by limiting
-the number of files or number of chunks to analyse (for testing purposes)
+The user can also modify on the fly some run options using arguments to the `pocket-coffea
+run` script. For example, limiting the number of files or number of chunks to analyse (for
+testing purposes):
 
 ```bash
 $> pocket-coffea run  --cfg analysis_config.py -o output --executor dask@lxplus \
@@ -254,16 +255,13 @@ it before executing the dask worker jobs.
 :::
 
 Moreover the user can add a list of completely custom setup commands that are run inside a worker job before executing
-the analysis processor. Just specify them in the run options:
+the analysis processor. Just specify them in the run options user file `my_run_options.yaml`:
 
 ```yaml
-$> cat my_run_options.yaml
-
 custom-setup-commands:
   - echo $HOME
   - source /etc/profile.d/conda.sh
   - export CUSTOM_VARIABLE=1
-
 ```
 
 ## Dask scheduler on lxplus
@@ -369,7 +367,7 @@ The module is then used like this:
 
 ```bash
 $> pocket-coffea run --cfg analysis_config.py -o output --executor dask  --executor-custom-setup my_custom_executor.py
---run-options my_run_options.py
+--run-options my_run_options.yaml
 ```
 
 
