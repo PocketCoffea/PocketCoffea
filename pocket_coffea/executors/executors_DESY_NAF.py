@@ -68,8 +68,8 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
                         prefetch_capacity=0,
                         # Condor settings are here:
                         provider=CondorProvider(
-                            launcher=SingleNodeLauncher(debug=False, fail_on_any=False),
-                            nodes_per_block=1,
+                            launcher = SingleNodeLauncher(debug=False, fail_on_any=False),
+                            nodes_per_block = 1,
                             cores_per_slot = self.run_options.get("cores-per-worker", 1),
                             mem_per_slot   = self.run_options.get("mem-per-worker", 4),
                             init_blocks    = self.run_options["scaleout"],
