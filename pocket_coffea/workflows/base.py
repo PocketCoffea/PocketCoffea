@@ -810,36 +810,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         for additional_variation in self.get_extra_shape_variations():
             yield additional_variation
 
-    def get_extra_shape_variations(self):
-        #empty generator
-        return
-        yield  # the yield defines the function as a generator and the return stops it to be empty
-        nominal_events = self.events
-        variations = ["ele_smearing", "ele_scale"]
-
-        ssfile = self.params.lepton_scale_factors["electron_sf"]["JSONfiles"][self._year]["fileSS"]
-
-        for variation in variations:
-            if not self._isMC:
-                return
-
-            elif variation == "ele_smearing":
-                self.events = nominal_events
-                ele_pt_smeared = get_ele_smeared(self.events["Electron"], ssfile, self._isMC, nominal=False)
-                for shift in ["Up", "Down"]:
-                    self.events["ElectronSS"] = ak.with_field(
-                        self.events["Electron"], ele_pt_smeared[shift], "pt"
-                    )
-                    yield variation + shift
-
-            elif variation == "ele_scale":
-                ele_pt_scaled = get_ele_scaled(self.events["Electron"], ssfile, self._isMC, self.events["run"])
-                self.events = nominal_events
-                for shift in ["Up", "Down"]:
-                    self.events["ElectronSS"] = ak.with_field(
-                        self.events["Electron"], ele_pt_scaled[shift], "pt"
-                    )
-                    yield variation + shift
 
     def process(self, events: ak.Array):
         '''
