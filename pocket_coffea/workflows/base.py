@@ -699,8 +699,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 self.events = nominal_events
                 # Just assign the nominal calibration
                 for jet_coll_name, jet_coll in jets_calibrated.items():
-                    # Compute MET rescaling
-                    if jet_calib_params.rescale_MET[self._year]:
+                   # Compute MET rescaling
+                    if jet_calib_params.rescale_MET[self._year] and jet_coll_name == "Jet":
                         met_branch =  jet_calib_params.rescale_MET_branch[self._year]
                         new_MET = met_correction_after_jec(
                             self.events,
