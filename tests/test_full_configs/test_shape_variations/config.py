@@ -122,14 +122,14 @@ cfg = Configurator(
         **count_hist("JetGood"),
         **count_hist("BJetGood"),
         "MET_pt": HistConf([Axis(coll="MET", field="pt", label="MET pT [GeV]", bins=50, start=0, stop=200)]),
-        "MET_pt_original": HistConf([Axis(coll="MET", field="pt_original", label="MET pT Original [GeV]", bins=50, start=0, stop=200)]),
+        #"MET_pt_original": HistConf([Axis(coll="MET", field="pt_original", label="MET pT Original [GeV]", bins=50, start=0, stop=200)]),
     },
 
     columns = {
         "common" : {
             "inclusive": [
                 ColOut(collection="Jet", columns=["pt","pt_original"]),
-                ColOut(collection="MET", columns=["pt", "phi","pt_original"]),
+               # ColOut(collection="MET", columns=["pt", "phi","pt_original"]),
             ]
 
         }

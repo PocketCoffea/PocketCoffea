@@ -717,7 +717,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     self.events[jet_coll_name] = jet_coll
 
                 if self.params.lepton_scale_factors.electron_sf["apply_ele_scale_and_smearing"][self._year]:
-                    etaSC = abs(self.events["Electron"]["deltaEtaSC"] + self.events["Electron"]["eta"])
+                    etaSC = self.events["Electron"]["deltaEtaSC"] + self.events["Electron"]["eta"]
                     self.events["Electron"] = ak.with_field(
                         self.events["Electron"], etaSC, "etaSC"
                     )
