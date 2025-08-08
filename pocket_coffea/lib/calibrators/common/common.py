@@ -119,27 +119,31 @@ class METCalibrator(Calibrator):
     def __init__(self, params, metadata, **kwargs):
         super().__init__(params, metadata, **kwargs)
         jet_calib_param = self.params.jets_calibration
-        self.met_calib_active = jet_calib_param.rescale_MET[self.year]
-        self.met_branch = jet_calib_param.rescale_MET_branch[self.year]
+        self.met_calib_cfg = jet_calib_param.rescale_MET_config[self.year]
+        self.met_calib_active = self.met_calib_cfg.apply
+        self.met_branch = self.met_calib_cfg.MET_collection
         self.calibrated_collections = [f"{self.met_branch}.pt", f"{self.met_branch}.phi"]
-
+        self.jet_collection = self.met_calib_cfg.Jet_collection
+       
     def initialize(self, events):
         pass
 
     def calibrate(self, events, orig_colls, variation, already_applied_calibrators=None):
         '''The MET calibrator applies the difference from the uncalibrated Jets and the calibrated Jets after JEC to the MET collection.
         In case the Jets in the nano are already calibrated, the delta will be 0 and the MET will not be changed.'''
+        if not self.met_calib_active:
+            return {}
         # we can check if the Jets calibrator has been applied
         if "jet_calibration" not in already_applied_calibrators:
             raise ValueError("Jets calibrator must be applied before the MET calibrator.")
-        if "Jet" not in orig_colls:
+        if self.jet_collection not in orig_colls:
             # this means that the jets calibration has been skipped
             # we just return the MET as is
             return {}
         
         # Get the uncalibrated and calibrated jets
-        uncalibrated_jets = orig_colls["Jet"]
-        calibrated_jets = events["Jet"]
+        uncalibrated_jets = orig_colls[self.jet_collection]
+        calibrated_jets = events[self.jet_collection]
         new_MET = met_correction_after_jec(events, self.met_branch, uncalibrated_jets, calibrated_jets)
         # Return the new MET collection
         return {f"{self.met_branch}.pt" : new_MET["pt"],

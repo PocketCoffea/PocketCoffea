@@ -536,26 +536,40 @@ jets_calibration:
     2023_postBPix: 
       AK4PFPuppi: True
 
-  rescale_MET:
-    2016_PreVFP: False
-    2016_PostVFP: False
-    "2017": False
-    "2018": False
-    2022_preEE: True
-    2022_postEE: True
-    2023_preBPix: True
-    2023_postBPix: True
-
-  rescale_MET_branch:
-     2016_PreVFP: "MET"
-     2016_PostVFP: "MET"
-     "2017": "MET"
-     "2018": "MET"
-     2022_preEE:  "PuppiMET"
-     2022_postEE: "PuppiMET"
-     2023_preBPix: "PuppiMET"
-     2023_postBPix: "PuppiMET"
-
+  rescale_MET_config:
+    20216_PreVFP:
+      apply: True
+      MET_collection: "MET"
+      Jet_collection: "Jet"
+    2016_PostVFP:
+      apply: True
+      MET_collection: "MET"
+      Jet_collection: "Jet"
+    "2017":
+      apply: True
+      MET_collection: "MET"
+      Jet_collection: "Jet"
+    "2018": 
+      apply: True
+      MET_collection: "MET"
+      Jet_collection: "Jet"
+    2022_preEE:   
+      apply: True
+      MET_collection: "PuppiMET"
+      Jet_collection: "Jet"
+    2022_postEE:
+      apply: True
+      MET_collection: "PuppiMET"
+      Jet_collection: "Jet"
+    2023_preBPix:
+      apply: True
+      MET_collection: "PuppiMET"
+      Jet_collection: "Jet"
+    2023_postBPix:
+      apply: True
+      MET_collection: "PuppiMET"
+      Jet_collection: "Jet"
+  
   # By default only the total variations are included
   # The user can customize the wanted variations by changing the variations key in the user parameters.
   # the key default_jets_calibration.variations.full_variations contains the full setup of JET variations.

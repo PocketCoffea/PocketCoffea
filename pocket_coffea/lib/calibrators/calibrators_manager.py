@@ -135,13 +135,11 @@ class CalibratorsManager():
         return events
 
 
-    def calibration_loop(self, events, variations=None, variations_for_calibrators=None, debug=True):
+    def calibration_loop(self, events, variations=None, variations_for_calibrators=None, debug=False):
         '''Loop over all the requested variations and yield the
         modified events. Keep a reference to the original events.'''
-
-        # The nominal is added by default
-        variations_toloop = ["nominal"] 
-
+        
+        variations_toloop = []
         if variations is not None:
             # If variations are provided, we use them
             variations_toloop += variations
@@ -152,6 +150,8 @@ class CalibratorsManager():
                 variations_toloop += self.get_available_variations(calibrator)
 
         variations_toloop = list(set(variations_toloop))  # remove duplicates
+        # The nominal is added by default
+        variations_toloop = ["nominal"] + variations_toloop
 
         for variation in variations_toloop:
             if debug:

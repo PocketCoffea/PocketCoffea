@@ -14,6 +14,18 @@ class BasicProcessor(BaseProcessorABC):
     def __init__(self, cfg: Configurator):
         super().__init__(cfg)
 
+    def process_extra_after_skim(self):
+        # Save the original MET pt 
+        jet_calib_params= self.params.jets_calibration
+        met_branch =  jet_calib_params.rescale_MET_config[self._year].MET_collection
+        self.events[met_branch] = ak.with_field(
+            self.events[met_branch], self.events[met_branch].pt, "pt_original"
+        )
+        # Save the original JET pt
+        self.events["Jet"] = ak.with_field(
+            self.events["Jet"], self.events["Jet"].pt, "pt_original"
+        )
+
     def apply_object_preselection(self, variation):
         '''The function applies object preselections to the events.
         It needs to be defined by the user workflow.
