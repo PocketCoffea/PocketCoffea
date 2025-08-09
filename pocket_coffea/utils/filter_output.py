@@ -33,6 +33,29 @@ def filter_output_by_year(o, year):
     o_filtered["datasets_metadata"]["by_dataset"] = defaultdict(dict, {k : val for k, val in o["datasets_metadata"]["by_dataset"].items() if val["year"] == year})
     return o_filtered
 
+def filter_output_by_category(o, categories):
+    allkeys = list(o.keys())
+    o_filtered = {key : {} for key in allkeys}
+
+    keys_2d = ["sumw", "sumw2", "cutflow"]
+    for key in keys_2d:
+        allkeys.remove(key)
+        o_filtered[key] = {k : val for k, val in o[key].items() if k in categories+['initial', 'skim', 'presel']}
+
+    keys_4d = ["variables"]
+    for key in keys_4d:
+        allkeys.remove(key)
+        for k, val in o[key].items():
+            o_filtered[key][k] = {}
+            for s, _dict in val.items():
+                o_filtered[key][k][s] = {}
+                for sam, hist in _dict.items():
+                    o_filtered[key][k][s][sam] = hist[{'cat' : categories}]
+
+    for key in allkeys:
+        o_filtered[key] = o[key]
+    return o_filtered
+
 def compare_dict_types(d1, d2, path=""):
     """
     Recursively compare the types of values between two dictionaries.

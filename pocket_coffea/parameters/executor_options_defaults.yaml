@@ -36,6 +36,7 @@ condor@lxplus:
   conda-env: false
   local-virtualenv: false
   max-retries: 3
+  split-by-category: false
 
 
 dask@T3_CH_PSI:
