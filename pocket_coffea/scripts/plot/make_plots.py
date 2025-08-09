@@ -45,8 +45,8 @@ import concurrent.futures
 @click.option('--no-cache', is_flag=True, help='Do not cache the histograms for faster plotting', required=False, default=False)
 @click.option('--split-by-category', is_flag=True, help='If split-by-category was used during running and merging', required=False, default=False)
 
-def make_plots(*args):
-    return make_plots_core(*args)
+def make_plots(*args, **kwargs):
+    return make_plots_core(*args, **kwargs)
 
 def make_plots_core(input_dir, cfg, overwrite_parameters, outputdir, inputfiles,
                workers, only_cat, only_year, only_syst, exclude_hist, only_hist, split_systematics, partial_unc_band, no_syst,
