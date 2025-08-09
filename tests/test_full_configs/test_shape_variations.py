@@ -93,7 +93,7 @@ def test_shape_variations_JEC_run3(base_path: Path, monkeypatch: pytest.MonkeyPa
     # Check that the MET is different from the reference as it is explicitely not c
     H = output["variables"]['MET_pt']['DATA_SingleEle']['DATA_EGamma_2023_EraD']
     ref_MET = np.load("comparison_arrays/MET_pt_DATA_SingleMuon__clean__DATA_SingleMuon_2018_EraA_baseline_nominal.npy")
-    assert not np.all((H[{"cat":"baseline"}].values() - ref_MET) == 0)
+    assert not np.allclose((H[{"cat":"baseline"}].values() - ref_MET), 0)
 
 
 def test_shape_variations_ele_SS_run3(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
@@ -172,8 +172,6 @@ def test_shape_variation_default_sequence(base_path: Path, monkeypatch: pytest.M
 
 
 
-
-
 def test_shape_variation_default_sequence_comparison_with_legacy_run2(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_shape_variations" )
     outputdir = tmp_path_factory.mktemp("test_shape_variations")
@@ -217,39 +215,39 @@ def test_shape_variation_default_sequence_comparison_with_legacy_run2(base_path:
     ref_output = load("comparison_arrays/output_run2.coffea")
     jet_pt_MC = ref_output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2018"]["baseline"]["Jet_pt"].value
     jet_pt = output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2018"]["baseline"]["Jet_pt"].value
-    assert np.all((jet_pt - jet_pt_MC) == 0), "Jet pt values do not match with the reference output"
+    assert np.allclose(jet_pt, jet_pt_MC), "Jet pt values do not match with the reference output"
     # Check MET in MC
     met_pt_MC = ref_output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2018"]["baseline"]["MET_pt"].value
     met_pt = output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2018"]["baseline"]["MET_pt"].value
-    assert np.all((met_pt - met_pt_MC) == 0), "MET pt values do not match with the reference output"
+    assert np.allclose(met_pt, met_pt_MC), "MET pt values do not match with the reference output"
 
     # Compare the histograms for JES and JER variations
     ref_H = ref_output["variables"]['JetGood_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
     H = output["variables"]['JetGood_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
-    assert np.all(ref_H[{"cat":"baseline", "variation":"JES_Total_AK4PFchsUp"}].values() == H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalUp"}].values()),\
+    assert np.allclose(ref_H[{"cat":"baseline", "variation":"JES_Total_AK4PFchsUp"}].values(), H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalUp"}].values()),\
           "JES Total Up variation does not match with the reference output"
-    assert np.all(ref_H[{"cat":"1btag", "variation":"JER_AK4PFchsUp"}].values() == H[{"cat":"1btag", "variation":"AK4PFchs_JERUp"}].values()),\
+    assert np.allclose(ref_H[{"cat":"1btag", "variation":"JER_AK4PFchsUp"}].values(), H[{"cat":"1btag", "variation":"AK4PFchs_JERUp"}].values()),\
           "JER Up variation does not match with the reference output"
     
     ref_H = ref_output["variables"]['JetGood_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
     H = output["variables"]['JetGood_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
-    assert np.all(ref_H[{"cat":"baseline", "variation":"JES_Total_AK4PFchsDown"}].values() == H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalDown"}].values()),\
+    assert np.allclose(ref_H[{"cat":"baseline", "variation":"JES_Total_AK4PFchsDown"}].values(), H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalDown"}].values()),\
           "JES Total Down variation does not match with the reference output"
-    assert np.all(ref_H[{"cat":"1btag", "variation":"JER_AK4PFchsDown"}].values() == H[{"cat":"1btag", "variation":"AK4PFchs_JERDown"}].values()),\
+    assert np.allclose(ref_H[{"cat":"1btag", "variation":"JER_AK4PFchsDown"}].values(), H[{"cat":"1btag", "variation":"AK4PFchs_JERDown"}].values()),\
           "JER Down variation does not match with the reference output"
     
     ref_H = ref_output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
     H = output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
-    assert np.all(ref_H[{"cat":"baseline", "variation":"JES_Total_AK4PFchsUp"}].values() == H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalUp"}].values()),\
+    assert np.allclose(ref_H[{"cat":"baseline", "variation":"JES_Total_AK4PFchsUp"}].values() , H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalUp"}].values()),\
           "JES Total Up variation does not match with the reference output"
-    assert np.all(ref_H[{"cat":"1btag", "variation":"JER_AK4PFchsUp"}].values() == H[{"cat":"1btag", "variation":"AK4PFchs_JERUp"}].values()),\
+    assert np.allclose(ref_H[{"cat":"1btag", "variation":"JER_AK4PFchsUp"}].values(), H[{"cat":"1btag", "variation":"AK4PFchs_JERUp"}].values()),\
           "JER Up variation does not match with the reference output"
 
     ref_H = ref_output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
     H = output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
-    assert np.all(ref_H[{"cat":"baseline", "variation":"JES_Total_AK4PFchsDown"}].values() == H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalDown"}].values()),\
+    assert np.allclose(ref_H[{"cat":"baseline", "variation":"JES_Total_AK4PFchsDown"}].values() , H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalDown"}].values()),\
           "JES Total Down variation does not match with the reference output"
-    assert np.all(ref_H[{"cat":"1btag", "variation":"JER_AK4PFchsDown"}].values() == H[{"cat":"1btag", "variation":"AK4PFchs_JERDown"}].values()),\
+    assert np.allclose(ref_H[{"cat":"1btag", "variation":"JER_AK4PFchsDown"}].values(), H[{"cat":"1btag", "variation":"AK4PFchs_JERDown"}].values()),\
           "JER Down variation does not match with the reference output"
 
 
@@ -288,9 +286,9 @@ def test_shape_variation_default_sequence_comparison_with_legacy_run3(base_path:
     ref_output = load("comparison_arrays/output_run3.coffea")
     jet_pt_MC = ref_output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"]["Jet_pt"].value
     jet_pt = output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"]["Jet_pt"].value
-    assert np.all((jet_pt - jet_pt_MC) == 0), "Jet pt values do not match with the reference output"
+    assert np.allclose(jet_pt, jet_pt_MC), "Jet pt values do not match with the reference output"
     # Check MET in MC
     met_pt_MC = ref_output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"]["PuppiMET_pt"].value
     met_pt = output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"]["PuppiMET_pt"].value
-    assert np.all((met_pt - met_pt_MC) == 0), "MET pt values do not match with the reference output"
+    assert np.allclose(met_pt, met_pt_MC), "MET pt values do not match with the reference output"
 
