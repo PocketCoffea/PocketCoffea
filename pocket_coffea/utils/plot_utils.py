@@ -12,7 +12,6 @@ from decimal import Decimal
 import numpy as np
 import awkward as ak
 import hist
-import pickle
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -234,7 +233,7 @@ class PlotManager:
                     cache=self.cache
                 )
         del self.hists_to_plot
-        
+
         if self.save:
             self.make_dirs()
             if self.index_file is not None:
