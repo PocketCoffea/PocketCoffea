@@ -52,10 +52,10 @@ cfg = Configurator(
             "year": ['2018']
         },
         "subsamples": {
-            "TTTo2L2Nu": {
-                "ele": [get_nObj_min(1, coll="ElectronGood"), get_nObj_eq(0, coll="MuonGood")],
-                "mu":  [get_nObj_eq(0, coll="ElectronGood"), get_nObj_min(1, coll="MuonGood")],
-            },
+            # "TTTo2L2Nu": {
+            #     # "ele": [get_nObj_min(1, coll="ElectronGood"), get_nObj_eq(0, coll="MuonGood")],
+            #     # "mu":  [get_nObj_eq(0, coll="ElectronGood"), get_nObj_min(1, coll="MuonGood")],
+            # },
             "DATA_SingleMuon": {
                 "clean": [get_HLTsel(primaryDatasets=["SingleEle"], invert=True)], # crosscleaning SingleELe trigger on SIngleMuon
             }
@@ -122,13 +122,14 @@ cfg = Configurator(
         **count_hist("JetGood"),
         **count_hist("BJetGood"),
         "MET_pt": HistConf([Axis(coll="MET", field="pt", label="MET pT [GeV]", bins=50, start=0, stop=200)]),
+        #"MET_pt_original": HistConf([Axis(coll="MET", field="pt_original", label="MET pT Original [GeV]", bins=50, start=0, stop=200)]),
     },
 
     columns = {
         "common" : {
             "inclusive": [
-                ColOut(collection="Jet", columns=["pt"]),
-                ColOut(collection="MET", columns=["pt", "phi"]),
+                ColOut(collection="Jet", columns=["pt","pt_original"]),
+               # ColOut(collection="MET", columns=["pt", "phi","pt_original"]),
             ]
 
         }

@@ -53,7 +53,7 @@ def test_shape_variations(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_
     assert output is not None
     
     # Check the output
-    h = output["variables"]['nJetGood']['TTTo2L2Nu__ele']['TTTo2L2Nu_2018']
+    h = output["variables"]['nJetGood']['TTTo2L2Nu']['TTTo2L2Nu_2018']
     assert "JES_Total_AK4PFchsUp" in h.axes["variation"]
     assert "JES_Total_AK4PFchsDown" in h.axes["variation"]
     assert "JER_AK4PFchsUp" in h.axes["variation"]

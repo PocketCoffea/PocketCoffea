@@ -5,6 +5,7 @@ from pocket_coffea.lib.cut_functions import get_nObj_min, get_nObj_eq, get_HLTse
 from pocket_coffea.parameters.cuts import passthrough
 from pocket_coffea.parameters.histograms import *
 from pocket_coffea.lib.categorization import StandardSelection, CartesianSelection, MultiCut
+from pocket_coffea.lib.calibrators.common import default_calibrators_sequence 
 from pocket_coffea.lib.columns_manager import ColOut
 
 import workflow
@@ -29,7 +30,7 @@ default_parameters = defaults.get_default_parameters()
 defaults.register_configuration_dir("config_dir", localdir+"/params")
 
 parameters = defaults.merge_parameters_from_files(default_parameters,
-                                                    f"{localdir}/params/object_preselection_run3.yaml",
+                                                    f"{localdir}/params/object_preselection_run2.yaml",
                                                     f"{localdir}/params/triggers.yaml",
                                                    update=True)
 
@@ -44,10 +45,11 @@ cfg = Configurator(
     datasets = {
         "jsons": ['datasets/datasets_cern.json'],
         "filter" : {
-            "samples": ["DATA_SingleEle"
+            "samples": ['TTTo2L2Nu', "DATA_SingleMuon"
+                        #, "DATA_SingleEle"
                         ],
             "samples_exclude" : [],
-            "year": ['2023_postBPix']
+            "year": ['2018']
         },
         "subsamples": {
             "TTTo2L2Nu": {
@@ -88,6 +90,7 @@ cfg = Configurator(
     },
     # Passing a list of WeightWrapper objects
     weights_classes = common_weights,
+    calibrators = default_calibrators_sequence,
 
     variations = {
         "weights": {
@@ -106,10 +109,7 @@ cfg = Configurator(
         },
         "shape": {
             "common": {
-                "inclusive": [ "JES_Total_AK4PFchs"],
-                "bycategory": {
-                    "1btag": ["JER_AK4PFchs"]
-                }
+                "inclusive": [ "jet_calibration"],
             },
         }
     },
@@ -119,15 +119,14 @@ cfg = Configurator(
         **jet_hists(),
         **count_hist("JetGood"),
         **count_hist("BJetGood"),
-        "MET_pt": HistConf([Axis(coll="PuppiMET", field="pt", label="MET pT [GeV]", bins=50, start=0, stop=200)]),
-        "MET_pt_original": HistConf([Axis(coll="PuppiMET", field="pt_original", label="MET pT Original [GeV]", bins=50, start=0, stop=200)]),
+        "MET_pt": HistConf([Axis(coll="MET", field="pt", label="MET pT [GeV]", bins=50, start=0, stop=200)]),
     },
 
     columns = {
         "common" : {
             "inclusive": [
                 ColOut(collection="Jet", columns=["pt"]),
-                ColOut(collection="PuppiMET", columns=["pt", "phi","pt_original"]),
+                ColOut(collection="MET", columns=["pt", "phi"]),
             ]
 
         }
