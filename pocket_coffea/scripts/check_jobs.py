@@ -132,6 +132,19 @@ def update_blacklist(xrootdfaillist,blacklist_threshold):
             blacklist_sites.append(site)
     return blacklist_sites
 
+def bump_jobqueue(sub_file):
+    with open(sub_file) as f:
+        lines = f.readlines()
+    with open(sub_file, "w") as f:
+        for line in lines:
+            if "+JobFlavour" in line:
+                jf = line.split("=")[1].strip().replace('"', '')
+                next_jf = queues[min(queues.index(jf)+1, len(queues)-1)]
+                f.write(f'+JobFlavour="{next_jf}"\n')
+            else:
+                f.write(line)
+    return next_jf
+
 @click.command()
 @click.option("-j", "--jobs-folder", type=str, help="Folder containing the jobs", required=True)
 @click.option("-d","--details", is_flag=True, help="Show the details of the jobs")
@@ -182,6 +195,7 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
     
     log_text = []
     definitive_failed = []
+    condor_history_fails = []
     step = 0
     
     with Live(layout, refresh_per_second=1/5, console=console):  # Refresh rate
@@ -317,8 +331,6 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                 log_file = glob.glob(f"{jobs_folder}/logs/job_*.log")[0]
                 with open(log_file) as f:
                     c = f.readlines()
-                # TODO: This only checks the OG .log file. Resubmitted jobs may also exceed
-                # time limit, but this does not check it. Implement in future.
                 
                 for il, line in enumerate(c):
                     if line.startswith("009"):
@@ -338,17 +350,17 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                             thisjob = f"job_{job_id}"
                             if thisjob in running_jobs or thisjob in idle_jobs:
                                 if thisjob in running_jobs:
-                                    running_jobs.remove(f"job_{job_id}")
-                                    os.system(f"rm {jobs_folder}/job_{job_id}.running")
+                                    running_jobs.remove(thisjob)
+                                    os.system(f"rm {jobs_folder}/{thisjob}.running")
                                 
                                 # Sometimes jobs which never run also get aborted; they have the idle tag
                                 # but exist in the log file as and aborted job
                                 if thisjob in idle_jobs:
-                                    idle_jobs.remove(f"job_{job_id}")
-                                    os.system(f"rm {jobs_folder}/job_{job_id}.idle")
+                                    idle_jobs.remove(thisjob)
+                                    os.system(f"rm {jobs_folder}/{thisjob}.idle")
 
-                                failed_jobs.append(f"job_{job_id}")                                
-                                os.system(f"touch {jobs_folder}/job_{job_id}.failed")
+                                failed_jobs.append(thisjob)                                
+                                os.system(f"touch {jobs_folder}/{thisjob}.failed")
 
                                 maxtimelist.append(job_name)
                                 with open(maxtimefile,'a') as f:
@@ -357,27 +369,91 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                                 # Modify the sub file
                                 # Check if next line has SYSTEM_PERIODIC_REMOVE
                                 if not "SYSTEM_PERIODIC_REMOVE" in c[il+1]:
-                                    log_text.append(f"Job {job_id} was aborted by condor. Check the log file for more details")
+                                    log_text.append(f"{thisjob} was aborted by condor. Check the log file for more details")
                                 else:     
-                                    sub_file = f"{jobs_folder}/job_{job_id}.sub"
-                                    with open(sub_file) as f:
-                                        lines = f.readlines()
-                                    with open(sub_file, "w") as f:
-                                        for line in lines:
-                                            if "+JobFlavour" in line:
-                                                jf = line.split("=")[1].strip().replace('"', '')
-                                                next_jf = queues[min(queues.index(jf)+1, len(queues)-1)]
-                                                f.write(f'+JobFlavour="{next_jf}"\n')
-                                            else:
-                                                f.write(line)
+                                    sub_file = f"{jobs_folder}/{thisjob}.sub"
+                                    next_jf = bump_jobqueue(sub_file)                                    
 
-                                    log_text.append(f"Job {job_id} was removed by the system due to max-time reached. Marked as failed and bumped to longer condor queue: {next_jf}.")
+                                    log_text.append(f"{thisjob} was removed by the system due to max-time reached. Marked as failed and bumped to longer condor queue: {next_jf}.")
 
                                     # No need to resubmit, just let the next pass handle it in its first section
-                                    # os.system(f"cd {jobs_folder} && condor_submit job_{job_id}.sub")
-                                    # os.system(f"rm {jobs_folder}/job_{job_id}.failed")
-                                    # os.system(f"touch {jobs_folder}/job_{job_id}.idle")
-                                
+                                    # os.system(f"cd {jobs_folder} && condor_submit {thisjob}.sub")
+                                    # os.system(f"rm {jobs_folder}/{thisjob}.failed")
+                                    # os.system(f"touch {jobs_folder}/{thisjob}.idle")
+                
+                # Now check jobs which were resubmitted by this script but then failed again
+                # Look for "job was aborted"
+                failedlogs = os.popen(f'grep -il {jobs_folder}/logs/job_*.log -e "Job was aborted"').read().split("\n")[:-1]
+                for failedlog in failedlogs:
+                    # Skip the OG log
+                    if log_file.split("/")[-1] in failedlog:
+                        continue
+                    failedlogcluster = failedlog.split("/")[-1].replace("job_","").replace(".log","")
+                    # Try to get job history
+                    cmd = ['stdbuf', '-oL', 'condor_history', failedlogcluster]
+                    proc = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE, text=True)
+                    try:
+                        stdout, stderr = proc.communicate(timeout=1)
+                    except sp.TimeoutExpired:
+                        proc.kill()
+                        stdout, stderr = proc.communicate()
+                    jobid = None
+                    if '\n' in stdout:
+                        stdoutlines = stdout.split('\n')
+                        if len(stdoutlines) > 2:
+                            lastline = stdoutlines[-2]
+                            jobid = lastline.split()[-4]
+
+                    if not jobid:
+                        if failedlog not in condor_history_fails:
+                            # Report once, but don't keep reporting the same thing
+                            log_text.append(f"[red]Detected a failed job log {failedlog} but could not retrieve condor_history.[/r]")
+                            condor_history_fails.append(failedlog)
+                    else:
+                        job_name = f"{failedlogcluster}_{jobid}"
+                        if job_name in maxtimelist:
+                            continue
+
+                        thisjob = f"job_{jobid}"
+                        if thisjob in running_jobs or thisjob in idle_jobs:
+                            if thisjob in running_jobs:
+                                running_jobs.remove(thisjob)
+                                os.system(f"rm {jobs_folder}/{thisjob}.running")
+                            
+                            # Sometimes jobs which never run also get aborted; they have the idle tag
+                            # but exist in the log file as and aborted job
+                            if thisjob in idle_jobs:
+                                idle_jobs.remove(thisjob)
+                                os.system(f"rm {jobs_folder}/{thisjob}.idle")
+
+                            failed_jobs.append(thisjob)                                
+                            os.system(f"touch {jobs_folder}/{thisjob}.failed")
+
+                            maxtimelist.append(job_name)
+                            with open(maxtimefile,'a') as f:
+                                f.write(job_name+"\n")
+
+                            os.system(f"mv {failedlog} {jobs_folder}/logs/processedlogs")
+
+                            # Modify the sub file
+                            # Check if log file has SYSTEM_PERIODIC_REMOVE
+                            with open(failedlog,"r") as f:
+                                lines = f.readlines()
+                            
+                            dobump = False
+                            for line in lines:
+                                if "SYSTEM_PERIODIC_REMOVE" in line:
+                                    dobump = True
+                                    break
+
+                            if not dobump:
+                                log_text.append(f"{thisjob} was aborted by condor. Check the log file for more details")
+                            else:     
+                                sub_file = f"{jobs_folder}/{thisjob}.sub"
+                                next_jf = bump_jobqueue(sub_file)                                    
+
+                                log_text.append(f"{thisjob} was removed by the system due to max-time reached. Marked as failed and bumped to longer condor queue: {next_jf}.")
+                   
                 if len(log_text):
                     if len(log_text) > 20:
                         log_text = log_text[-20:]
