@@ -1677,8 +1677,9 @@ class SystUnc:
         for h in stacks["mc"]:
             for variation in h.axes[0]:
                 h_var = h[{'variation': variation}].values()
-                # First, we check that the variation is not equal to the nominal
-                if not all(stacks["mc_nominal_sum"].values() == h_var):
+                h_nom = h[{'variation': 'nominal'}].values()
+                # First, we check that the variation is not equal to the nominal            
+                if not all(h_nom == h_var):
                     # Then, we check if the variation is empty
                     if all(h_var == np.zeros_like(h_var)):
                         print(
