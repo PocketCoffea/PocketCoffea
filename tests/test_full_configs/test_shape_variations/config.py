@@ -128,7 +128,7 @@ cfg = Configurator(
     columns = {
         "common" : {
             "inclusive": [
-                ColOut(collection="Jet", columns=["pt","pt_original"]),
+                ColOut(collection="Jet", columns=["pt"]),
                # ColOut(collection="MET", columns=["pt", "phi","pt_original"]),
             ]
 
