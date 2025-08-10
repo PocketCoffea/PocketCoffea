@@ -8,8 +8,7 @@ from pocket_coffea.lib.categorization import StandardSelection, CartesianSelecti
 from pocket_coffea.lib.calibrators.common import default_calibrators_sequence 
 from pocket_coffea.lib.columns_manager import ColOut
 
-import workflow_v2
-from workflow_v2 import BasicProcessor
+from workflow_shape_variations import BasicProcessor
 
 from custom_cut_functions import *
 import os

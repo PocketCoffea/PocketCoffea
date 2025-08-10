@@ -8,14 +8,8 @@ from pocket_coffea.lib.categorization import StandardSelection, CartesianSelecti
 from pocket_coffea.lib.calibrators.common import default_calibrators_sequence 
 from pocket_coffea.lib.columns_manager import ColOut
 
-import workflow
-from workflow import BasicProcessor
+from workflow_shape_variations import BasicProcessor
 
-# Register custom modules in cloudpickle to propagate them to dask workers
-import cloudpickle
-import custom_cut_functions
-cloudpickle.register_pickle_by_value(workflow)
-cloudpickle.register_pickle_by_value(custom_cut_functions)
 
 from custom_cut_functions import *
 import os
