@@ -1,9 +1,0 @@
-scaleout: 1
-cores-per-worker: 1
-mem-per-worker: "2GB"
-disk-per-worker: "1GB"
-queue: "short"
-walltime: "00:45:00"
-chunksize: 1000
-ignore-grid-certificate: true
-voms-proxy: null

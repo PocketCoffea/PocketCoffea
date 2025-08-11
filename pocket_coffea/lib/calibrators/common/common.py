@@ -4,7 +4,6 @@ import awkward as ak
 import cachetools
 from pocket_coffea.lib.jets import jet_correction, met_correction_after_jec, load_jet_factory
 from pocket_coffea.lib.leptons import get_ele_scaled, get_ele_smeared
-from .pnet_regression import PNetRegressionCalibrator
 
 class JetsCalibrator(Calibrator):
     """
@@ -12,7 +11,6 @@ class JetsCalibrator(Calibrator):
     name = "jet_calibration"
     has_variations = True
     isMC_only = False
-    calibrated_collections = ["Jet", "FatJet"]
 
 
     def __init__(self, params, metadata, jme_factory, **kwargs):
@@ -23,6 +21,8 @@ class JetsCalibrator(Calibrator):
         self.caches = [] 
         self.jets_calibrated = {}
         self.jets_calibrated_types = []
+        # It is filled dynamically in the initialize method
+        self.calibrated_collections = []
 
     def initialize(self, events):
         # Load the calibration of each jet type requested by the parameters
@@ -36,6 +36,9 @@ class JetsCalibrator(Calibrator):
                 if self.jet_calib_param.apply_jec_Data[self.year][jet_type] == False:
                     # If the collection is not enabled, we skip it
                     continue
+            # register the collection as calibrated by this calibrator
+            self.calibrated_collections.append(jet_coll_name)
+
             cache = cachetools.Cache(np.inf)
             self.caches.append(cache)
             self.jets_calibrated[jet_coll_name] = jet_correction(
@@ -125,12 +128,11 @@ class JetsPtRegressionCalibrator(JetsCalibrator):
     name = "jet_calibration_with_pt_regression"
     has_variations = True
     isMC_only = False
-    calibrated_collections = ["Jet"]
 
     def __init__(self, params, metadata, jme_factory, **kwargs):
         super().__init__(params, metadata, jme_factory, **kwargs)
-         # Check if regression is enabled and configured
-        
+        # It is filled dynamically in the initialize method depending on the parameters
+        self.calibrated_collections = []
   
     def initialize(self, events):
         # Load the calibration of each jet type requested by the parameters
@@ -150,6 +152,8 @@ class JetsPtRegressionCalibrator(JetsCalibrator):
                 if self.jet_calib_param.apply_jec_Data[self.year][jet_type] == False:
                     # If the collection is not enabled, we skip it
                     continue
+
+            self.calibrated_collections.append(jet_coll_name)
 
             regression_params = None
             # Get the regression parameters by collection

@@ -16,17 +16,10 @@ from pocket_coffea.lib.categorization import (
     CartesianSelection,
     MultiCut,
 )
-from pocket_coffea.lib.calibrators.common.common import JetsCalibrator,JetsPNetPtRegressionCalibrator
+from pocket_coffea.lib.columns_manager import ColOut
+from pocket_coffea.lib.calibrators.common.common import JetsCalibrator,JetsPtRegressionCalibrator
 
-import workflow_dummy
-from workflow_dummy import BasicProcessor
-
-# Register custom modules in cloudpickle to propagate them to dask workers
-import cloudpickle
-import custom_cut_functions
-
-cloudpickle.register_pickle_by_value(workflow_dummy)
-cloudpickle.register_pickle_by_value(custom_cut_functions)
+from workflow_ptregr_check import PtRegrProcessor
 
 from custom_cut_functions import *
 import os
@@ -44,14 +37,11 @@ defaults.register_configuration_dir("config_dir", localdir + "/params")
 
 parameters = defaults.merge_parameters_from_files(
     default_parameters,
-    f"{localdir}/params/object_preselection.yaml",
+    f"{localdir}/params/object_preselection_run3.yaml",
     f"{localdir}/params/triggers.yaml",
+    f"{localdir}/params/jets_calibration_ptregression.yaml",
     update=True,
 )
-
-# Creating custom weight
-from pocket_coffea.lib.weights.weights import WeightLambda
-import numpy as np
 
 
 cfg = Configurator(
@@ -59,12 +49,12 @@ cfg = Configurator(
     datasets={
         "jsons": ["datasets/datasets_cern.json"],
         "filter": {
-            "samples": ["DYJetsToLL_M-50"],
+            "samples": ["DATA_SingleEle"],
             "samples_exclude": [],
-            "year": ["2022_preEE"],
+            "year": ["2023_postBPix"],
         },
     },
-    workflow=BasicProcessor,
+    workflow=PtRegrProcessor,
     skim=[],
     preselections=[passthrough],
     categories={
@@ -78,7 +68,7 @@ cfg = Configurator(
     },
     # Passing a list of WeightWrapper objects
     weights_classes=common_weights,
-    calibrators=[JetsPNetPtRegressionCalibrator,JetsCalibrator],
+    calibrators=[JetsPtRegressionCalibrator,JetsCalibrator],
     variations={
         "weights": {
             "common": {
@@ -95,5 +85,13 @@ cfg = Configurator(
     variables={
         **count_hist("JetGood"),
     },
-    columns={},
+    columns={
+        "common": {
+            "inclusive": [
+                ColOut(collection="Jet", columns=["pt", "rawFactor"]),
+                ColOut(collection="JetPtReg", columns=["pt","rawFactor"]),
+                ColOut(collection="JetPtRegPlusNeutrino", columns=["pt", "rawFactor"]),
+            ]
+        }
+    },
 )
