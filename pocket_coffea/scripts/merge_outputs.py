@@ -38,9 +38,9 @@ def merge_group_reduction(output_files, N_reduction=5, cachedir="merge_cache", m
                 if result is None:
                     result = batch_acc
                 else:
-                    result = func([result, batch_acc])
-                if verbose:                    
-                    mem_usage = psutil.Process(os.getpid()).memory_info().rss / 1024**3
+                    result = func([result, batch_acc])                                   
+                mem_usage = psutil.Process(os.getpid()).memory_info().rss / 1024**3
+                if verbose: 
                     print(f"Current memory usage: {mem_usage:.3f} GB ({mem_usage/max_mem_gb*100:.1f}%)")
                 del batch_acc
                 progress.update(task1, advance=len(batch))
