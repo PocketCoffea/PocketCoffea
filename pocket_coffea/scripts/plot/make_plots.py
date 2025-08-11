@@ -64,10 +64,10 @@ def make_plots_core(input_dir, cfg, overwrite_parameters, outputdir, inputfiles,
                 all_files.extend(valid_files)        
 
         print("[b]Since we are splitting by category, will handle only one file per pass.[/]")
-        for file in all_files:
+        for ifl, file in enumerate(all_files):
             make_plots_core(input_dir, cfg, overwrite_parameters, outputdir, [file],
                workers, only_cat, only_year, only_syst, exclude_hist, only_hist, split_systematics, partial_unc_band, no_syst,
-               overwrite, log_x, log_y, density, verbose, format, systematics_shifts, no_ratio, no_systematics_ratio, compare, index_file, no_cache, False)
+               overwrite or ifl > 0, log_x, log_y, density, verbose, format, systematics_shifts, no_ratio, no_systematics_ratio, compare, index_file, no_cache, False)
             gc.collect()
 
         print("[green]Done making plots for all category-split files![/]")
