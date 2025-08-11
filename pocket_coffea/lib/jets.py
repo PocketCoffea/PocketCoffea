@@ -63,7 +63,6 @@ def met_correction_after_jec(events, METcoll, jets_pre_jec, jets_post_jec):
     
     newMetPhi = np.arctan2(newpy, newpx)
     newMetPt = (newpx**2 + newpy**2)**0.5
-    
     return  {"pt": newMetPt, "phi": newMetPhi}
 
 

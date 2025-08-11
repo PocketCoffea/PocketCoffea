@@ -13,7 +13,8 @@ class CalibratorsManager():
     The variations are used to create the list of variations used to fill the histograms and columns.
 
     The CalibratorManager keeps a dictionary of calibrated collections by each calibrator: the name is expected
-    to have the format "collection.field" (e.g. "Electron.pt").
+    to have the format "collection.field" (e.g. "Electron.pt"). The CalibratorManager checkes that each calibrator
+    returns the collections it is supposed to handle, otherwise it raises an error.
 
     The CalibratorManager keeps in memory the original collection. 
     Moreover the calibrator knows which collections are calibrated by each calibrator.
@@ -109,14 +110,25 @@ class CalibratorsManager():
                     raise ValueError(f"Calibrator {calibrator.name} is trying to calibrated a collection that it does not declare to handle:{col}. ")
                 if "." not in col:
                     if col not in self.original_coll:     
-                        self.original_coll[col] = events[col]
+                        try:
+                            # If the collection is not in the original collection, we store it
+                            self.original_coll[col] = events[col]
+                        except ValueError:
+                            # This means that the column is not present in the events and it is created by the calibrator
+                            # and it is not a problem
+                            self.original_coll[col] = None
                     # replacing the value
                     events[col] = colls[col]
                 else:
                     # If the col is in the format "collection.field", we need to split it
                     collection, field = col.split(".")
                     if col not in self.original_coll:
-                        self.original_coll[col] = events[collection, field]
+                        try:
+                            self.original_coll[col] = events[collection, field]
+                        except ValueError:
+                            # This means that the column is not present in the events and it is created by the calibrator
+                            # and it is not a problem
+                            self.original_coll[col] = None
                     events[collection, field] = colls[col]
             # Keep track of the calibrators applied
             applied_calibrators.append(calibrator.name)
@@ -126,10 +138,8 @@ class CalibratorsManager():
     def calibration_loop(self, events, variations=None, variations_for_calibrators=None, debug=False):
         '''Loop over all the requested variations and yield the
         modified events. Keep a reference to the original events.'''
-
-        # The nominal is added by default
-        variations_toloop = ["nominal"] 
-
+        
+        variations_toloop = []
         if variations is not None:
             # If variations are provided, we use them
             variations_toloop += variations
@@ -140,6 +150,8 @@ class CalibratorsManager():
                 variations_toloop += self.get_available_variations(calibrator)
 
         variations_toloop = list(set(variations_toloop))  # remove duplicates
+        # The nominal is added by default
+        variations_toloop = ["nominal"] + variations_toloop
 
         for variation in variations_toloop:
             if debug:

@@ -7,14 +7,7 @@ from pocket_coffea.parameters.histograms import *
 from pocket_coffea.lib.categorization import StandardSelection, CartesianSelection, MultiCut
 from pocket_coffea.lib.calibrators.common.common import JetsCalibrator
 
-import workflow
-from workflow import BasicProcessor
-
-# Register custom modules in cloudpickle to propagate them to dask workers
-import cloudpickle
-import custom_cut_functions
-cloudpickle.register_pickle_by_value(workflow)
-cloudpickle.register_pickle_by_value(custom_cut_functions)
+from workflow_shape_variations import BasicProcessor
 
 from custom_cut_functions import *
 import os
@@ -29,7 +22,7 @@ default_parameters = defaults.get_default_parameters()
 defaults.register_configuration_dir("config_dir", localdir+"/params")
 
 parameters = defaults.merge_parameters_from_files(default_parameters,
-                                                    f"{localdir}/params/object_preselection.yaml",
+                                                    f"{localdir}/params/object_preselection_run2.yaml",
                                                     f"{localdir}/params/triggers.yaml",
                                                    update=True)
 
@@ -118,6 +111,7 @@ cfg = Configurator(
         **jet_hists(),
         **count_hist("JetGood"),
         **count_hist("BJetGood"),
+        "MET_pt": HistConf([Axis(coll="MET", field="pt", label="MET pT [GeV]", bins=50, start=0, stop=200)]),
     },
 
     columns = {

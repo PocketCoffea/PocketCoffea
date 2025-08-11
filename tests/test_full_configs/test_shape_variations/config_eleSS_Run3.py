@@ -5,16 +5,11 @@ from pocket_coffea.lib.cut_functions import get_nObj_min, get_nObj_eq, get_HLTse
 from pocket_coffea.parameters.cuts import passthrough
 from pocket_coffea.parameters.histograms import *
 from pocket_coffea.lib.categorization import StandardSelection, CartesianSelection, MultiCut
-from pocket_coffea.lib.calibrators.common import default_calibrators_sequence 
+from pocket_coffea.lib.calibrators.common.common import ElectronsScaleCalibrator
+from pocket_coffea.lib.columns_manager import ColOut
 
-import workflow
-from workflow import BasicProcessor
 
-# Register custom modules in cloudpickle to propagate them to dask workers
-import cloudpickle
-import custom_cut_functions
-cloudpickle.register_pickle_by_value(workflow)
-cloudpickle.register_pickle_by_value(custom_cut_functions)
+from workflow_shape_variations import BasicProcessor
 
 from custom_cut_functions import *
 import os
@@ -29,9 +24,8 @@ default_parameters = defaults.get_default_parameters()
 defaults.register_configuration_dir("config_dir", localdir+"/params")
 
 parameters = defaults.merge_parameters_from_files(default_parameters,
-                                                    f"{localdir}/params/object_preselection.yaml",
+                                                    f"{localdir}/params/object_preselection_run3.yaml",
                                                     f"{localdir}/params/triggers.yaml",
-                                                    f"{localdir}/params/jets_calibration.yaml",
                                                    update=True)
 
 #Creating custom weight
@@ -45,11 +39,10 @@ cfg = Configurator(
     datasets = {
         "jsons": ['datasets/datasets_cern.json'],
         "filter" : {
-            "samples": ['TTTo2L2Nu', "DATA_SingleMuon"
-                        #, "DATA_SingleEle"
+            "samples": ["DATA_SingleEle"
                         ],
             "samples_exclude" : [],
-            "year": ['2018']
+            "year": ['2023_postBPix']
         },
         "subsamples": {
             "TTTo2L2Nu": {
@@ -90,7 +83,7 @@ cfg = Configurator(
     },
     # Passing a list of WeightWrapper objects
     weights_classes = common_weights,
-    calibrators = default_calibrators_sequence,
+    calibrators = [ElectronsScaleCalibrator],
 
     variations = {
         "weights": {
@@ -109,19 +102,23 @@ cfg = Configurator(
         },
         "shape": {
             "common": {
-                "inclusive": [ "jet_calibration"],
-            },
+                "inclusive": [ "electron_scale_and_smearing"],
+            }
         }
     },
 
-    variables = {
-        **ele_hists(),
-        **jet_hists(),
-        **count_hist("JetGood"),
-        **count_hist("BJetGood"),
-    },
-
+    variables = {},
+    
     columns = {
+        "common": {
+             "inclusive": [],
+             "bycategory": {
+                 "baseline": [
+                     ColOut("ElectronGood",["pt", "pt_original"], pos_start=0, pos_end=1),
+                 ]
+                 
+             }
 
-    },
+        }
+    }
 )

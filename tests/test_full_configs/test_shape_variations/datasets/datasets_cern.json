@@ -12,7 +12,9 @@
         "files": [
             "root://eoscms.cern.ch//eos/cms/store/mc/RunIISummer20UL18NanoAODv9/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/106X_upgrade2018_realistic_v16_L1v1-v1/280000/01881676-C30A-2142-B3B2-7A8449DAF8EF.root"
         ]
-    },
+},
+ 
+
     "TTToSemiLeptonic_2016_PostVFP": {
         "metadata": {
             "das_names": "['/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL16NanoAODv9-106X_mcRun2_asymptotic_v17-v1/NANOAODSIM']",
@@ -54,21 +56,21 @@
             "size": "211774345140"
         },
         "files": [
-            "root://eoscms.cern.ch//eos/cms/store/data/Run2018A/EGamma/NANOAOD/UL2018_MiniAODv2_NanoAODv9_GT36-v1/2830000/10D2F672-4042-5F49-B8D5-73B90AF52CFD.root"
-        ]
-    },
-    "DYJetsToLL_M-50_2022_preEE": {
+            "root://eoscms.cern.ch//eos/cms/store/data/Run2018A/EGamma/NANOAOD/UL2018_MiniAODv2_NanoAODv9_GT36-v1/2830000/10D2F672-4042-5F49-B8D5-73B90AF52CFD.root"]
+     },
+
+     "DATA_EGamma_2023_EraD": {
         "metadata": {
-            "das_names": "['/DYJetsToLL_M-50_TuneCP5_13p6TeV-madgraphMLM-pythia8/Run3Summer22NanoAODv12-forPOG_130X_mcRun3_2022_realistic_v5-v2/NANOAODSIM']",
-            "sample": "DYJetsToLL_M-50",
-            "year": "2022_preEE",
-            "isMC": "True",
-            "xsec": "1438000000.0",
-            "nevents": "27096229",
-            "size": "34684495679"
+            "das_names": "['/EGamma0/Run2023D-22Sep2023_v2-v1/NANOAOD']",
+            "sample": "DATA_SingleEle",
+            "year": "2023_postBPix",
+            "isMC": "False",
+            "primaryDataset": "SingleEle",
+            "era": "D",
+            "nevents": "22657211",
+            "size": "22851463854"
         },
         "files": [
-            "/home/matteo-malucchi/software/DY.root"
-        ]
-    }
+            "root://eoscms.cern.ch//eos/cms/store/data/Run2023D/EGamma0/NANOAOD/22Sep2023_v2-v1/40000/142f0a5e-1a8c-4048-a3f4-fb38cbc6966a.root"]
+        }
 }

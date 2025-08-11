@@ -3,6 +3,7 @@ import numpy as np
 import awkward as ak
 import cachetools
 from pocket_coffea.lib.jets import jet_correction, met_correction_after_jec, load_jet_factory
+from pocket_coffea.lib.leptons import get_ele_scaled, get_ele_smeared
 from .pnet_regression import PNetRegressionCalibrator
 
 class JetsCalibrator(Calibrator):
@@ -15,32 +16,25 @@ class JetsCalibrator(Calibrator):
 
 
     def __init__(self, params, metadata, jme_factory, **kwargs):
-        super().__init__(params, metadata)
+        super().__init__(params, metadata, **kwargs)
         self.jme_factory = jme_factory
+        self._year = metadata["year"]
         self.jet_calib_param = self.params.jets_calibration
         self.caches = [] 
-        self._year = self.metadata["year"]
         self.jets_calibrated = {}
         self.jets_calibrated_types = [ ]
         self.jet_type_to_calibrate=None
 
     def initialize(self, events):
         # Load the calibration of each jet type requested by the parameters
-        for jet_type, jet_coll_name in self.jet_calib_param.collection[self._year].items():
-            
-            # Calibrate either standard jets or the jet with regressed pt
-            if self.jet_type_to_calibrate is None and "Regression" in jet_type:
-                continue  # Skip if we are not calibrating the regressed jets
-            if self.jet_type_to_calibrate is not None and jet_type != self.jet_type_to_calibrate:
-                continue # Skip if we are not calibrating other regressed jets
-                
+        for jet_type, jet_coll_name in self.jet_calib_param.collection[self.year].items():
             # Check if the collection is enables in the parameters
-            if self.metadata["isMC"]:
-                if self.jet_calib_param.apply_jec_MC[self._year][jet_type] == False:
+            if self.isMC:
+                if self.jet_calib_param.apply_jec_MC[self.year][jet_type] == False:
                     # If the collection is not enabled, we skip it
                     continue
             else:
-                if self.jet_calib_param.apply_jec_Data[self._year][jet_type] == False:
+                if self.jet_calib_param.apply_jec_Data[self.year][jet_type] == False:
                     # If the collection is not enabled, we skip it
                     continue
             cache = cachetools.Cache(np.inf)
@@ -65,14 +59,14 @@ class JetsCalibrator(Calibrator):
         # Prepare the list of available variations
         # For this we just read from the parameters
         available_jet_variations = []
-        for jet_type in self.jet_calib_param.collection[self._year].keys():
+        for jet_type in self.jet_calib_param.collection[self.year].keys():
             if jet_type not in self.jets_calibrated_types:
                 # If the jet type is not calibrated, we skip it
                 continue
-            if jet_type in self.jet_calib_param.variations[self._year]:
+            if jet_type in self.jet_calib_param.variations[self.year]:
                 # If the jet type has variations, we add them to the list
                 # of variations available for this calibrator
-                for variation in self.jet_calib_param.variations[self._year][jet_type]:
+                for variation in self.jet_calib_param.variations[self.year][jet_type]:
                     available_jet_variations +=[
                         f"{jet_type}_{variation}Up",
                         f"{jet_type}_{variation}Down"
@@ -93,8 +87,8 @@ class JetsCalibrator(Calibrator):
             # get the jet type from the variation name
             variation_parts = variation.split("_")
             jet_type = variation_parts[0]
-            if jet_type not in self.jet_calib_param.collection[self._year]:
-                raise ValueError(f"Jet type {jet_type} not found in the parameters for year {self._year}.")
+            if jet_type not in self.jet_calib_param.collection[self.year]:
+                raise ValueError(f"Jet type {jet_type} not found in the parameters for year {self.year}.")
             # get the variation type from the variation name
             if variation.endswith("Up"):
                 variation_type = "_".join(variation_parts[1:])[:-2]  # remove 'Up'
@@ -106,7 +100,7 @@ class JetsCalibrator(Calibrator):
                 raise ValueError(f"JET Variation {variation} is not recognized. It should end with 'Up' or 'Down'.")
            
             # get the jet collection name from the parameters
-            jet_coll_name = self.jet_calib_param.collection[self._year][jet_type]
+            jet_coll_name = self.jet_calib_param.collection[self.year][jet_type]
             if jet_coll_name not in self.jets_calibrated:
                 raise ValueError(f"Jet collection {jet_coll_name} not found in the calibrated jets.")
             # Apply the variation to the jets
@@ -283,29 +277,33 @@ class METCalibrator(Calibrator):
     '''
     The MET calibrator applies the JEC to the MET collection.'''
     def __init__(self, params, metadata, **kwargs):
-        super().__init__(params, metadata)
-        jet_calib_param = params.jets_calibration
-        self.met_calib_active = jet_calib_param.rescale_MET[metadata["year"]]
-        self.met_branch = jet_calib_param.rescale_MET_branch[metadata["year"]]
+        super().__init__(params, metadata, **kwargs)
+        jet_calib_param = self.params.jets_calibration
+        self.met_calib_cfg = jet_calib_param.rescale_MET_config[self.year]
+        self.met_calib_active = self.met_calib_cfg.apply
+        self.met_branch = self.met_calib_cfg.MET_collection
         self.calibrated_collections = [f"{self.met_branch}.pt", f"{self.met_branch}.phi"]
-
+        self.jet_collection = self.met_calib_cfg.Jet_collection
+       
     def initialize(self, events):
         pass
 
     def calibrate(self, events, orig_colls, variation, already_applied_calibrators=None):
         '''The MET calibrator applies the difference from the uncalibrated Jets and the calibrated Jets after JEC to the MET collection.
         In case the Jets in the nano are already calibrated, the delta will be 0 and the MET will not be changed.'''
+        if not self.met_calib_active:
+            return {}
         # we can check if the Jets calibrator has been applied
         if "jet_calibration" not in already_applied_calibrators:
             raise ValueError("Jets calibrator must be applied before the MET calibrator.")
-        if "Jet" not in orig_colls:
+        if self.jet_collection not in orig_colls:
             # this means that the jets calibration has been skipped
             # we just return the MET as is
             return {}
         
         # Get the uncalibrated and calibrated jets
-        uncalibrated_jets = orig_colls["Jet"]
-        calibrated_jets = events["Jet"]
+        uncalibrated_jets = orig_colls[self.jet_collection]
+        calibrated_jets = events[self.jet_collection]
         new_MET = met_correction_after_jec(events, self.met_branch, uncalibrated_jets, calibrated_jets)
         # Return the new MET collection
         return {f"{self.met_branch}.pt" : new_MET["pt"],
@@ -313,17 +311,81 @@ class METCalibrator(Calibrator):
 
 ##############################################
 class ElectronsScaleCalibrator(Calibrator):
+
+    name = "electron_scale_and_smearing"
+    has_variations = True
+    isMC_only = False
+    calibrated_collections = ["Electron.pt", "Electron.pt_original"]
+
     def __init__(self, params, metadata, **kwargs):
         super().__init__(params, metadata, **kwargs)
-        # initialize variations
+        self.ss_params = self.params.lepton_scale_factors.electron_sf.scale_and_smearing
+        if not self.ss_params.apply[self.year]:
+            # If the scale and smearing is not applied, we do not need to initialize the calibrator
+            self.ssfile = None
+            self._variations = []
+            self.calibrated_collections = []
+            self.enabled = False
+            return
+        self.enabled = True
+        self.ssfile = self.ss_params.correctionlib_config[self.year]["file"]
+        self.correction_name = self.ss_params.correctionlib_config[self.year]["correction_name"]
+        if self.isMC:
+            self._variations = ["ele_scaleUp", "ele_scaleDown", "ele_smearUp", "ele_smearDown"]
+        else:
+            self._variations = []
+        
 
     def initialize(self, events):
         # initialize the calibrator
-        pass
+        if not self.enabled:
+            return
+        seed = abs(hash(events.metadata['fileuuid'])+events.metadata['entrystart'])
+        self.electrons = ak.with_field(events.Electron,
+                                       events["Electron"]["deltaEtaSC"] + events["Electron"]["eta"],
+                                       "etaSC")
+        self.electrons = ak.with_field(self.electrons, self.electrons["pt"], "pt_original")
+        if self.isMC:
+            # If the events are MC, we apply smearing
+            self.smeared_pt = get_ele_smeared(self.electrons, self.ssfile, self.correction_name.smear,
+                                              isMC=True, only_nominal=False, seed=seed)
+            # Also get the scale variations, without scaling the nominal
+            self.scaled_pt = get_ele_scaled(self.electrons, self.ssfile, self.correction_name.scale,
+                                            isMC=True, runNr=events["run"])
+            # TODO: check what happens with the run number and MC
+        else:
+            # If the events are data, we apply only scaling
+            self.scaled_pt = get_ele_scaled(self.electrons, self.ssfile, self.correction_name.scale,
+                                            isMC=False, runNr=events["run"])
 
-    def calibrate(self, events, variation):
-        pass
 
+    def calibrate(self, events, orig_colls, variation, already_applied_calibrators=None):
+        if not self.enabled:
+            return {}
+        if self.isMC:
+            if variation == "nominal" or variation not in self._variations:
+                # If the variation is nominal or not handled by this calibrator
+                # we return the original pt
+                return {"Electron.pt": self.smeared_pt["nominal"],
+                        "Electron.pt_original": self.electrons["pt_original"]}
+            elif variation == "ele_scaleUp":
+                return {"Electron.pt": self.scaled_pt["up"],
+                        "Electron.pt_original": self.electrons["pt_original"]}
+            elif variation == "ele_scaleDown":
+                return {"Electron.pt": self.scaled_pt["down"],
+                        "Electron.pt_original": self.electrons["pt_original"]}
+            elif variation == "ele_smearUp":
+                return {"Electron.pt": self.smeared_pt["up"],
+                        "Electron.pt_original": self.electrons["pt_original"]}
+            elif variation == "ele_smearDown":
+                return {"Electron.pt": self.smeared_pt["down"],
+                        "Electron.pt_original": self.electrons["pt_original"]}
+        else:
+            # If the events are data, we do not apply smearing
+            return {"Electron.pt": self.scaled_pt["nominal"],
+                    "Electron.pt_original": self.electrons["pt_original"]}
+
+#####################################################
 class MuonsCalibrator(Calibrator):
     def __init__(self, params, metadata, **kwargs):
         super().__init__(params, metadata, **kwargs)
@@ -333,10 +395,10 @@ class MuonsCalibrator(Calibrator):
         # initialize the calibrator
         pass
 
-    def calibrate(self, events, variation):
+    def calibrate( events, orig_colls, variation, already_applied_calibrators=None):
         pass
 
-#########################################3
+#########################################
 default_calibrators_sequence = [
-    JetsCalibrator, METCalibrator
+    JetsCalibrator, METCalibrator, ElectronsScaleCalibrator
 ]
