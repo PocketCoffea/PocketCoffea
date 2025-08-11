@@ -22,8 +22,7 @@ class JetsCalibrator(Calibrator):
         self.jet_calib_param = self.params.jets_calibration
         self.caches = [] 
         self.jets_calibrated = {}
-        self.jets_calibrated_types = [ ]
-        self.jet_type_to_calibrate=None
+        self.jets_calibrated_types = []
 
     def initialize(self, events):
         # Load the calibration of each jet type requested by the parameters
@@ -111,32 +110,95 @@ class JetsCalibrator(Calibrator):
             
         return out
 
-class _JetsPtRegressionCalibrator(JetsCalibrator):
+class JetsPtRegressionCalibrator(JetsCalibrator):
     """
+    This calibrator applied the Pt regression from PNet and UParTAK4 to the jets, before
+    applying dedicated JEC calibrators.
+
+    It is a subclass of JetsCalibrator, so it can be used in the same way.
+    The jet_calibation.yaml parameters configures the regression and JEC to be applied. 
+    Dedicated jet_types are used to distinguish between the different regression algorithms.
+
+    All the jets type with "Regression" in their name will be calibrated by this calibrator, the 
+    others will be ignored (and should be calibrated by the JetsCalibrator).
     """
-    name = "jet_pt_reg_calibration"
+    name = "jet_calibration_with_pt_regression"
     has_variations = True
     isMC_only = False
     calibrated_collections = ["Jet"]
 
     def __init__(self, params, metadata, jme_factory, **kwargs):
         super().__init__(params, metadata, jme_factory, **kwargs)
-        self.jet_type_to_calibrate="AK4PFPuppiPNetRegression"
+         # Check if regression is enabled and configured
+        
+  
+    def initialize(self, events):
+        # Load the calibration of each jet type requested by the parameters
+        for jet_type, jet_coll_name in self.jet_calib_param.collection[self.year].items():
+            if "Regression" not in jet_type:
+                # If the jet type is not a regression type, we skip it
+                continue
+            # If the jet type is a regression type, we apply the regression
+            # and then the JEC
 
-        # Check if regression is enabled and configured
-        if params is not None and hasattr(params, 'object_preselection') and hasattr(params.object_preselection, 'Jet'):
-            jet_params = params.object_preselection.Jet
-            if hasattr(jet_params, 'regression') and jet_params.regression.get('do', False):
-                self.regression_params = jet_params.regression
+            # Check if the collection is enables in the parameters
+            if self.isMC:
+                if self.jet_calib_param.apply_jec_MC[self.year][jet_type] == False:
+                    # If the collection is not enabled, we skip it
+                    continue
             else:
-                self.regression_params = None
-        else:
-            self.regression_params = None
-            
-    def get_jet_coll_name(self):
-        return self.jet_calib_param.collection[self._year][self.jet_type_to_calibrate]
+                if self.jet_calib_param.apply_jec_Data[self.year][jet_type] == False:
+                    # If the collection is not enabled, we skip it
+                    continue
 
-    def apply_regression(self, jets):
+            regression_params = None
+            # Get the regression parameters by collection
+            if hasattr(self.params, 'object_preselection') and hasattr(self.params.object_preselection, jet_coll_name):
+                jet_params = self.params.object_preselection[jet_coll_name]
+                if hasattr(jet_params, 'regression'):
+                    regression_params = jet_params.regression
+
+            # Apply the regression to the jets before the JEC
+            jets_regressed, reg_mask = self.apply_regression(events[jet_coll_name], jet_type, regression_params)
+
+            cache = cachetools.Cache(np.inf)
+            self.caches.append(cache)
+            self.jets_calibrated[jet_coll_name] = jet_correction(
+                params=self.params,
+                events=events,
+                jets=jets_regressed,  # passing the regressed jets
+                factory=self.jme_factory,
+                jet_type = jet_type,
+                chunk_metadata={
+                    "year": self.metadata["year"],
+                    "isMC": self.metadata["isMC"],
+                    "era": self.metadata["era"] if "era" in self.metadata else None,
+                },
+                cache=cache
+            )
+            
+            # Add to the list of the types calibrated
+            self.jets_calibrated_types.append(jet_type)
+
+        # Prepare the list of available variations
+        # For this we just read from the parameters
+        available_jet_variations = []
+        for jet_type in self.jet_calib_param.collection[self.year].keys():
+            if jet_type not in self.jets_calibrated_types:
+                # If the jet type is not calibrated, we skip it
+                continue
+            if jet_type in self.jet_calib_param.variations[self.year]:
+                # If the jet type has variations, we add them to the list
+                # of variations available for this calibrator
+                for variation in self.jet_calib_param.variations[self.year][jet_type]:
+                    available_jet_variations +=[
+                        f"{jet_type}_{variation}Up",
+                        f"{jet_type}_{variation}Down"
+                    ]
+                    # we want to vary independently each jet type
+        self._variations = list(sorted(set(available_jet_variations)))  # remove duplicates
+
+    def apply_regression(self, jets, jet_type, regression_params=None):
         """
         Apply PNet regression to jets.
         
@@ -146,12 +208,6 @@ class _JetsPtRegressionCalibrator(JetsCalibrator):
         Returns:
             Dictionary with calibrated jet collection # TODO: change
         """
-        
-
-        # Skip if regression parameters are not configured
-        if self.regression_params is None:
-            return jets, ak.zeros_like(jets)
-
         # Apply regression only to specific jet types (AK4PFPuppi, AK4PFchs)
         # This check should ideally be done based on jet type parameter, but for now
         # we assume it's applied to the main Jet collection
@@ -159,20 +215,22 @@ class _JetsPtRegressionCalibrator(JetsCalibrator):
         # Flatten jets for easier processing
         j_flat, nj = ak.flatten(jets), ak.num(jets)
 
-        if "PNet" in self.jet_type_to_calibrate:
+        if "PNet" in jet_type:
             # Use PNet regression
             pt_raw_corr='PNetRegPtRawCorr'
             pt_raw_corr_neutrino='PNetRegPtRawCorrNeutrino'
             btag_b='btagPNetB'
             btag_cvl='btagPNetCvL'
-        elif "UParTAK4" in self.jet_type_to_calibrate:
+            do_plus_neutrino = "PlusNeutrino" in jet_type
+        elif "UParTAK4" in jet_type:
             # Use UParTAK4 regression
             pt_raw_corr='UParTAK4RegPtRawCorr'
             pt_raw_corr_neutrino='UParTAK4RegPtRawCorrNeutrino'
             btag_b='btagUParTAK4B'
             btag_cvl='btagUParTAK4CvL'
+            do_plus_neutrino = "PlusNeutrino" in jet_type
         else:
-            raise ValueError(f"Regression algorithm {self.jet_type_to_calibrate} is not supported."+
+            raise ValueError(f"Regression algorithm {jet_type} is not supported."+
                              " Supported algorithms are: PNet, UParTAK4.")
 
         # Check if required fields exist
@@ -190,9 +248,7 @@ class _JetsPtRegressionCalibrator(JetsCalibrator):
             * (1 - j_flat["rawFactor"])
             * j_flat[pt_raw_corr]
             * (
-                j_flat[pt_raw_corr_neutrino]
-                if "PlusNeutrino" in self.jet_type_to_calibrate
-                else 1
+                j_flat[pt_raw_corr_neutrino] if do_plus_neutrino else 1
             )
         )
         reg_j_mass = (
@@ -200,16 +256,20 @@ class _JetsPtRegressionCalibrator(JetsCalibrator):
             * (1 - j_flat["rawFactor"])
             * j_flat[pt_raw_corr]
             * (
-                j_flat[pt_raw_corr_neutrino]
-                if "PlusNeutrino" in self.jet_type_to_calibrate
-                else 1
+                j_flat[pt_raw_corr_neutrino] if do_plus_neutrino else 1
             )
         )
 
-        cut_btagB=getattr(self.regression_params, 'cut_btagB', -1.)
-        cut_btagCvL=getattr(self.regression_params, 'cut_btagCvL', -1.)
-        # Select which jets to apply the regression to (cuts are provided via parameter yaml)
-        reg_mask = (j_flat[btag_b] >= cut_btagB) | (j_flat[btag_cvl] >= cut_btagCvL)
+        if regression_params is None:
+            reg_mask = ak.ones_like(reg_j_pt, dtype=bool)
+        else:   
+            # If regression parameters are provided, we use them
+            # to select the jets to apply the regression to
+            cut_btagB=getattr(regression_params, 'cut_btagB', -1.)
+            cut_btagCvL=getattr(regression_params, 'cut_btagCvL', -1.)
+        
+            # Select which jets to apply the regression to (cuts are provided via parameter yaml)
+            reg_mask = (j_flat[btag_b] >= cut_btagB) | (j_flat[btag_cvl] >= cut_btagCvL)
 
         # Apply regression only to jets where the regression is not 0
         reg_mask = (reg_mask) & (j_flat[pt_raw_corr] != 0) & (j_flat[pt_raw_corr_neutrino] != 0)
@@ -218,8 +278,10 @@ class _JetsPtRegressionCalibrator(JetsCalibrator):
         # can lead to issues if the regression is applied on only
         # part of the jets because the JEC should be applied ONLY
         # to the jets that have the regression applied.
-        # This is why we throw the jets that do not have the regression applied
+        # This is why we throw away the jets that do not have the regression applied
 
+        # An alternative is to apply the regression only to the jets that have the regression applied
+        # but then the JEC would be wrong for these jets
         # Apply regression where mask is True, keep original values otherwise
         # new_j_pt_flat = ak.where(reg_mask, reg_j_pt, j_flat['pt'])
         new_j_pt_flat = ak.mask(reg_j_pt, reg_mask)
@@ -244,29 +306,6 @@ class _JetsPtRegressionCalibrator(JetsCalibrator):
 
         return jets_regressed, reg_mask
 
-    def initialize(self, events):
-        jets_regressed, reg_mask = self.apply_regression(events["Jet"])
-        self.jet_coll_name = self.get_jet_coll_name()
-        
-        events[self.jet_coll_name] = jets_regressed
-        
-        # Initialize the base class
-        super().initialize(events)
-
-class JetsPNetPtRegressionCalibrator(_JetsPtRegressionCalibrator):
-    """
-    """
-    name = "jet_pnet_pt_reg_calibration"
-    has_variations = True
-    isMC_only = False
-    calibrated_collections = ["Jet"]
-    
-    
-    def __init__(self, params, metadata, jme_factory, **kwargs):
-        super().__init__(params, metadata, jme_factory, **kwargs)
-        
-        self.jet_type_to_calibrate="AK4PFPuppiPNetRegression"
-        self.calibrated_collections=[self.get_jet_coll_name()]
 
 ###########################################
 class METCalibrator(Calibrator):
