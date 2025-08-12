@@ -53,6 +53,3 @@ systematic_variations:
       "2022_postEE": "${.2016_PreVFP}"
       "2023_preBPix": "${.2016_PreVFP}"
       "2023_postBPix": "${.2016_PreVFP}"
-
-  shape_variations:
-    JES:

@@ -253,14 +253,14 @@ def test_subsamples(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_f
                                         'TTTo2L2Nu__mu': 156}},
         '1btag': {'DATA_SingleMuon_2018_EraA': {'DATA_SingleMuon': 36,
                                                 'DATA_SingleMuon__clean': 36},
-                  'TTTo2L2Nu_2018': {'TTTo2L2Nu': 279,
+                  'TTTo2L2Nu_2018': {'TTTo2L2Nu': 280,
                                      'TTTo2L2Nu__ele': 89,
-                                     'TTTo2L2Nu__mu': 138}},
+                                     'TTTo2L2Nu__mu': 140}},
         '2btag': {'DATA_SingleMuon_2018_EraA': {'DATA_SingleMuon': 1,
                                                 'DATA_SingleMuon__clean': 1},
-                  'TTTo2L2Nu_2018': {'TTTo2L2Nu': 115,
+                  'TTTo2L2Nu_2018': {'TTTo2L2Nu': 112,
                                      'TTTo2L2Nu__ele': 39,
-                                     'TTTo2L2Nu__mu': 55}},
+                                     'TTTo2L2Nu__mu': 52}},
         
     }
     

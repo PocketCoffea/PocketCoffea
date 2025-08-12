@@ -1,5 +1,0 @@
-chunksize: 10000
-scaleout: 10
-queue: espresso
-local-virtualenv: true
-

@@ -146,6 +146,7 @@ class HistManager:
         categories_config,
         variations_config,
         weights_manager,
+        calibrators_manager,
         processor_params,
         custom_axes=None,
         isMC=True,
@@ -155,6 +156,7 @@ class HistManager:
         self.year = year
         self.subsamples = subsamples
         self.weights_manager = weights_manager
+        self.calibrators_manager = calibrators_manager
         self.histograms = defaultdict(dict)
         self.variations_config = variations_config
         self.categories_config = categories_config
@@ -182,33 +184,13 @@ class HistManager:
             
             # Shape variations
             for cat, vars in self.variations_config["shape"].items():
+                # Ask the calibrators manager for available variations. 
+                # Each calibrator handles the available variations
                 for var in vars:
-                    # Check if the variation is a wildcard and the systematic requested has subvariations
-                    # defined in the parameters
-                    if (
-                        var
-                        in self.processor_params.systematic_variations.shape_variations
-                    ):
-                        for (
-                            subvariation
-                        ) in self.processor_params.systematic_variations.shape_variations[
-                            var
-                        ][
-                            self.year
-                        ]:
-                            self.wildcard_variations[var] = f"{var}_{subvariation}"
-                            self.available_weights_variations += [
-                                f"{var}_{subvariation}Up",
-                                f"{var}_{subvariation}Down",
-                            ]
-                            self.available_weights_variations_bycat[cat] += [
-                                f"{var}_{subvariation}Up",
-                                f"{var}_{subvariation}Down",
-                            ]
-                    else:
-                        vv = [f"{var}Up", f"{var}Down"]
-                        self.available_shape_variations += vv
-                        self.available_shape_variations_bycat[cat] += vv
+                    variations = self.calibrators_manager.get_available_variations(var)
+                    self.available_shape_variations += variations
+                    self.available_shape_variations_bycat[cat] += variations
+
         else:  # DATA
             # Add a "weight_variation" nominal for data in each category
             for cat in self.categories_config.keys():
@@ -216,7 +198,6 @@ class HistManager:
                 self.available_weights_variations_bycat[cat].append("nominal")
                 
             
-        
         # Reduce to set over all the categories
         self.available_weights_variations = set(self.available_weights_variations)
         self.available_shape_variations = set(self.available_shape_variations)

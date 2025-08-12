@@ -19,5 +19,5 @@ Module contents
 
 .. automodule:: pocket_coffea
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

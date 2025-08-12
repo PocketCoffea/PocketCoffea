@@ -150,7 +150,7 @@ class WeightWrapper(ABC, metaclass=WeightWrapperMeta):
             },
         }
         if src_code: #to be tested
-            out["function"]["src_code"] = inspect.getsource(self.__class__)
+            out["class"]["src_code"] = inspect.getsource(self.__class__)
         return out
 
 
