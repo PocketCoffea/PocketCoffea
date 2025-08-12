@@ -143,6 +143,7 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
             "job_name": self.job_name,
             "job_dir": os.path.abspath(self.jobs_dir),
             "output_dir": os.path.abspath(self.outputdir),
+            "split_by_category": self.run_options["split-by-category"],
             "config_pkl_total": f"{os.path.abspath(self.outputdir)}/configurator.pkl",
             "jobs_list": {}
         }
@@ -179,6 +180,19 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
 
         pythonpath = sys.prefix.rsplit('/', 1)[0]
 
+        if self.run_options["split-by-category"]:
+            splitcommands = '''
+    cd output
+    split-output output_all.coffea -b category
+    rm output_all.coffea
+    for f in *.coffea; do
+        cp "$f" "$3/${f%.coffea}_job_$1.coffea"
+    done
+    cd ..
+'''
+        else:
+            splitcommands = "cp output/output_all.coffea $3/output_job_$1.coffea"
+
         script = f"""#!/bin/bash
 {env_extras}
 
@@ -193,7 +207,7 @@ python {pythonpath}/pocket_coffea/scripts/runner.py --cfg $2 -o output EXECUTOR 
 # Do things only if the job is successful
 if [ $? -eq 0 ]; then
     echo 'Job successful'
-    cp output/output_all.coffea $3/output_job_$1.coffea
+    {splitcommands}
 
     rm $JOBDIR/job_$1.running
     touch $JOBDIR/job_$1.done
