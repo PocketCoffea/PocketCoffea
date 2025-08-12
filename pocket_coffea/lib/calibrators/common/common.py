@@ -7,11 +7,17 @@ from pocket_coffea.lib.leptons import get_ele_scaled, get_ele_smeared
 
 class JetsCalibrator(Calibrator):
     """
+    This calibator applies the JEC to the jets and their uncertainties. 
+    The set of calibrations to be applied is defined in the parameters file under the 
+    `jets_calibration.collection` section.
+    All the jet types that have apply_jec_MC or apply_jec_Data set to True will be calibrated.
+    If the pT regression is requested for a jet type, it should be done by the JetsPtRegressionCalibrator, 
+    this calibrator will raise an exception if configured to apply pT regression.
     """
+    
     name = "jet_calibration"
     has_variations = True
     isMC_only = False
-
 
     def __init__(self, params, metadata, jme_factory, **kwargs):
         super().__init__(params, metadata, **kwargs)
@@ -29,13 +35,30 @@ class JetsCalibrator(Calibrator):
         for jet_type, jet_coll_name in self.jet_calib_param.collection[self.year].items():
             # Check if the collection is enables in the parameters
             if self.isMC:
-                if self.jet_calib_param.apply_jec_MC[self.year][jet_type] == False:
+                if (self.jet_calib_param.apply_jec_MC[self.year][jet_type] == False):
                     # If the collection is not enabled, we skip it
                     continue
             else:
                 if self.jet_calib_param.apply_jec_Data[self.year][jet_type] == False:
                     # If the collection is not enabled, we skip it
                     continue
+
+            if jet_coll_name in self.jets_calibrated:
+                # If the collection is already calibrated with another jet_type, raise an error for misconfiguration
+                raise ValueError(f"Jet collection {jet_coll_name} is already calibrated with another jet type. " +
+                                 f"Current jet type: {jet_type}. Previous jet types: {self.jets_calibrated[jet_coll_name]}")
+
+            # Check the Pt regression is not requested for this jet type 
+            # and in that case send a warning and skim them
+            if self.isMC and self.jet_calib_param.apply_pt_regr_MC[self.year][jet_type]:
+                print(f"WARNING: Jet type {jet_type} is requested to be calibrated with pT regression: " +
+                                    "skipped by JetCalibrator. Please activate the JetsPtRegressionCalibrator.")
+                continue
+            if not self.isMC and self.jet_calib_param.apply_pt_regr_Data[self.year][jet_type]:
+                print(f"WARNING: Jet type {jet_type} is requested to be calibrated with pT regression: " +
+                                    "skipped by JetCalibrator. Please activate the JetsPtRegressionCalibrator.")
+                continue
+
             # register the collection as calibrated by this calibrator
             self.calibrated_collections.append(jet_coll_name)
 
@@ -137,21 +160,32 @@ class JetsPtRegressionCalibrator(JetsCalibrator):
     def initialize(self, events):
         # Load the calibration of each jet type requested by the parameters
         for jet_type, jet_coll_name in self.jet_calib_param.collection[self.year].items():
-            if "Regression" not in jet_type:
-                # If the jet type is not a regression type, we skip it
-                continue
-            # If the jet type is a regression type, we apply the regression
-            # and then the JEC
-
-            # Check if the collection is enables in the parameters
+            
+            # check if the jet regression is requested, if not skip it
             if self.isMC:
-                if self.jet_calib_param.apply_jec_MC[self.year][jet_type] == False:
+                if not self.jet_calib_param.apply_pt_regr_MC[self.year][jet_type]:
                     # If the collection is not enabled, we skip it
-                    continue
+                    continue    
             else:
-                if self.jet_calib_param.apply_jec_Data[self.year][jet_type] == False:
+                if not self.jet_calib_param.apply_pt_regr_Data[self.year][jet_type]:
                     # If the collection is not enabled, we skip it
                     continue
+
+            if jet_coll_name in self.jets_calibrated:
+                # If the collection is already calibrated with another jet_type, raise an error for misconfiguration
+                raise ValueError(f"Jet collection {jet_coll_name} is already calibrated with another jet type. " +
+                                 f"Current jet type: {jet_type}. Previous jet types: {self.jets_calibrated[jet_coll_name]}")
+            # Check if the JEC application is requested for this jet type: it should! 
+            # in case it is not raise an error as this jets should ne calibated after the regression
+            # Check if the collection is enables in the parameters
+            if self.isMC and self.jet_calib_param.apply_jec_MC[self.year][jet_type] == False:
+                raise ValueError(f"Jet type {jet_type} is requested to be calibrated with Pt regression" + 
+                                  " but the JEC application is not configured. Please check the parameters." +
+                                   " In case you only want to apply the JEC and not the regression, use JetsCalibrator instead.")
+            if not self.isMC and self.jet_calib_param.apply_jec_Data[self.year][jet_type] == False:
+                raise ValueError(f"Jet type {jet_type} is requested to be calibrated with Pt regression" + 
+                                  " but the JEC application is not configured. Please check the parameters." +
+                                   " In case you only want to apply the JEC and not the regression, use JetsCalibrator instead.")
 
             self.calibrated_collections.append(jet_coll_name)
 
@@ -170,7 +204,7 @@ class JetsPtRegressionCalibrator(JetsCalibrator):
             self.jets_calibrated[jet_coll_name] = jet_correction(
                 params=self.params,
                 events=events,
-                jets=jets_regressed,  # passing the regressed jets
+                jets=jets_regressed[reg_mask],  # passing the regressed jets
                 factory=self.jme_factory,
                 jet_type = jet_type,
                 chunk_metadata={
@@ -308,7 +342,7 @@ class JetsPtRegressionCalibrator(JetsCalibrator):
         jets_regressed = ak.with_field(jets_regressed, new_j_mass, 'mass')
         jets_regressed = ak.with_field(jets_regressed, new_raw_factor, 'rawFactor')
 
-        return jets_regressed, reg_mask
+        return jets_regressed, reg_mask_unflatten
 
 
 ###########################################

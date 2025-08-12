@@ -55,6 +55,7 @@ cfg = Configurator(
         },
     },
     workflow=PtRegrProcessor,
+    workflow_options={"debug_calibrators": True},
     skim=[],
     preselections=[passthrough],
     categories={

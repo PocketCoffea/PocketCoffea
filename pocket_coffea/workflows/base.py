@@ -641,7 +641,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             # Running only the shape variations activated in the configuration
             # for the current sample. 
             # The shape variations are defined by the calibrator name 
-            variations_for_calibrators=self.cfg.available_shape_variations[self._sample]
+            variations_for_calibrators=self.cfg.available_shape_variations[self._sample],
+            debug=self.workflow_options.get("debug_calibrators", False),
         ):
             # We need to set the events to the calibrated ones
             # and call the function to apply the preselection

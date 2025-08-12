@@ -292,3 +292,36 @@ def test_shape_variation_default_sequence_comparison_with_legacy_run3(base_path:
     met_pt = output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"]["PuppiMET_pt"].value
     assert np.allclose(met_pt, met_pt_MC), "MET pt values do not match with the reference output"
 
+
+
+
+def test_shape_variation_JEC_run3_pt_regression(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
+    monkeypatch.chdir(base_path / "test_shape_variations" )
+    outputdir = tmp_path_factory.mktemp("test_shape_variations")
+    config = load_config("config_JEC_ptregr.py", save_config=True, outputdir=outputdir)
+    assert isinstance(config, Configurator)
+
+    run_options = defaults.get_default_run_options()["general"]
+    run_options["limit-files"] = 1
+    run_options["limit-chunks"] = 1
+    run_options["chunksize"] = 200
+    config.filter_dataset(run_options["limit-files"])
+
+    executor_factory = executors_lib.get_executor_factory("iterative",
+                                                          run_options=run_options,outputdir=outputdir)
+
+    executor = executor_factory.get()
+
+    run = Runner(
+        executor=executor,
+        chunksize=run_options["chunksize"],
+        maxchunks=run_options["limit-chunks"],
+        schema=processor.NanoAODSchema,
+        format="root"
+    )
+    output = run(config.filesets, treename="Events",
+                 processor_instance=config.processor_instance)
+    save(output, outputdir / "output_all.coffea")
+
+    assert output is not None
+    
