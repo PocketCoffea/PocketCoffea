@@ -711,7 +711,7 @@ samples and categories.
   is rerun for each shape variation. 
   
   Have a look at the base processor
-  [get_shape_variations()](pocket_coffea.workflows.base.BaseProcessorABC.get_shape_variations) function to learn about
+  [loop_over_variations()](pocket_coffea.workflows.base.BaseProcessorABC.loop_over_variations) function to learn about
   their implementation. 
   
   

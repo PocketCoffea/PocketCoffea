@@ -2,6 +2,15 @@
 
 This page keeps track of major and minor changes between versions. Breaking changes are also reported
 
+## PocketCoffea 0.9.11 (Development)
+
+- Added CVMFS file management tool for local parameter file handling
+  - New CLI command `pocket-coffea download-cvmfs-files` for downloading and versioning CVMFS files
+  - Supports automatic discovery of CVMFS references in parameter files
+  - Implements hard-link deduplication for storage efficiency  
+  - Provides comprehensive metadata tracking and version management
+  - Enables offline development and analysis preservation workflows
+
 ## PocketCoffea 0.9.6
 
 - Minor release: only fixes and small improvements

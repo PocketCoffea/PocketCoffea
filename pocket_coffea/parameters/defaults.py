@@ -72,13 +72,13 @@ def _list_available_local_tags() -> List[str]:
     return sorted(tags)
 
 
-def setup_cvmfs_resolver(use_local: bool, tag: Optional[str] = None):
+def setup_cvmfs_resolver(use_cvmfs_dump: bool, tag: Optional[str] = None):
     """
     Setup the CVMFS path resolver to use either local files or CVMFS.
     
     Args:
-        use_local: If True, use local files; if False, use CVMFS; if None, auto-detect
-        tag: Version tag for local files (only used when use_local=True)
+        use_cvmfs_dump: If True, use local files; if False, use CVMFS; if None, auto-detect
+        tag: Version tag for local files (only used when use_cvmfs_dump=True)
     """
     global _current_tag
     
@@ -92,7 +92,7 @@ def setup_cvmfs_resolver(use_local: bool, tag: Optional[str] = None):
     local_path = _get_local_data_path(_current_tag)
     
     # Determine final source
-    if use_local is True:
+    if use_cvmfs_dump is True:
         if local_path:
             _current_local_base_path = local_path
             print(f"Using local CVMFS files from: {local_path}")
@@ -133,7 +133,7 @@ register_configuration_dir("default_params_dir", os.path.dirname(os.path.abspath
 OmegaConf.register_new_resolver("pico_to_femto", lambda x: float(x)/1000.)
 
 ##############################################
-def get_default_parameters(use_local: bool = True, tag: Optional[str] = None):
+def get_default_parameters(use_cvmfs_dump: bool = True, tag: Optional[str] = None):
     '''
     This function loads the default parameters from the PocketCoffea package for
     - pileup files
@@ -145,15 +145,15 @@ def get_default_parameters(use_local: bool = True, tag: Optional[str] = None):
     - MET_xy corrections.
 
     Args:
-        use_local: If True, use local downloaded files; if False, use CVMFS (default True); 
-        tag: Version tag for local files (only used if use_local is not False)
+        use_cvmfs_dump: If True, use local downloaded files; if False, use CVMFS (default True); 
+        tag: Version tag for local files (only used if use_cvmfs_dump is not False)
         if tag is None the current default tag specified in defaults is used.
 
     The user can use this function to get a basic set of parameters to customize
     in each analysis.
     '''
     # Setup the CVMFS resolver based on parameters
-    current_local_cvmfs_base_path = setup_cvmfs_resolver(use_local, tag)
+    current_local_cvmfs_base_path = setup_cvmfs_resolver(use_cvmfs_dump, tag)
 
     # The default configs are part of the package
     basedir = os.path.dirname(__file__)
