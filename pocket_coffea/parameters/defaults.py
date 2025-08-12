@@ -4,8 +4,7 @@ from typing import List, Optional
 import glob
 from pathlib import Path
 
-_current_cvmfs_base_path = "/cvmfs"
-_current_tag = None
+_current_tag = "2025-08-12"
 
 def register_configuration_dir(key: str, directory: str):
     '''
@@ -81,7 +80,7 @@ def setup_cvmfs_resolver(use_local: bool, tag: Optional[str] = None):
         use_local: If True, use local files; if False, use CVMFS; if None, auto-detect
         tag: Version tag for local files (only used when use_local=True)
     """
-    global _current_cvmfs_base_path, _current_tag
+    global _current_tag
     
     _current_local_base_path = None
     # If a tag is requested replace the global default
@@ -90,15 +89,13 @@ def setup_cvmfs_resolver(use_local: bool, tag: Optional[str] = None):
     
     
     # Check for local data availability
-    local_path = _get_local_data_path(tag)
+    local_path = _get_local_data_path(_current_tag)
     
     # Determine final source
     if use_local is True:
         if local_path:
             _current_local_base_path = local_path
             print(f"Using local CVMFS files from: {local_path}")
-            if tag:
-                print(f"  Tag: {tag}")
         else:
             print("Warning: Local files requested but not found, falling back to CVMFS")   
     
@@ -115,14 +112,14 @@ def setup_cvmfs_resolver(use_local: bool, tag: Optional[str] = None):
             Full path to the file
         """
         if _current_local_base_path:
-            full_path = os.path.join(_current_local_base_path, relative_path)
+            full_path = _current_local_base_path + relative_path
             # Verify file exists locally, fallback to CVMFS if not
             if os.path.exists(full_path):
                 return full_path
             else:
                 raise ValueError(f"Local cvmfs file not found: {full_path}")
         else:
-            return os.path.join(_current_cvmfs_base_path, relative_path)
+            return "/cvmfs" + relative_path
     
     # Register the resolver with OmegaConf
     OmegaConf.register_new_resolver("cvmfs", cvmfs_path_resolver, replace=True)
@@ -148,8 +145,9 @@ def get_default_parameters(use_local: bool = True, tag: Optional[str] = None):
     - MET_xy corrections.
 
     Args:
-        use_local: If True, use local downloaded files; if False, use CVMFS; 
+        use_local: If True, use local downloaded files; if False, use CVMFS (default True); 
         tag: Version tag for local files (only used if use_local is not False)
+        if tag is None the current default tag specified in defaults is used.
 
     The user can use this function to get a basic set of parameters to customize
     in each analysis.
@@ -189,7 +187,7 @@ def get_default_parameters(use_local: bool = True, tag: Optional[str] = None):
     # Add source information
     source_info = {}
     source_info["source"] = "local" if current_local_cvmfs_base_path else "cvmfs"
-    source_info["base_path"] = current_local_cvmfs_base_path or _current_cvmfs_base_path
+    source_info["base_path"] = current_local_cvmfs_base_path or "/cvmfs"
 
     if _current_tag:
         source_info["tag"] = _current_tag
@@ -214,7 +212,7 @@ def get_default_parameters(use_local: bool = True, tag: Optional[str] = None):
             except Exception as e:
                 print(f"Warning: Could not read metadata file {metadata_file}: {e}")
     
-    all._source_info = source_info
+    all.cvmfs_source_info = source_info
 
     # resolve the config to catch problems
     OmegaConf.resolve(all)

@@ -1,0 +1,855 @@
+{
+  "download_date": "2025-08-12T21:59:52.419065",
+  "files": [
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "2c0d2d9811e9878b81507f411c246e42290e2104aa242b78e5ea2a9784bb615d",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2016postVFP_UL/btagging.json.gz",
+      "download_date": "2025-08-12T21:59:52.420575",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2016postVFP_UL/btagging.json.gz",
+      "size": 1652833,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "c37eff8694948f69acb799dfcd680859ae2d8642915c41143b4ff57695bb42af",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2016postVFP_UL/ctagging.json.gz",
+      "download_date": "2025-08-12T21:59:52.429005",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2016postVFP_UL/ctagging.json.gz",
+      "size": 2377190,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "256af4df5b5fbbab380727e55e9519b5c08cf82bd2e3e494db1acf896d14d201",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2016preVFP_UL/btagging.json.gz",
+      "download_date": "2025-08-12T21:59:52.441035",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2016preVFP_UL/btagging.json.gz",
+      "size": 1658332,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "c58b3ae32c909849b3812fcbff5f61f4fceed8e4f9ca12f37b1995b40449ac6c",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2016preVFP_UL/ctagging.json.gz",
+      "download_date": "2025-08-12T21:59:52.450219",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2016preVFP_UL/ctagging.json.gz",
+      "size": 2363426,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "d689898ffe680a3351c7d6ccb47932e711c3ac48a08875124a4106e13a649e6a",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2017_UL/btagging.json.gz",
+      "download_date": "2025-08-12T21:59:52.465334",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2017_UL/btagging.json.gz",
+      "size": 1627503,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "cb794559ca65efba985e285aa1ebff6d056a90f47219031a52b97a1f8b7cd68c",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2017_UL/ctagging.json.gz",
+      "download_date": "2025-08-12T21:59:52.476464",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2017_UL/ctagging.json.gz",
+      "size": 2355120,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "5b3a2dd83cbb9b502dcf2e7771d9f2d7ff61f3ff0005c4c1035a5a1fb02ec8ed",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2018_UL/btagging.json.gz",
+      "download_date": "2025-08-12T21:59:52.490178",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2018_UL/btagging.json.gz",
+      "size": 1644818,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "6ba111a3f07a559991993ca105a3d56cad5b57d5ef7c041685f97b2fe46a1710",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2018_UL/ctagging.json.gz",
+      "download_date": "2025-08-12T21:59:52.499769",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2018_UL/ctagging.json.gz",
+      "size": 2376136,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "de88c420d40b622c5f4fe5a44d053a556864f1170dec633d07cc3361b1db7ade",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2022_27Jun2023/ctagging.json.gz",
+      "download_date": "2025-08-12T21:59:52.512339",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2022_27Jun2023/ctagging.json.gz",
+      "size": 611,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "dbd6856b4b418f285ba3a04eb83770f7eddcc777daf78b2bd9dea16fc00e1a78",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2022_27Jun2023EE/ctagging.json.gz",
+      "download_date": "2025-08-12T21:59:52.513708",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2022_27Jun2023EE/ctagging.json.gz",
+      "size": 609,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "9ca8bb4d81513f885ba2916af6d3e91f791b4928db72f09b7c91c4e5f3da246a",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2022_Summer22/btagging.json.gz",
+      "download_date": "2025-08-12T21:59:52.514711",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2022_Summer22/btagging.json.gz",
+      "size": 1479962,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "7e1f14622ce16fa7f84e64915473dc81f2b6a986e96dd809d4c16cdb393f6ff1",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2022_Summer22EE/btagging.json.gz",
+      "download_date": "2025-08-12T21:59:52.522219",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2022_Summer22EE/btagging.json.gz",
+      "size": 1513127,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "ea62e5bb7ea12c591db44bad7f401fbb57066a4ae8e70b702f1a085f423a742f",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2023_Summer23/btagging.json.gz",
+      "download_date": "2025-08-12T21:59:52.529592",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2023_Summer23/btagging.json.gz",
+      "size": 1446695,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "82a9bf3732aae90b118df2277bcb1a4fcc0ec6019a941d618ec2f000fc3eaab7",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2023_Summer23/ctagging.json.gz",
+      "download_date": "2025-08-12T21:59:52.536732",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2023_Summer23/ctagging.json.gz",
+      "size": 48370,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "7218a5b634d9b7eddc7731acfd350b041cc78f23ea07f11ab69cf6b289bff67d",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2023_Summer23BPix/btagging.json.gz",
+      "download_date": "2025-08-12T21:59:52.538260",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2023_Summer23BPix/btagging.json.gz",
+      "size": 1246449,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "2bfe59050345bdb34f0099ac62dd71e2e6a68dcbdab216fa994ec0b5c2c0ec1d",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2023_Summer23BPix/ctagging.json.gz",
+      "download_date": "2025-08-12T21:59:52.544779",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2023_Summer23BPix/ctagging.json.gz",
+      "size": 48337,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "fe8ea99cfb11619f3e761c7a15344f42c2597eb795874e0b242369b28a096fe4",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016postVFP_UL/electron.json.gz",
+      "download_date": "2025-08-12T21:59:52.545955",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016postVFP_UL/electron.json.gz",
+      "size": 14009,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "bccdfd8acc4b297bab00034c8123265d987a224b2f3b9036991e7cf6f1bb2925",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016postVFP_UL/photon.json.gz",
+      "download_date": "2025-08-12T21:59:52.546673",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016postVFP_UL/photon.json.gz",
+      "size": 12449,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "0a4023ae4a5a793efd7c60ccf251a0413c811b607aa2460997c9aca3e2bf849d",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016preVFP_UL/electron.json.gz",
+      "download_date": "2025-08-12T21:59:52.547076",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016preVFP_UL/electron.json.gz",
+      "size": 14028,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "8bc14b89d66dfc58858b32d13c7ffb4ea0c55bceb6e0e28a1ecab9efbfc04cab",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016preVFP_UL/photon.json.gz",
+      "download_date": "2025-08-12T21:59:52.547504",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016preVFP_UL/photon.json.gz",
+      "size": 12479,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "f87a05b5f9a26e355c03681618a7bdfd343e1a198a970c81b1976a011199d59a",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2017_UL/electron.json.gz",
+      "download_date": "2025-08-12T21:59:52.547861",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2017_UL/electron.json.gz",
+      "size": 15967,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "c2a730a17318bf9dc883ec0bd9674d306dcd787696779129cfe33d2a16bccee9",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2017_UL/photon.json.gz",
+      "download_date": "2025-08-12T21:59:52.548254",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2017_UL/photon.json.gz",
+      "size": 12547,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "27e389670caa607f4d21f9a0b352cb195aa122024762a43b3b053303ce3768bc",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2018_UL/electron.json.gz",
+      "download_date": "2025-08-12T21:59:52.548632",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2018_UL/electron.json.gz",
+      "size": 15881,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "32724af374312028504ae4ebb561f5333fad9fe6e88b76f1170b09e9ba4e444a",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2018_UL/photon.json.gz",
+      "download_date": "2025-08-12T21:59:52.549047",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2018_UL/photon.json.gz",
+      "size": 12592,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "7a6a3ba13e60667a43b3b728b27ceda57bb38a48dac92d53f1ffe028b88ae898",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/electron.json.gz",
+      "download_date": "2025-08-12T21:59:52.549449",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/electron.json.gz",
+      "size": 16081,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "e5c09b2f0be19c1276ba23c270c1f4d47eddb1a67a5dd0cb2e7f2b921452228f",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/electronHlt.json.gz",
+      "download_date": "2025-08-12T21:59:52.549852",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/electronHlt.json.gz",
+      "size": 50479,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "fdc2e8cc4cff809b91216b367f6672924f34c8d09fa8f3540dc644a588b24593",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/electronSS.json.gz",
+      "download_date": "2025-08-12T21:59:52.550376",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/electronSS.json.gz",
+      "size": 349112,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "84a429c5db13f0834a9340cab8fa1772c401fab0972bcf7be315a35b5beed625",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/photon.json.gz",
+      "download_date": "2025-08-12T21:59:52.552358",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/photon.json.gz",
+      "size": 11210,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "f1fbc565629ca76085ed82f1f71dd1ed9fd35afc287453cb0cbce5f1a4e6d18f",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electron.json.gz",
+      "download_date": "2025-08-12T21:59:52.552968",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electron.json.gz",
+      "size": 16258,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "477382bbb0d0947a7854637e7b6ad3e11602274bb0cb41439657093bf44f7bad",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electronHlt.json.gz",
+      "download_date": "2025-08-12T21:59:52.553467",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electronHlt.json.gz",
+      "size": 50636,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "246b32666b7e686b0798f52c11d5afee20fb3a292f6a103cdd3b4ba82cfe9070",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electronSS.json.gz",
+      "download_date": "2025-08-12T21:59:52.554433",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electronSS.json.gz",
+      "size": 516446,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "70ff2c207cd341acaa0970ecd0899d01be597db72917dda0c49d870a5836fae7",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/photon.json.gz",
+      "download_date": "2025-08-12T21:59:52.557270",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/photon.json.gz",
+      "size": 11252,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "1b3bf33a11a93ea6c024eecc54e213e014386b39fb25f99d11f794cc4e216a55",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electron.json.gz",
+      "download_date": "2025-08-12T21:59:52.558218",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electron.json.gz",
+      "size": 20317,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "7858d3bd16e512019e498a946574d9e0ad59c99de4e48d3ba2e4f0e89cb038c4",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electronHlt.json.gz",
+      "download_date": "2025-08-12T21:59:52.558739",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electronHlt.json.gz",
+      "size": 50307,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "6463b0ab032d0708b0aade3378c0f84fc3a2e06de59ea40c0f59866d8a158501",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electronSS.json.gz",
+      "download_date": "2025-08-12T21:59:52.559363",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electronSS.json.gz",
+      "size": 318341,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "0dd9e3db47536c480b9310b4132920f5e85a226f37575b36885c6e90bc1036f5",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/photon.json.gz",
+      "download_date": "2025-08-12T21:59:52.561223",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/photon.json.gz",
+      "size": 16980,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "9dc55648f1e6d1fc0832586d9f961d96caedf482a7672c2bf4c8661b26c0a133",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electron.json.gz",
+      "download_date": "2025-08-12T21:59:52.562189",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electron.json.gz",
+      "size": 28686,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "dd7d1f262bd5bfec6c998a29b4e07c51e810138e69d3df2ded7a5dce76f44997",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electronHlt.json.gz",
+      "download_date": "2025-08-12T21:59:52.563088",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electronHlt.json.gz",
+      "size": 50435,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "9cd659b30188cfe4669509763c600dd6399f0d8b958383c75fa9903b4def1009",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electronSS.json.gz",
+      "download_date": "2025-08-12T21:59:52.563755",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electronSS.json.gz",
+      "size": 123799,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "79aa7ce977a874d611c50f733b785abf6f3035da10ef9f3d098bbe1590bb37ab",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/photon.json.gz",
+      "download_date": "2025-08-12T21:59:52.564792",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/photon.json.gz",
+      "size": 26806,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "43108dfaf0d64914b7195d3ec2d2def2394f20d2bb77c2469e0b0335f00b6368",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2016postVFP_UL/jmar.json.gz",
+      "download_date": "2025-08-12T21:59:52.565355",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2016postVFP_UL/jmar.json.gz",
+      "size": 8082,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "f430a4a04dea1b2d9b7212bb8e0768ac7b99662a68098a923b553351fb5b2b56",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2016preVFP_UL/jmar.json.gz",
+      "download_date": "2025-08-12T21:59:52.565923",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2016preVFP_UL/jmar.json.gz",
+      "size": 8067,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "fc8637b59f2696d435b77121d0934a0490623ba5bf79a46178d128960ea687ad",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2017_UL/jmar.json.gz",
+      "download_date": "2025-08-12T21:59:52.566359",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2017_UL/jmar.json.gz",
+      "size": 10415,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "3c459a39e689acaadf7012371a6076ed11125846f8cd5032c5963399d9c0dec4",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2018_UL/jmar.json.gz",
+      "download_date": "2025-08-12T21:59:52.566813",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2018_UL/jmar.json.gz",
+      "size": 10393,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "f4e0cb5394166157a28f2f304788acfbfc43c047cd63de3522fec26e834e9e4b",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2022_Summer22/jetvetomaps.json.gz",
+      "download_date": "2025-08-12T21:59:52.567247",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2022_Summer22/jetvetomaps.json.gz",
+      "size": 254050,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "b0194009646c0ecaadcad83e481dc38c1712a8a9b77e05f4e95098c632612461",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2022_Summer22EE/jetvetomaps.json.gz",
+      "download_date": "2025-08-12T21:59:52.568774",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2022_Summer22EE/jetvetomaps.json.gz",
+      "size": 250624,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "db8658800ec208527c1d4611d821ff96d0707884964c70d94ab8d37c5556dc35",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2023_Summer23/jetvetomaps.json.gz",
+      "download_date": "2025-08-12T21:59:52.570614",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2023_Summer23/jetvetomaps.json.gz",
+      "size": 252825,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "78b11500b30144325ead4009fed7f5160a553818563bde49afcaf4617965bcc3",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2023_Summer23BPix/jetvetomaps.json.gz",
+      "download_date": "2025-08-12T21:59:52.572657",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2023_Summer23BPix/jetvetomaps.json.gz",
+      "size": 246308,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "e95e77a855093b6da926469c6001e54919d3390591efd426c75eb010e4e003d3",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2016postVFP_UL/puWeights.json.gz",
+      "download_date": "2025-08-12T21:59:52.574677",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2016postVFP_UL/puWeights.json.gz",
+      "size": 2861,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "6d86c92d71d0bbd3edc7788bd48fb1ef2cc88b3f1d180088d07063a64d580d15",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2016preVFP_UL/puWeights.json.gz",
+      "download_date": "2025-08-12T21:59:52.575738",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2016preVFP_UL/puWeights.json.gz",
+      "size": 2868,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "5b0a345d39f027e6a777e8ca65ce694fb326aff0dd60ff1bd41965cad03150e4",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2017_UL/puWeights.json.gz",
+      "download_date": "2025-08-12T21:59:52.576240",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2017_UL/puWeights.json.gz",
+      "size": 2650,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "6ac304f725844d70511a52c15c4733db505862cd18aeb88c8e8cafa0f6f76e23",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2018_UL/puWeights.json.gz",
+      "download_date": "2025-08-12T21:59:52.576651",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2018_UL/puWeights.json.gz",
+      "size": 2768,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "5ab93045d188e1e002e9e24d6e602dcf75cb6019d616ff1c0df65bec0f98bb1a",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2022_Summer22/puWeights.json.gz",
+      "download_date": "2025-08-12T21:59:52.577022",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2022_Summer22/puWeights.json.gz",
+      "size": 3598,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "e32f30fe154b519e013fda409e746b2512adc58c7f13417bcf36306779c4824f",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2022_Summer22EE/puWeights.json.gz",
+      "download_date": "2025-08-12T21:59:52.577419",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2022_Summer22EE/puWeights.json.gz",
+      "size": 3616,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "ead2eac900b27931e3a7256f07c1f8619c4c9a7dffac8d64f20c9717309f566e",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2023_Summer23/puWeights.json.gz",
+      "download_date": "2025-08-12T21:59:52.577798",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2023_Summer23/puWeights.json.gz",
+      "size": 3403,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "c9012ee4336dcd8790a84f625c9419c05ae0e4abd6084210c76f99a305cd5c64",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2023_Summer23BPix/puWeights.json.gz",
+      "download_date": "2025-08-12T21:59:52.578172",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2023_Summer23BPix/puWeights.json.gz",
+      "size": 3326,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "6c0b6d4e5cfd7c3d522429a1e81d9e6e7e0ff2abb92cc830c2a11258584bcbe5",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2016postVFP_UL/muon_Z.json.gz",
+      "download_date": "2025-08-12T21:59:52.578588",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2016postVFP_UL/muon_Z.json.gz",
+      "size": 115689,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "75b6239407625f058da605f8dd9269c59e723c61785fb7126e92581e9c5b1e25",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2016preVFP_UL/muon_Z.json.gz",
+      "download_date": "2025-08-12T21:59:52.579524",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2016preVFP_UL/muon_Z.json.gz",
+      "size": 115815,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "572824ac90313b4bc97d9ea6ba99620580cea96d98d613b6687eab53d5837308",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2017_UL/muon_Z.json.gz",
+      "download_date": "2025-08-12T21:59:52.580367",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2017_UL/muon_Z.json.gz",
+      "size": 115771,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "d90d058ce2d7890ae6f75241bf8b107c306d005fe819baaf0618b4eb460c6fe9",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2018_UL/muon_Z.json.gz",
+      "download_date": "2025-08-12T21:59:52.581199",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2018_UL/muon_Z.json.gz",
+      "size": 115811,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "07df308866c2903ef95de155def806b3a6e56451783b69a3d0f33afcd55531b7",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2022_Summer22/muon_Z.json.gz",
+      "download_date": "2025-08-12T21:59:52.582123",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2022_Summer22/muon_Z.json.gz",
+      "size": 132630,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "2d213119a2c80dbb52f4ee72530bd5987d601d3d4d2b431ebb9659b65aff3cf9",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2022_Summer22EE/muon_Z.json.gz",
+      "download_date": "2025-08-12T21:59:52.583067",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2022_Summer22EE/muon_Z.json.gz",
+      "size": 135263,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "a3f4a59a2ad8f901585d293dd39a7738232b3eba0669073dd768f47785e9d9cb",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2023_Summer23/muon_Z.json.gz",
+      "download_date": "2025-08-12T21:59:52.584022",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2023_Summer23/muon_Z.json.gz",
+      "size": 340805,
+      "status": "downloaded"
+    },
+    {
+      "changed_in_tag": "2025-08-12",
+      "checksum": "f86c823b3548abe822a25d38d432c65951ed69c4f2d4d179864080affe74854b",
+      "cvmfs_path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2023_Summer23BPix/muon_Z.json.gz",
+      "download_date": "2025-08-12T21:59:52.585907",
+      "local_path": "pocket_coffea/parameters/cvmfs_dumps/2025-08-12/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2023_Summer23BPix/muon_Z.json.gz",
+      "size": 340019,
+      "status": "downloaded"
+    }
+  ],
+  "summary": {
+    "already_existed": 0,
+    "downloaded": 64,
+    "errors": 0,
+    "hardlinked": 0,
+    "total_files": 64
+  },
+  "tag": "2025-08-12",
+  "version_info": {
+    "current_tag": "2025-08-12",
+    "file_changes": {
+      "changed_files": [],
+      "new_files": [
+        {
+          "checksum": "2c0d2d9811e9878b81507f411c246e42290e2104aa242b78e5ea2a9784bb615d",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2016postVFP_UL/btagging.json.gz"
+        },
+        {
+          "checksum": "c37eff8694948f69acb799dfcd680859ae2d8642915c41143b4ff57695bb42af",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2016postVFP_UL/ctagging.json.gz"
+        },
+        {
+          "checksum": "256af4df5b5fbbab380727e55e9519b5c08cf82bd2e3e494db1acf896d14d201",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2016preVFP_UL/btagging.json.gz"
+        },
+        {
+          "checksum": "c58b3ae32c909849b3812fcbff5f61f4fceed8e4f9ca12f37b1995b40449ac6c",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2016preVFP_UL/ctagging.json.gz"
+        },
+        {
+          "checksum": "d689898ffe680a3351c7d6ccb47932e711c3ac48a08875124a4106e13a649e6a",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2017_UL/btagging.json.gz"
+        },
+        {
+          "checksum": "cb794559ca65efba985e285aa1ebff6d056a90f47219031a52b97a1f8b7cd68c",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2017_UL/ctagging.json.gz"
+        },
+        {
+          "checksum": "5b3a2dd83cbb9b502dcf2e7771d9f2d7ff61f3ff0005c4c1035a5a1fb02ec8ed",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2018_UL/btagging.json.gz"
+        },
+        {
+          "checksum": "6ba111a3f07a559991993ca105a3d56cad5b57d5ef7c041685f97b2fe46a1710",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2018_UL/ctagging.json.gz"
+        },
+        {
+          "checksum": "de88c420d40b622c5f4fe5a44d053a556864f1170dec633d07cc3361b1db7ade",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2022_27Jun2023/ctagging.json.gz"
+        },
+        {
+          "checksum": "dbd6856b4b418f285ba3a04eb83770f7eddcc777daf78b2bd9dea16fc00e1a78",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2022_27Jun2023EE/ctagging.json.gz"
+        },
+        {
+          "checksum": "9ca8bb4d81513f885ba2916af6d3e91f791b4928db72f09b7c91c4e5f3da246a",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2022_Summer22/btagging.json.gz"
+        },
+        {
+          "checksum": "7e1f14622ce16fa7f84e64915473dc81f2b6a986e96dd809d4c16cdb393f6ff1",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2022_Summer22EE/btagging.json.gz"
+        },
+        {
+          "checksum": "ea62e5bb7ea12c591db44bad7f401fbb57066a4ae8e70b702f1a085f423a742f",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2023_Summer23/btagging.json.gz"
+        },
+        {
+          "checksum": "82a9bf3732aae90b118df2277bcb1a4fcc0ec6019a941d618ec2f000fc3eaab7",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2023_Summer23/ctagging.json.gz"
+        },
+        {
+          "checksum": "7218a5b634d9b7eddc7731acfd350b041cc78f23ea07f11ab69cf6b289bff67d",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2023_Summer23BPix/btagging.json.gz"
+        },
+        {
+          "checksum": "2bfe59050345bdb34f0099ac62dd71e2e6a68dcbdab216fa994ec0b5c2c0ec1d",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2023_Summer23BPix/ctagging.json.gz"
+        },
+        {
+          "checksum": "fe8ea99cfb11619f3e761c7a15344f42c2597eb795874e0b242369b28a096fe4",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016postVFP_UL/electron.json.gz"
+        },
+        {
+          "checksum": "bccdfd8acc4b297bab00034c8123265d987a224b2f3b9036991e7cf6f1bb2925",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016postVFP_UL/photon.json.gz"
+        },
+        {
+          "checksum": "0a4023ae4a5a793efd7c60ccf251a0413c811b607aa2460997c9aca3e2bf849d",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016preVFP_UL/electron.json.gz"
+        },
+        {
+          "checksum": "8bc14b89d66dfc58858b32d13c7ffb4ea0c55bceb6e0e28a1ecab9efbfc04cab",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016preVFP_UL/photon.json.gz"
+        },
+        {
+          "checksum": "f87a05b5f9a26e355c03681618a7bdfd343e1a198a970c81b1976a011199d59a",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2017_UL/electron.json.gz"
+        },
+        {
+          "checksum": "c2a730a17318bf9dc883ec0bd9674d306dcd787696779129cfe33d2a16bccee9",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2017_UL/photon.json.gz"
+        },
+        {
+          "checksum": "27e389670caa607f4d21f9a0b352cb195aa122024762a43b3b053303ce3768bc",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2018_UL/electron.json.gz"
+        },
+        {
+          "checksum": "32724af374312028504ae4ebb561f5333fad9fe6e88b76f1170b09e9ba4e444a",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2018_UL/photon.json.gz"
+        },
+        {
+          "checksum": "7a6a3ba13e60667a43b3b728b27ceda57bb38a48dac92d53f1ffe028b88ae898",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/electron.json.gz"
+        },
+        {
+          "checksum": "e5c09b2f0be19c1276ba23c270c1f4d47eddb1a67a5dd0cb2e7f2b921452228f",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/electronHlt.json.gz"
+        },
+        {
+          "checksum": "fdc2e8cc4cff809b91216b367f6672924f34c8d09fa8f3540dc644a588b24593",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/electronSS.json.gz"
+        },
+        {
+          "checksum": "84a429c5db13f0834a9340cab8fa1772c401fab0972bcf7be315a35b5beed625",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/photon.json.gz"
+        },
+        {
+          "checksum": "f1fbc565629ca76085ed82f1f71dd1ed9fd35afc287453cb0cbce5f1a4e6d18f",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electron.json.gz"
+        },
+        {
+          "checksum": "477382bbb0d0947a7854637e7b6ad3e11602274bb0cb41439657093bf44f7bad",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electronHlt.json.gz"
+        },
+        {
+          "checksum": "246b32666b7e686b0798f52c11d5afee20fb3a292f6a103cdd3b4ba82cfe9070",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electronSS.json.gz"
+        },
+        {
+          "checksum": "70ff2c207cd341acaa0970ecd0899d01be597db72917dda0c49d870a5836fae7",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/photon.json.gz"
+        },
+        {
+          "checksum": "1b3bf33a11a93ea6c024eecc54e213e014386b39fb25f99d11f794cc4e216a55",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electron.json.gz"
+        },
+        {
+          "checksum": "7858d3bd16e512019e498a946574d9e0ad59c99de4e48d3ba2e4f0e89cb038c4",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electronHlt.json.gz"
+        },
+        {
+          "checksum": "6463b0ab032d0708b0aade3378c0f84fc3a2e06de59ea40c0f59866d8a158501",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electronSS.json.gz"
+        },
+        {
+          "checksum": "0dd9e3db47536c480b9310b4132920f5e85a226f37575b36885c6e90bc1036f5",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/photon.json.gz"
+        },
+        {
+          "checksum": "9dc55648f1e6d1fc0832586d9f961d96caedf482a7672c2bf4c8661b26c0a133",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electron.json.gz"
+        },
+        {
+          "checksum": "dd7d1f262bd5bfec6c998a29b4e07c51e810138e69d3df2ded7a5dce76f44997",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electronHlt.json.gz"
+        },
+        {
+          "checksum": "9cd659b30188cfe4669509763c600dd6399f0d8b958383c75fa9903b4def1009",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electronSS.json.gz"
+        },
+        {
+          "checksum": "79aa7ce977a874d611c50f733b785abf6f3035da10ef9f3d098bbe1590bb37ab",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/photon.json.gz"
+        },
+        {
+          "checksum": "43108dfaf0d64914b7195d3ec2d2def2394f20d2bb77c2469e0b0335f00b6368",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2016postVFP_UL/jmar.json.gz"
+        },
+        {
+          "checksum": "f430a4a04dea1b2d9b7212bb8e0768ac7b99662a68098a923b553351fb5b2b56",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2016preVFP_UL/jmar.json.gz"
+        },
+        {
+          "checksum": "fc8637b59f2696d435b77121d0934a0490623ba5bf79a46178d128960ea687ad",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2017_UL/jmar.json.gz"
+        },
+        {
+          "checksum": "3c459a39e689acaadf7012371a6076ed11125846f8cd5032c5963399d9c0dec4",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2018_UL/jmar.json.gz"
+        },
+        {
+          "checksum": "f4e0cb5394166157a28f2f304788acfbfc43c047cd63de3522fec26e834e9e4b",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2022_Summer22/jetvetomaps.json.gz"
+        },
+        {
+          "checksum": "b0194009646c0ecaadcad83e481dc38c1712a8a9b77e05f4e95098c632612461",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2022_Summer22EE/jetvetomaps.json.gz"
+        },
+        {
+          "checksum": "db8658800ec208527c1d4611d821ff96d0707884964c70d94ab8d37c5556dc35",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2023_Summer23/jetvetomaps.json.gz"
+        },
+        {
+          "checksum": "78b11500b30144325ead4009fed7f5160a553818563bde49afcaf4617965bcc3",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2023_Summer23BPix/jetvetomaps.json.gz"
+        },
+        {
+          "checksum": "e95e77a855093b6da926469c6001e54919d3390591efd426c75eb010e4e003d3",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2016postVFP_UL/puWeights.json.gz"
+        },
+        {
+          "checksum": "6d86c92d71d0bbd3edc7788bd48fb1ef2cc88b3f1d180088d07063a64d580d15",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2016preVFP_UL/puWeights.json.gz"
+        },
+        {
+          "checksum": "5b0a345d39f027e6a777e8ca65ce694fb326aff0dd60ff1bd41965cad03150e4",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2017_UL/puWeights.json.gz"
+        },
+        {
+          "checksum": "6ac304f725844d70511a52c15c4733db505862cd18aeb88c8e8cafa0f6f76e23",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2018_UL/puWeights.json.gz"
+        },
+        {
+          "checksum": "5ab93045d188e1e002e9e24d6e602dcf75cb6019d616ff1c0df65bec0f98bb1a",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2022_Summer22/puWeights.json.gz"
+        },
+        {
+          "checksum": "e32f30fe154b519e013fda409e746b2512adc58c7f13417bcf36306779c4824f",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2022_Summer22EE/puWeights.json.gz"
+        },
+        {
+          "checksum": "ead2eac900b27931e3a7256f07c1f8619c4c9a7dffac8d64f20c9717309f566e",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2023_Summer23/puWeights.json.gz"
+        },
+        {
+          "checksum": "c9012ee4336dcd8790a84f625c9419c05ae0e4abd6084210c76f99a305cd5c64",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2023_Summer23BPix/puWeights.json.gz"
+        },
+        {
+          "checksum": "6c0b6d4e5cfd7c3d522429a1e81d9e6e7e0ff2abb92cc830c2a11258584bcbe5",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2016postVFP_UL/muon_Z.json.gz"
+        },
+        {
+          "checksum": "75b6239407625f058da605f8dd9269c59e723c61785fb7126e92581e9c5b1e25",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2016preVFP_UL/muon_Z.json.gz"
+        },
+        {
+          "checksum": "572824ac90313b4bc97d9ea6ba99620580cea96d98d613b6687eab53d5837308",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2017_UL/muon_Z.json.gz"
+        },
+        {
+          "checksum": "d90d058ce2d7890ae6f75241bf8b107c306d005fe819baaf0618b4eb460c6fe9",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2018_UL/muon_Z.json.gz"
+        },
+        {
+          "checksum": "07df308866c2903ef95de155def806b3a6e56451783b69a3d0f33afcd55531b7",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2022_Summer22/muon_Z.json.gz"
+        },
+        {
+          "checksum": "2d213119a2c80dbb52f4ee72530bd5987d601d3d4d2b431ebb9659b65aff3cf9",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2022_Summer22EE/muon_Z.json.gz"
+        },
+        {
+          "checksum": "a3f4a59a2ad8f901585d293dd39a7738232b3eba0669073dd768f47785e9d9cb",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2023_Summer23/muon_Z.json.gz"
+        },
+        {
+          "checksum": "f86c823b3548abe822a25d38d432c65951ed69c4f2d4d179864080affe74854b",
+          "path": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2023_Summer23BPix/muon_Z.json.gz"
+        }
+      ],
+      "unchanged_files": []
+    },
+    "previous_versions": []
+  }
+}
