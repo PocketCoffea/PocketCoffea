@@ -5,10 +5,16 @@ from pocket_coffea.lib.cut_functions import get_nObj_min, get_nObj_eq, get_HLTse
 from pocket_coffea.parameters.cuts import passthrough
 from pocket_coffea.parameters.histograms import *
 from pocket_coffea.lib.categorization import StandardSelection, CartesianSelection, MultiCut
-from pocket_coffea.lib.calibrators.common.common import JetsCalibrator
 from pocket_coffea.lib.columns_manager import ColOut
 
-from workflow_shape_variations import BasicProcessor
+import workflow
+from workflow import BasicProcessor
+
+# Register custom modules in cloudpickle to propagate them to dask workers
+import cloudpickle
+import custom_cut_functions
+cloudpickle.register_pickle_by_value(workflow)
+cloudpickle.register_pickle_by_value(custom_cut_functions)
 
 from custom_cut_functions import *
 import os
@@ -23,9 +29,8 @@ default_parameters = defaults.get_default_parameters()
 defaults.register_configuration_dir("config_dir", localdir+"/params")
 
 parameters = defaults.merge_parameters_from_files(default_parameters,
-                                                    f"{localdir}/params/object_preselection_run2.yaml",
+                                                    f"{localdir}/params/object_preselection_run3.yaml",
                                                     f"{localdir}/params/triggers.yaml",
-                                                    f"{localdir}/params/jets_calibration_run2.yaml",
                                                    update=True)
 
 #Creating custom weight
@@ -39,17 +44,16 @@ cfg = Configurator(
     datasets = {
         "jsons": ['datasets/datasets_cern.json'],
         "filter" : {
-            "samples": ['TTTo2L2Nu', "DATA_SingleMuon"
-                        #, "DATA_SingleEle"
+            "samples": ["DATA_SingleEle"
                         ],
             "samples_exclude" : [],
-            "year": ['2018']
+            "year": ['2023_postBPix']
         },
         "subsamples": {
-            # "TTTo2L2Nu": {
-            #     # "ele": [get_nObj_min(1, coll="ElectronGood"), get_nObj_eq(0, coll="MuonGood")],
-            #     # "mu":  [get_nObj_eq(0, coll="ElectronGood"), get_nObj_min(1, coll="MuonGood")],
-            # },
+            "TTTo2L2Nu": {
+                "ele": [get_nObj_min(1, coll="ElectronGood"), get_nObj_eq(0, coll="MuonGood")],
+                "mu":  [get_nObj_eq(0, coll="ElectronGood"), get_nObj_min(1, coll="MuonGood")],
+            },
             "DATA_SingleMuon": {
                 "clean": [get_HLTsel(primaryDatasets=["SingleEle"], invert=True)], # crosscleaning SingleELe trigger on SIngleMuon
             }
@@ -84,7 +88,6 @@ cfg = Configurator(
     },
     # Passing a list of WeightWrapper objects
     weights_classes = common_weights,
-    calibrators = [JetsCalibrator],
 
     variations = {
         "weights": {
@@ -103,7 +106,10 @@ cfg = Configurator(
         },
         "shape": {
             "common": {
-                "inclusive": [ "jet_calibration"],
+                "inclusive": [ "JES_Total_AK4PFchs"],
+                "bycategory": {
+                    "1btag": ["JER_AK4PFchs"]
+                }
             },
         }
     },
@@ -113,18 +119,17 @@ cfg = Configurator(
         **jet_hists(),
         **count_hist("JetGood"),
         **count_hist("BJetGood"),
-        "MET_pt": HistConf([Axis(coll="MET", field="pt", label="MET pT [GeV]", bins=50, start=0, stop=200)]),
-        #"MET_pt_original": HistConf([Axis(coll="MET", field="pt_original", label="MET pT Original [GeV]", bins=50, start=0, stop=200)]),
+        "MET_pt": HistConf([Axis(coll="PuppiMET", field="pt", label="MET pT [GeV]", bins=50, start=0, stop=200)]),
+        "MET_pt_original": HistConf([Axis(coll="PuppiMET", field="pt_original", label="MET pT Original [GeV]", bins=50, start=0, stop=200)]),
     },
 
     columns = {
         "common" : {
             "inclusive": [
                 ColOut(collection="Jet", columns=["pt"]),
-               # ColOut(collection="MET", columns=["pt", "phi","pt_original"]),
+                ColOut(collection="PuppiMET", columns=["pt", "phi","pt_original"]),
             ]
 
         }
-
     },
 )

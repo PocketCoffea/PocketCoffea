@@ -162,9 +162,12 @@ def test_shape_variation_default_sequence(base_path: Path, monkeypatch: pytest.M
   
     assert output is not None
     
-    params = config.parameters
-       # Check the output
-    h = output["variables"]['nJetGood']['TTTo2L2Nu__ele']['TTTo2L2Nu_2018']
+    # Check the output
+    h = output["variables"]['nJetGood']['TTTo2L2Nu']['TTTo2L2Nu_2018']
+    assert "JES_Total_AK4PFchsUp" in h.axes["variation"]
+    assert "JES_Total_AK4PFchsDown" in h.axes["variation"]
+    assert "JER_AK4PFchsUp" in h.axes["variation"]
+    assert "JER_AK4PFchsDown" in h.axes["variation"]
 
     for variation in params.jets_calibration.variations["2018"]["AK4PFchs"]:
         assert f"AK4PFchs_{variation}Up" in h.axes["variation"]

@@ -10,6 +10,8 @@ from pocket_coffea.utils.plot_utils import PlotManager
 from pocket_coffea.parameters import defaults
 from coffea.processor import accumulate 
 import click
+import gc
+from rich import print
 
 import concurrent.futures
 
@@ -41,11 +43,35 @@ import concurrent.futures
 @click.option('--compare', is_flag=True, help='Plot comparison of the samples, instead of data/MC', required=False, default=False)
 @click.option('--index-file', type=str, help='Path of the index file to be copied recursively in the plots directory and its subdirectories', required=False, default=None)
 @click.option('--no-cache', is_flag=True, help='Do not cache the histograms for faster plotting', required=False, default=False)
+@click.option('--split-by-category', is_flag=True, help='If split-by-category was used during running and merging', required=False, default=False)
 
-def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfiles,
+def make_plots(*args, **kwargs):
+    return make_plots_core(*args, **kwargs)
+
+def make_plots_core(input_dir, cfg, overwrite_parameters, outputdir, inputfiles,
                workers, only_cat, only_year, only_syst, exclude_hist, only_hist, split_systematics, partial_unc_band, no_syst,
-               overwrite, log_x, log_y, density, verbose, format, systematics_shifts, no_ratio, no_systematics_ratio, compare, index_file, no_cache):
+               overwrite, log_x, log_y, density, verbose, format, systematics_shifts, no_ratio, no_systematics_ratio, compare, index_file, no_cache, split_by_category):
     '''Plot histograms produced by PocketCoffea processors'''
+
+    if split_by_category: 
+        if not inputfiles:
+            all_files = glob.glob(f"{input_dir}/*merged_category*.coffea")
+        else:
+            all_files = []
+            for pattern in inputfiles:
+                matched_files = glob.glob(pattern)  # Expand wildcards
+                valid_files = [file for file in matched_files if os.path.isfile(file)]
+                all_files.extend(valid_files)        
+
+        print("[b]Since we are splitting by category, will handle only one file per pass.[/]")
+        for ifl, file in enumerate(all_files):
+            make_plots_core(input_dir, cfg, overwrite_parameters, outputdir, [file],
+               workers, only_cat, only_year, only_syst, exclude_hist, only_hist, split_systematics, partial_unc_band, no_syst,
+               overwrite or ifl > 0, log_x, log_y, density, verbose, format, systematics_shifts, no_ratio, no_systematics_ratio, compare, index_file, no_cache, False)
+            gc.collect()
+
+        print("[green]Done making plots for all category-split files![/]")
+        exit()
 
     # Using the `input_dir` argument, read the default config and coffea files (if not set with argparse):
     if cfg==None:
@@ -54,6 +80,8 @@ def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfiles,
         inputfiles = (os.path.join(input_dir, "output_all.coffea"),)
     if outputdir==None:
         outputdir = os.path.join(input_dir, "plots")
+
+    
 
     # Load yaml file with OmegaConf
     if cfg[-5:] == ".yaml":
@@ -71,7 +99,7 @@ def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfiles,
     try:
         OmegaConf.resolve(parameters)
     except Exception as e:
-        print("Error during resolution of OmegaConf parameters magic, please check your parameters files.")
+        print("[red]Error during resolution of OmegaConf parameters magic, please check your parameters files.[/]")
         raise(e)
 
     style_cfg = parameters['plotting_style']
@@ -86,7 +114,7 @@ def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfiles,
 
     def load_single_file(file):
         """Helper function to load a single file."""
-        print(f"Loading: {file}")
+        print(f"[pink]Loading: {file}[/]")
         return load(file)
     # Use ThreadPoolExecutor to load files concurrently
     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -140,7 +168,7 @@ def make_plots(input_dir, cfg, overwrite_parameters, outputdir, inputfiles,
         else:
             plotter.plot_datamc_all(syst=(not no_syst), ratio = (not no_ratio), spliteras=False, format=format)
 
-    print("Output plots are saved at: ", outputdir)
+    print(f"[green]Output plots are saved at: {outputdir}[/]")
 
 
 if __name__ == "__main__":
