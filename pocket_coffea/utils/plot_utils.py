@@ -159,7 +159,8 @@ class PlotManager:
         only_cat=None,
         only_year=None,
         workers=8,
-        log=False,
+        log_x=False,
+        log_y=False,
         density=False,
         verbose=1,
         save=True,
@@ -172,7 +173,8 @@ class PlotManager:
         self.only_cat = only_cat
         self.only_year = only_year
         self.workers = workers
-        self.log = log
+        self.log_x = log_x
+        self.log_y = log_y
         self.density = density
         self.save = save
         self.index_file = index_file
@@ -202,7 +204,7 @@ class PlotManager:
                         del hs[sample]
                 vs[year] = hs
             self.hists_to_plot[variable] = vs
-
+        
         for variable, histoplot in self.hists_to_plot.items():
             for year, h_dict in histoplot.items():
                 if self.only_year and year not in self.only_year:
@@ -221,7 +223,8 @@ class PlotManager:
                     plot_dir,
                     style_cfg=style_cfg,
                     only_cat=self.only_cat,
-                    log=self.log,
+                    log_x=self.log_x,
+                    log_y=self.log_y,
                     density=self.density,
                     has_mcstat=has_mcstat,
                     toplabel=toplabel_to_use,
@@ -229,6 +232,8 @@ class PlotManager:
                     verbose=self.verbose,
                     cache=self.cache
                 )
+        del self.hists_to_plot
+
         if self.save:
             self.make_dirs()
             if self.index_file is not None:
@@ -359,7 +364,8 @@ class Shape:
         has_mcstat=True,
         toplabel=None,
         only_cat=None,
-        log=False,
+        log_x=False,
+        log_y=False,
         density=False,
         year = None,
         verbose=1,
@@ -372,7 +378,8 @@ class Shape:
         self.style = Style(style_cfg)
         self.has_mcstat = has_mcstat
         self.toplabel = toplabel if toplabel else ""
-        self.log = log
+        self.log_x = log_x
+        self.log_y = log_y
         self.density = density
         self.datasets_metadata=datasets_metadata
         self.sample_is_MC = {}
@@ -384,9 +391,12 @@ class Shape:
             type(h_dict) in [dict, defaultdict]
         ), "The Shape object receives a dictionary of hist.Hist objects as argument."
         self.group_samples()
+        self.is_mc_only = len(self.samples_data) == 0
+        self.is_data_only = len(self.samples_mc) == 0
         self.filter_samples()
         self.rescale_samples()
-        self.replace_missing_variations()
+        if not self.is_data_only:
+            self.replace_missing_variations()
         self.load_attributes()
         self.load_syst_manager()
 
@@ -395,9 +405,6 @@ class Shape:
         if self.verbose>1:
             print(self.h_dict)
             print("samples:", self.samples_mc)
-
-        self.is_mc_only = len(self.samples_data) == 0
-        self.is_data_only = len(self.samples_mc) == 0
 
         #self.signal_samples =  self.style.signal_samples
 
@@ -463,7 +470,7 @@ class Shape:
         self.is_data_only = len(self.samples_mc) == 0
 
         if not self.is_data_only:
-            self.syst_manager = SystManager(self, self.style)
+            self.syst_manager = SystManager(self, self.style, verbose=self.verbose)
 
     @property
     def dense_axes(self):
@@ -665,6 +672,8 @@ class Shape:
                 )
                 isMC = None
                 for dataset in datasets:
+                    if dataset not in self.datasets_metadata:
+                        raise Exception(f"Dataset `{dataset}` not found in datasets metadata!")
                     isMC_d = self.datasets_metadata[dataset]["isMC"] == "True"
                     if isMC is None:
                         isMC = isMC_d
@@ -779,14 +788,14 @@ class Shape:
 
                 # Order the events dictionary by decreasing number of events if linear scale, increasing if log scale
                 reverse = True
-                if self.log:
+                if self.log_y:
                     reverse = False
                 self.nevents = dict(
                     sorted(self.nevents.items(), key=lambda x: x[1], reverse=reverse)
                 )
                 # If the order of MC samples is specified in the plotting style, move the sample to the beginning of the dictionary
                 if self.style.has_order_mc:
-                    if self.log:
+                    if self.log_y:
                         nevents_new =  {k : val for k, val in self.nevents.items() if k not in self.style.order_mc}
                         nevents_new.update({k : val for k, val in self.nevents.items() if k in self.style.order_mc})
                         self.nevents = nevents_new
@@ -1019,7 +1028,7 @@ class Shape:
         self.ax.tick_params(axis='y', labelsize=self.style.fontsize)
         self.ax.set_xlim(self.style.opts_axes["xedges"][0], self.style.opts_axes["xedges"][-1])
         handles, labels = self.ax.get_legend_handles_labels()
-        if self.log:
+        if self.log_y:
             self.ax.set_yscale("log")
             if self.is_data_only:
                 arg_log = max(stacks["data_sum"].values())
@@ -1066,6 +1075,9 @@ class Shape:
             if not np.isnan(ymax):
                 if ymax==0: ymax=1
                 self.ax.set_ylim((0, 2.0 * ymax))
+        if self.log_x:
+            self.ax.set_xscale("log")
+
         self.ax.legend(handles, labels, fontsize=self.style.fontsize_legend, ncol=2, loc="upper right")
         if ratio:
             self.ax.set_xlabel("")
@@ -1374,8 +1386,13 @@ class Shape:
             self.plot_datamc(cat, ratio=ratio, syst=syst)
             if save:
                 plot_dir = os.path.join(self.plot_dir, cat)
-                if self.log:
-                    filepath = os.path.join(plot_dir, f"log_{self.name}_{cat}.{format}")
+                if self.log_x or self.log_y:
+                    if self.log_x and self.log_y:
+                        filepath = os.path.join(plot_dir, f"logxy_{self.name}_{cat}.{format}")
+                    elif self.log_x:
+                        filepath = os.path.join(plot_dir, f"logx_{self.name}_{cat}.{format}")
+                    else:
+                        filepath = os.path.join(plot_dir, f"logy_{self.name}_{cat}.{format}")
                 else:
                     filepath = os.path.join(plot_dir, f"{self.name}_{cat}.{format}")
                 if self.verbose>0:
@@ -1432,8 +1449,13 @@ class Shape:
             self.plot_comparison(cat, ratio=ratio)
             if save:
                 plot_dir = os.path.join(self.plot_dir, cat)
-                if self.log:
-                    filepath = os.path.join(plot_dir, f"log_{self.name}_{cat}.{format}")
+                if self.log_x or self.log_y:
+                    if self.log_x and self.log_y:
+                        filepath = os.path.join(plot_dir, f"logxy_{self.name}_{cat}.{format}")
+                    elif self.log_x:
+                        filepath = os.path.join(plot_dir, f"logx_{self.name}_{cat}.{format}")
+                    else:
+                        filepath = os.path.join(plot_dir, f"logy_{self.name}_{cat}.{format}")
                 else:
                     filepath = os.path.join(plot_dir, f"{self.name}_{cat}.{format}")
                 if self.verbose>0:
@@ -1461,15 +1483,20 @@ class Shape:
         # we need to call this to update the histograms in the syst_manager
         self._get_stacks(cat)
         systematic = self.syst_manager.get_syst(syst_name, cat)
-        systematic.plot(log=self.log, toplabel=self.toplabel, ratio=ratio)
+        systematic.plot(log_x=self.log_x,log_y=self.log_y, toplabel=self.toplabel, ratio=ratio)
 
         if save:
             plot_dir = os.path.join(self.plot_dir, cat, syst_name)
             os.makedirs(plot_dir, exist_ok=True)
 
             filename = f"{self.name}_{cat}_{syst_name}"
-            if self.log:
-                filename = f"log_{filename}"
+            if self.log_x or self.log_y:
+                if self.log_x and self.log_y:
+                    filename = f"logxy_{filename}"
+                elif self.log_x:
+                    filename = f"logx_{filename}"
+                else:
+                    filename = f"logy_{filename}"
 
             filepath = os.path.join(plot_dir, f"{filename}.{format}")
             if self.verbose > 0:
@@ -1496,9 +1523,10 @@ class Shape:
 class SystManager:
     '''This class handles the systematic uncertainties of 1D MC histograms.'''
 
-    def __init__(self, shape: Shape, style: Style) -> None:
+    def __init__(self, shape: Shape, style: Style, verbose: int = 1) -> None:
         self.shape = shape
         self.style = style
+        self.verbose = verbose
         assert all(
             [
                 (var == "nominal") | var.endswith(("Up", "Down"))
@@ -1522,10 +1550,10 @@ class SystManager:
     def update(self, cat, stacks):
         '''Updates the dictionary of systematic uncertainties with the new cached stacks.'''
         for syst_name in self.systematics:
-            self.syst_dict[cat][syst_name] = SystUnc(self.shape, stacks, syst_name)
+            self.syst_dict[cat][syst_name] = SystUnc(self.shape, stacks, syst_name, verbose=self.verbose)
 
     def total(self, cat):
-        return SystUnc(self.shape, name="total", syst_list=list(self.syst_dict[cat].values()))
+        return SystUnc(self.shape, name="total", syst_list=list(self.syst_dict[cat].values()), verbose=self.verbose)
 
     def mcstat(self, cat):
         return self.syst_dict[cat]["mcstat"]
@@ -1542,12 +1570,13 @@ class SystUnc:
     returning a `SystUnc` instance corresponding to their sum in quadrature.'''
 
     def __init__(
-            self, shape: Shape, stacks: dict = None, name: str = None, syst_list: list = None
+            self, shape: Shape, stacks: dict = None, name: str = None, syst_list: list = None, verbose: int = 1
     ) -> None:
         self.shape = shape
         self.style = shape.style
         self.name = name
         self.is_mcstat = self.name == "mcstat"
+        self.verbose = verbose
 
         # Initialize the arrays of the nominal yield and squared errors as 0
         self.nominal = 0.0
@@ -1584,7 +1613,7 @@ class SystUnc:
         '''Sum in quadrature of two systematic uncertainties.
         In case multiple objects are summed, the information on the systematic uncertainties that
         have been summed is stored in self.syst_list.'''
-        return SystUnc(self.shape, name=f"{self.name}_{other.name}", syst_list=[self, other])
+        return SystUnc(self.shape, name=f"{self.name}_{other.name}", syst_list=[self, other], verbose=self.verbose)
 
     @property
     def up(self):
@@ -1652,14 +1681,16 @@ class SystUnc:
         for h in stacks["mc"]:
             for variation in h.axes[0]:
                 h_var = h[{'variation': variation}].values()
-                # First, we check that the variation is not equal to the nominal
-                if not all(stacks["mc_nominal_sum"].values() == h_var):
+                h_nom = h[{'variation': 'nominal'}].values()
+                # First, we check that the variation is not equal to the nominal            
+                if not all(h_nom == h_var):
                     # Then, we check if the variation is empty
                     if all(h_var == np.zeros_like(h_var)):
-                        print(
-                            f"WARNING: Empty variation found for systematic {self.name} in histogram {self.shape.name}. "+
-                            "Please check if the input histograms are filled properly."
-                        )
+                        if self.verbose>=1:
+                            print(
+                                f"WARNING: Empty variation found for systematic {self.name} in histogram {self.shape.name}. "+
+                                "Please check if the input histograms are filled properly."
+                            )
 
     def _get_err2_from_syst(self):
         '''Method used in the constructor to instanstiate a SystUnc object from
@@ -1760,7 +1791,7 @@ class SystUnc:
         self.ax.set_xlim(
             self.style.opts_axes["xedges"][0], self.style.opts_axes["xedges"][-1]
         )
-        if self.log:
+        if self.log_y:
             self.ax.set_yscale("log")
             exp = math.floor(math.log(self.nominal.max(), 10)) + 3
             y_lim_hi = self.style.opts_ylim["systematics"]["ylim_log"].get("hi", 10**exp)
@@ -1769,6 +1800,8 @@ class SystUnc:
             )
         else:
             self.ax.set_ylim((0, 1.5 * self.nominal.max()))
+        if self.log_x:
+            self.ax.set_xscale("log")
 
         if ratio:
             self.rax.set_xlabel(
@@ -1812,7 +1845,8 @@ class SystUnc:
         """Plots the nominal, up and down systematic variations on the same plot."""
 
         # setup figure and corresponding axes
-        self.log = log
+        self.log_x = log_x
+        self.log_y = log_y
         self.define_figure(ratio=ratio, toplabel=toplabel)
 
         # plot histograms

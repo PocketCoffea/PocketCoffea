@@ -1,0 +1,6 @@
+jets_calibration:
+    apply_jec_nominal:
+        "2018": False
+
+    rescale_MET:
+        "2018": True

@@ -17,6 +17,12 @@ class baseconfig(luigi.Config):
     # )
 
 
+class transferconfig(luigi.Config):
+    """Config class for transfer to wlcg."""
+
+    transfer = luigi.BoolParameter(description="Transfer output to WLCG", default=False)
+
+
 class datasetconfig(luigi.Config):
     """Paramters for dataset creation"""
 
@@ -52,20 +58,27 @@ class datasetconfig(luigi.Config):
         description="Prefix of the local path where the datasets are stored",
         default="",
     )
-    allowlist_sites = luigi.TupleParameter(
+    allowlist_sites = law.CSVParameter(
         description="List of sites to be whitelisted", default=()
     )
-    blocklist_sites = luigi.TupleParameter(
+    blocklist_sites = law.CSVParameter(
         description="List of sites to be blacklisted", default=()
     )
     regex_sites = luigi.Parameter(
         description="Regex string to be used to filter the sites", default=""
+    )
+    include_redirector = luigi.BoolParameter(
+        description="Include redirector in the site list", default=False
     )
     parallelize = luigi.IntParameter(
         description=(
             "Number of parallel processes to be used to fetch the datasets, default: 4"
         ),
         default=4,
+    )
+    sort_replicas = luigi.Parameter(
+        description="Sort replicas (default: 'geoip')",
+        default="geoip",
     )
 
 
@@ -93,40 +106,6 @@ class runnerconfig(luigi.Config):
     )
 
 
-class plottingconfig(luigi.Config):
-    plot_dir = luigi.Parameter(
-        default=law.NO_STR, description="Output folder for plots"
-    )
-    plot_verbose = luigi.IntParameter(
-        default=0, description="verbosity level for PlotManager (default: 0)"
-    )
-    plot_style = luigi.Parameter(
-        default=law.NO_STR, description="yaml file with plotting style"
-    )
-    blind = luigi.BoolParameter(
-        default=True, description="If True, only MC is plotted. default=True"
-    )
-    plot_workers = luigi.IntParameter(
-        default=4, description="number of workers to plot in parallel"
-    )
-    plot_syst = luigi.BoolParameter(
-        default=False, description="Wether to plot systematic uncertainty bands"
-    )
-    log_scale = luigi.BoolParameter(
-        default=False, description="Set y-axis to log scale"
-    )
-    plot_format = luigi.Parameter(
-        description="Output format of the plots", default="pdf"
-    )
-    variables = law.CSVParameter(description="List of variables to plot", default=())
-
-
-class plottingsystematicsconfig(luigi.Config):
-    ratio = luigi.BoolParameter(
-        default=True, description="Plot the ratio of the systematic shifts"
-    )
-
-
 class datacardconfig(luigi.Config):
     datacard_name = luigi.Parameter(
         default="datacard.txt", description="Name of the datacard file"
@@ -134,9 +113,7 @@ class datacardconfig(luigi.Config):
     shapes_name = luigi.Parameter(
         default="shapes.root", description="Name of the shapes file"
     )
-    datacard_dir = luigi.Parameter(
-        default="datacards", description="Output folder for datacards"
-    )
-    transfer = luigi.BoolParameter(
-        default=False, description="Transfer datacards to EOS"
-    )
+    stat_config = luigi.Parameter(description="Path to the stat config file")
+    variable = luigi.Parameter(description="Variable to produce datacard for")
+    category = luigi.Parameter(description="Category to produce datacard for")
+    years = law.CSVParameter(description="Years to produce datacard for")

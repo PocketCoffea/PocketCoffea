@@ -17,7 +17,7 @@ from coffea.analysis_tools import PackedSelection
 from ..lib.weights.weights_manager import WeightsManager
 from ..lib.columns_manager import ColumnsManager
 from ..lib.hist_manager import HistManager
-from ..lib.jets import jet_correction, met_correction, load_jet_factory
+from ..lib.jets import jet_correction, met_correction_after_jec, load_jet_factory
 from ..lib.leptons import get_ele_smeared, get_ele_scaled
 from ..lib.categorization import CartesianSelection
 from ..utils.skim import uproot_writeable, copy_file
@@ -185,7 +185,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             skimmed_sumw = ak.sum(self.events.genWeight)
             # the scaling factor is the original sumgenweight / the skimmed sumgenweight
             if skimmed_sumw == 0:
-                self.events["skimRescaleGenWeight"] = np.zeros(self.events.genWeight)
+                self.events["skimRescaleGenWeight"] = np.zeros(self.nEvents_after_skim)
             else:
                 self.events["skimRescaleGenWeight"] =  np.ones(self.nEvents_after_skim) * self.output['sum_genweights'][self._dataset] / skimmed_sumw
             self.output['sum_genweights_skimmed'] = { self._dataset : skimmed_sumw }
@@ -699,10 +699,25 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 self.events = nominal_events
                 # Just assign the nominal calibration
                 for jet_coll_name, jet_coll in jets_calibrated.items():
+                   # Compute MET rescaling
+                    if jet_calib_params.rescale_MET[self._year] and jet_coll_name == "Jet":
+                        met_branch =  jet_calib_params.rescale_MET_branch[self._year]
+                        new_MET = met_correction_after_jec(
+                            self.events,
+                            met_branch,
+                            self.events[jet_coll_name], jet_coll
+                        )
+                        self.events[met_branch] = ak.with_field(
+                            self.events[met_branch], new_MET["pt"], "pt"
+                        )
+                        self.events[met_branch] = ak.with_field(
+                            self.events[met_branch], new_MET["phi"], "phi"
+                        )
+                        
                     self.events[jet_coll_name] = jet_coll
 
                 if self.params.lepton_scale_factors.electron_sf["apply_ele_scale_and_smearing"][self._year]:
-                    etaSC = abs(self.events["Electron"]["deltaEtaSC"] + self.events["Electron"]["eta"])
+                    etaSC = self.events["Electron"]["deltaEtaSC"] + self.events["Electron"]["eta"]
                     self.events["Electron"] = ak.with_field(
                         self.events["Electron"], etaSC, "etaSC"
                     )
@@ -742,12 +757,44 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 # e.g. `JES_Total_AK4PFchs` will vary only the `AK4PFchs` jets,
                 # while `JES_Total_AK8PFPuppi` will vary only the `AK8PFPuppi` jets
                 jet_coll_name = jet_calib_params.collection[self._year][jet_type]
+
+                # Scale the MET with the delta between nominal jets and varied ones
+                if jet_calib_params.rescale_MET[self._year]:
+                    met_branch =  jet_calib_params.rescale_MET_branch[self._year]
+                    new_MET = met_correction_after_jec(
+                        self.events,
+                        met_branch,
+                        self.events[jet_coll_name],
+                        jets_calibrated[jet_coll_name][variation_name].up
+                    )
+                    self.events[met_branch] = ak.with_field(
+                        self.events[met_branch], new_MET["pt"], "pt"
+                    )
+                    self.events[met_branch] = ak.with_field(
+                        self.events[met_branch], new_MET["phi"], "phi"
+                    )
+                
                 self.events[jet_coll_name] = jets_calibrated[jet_coll_name][variation_name].up
 
                 yield variation + "Up"
 
                 # restore nominal before saving the down-variated collection
                 self.events = nominal_events
+                # Scale the MET with the delta between nominal jets and varied ones
+                if jet_calib_params.rescale_MET[self._year]:
+                    met_branch =  jet_calib_params.rescale_MET_branch[self._year]
+                    new_MET = met_correction_after_jec(
+                        self.events,
+                        met_branch,
+                        self.events[jet_coll_name],
+                        jets_calibrated[jet_coll_name][variation_name].down
+                    )
+                    self.events[met_branch] = ak.with_field(
+                        self.events[met_branch], new_MET["pt"], "pt"
+                    )
+                    self.events[met_branch] = ak.with_field(
+                        self.events[met_branch], new_MET["phi"], "phi"
+                    )
                 self.events[jet_coll_name] = jets_calibrated[jet_coll_name][variation_name].down
 
                 yield variation + "Down"

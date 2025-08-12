@@ -94,6 +94,8 @@ The same dataset can contain different group of dataset (**DAS**) names, each  w
 dictionary**. Each group will be interpreted by the `build_datasets` script to create unique set of files, with a
 unique label build as `{user_defined_label}__{part}__{year}_{Era}`.
 
+## Create the Dataset JSON Files
+
 To build a JSON file with a list of datasets, run the following script:
 
 ```bash
@@ -103,32 +105,37 @@ To build a JSON file with a list of datasets, run the following script:
 /____/\_,_/_/_/\_,_/____/\_,_/\__/\_,_/___/\__/\__/ 
                                                    
 
-usage: build_datasets [-h] [--cfg CFG] [-k KEYS [KEYS ...]] [-d] [-o] [-c] [-s] [-l LOCAL_PREFIX] 
+usage: build_datasets [--help] [--cfg CFG] [-k KEYS [KEYS ...]] [-d] [-o] [-c] [-s] [-l LOCAL_PREFIX] 
 			[-ws WHITELIST_SITE -ws WHITELIST_SITE ...] [-bs BLACKLIST_SITE -bs BLACKLIST_SITES ...] 
-			[-rs REGEX_SITES] [-ir] [-p 8]
+			[-rs REGEX_SITES] [-sort SORTING] [-ir] [-p 8]
 
   Build dataset fileset in json format
 
 Options:
-  --cfg TEXT                   Config file with parameters specific to the
-                               current run  [required]
-  -k, --keys TEXT              Keys of the datasets to be created. If None,
-                               the keys are read from the datasets definition
-                               file.
-  -d, --download               Download datasets from DAS
-  -o, --overwrite              Overwrite existing .json datasets
-  -c, --check                  Check existence of the datasets
-  -s, --split-by-year          Split datasets by year
+  --cfg TEXT                      Config file with parameters specific to the
+                                  current run  [required]
+  -k, --keys TEXT                 Keys of the datasets to be created. If None,
+                                  the keys are read from the datasets
+                                  definition file.
+  -d, --download                  Download datasets from DAS
+  -o, --overwrite                 Overwrite existing .json datasets
+  -c, --check                     Check existence of the datasets
+  -s, --split-by-year             Split datasets by year
   -l, --local-prefix TEXT
-  -ws, --allowlist-sites TEXT  List of sites in whitelist
-  -bs, --blocklist-sites TEXT  List of sites in blacklist
-  -rs, --regex-sites TEXT      example: -rs 'T[123]_(FR|IT|DE|BE|CH|UK)_\w+'
-                               to serve data from sites in Europe.
-  -ir, --include-redirector    Use the redirector path if no site is available
-                               after the specified whitelist, blacklist and
-                               regexes are applied for sites.
+  -as, --allowlist-sites TEXT     List of sites in whitelist
+  -bs, --blocklist-sites TEXT     List of sites in blacklist
+  -ps, --prioritylist-sites TEXT  List of priorities to sort sites (requires
+                                  sort: priority)
+  -rs, --regex-sites TEXT         example: -rs
+                                  'T[123]_(FR|IT|DE|BE|CH|UK)_\w+' to serve
+                                  data from sites in Europe.
+  -sort, --sort-replicas TEXT     Sort replicas (default: geoip).
+  -ir, --include-redirector       Use the redirector path if no site is
+                                  available after the specified whitelist,
+                                  blacklist and regexes are applied for sites.
   -p, --parallelize INTEGER
-  --help                       Show this message and exit.
+  -h, --help                      Show this message and exit.
+
 ```
 
 The **DBS** and **Rucio** services are used to get information about the requested CMS datasets.

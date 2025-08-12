@@ -5,6 +5,8 @@ from pocket_coffea.lib.cut_functions import get_nObj_min, get_nObj_eq, get_HLTse
 from pocket_coffea.parameters.cuts import passthrough
 from pocket_coffea.parameters.histograms import *
 from pocket_coffea.lib.categorization import StandardSelection, CartesianSelection, MultiCut
+from pocket_coffea.lib.calibrators.common import default_calibrators_sequence 
+from pocket_coffea.lib.columns_manager import ColOut
 
 import workflow
 from workflow import BasicProcessor
@@ -21,7 +23,6 @@ localdir = os.path.dirname(os.path.abspath(__file__))
 
 # Creating weights configuration
 from pocket_coffea.lib.weights.common import common_weights
-from pocket_coffea.lib.weights.weights import WeightLambda
 
 # Loading default parameters
 from pocket_coffea.parameters import defaults
@@ -29,7 +30,7 @@ default_parameters = defaults.get_default_parameters()
 defaults.register_configuration_dir("config_dir", localdir+"/params")
 
 parameters = defaults.merge_parameters_from_files(default_parameters,
-                                                    f"{localdir}/params/object_preselection.yaml",
+                                                    f"{localdir}/params/object_preselection_run2.yaml",
                                                     f"{localdir}/params/triggers.yaml",
                                                    update=True)
 
@@ -38,29 +39,17 @@ from pocket_coffea.lib.weights.weights import WeightLambda
 import numpy as np
 
 
-my_custom_sf_A  = WeightLambda.wrap_func(
-    name="sf_custom_A",
-    function=lambda params, metadata, events, size, shape_variations: (
-        np.ones(size)*2.0, np.ones(size)*4.0, np.ones(size)*0.5),
-    has_variations=True
-    )
-
-my_custom_sf_B  = WeightLambda.wrap_func(
-    name="sf_custom_B",
-    function=lambda params, metadata, events, size, shape_variations:  (
-        np.ones(size)*3.0, np.ones(size)*5.0, np.ones(size)*0.7),
-    has_variations=True
-
-    )
 
 cfg = Configurator(
     parameters = parameters,
     datasets = {
         "jsons": ['datasets/datasets_cern.json'],
         "filter" : {
-            "samples": ['TTTo2L2Nu', 'TTToSemiLeptonic', "DATA_SingleMuon"],
+            "samples": ['TTTo2L2Nu', "DATA_SingleMuon"
+                        #, "DATA_SingleEle"
+                        ],
             "samples_exclude" : [],
-            "year": ['2018','2016_PostVFP']
+            "year": ['2018']
         },
         "subsamples": {
             "TTTo2L2Nu": {
@@ -82,7 +71,6 @@ cfg = Configurator(
     categories = {
         "baseline": [passthrough],
         "1btag": [get_nObj_min(1, coll="BJetGood")],
-        "1btag_B": [get_nObj_min(1, coll="BJetGood")],
         "2btag": [get_nObj_min(2, coll="BJetGood")],
     },
 
@@ -95,27 +83,14 @@ cfg = Configurator(
             "bycategory": {
                 "1btag": ["sf_btag"],
                 "2btag": ["sf_btag"],
-                "1btag_B": ["sf_btag"],
             },
        },
         "bysample": {
-            "TTTo2L2Nu": {
-                "inclusive": ["sf_custom_A"],
-                
-                "bycategory": {
-                    "1btag_B": ["sf_custom_B"],
-                }
-            },
-            "TTToSemiLeptonic": {
-                "bycategory": {
-                    "1btag_B": ["sf_custom_B"],
-                }
-            }
         }
     },
-     
     # Passing a list of WeightWrapper objects
-    weights_classes = common_weights + [my_custom_sf_A, my_custom_sf_B],
+    weights_classes = common_weights,
+    calibrators = default_calibrators_sequence,
 
     variations = {
         "weights": {
@@ -127,24 +102,16 @@ cfg = Configurator(
                 "bycategory" : {
                     "1btag": ["sf_btag"],
                     "2btag": ["sf_btag"],
-                    "1btag_B": ["sf_btag"],
                 }
             },
             "bysample": {
-                "TTTo2L2Nu": {
-                    "inclusive": ["sf_custom_A"],
-                    "bycategory": {
-                        "1btag_B": ["sf_custom_B"],
-                    }
-                },
-                "TTToSemiLeptonic": {
-                    "bycategory": {
-                        "1btag_B": ["sf_custom_B"],
-                    }
-                }
             }
-        
         },
+        "shape": {
+            "common": {
+                "inclusive": [ "jet_calibration"],
+            },
+        }
     },
 
     variables = {
@@ -152,9 +119,16 @@ cfg = Configurator(
         **jet_hists(),
         **count_hist("JetGood"),
         **count_hist("BJetGood"),
+        "MET_pt": HistConf([Axis(coll="MET", field="pt", label="MET pT [GeV]", bins=50, start=0, stop=200)]),
     },
 
     columns = {
+        "common" : {
+            "inclusive": [
+                ColOut(collection="Jet", columns=["pt"]),
+                ColOut(collection="MET", columns=["pt", "phi"]),
+            ]
 
+        }
     },
 )

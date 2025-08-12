@@ -38,7 +38,8 @@ Other optional arguments are:
 - `--split_systematics`: Split systematic uncertainties in the ratio plot
 - `--partial_unc_band`: Plot only the partial uncertainty band corresponding to the systematics specified as the argument `only_syst`
 - `--overwrite`: If the output folder is already existing, overwrite its content
-- `--log`: Set y-axis scale to log
+- `--log-x`: Set x-axis scale to log
+- `--log-y`: Set y-axis scale to log
 - `--no-ratio`: Do not draw the ratio panel 
 - `--density`: Set density parameter to have a normalized plot
 - `--verbose`: Tells how much printing is done. 0 - for minimal, 2- for a lot (useful for debugging).
