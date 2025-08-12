@@ -433,8 +433,6 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                             with open(maxtimefile,'a') as f:
                                 f.write(job_name+"\n")
 
-                            os.system(f"mv {failedlog} {jobs_folder}/logs/processedlogs")
-
                             # Modify the sub file
                             # Check if log file has SYSTEM_PERIODIC_REMOVE
                             with open(failedlog,"r") as f:
@@ -453,6 +451,8 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                                 next_jf = bump_jobqueue(sub_file)                                    
 
                                 log_text.append(f"{thisjob} was removed by the system due to max-time reached. Marked as failed and bumped to longer condor queue: {next_jf}.")
+                            
+                            os.system(f"mv {failedlog} {jobs_folder}/logs/processedlogs")
                    
                 if len(log_text):
                     if len(log_text) > 20:
