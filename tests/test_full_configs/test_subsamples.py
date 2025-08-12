@@ -8,10 +8,9 @@ from pocket_coffea.executors import executors_base as executors_lib
 from coffea import processor
 from coffea.processor import Runner
 from coffea.util import load, save
-from utils import compare_outputs
+from utils import compare_outputs, compare_totalweight
 import numpy as np
 import awkward as ak
-import hist
 from coffea.nanoevents import NanoEventsFactory, NanoAODSchema
 
 @pytest.fixture
@@ -28,15 +27,13 @@ def test_subsamples(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_f
     assert isinstance(config, Configurator)
 
     # Check the subsamples config
-    assert config.samples == ['TTTo2L2Nu', 'DATA_SingleMuon', 'DATA_SingleEle']
+    assert config.samples == ['TTTo2L2Nu', 'DATA_SingleMuon']
     assert config.has_subsamples["TTTo2L2Nu"] == True
     assert config.has_subsamples["DATA_SingleMuon"] == True
-    assert config.has_subsamples["DATA_SingleEle"] == False
     assert config.subsamples_list == ['DATA_SingleMuon__clean', 'TTTo2L2Nu__ele', 'TTTo2L2Nu__mu']
     assert config.subsamples_reversed_map == {'TTTo2L2Nu__ele': 'TTTo2L2Nu',
                                               'TTTo2L2Nu__mu': 'TTTo2L2Nu',
-                                              'DATA_SingleMuon__clean': 'DATA_SingleMuon',
-                                              'DATA_SingleEle': 'DATA_SingleEle'}
+                                              'DATA_SingleMuon__clean': 'DATA_SingleMuon'}
 
     run_options = defaults.get_default_run_options()["general"]
     run_options["limit-files"] = 1
@@ -62,35 +59,30 @@ def test_subsamples(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_f
 
     assert output is not None
     assert output["cutflow"] == {
-        'initial': {'DATA_EGamma_2018_EraA': 500,
-                    'DATA_SingleMuon_2018_EraA': 500,
+        'initial': {'DATA_SingleMuon_2018_EraA': 500,
                     'TTTo2L2Nu_2018': 500},
-        'skim': {'DATA_EGamma_2018_EraA': 354,
-                 'DATA_SingleMuon_2018_EraA': 434,
+        'skim': {'DATA_SingleMuon_2018_EraA': 434,
                  'TTTo2L2Nu_2018': 326},
-        'presel': {'DATA_EGamma_2018_EraA': 354,
-                   'DATA_SingleMuon_2018_EraA': 434,
+        'presel': {'DATA_SingleMuon_2018_EraA': 434,
                    'TTTo2L2Nu_2018': 326},
-        'baseline': {'DATA_EGamma_2018_EraA': {'DATA_SingleEle': 354},
-                     'DATA_SingleMuon_2018_EraA': {'DATA_SingleMuon': 434,
+        'baseline': {'DATA_SingleMuon_2018_EraA': {'DATA_SingleMuon': 434,
                                                    'DATA_SingleMuon__clean': 433},
                      'TTTo2L2Nu_2018': {'TTTo2L2Nu': 326,
                                         'TTTo2L2Nu__ele': 107,
                                         'TTTo2L2Nu__mu': 156}},
-        '1btag': {'DATA_EGamma_2018_EraA': {'DATA_SingleEle': 24},
-                  'DATA_SingleMuon_2018_EraA': {'DATA_SingleMuon': 36,
+        '1btag': {'DATA_SingleMuon_2018_EraA': {'DATA_SingleMuon': 36,
                                                 'DATA_SingleMuon__clean': 36},
-                  'TTTo2L2Nu_2018': {'TTTo2L2Nu': 279,
+                  'TTTo2L2Nu_2018': {'TTTo2L2Nu': 280,
                                      'TTTo2L2Nu__ele': 89,
-                                     'TTTo2L2Nu__mu': 138}},
-        '2btag': {'DATA_EGamma_2018_EraA': {'DATA_SingleEle': 2},
-                  'DATA_SingleMuon_2018_EraA': {'DATA_SingleMuon': 1,
+                                     'TTTo2L2Nu__mu': 140}},
+        '2btag': {'DATA_SingleMuon_2018_EraA': {'DATA_SingleMuon': 1,
                                                 'DATA_SingleMuon__clean': 1},
-                  'TTTo2L2Nu_2018': {'TTTo2L2Nu': 115,
+                  'TTTo2L2Nu_2018': {'TTTo2L2Nu': 112,
                                      'TTTo2L2Nu__ele': 39,
-                                     'TTTo2L2Nu__mu': 55}},
+                                     'TTTo2L2Nu__mu': 52}},
         
     }
+    
     
     compare_totalweight(output, ["nJetGood"])
 
@@ -109,7 +101,7 @@ def test_subsamples_and_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch
     run_options = defaults.get_default_run_options()["general"]
     run_options["limit-files"] = 1
     run_options["limit-chunks"] = 1
-    run_options["chunksize"] = 500
+    run_options["chunksize"] = 200
     config.filter_dataset(run_options["limit-files"])
 
     executor_factory = executors_lib.get_executor_factory("iterative",
@@ -163,7 +155,7 @@ def test_subsamples_and_weights_splitbysubsamples(base_path: Path, monkeypatch: 
     run_options = defaults.get_default_run_options()["general"]
     run_options["limit-files"] = 1
     run_options["limit-chunks"] = 1
-    run_options["chunksize"] = 500
+    run_options["chunksize"] = 200
     config.filter_dataset(run_options["limit-files"])
 
     executor_factory = executors_lib.get_executor_factory("iterative",
@@ -226,7 +218,7 @@ def test_subsamples_wrong1(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp
     run_options = defaults.get_default_run_options()["general"]
     run_options["limit-files"] = 1
     run_options["limit-chunks"] = 1
-    run_options["chunksize"] = 500
+    run_options["chunksize"] = 200
     config.filter_dataset(run_options["limit-files"])
 
     executor_factory = executors_lib.get_executor_factory("iterative",

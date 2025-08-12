@@ -226,14 +226,14 @@ class HistManager:
                     self.available_shape_variations += variations
                     self.available_shape_variations_bycat[cat] += variations
 
-                
             # shape variations by subsamples
-            for subsample in self.subsamples:
-                for cat, vars in self.variations_config["by_subsample"]["{sample}_{subsample}"]["shape"].items():
-                    for var in vars:
-                        variations = self.calibrators_manager.get_available_variations(var)
-                        self.available_shape_variations_bysubsample[subsample] += variations
-                        self.available_shape_variations_bysubsample_bycat[subsample][cat] += variations
+            if self.has_subsamples:
+                for subsample in self.subsamples:
+                    for cat, vars in self.variations_config["by_subsample"][f"{sample}__{subsample}"]["shape"].items():
+                        for var in vars:
+                            variations = self.calibrators_manager.get_available_variations(var)
+                            self.available_shape_variations_bysubsample[subsample] += variations
+                            self.available_shape_variations_bysubsample_bycat[subsample][cat] += variations
 
         else:  # DATA
             # Add a "weight_variation" nominal for data in each category

@@ -455,14 +455,17 @@ class Configurator:
                             print(f"Weight {w} not available in the configuration. Did you add it in the weights_classes?")
                             raise Exception("Wrong weight configuration")
                         
-                        if not self.samples_metadata[sample]["isMC"] and self.available_weights[w].isMC_only:
-                            # Do not add in the data weights configuration if the weight is MC only
-                            continue
                         self.requested_weights.append(w)
                         # append only to the specific sample
                         if is_subsample:
+                            if not self.samples_metadata[basesample]["isMC"] and self.available_weights[w].isMC_only:
+                                # Do not add in the data weights configuration if the weight is MC only
+                                continue
                             self.weights_config[basesample]["by_subsample"][sample]["inclusive"].append(w)
                         else:
+                            if not self.samples_metadata[sample]["isMC"] and self.available_weights[w].isMC_only:
+                                # Do not add in the data weights configuration if the weight is MC only
+                                continue
                             self.weights_config[sample]["inclusive"].append(w)
 
                 if "bycategory" in s_wcfg:
