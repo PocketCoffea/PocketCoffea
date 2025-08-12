@@ -11,6 +11,7 @@ from pocket_coffea.scripts import split_output
 from pocket_coffea.scripts.print_parameters import print_parameters
 from pocket_coffea.scripts.make_config import make_config
 from pocket_coffea.scripts.check_jobs import check_jobs
+from pocket_coffea.scripts.download_cvmfs_files import download_cvmfs_files
 
 title = """[dodger_blue1]
     ____             __        __  ______      ________
@@ -46,6 +47,7 @@ cli.add_command(merge_outputs.main, name="merge-outputs")
 cli.add_command(split_output.main, name="split-output")
 cli.add_command(print_parameters)
 cli.add_command(check_jobs)
+cli.add_command(download_cvmfs_files)
 
 
 if __name__ == '__main__':

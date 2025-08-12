@@ -74,6 +74,7 @@ split-output="pocket_coffea.scripts.split_output:main"
 print-parameters="pocket_coffea.scripts.print_parameters:print_parameters"
 make-config="pocket_coffea.sripts.make_config:make_config"
 check-jobs="pocket_coffea.scripts.check_jobs:check_jobs"
+download-cvmfs-files="pocket_coffea.scripts.download_cvmfs_file:download_cvmfs_files"
 
 # [tool.flake8]
 # extend-ignore = ["E203", "E501", "E722", "B950"]

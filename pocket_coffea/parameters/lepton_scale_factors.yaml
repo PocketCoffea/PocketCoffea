@@ -20,35 +20,35 @@ lepton_scale_factors:
 
     JSONfiles: 
       '2016_PreVFP':
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016preVFP_UL/electron.json.gz
+        file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016preVFP_UL/electron.json.gz}
         name: UL-Electron-ID-SF
         reco:
           pt_lt_20: RecoBelow20
           pt_gt_20: RecoAbove20
   
       '2016_PostVFP':
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016postVFP_UL/electron.json.gz
+        file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016postVFP_UL/electron.json.gz}
         name: UL-Electron-ID-SF    
         reco:
           pt_lt_20: RecoBelow20
           pt_gt_20: RecoAbove20
 
       '2017':
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2017_UL/electron.json.gz
+        file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2017_UL/electron.json.gz}
         name: UL-Electron-ID-SF
         reco:
           pt_lt_20: RecoBelow20
           pt_gt_20: RecoAbove20
 
       '2018':
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2018_UL/electron.json.gz
+        file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2018_UL/electron.json.gz}
         name: UL-Electron-ID-SF
         reco:
           pt_lt_20: RecoBelow20
           pt_gt_20: RecoAbove20
 
       '2022_preEE':
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/electron.json.gz
+        file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/electron.json.gz}
         fileSS: 
         name: Electron-ID-SF
         reco:
@@ -57,7 +57,7 @@ lepton_scale_factors:
           pt_gt_75: RecoAbove75
 
       '2022_postEE':
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electron.json.gz
+        file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electron.json.gz}
         name: Electron-ID-SF
         reco:
           pt_lt_20: RecoBelow20
@@ -65,7 +65,7 @@ lepton_scale_factors:
           pt_gt_75: RecoAbove75
 
       '2023_preBPix':
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electron.json.gz
+        file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electron.json.gz}
         name: Electron-ID-SF
         reco:
           pt_lt_20: RecoBelow20
@@ -73,7 +73,7 @@ lepton_scale_factors:
           pt_gt_75: RecoAbove75
 
       '2023_postBPix':
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electron.json.gz
+        file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electron.json.gz}
         name: Electron-ID-SF
         reco:
           pt_lt_20: RecoBelow20
@@ -106,22 +106,22 @@ lepton_scale_factors:
       
       correctionlib_config:
         '2022_preEE':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/electronSS.json.gz
+          file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/electronSS.json.gz}
           correction_name:
             scale: "Scale"
             smear: "Smearing"
         '2022_postEE':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electronSS.json.gz
+          file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electronSS.json.gz}
           correction_name:
             scale: "Scale"
             smear: "Smear"
         '2023_preBPix':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electronSS.json.gz
+          file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electronSS.json.gz}
           correction_name:
             scale: "2023PromptC_ScaleJSON"
             smear: "2023PromptC_SmearingJSON"
         '2023_postBPix':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electronSS.json.gz
+          file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electronSS.json.gz}
           correction_name:
             scale: "2023PromptD_ScaleJSON"
             smear: "2023PromptD_SmearingJSON"
@@ -145,19 +145,19 @@ lepton_scale_factors:
       2022_preEE:
         2022_preEE:
         name: Electron-HLT-SF
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/electronHlt.json.gz
+        file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/electronHlt.json.gz}
         path: ???
       2022_postEE:
         name: Electron-HLT-SF
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electronHlt.json.gz
+        file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electronHlt.json.gz}
         path: ???
       2023_preBPix:
         name: Electron-HLT-SF
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electronHlt.json.gz
+        file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electronHlt.json.gz}
         path: ???
       2023_postBPix:
         name: Electron-HLT-SF
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electronHlt.json.gz
+        file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electronHlt.json.gz}
         path: ???
 
   ##################################################################################################  
@@ -206,19 +206,19 @@ lepton_scale_factors:
 
     JSONfiles:
       '2016_PreVFP':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2016preVFP_UL/muon_Z.json.gz
+          file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2016preVFP_UL/muon_Z.json.gz}
       '2016_PostVFP':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2016postVFP_UL/muon_Z.json.gz
+          file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2016postVFP_UL/muon_Z.json.gz}
       '2017':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2017_UL/muon_Z.json.gz
+          file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2017_UL/muon_Z.json.gz}
       '2018':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2018_UL/muon_Z.json.gz
+          file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2018_UL/muon_Z.json.gz}
       '2022_preEE':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2022_Summer22/muon_Z.json.gz
+          file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2022_Summer22/muon_Z.json.gz}
       '2022_postEE':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2022_Summer22EE/muon_Z.json.gz
+          file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2022_Summer22EE/muon_Z.json.gz}
       '2023_preBPix':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2023_Summer23/muon_Z.json.gz
+          file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2023_Summer23/muon_Z.json.gz}
       '2023_postBPix':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2023_Summer23BPix/muon_Z.json.gz
+          file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2023_Summer23BPix/muon_Z.json.gz}
     
