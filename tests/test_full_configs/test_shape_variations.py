@@ -50,14 +50,14 @@ def test_shape_variations_JEC_run2(base_path: Path, monkeypatch: pytest.MonkeyPa
     assert output is not None
     
     # Check the output
-    h = output["variables"]['nJetGood']['TTTo2L2Nu__ele']['TTTo2L2Nu_2018']
+    h = output["variables"]['nJetGood']['TTTo2L2Nu']['TTTo2L2Nu_2018']
     assert "AK4PFchs_JES_TotalUp" in h.axes["variation"]
     assert "AK4PFchs_JES_TotalDown" in h.axes["variation"]
     assert "AK4PFchs_JERUp" in h.axes["variation"]
     assert "AK4PFchs_JERDown" in h.axes["variation"]
 
     # Check that the output is different from the nominal
-    H = output["variables"]['JetGood_pt']['TTTo2L2Nu__ele']['TTTo2L2Nu_2018']
+    H = output["variables"]['JetGood_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
     assert not np.isclose(H[{"cat":"baseline", "variation":"nominal"}].values().sum()/ H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalUp"}].values().sum(),  1.)
 
 
@@ -140,7 +140,7 @@ def test_shape_variation_default_sequence(base_path: Path, monkeypatch: pytest.M
     run_options = defaults.get_default_run_options()["general"]
     run_options["limit-files"] = 1
     run_options["limit-chunks"] = 1
-    run_options["chunksize"] = 500
+    run_options["chunksize"] = 200
     config.filter_dataset(run_options["limit-files"])
 
     executor_factory = executors_lib.get_executor_factory("iterative",
@@ -163,12 +163,8 @@ def test_shape_variation_default_sequence(base_path: Path, monkeypatch: pytest.M
     assert output is not None
     
     # Check the output
-    h = output["variables"]['nJetGood']['TTTo2L2Nu']['TTTo2L2Nu_2018']
-    assert "JES_Total_AK4PFchsUp" in h.axes["variation"]
-    assert "JES_Total_AK4PFchsDown" in h.axes["variation"]
-    assert "JER_AK4PFchsUp" in h.axes["variation"]
-    assert "JER_AK4PFchsDown" in h.axes["variation"]
-
+    params = config.parameters
+    h = output["variables"]['nJetGood']['TTTo2L2Nu__ele']['TTTo2L2Nu_2018']
     for variation in params.jets_calibration.variations["2018"]["AK4PFchs"]:
         assert f"AK4PFchs_{variation}Up" in h.axes["variation"]
         assert f"AK4PFchs_{variation}Down" in h.axes["variation"]

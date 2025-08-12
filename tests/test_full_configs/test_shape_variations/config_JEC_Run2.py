@@ -25,7 +25,6 @@ defaults.register_configuration_dir("config_dir", localdir+"/params")
 parameters = defaults.merge_parameters_from_files(default_parameters,
                                                     f"{localdir}/params/object_preselection_run2.yaml",
                                                     f"{localdir}/params/triggers.yaml",
-                                                    f"{localdir}/params/jets_calibration_run2.yaml",
                                                    update=True)
 
 #Creating custom weight
