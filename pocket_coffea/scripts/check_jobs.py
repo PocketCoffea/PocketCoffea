@@ -319,7 +319,7 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                                 log_text.append(resubmit_log)
                                 resubmit_count += 1
                                 if resubmit_count % 10 == 0:
-                                    print(f"[green]Resubmitted {resubmit_count} jobs so far in step {step}[/]")   # Terminal output so that the user knows something's going on
+                                    rprint(f"[green]Resubmitted {resubmit_count} jobs so far in step {step}[/]")   # Terminal output so that the user knows something's going on
                             else:
                                 # Add it to the list of jobs that are definitely failed
                                 definitive_failed.append(failed_job)
