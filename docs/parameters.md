@@ -245,3 +245,80 @@ jets_calibration:
 Missing values which need to be defined can be included with a `???` string: see
 [docs](https://omegaconf.readthedocs.io/en/latest/usage.html#id20). If a user runs trying to use these value, an
 exception will be raised. 
+
+## Local CVMFS Files Management
+
+PocketCoffea parameters often reference files stored on CVMFS (CernVM File System), such as scale factors, calibrations, and other physics object corrections. While CVMFS provides reliable access to these files on computing centers, there are scenarios where you might need to work offline or ensure consistent file versions across different environments.
+
+### CVMFS File Download Tool
+
+PocketCoffea provides a built-in tool to download and manage CVMFS files locally with versioning support:
+
+```bash
+# Download CVMFS files referenced in parameter files
+pocket-coffea download-cvmfs-files --tag v1.0 --parameter-files "params/*.yaml"
+
+# Dry run to see what would be downloaded
+pocket-coffea download-cvmfs-files --tag v1.0 --dry-run
+
+# Use custom output directory
+pocket-coffea download-cvmfs-files --tag v1.0 --output-dir /path/to/storage --parameter-files "params/*.yaml"
+
+# List available versions
+pocket-coffea download-cvmfs-files --list-versions
+```
+
+### How It Works
+
+The tool automatically scans your parameter files for CVMFS references and supports two formats:
+
+1. **Direct CVMFS paths**: `/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2018_UL/btagging.json.gz`
+2. **Resolver syntax** (recommended): `${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2018_UL/btagging.json.gz}`
+
+### Features
+
+- **Versioned Storage**: Files are organized by tags/versions in separate directories
+- **Hard Link Deduplication**: Unchanged files between versions are hard-linked to save disk space
+- **Comprehensive Metadata**: Each version includes metadata about download status, checksums, and changes
+- **Parallel Downloads**: Configurable concurrent downloads for faster processing
+- **Integrity Verification**: SHA256 checksums ensure file integrity
+
+### Directory Structure
+
+The tool creates a structured directory layout:
+```
+current_cvmfs_files/
+├── v1.0/
+│   ├── cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2018_UL/btagging.json.gz
+│   ├── cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2018_UL/jmar.json.gz
+│   └── metadata.json
+├── v1.1/
+│   ├── cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2018_UL/btagging.json.gz (hard link if unchanged)
+│   ├── cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2018_UL/jmar.json.gz (new version)
+│   └── metadata.json
+└── versions_index.json
+```
+
+### Using Local Files with CVMFS Resolver
+
+The dumping of cvmfs files is handled by PocketCoffea developers. 
+Newer tags are pushed to the repository periodically and the community is notified about the differences. Moreover the metadata files saved alongside the dumps stores a complete history of the files. 
+
+A default tag is stored in the PocketCoffea code, and the usage of the dumped cvmfs files is activated by default, to avoid any unexpected change. 
+
+However, **it is always better to refer to a specific tag** when loading the default parameters, in order to avoid any surprise change from the update of PocketCoffea default version. 
+
+```python
+from pocket_coffea.parameters import defaults
+
+# Select the default latest tag setup by PocketCoffea
+default_parameters = defaults.get_default_parameters(use_cvmfs_dump=True)
+# Use a specific tag
+default_parameters = defaults.get_default_parameters(use_cvmfs_dump=True, tag="YYYY-MM-DD")
+
+parameters = defaults.merge_parameters_from_files(
+    default_parameters,
+    "params/object_preselection.yaml"
+)
+```
+

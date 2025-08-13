@@ -40,6 +40,18 @@ Commands:
 The `run` command is the one used to execute the analysis workflow on the datasets. This is replacing the previous
 `pocket-coffea run` script, but it has the same user interface.
 
+## Utility Commands
+
+Beyond the main analysis execution, PocketCoffea provides several utility commands to help with analysis setup and data management:
+
+- `build-datasets`: Build dataset fileset in JSON format from DAS queries
+- `hadd-skimmed-files`: Regroup skimmed datasets by joining different files
+- `make-plots`: Generate plots from histograms produced by PocketCoffea processors
+- `check-jobs`: Monitor the status of submitted batch jobs
+- `merge-outputs`: Merge outputs from multiple analysis runs  
+- `split-output`: Split large output files for easier handling
+
+Use `pocket-coffea COMMAND --help` for detailed options and usage examples for each command.
 
 # Executors
 
