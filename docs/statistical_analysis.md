@@ -1,4 +1,4 @@
-# Utilities for Statistical Analyses
+# Statistical Analysis
 
 ## Processes and Systematic Uncertainties
 

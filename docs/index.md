@@ -35,6 +35,7 @@ analysis_example.md
 configuration.md
 calibrators.md
 plots.md
+statistical_analysis.md
 parameters.md
 datasets.md
 recipes.md
