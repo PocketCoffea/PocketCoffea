@@ -21,24 +21,20 @@ def merge_group_reduction(output_files, N_reduction=5, cachedir="merge_cache", m
     with Progress() as progress:
         task1 = progress.add_task("[red]Merging...", total=len(output_files))
     
-        def reduce_in_groups(func, iterable, group_size):
+        def reduce_in_groups(iterable, group_size):
             result = None
-            if isinstance(iterable,list):
-                it = iter(iterable)
-            else:
-                it = iterable
-
-            while batch := list(islice(it, group_size)):
+            # Always work with the iterator directly, don't recreate it
+            while batch := list(islice(iterable, group_size)):
                 if verbose:
                     filesize = sum([os.path.getsize(f) for f in batch])/1024**3
                     print(f"File size (on disk) to load: {filesize:.3f} GB")
                 loaded_batch = [load(f) for f in batch]
-                batch_acc = func(loaded_batch)
+                batch_acc = accumulate(loaded_batch)
                 del loaded_batch
                 if result is None:
                     result = batch_acc
                 else:
-                    result = func([result, batch_acc])                                   
+                    result = accumulate([result, batch_acc])                                   
                 mem_usage = psutil.Process(os.getpid()).memory_info().rss / 1024**3
                 if verbose: 
                     print(f"Current memory usage: {mem_usage:.3f} GB ({mem_usage/max_mem_gb*100:.1f}%)")
@@ -46,14 +42,15 @@ def merge_group_reduction(output_files, N_reduction=5, cachedir="merge_cache", m
                 progress.update(task1, advance=len(batch))
                 if mem_usage > max_mem_gb * mem_threshold:
                     # return the result so-far, and remaining iterator
-                    return result, it
+                    return result, iterable
                 
             return result, None
 
-        itr = output_files
+        # Convert to iterator once at the beginning
+        itr = iter(list(output_files))
         counter = 0
         while itr:
-            result, itr = reduce_in_groups(accumulate, itr, N_reduction)
+            result, itr = reduce_in_groups(itr, N_reduction)
             if counter==0 and itr is None:
                 # Got full merge in one pass, no need to cache intermediate results
                 return result
@@ -138,7 +135,7 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, N_reduc
         output_files_by_category = {}
         # First check that the jobs are done
         with Progress() as progress:
-            task_ = progress.add_task("[red]Checking output files form jobs...", total=len(list(jobs_list.keys())))
+            task_ = progress.add_task("[red]Checking output files from jobs...", total=len(list(jobs_list.keys())))
             for job_name, job in jobs_list.items():
                 # Check output
                 if split_by_category:
