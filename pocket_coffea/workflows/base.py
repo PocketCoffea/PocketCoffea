@@ -384,11 +384,14 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             # If subsamples are defined we also save their metadata
             if self._hasSubsamples:
                 for subs, subsam_mask in self._subsamples[self._sample].get_masks():
+                    # get the subsample specific weight
                     mask_withsub = mask_on_events & subsam_mask
                     self.output["cutflow"][category][self._dataset][f"{self._sample}__{subs}"] = ak.sum(mask_withsub)
                     if self._isMC:
-                        self.output["sumw"][category][self._dataset][f"{self._sample}__{subs}"] = ak.sum(w * mask_withsub)
-                        self.output["sumw2"][category][self._dataset][f"{self._sample}__{subs}"] = ak.sum((w**2) * mask_withsub)
+                        w_tot = w * self.weights_manager.get_weight_only_subsample(subsample=f"{self._sample}__{subs}",
+                                                                                   category=category)
+                        self.output["sumw"][category][self._dataset][f"{self._sample}__{subs}"] = ak.sum(w_tot * mask_withsub)
+                        self.output["sumw2"][category][self._dataset][f"{self._sample}__{subs}"] = ak.sum(((w_tot)**2) * mask_withsub)
 
 
     def define_custom_axes_extra(self):
@@ -415,6 +418,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self.cfg.variables,
             self._year,
             self._sample,
+            self._hasSubsamples,
             self._subsamples[self._sample].keys(),
             self._categories,
             variations_config=self.cfg.variations_config[self._sample] if self._isMC else None,
