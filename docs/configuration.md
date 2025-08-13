@@ -239,6 +239,89 @@ cfg = Configurator(
   Subsamples do not need to be exclusive. Subsample masks are applied before exporting histograms, columns and counting events.
   :::
 
+### Subsample-specific Configuration
+
+PocketCoffea allows applying weights and systematic variations specific to subsamples. When subsamples are defined, they can be referenced in the `weights` and `variations` configuration using their full name (original sample name + subsample suffix).
+
+In the example configuration, the `TTToSemiLeptonic` sample is split into three subsamples:
+- `TTToSemiLeptonic__=1b`
+- `TTToSemiLeptonic__=2b` 
+- `TTToSemiLeptonic__>2b`
+
+These subsamples can have different weight and variation configurations:
+
+```python
+cfg = Configurator(
+    datasets = {
+        "subsamples":{
+            "TTToSemiLeptonic": {
+                "=1b":  [get_nBtagEq(1, coll="Jet")],
+                "=2b" : [get_nBtagEq(2, coll="Jet")],
+                ">2b" : [get_nBtagMin(3, coll="Jet")]
+            }
+        }
+    },
+    
+    weights = {
+        "common": {
+            "inclusive": ["genWeight", "lumi", "XS", "pileup"],
+        },
+        "bysample": {
+            # Original sample weights (applied to all subsamples if not overridden)
+            "TTToSemiLeptonic": {
+                "inclusive": ["sf_btag", "sf_jet_puId"],
+            },
+            # Subsample-specific weights
+            "TTToSemiLeptonic__=1b": {
+                "inclusive": ["sf_btag_1b_specific"],  # Custom b-tag SF for 1b events
+                "bycategory": {
+                    "baseline": ["additional_1b_weight"]
+                }
+            },
+            "TTToSemiLeptonic__=2b": {
+                "inclusive": ["sf_btag_2b_specific"],  # Different b-tag SF for 2b events
+            },
+            "TTToSemiLeptonic__>2b": {
+                "inclusive": ["sf_btag_multi_specific", "top_pt_reweight"],
+            }
+        }
+    },
+    
+    variations = {
+        "weights": {
+            "bysample": {
+                "TTToSemiLeptonic__=1b": {
+                    "inclusive": ["sf_btag_1b_specific"],  # Only vary 1b-specific SF
+                },
+                "TTToSemiLeptonic__=2b": {
+                    "inclusive": ["sf_btag_2b_specific"],
+                },
+                "TTToSemiLeptonic__>2b": {
+                    "inclusive": ["sf_btag_multi_specific", "top_pt_reweight"],
+                }
+            }
+        },
+        "shape": {
+            "bysample": {
+                "TTToSemiLeptonic__>2b": {
+                    "inclusive": ["JESTotal", "JER"]  # Only apply shape variations to high b-jet multiplicity
+                }
+            }
+        }
+    }
+)
+```
+
+:::{tip}
+Subsample-specific configurations are particularly useful for:
+- Applying different scale factors based on event topology (e.g., different b-tagging efficiencies for different b-jet multiplicities)
+- Implementing data-driven background estimation techniques that require different weights per subsample
+:::
+
+:::{warning}
+When configuring weights and variations for subsamples, ensure that the subsample name exactly matches the automatically generated name format: `{original_sample}__{subsample_suffix}`.
+:::
+
 
 ## Workflow
 
