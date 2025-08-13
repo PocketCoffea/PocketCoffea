@@ -181,7 +181,7 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                 xrootdfaillist = [l.strip() for l in f.readlines()]
         else:
             xrootdfaillist = []
-        os.system(f"mkdir -p {jobs_folder}/logs/processedlogs")
+        os.makedirs(f"{jobs_folder}/logs/processedlogs", exist_ok=True)
         blacklist_sites = update_blacklist(xrootdfaillist,blacklist_threshold)
         if len(blacklist_sites) > 0:
             print("Blacklisted sites:",blacklist_sites)

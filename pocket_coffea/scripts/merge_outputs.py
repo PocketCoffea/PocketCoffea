@@ -59,7 +59,7 @@ def merge_group_reduction(output_files, N_reduction=5, cachedir="merge_cache", m
                 return result
             else:
                 # We are here because memory usage of "result" exceeded max_memory. Cache it on disk and start again.
-                os.system(f"mkdir -p {cachedir}")
+                os.makedirs(cachedir, exist_ok=True)
                 interm_output = f"{cachedir}/merge_{counter}.coffea"
                 print(f"[green]Dumping intermediate result to {interm_output} since memory utilization of merged object exceeded {mem_threshold*100:.0f}% of {max_mem_gb:.1f} GB.[/]")
                 save(result, interm_output)
@@ -125,8 +125,9 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, N_reduc
             raise TypeError("Type mismatch found between the values of the input dictionaries. Please check the input files.")
         
         if cache_dir is None:
-            cache_dir = '/'.join(output_files[0].split("/")[:-1])+"/merge_cache"
-        total_out =  merge_group_reduction(inputfiles, N_reduction=N_reduction, cachedir=cache_dir, max_mem_gb=max_mem_gb, verbose=verbose)
+            cache_dir = '/'.join(outputfile.split("/")[:-1])+"/merge_cache"
+        total_out =  merge_group_reduction(inputfiles, N_reduction=N_reduction, cachedir=cache_dir, 
+                                           max_mem_gb=max_mem_gb, verbose=verbose)
         save(total_out, outputfile)
         print(f"[green]Output saved to {outputfile}")
 

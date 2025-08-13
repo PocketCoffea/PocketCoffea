@@ -304,7 +304,7 @@ echo 'Done'"""
         # move processed logs to a backup directory
         if len(xrootdfailurefilelist) > 0:
             backupdir = f"{self.jobs_dir}/logs/processed"
-            os.system(f"mkdir -p {backupdir}")
+            os.makedirs(backupdir, exist_ok=True)
             os.system(f"mv {' '.join(xrootdfailurefilelist)} {backupdir}")
 
         sitemap = get_xrootd_sites_map()
