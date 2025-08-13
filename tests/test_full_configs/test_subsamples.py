@@ -12,6 +12,7 @@ from utils import compare_outputs, compare_totalweight
 import numpy as np
 import awkward as ak
 from coffea.nanoevents import NanoEventsFactory, NanoAODSchema
+import hist
 
 @pytest.fixture
 def base_path() -> Path:
