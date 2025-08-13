@@ -114,7 +114,7 @@ lepton_scale_factors:
           file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electronSS.json.gz
           correction_name:
             scale: "Scale"
-            smear: "Smear"
+            smear: "Smearing"
         '2023_preBPix':
           file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electronSS.json.gz
           correction_name:
