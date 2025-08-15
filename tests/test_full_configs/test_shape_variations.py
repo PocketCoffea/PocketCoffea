@@ -7,6 +7,7 @@ from pathlib import Path
 from pocket_coffea.executors import executors_base as executors_lib
 from coffea import processor
 from coffea.processor import Runner
+from coffea.nanoevents import NanoAODSchema
 from coffea.util import load, save
 import numpy as np
 import awkward as ak
@@ -151,7 +152,7 @@ def test_shape_variation_default_sequence(base_path: Path, monkeypatch: pytest.M
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
     output = run(config.filesets, treename="Events",

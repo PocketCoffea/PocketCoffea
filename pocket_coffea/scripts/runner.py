@@ -15,6 +15,7 @@ from rich.console import Console
 from coffea.util import save
 from coffea import processor
 from coffea.processor import Runner
+from coffea.nanoevents import NanoAODSchema
 
 from pocket_coffea.utils.configurator import Configurator
 from pocket_coffea.utils.utils import load_config, path_import, adapt_chunksize
@@ -248,7 +249,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
             chunksize=run_options["chunksize"],
             maxchunks=run_options["limit-chunks"],
             skipbadfiles=run_options['skip-bad-files'],
-            schema=processor.NanoAODSchema,
+            schema=NanoAODSchema,
             format="root",
         )
         output = run(filesets_to_run, treename="Events",
@@ -305,7 +306,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
                 chunksize=adapted_chunksize,
                 maxchunks=run_options["limit-chunks"],
                 skipbadfiles=run_options['skip-bad-files'],
-                schema=processor.NanoAODSchema,
+                schema=NanoAODSchema,
                 format="root",
             )
             output = run(fileset_, treename="Events",
