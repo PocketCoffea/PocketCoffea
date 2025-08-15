@@ -309,17 +309,29 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                                         cloudpickle.dump(config, open(thisconfigfile, "wb"))
 
                                         if flcounter > 0:
-                                            log_text.append(f"[b]Job {failed_job}[/]: Replaced {flcounter} files in config because they were in {sitecounter} blacklisted sites.")
+                                            log_text.append(f"[b]Job {failed_job}[/]: Replaced {flcounter} files in config because they were in {len(sitecounter)} blacklisted sites: {sitecounter}.")
                                         if samecounter > 0:
                                             log_text.append(f"[red][b]Job {failed_job}[/]: Could not replace {samecounter} files in config though they were in blacklisted sites, because no alternative site was found![/]")
 
-                                os.system(f"rm {jobs_folder}/{failed_job}.failed")
-                                os.system(f"touch {jobs_folder}/{failed_job}.idle")
-                                resubmit_log = os.popen(f"cd {jobs_folder} && condor_submit {failed_job}.sub",'r').read().split('\n')[-2]
+                                
+                                resubmit_log = os.popen(f"cd {jobs_folder} && condor_submit {failed_job}.sub",'r').read()
+
+                                resubmit_succeeded = True
+                                if len(resubmit_log.split('\n')) > 2:
+                                    resubmit_log = resubmit_log.split('\n')[-2]     # This is the usual condor_submit output "1 job(s) submitted to cluster XXXX"
+                                    if not "job(s) submitted to cluster" in resubmit_log:
+                                        resubmit_succeeded = False
+                                else:
+                                    resubmit_succeeded = False
+
                                 log_text.append(resubmit_log)
-                                resubmit_count += 1
+                                if resubmit_succeeded:
+                                    os.system(f"rm {jobs_folder}/{failed_job}.failed")
+                                    os.system(f"touch {jobs_folder}/{failed_job}.idle")
+                                    resubmit_count += 1
+
                                 if resubmit_count % 10 == 0:
-                                    rprint(f"[green]Resubmitted {resubmit_count} jobs so far in step {step}[/]")   # Terminal output so that the user knows something's going on
+                                    rprint(f"[green]Resubmitted {resubmit_count}/{len(failed_jobs)} jobs so far in step {step}[/]")   # Terminal output so that the user knows something's going on
                             else:
                                 # Add it to the list of jobs that are definitely failed
                                 definitive_failed.append(failed_job)

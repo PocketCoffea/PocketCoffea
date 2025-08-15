@@ -180,6 +180,17 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
 
         pythonpath = sys.prefix.rsplit('/', 1)[0]
 
+        # Handle columns
+        columncommand = ""
+        if len(self.config.columns) > 0:
+            column_out_dir = self.config.workflow_options["dump_columns_as_arrays_per_chunk"]
+            if os.path.abspath(column_out_dir) != column_out_dir:
+                # If the config contains an absolute path, then the
+                # parquets are written directly to disk (e.g. eos.)
+                # This is unstable, but not much to do at the executor level
+                # Otherwise, copy the directory to outputdir
+                columncommand = f'scp -r {column_out_dir} "$3"'
+
         if self.run_options["split-by-category"]:
             splitcommands = '''
     cd output
@@ -208,6 +219,7 @@ python {pythonpath}/pocket_coffea/scripts/runner.py --cfg $2 -o output EXECUTOR 
 if [ $? -eq 0 ]; then
     echo 'Job successful'
     {splitcommands}
+    {columncommand}
 
     rm $JOBDIR/job_$1.running
     touch $JOBDIR/job_$1.done
