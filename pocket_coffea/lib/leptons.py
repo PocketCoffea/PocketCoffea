@@ -3,9 +3,9 @@ import numpy as np
 import correctionlib
 
 
-def get_ele_scaled(ele, jsonFileName, isMC, runNr):
+def get_ele_scaled(ele, jsonFileName, correction_name, isMC, runNr):
     evaluator = correctionlib.CorrectionSet.from_file(jsonFileName)
-    evaluator_scale = evaluator["Scale"]
+    evaluator_scale = evaluator[correction_name]
     ele_gain_flat = ak.flatten(ele["seedGain"])
     ele_eta_flat = ak.flatten(ele["etaSC"])
     ele_r9_flat = ak.flatten(ele["r9"])
@@ -34,14 +34,13 @@ def get_ele_scaled(ele, jsonFileName, isMC, runNr):
         )
         ele_pt_scale_up = ak.unflatten((1+scale_MC_unc) * ele_pt_flat, counts=ele_counts)
         ele_pt_scale_down = ak.unflatten((1-scale_MC_unc) * ele_pt_flat, counts=ele_counts)
-        return {"Up": ele_pt_scale_up, "Down": ele_pt_scale_down}
+        return {"up": ele_pt_scale_up, "down": ele_pt_scale_down}
 
-def get_ele_smeared(mc_ele, jsonFileName, isMC, nominal=True, seed=125):
-    
+def get_ele_smeared(mc_ele, jsonFileName,correction_name, isMC, only_nominal=True, seed=125):
     if not isMC:
         return
     evaluator = correctionlib.CorrectionSet.from_file(jsonFileName)
-    evaluator_smearing = evaluator["Smearing"]
+    evaluator_smearing = evaluator[correction_name]
     ele_eta_flat = ak.flatten(mc_ele["etaSC"])
     ele_r9_flat = ak.flatten(mc_ele["r9"])
     ele_pt_flat = ak.flatten(mc_ele["pt"])
@@ -52,10 +51,11 @@ def get_ele_smeared(mc_ele, jsonFileName, isMC, nominal=True, seed=125):
         ele_eta_flat,
         ele_r9_flat
     )
-    if nominal:
-        smearing = rng.normal(loc=1., scale=rho)
-        mc_ele_pt_corrected = ak.unflatten(smearing * ele_pt_flat, counts=ele_counts)
-        return {"nominal": mc_ele_pt_corrected}
+    smearing = rng.normal(loc=1., scale=rho)
+    mc_ele_pt_corrected_nom = ak.unflatten(smearing * ele_pt_flat, counts=ele_counts)
+
+    if only_nominal:
+        return {"nominal": mc_ele_pt_corrected_nom}
     else:
         unc_rho = evaluator_smearing.evaluate(
             "err_rho", 
@@ -66,7 +66,9 @@ def get_ele_smeared(mc_ele, jsonFileName, isMC, nominal=True, seed=125):
         smearing_down = rng.normal(loc=1., scale=rho - unc_rho)
         mc_ele_pt_up = ak.unflatten(smearing_up * ele_pt_flat, counts=ele_counts)
         mc_ele_pt_down = ak.unflatten(smearing_down * ele_pt_flat, counts=ele_counts)
-        return {"Up": mc_ele_pt_up, "Down": mc_ele_pt_down}
+        return {"nominal": mc_ele_pt_corrected_nom,
+                "up": mc_ele_pt_up, 
+                "down": mc_ele_pt_down}
 
 
 

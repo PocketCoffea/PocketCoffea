@@ -25,6 +25,7 @@ def do_dataset(
     allowlist_sites,
     include_redirector,
     blocklist_sites,
+    prioritylist_sites,
     regex_sites,
     sort_replicas: str = "geoip",
     **kwargs,
@@ -46,6 +47,7 @@ def do_dataset(
                 "allowlist_sites": allowlist_sites,
                 "include_redirector": include_redirector,
                 "blocklist_sites": blocklist_sites,
+                "prioritylist_sites": prioritylist_sites,
                 "regex_sites": regex_sites,
             },
             sort_replicas=sort_replicas,
@@ -54,7 +56,6 @@ def do_dataset(
         raise Exception(f"Error getting info about dataset: {key}")
 
     return dataset
-
 
 
 def build_datasets(
@@ -68,6 +69,7 @@ def build_datasets(
     allowlist_sites=None,
     include_redirector=False,
     blocklist_sites=None,
+    prioritylist_sites=None,
     regex_sites=None,
     sort_replicas="geoip",
     parallelize=4,
@@ -87,6 +89,7 @@ def build_datasets(
         "allowlist_sites": allowlist_sites,
         "include_redirector": include_redirector,
         "blocklist_sites": blocklist_sites,
+        "prioritylist_sites": prioritylist_sites,
         "regex_sites": regex_sites,
         "parallelize": parallelize,
         "sort_replicas": sort_replicas,
@@ -118,8 +121,8 @@ class Sample:
         sort_replicas: str = "geoip",
         **kwargs,
     ):
-        '''
-        Class representing a single analysis sample.
+        """Represent a single analysis sample.
+
         - The name is the unique key of the sample in the dataset file.
         - The DAS name is the unique identifier of the sample in CMS
         - The sample represent the type of events: DATA/Wjets/ttHbb/ttBB. It is used to group the same type of events
@@ -127,8 +130,8 @@ class Sample:
          -- year
          -- isMC: true/false
          -- era: A/B/C/D (only for data)
-        - sites_cfg is a dictionary contaning allowlist, blocklist and regex to filter the SITES
-        '''
+        - sites_cfg is a dictionary contaning allowlist, blocklist, prioritylist and regex to filter the SITES
+        """
         self.name = name
         self.das_names = das_names
         self.metadata = {}
@@ -170,6 +173,7 @@ class Sample:
                 verify=False,
             )
             filesjson = r.json()
+            invalid_list = []
             for fj in filesjson:
                 if 'is_file_valid' not in fj.keys():
                     # print("fj=", fj)
@@ -177,11 +181,11 @@ class Sample:
                 else:
                     if fj["is_file_valid"] == 0:
                         #print(fj)
-                        print(f"\t WARNING: A file not valid on DAS: {fj['logical_file_name']}")
+                        print(f"\t WARNING: This file is Not Valid on DAS: {fj['logical_file_name']}")
                         print("\t We are skipping it")
-                        #raise Exception(f"Invalid files in sample {self}!")
+                        invalid_list.append(fj['logical_file_name'])                        
                         continue
-                    
+                        
                     self.fileslist_redirector.append(fj['logical_file_name'])
                     self.metadata["nevents"] += fj['event_count']
                     self.metadata["size"] += fj['file_size']
@@ -191,7 +195,7 @@ class Sample:
             if self.metadata.get("dbs_instance", "prod/global") == "prod/global":
                 # Now query rucio to get the concrete dataset passing the sites filtering options
                 files_replicas, sites, sites_counts = rucio.get_dataset_files_replicas(
-                    das_name, **self.sites_cfg, mode="first", sort=self.sort_replicas
+                    das_name, **self.sites_cfg, mode="first", sort=self.sort_replicas, invalid_list=invalid_list
                 )
             else:
                 # Use DBS to get the site
@@ -273,6 +277,7 @@ class Dataset:
             else {
                 "allowlist_sites": None,
                 "blocklist_sites": None,
+                "prioritylist_sites": None,
                 "regex_sites": None,
             }
         )

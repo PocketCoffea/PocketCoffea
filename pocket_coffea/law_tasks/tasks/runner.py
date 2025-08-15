@@ -51,7 +51,7 @@ class Runner(BaseTask):
     # init class attributes
     config = None
 
-    def requires(self):
+    def requires(self) -> dict[str, law.Task]:
         return {
             "datasets": CreateDatasets.req(self),
             "jets_calibration": JetCalibration.req(self),
@@ -63,10 +63,10 @@ class Runner(BaseTask):
         return super().store_parts()
 
     @property
-    def skip_output_removal(self):
+    def skip_output_removal(self) -> bool:
         return not self.test
 
-    def output(self):
+    def output(self) -> dict[str, law.LocalFileTarget]:
         return {
             key: self.local_file_target(filename)
             for key, filename in [

@@ -22,6 +22,12 @@ class transferconfig(luigi.Config):
         description="Transfer output to WLCG", default=False
     )
 
+class transferconfig(luigi.Config):
+    """Config class for transfer to wlcg."""
+
+    transfer = luigi.BoolParameter(description="Transfer output to WLCG", default=False)
+
+
 class datasetconfig(luigi.Config):
     """Paramters for dataset creation"""
 
@@ -147,9 +153,7 @@ class datacardconfig(luigi.Config):
     shapes_name = luigi.Parameter(
         default="shapes.root", description="Name of the shapes file"
     )
-    datacard_dir = luigi.Parameter(
-        default="datacards", description="Output folder for datacards"
-    )
-    transfer = luigi.BoolParameter(
-        default=False, description="Transfer datacards to EOS"
-    )
+    stat_config = luigi.Parameter(description="Path to the stat config file")
+    variable = luigi.Parameter(description="Variable to produce datacard for")
+    category = luigi.Parameter(description="Category to produce datacard for")
+    years = law.CSVParameter(description="Years to produce datacard for")

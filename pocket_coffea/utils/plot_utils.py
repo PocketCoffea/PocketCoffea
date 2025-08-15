@@ -204,7 +204,7 @@ class PlotManager:
                         del hs[sample]
                 vs[year] = hs
             self.hists_to_plot[variable] = vs
-
+        
         for variable, histoplot in self.hists_to_plot.items():
             for year, h_dict in histoplot.items():
                 if self.only_year and year not in self.only_year:
@@ -232,6 +232,8 @@ class PlotManager:
                     verbose=self.verbose,
                     cache=self.cache
                 )
+        del self.hists_to_plot
+
         if self.save:
             self.make_dirs()
             if self.index_file is not None:
@@ -468,7 +470,7 @@ class Shape:
         self.is_data_only = len(self.samples_mc) == 0
 
         if not self.is_data_only:
-            self.syst_manager = SystManager(self, self.style)
+            self.syst_manager = SystManager(self, self.style, verbose=self.verbose)
 
     @property
     def dense_axes(self):
@@ -670,6 +672,8 @@ class Shape:
                 )
                 isMC = None
                 for dataset in datasets:
+                    if dataset not in self.datasets_metadata:
+                        raise Exception(f"Dataset `{dataset}` not found in datasets metadata!")
                     isMC_d = self.datasets_metadata[dataset]["isMC"] == "True"
                     if isMC is None:
                         isMC = isMC_d
@@ -1519,9 +1523,10 @@ class Shape:
 class SystManager:
     '''This class handles the systematic uncertainties of 1D MC histograms.'''
 
-    def __init__(self, shape: Shape, style: Style) -> None:
+    def __init__(self, shape: Shape, style: Style, verbose: int = 1) -> None:
         self.shape = shape
         self.style = style
+        self.verbose = verbose
         assert all(
             [
                 (var == "nominal") | var.endswith(("Up", "Down"))
@@ -1545,10 +1550,10 @@ class SystManager:
     def update(self, cat, stacks):
         '''Updates the dictionary of systematic uncertainties with the new cached stacks.'''
         for syst_name in self.systematics:
-            self.syst_dict[cat][syst_name] = SystUnc(self.shape, stacks, syst_name)
+            self.syst_dict[cat][syst_name] = SystUnc(self.shape, stacks, syst_name, verbose=self.verbose)
 
     def total(self, cat):
-        return SystUnc(self.shape, name="total", syst_list=list(self.syst_dict[cat].values()))
+        return SystUnc(self.shape, name="total", syst_list=list(self.syst_dict[cat].values()), verbose=self.verbose)
 
     def mcstat(self, cat):
         return self.syst_dict[cat]["mcstat"]
@@ -1565,12 +1570,13 @@ class SystUnc:
     returning a `SystUnc` instance corresponding to their sum in quadrature.'''
 
     def __init__(
-            self, shape: Shape, stacks: dict = None, name: str = None, syst_list: list = None
+            self, shape: Shape, stacks: dict = None, name: str = None, syst_list: list = None, verbose: int = 1
     ) -> None:
         self.shape = shape
         self.style = shape.style
         self.name = name
         self.is_mcstat = self.name == "mcstat"
+        self.verbose = verbose
 
         # Initialize the arrays of the nominal yield and squared errors as 0
         self.nominal = 0.0
@@ -1607,7 +1613,7 @@ class SystUnc:
         '''Sum in quadrature of two systematic uncertainties.
         In case multiple objects are summed, the information on the systematic uncertainties that
         have been summed is stored in self.syst_list.'''
-        return SystUnc(self.shape, name=f"{self.name}_{other.name}", syst_list=[self, other])
+        return SystUnc(self.shape, name=f"{self.name}_{other.name}", syst_list=[self, other], verbose=self.verbose)
 
     @property
     def up(self):
@@ -1675,14 +1681,16 @@ class SystUnc:
         for h in stacks["mc"]:
             for variation in h.axes[0]:
                 h_var = h[{'variation': variation}].values()
-                # First, we check that the variation is not equal to the nominal
-                if not all(stacks["mc_nominal_sum"].values() == h_var):
+                h_nom = h[{'variation': 'nominal'}].values()
+                # First, we check that the variation is not equal to the nominal            
+                if not all(h_nom == h_var):
                     # Then, we check if the variation is empty
                     if all(h_var == np.zeros_like(h_var)):
-                        print(
-                            f"WARNING: Empty variation found for systematic {self.name} in histogram {self.shape.name}. "+
-                            "Please check if the input histograms are filled properly."
-                        )
+                        if self.verbose>=1:
+                            print(
+                                f"WARNING: Empty variation found for systematic {self.name} in histogram {self.shape.name}. "+
+                                "Please check if the input histograms are filled properly."
+                            )
 
     def _get_err2_from_syst(self):
         '''Method used in the constructor to instanstiate a SystUnc object from

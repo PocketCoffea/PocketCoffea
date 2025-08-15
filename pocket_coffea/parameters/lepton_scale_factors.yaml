@@ -49,7 +49,7 @@ lepton_scale_factors:
 
       '2022_preEE':
         file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/electron.json.gz
-        fileSS: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/electronSS.json.gz
+        fileSS: 
         name: Electron-ID-SF
         reco:
           pt_lt_20: RecoBelow20
@@ -58,7 +58,6 @@ lepton_scale_factors:
 
       '2022_postEE':
         file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electron.json.gz
-        fileSS: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electronSS.json.gz
         name: Electron-ID-SF
         reco:
           pt_lt_20: RecoBelow20
@@ -67,7 +66,6 @@ lepton_scale_factors:
 
       '2023_preBPix':
         file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electron.json.gz
-        fileSS: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electronSS.json.gz
         name: Electron-ID-SF
         reco:
           pt_lt_20: RecoBelow20
@@ -76,7 +74,6 @@ lepton_scale_factors:
 
       '2023_postBPix':
         file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electron.json.gz
-        fileSS: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electronSS.json.gz
         name: Electron-ID-SF
         reco:
           pt_lt_20: RecoBelow20
@@ -94,16 +91,41 @@ lepton_scale_factors:
       "2022_postEE": "2022Re-recoE+PromptFG"
       "2023_preBPix": "2023PromptC"
       "2023_postBPix": "2023PromptD"
+
+    # The scale and smearing configuration is expected to have this structure
+    scale_and_smearing:      
+      apply: 
+        '2016_PreVFP': False
+        '2016_PostVFP': False
+        '2017': False
+        '2018': False
+        '2022_preEE': True
+        '2022_postEE': True
+        '2023_preBPix': True
+        '2023_postBPix': True
       
-    apply_ele_scale_and_smearing: 
-      '2016_PreVFP': False
-      '2016_PostVFP': False
-      '2017': False
-      '2018': False
-      '2022_preEE': True
-      '2022_postEE': True
-      '2023_preBPix': False
-      '2023_postBPix': False
+      correctionlib_config:
+        '2022_preEE':
+          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/electronSS.json.gz
+          correction_name:
+            scale: "Scale"
+            smear: "Smearing"
+        '2022_postEE':
+          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electronSS.json.gz
+          correction_name:
+            scale: "Scale"
+            smear: "Smearing"
+        '2023_preBPix':
+          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electronSS.json.gz
+          correction_name:
+            scale: "2023PromptC_ScaleJSON"
+            smear: "2023PromptC_SmearingJSON"
+        '2023_postBPix':
+          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electronSS.json.gz
+          correction_name:
+            scale: "2023PromptD_ScaleJSON"
+            smear: "2023PromptD_SmearingJSON"
+
     
     # The trigger SF configuration is expected to have this structure
     # needs to be provided by the user.

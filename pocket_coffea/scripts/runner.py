@@ -9,6 +9,8 @@ from yaml import Loader, Dumper
 import click
 import time
 from rich import print as rprint
+from rich.table import Table
+from rich.console import Console
 
 from coffea.util import save
 from coffea import processor
@@ -67,11 +69,12 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         config = cloudpickle.load(open(cfg,"rb"))
         if not config.loaded:
             config.load()
-        config.save_config(outputdir) 
+        config.save_config(outputdir)
+        rprint("[italic]The configuration file is saved at {outputdir} [/]")
     else:
         raise sys.exit("Please provide a .py/.pkl configuration file")
 
-    rprint(config)
+    print(config)
     
     # Now loading the executor or from the set of predefined ones, or from the
     # user defined script
@@ -81,7 +84,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     else:
         executor_name = executor
         site = None
-    print("Running with executor:", executor_name, "at", site)
+    #print("Running with executor:", executor_name, "at", site)
 
     # Getting the default run_options
     run_options_defaults = parameters_utils.get_default_run_options()
@@ -135,9 +138,15 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         run_options["limit-chunks"] = limit_chunks if limit_chunks else 2
         config.filter_dataset(run_options["limit-files"])
 
-    # Print the run options
-    rprint("[bold]Run options:[/]")
-    rprint(run_options)
+    # Run option display
+    table = Table(title="Run Configuration")
+    table.add_column("Option", style="cyan")
+    table.add_column("Value", style="white")
+
+    for key, value in sorted(run_options.items()):
+        table.add_row(key, str(value))
+
+    Console().print(table)
     
     # The user can provide a custom executor factory module
     if executor_custom_setup:
@@ -157,7 +166,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         from pocket_coffea.executors import executors_T3_CH_PSI as executors_lib
     elif site == "purdue-af":
         from pocket_coffea.executors import executors_purdue_af as executors_lib
-    elif site == "DESY_NAF":
+    elif site == "DESY":
         from pocket_coffea.executors import executors_DESY_NAF as executors_lib
     elif site == "RWTH":
         from pocket_coffea.executors import executors_RWTH as executors_lib
@@ -267,6 +276,8 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
             # Adding the remaining datasets that were not grouped
             for dataset, files in filesets_to_group.items():
                 filesets_groups[dataset] = {dataset:files}
+
+            print("All datasets to process:", filesets_groups.keys())
         else:
             filesets_groups = {dataset:{dataset:files} for dataset, files in filesets_to_run.items()}
 
@@ -307,7 +318,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     # If the processor has skimmed NanoAOD, we export a dataset_definition file
     if config.save_skimmed_files and config.do_postprocessing:
         from pocket_coffea.utils.skim import save_skimed_dataset_definition
-        save_skimed_dataset_definition(output, f"{outputdir}/skimmed_dataset_definition.json")
+        save_skimed_dataset_definition(output, f"{outputdir}/skimmed_dataset_definition.json", check_initial_events=not test)
         
     # Closing the executor if needed
     executor_factory.close()

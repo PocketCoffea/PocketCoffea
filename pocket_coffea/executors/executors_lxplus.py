@@ -8,47 +8,53 @@ from .executors_base import IterativeExecutorFactory, FuturesExecutorFactory
 from pocket_coffea.utils.network import check_port
 from pocket_coffea.parameters.dask_env import setup_dask
 from pocket_coffea.utils.configurator import Configurator
+from pocket_coffea.utils.rucio import get_xrootd_sites_map
 import cloudpickle
 import yaml
+from copy import deepcopy
+
+def get_worker_env(run_options,x509_path,exec_name="dask"):
+    env_worker = [
+        'export XRD_RUNFORKHANDLER=1',
+        'export MALLOC_TRIM_THRESHOLD_=0'        ,
+        ]
+    if exec_name == "dask":
+        env_worker.append('ulimit -u unlimited')
+
+    if not run_options['ignore-grid-certificate']:
+        env_worker.append(f'export X509_USER_PROXY={x509_path}')
     
+    # Adding list of custom setup commands from user defined run options
+    if run_options.get("custom-setup-commands", None):
+        env_worker += run_options["custom-setup-commands"]
+
+    # Now checking for conda environment  conda-env:true
+    if run_options.get("conda-env", False):
+        env_worker.append(f'export PATH={os.environ["CONDA_PREFIX"]}/bin:$PATH')
+        if "CONDA_ROOT_PREFIX" in os.environ:
+            env_worker.append(f"{os.environ['CONDA_ROOT_PREFIX']} activate {os.environ['CONDA_DEFAULT_ENV']}")
+        elif "MAMBA_ROOT_PREFIX" in os.environ:
+            env_worker.append(f"{os.environ['MAMBA_ROOT_PREFIX']} activate {os.environ['CONDA_DEFAULT_ENV']}")
+        else:
+            raise Exception("CONDA prefix not found in env! Something is wrong with your conda installation if you want to use conda in the dask cluster.")
+
+    # if local-virtual-env: true the dask job is configured to pickup
+    # the local virtual environment. 
+    if run_options.get("local-virtualenv", False):
+        env_worker.append(f"source {sys.prefix}/bin/activate")
+        if exec_name == "dask":
+            env_worker.append(f"export PYTHONPATH={sys.prefix}/lib:$PYTHONPATH")
+        elif exec_name == "condor":
+            pythonpath = sys.prefix.rsplit('/', 1)[0]
+            env_worker.append(f"export PYTHONPATH={pythonpath}")
+
+    return env_worker
 
 class DaskExecutorFactory(ExecutorFactoryABC):
 
     def __init__(self, run_options, outputdir, **kwargs):
         self.outputdir = outputdir
         super().__init__(run_options, **kwargs)
-
-    def get_worker_env(self):
-        env_worker = [
-            'export XRD_RUNFORKHANDLER=1',
-            'export MALLOC_TRIM_THRESHOLD_=0',
-            'ulimit -u unlimited',
-            ]
-        if not self.run_options['ignore-grid-certificate']:
-            env_worker.append(f'export X509_USER_PROXY={self.x509_path}')
-        
-        # Adding list of custom setup commands from user defined run options
-        if self.run_options.get("custom-setup-commands", None):
-            env_worker += self.run_options["custom-setup-commands"]
-
-        # Now checking for conda environment  conda-env:true
-        if self.run_options.get("conda-env", False):
-            env_worker.append(f'export PATH={os.environ["CONDA_PREFIX"]}/bin:$PATH')
-            if "CONDA_ROOT_PREFIX" in os.environ:
-                env_worker.append(f"{os.environ['CONDA_ROOT_PREFIX']} activate {os.environ['CONDA_DEFAULT_ENV']}")
-            elif "MAMBA_ROOT_PREFIX" in os.environ:
-                env_worker.append(f"{os.environ['MAMBA_ROOT_PREFIX']} activate {os.environ['CONDA_DEFAULT_ENV']}")
-            else:
-                raise Exception("CONDA prefix not found in env! Something is wrong with your conda installation if you want to use conda in the dask cluster.")
-
-        # if local-virtual-env: true the dask job is configured to pickup
-        # the local virtual environment. 
-        if self.run_options.get("local-virtualenv", False):
-            env_worker.append(f"source {sys.prefix}/bin/activate")
-            env_worker.append(f"export PYTHONPATH={sys.prefix}/lib:$PYTHONPATH")
-
-        return env_worker
-    
         
     def setup(self):
         ''' Start the DASK cluster here'''
@@ -89,7 +95,7 @@ class DaskExecutorFactory(ExecutorFactoryABC):
                     "when_to_transfer_output": "ON_EXIT",
                     "+JobFlavour": f'"{self.run_options["queue"]}"'
                 },
-                env_extra=self.get_worker_env(),
+                env_extra=get_worker_env(self.run_options,self.x509_path,"dask"),
             )
 
         #Cluster adaptive number of jobs only if requested
@@ -131,43 +137,13 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
     def get(self):
         pass
 
-    def get_worker_env(self):
-        env_worker = [
-            'export XRD_RUNFORKHANDLER=1',
-            'export MALLOC_TRIM_THRESHOLD_=0',
-            ]
-        if not self.run_options['ignore-grid-certificate']:
-            env_worker.append(f'export X509_USER_PROXY={self.x509_path.split("/")[-1]}')
-        
-        # Adding list of custom setup commands from user defined run options
-        if self.run_options.get("custom-setup-commands", None):
-            env_worker += self.run_options["custom-setup-commands"]
-
-        # Now checking for conda environment  conda-env:true
-        if self.run_options.get("conda-env", False):
-            env_worker.append(f'export PATH={os.environ["CONDA_PREFIX"]}/bin:$PATH')
-            if "CONDA_ROOT_PREFIX" in os.environ:
-                env_worker.append(f"{os.environ['CONDA_ROOT_PREFIX']} activate {os.environ['CONDA_DEFAULT_ENV']}")
-            elif "MAMBA_ROOT_PREFIX" in os.environ:
-                env_worker.append(f"{os.environ['MAMBA_ROOT_PREFIX']} activate {os.environ['CONDA_DEFAULT_ENV']}")
-            else:
-                raise Exception("CONDA prefix not found in env! Something is wrong with your conda installation if you want to use conda in the dask cluster.")
-
-        # if local-virtual-env: true the dask job is configured to pickup
-        # the local virtual environment. 
-        if self.run_options.get("local-virtualenv", False):
-            env_worker.append(f"source {sys.prefix}/bin/activate")
-            pythonpath = sys.prefix.rsplit('/', 1)[0]
-            env_worker.append(f"export PYTHONPATH={pythonpath}:$PYTHONPATH")
-
-        return env_worker
-
     def prepare_jobs(self, splits):
         config_files = [ ]
         jobs_config = {
             "job_name": self.job_name,
             "job_dir": os.path.abspath(self.jobs_dir),
             "output_dir": os.path.abspath(self.outputdir),
+            "split_by_category": self.run_options["split-by-category"],
             "config_pkl_total": f"{os.path.abspath(self.outputdir)}/configurator.pkl",
             "jobs_list": {}
         }
@@ -199,8 +175,23 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
         abs_jobdir_path = os.path.abspath(self.jobs_dir)
         os.makedirs(f"{self.jobs_dir}/logs", exist_ok=True)
         
-        env_extras_list=self.get_worker_env()
+        env_extras_list=get_worker_env(self.run_options,self.x509_path,"condor")
         env_extras= "\n".join(env_extras_list)
+
+        pythonpath = sys.prefix.rsplit('/', 1)[0]
+
+        if self.run_options["split-by-category"]:
+            splitcommands = '''
+    cd output
+    split-output output_all.coffea -b category
+    rm output_all.coffea
+    for f in *.coffea; do
+        cp "$f" "$3/${f%.coffea}_job_$1.coffea"
+    done
+    cd ..
+'''
+        else:
+            splitcommands = "cp output/output_all.coffea $3/output_job_$1.coffea"
 
         script = f"""#!/bin/bash
 {env_extras}
@@ -211,11 +202,12 @@ rm -f $JOBDIR/job_$1.idle
 
 echo "Starting job $1"
 touch $JOBDIR/job_$1.running
-pocket-coffea run --cfg $2 -o output EXECUTOR --chunksize $4
+
+python {pythonpath}/pocket_coffea/scripts/runner.py --cfg $2 -o output EXECUTOR --chunksize $4
 # Do things only if the job is successful
 if [ $? -eq 0 ]; then
     echo 'Job successful'
-    cp output/output_all.coffea $3/output_job_$1.coffea
+    {splitcommands}
 
     rm $JOBDIR/job_$1.running
     touch $JOBDIR/job_$1.done
@@ -287,35 +279,128 @@ echo 'Done'"""
         with open(f"{self.jobs_dir}/jobs_config.yaml") as f:
             jobs_config = yaml.safe_load(f)
 
+        if jobs_to_recreate == "auto":
+            failedjobs = [f.replace(".failed","") for f in os.listdir(self.jobs_dir) if f.endswith(".failed")]
+            runningjobs = [f.replace(".running","") for f in os.listdir(self.jobs_dir) if f.endswith(".running")]
+            idlejobs = [f.replace(".idle","") for f in os.listdir(self.jobs_dir) if f.endswith(".idle")]
+            jobs_to_recreate = failedjobs + runningjobs + idlejobs
+            if len(jobs_to_recreate) == 0:
+                print(f"Could not automatically find *.failed/*.running/*.idle files in {self.jobs_dir}. All jobs probably succeeded! Exiting.")
+                exit()
+            jobs_to_recreate = ','.join(jobs_to_recreate)
+
         jobs_to_redo = []
         for j in jobs_to_recreate.split(","):
             if not j.startswith("job_"):
                 jobs_to_redo.append(f"job_{j}")
+            else:
+                jobs_to_redo.append(j)
         print(f"Recreating jobs: {jobs_to_redo}")
-        # Check if the job is in the list of jobs to recreate
+
+        # Check which jobs failed due to an XRootD error:
+        # for such files we want to find an alternate site
+        xrootdfailurefilelist = os.popen(f"grep -il {self.jobs_dir}/logs/*.err -e 'XRootD error'").read().split()
+        xrootdfailurejoblist = ["job_"+f.split("/")[-1].split(".")[-2] for f in xrootdfailurefilelist]
+        # move processed logs to a backup directory
+        if len(xrootdfailurefilelist) > 0:
+            backupdir = f"{self.jobs_dir}/logs/processed"
+            os.makedirs(backupdir, exist_ok=True)
+            os.system(f"mv {' '.join(xrootdfailurefilelist)} {backupdir}")
+
+        sitemap = get_xrootd_sites_map()
+        
         for job in jobs_to_redo:
+            # Check if the job is in the list of jobs to recreate
             if job not in jobs_config["jobs_list"]:
                 print(f"Job {job} not found in the list of jobs")
                 continue
-            # Open the configurator and modify the fileset.
-            # This is usually done to change a file location
-            # Load the configurator
-            config = cloudpickle.load(open(f"{self.jobs_dir}/config_{job}.pkl", "rb"))
-            # Modify the fileset
-            config.set_filesets_manually(jobs_config["jobs_list"][job]["filesets"])
-            # Save the configurator
-            cloudpickle.dump(config, open(f"{self.jobs_dir}/config_{job}.pkl", "wb"))
+
+            # If the job failed due to XRootD error, find an alternative site
+            if job in xrootdfailurejoblist:
+                print(f"Replacing input files in {job} since it failed due to an XRootD error.")
+                current_fileset = jobs_config["jobs_list"][job]["filesets"]
+                new_fileset = deepcopy(current_fileset)
+                for sample, dct in new_fileset.items():
+                    newfllist = []
+                    for fl in dct['files']:
+                        newfl = find_other_file(fl,sitemap)
+                        newfllist.append(newfl)
+                    new_fileset[sample]['files'] = newfllist
+                
+                # Update files in the configurator
+                config = cloudpickle.load(open(f"{self.jobs_dir}/config_{job}.pkl", "rb"))
+                config.set_filesets_manually(new_fileset)
+                cloudpickle.dump(config, open(f"{self.jobs_dir}/config_{job}.pkl", "wb"))
+
+            # If the job failed due to timeout, increase the timelimit
+            if job in runningjobs:
+                update_queue(f"{self.jobs_dir}/{job}.sub",job)
+
             # Resubmit the job
             dry_run = self.run_options.get("dry-run", False)
             if dry_run:
                 print(f"Dry run, not resubmitting  {job}")
             else:
-                os.system(f"rm {self.jobs_dir}/{job}.failed")
+                if job in failedjobs:
+                    os.system(f"rm {self.jobs_dir}/{job}.failed")
+                elif job in runningjobs:
+                    os.system(f"rm {self.jobs_dir}/{job}.running")
                 os.system(f"touch {self.jobs_dir}/{job}.idle")
                 os.system(f"cd {self.jobs_dir} && condor_submit {job}.sub")
                 print(f"Resubmitted {job}")
 
+def find_other_file(filepath,sitemap):
+    if filepath.startswith("root:/"):
+        rootpref = filepath.split("/store/")[0]
+        file = "/store/"+filepath.split("/store/")[1]
+    else:
+        rootpref = None
+        file = filepath
+    
+    command = f'dasgoclient -query="site file={file}"'    
+    sites = os.popen(command,'r').read().split()
+    for site in sites:
+        if site not in sitemap:
+            continue
+        sitepath = sitemap[site]
+        if not isinstance(sitepath,str):
+            continue
+        if rootpref:
+            if rootpref in sitepath or sitepath in rootpref:
+                continue
+        return sitepath+file
+                        
+    print(f"WARNING: No alternative site found for {filepath}. Redoing with the same file!")
+    return filepath    
 
+def update_queue(subfile,job):
+    with open(subfile, 'r') as fl:
+        lines = fl.readlines()
+    
+    with open(subfile, 'w') as fl:
+        for ln in lines:
+            if ln.startswith("+JobFlavour"):
+                q = ln.split('"')[-2]
+                idx = queues.index(q)
+                if idx + 1 < len(queues):
+                    newq = queues[idx+1]
+                    print(f"Bumping {job} from {q} to {newq}")
+                else:
+                    print(f"{job}: Already at the highest queue! Cannot bump up.")
+                    newq = q
+                fl.write(f'+JobFlavour = "{newq}"\n')
+            else:
+                fl.write(ln)
+
+queues = [
+    "espresso",
+    "microcentury",
+    "longlunch",
+    "workday",
+    "tomorrow",
+    "testmatch",
+    "nextweek"
+]
                 
 def get_executor_factory(executor_name, **kwargs):
     if executor_name == "iterative":

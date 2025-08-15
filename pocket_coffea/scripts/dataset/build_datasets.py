@@ -46,7 +46,7 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 )
 @click.option("-l", "--local-prefix", type=str, default=None)
 @click.option(
-    "-ws",
+    "-as",
     "--allowlist-sites",
     multiple=True,
     help="List of sites in whitelist"
@@ -57,6 +57,13 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
     type=str,
     multiple=True,
     help="List of sites in blacklist"
+)
+@click.option(
+    "-ps",
+    "--prioritylist-sites",
+    type=str,
+    multiple=True,
+    help="List of priorities to sort sites (requires sort: priority)"
 )
 @click.option(
     "-rs", "--regex-sites", type=str,
@@ -88,6 +95,7 @@ def build_datasets(
     allowlist_sites,
     include_redirector,
     blocklist_sites,
+    prioritylist_sites,
     regex_sites,
     sort_replicas,
     parallelize,
@@ -98,6 +106,8 @@ def build_datasets(
         allowlist_sites = allowlist_sites[0].split(",")
     if len(blocklist_sites)>0 and "," in blocklist_sites[0]:
         blocklist_sites = blocklist_sites[0].split(",")
+    if len(prioritylist_sites)>0 and "," in prioritylist_sites[0]:
+        prioritylist_sites = prioritylist_sites[0].split(",")
 
     print("Building datasets...")
     print("[green]Allowlist sites:[/]")

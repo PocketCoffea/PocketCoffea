@@ -34,6 +34,7 @@ import os
 
 from pocket_coffea.workflows.tthbb_base_processor import ttHbbBaseProcessor 
 from pocket_coffea.lib.weights.common import common_weights
+from pocket_coffea.lib.calibrators.common import default_calibrators_sequence
 
 # importing custom cut functions
 from custom_cut_functions import *
@@ -94,8 +95,10 @@ cfg = Configurator(
         "4b" : [ get_nBtagEq(4, coll="BJetGood")]
     },
     
-    # Weights configuration
+    # Weights and calibrators configuration
     weights_classes = common_weights,
+    calibrators = default_calibrators_sequence,  # JetsCalibrator, METCalibrator, ElectronsScaleCalibrator
+
     weights = {
         "common": {
             "inclusive": ["genWeight","lumi","XS",
@@ -236,6 +239,89 @@ cfg = Configurator(
   Subsamples do not need to be exclusive. Subsample masks are applied before exporting histograms, columns and counting events.
   :::
 
+### Subsample-specific Configuration
+
+PocketCoffea allows applying weights and systematic variations specific to subsamples. When subsamples are defined, they can be referenced in the `weights` and `variations` configuration using their full name (original sample name + subsample suffix).
+
+In the example configuration, the `TTToSemiLeptonic` sample is split into three subsamples:
+- `TTToSemiLeptonic__=1b`
+- `TTToSemiLeptonic__=2b` 
+- `TTToSemiLeptonic__>2b`
+
+These subsamples can have different weight and variation configurations:
+
+```python
+cfg = Configurator(
+    datasets = {
+        "subsamples":{
+            "TTToSemiLeptonic": {
+                "=1b":  [get_nBtagEq(1, coll="Jet")],
+                "=2b" : [get_nBtagEq(2, coll="Jet")],
+                ">2b" : [get_nBtagMin(3, coll="Jet")]
+            }
+        }
+    },
+    
+    weights = {
+        "common": {
+            "inclusive": ["genWeight", "lumi", "XS", "pileup"],
+        },
+        "bysample": {
+            # Original sample weights (applied to all subsamples if not overridden)
+            "TTToSemiLeptonic": {
+                "inclusive": ["sf_btag", "sf_jet_puId"],
+            },
+            # Subsample-specific weights
+            "TTToSemiLeptonic__=1b": {
+                "inclusive": ["sf_btag_1b_specific"],  # Custom b-tag SF for 1b events
+                "bycategory": {
+                    "baseline": ["additional_1b_weight"]
+                }
+            },
+            "TTToSemiLeptonic__=2b": {
+                "inclusive": ["sf_btag_2b_specific"],  # Different b-tag SF for 2b events
+            },
+            "TTToSemiLeptonic__>2b": {
+                "inclusive": ["sf_btag_multi_specific", "top_pt_reweight"],
+            }
+        }
+    },
+    
+    variations = {
+        "weights": {
+            "bysample": {
+                "TTToSemiLeptonic__=1b": {
+                    "inclusive": ["sf_btag_1b_specific"],  # Only vary 1b-specific SF
+                },
+                "TTToSemiLeptonic__=2b": {
+                    "inclusive": ["sf_btag_2b_specific"],
+                },
+                "TTToSemiLeptonic__>2b": {
+                    "inclusive": ["sf_btag_multi_specific", "top_pt_reweight"],
+                }
+            }
+        },
+        "shape": {
+            "bysample": {
+                "TTToSemiLeptonic__>2b": {
+                    "inclusive": ["JESTotal", "JER"]  # Only apply shape variations to high b-jet multiplicity
+                }
+            }
+        }
+    }
+)
+```
+
+:::{tip}
+Subsample-specific configurations are particularly useful for:
+- Applying different scale factors based on event topology (e.g., different b-tagging efficiencies for different b-jet multiplicities)
+- Implementing data-driven background estimation techniques that require different weights per subsample
+:::
+
+:::{warning}
+When configuring weights and variations for subsamples, ensure that the subsample name exactly matches the automatically generated name format: `{original_sample}__{subsample_suffix}`.
+:::
+
 
 ## Workflow
 
@@ -253,6 +339,87 @@ cfg = Configurator(
 - `workflow_options`: dictionary with additional options for specific processors (user defined)
 
   
+## Calibrators
+
+Object calibrations and systematic variations are handled by the **Calibrators** system. The calibrator sequence is configured in the `Configurator`:
+
+```python
+from pocket_coffea.lib.calibrators.common import default_calibrators_sequence
+
+cfg = Configurator(
+    # Default calibrator sequence
+    calibrators = default_calibrators_sequence,
+    ....
+)
+```
+
+The `calibrators` parameter accepts a list of calibrator classes that will be applied sequentially to correct physics objects and handle systematic variations.
+
+For a detailed explanation of how calibrators work in the PocketCoffea workflow, see the [Object calibration and systematic variations](./concepts.md#object-calibration-and-systematic-variations) section in the Concepts page. For implementation details and creating custom calibrators, see the dedicated [Calibrators](./calibrators.md) page.
+
+
+
+### Default Calibrator Sequence
+
+PocketCoffea provides a default sequence of calibrators for common corrections:
+
+```python
+default_calibrators_sequence = [
+    JetsCalibrator, 
+    METCalibrator, 
+    ElectronsScaleCalibrator
+]
+```
+
+- **JetsCalibrator**: Applies JEC/JER corrections and provides systematic variations (JESUp/Down, JERUp/Down, etc.)
+- **METCalibrator**: Propagates jet corrections to MET collection
+- **ElectronsScaleCalibrator**: Handles electron energy scale and smearing corrections
+
+
+:::{warning}
+If the user does not specify a calibration sequence in the configuration, the default one defined in `pocket_coffea.lib.calibrators.common.common is used. It's always better to define explicitely the calibration sequence!
+:::
+
+### Custom Calibrator Sequence
+
+Users can define custom calibrator sequences by creating their own list:
+
+```python
+from pocket_coffea.lib.calibrators.common import JetsCalibrator, METCalibrator
+from my_custom_calibrators import MyCustomMuonCalibrator
+
+# Custom sequence
+my_calibrators = [
+    JetsCalibrator,
+    METCalibrator, 
+    MyCustomMuonCalibrator,  # Custom calibrator
+]
+
+cfg = Configurator(
+    calibrators = my_calibrators,
+    ....
+)
+```
+
+### Calibrator Parameters
+
+Calibrator behavior is usually controlled through the `parameters` configuration. Key calibrator parameters include:
+
+- **jets_calibration**: Controls JEC/JER application and variations
+- **lepton_scale_factors**: Configures electron/muon scale factors and corrections
+- **rescale_MET_config**: MET correction configuration
+
+See the [Parameters](./parameters.md) page for detailed calibrator parameter configuration, the [Calibrators](./calibrators.md) page for implementation details, and the [Concepts](./concepts.md#object-calibration-and-systematic-variations) page for how calibrators integrate into the workflow.
+
+:::{tip}
+The calibrator sequence order matters! For example, `METCalibrator` must come after `JetsCalibrator` because it needs the corrected jets to properly propagate JEC effects to the MET.
+:::
+
+:::{warning}
+All requested systematic variations from calibrators must be properly configured in the `variations` section of the configuration to be processed.
+:::
+
+
 ## Cuts and categories
 
 The events skimming, preselection and categorization is defined in a structured way in PocketCoffea:
@@ -622,6 +789,7 @@ samples and categories.
   ```
   
 * **Shape variations**: shape variations are related to lepton, jets and MET scale variations and similar systematics. 
+  These variations are provided by the calibrators configured in the [Calibrators](#calibrators) section.
   The handling of these variations is more complex since everything after skimming (see [docs](./concepts.md#filtering))
   is rerun for each shape variation. 
   
@@ -646,7 +814,8 @@ samples and categories.
   ```
   
   :::{warning}
-  Only JES and JER variations have been implemented for the moment and are available to be used. 
+  The available shape variations depend on the calibrators configured in the [Calibrators](#calibrators) section. 
+  Currently, JES and JER variations are implemented and available through the `JetsCalibrator`. 
   The available JES variations depend on the jet calibration configuration defined in the parameters ([docs](./parameters.md#cross-references)).
   :::
   

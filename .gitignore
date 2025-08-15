@@ -9,7 +9,9 @@ profiling/
 *~
 *.pyc
 slurm-*
-
+*.swp
+.#*
+*.pkl.gz
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

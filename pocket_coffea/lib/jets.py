@@ -34,6 +34,10 @@ def jet_correction(params, events, jets, factory, jet_type, chunk_metadata, cach
     else:
         rho = events.Rho.fixedGridRhoFastjetAll
 
+    # Note: PNet jet regression should be applied via PNetRegressionCalibrator
+    # before calling this function, not within jet_correction itself.
+    # The regression code has been moved to pocket_coffea.lib.calibrators.common.pnet_regression.PNetRegressionCalibrator
+             
     if chunk_metadata["isMC"]:
         return factory["MC"][jet_type][chunk_metadata["year"]].build(
             add_jec_variables(jets, rho, isMC=True), cache
@@ -59,7 +63,6 @@ def met_correction_after_jec(events, METcoll, jets_pre_jec, jets_post_jec):
     
     newMetPhi = np.arctan2(newpy, newpx)
     newMetPt = (newpx**2 + newpy**2)**0.5
-    
     return  {"pt": newMetPt, "phi": newMetPhi}
 
 
@@ -257,7 +260,6 @@ def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tag
 
     jets = events[jet_type]
     cuts = params.object_preselection[jet_type]
-    # Only jets that are more distant than dr to ALL leptons are tagged as good jets
     # Mask for  jets not passing the preselection
     mask_presel = (
         (jets.pt > cuts["pt"])
@@ -265,6 +267,7 @@ def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tag
         & (jets.jetId >= cuts["jetId"])
     )
     # Lepton cleaning
+    # Only jets that are more distant than dr to ALL leptons are tagged as good jets
     if leptons_collection != "":
         dR_jets_lep = jets.metric_table(events[leptons_collection])
         mask_lepton_cleaning = ak.prod(dR_jets_lep > cuts["dr_lepton"], axis=2) == 1

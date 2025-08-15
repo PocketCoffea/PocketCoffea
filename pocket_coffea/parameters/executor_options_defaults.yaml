@@ -25,7 +25,7 @@ dask@lxplus:
   conda-env: false
   local-virtualenv: false
 
-  
+
 condor@lxplus:
   cores-per-worker: 1
   mem-per-worker: "2GB"
@@ -36,6 +36,7 @@ condor@lxplus:
   conda-env: false
   local-virtualenv: false
   max-retries: 3
+  split-by-category: false
 
 
 dask@T3_CH_PSI:
@@ -51,33 +52,39 @@ dask@T3_CH_PSI:
   conda-env: false
   local-virtualenv: false
 
-parsl-condor@DESY_NAF:
+parsl@DESY:
   scaleout: 10
   cores-per-worker: 1
   mem-per-worker: 4
   logs-dir: logs_parsl
+  local-virtualenv: false
+  conda-env: true
   queue: ""
-  walltime: "12:00:00"
+  walltime: "6:00:00"
+  worker-debug: false
 
 parsl@RWTH:
   scaleout: 20
   mem-per-worker: 4
   logs-dir: logs_parsl
   local-virtualenv: false
-  conda-env: True
+  conda-env: true
   cores-per-worker: 1
   walltime: "6:00:00"
+  worker-debug: false
+  tree-reduction: 4
 
 dask@RWTH:
   scaleout: 10
   mem-per-worker: "4GB"
   disk-per-worker: "4GB"
   local-virtualenv: false
-  conda-env: True
+  conda-env: true
   cores-per-worker: 1
   walltime: "6:00:00"
   adaptive: false
   sched-url: null
+  tree-reduction: 4
 
 dask@CLAIX:
   scaleout: 10
@@ -85,7 +92,7 @@ dask@CLAIX:
   mem-per-worker: "2GB"
   disk-per-worker: "2GB"
   queue: "c23ms"
-  walltime: "1:00:00"
+  walltime: "6:00:00"
   adaptive: false
   performance-report: false
   custom-setup-commands: null

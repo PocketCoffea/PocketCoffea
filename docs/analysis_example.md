@@ -298,7 +298,7 @@ parameters = defaults.merge_parameters_from_files(default_parameters,
 
 ```
 
-The `parameters` object can be manipualted freely by the user and then passed to the `Configurator` class to be used in
+The `parameters` object can be manipulated freely by the user and then passed to the `Configurator` class to be used in
 the analysis. The parameters are then **dumped** along with the analysis output to preserve them.
 
 ## Configuration
@@ -308,7 +308,7 @@ A specific analysis *run* is defined in PocketCoffea using an instance of a `Con
 This class groups all the information about skimming, categorization, datasets, and outputs.
 The next sections of the tutorial briefly describes how to configure it for the Zmumu analysis.
 
-The configurator instance is created inside the main configuration file `example_config.py` and assied to a variable
+The configurator instance is created inside the main configuration file `example_config.py` and assigned to a variable
 called `cfg`. This special name is used by the framework when the file is passed to the `pocket-coffea run` script to be
 executed.
 
@@ -392,7 +392,7 @@ object_preselection:
 
 ```
 
-This parameters are used by the functions which filters the object collections in the `workflow.py` file.
+These parameters are used by the selector functions to filter the object collections in the `workflow.py` file.
 
 
 ## Event selection
@@ -409,7 +409,7 @@ only on the events passing the skim selection, while the others are discarded fr
 reducing the computational load on the processor.  In the config file, we specify two skim cuts: one is selecting events
 with at least one 18 GeV muon and the second is requiring the HLT ``SingleMuon`` path.
 
-Triggers are specified in a parameter yaml files under the `params` dir (but the localtion is up to the user).
+Triggers are specified in a parameter yaml files under the `params` dir (but the location is up to the user).
 The parameters are then loaded and added to the default parameters in the preamble of `example_config.py`,  which we pass as an argument to the factory function ``get_HLTsel()``.
 
 
@@ -627,7 +627,7 @@ cfg = Configurator(
 Run the coffea processor to get ``.coffea`` output files. The ``coffea`` processor can be run locally or be scaled out
 to clusters:
 - ``iterative`` execution runs single thread locally and it useful for debugging
-- ``futures`` execute the processor in multiple threads locally and it can be usefull for fast processing of a small
+- ``futures`` execute the processor in multiple threads locally and it can be useful for fast processing of a small
   amount of file.
 - ``dask@lxplus`` uses the dask scheduler with lxplus the configuration to send out workers on HTCondor jobs.
 
@@ -636,7 +636,7 @@ contact with the developers and open a PR if you want to include your specific s
 
 
 :::{tip}
-Have a look at [`Running`](./running.md) for more details about the configuration of the different execturos.
+Have a look at [`Running`](./running.md) for more details about the configuration of the different executors.
 :::
 
 In this tutorial we **assume the use of lxplus**, but the example should work fine also on other sites with the
@@ -738,7 +738,7 @@ Plot histograms from coffea file
 optional arguments:
   -h, --help            show this help message and exit
   --input-dir INPUT_DIR
-                        Directory with cofea files and parameters
+                        Directory with coffea files and parameters
   --cfg CFG             YAML file with all the analysis parameters
   -op OVERWRITE_PARAMETERS [OVERWRITE_PARAMETERS ...], --overwrite-parameters OVERWRITE_PARAMETERS [OVERWRITE_PARAMETERS ...]
                         YAML file with plotting parameters to overwrite default parameters

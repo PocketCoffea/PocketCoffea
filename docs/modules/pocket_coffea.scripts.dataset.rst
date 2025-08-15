@@ -9,45 +9,45 @@ pocket\_coffea.scripts.dataset.append\_genweights module
 
 .. automodule:: pocket_coffea.scripts.dataset.append_genweights
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 pocket\_coffea.scripts.dataset.append\_parents module
 -----------------------------------------------------
 
 .. automodule:: pocket_coffea.scripts.dataset.append_parents
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 pocket\_coffea.scripts.dataset.build\_datasets module
 -----------------------------------------------------
 
 .. automodule:: pocket_coffea.scripts.dataset.build_datasets
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 pocket\_coffea.scripts.dataset.dataset\_query module
 ----------------------------------------------------
 
 .. automodule:: pocket_coffea.scripts.dataset.dataset_query
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 pocket\_coffea.scripts.dataset.download module
 ----------------------------------------------
 
 .. automodule:: pocket_coffea.scripts.dataset.download
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: pocket_coffea.scripts.dataset
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
