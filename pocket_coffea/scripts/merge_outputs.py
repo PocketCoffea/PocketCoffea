@@ -80,7 +80,8 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, N_reduc
             job_config = yaml.safe_load(f)
         if "split_by_category" in job_config:   # Ensure back compatibility
             split_by_category = job_config["split_by_category"]
-            print("Jobs were split by category, hence will merge per category.")
+            if split_by_category:
+                print("Jobs were split by category, hence will merge per category.")
         else:
             split_by_category = False
 
