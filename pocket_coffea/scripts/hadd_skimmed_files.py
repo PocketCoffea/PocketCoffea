@@ -117,12 +117,6 @@ def hadd_skimmed_files(files_list,  outputdir, filter_samples,
     print("Samples:", groups_metadata.keys())
     json.dump(groups_metadata, open("hadd.json", "w"), indent=2)
 
-    # Create one output folder for each dataset
-    for outfile, group in workload:
-        basedir = os.path.dirname(outfile)
-        if not os.path.exists(basedir):
-            os.makedirs(basedir)
-
     if not dry:
         p = Pool(scaleout)
         
@@ -198,6 +192,48 @@ for f in failed:
     if f:
         print(f)""")
 
+    with open("do_hadd_job.py", "w") as f:
+        f.write(f"""#!/bin/python3
+import os
+import sys
+import json
+from multiprocessing import Pool
+import subprocess
+import ROOT as R
+
+def do_hadd(group):
+    try:
+        outputfile, inputfiles = group
+        print("Working on ", outputfile)
+        chain = R.TChain('Events')
+        for inputfile in inputfiles:
+            chain.Add(inputfile)
+
+        output_file = R.TFile.Open(outputfile, "RECREATE")
+        output_tree = chain.CloneTree(-1)  # Clone all entries
+        output_tree.Write()
+        output_file.Close()
+        del chain
+        del output_tree
+        del output_file
+    except Exception as e:
+        print(e)
+        return outputfile
+
+config = json.load(open("hadd.json"))
+files = config[sys.argv[1]]["files"]
+
+failed = []
+for outputfile, inputfiles in files.items():
+    out = do_hadd((outputfile, inputfiles))
+    if out:
+        failed.append(out)
+        
+print("DONE!")
+print("Failed files: ", failed)
+if len(failed):
+    sys.exit(1)""")
+        
     with open("do_hadd_job_splitbyfile.py", "w") as f:
         f.write(f"""#!/bin/python3
 import os
@@ -253,13 +289,13 @@ if len(failed):
         'arguments': "$(dataset)",
         'should_transfer_files':'YES',
         'when_to_transfer_output' : 'ON_EXIT',
-        'transfer_input_files' : f"{abs_local_path}/do_hadd_job_splitbyfile.py, {abs_local_path}/hadd.json",
+        'transfer_input_files' : f"{abs_local_path}/do_hadd_job.py, {abs_local_path}/hadd.json",
     }
     with open("hadd_job.sub", "w") as f:
         for k, v in sub.items():
             f.write(f"{k} = {v}\n")
         # Now adding the arguments
-        f.write("queue dataset, group from (\n")
+        f.write("queue dataset from (\n")
         for dataset, conf in groups_metadata.items():
             f.write(f'{dataset}\n')
         f.write(")\n")

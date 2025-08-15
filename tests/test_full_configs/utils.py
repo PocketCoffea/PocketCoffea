@@ -2,7 +2,7 @@ import pytest
 import os
 import numpy as np
 from coffea.nanoevents import NanoEventsFactory, NanoAODSchema
-
+import hist
 
 @pytest.fixture(scope="session")
 def events():
@@ -55,3 +55,16 @@ def compare_outputs(output, old_output, exclude_variables=None):
                                        output["variables"][variables][sample][dataset].values(),
                                        rtol=1e-5)
                             
+
+
+def compare_totalweight(output, variables):
+    for variable in variables:        
+        for category, datasets in output["sumw"].items():
+            for dataset, samples in datasets.items():
+                for sample, sumw in samples.items():
+                    if dataset not in output["variables"][variable][sample]:
+                        continue
+                    print(f"Checking {variable} for {category} in {dataset} for {sample}")
+                    print(output["variables"][variable][sample][dataset][hist.loc(category), hist.loc("nominal"), :].sum(flow=True).value, sumw)
+                    assert np.isclose(output["variables"][variable][sample][dataset][hist.loc(category), hist.loc("nominal"), :].sum(flow=True).value, sumw)
+

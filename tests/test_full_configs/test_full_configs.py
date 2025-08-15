@@ -9,7 +9,7 @@ from coffea import processor
 from coffea.processor import Runner
 from coffea.nanoevents import NanoAODSchema
 from coffea.util import load, save
-from utils import compare_outputs
+from utils import compare_outputs, compare_totalweight
 import numpy as np
 import awkward as ak
 import hist
@@ -19,18 +19,6 @@ from coffea.nanoevents import NanoEventsFactory, NanoAODSchema
 def base_path() -> Path:
     """Get the current folder of the test"""
     return Path(__file__).parent
-
-
-def compare_totalweight(output, variables):
-    for variable in variables:        
-        for category, datasets in output["sumw"].items():
-            for dataset, samples in datasets.items():
-                for sample, sumw in samples.items():
-                    if dataset not in output["variables"][variable][sample]:
-                        continue
-                    print(f"Checking {variable} for {category} in {dataset} for {sample}")
-                    print(output["variables"][variable][sample][dataset][hist.loc(category), hist.loc("nominal"), :].sum(flow=True).value, sumw)
-                    assert np.isclose(output["variables"][variable][sample][dataset][hist.loc(category), hist.loc("nominal"), :].sum(flow=True).value, sumw)
 
 
 reference_commit = "3b6cf6c"
