@@ -35,7 +35,7 @@ class ParslSlurmExecutorFactory(ExecutorFactoryABC):
             f'export X509_USER_PROXY={self.x509_path}',
             'export X509_CERT_DIR=/cvmfs/grid.cern.ch/etc/grid-security/certificates',
             f'export PYTHONPATH=$PYTHONPATH:{os.getcwd()}',
-            'ulimit -s unlimited || true',
+            'ulimit -s unlimited || true', # aviod failure
             'ulimit -u unlimited || true',
             f'cd {os.getcwd()}',
         ]
