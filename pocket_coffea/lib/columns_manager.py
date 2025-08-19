@@ -33,6 +33,7 @@ class ColumnsManager:
             self.cfg[cat].append(cfg)
 
     def fill_columns_accumulators(self, events, cuts_masks, variation, subsample_mask=None, weights_manager=None):
+        """Fill columns of a given variation in all categories and return the output containing also previously filled variations."""
         for category, outarrays in self.cfg.items():
             if category not in self.output.keys():
                 self.output[category] = {}

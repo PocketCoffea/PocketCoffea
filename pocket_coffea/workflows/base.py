@@ -517,14 +517,11 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
 
     def fill_column_accumulators(self, variation):
-        # if variation != "nominal":
-        #     return
-
+        """Fill columns for a given variation either on disk as `parquet` file or in the output `coffea` file. Different variations are stored as subfolders of categories."""
         if len(self.column_managers) == 0:
             return
 
         outcols = self.output["columns"]
-        # TODO Fill column accumulator for different variations
         if self._hasSubsamples:
             # call the filling for each
             for subs in self._subsamples[self._sample].keys():
