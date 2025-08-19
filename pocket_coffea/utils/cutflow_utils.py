@@ -9,6 +9,7 @@ and samples.
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import math
 from collections import defaultdict
 from typing import Dict, List, Optional, Tuple
@@ -234,7 +235,7 @@ def plot_sample_cutflow(sample: str, sample_data: Dict, year: str, categories: L
                         f'{count:.0f}' if count >= 1 else f'{count:.2e}',
                         ha='center', va='bottom', fontsize=8)
         
-        # Set smart y-axis limits
+        # Set smart y-axis limits and formatting
         if log_y:
             # Logarithmic scale: similar to plot_utils.py
             ymax = max(sample_counts) if sample_counts else 100
@@ -252,6 +253,20 @@ def plot_sample_cutflow(sample: str, sample_data: Dict, year: str, categories: L
                 ax_main.set_ylim((0, 1.2 * ymax))
             else:
                 ax_main.set_ylim((0, 1))
+            
+            # Format y-axis for large numbers using scientific notation
+            if ymax >= 10000:
+                # Use scientific notation and move offset to left
+                formatter = ticker.ScalarFormatter(useMathText=True)
+                formatter.set_scientific(True)
+                formatter.set_powerlimits((-1, 2))
+                ax_main.yaxis.set_major_formatter(formatter)
+                
+                # Position the offset text on the left side
+                ax_main.yaxis.offsetText.set_position((-0.01, 1))
+                ax_main.yaxis.offsetText.set_horizontalalignment('right')
+                ax_main.yaxis.offsetText.set_verticalalignment('bottom')
+                ax_main.yaxis.offsetText.set_fontsize(label_fontsize)
 
         # CMS label - use "Simulation" for MC, "Preliminary" for data
         if is_mc:
@@ -263,6 +278,25 @@ def plot_sample_cutflow(sample: str, sample_data: Dict, year: str, categories: L
         if year:
             lumi_text = get_luminosity_text(year)
             hep.cms.lumitext(text=lumi_text, ax=ax_main, fontsize=title_fontsize)
+        
+        # Format the scientific notation offset text after all plotting is done
+        if not log_y:
+            # Force a draw to generate the offset text
+            fig.canvas.draw()
+            
+            # Get and format the offset text
+            offset_text = ax_main.yaxis.get_offset_text()
+            if offset_text.get_text():
+                current_text = offset_text.get_text()
+                # Convert scientific notation format
+                import re
+                # Match patterns like "1e+06", "1e6", "×10^6" etc.
+                pattern = r'(?:1e[+]?|×10\^?)(\d+)'
+                match = re.search(pattern, current_text)
+                if match:
+                    exponent = match.group(1)
+                    new_text = f"$\\times 10^{{{exponent}}}$"
+                    offset_text.set_text(new_text)
         
         # Ratio plot
         if include_ratio and ax_ratio is not None:
