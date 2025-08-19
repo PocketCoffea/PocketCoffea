@@ -9,6 +9,7 @@ and samples.
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import math
 from collections import defaultdict
 from typing import Dict, List, Optional, Tuple
 import mplhep as hep
@@ -233,6 +234,25 @@ def plot_sample_cutflow(sample: str, sample_data: Dict, year: str, categories: L
                         f'{count:.0f}' if count >= 1 else f'{count:.2e}',
                         ha='center', va='bottom', fontsize=8)
         
+        # Set smart y-axis limits
+        if log_y:
+            # Logarithmic scale: similar to plot_utils.py
+            ymax = max(sample_counts) if sample_counts else 100
+            if ymax == 0:
+                ymax = 100
+            exp = math.floor(math.log(ymax, 10))
+            # Using similar logic as in plot_utils.py
+            y_lim_hi = 10 ** (exp * 1.75)
+            y_lim_lo = 0.01  # Default low limit for log scale
+            ax_main.set_ylim((y_lim_lo, y_lim_hi))
+        else:
+            # Linear scale: 1.2 times the maximum value
+            ymax = max(sample_counts) if sample_counts else 1
+            if not np.isnan(ymax) and ymax > 0:
+                ax_main.set_ylim((0, 1.2 * ymax))
+            else:
+                ax_main.set_ylim((0, 1))
+
         # CMS label - use "Simulation" for MC, "Preliminary" for data
         if is_mc:
             hep.cms.text("Simulation Preliminary", ax=ax_main, fontsize=title_fontsize)
