@@ -48,6 +48,11 @@ class ColumnsManager:
             if weights_manager:
                 self.output[category][variation]["weight"] = column_accumulator(
                     ak.to_numpy(weights_manager.get_weight(category)[mask], allow_missing=False))
+                if weights_manager._isMC:
+                    for vweight in [weight for av_weight in weights_manager.get_available_weights() for weight in weights_manager.get_available_modifiers_byweight(av_weight)]:
+                        # Ask the WeightsManager the available variations
+                        self.output[category][variation][f"weight_{vweight}"] = column_accumulator(
+                            ak.to_numpy(weights_manager.get_weight(category, modifier=vweight)[mask], allow_missing=False))
 
             for outarray in outarrays:
                 # Check if the cut is multidimensional
@@ -132,7 +137,10 @@ class ColumnsManager:
             # Only for nominal variation for the moment
             if weights_manager: # no present for data
                 out_by_cat["weight"] = weights_manager.get_weight(category)[mask]
-            
+                if weights_manager._isMC:
+                    for vweight in [weight for av_weight in weights_manager.get_available_weights() for weight in weights_manager.get_available_modifiers_byweight(av_weight)]:
+                        # Ask the WeightsManager the available variations
+                        out_by_cat[f"weight_{vweight}"] = weights_manager.get_weight(category, modifier=vweight)[mask]
 
             for outarray in outarrays:
                 # Check if the cut is multidimensional
