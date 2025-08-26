@@ -183,7 +183,7 @@ Configure MET corrections that propagate jet calibration changes:
 The jet calibration is typically applied automatically when using the standard calibrator sequence:
 
 ```python
-from pocket_coffea.lib.calibrators import default_calibrators_sequence
+from pocket_coffea.lib.calibrators.common import default_calibrators_sequence
 
 # Default sequence includes: JetsCalibrator, METCalibrator, ElectronsScaleCalibrator
 calibrators = default_calibrators_sequence
@@ -255,9 +255,8 @@ jets_calibration:
 
 The default jets configuration is overwritten to assign the `Jet` collection to the `AK4PFPuppiPNetRegression` tag, and to activate the pt regression for data and MC for that tag. 
 
-The implementation is based on [this presentation](https://indico.cern.ch/event/1476286/contributions/6220149/subcontributions/514978/attachments/2965734/5217706/PNetRegDiscussion_MKolosova_12Nov2024.pdf) from HH4b folks.
 
-If the use need to apply the regression only on a subset of the Jets, the best strategy is to defined a copy of the Jet collection and calibrate that. 
+If the user needs to apply regression only to a subset of Jets, then the best strategy is to define a copy of the Jet collection and calibrate that. 
 
 An example configuration for this:
 
@@ -310,6 +309,7 @@ class PtRegrProcessor(BaseProcessorABC):
 
 ```
 
+The implementation of the regression is based on [this presentation](https://indico.cern.ch/event/1476286/contributions/6220149/subcontributions/514978/attachments/2965734/5217706/PNetRegDiscussion_MKolosova_12Nov2024.pdf) from HH4b folks.
 
 Further references:  
 * The analysis note: [AN-2022/094](https://cms.cern.ch/iCMS/jsp/db_notes/noteInfo.jsp?cmsnoteid=CMS%20AN-2022/094)
