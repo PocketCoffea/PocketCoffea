@@ -20,6 +20,7 @@ class ColumnsManager:
     def __init__(self, cfg, categories_config):
         self.cfg = cfg
         self.categories_config = categories_config
+        self.output = {}
 
     @property
     def ncols(self):
@@ -31,10 +32,12 @@ class ColumnsManager:
         for cat in categories:
             self.cfg[cat].append(cfg)
 
-    def fill_columns_accumulators(self, events, cuts_masks, subsample_mask=None, weights_manager=None):
-        self.output = {}
+    def fill_columns_accumulators(self, events, cuts_masks, variation, subsample_mask=None, weights_manager=None):
+        """Fill columns of a given variation in all categories and return the output containing also previously filled variations."""
         for category, outarrays in self.cfg.items():
-            self.output[category] = {}
+            if category not in self.output.keys():
+                self.output[category] = {}
+            self.output[category][variation] = {}
             # Computing mask
             mask = cuts_masks.get_mask(category)
             if subsample_mask is not None:
@@ -43,9 +46,14 @@ class ColumnsManager:
             # Getting the weights
             # Only for nominal variation for the moment
             if weights_manager:
-                self.output[category]["weight"] = column_accumulator(
+                self.output[category][variation]["weight"] = column_accumulator(
                     ak.to_numpy(weights_manager.get_weight(category)[mask], allow_missing=False))
-                
+                if weights_manager._isMC:
+                    for vweight in [weight for av_weight in weights_manager.get_available_weights() for weight in weights_manager.get_available_modifiers_byweight(av_weight)]:
+                        # Ask the WeightsManager the available variations
+                        self.output[category][variation][f"weight_{vweight}"] = column_accumulator(
+                            ak.to_numpy(weights_manager.get_weight(category, modifier=vweight)[mask], allow_missing=False))
+
             for outarray in outarrays:
                 # Check if the cut is multidimensional
                 # if so we need to check the collection
@@ -59,7 +67,7 @@ class ColumnsManager:
                             while exporting collection {outarray.collection}! Please check your categorization"
                         )
                 # Applying mask after getting the collection
-                if(outarray.collection=="events"):
+                if (outarray.collection == "events"):
                     data = events[mask]
                 else:
                     data = events[outarray.collection][mask]
@@ -74,7 +82,7 @@ class ColumnsManager:
 
                 if outarray.store_size and data.ndim > 1:
                     N = ak.num(data)
-                    self.output[category][
+                    self.output[category][variation][
                         f"{outarray.collection}_N"
                     ] = column_accumulator(ak.to_numpy(N, allow_missing=False))
                 # looping on the columns
@@ -104,7 +112,7 @@ class ColumnsManager:
                         else:
                             out = data[col]
 
-                    self.output[category][
+                    self.output[category][variation][
                         f"{outarray.collection}_{col}"
                     ] = column_accumulator(
                         ak.to_numpy(
@@ -129,7 +137,10 @@ class ColumnsManager:
             # Only for nominal variation for the moment
             if weights_manager: # no present for data
                 out_by_cat["weight"] = weights_manager.get_weight(category)[mask]
-            
+                if weights_manager._isMC:
+                    for vweight in [weight for av_weight in weights_manager.get_available_weights() for weight in weights_manager.get_available_modifiers_byweight(av_weight)]:
+                        # Ask the WeightsManager the available variations
+                        out_by_cat[f"weight_{vweight}"] = weights_manager.get_weight(category, modifier=vweight)[mask]
 
             for outarray in outarrays:
                 # Check if the cut is multidimensional
