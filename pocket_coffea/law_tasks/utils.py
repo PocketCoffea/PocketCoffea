@@ -12,8 +12,8 @@ from typing import Union
 
 import coffea
 import law
-from coffea.nanoevents.schemas.base import BaseSchema
-from coffea.processor import NanoAODSchema, accumulate
+from coffea.nanoevents import BaseSchema, NanoAODSchema
+from coffea.processor import accumulate
 from coffea.processor import Runner as CoffeaRunner
 from coffea.processor.executor import ExecutorBase
 from omegaconf import OmegaConf
