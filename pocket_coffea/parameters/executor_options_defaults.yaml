@@ -86,6 +86,25 @@ dask@RWTH:
   sched-url: null
   tree-reduction: 4
 
+parsl@CLAIX:
+  scaleout: 20
+  mem-per-worker: 4
+  logs-dir: logs_parsl
+  local-virtualenv: false
+  conda-env: true
+  cores-per-worker: 1
+  walltime: "6:00:00"
+  worker-debug: false
+  tree-reduction: 4
+  slurm:
+    partition: "c23ms"       # CLAIX partition
+    account: null            # fill if your project needs it
+    scheduler-options: |
+      #SBATCH --cpus-per-task=1
+      #SBATCH --mem=4G
+      #SBATCH --ntasks-per-node=1
+      #SBATCH --constraint=zen4
+
 dask@CLAIX:
   scaleout: 10
   cores-per-worker: 1
