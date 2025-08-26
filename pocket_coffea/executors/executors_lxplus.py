@@ -181,7 +181,7 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
         pythonpath = sys.prefix.rsplit('/', 1)[0]
         runnerpath = f"{pythonpath}/pocket_coffea/scripts/runner.py"
         if not os.path.isfile(runnerpath):
-            runnerpath = "runner"
+            runnerpath = "pocket-coffea run"
 
         if self.run_options["split-by-category"]:
             splitcommands = '''
