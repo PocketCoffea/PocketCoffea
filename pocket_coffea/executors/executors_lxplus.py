@@ -179,7 +179,7 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
         env_extras= "\n".join(env_extras_list)
 
         pythonpath = sys.prefix.rsplit('/', 1)[0]
-        runnerpath = f"{pythonpath}/pocket_coffea/scripts/runner.py"
+        runnerpath = f"python {pythonpath}/pocket_coffea/scripts/runner.py"
         if not os.path.isfile(runnerpath):
             runnerpath = "pocket-coffea run"
 
@@ -206,7 +206,7 @@ rm -f $JOBDIR/job_$1.idle
 echo "Starting job $1"
 touch $JOBDIR/job_$1.running
 
-python {runnerpath} --cfg $2 -o output EXECUTOR --chunksize $4
+{runnerpath} --cfg $2 -o output EXECUTOR --chunksize $4
 # Do things only if the job is successful
 if [ $? -eq 0 ]; then
     echo 'Job successful'
