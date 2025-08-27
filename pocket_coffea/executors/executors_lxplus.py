@@ -186,12 +186,11 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
             runnercmd = "pocket-coffea run"
 
         # Specify output filename to split-output script ->
-        # This will save files such as output_CAT1.coffea, output_CAT2.coffea ...
+        # This will save files such as output_CAT1.coffea, output_CAT2.coffea (remove "_all" from split outputs)...
         if self.run_options["split-by-category"]:
-            output_filename = "output.coffea"
             splitcommands = f'''
                 cd {abs_output_path}
-                split-output output_all.coffea -b category -o {output_filename}
+                split-output output_all.coffea -b category -o output.coffea
                 rm output_all.coffea
                 for f in *.coffea; do
                     cp "$f" "$3/${{f%.coffea}}_job_$1.coffea"
