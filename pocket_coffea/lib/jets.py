@@ -374,17 +374,15 @@ def jet_selection_nanoaodv12(events, jet_type, params, year, leptons_collection=
         (jets.pt > cuts["pt"])
         & (np.abs(jets.eta) < cuts["eta"])
     )
-    passJetIdTight = ak.zeros_like(jets.pt, dtype=bool)
-    passJetIdTightLepVeto = ak.zeros_like(jets.pt, dtype=bool)
-    
-    passJetIdTight = ak.where((np.abs(jets.eta) <= 2.7), (jets.jetId & (1 << 1))>0, passJetIdTight)
-    passJetIdTight = ak.where((np.abs(jets.eta) > 2.7) & (np.abs(jets.eta) <= 3.0), ((jets.jetId & (1 << 1))>0 & (jets.neHEF < 0.99)), passJetIdTight)
-    passJetIdTight = ak.where((np.abs(jets.eta) > 3.0), ((jets.jetId & (1 << 1))>0 & (jets.neEmEF < 0.4)), passJetIdTight)
-    
+        
     if cuts["jetId"] == 6:
+        passJetIdTight = ak.zeros_like(jets.pt, dtype=bool)
+        passJetIdTightLepVeto = ak.zeros_like(jets.pt, dtype=bool)
+        
+        passJetIdTight = ak.where((np.abs(jets.eta) <= 2.7), (jets.jetId & (1 << 1))>0, passJetIdTight)
+        passJetIdTight = ak.where((np.abs(jets.eta) > 2.7) & (np.abs(jets.eta) <= 3.0), ((jets.jetId & (1 << 1))>0 & (jets.neHEF < 0.99)), passJetIdTight)
+        passJetIdTight = ak.where((np.abs(jets.eta) > 3.0), ((jets.jetId & (1 << 1))>0 & (jets.neEmEF < 0.4)), passJetIdTight)
         passJetIdTightLepVeto = ak.where((np.abs(jets.eta) <= 2.7), (passJetIdTight & (jets.muEF < 0.8) & (jets.chEmEF < 0.8)),passJetIdTight)
-    else:
-        passJetIdTightLepVeto = passJetIdTight
     
     # Only jets that are more distant than dr to ALL leptons are tagged as good jets
     # Mask for  jets not passing the preselection
@@ -403,9 +401,12 @@ def jet_selection_nanoaodv12(events, jet_type, params, year, leptons_collection=
                 jets.pt >= cuts["puId"]["maxpt"]
             )
         else:
-            mask_jetpuid = True
-  
-        mask_good_jets = mask_presel & mask_lepton_cleaning & mask_jetpuid & passJetIdTightLepVeto  
+            mask_jetpuid = True        
+        
+        if cuts["jetId"] == 6:
+            mask_good_jets = mask_presel & mask_lepton_cleaning & mask_jetpuid & passJetIdTightLepVeto
+        else:
+            mask_good_jets = mask_presel & mask_lepton_cleaning & mask_jetpuid 
 
         if jet_tagger != "":
             if "PNet" in jet_tagger:
