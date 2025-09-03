@@ -37,6 +37,12 @@ jet_scale_factors:
         '2023_postBPix':
             file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2023_Summer23BPix/btagging.json.gz
             name: "deepJet_shape"
+        '2024': 
+            # Preliminary version of shape btag sfs. 
+            # Need to change to BTV/2024_Summer24/btagging.json.gz, as soon as UParTAK4_kinfit available in there,
+            # currently only btag wps in BTV/2024_Summer24/btagging.json.gz
+            file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2024_Summer24/btagging_preliminary.json.gz
+            name: "UParTAK4_kinfit"
 
     ctagSF:
       # DeepJet AK4 tagger shape SF
@@ -119,3 +125,6 @@ jet_scale_factors:
         '2023_postBPix':
             file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2023_Summer23BPix/jetvetomaps.json.gz
             name: "Summer23BPixPrompt23_RunD_V1"
+        '2024':
+            file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2024_Summer24/jetvetomaps.json.gz
+            name: "Summer24Prompt24_RunBCDEFGHI_V1"
