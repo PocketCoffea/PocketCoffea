@@ -179,6 +179,11 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
         env_extras= "\n".join(env_extras_list)
 
         pythonpath = sys.prefix.rsplit('/', 1)[0]
+        runnerpath = f"{pythonpath}/pocket_coffea/scripts/runner.py"
+        if os.path.isfile(runnerpath):
+            runnercmd = "python " + runnerpath
+        else:
+            runnercmd = "pocket-coffea run"
 
         # Handle columns
         columncommand = ""
@@ -191,18 +196,19 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
                 # Otherwise, copy the directory to outputdir
                 columncommand = f'scp -r {column_out_dir} "$3"'
 
+        # Specify output filename to split-output script ->
+        # This will save files such as output_CAT1.coffea, output_CAT2.coffea (remove "_all" from split outputs)...
         if self.run_options["split-by-category"]:
-            splitcommands = '''
-    cd output
-    split-output output_all.coffea -b category
-    rm output_all.coffea
-    for f in *.coffea; do
-        cp "$f" "$3/${f%.coffea}_job_$1.coffea"
-    done
-    cd ..
-'''
+            splitcommands = f'''
+                cd {abs_output_path}
+                split-output output_all.coffea -b category -o output.coffea
+                rm output_all.coffea
+                for f in *.coffea; do
+                    cp "$f" "$3/${{f%.coffea}}_job_$1.coffea"
+                done
+            '''
         else:
-            splitcommands = "cp output/output_all.coffea $3/output_job_$1.coffea"
+            splitcommands = f"cp {abs_output_path}/output_all.coffea $3/output_job_$1.coffea"
 
         script = f"""#!/bin/bash
 {env_extras}
@@ -214,7 +220,7 @@ rm -f $JOBDIR/job_$1.idle
 echo "Starting job $1"
 touch $JOBDIR/job_$1.running
 
-python {pythonpath}/pocket_coffea/scripts/runner.py --cfg $2 -o output EXECUTOR --chunksize $4
+{runnercmd} --cfg $2 -o output EXECUTOR --chunksize $4
 # Do things only if the job is successful
 if [ $? -eq 0 ]; then
     echo 'Job successful'
