@@ -1,5 +1,5 @@
 typing-extensions>=3.7;python_version<'3.8'
-git+https://github.com/scikit-hep/coffea.git@master#egg=coffea
+coffea @ git+https://github.com/scikit-hep/coffea.git@master
 numba>=0.57.0
 numpy>=1.22.0
 awkward>=2
