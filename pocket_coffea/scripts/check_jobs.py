@@ -132,14 +132,14 @@ def update_blacklist(xrootdfaillist,blacklist_threshold):
             blacklist_sites.append(site)
     return blacklist_sites
 
-def bump_jobqueue(sub_file):
+def bump_jobqueue(sub_file, shift=1):
     with open(sub_file) as f:
         lines = f.readlines()
     with open(sub_file, "w") as f:
         for line in lines:
             if "+JobFlavour" in line:
                 jf = line.split("=")[1].strip().replace('"', '')
-                next_jf = queues[min(queues.index(jf)+1, len(queues)-1)]
+                next_jf = queues[min(queues.index(jf)+shift, len(queues)-1)]
                 f.write(f'+JobFlavour="{next_jf}"\n')
             else:
                 f.write(line)
@@ -149,9 +149,10 @@ def bump_jobqueue(sub_file):
 @click.option("-j", "--jobs-folder", type=str, help="Folder containing the jobs", required=True)
 @click.option("-d","--details", is_flag=True, help="Show the details of the jobs")
 @click.option("-r","--resubmit", is_flag=True, help="Resubmit the failed jobs")
-@click.option("-m","--max-resubmit", type=int, help="Maximum number of resubmission", default=3)
-@click.option("--blacklist-threshold", type=int, help="Maximum number of allowed failed files at an xrootd site before it's blacklisted", default=10)
-def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold):
+@click.option("-m","--max-resubmit", type=int, help="Maximum number of resubmission", default=4)
+@click.option("-b","--blacklist-threshold", type=int, help="Maximum number of allowed failed files at an xrootd site before it's blacklisted", default=3)
+@click.option("-q","--queue-shift", type=int, help="How many queues to bump to if a job is removed due to time limit? E.g. 1 = bump to next queue, 2 = bump to next-to-next queue", default=1)
+def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold, queue_shift):
     # check if the user passed the parent folder
     subdirs = os.listdir(jobs_folder)
     if len(subdirs) == 1 and subdirs[0] == "job":
@@ -309,17 +310,28 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                                         cloudpickle.dump(config, open(thisconfigfile, "wb"))
 
                                         if flcounter > 0:
-                                            log_text.append(f"[b]Job {failed_job}[/]: Replaced {flcounter} files in config because they were in {sitecounter} blacklisted sites.")
+                                            log_text.append(f"[b]Job {failed_job}[/]: Replaced {flcounter} files in config because they were in {len(sitecounter)} blacklisted sites: {sitecounter}.")
                                         if samecounter > 0:
                                             log_text.append(f"[red][b]Job {failed_job}[/]: Could not replace {samecounter} files in config though they were in blacklisted sites, because no alternative site was found![/]")
 
-                                os.system(f"rm {jobs_folder}/{failed_job}.failed")
-                                os.system(f"touch {jobs_folder}/{failed_job}.idle")
-                                resubmit_log = os.popen(f"cd {jobs_folder} && condor_submit {failed_job}.sub",'r').read().split('\n')[-2]
+                                resubmit_log = os.popen(f"cd {jobs_folder} && condor_submit {failed_job}.sub",'r').read()
+
+                                resubmit_succeeded = True
+                                if len(resubmit_log.split('\n')) > 2:
+                                    resubmit_log = resubmit_log.split('\n')[-2]     # This is the usual condor_submit output "1 job(s) submitted to cluster XXXX"
+                                    if not "job(s) submitted to cluster" in resubmit_log:
+                                        resubmit_succeeded = False
+                                else:
+                                    resubmit_succeeded = False
+
                                 log_text.append(resubmit_log)
-                                resubmit_count += 1
+                                if resubmit_succeeded:
+                                    os.system(f"rm {jobs_folder}/{failed_job}.failed")
+                                    os.system(f"touch {jobs_folder}/{failed_job}.idle")
+                                    resubmit_count += 1
+
                                 if resubmit_count % 10 == 0:
-                                    rprint(f"[green]Resubmitted {resubmit_count} jobs so far in step {step}[/]")   # Terminal output so that the user knows something's going on
+                                    rprint(f"[green]Resubmitted {resubmit_count}/{len(failed_jobs)} jobs so far in step {step}[/]")   # Terminal output so that the user knows something's going on
                             else:
                                 # Add it to the list of jobs that are definitely failed
                                 definitive_failed.append(failed_job)
@@ -335,12 +347,12 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                 for il, line in enumerate(c):
                     if line.startswith("009"):
                         # Match with a regex the job id from this
-                        # line format "005 (5189350.010.000) 11/15 21:29:13 Job aborted
+                        # line format "005 (5189350.010.000) 11/15 21:29:13 Job was aborted
                         pattern = re.compile(r"\((\d+)\.(\d+)\.\d+\)")
                         match = pattern.search(line)
                         if match:
                             cluster_id = match.group(1)
-                            job_id = match.group(2)
+                            job_id = int(match.group(2))    # 010 -> 10
                             job_name = f"{cluster_id}_{job_id}"
 
                             # If this job was already resubmitted, skip
@@ -372,7 +384,7 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                                     log_text.append(f"{thisjob} was aborted by condor. Check the log file for more details")
                                 else:     
                                     sub_file = f"{jobs_folder}/{thisjob}.sub"
-                                    next_jf = bump_jobqueue(sub_file)                                    
+                                    next_jf = bump_jobqueue(sub_file, queue_shift)                                    
 
                                     log_text.append(f"{thisjob} was removed by the system due to max-time reached. Marked as failed and bumped to longer condor queue: {next_jf}.")
 
@@ -407,7 +419,7 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                     if not jobid:
                         if failedlog not in condor_history_fails:
                             # Report once, but don't keep reporting the same thing
-                            log_text.append(f"[red]Detected a failed job log {failedlog} but could not retrieve condor_history.[/r]")
+                            log_text.append(f"[red]Detected a failed job log {failedlog} but could not retrieve condor_history.[/]")
                             condor_history_fails.append(failedlog)
                     else:
                         job_name = f"{failedlogcluster}_{jobid}"
@@ -448,7 +460,7 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                                 log_text.append(f"{thisjob} was aborted by condor. Check the log file for more details")
                             else:     
                                 sub_file = f"{jobs_folder}/{thisjob}.sub"
-                                next_jf = bump_jobqueue(sub_file)                                    
+                                next_jf = bump_jobqueue(sub_file, queue_shift)                                    
 
                                 log_text.append(f"{thisjob} was removed by the system due to max-time reached. Marked as failed and bumped to longer condor queue: {next_jf}.")
                             
