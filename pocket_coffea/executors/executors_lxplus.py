@@ -193,9 +193,9 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
             if not os.path.isabs(column_out_dir) and not column_out_dir.startswith("root://eosuser.cern.ch/"):
                 # If the config contains an absolute path, then the
                 # parquets are written directly to disk (e.g. eos.)
-                # This may be unstable, but not much to do at the executor level
-                # Otherwise, copy the directory to outputdir
-                columncommand = f'run_with_retries "{copy_command} -r {column_out_dir} {abs_output_path}"'
+                # This may be unstable, but not much to do at the executor level.
+                # Otherwise, check that the directory exists and then copy the directory to outputdir
+                columncommand = f'[ -d "{column_out_dir}" ] && run_with_retries "{copy_command} -r {column_out_dir} {abs_output_path}"'
 
         runnerpath = f"{pythonpath}/pocket_coffea/scripts/runner.py"
         if os.path.isfile(runnerpath):
