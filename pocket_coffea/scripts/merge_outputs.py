@@ -185,7 +185,7 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, N_reduc
                         process_failed(mark_failed, statusfile, job_dir, job_name, message="missing")
                     elif (size := os.path.getsize(job['output_file'])) < 10:                        
                         alldone = False
-                        process_failed(mark_failed, statusfile, job_dir, job_name, message="corrupted")
+                        process_failed(mark_failed, statusfile, job_dir, job_name, message=f"corrupted (size is {size:.0f} bytes)")
                     else:
                         output_files.append(job['output_file'])
                 progress.update(task_, advance=1)
