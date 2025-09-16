@@ -30,6 +30,7 @@ class CalibratorsManager():
                  events,
                  params,
                  metadata=None,
+                 requested_calibrator_variations=None,
                  **kwargs
                  ):
         self.calibrator_list = calibrators_list
@@ -38,6 +39,7 @@ class CalibratorsManager():
         self.metadata = metadata
         self.available_variations = ["nominal"]
         self.available_variations_bycalibrator = defaultdict(list)
+        self.requested_calibrator_variations = requested_calibrator_variations
         self.original_coll = {}
 
         # Initialize all the calibrators
@@ -45,8 +47,10 @@ class CalibratorsManager():
             if calibrator.isMC_only and not metadata["isMC"]:
                 # do not run the calibrator on data if it is MC only
                 continue
-            
-            C = calibrator(params, metadata, **kwargs)
+
+            C = calibrator(params, metadata, 
+                          do_variations=calibrator_name in requested_calibrator_variations,
+                            **kwargs)
             C.initialize(events)
             self.calibrator_sequence.append(C)
             # storing the list of calibrator touching a collection in a dictionary

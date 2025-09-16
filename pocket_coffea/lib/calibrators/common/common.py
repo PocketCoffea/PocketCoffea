@@ -19,8 +19,8 @@ class JetsCalibrator(Calibrator):
     has_variations = True
     isMC_only = False
 
-    def __init__(self, params, metadata, jme_factory, **kwargs):
-        super().__init__(params, metadata, **kwargs)
+    def __init__(self, params, metadata, do_variations, jme_factory, **kwargs):
+        super().__init__(params, metadata, do_variations, **kwargs)
         self.jme_factory = jme_factory
         self._year = metadata["year"]
         self.jet_calib_param = self.params.jets_calibration
@@ -147,13 +147,16 @@ class JetsPtRegressionCalibrator(JetsCalibrator):
 
     All the jets type with "Regression" in their name will be calibrated by this calibrator, the 
     others will be ignored (and should be calibrated by the JetsCalibrator).
+
+    The do_variations flag is passed to the base class, but it is not used in this calibrator,
+    as the variations are always computed by the coffea JEC evaluator.
     """
     name = "jet_calibration_with_pt_regression"
     has_variations = True
     isMC_only = False
 
-    def __init__(self, params, metadata, jme_factory, **kwargs):
-        super().__init__(params, metadata, jme_factory, **kwargs)
+    def __init__(self, params, metadata, do_variations, jme_factory, **kwargs):
+        super().__init__(params, metadata, do_variations, jme_factory, **kwargs)
         # It is filled dynamically in the initialize method depending on the parameters
         self.calibrated_collections = []
   
@@ -206,7 +209,7 @@ class JetsPtRegressionCalibrator(JetsCalibrator):
                 events=events,
                 jets=jets_regressed[reg_mask],  # passing the regressed jets
                 factory=self.jme_factory,
-                jet_type = jet_type,
+                jet_type=jet_type,
                 chunk_metadata={
                     "year": self.metadata["year"],
                     "isMC": self.metadata["isMC"],
@@ -353,8 +356,8 @@ class METCalibrator(Calibrator):
     isMC_only = False
     '''
     The MET calibrator applies the JEC to the MET collection.'''
-    def __init__(self, params, metadata, **kwargs):
-        super().__init__(params, metadata, **kwargs)
+    def __init__(self, params, metadata, do_variations=True, **kwargs):
+        super().__init__(params, metadata, do_variations, **kwargs)
         jet_calib_param = self.params.jets_calibration
         self.met_calib_cfg = jet_calib_param.rescale_MET_config[self.year]
         self.met_calib_active = self.met_calib_cfg.apply
@@ -394,8 +397,8 @@ class ElectronsScaleCalibrator(Calibrator):
     isMC_only = False
     calibrated_collections = ["Electron.pt", "Electron.pt_original"]
 
-    def __init__(self, params, metadata, **kwargs):
-        super().__init__(params, metadata, **kwargs)
+    def __init__(self, params, metadata, do_variations=True, **kwargs):
+        super().__init__(params, metadata, do_variations, **kwargs)
         self.ss_params = self.params.lepton_scale_factors.electron_sf.scale_and_smearing
         if not self.ss_params.apply[self.year]:
             # If the scale and smearing is not applied, we do not need to initialize the calibrator
@@ -464,8 +467,8 @@ class ElectronsScaleCalibrator(Calibrator):
 
 #####################################################
 class MuonsCalibrator(Calibrator):
-    def __init__(self, params, metadata, **kwargs):
-        super().__init__(params, metadata, **kwargs)
+    def __init__(self, params, metadata, do_variations=True, **kwargs):
+        super().__init__(params, metadata, do_variations, **kwargs)
         # initialize variations
 
     def initialize(self, events):
