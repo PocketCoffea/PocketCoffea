@@ -15,7 +15,10 @@ def add_jec_variables(jets, event_rho, isMC=True):
     jets["mass_raw"] = (1 - jets.rawFactor) * jets.mass
     jets["event_rho"] = ak.broadcast_arrays(event_rho, jets.pt)[0]
     if isMC:
-        jets["pt_gen"] = ak.values_astype(ak.fill_none(jets.matched_gen.pt, 0), np.float32)
+        try:
+            jets["pt_gen"] = ak.values_astype(ak.fill_none(jets.matched_gen.pt, 0), np.float32)
+        except AttributeError:
+            jets["pt_gen"] = ak.zeros_like(jets.pt, dtype=np.float32)
     return jets
 
 def load_jet_factory(params):
@@ -39,16 +42,22 @@ def jet_correction(params, events, jets, factory, jet_type, chunk_metadata, cach
     # The regression code has been moved to pocket_coffea.lib.calibrators.common.pnet_regression.PNetRegressionCalibrator
              
     if chunk_metadata["isMC"]:
-        return factory["MC"][jet_type][chunk_metadata["year"]].build(
+        corrected_jets = factory["MC"][jet_type][chunk_metadata["year"]].build(
             add_jec_variables(jets, rho, isMC=True), cache
         )
+        # update the rawFactor of the corrected jets
+        corrected_jets["rawFactor"] = 1 - corrected_jets.pt_raw / corrected_jets.pt 
+        return corrected_jets
     else:
         if chunk_metadata["era"] not in factory["Data"][jet_type][chunk_metadata["year"]]:
             raise Exception(f"Factory for {jet_type} in {chunk_metadata['year']} and era {chunk_metadata['era']} not found. Check your jet calibration files.")
-
-        return factory["Data"][jet_type][chunk_metadata["year"]][chunk_metadata["era"]].build(
+        
+        corrected_jets = factory["Data"][jet_type][chunk_metadata["year"]][chunk_metadata["era"]].build(
             add_jec_variables(jets, rho, isMC=False), cache
         )
+        # update the rawFactor of the corrected jets
+        corrected_jets["rawFactor"] = 1 - corrected_jets.pt_raw / corrected_jets.pt
+        return corrected_jets
 
 def met_correction_after_jec(events, METcoll, jets_pre_jec, jets_post_jec):
     '''This function rescale the MET vector by minus delta of the jets after JEC correction

@@ -291,7 +291,7 @@ class JetsPtRegressionCalibrator(JetsCalibrator):
         if "PNet" in jet_type:
             reg_j_factor = j_flat[pt_raw_corr]
             if do_plus_neutrino:
-                reg_j_factor *= j_flat[pt_raw_corr_neutrino] 
+                reg_j_factor = reg_j_factor * j_flat[pt_raw_corr_neutrino]
         elif "UParTAK4" in jet_type:
             if do_plus_neutrino:
                 reg_j_factor = j_flat[pt_raw_corr_neutrino]
@@ -330,20 +330,14 @@ class JetsPtRegressionCalibrator(JetsCalibrator):
         # to the jets that have the regression applied.
         # This is why we throw away the jets that do not have the regression applied
 
-        # An alternative is to apply the regression only to the jets that have the regression applied
-        # but then the JEC would be wrong for these jets
-        # Apply regression where mask is True, keep original values otherwise
-        # new_j_pt_flat = ak.where(reg_mask, reg_j_pt, j_flat['pt'])
         new_j_pt_flat = ak.mask(reg_j_pt, reg_mask)
         new_j_pt = ak.unflatten(new_j_pt_flat, nj)
 
-        # new_j_mass_flat = ak.where(reg_mask, reg_j_mass, j_flat['mass'])
         new_j_mass_flat = ak.mask(reg_j_mass, reg_mask)
         new_j_mass = ak.unflatten(new_j_mass_flat, nj)
 
         # Update the raw factor to 0 for the jets where regression is applied
-        # because the regressed pt is the new pt raw
-        # new_raw_factor_flat = ak.where(reg_mask, 0, j_flat['rawFactor'])
+        # because the REGRESSED PT IS THE NEW PT RAW of the jet_regressed collection
         new_raw_factor_flat = ak.mask(ak.zeros_like(j_flat['rawFactor']), reg_mask)
         new_raw_factor = ak.unflatten(new_raw_factor_flat, nj)
 
