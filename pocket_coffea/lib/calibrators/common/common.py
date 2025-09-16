@@ -33,13 +33,19 @@ class JetsCalibrator(Calibrator):
     def initialize(self, events):
         # Load the calibration of each jet type requested by the parameters
         for jet_type, jet_coll_name in self.jet_calib_param.collection[self.year].items():
+            # Define the key name to get the corrections
+            if "collection_name_map" in self.jet_calib_param and jet_type in self.jet_calib_param.collection_name_map[self.year]:
+                jet_type_key = self.jet_calib_param.collection_name_map[self.year][jet_type]
+            else:
+                jet_type_key=jet_type
+                
             # Check if the collection is enables in the parameters
             if self.isMC:
-                if (self.jet_calib_param.apply_jec_MC[self.year][jet_type] == False):
+                if (self.jet_calib_param.apply_jec_MC[self.year][jet_type_key] == False):
                     # If the collection is not enabled, we skip it
                     continue
             else:
-                if self.jet_calib_param.apply_jec_Data[self.year][jet_type] == False:
+                if self.jet_calib_param.apply_jec_Data[self.year][jet_type_key] == False:
                     # If the collection is not enabled, we skip it
                     continue
 
@@ -50,12 +56,12 @@ class JetsCalibrator(Calibrator):
 
             # Check the Pt regression is not requested for this jet type 
             # and in that case send a warning and skim them
-            if self.isMC and self.jet_calib_param.apply_pt_regr_MC[self.year][jet_type]:
-                print(f"WARNING: Jet type {jet_type} is requested to be calibrated with pT regression: " +
+            if self.isMC and self.jet_calib_param.apply_pt_regr_MC[self.year][jet_type_key]:
+                print(f"WARNING: Jet type {jet_type_key} is requested to be calibrated with pT regression: " +
                                     "skipped by JetCalibrator. Please activate the JetsPtRegressionCalibrator.")
                 continue
-            if not self.isMC and self.jet_calib_param.apply_pt_regr_Data[self.year][jet_type]:
-                print(f"WARNING: Jet type {jet_type} is requested to be calibrated with pT regression: " +
+            if not self.isMC and self.jet_calib_param.apply_pt_regr_Data[self.year][jet_type_key]:
+                print(f"WARNING: Jet type {jet_type_key} is requested to be calibrated with pT regression: " +
                                     "skipped by JetCalibrator. Please activate the JetsPtRegressionCalibrator.")
                 continue
 
@@ -69,7 +75,7 @@ class JetsCalibrator(Calibrator):
                 events=events,
                 jets=events[jet_coll_name],
                 factory=self.jme_factory,
-                jet_type = jet_type,
+                jet_type = jet_type_key,
                 chunk_metadata={
                     "year": self.metadata["year"],
                     "isMC": self.metadata["isMC"],
@@ -85,19 +91,26 @@ class JetsCalibrator(Calibrator):
         # For this we just read from the parameters
         available_jet_variations = []
         for jet_type in self.jet_calib_param.collection[self.year].keys():
+            # Define the key name to get the corrections
+            if "collection_name_map" in self.jet_calib_param and jet_type in self.jet_calib_param.collection_name_map[self.year]:
+                jet_type_key = self.jet_calib_param.collection_name_map[self.year][jet_type]
+            else:
+                jet_type_key=jet_type
+                
             if jet_type not in self.jets_calibrated_types:
                 # If the jet type is not calibrated, we skip it
                 continue
-            if jet_type in self.jet_calib_param.variations[self.year]:
+            if jet_type_key in self.jet_calib_param.variations[self.year]:
                 # If the jet type has variations, we add them to the list
                 # of variations available for this calibrator
-                for variation in self.jet_calib_param.variations[self.year][jet_type]:
+                for variation in self.jet_calib_param.variations[self.year][jet_type_key]:
                     available_jet_variations +=[
                         f"{jet_type}_{variation}Up",
                         f"{jet_type}_{variation}Down"
                     ]
                     # we want to vary independently each jet type
         self._variations = list(sorted(set(available_jet_variations)))  # remove duplicates
+        breakpoint()
 
 
     def calibrate(self, events, orig_colls, variation, already_applied_calibrators=None):
@@ -160,14 +173,19 @@ class JetsPtRegressionCalibrator(JetsCalibrator):
     def initialize(self, events):
         # Load the calibration of each jet type requested by the parameters
         for jet_type, jet_coll_name in self.jet_calib_param.collection[self.year].items():
-            
+            # Define the key name to get the corrections
+            if "collection_name_map" in self.jet_calib_param and jet_type in self.jet_calib_param.collection_name_map[self.year]:
+                jet_type_key = self.jet_calib_param.collection_name_map[self.year][jet_type]
+            else:
+                jet_type_key=jet_type
+                            
             # check if the jet regression is requested, if not skip it
             if self.isMC:
-                if not self.jet_calib_param.apply_pt_regr_MC[self.year][jet_type]:
+                if not self.jet_calib_param.apply_pt_regr_MC[self.year][jet_type_key]:
                     # If the collection is not enabled, we skip it
                     continue    
             else:
-                if not self.jet_calib_param.apply_pt_regr_Data[self.year][jet_type]:
+                if not self.jet_calib_param.apply_pt_regr_Data[self.year][jet_type_key]:
                     # If the collection is not enabled, we skip it
                     continue
 
@@ -175,15 +193,16 @@ class JetsPtRegressionCalibrator(JetsCalibrator):
                 # If the collection is already calibrated with another jet_type, raise an error for misconfiguration
                 raise ValueError(f"Jet collection {jet_coll_name} is already calibrated with another jet type. " +
                                  f"Current jet type: {jet_type}. Previous jet types: {self.jets_calibrated[jet_coll_name]}")
+            
             # Check if the JEC application is requested for this jet type: it should! 
             # in case it is not raise an error as this jets should ne calibated after the regression
             # Check if the collection is enables in the parameters
-            if self.isMC and self.jet_calib_param.apply_jec_MC[self.year][jet_type] == False:
-                raise ValueError(f"Jet type {jet_type} is requested to be calibrated with Pt regression" + 
+            if self.isMC and self.jet_calib_param.apply_jec_MC[self.year][jet_type_key] == False:
+                raise ValueError(f"Jet type {jet_type_key} is requested to be calibrated with Pt regression" + 
                                   " but the JEC application is not configured. Please check the parameters." +
                                    " In case you only want to apply the JEC and not the regression, use JetsCalibrator instead.")
-            if not self.isMC and self.jet_calib_param.apply_jec_Data[self.year][jet_type] == False:
-                raise ValueError(f"Jet type {jet_type} is requested to be calibrated with Pt regression" + 
+            if not self.isMC and self.jet_calib_param.apply_jec_Data[self.year][jet_type_key] == False:
+                raise ValueError(f"Jet type {jet_type_key} is requested to be calibrated with Pt regression" + 
                                   " but the JEC application is not configured. Please check the parameters." +
                                    " In case you only want to apply the JEC and not the regression, use JetsCalibrator instead.")
 
@@ -197,7 +216,7 @@ class JetsPtRegressionCalibrator(JetsCalibrator):
                     regression_params = jet_params.regression
 
             # Apply the regression to the jets before the JEC
-            jets_regressed, reg_mask = self.apply_regression(events[jet_coll_name], jet_type, regression_params)
+            jets_regressed, reg_mask = self.apply_regression(events[jet_coll_name], jet_type_key, regression_params)
 
             cache = cachetools.Cache(np.inf)
             self.caches.append(cache)
@@ -206,7 +225,7 @@ class JetsPtRegressionCalibrator(JetsCalibrator):
                 events=events,
                 jets=jets_regressed[reg_mask],  # passing the regressed jets
                 factory=self.jme_factory,
-                jet_type = jet_type,
+                jet_type = jet_type_key,
                 chunk_metadata={
                     "year": self.metadata["year"],
                     "isMC": self.metadata["isMC"],
@@ -222,13 +241,19 @@ class JetsPtRegressionCalibrator(JetsCalibrator):
         # For this we just read from the parameters
         available_jet_variations = []
         for jet_type in self.jet_calib_param.collection[self.year].keys():
+            # Define the key name to get the corrections
+            if "collection_name_map" in self.jet_calib_param and jet_type in self.jet_calib_param.collection_name_map[self.year]:
+                jet_type_key = self.jet_calib_param.collection_name_map[self.year][jet_type]
+            else:
+                jet_type_key=jet_type
+                
             if jet_type not in self.jets_calibrated_types:
                 # If the jet type is not calibrated, we skip it
                 continue
-            if jet_type in self.jet_calib_param.variations[self.year]:
+            if jet_type_key in self.jet_calib_param.variations[self.year]:
                 # If the jet type has variations, we add them to the list
                 # of variations available for this calibrator
-                for variation in self.jet_calib_param.variations[self.year][jet_type]:
+                for variation in self.jet_calib_param.variations[self.year][jet_type_key]:
                     available_jet_variations +=[
                         f"{jet_type}_{variation}Up",
                         f"{jet_type}_{variation}Down"
