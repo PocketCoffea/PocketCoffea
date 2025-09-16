@@ -48,9 +48,13 @@ class CalibratorsManager():
                 # do not run the calibrator on data if it is MC only
                 continue
 
-            C = calibrator(params, metadata, 
-                          do_variations=calibrator_name in requested_calibrator_variations,
-                            **kwargs)
+            if requested_calibrator_variations is not None and calibrator.name not in requested_calibrator_variations:
+                # If the calibrator is not in the list of requested variations, we initialize it without variations
+                C = calibrator(params, metadata, do_variations=False, **kwargs)
+            else:
+                # If the calibrator is in the list of requested variations, we initialize it with variations
+                C = calibrator(params, metadata, do_variations=True, **kwargs)
+           
             C.initialize(events)
             self.calibrator_sequence.append(C)
             # storing the list of calibrator touching a collection in a dictionary

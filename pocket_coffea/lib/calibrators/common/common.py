@@ -20,7 +20,7 @@ class JetsCalibrator(Calibrator):
     isMC_only = False
 
     def __init__(self, params, metadata, do_variations, jme_factory, **kwargs):
-        super().__init__(params, metadata, do_variations, **kwargs)
+        super().__init__(params, metadata, do_variations=True, **kwargs)
         self.jme_factory = jme_factory
         self._year = metadata["year"]
         self.jet_calib_param = self.params.jets_calibration
