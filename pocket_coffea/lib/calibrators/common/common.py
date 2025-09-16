@@ -238,13 +238,14 @@ class JetsPtRegressionCalibrator(JetsCalibrator):
 
     def apply_regression(self, jets, jet_type, regression_params=None):
         """
-        Apply PNet regression to jets.
+        Apply pT regression to jets.
         
         Args:
             jets: Jets collection to apply regression on
             
         Returns:
-            Dictionary with calibrated jet collection # TODO: change
+            Dictionary with calibrated jet collection
+            Mask of jets where regression was applied
         """
         # Apply regression only to specific jet types (AK4PFPuppi, AK4PFchs)
         # This check should ideally be done based on jet type parameter, but for now
