@@ -341,6 +341,97 @@ def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tag
     return jets[mask_good_jets], mask_good_jets
 
 
+def jet_selection_nanoaodv12(events, jet_type, params, year, leptons_collection="", jet_tagger=""):
+
+    jets = events[jet_type]
+    cuts = params.object_preselection[jet_type]
+
+    # Bug fix for NanoAOD v12 https://gitlab.cern.ch/cms-jetmet/coordination/coordination/-/issues/117
+    
+    mask_presel = (
+        (jets.pt > cuts["pt"])
+        & (np.abs(jets.eta) < cuts["eta"])
+    )
+        
+    if cuts["jetId"] == 6:
+        passJetIdTight = ak.zeros_like(jets.pt, dtype=bool)
+        passJetIdTightLepVeto = ak.zeros_like(jets.pt, dtype=bool)
+        
+        passJetIdTight = ak.where((np.abs(jets.eta) <= 2.7), (jets.jetId & (1 << 1))>0, passJetIdTight)
+        passJetIdTight = ak.where((np.abs(jets.eta) > 2.7) & (np.abs(jets.eta) <= 3.0), ((jets.jetId & (1 << 1))>0 & (jets.neHEF < 0.99)), passJetIdTight)
+        passJetIdTight = ak.where((np.abs(jets.eta) > 3.0), ((jets.jetId & (1 << 1))>0 & (jets.neEmEF < 0.4)), passJetIdTight)
+        passJetIdTightLepVeto = ak.where((np.abs(jets.eta) <= 2.7), (passJetIdTight & (jets.muEF < 0.8) & (jets.chEmEF < 0.8)),passJetIdTight)
+    
+    # Only jets that are more distant than dr to ALL leptons are tagged as good jets
+    # Mask for  jets not passing the preselection
+    
+    # Lepton cleaning
+    if leptons_collection != "":
+        dR_jets_lep = jets.metric_table(events[leptons_collection])
+        mask_lepton_cleaning = ak.prod(dR_jets_lep > cuts["dr_lepton"], axis=2) == 1
+    else:
+        mask_lepton_cleaning = True
+
+    if jet_type == "Jet":
+        # Selection on PUid. Only available in Run2 UL, thus we need to determine which sample we run over;
+        if year in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
+            mask_jetpuid = (jets.puId >= params.jet_scale_factors.jet_puId[year]["working_point"][cuts["puId"]["wp"]]) | (
+                jets.pt >= cuts["puId"]["maxpt"]
+            )
+        else:
+            mask_jetpuid = True        
+        
+        if cuts["jetId"] == 6:
+            mask_good_jets = mask_presel & mask_lepton_cleaning & mask_jetpuid & passJetIdTightLepVeto
+        else:
+            mask_good_jets = mask_presel & mask_lepton_cleaning & mask_jetpuid 
+
+        if jet_tagger != "":
+            if "PNet" in jet_tagger:
+                B   = "btagPNetB"
+                CvL = "btagPNetCvL"
+                CvB = "btagPNetCvB"
+            elif "DeepFlav" in jet_tagger:
+                B   = "btagDeepFlavB"
+                CvL = "btagDeepFlavCvL"
+                CvB = "btagDeepFlavCvB"
+            elif "RobustParT" in jet_tagger:
+                B   = "btagRobustParTAK4B"
+                CvL = "btagRobustParTAK4CvL"
+                CvB = "btagRobustParTAK4CvB"
+            else:
+                raise NotImplementedError(f"This tagger is not implemented: {jet_tagger}")
+            
+            if B not in jets.fields or CvL not in jets.fields or CvB not in jets.fields:
+                raise NotImplementedError(f"{B}, {CvL}, and/or {CvB} are not available in the input.")
+
+            jets["btagB"] = jets[B]
+            jets["btagCvL"] = jets[CvL]
+            jets["btagCvB"] = jets[CvB]
+
+    elif jet_type == "FatJet":
+        # Apply the msd and preselection cuts
+        mask_msd = events.FatJet.msoftdrop > cuts["msd"]
+        mask_good_jets = mask_presel & mask_msd
+
+        if jet_tagger != "":
+            if "PNetMD" in jet_tagger:
+                BB   = "particleNet_XbbVsQCD"
+                CC   = "particleNet_XccVsQCD"
+            elif "PNet" in jet_tagger:
+                BB   = "particleNetWithMass_HbbvsQCD"
+                CC   = "particleNetWithMass_HccvsQCD"
+            else:
+                raise NotImplementedError(f"This tagger is not implemented: {jet_tagger}")
+            
+            if BB not in jets.fields or CC not in jets.fields:
+                raise NotImplementedError(f"{BB} and/or {CC} are not available in the input.")
+
+            jets["btagBB"] = jets[BB]
+            jets["btagCC"] = jets[CC]
+
+    return jets[mask_good_jets], mask_good_jets
+
 def btagging(Jet, btag, wp, veto=False):
     if veto:
         return Jet[Jet[btag["btagging_algorithm"]] < btag["btagging_WP"][wp]]
