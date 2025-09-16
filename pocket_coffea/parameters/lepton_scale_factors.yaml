@@ -20,36 +20,45 @@ lepton_scale_factors:
 
     JSONfiles: 
       '2016_PreVFP':
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016preVFP_UL/electron.json.gz
+        files:
+          reco: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016preVFP_UL/electron.json.gz
+          id:   /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016preVFP_UL/electron.json.gz
         name: UL-Electron-ID-SF
         reco:
           pt_lt_20: RecoBelow20
           pt_gt_20: RecoAbove20
   
       '2016_PostVFP':
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016postVFP_UL/electron.json.gz
+        files: 
+          reco: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016postVFP_UL/electron.json.gz
+          id:   /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016postVFP_UL/electron.json.gz
         name: UL-Electron-ID-SF    
         reco:
           pt_lt_20: RecoBelow20
           pt_gt_20: RecoAbove20
 
       '2017':
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2017_UL/electron.json.gz
+        files:
+          reco: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2017_UL/electron.json.gz
+          id:   /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2017_UL/electron.json.gz
         name: UL-Electron-ID-SF
         reco:
           pt_lt_20: RecoBelow20
           pt_gt_20: RecoAbove20
 
       '2018':
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2018_UL/electron.json.gz
+        files: 
+          reco: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2018_UL/electron.json.gz
+          id:   /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2018_UL/electron.json.gz
         name: UL-Electron-ID-SF
         reco:
           pt_lt_20: RecoBelow20
           pt_gt_20: RecoAbove20
 
       '2022_preEE':
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/electron.json.gz
-        fileSS: 
+        files: 
+          reco: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/electron.json.gz
+          id:   /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/electron.json.gz 
         name: Electron-ID-SF
         reco:
           pt_lt_20: RecoBelow20
@@ -57,7 +66,9 @@ lepton_scale_factors:
           pt_gt_75: RecoAbove75
 
       '2022_postEE':
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electron.json.gz
+        files:
+          reco: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electron.json.gz
+          id:   /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electron.json.gz
         name: Electron-ID-SF
         reco:
           pt_lt_20: RecoBelow20
@@ -65,7 +76,9 @@ lepton_scale_factors:
           pt_gt_75: RecoAbove75
 
       '2023_preBPix':
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electron.json.gz
+        files:
+          reco: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electron.json.gz
+          id:   /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electron.json.gz
         name: Electron-ID-SF
         reco:
           pt_lt_20: RecoBelow20
@@ -73,7 +86,9 @@ lepton_scale_factors:
           pt_gt_75: RecoAbove75
 
       '2023_postBPix':
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electron.json.gz
+        files:
+          reco: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electron.json.gz
+          id:   /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electron.json.gz
         name: Electron-ID-SF
         reco:
           pt_lt_20: RecoBelow20
@@ -81,7 +96,9 @@ lepton_scale_factors:
           pt_gt_75: RecoAbove75
 
       "2024":
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2024_Summer24/electron_v1.json.gz
+        files:
+          reco: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2024_Summer24/electron_v1.json.gz
+          id:   /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2024_Summer24/electronID_v1.json.gz
         name: Electron-ID-SF
         reco:
           #pt_lt_20: #"RecoBelow20" bin is still missing for the moment.

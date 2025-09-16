@@ -91,7 +91,7 @@ def get_ele_sf(
 
     if key in ['reco', 'id']:
         electron_correctionset = correctionlib.CorrectionSet.from_file(
-            electronSF.JSONfiles[year]["file"]
+            electronSF.JSONfiles[year]["files"][key]
         )
         map_name = electronSF.JSONfiles[year]["name"]
 
