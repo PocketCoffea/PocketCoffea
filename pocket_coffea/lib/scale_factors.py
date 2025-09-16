@@ -87,7 +87,7 @@ def get_ele_sf(
     '''
     electronSF = params["lepton_scale_factors"]["electron_sf"]
     # translate the `year` key into the corresponding key in the correction file provided by the EGM-POG
-    year_pog = electronSF["era_mapping"][year]
+    year_pog = electronSF["era_mapping"][year][key]
 
     if key in ['reco', 'id']:
         electron_correctionset = correctionlib.CorrectionSet.from_file(
@@ -147,7 +147,7 @@ def sf_ele_trigger(params, events, year):
     tuple: (sf, sfup, sfdown) per-event scale factor
     """
     electronSF = params.lepton_scale_factors.electron_sf
-    year_pog = electronSF.era_mapping[year]
+    year_pog = electronSF.era_mapping[year]["trigger"]
     map_name = electronSF.trigger_sf[year].name
     trigger_path = electronSF.trigger_sf[year].path
 

@@ -108,14 +108,42 @@ lepton_scale_factors:
     era_mapping:
       # this is needed because the correction set provided by EGM
       # have a fixed set of era labels, different from ours
-      "2016_PreVFP": "2016preVFP"
-      "2016_PostVFP": "2016postVFP"
-      "2017": "2017"
-      "2018": "2018"
-      "2022_preEE": "2022Re-recoBCD"
-      "2022_postEE": "2022Re-recoE+PromptFG"
-      "2023_preBPix": "2023PromptC"
-      "2023_postBPix": "2023PromptD"
+      "2016_PreVFP": 
+        id: "2016preVFP"
+        reco: "2016preVFP"
+      "2016_PostVFP": 
+        id: "2016postVFP"
+        reco: "2016postVFP"
+        trigger: "2016postVFP"
+      "2017": 
+        id: "2017"
+        reco: "2017"
+        trigger: "2017"
+      "2018": 
+        id: "2018"
+        reco: "2018"
+        trigger: "2018"
+      "2022_preEE": 
+        id: "2022Re-recoBCD"
+        reco: "2022Re-recoBCD"
+        trigger: "2022Re-recoBCD"
+      "2022_postEE": 
+        id: "2022Re-recoE+PromptFG"
+        reco: "2022Re-recoE+PromptFG"
+        trigger: "2022Re-recoE+PromptFG"
+      "2023_preBPix": 
+        id: "2023PromptC"
+        reco: "2023PromptC"
+        trigger: "2023PromptC"
+      "2023_postBPix": 
+        id: "2023PromptD"
+        reco: "2023PromptD"
+        trigger: "2023PromptD"
+      "2024": 
+        id: "2024"
+        reco: "2024Prompt"
+        #trigger: "2024Prompt"
+
 
     # The scale and smearing configuration is expected to have this structure
     scale_and_smearing:      
@@ -128,6 +156,7 @@ lepton_scale_factors:
         '2022_postEE': True
         '2023_preBPix': True
         '2023_postBPix': True
+        '2024': True
       
       correctionlib_config:
         '2022_preEE':
@@ -135,22 +164,31 @@ lepton_scale_factors:
           correction_name:
             scale: "Scale"
             smear: "Smearing"
+          et_dependent: false
         '2022_postEE':
           file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electronSS.json.gz
           correction_name:
             scale: "Scale"
             smear: "Smearing"
+          et_dependent: false
         '2023_preBPix':
           file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electronSS.json.gz
           correction_name:
             scale: "2023PromptC_ScaleJSON"
             smear: "2023PromptC_SmearingJSON"
+          et_dependent: false
         '2023_postBPix':
           file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electronSS.json.gz
           correction_name:
             scale: "2023PromptD_ScaleJSON"
             smear: "2023PromptD_SmearingJSON"
-
+          et_dependent: false
+        '2024':
+          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2024_Summer24/electronSS_EtDependent_v1.json.gz
+          correction_name:
+            scale: "EGMScale_Compound_Ele_2024"
+            smear: "EGMSmearAndSyst_ElePTsplit_2024"
+          et_dependent: true
     
     # The trigger SF configuration is expected to have this structure
     # needs to be provided by the user.

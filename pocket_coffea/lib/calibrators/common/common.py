@@ -3,7 +3,12 @@ import numpy as np
 import awkward as ak
 import cachetools
 from pocket_coffea.lib.jets import jet_correction, met_correction_after_jec, load_jet_factory
-from pocket_coffea.lib.leptons import get_ele_scaled, get_ele_smeared
+from pocket_coffea.lib.leptons import (
+    get_ele_scaled, 
+    get_ele_smeared, 
+    get_ele_scaled_etdependent, 
+    get_ele_smeared_etdependent
+    )
 
 class JetsCalibrator(Calibrator):
     """
@@ -407,6 +412,7 @@ class ElectronsScaleCalibrator(Calibrator):
         self.enabled = True
         self.ssfile = self.ss_params.correctionlib_config[self.year]["file"]
         self.correction_name = self.ss_params.correctionlib_config[self.year]["correction_name"]
+        self.et_dependent = self.ss_params.correctionlib_config[self.year].get("et_dependent", False)
         if self.isMC:
             self._variations = ["ele_scaleUp", "ele_scaleDown", "ele_smearUp", "ele_smearDown"]
         else:
@@ -424,15 +430,28 @@ class ElectronsScaleCalibrator(Calibrator):
         self.electrons = ak.with_field(self.electrons, self.electrons["pt"], "pt_original")
         if self.isMC:
             # If the events are MC, we apply smearing
-            self.smeared_pt = get_ele_smeared(self.electrons, self.ssfile, self.correction_name.smear,
-                                              isMC=True, only_nominal=False, seed=seed)
-            # Also get the scale variations, without scaling the nominal
-            self.scaled_pt = get_ele_scaled(self.electrons, self.ssfile, self.correction_name.scale,
-                                            isMC=True, runNr=events["run"])
-            # TODO: check what happens with the run number and MC
+            if self.et_dependent:
+                self.smeared_pt = get_ele_smeared_etdependent(self.electrons, self.ssfile, 
+                                                             self.correction_name.smear, 
+                                                             isMC=True, only_nominal=False, seed=seed)
+                self.scaled_pt = get_ele_scaled_etdependent(self.electrons, self.ssfile, 
+                                                           self.correction_name.scale, self.correction_name.smear,
+                                                           isMC=True, runNr=events["run"], year=self.year)
+            else:
+                self.smeared_pt = get_ele_smeared(self.electrons, self.ssfile, self.correction_name.smear,
+                                                isMC=True, only_nominal=False, seed=seed)
+                # Also get the scale variations, without scaling the nominal
+                self.scaled_pt = get_ele_scaled(self.electrons, self.ssfile, self.correction_name.scale,
+                                                isMC=True, runNr=events["run"])
+          
         else:
             # If the events are data, we apply only scaling
-            self.scaled_pt = get_ele_scaled(self.electrons, self.ssfile, self.correction_name.scale,
+            if self.et_dependent:
+                self.scaled_pt = get_ele_scaled_etdependent(self.electrons, self.ssfile, 
+                                                           self.correction_name.scale, self.correction_name.smear,
+                                                           isMC=False, runNr=events["run"], year=self.year)
+            else:
+                self.scaled_pt = get_ele_scaled(self.electrons, self.ssfile, self.correction_name.scale,
                                             isMC=False, runNr=events["run"])
 
 
