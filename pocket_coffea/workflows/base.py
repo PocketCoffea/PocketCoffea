@@ -634,6 +634,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self.events,
             self.params,
             self._metadata,
+            requested_calibrator_variations=self.cfg.available_shape_variations[self._sample],
             # Additional arg to pass the jmefactory to the jet calibrator --> hacky
             jme_factory=self.jmefactory,
         )
