@@ -181,16 +181,17 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
         pythonpath = sys.prefix.rsplit('/', 1)[0]
 
         copy_command = "cp"
+        eos_prefix = self.run_options["eos-prefix"]
         if abs_output_path.startswith("/eos/"):
-            abs_output_path = "root://eosuser.cern.ch/" + abs_output_path
-        if abs_output_path.startswith("root://eosuser.cern.ch/"):
+            abs_output_path = eos_prefix + abs_output_path
+        if abs_output_path.startswith(eos_prefix):
             copy_command = "xrdcp -f"
 
         # Handle columns
         columncommand = ""
         if len(self.config.columns) > 0:
             column_out_dir = self.config.workflow_options["dump_columns_as_arrays_per_chunk"]
-            if not os.path.isabs(column_out_dir) and not column_out_dir.startswith("root://eosuser.cern.ch/"):
+            if not os.path.isabs(column_out_dir) and not column_out_dir.startswith(eos_prefix):
                 # If the config contains an absolute path, then the
                 # parquets are written directly to disk (e.g. eos.)
                 # This may be unstable, but not much to do at the executor level.
