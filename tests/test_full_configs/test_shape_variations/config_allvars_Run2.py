@@ -113,6 +113,8 @@ cfg = Configurator(
         **count_hist("BJetGood"),
         "MET_pt": HistConf([Axis(coll="MET", field="pt", label="MET pT [GeV]", bins=50, start=0, stop=200)]),
         "MET_pt_original": HistConf([Axis(coll="MET", field="pt_original", label="MET pT Original [GeV]", bins=50, start=0, stop=200)]),
+        "MET_pt_2": HistConf([Axis(coll="MET", field="pt", label="MET pT [GeV]", bins=50, start=0, stop=200)],
+                             only_variations=["AK4PFchs_JES_TotalDown", "AK4PFchs_JES_TotalUp"])
     },
 
     columns = {
