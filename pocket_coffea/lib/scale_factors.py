@@ -118,15 +118,20 @@ def get_ele_sf(
                 year_pog, "sfdown", sfname, eta_np, pt.to_numpy(), phi.to_numpy()
             )
         else:
+            # limit in pt for 2024 to 1000GeV in electronID.json
+            if year == "2024":
+                pt = np.where(pt.to_numpy()>=1000, 999., pt.to_numpy())
+            else:
+                pt = pt.to_numpy()
             # All other eras do not need phi:    
             sf = electron_correctionset[map_name].evaluate(
-                year_pog, "sf", sfname, eta.to_numpy(), pt.to_numpy()
+                year_pog, "sf", sfname, eta.to_numpy(), pt
             )
             sfup = electron_correctionset[map_name].evaluate(
-                year_pog, "sfup", sfname, eta.to_numpy(), pt.to_numpy()
+                year_pog, "sfup", sfname, eta.to_numpy(), pt
             )
             sfdown = electron_correctionset[map_name].evaluate(
-                year_pog, "sfdown", sfname, eta.to_numpy(), pt.to_numpy()
+                year_pog, "sfdown", sfname, eta.to_numpy(), pt
             )
         # The unflattened arrays are returned in order to have one row per event.
         return (
