@@ -634,6 +634,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self.events,
             self.params,
             self._metadata,
+            requested_calibrator_variations=self.cfg.available_shape_variations[self._sample],
             # Additional arg to pass the jmefactory to the jet calibrator --> hacky
             jme_factory=self.jmefactory,
         )
@@ -694,12 +695,12 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         if self._isMC:
             # This is computed before any preselection
             if not self._isSkim:
-                self.output['sum_genweights'][self._dataset] = ak.sum(self.events.genWeight)
+                self.output['sum_genweights'][self._dataset] = np.sum(ak.to_numpy(self.events.genWeight))
             else:
                 # If the dataset is a skim, the sumgenweights are rescaled
-                self.output['sum_genweights'][self._dataset] = ak.sum(self.events.skimRescaleGenWeight * self.events.genWeight)
+                self.output['sum_genweights'][self._dataset] = np.sum(ak.to_numpy(self.events.skimRescaleGenWeight * self.events.genWeight))
             #FIXME: handle correctly the skim for the sum_signOf_genweights
-            self.output['sum_signOf_genweights'][self._dataset] = ak.sum(np.sign(self.events.genWeight))
+            self.output['sum_signOf_genweights'][self._dataset] = np.sum(ak.to_numpy(np.sign(self.events.genWeight)))
                 
         ########################
         # Then the first skimming happens.
