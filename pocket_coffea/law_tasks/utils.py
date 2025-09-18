@@ -247,6 +247,8 @@ def load_analysis_config(
     config.load()
 
     if save:
+        if output_dir is None:
+            raise ValueError("Output directory must be provided if save is True.")
         config.save_config(output_dir)
 
     run_options = getattr(config_module, "run_options", {})
