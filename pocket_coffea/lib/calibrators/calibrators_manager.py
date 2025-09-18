@@ -1,6 +1,9 @@
-from .calibrator import Calibrator
 from collections import defaultdict
 from typing import List
+
+import awkward as ak
+
+from .calibrator import Calibrator
 
 
 class CalibratorsManager():
@@ -133,7 +136,7 @@ class CalibratorsManager():
                     if col not in self.original_coll:
                         try:
                             self.original_coll[col] = events[collection, field]
-                        except ValueError:
+                        except ak.errors.FieldNotFoundError:
                             # This means that the column is not present in the events and it is created by the calibrator
                             # and it is not a problem
                             self.original_coll[col] = None

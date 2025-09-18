@@ -7,6 +7,7 @@ from pathlib import Path
 from pocket_coffea.executors import executors_base as executors_lib
 from coffea import processor
 from coffea.processor import Runner
+from coffea.nanoevents import NanoAODSchema
 from coffea.util import load, save
 import numpy as np
 import awkward as ak
@@ -40,7 +41,7 @@ def test_shape_variations_JEC_run2(base_path: Path, monkeypatch: pytest.MonkeyPa
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
     output = run(config.filesets, treename="Events",
@@ -81,7 +82,7 @@ def test_shape_variations_JEC_run3(base_path: Path, monkeypatch: pytest.MonkeyPa
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
     output = run(config.filesets, treename="Events",
@@ -116,7 +117,7 @@ def test_shape_variations_ele_SS_run3(base_path: Path, monkeypatch: pytest.Monke
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
     output = run(config.filesets, treename="Events",
@@ -151,7 +152,7 @@ def test_shape_variation_default_sequence(base_path: Path, monkeypatch: pytest.M
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
     output = run(config.filesets, treename="Events",
@@ -191,7 +192,7 @@ def test_shape_variation_default_sequence_comparison_with_legacy_run2(base_path:
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
     output = run(config.filesets, treename="Events",
@@ -280,7 +281,7 @@ def test_shape_variation_default_sequence_comparison_with_legacy_run3(base_path:
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
     output = run(config.filesets, treename="Events",
@@ -322,7 +323,7 @@ def test_shape_variation_JEC_run3_pt_regression(base_path: Path, monkeypatch: py
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
     output = run(config.filesets, treename="Events",

@@ -97,7 +97,7 @@ def dump_ak_array(
         if xrootd
         else os.path.join(location, os.path.join(merged_subdirs, fname))
     )
-    awkward.to_parquet(akarr, local_file)
+    awkward.to_parquet(akarr, local_file, parquet_compliant_nested=True)
     if xrootd:
         copyproc = XRootD.client.CopyProcess()
         copyproc.add_job(local_file, destination, force=True)
