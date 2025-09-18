@@ -76,6 +76,10 @@ class datasetconfig(luigi.Config):
         description="Sort replicas (default: 'geoip')",
         default="geoip",
     )
+    prioritylist_sites = law.CSVParameter(
+        description="List of priorities to sort sites (requires sort-replicas: priority)",
+        default=(),
+    )
 
 
 class runnerconfig(luigi.Config):
