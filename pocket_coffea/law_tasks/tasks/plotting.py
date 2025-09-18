@@ -110,6 +110,7 @@ class PlotterBase(BaseTask):
             workers=self.plot_workers,
             log_x=self.log_scale_x,
             log_y=self.log_scale_y,
+            density=self.density,
         )
 
 
@@ -130,7 +131,14 @@ class Plotter(PlotterBase):
     def run(self):
         plot_manager = self.setup_plot_manager()
 
-        plot_manager.plot_datamc_all(syst=self.plot_syst, format=self.plot_format)
+        if self.compare:
+            plot_manager.plot_comparison_all(
+                ratio=not self.no_ratio, format=self.plot_format
+            )
+        else:
+            plot_manager.plot_datamc_all(
+                syst=self.plot_syst, ratio=not self.no_ratio, format=self.plot_format
+            )
 
         # touch output
         self.output().touch()
