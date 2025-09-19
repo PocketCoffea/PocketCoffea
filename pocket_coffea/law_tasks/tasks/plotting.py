@@ -6,11 +6,10 @@ from pocket_coffea.law_tasks.configuration.plotting import (
     plottingconfig,
     plottingsystematicsconfig,
 )
-from pocket_coffea.law_tasks.tasks.base import BaseTask
+from pocket_coffea.law_tasks.tasks.base import BaseTaskWithTest
 from pocket_coffea.law_tasks.tasks.runner import Runner
 from pocket_coffea.law_tasks.utils import (
     exclude_samples_from_plotting,
-    filter_items_by_regex,
     load_plotting_style,
     load_sample_names,
 )
@@ -52,16 +51,11 @@ class NoMatchingVariableError(Exception):
 
 @luigi.util.inherits(plottingconfig)
 @luigi.util.inherits(Runner)
-class PlotterBase(BaseTask):
+class PlotterBase(BaseTaskWithTest):
     """Base class for plotting tasks"""
 
     def requires(self):
         return Runner.req(self)
-
-    def store_parts(self) -> tuple[str]:
-        if self.test:
-            return super().store_parts() + ("test",)
-        return super().store_parts()
 
     def setup_plot_manager(self):
         inp = self.input()
