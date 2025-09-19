@@ -226,7 +226,7 @@ def import_analysis_config(cfg: FileName) -> tuple[Configurator, ModuleType]:
 
 
 def load_analysis_config(
-    cfg: FileName, output_dir: FileName, save: bool = True
+    cfg: FileName, output_dir: FileName = None, save: bool = True
 ) -> tuple[Configurator, dict]:
     """
     Load the analysis config.
@@ -308,6 +308,11 @@ def load_run_options(
 
     if scaleout is not None:
         run_options["scaleout"] = scaleout
+
+    if limit_chunks is not None:
+        run_options["limit-chunks"] = limit_chunks
+    if limit_files is not None:
+        run_options["limit-files"] = limit_files
 
     if test:
         run_options["limit-files"] = limit_files if limit_files is not None else 1
