@@ -50,16 +50,6 @@ class CreateDatasets(BaseTask):
             ],
         )
 
-        # filter datasets
-        if (filt := self.dataset_config.get("filter", None)) is not None:
-            filter_samples = filt.get("samples", [])
-            datasets_to_remove = []
-            for dataset_name, dataset_config in self.merged_datasets.items():
-                if dataset_config["sample"] not in filter_samples:
-                    datasets_to_remove.append(dataset_name)
-            for dataset_name in datasets_to_remove:
-                self.merged_datasets.pop(dataset_name)
-
         # make sure, that the dataset_dir is full path in the datasets definition
         # so that the build_datasets function saves it at the correct path
         self.merged_dataset_file = self.local_path("datasets_merged.json")
