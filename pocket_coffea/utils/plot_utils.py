@@ -313,7 +313,7 @@ class PlotManager:
                 pool.close()
         else:
             for shape in shape_names:
-                self.plot_comparison(shape, ratio=ratio, syst=syst, spliteras=spliteras, format=format)
+                self.plot_comparison(shape, ratio=ratio, format=format)
 
 
     def plot_systematic_shifts(self, shape, format="png", ratio=True):
@@ -1432,6 +1432,7 @@ class Shape:
             self.format_figure(cat, ratio=ratio, ref=ref)
         else:
             self.format_figure(cat, ratio=False)
+            self.rax.remove()
 
 
     def plot_comparison_all(self, ratio=True, save=True, format='png'):
