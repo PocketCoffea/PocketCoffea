@@ -153,6 +153,9 @@ class CreateDatasets(BaseTask):
             output_file=self.merged_dataset_file,
         )
 
+        # create parent directory
+        self.output()["json files"][0].parent.touch()
+
         # build the dataset json file
         build_datasets(
             cfg=self.merged_dataset_file,
