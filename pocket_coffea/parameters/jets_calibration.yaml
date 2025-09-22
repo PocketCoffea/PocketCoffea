@@ -609,6 +609,10 @@ default_jets_calibration:
         AK4PFPuppi: 
         - JES_Total
         - JER
+      "2024":
+        AK4PFPuppi: 
+        - JES_Total
+        - JER
 
 #####################################################################################
 # Default jets calibration for the user used by the processor
@@ -773,6 +777,10 @@ jets_calibration:
       AK4PFPuppi: False
       AK4PFPuppiPNetRegression: True
       AK4PFPuppiPNetRegressionPlusNeutrino: True
+    "2024": 
+      AK4PFPuppi: False
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
 
   apply_pt_regr_Data:
     2016_PreVFP: 
@@ -800,6 +808,10 @@ jets_calibration:
       AK4PFPuppiPNetRegression: True
       AK4PFPuppiPNetRegressionPlusNeutrino: True
     2023_postBPix: 
+      AK4PFPuppi: False
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+    "2024": 
       AK4PFPuppi: False
       AK4PFPuppiPNetRegression: True
       AK4PFPuppiPNetRegressionPlusNeutrino: True
@@ -835,6 +847,10 @@ jets_calibration:
       MET_collection: "PuppiMET"
       Jet_collection: "Jet"
     2023_postBPix:
+      apply: True
+      MET_collection: "PuppiMET"
+      Jet_collection: "Jet"
+    "2024":
       apply: True
       MET_collection: "PuppiMET"
       Jet_collection: "Jet"
