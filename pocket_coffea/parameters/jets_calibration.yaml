@@ -461,6 +461,7 @@ default_jets_calibration:
           - JES_RelativeBal
           - JES_RelativeSample_2016
           - JER
+        AK8PFPuppi: "${default_jets_calibration.variations.full_variations.2016_PreVFP.AK4PFchs}"
       2016_PostVFP: 
         AK4PFchs:
           - JES_Absolute
@@ -475,6 +476,7 @@ default_jets_calibration:
           - JES_RelativeBal
           - JES_RelativeSample_2016
           - JER
+        AK8PFPuppi: "${default_jets_calibration.variations.full_variations.2016_PostVFP.AK4PFchs}"
       "2017": 
         AK4PFchs:          
           - JES_Absolute
@@ -489,6 +491,7 @@ default_jets_calibration:
           - JES_RelativeBal
           - JES_RelativeSample_2017
           - JER
+        AK8PFPuppi: "${default_jets_calibration.variations.full_variations.2017.AK4PFchs}"
   
       "2018": 
         AK4PFchs:
@@ -504,6 +507,7 @@ default_jets_calibration:
           - JES_RelativeBal
           - JES_RelativeSample_2018
           - JER
+        AK8PFPuppi: "${default_jets_calibration.variations.full_variations.2018.AK4PFchs}"
 
       2022_preEE:
         AK4PFPuppi: 
@@ -581,18 +585,22 @@ default_jets_calibration:
         AK4PFchs: 
         - JES_Total
         - JER
+        AK8PFPuppi: "${default_jets_calibration.variations.total_variation.2016_PreVFP.AK4PFchs}"
       2016_PostVFP: 
         AK4PFchs: 
         - JES_Total
         - JER
+        AK8PFPuppi: "${default_jets_calibration.variations.total_variation.2016_PostVFP.AK4PFchs}"
       "2017": 
         AK4PFchs: 
         - JES_Total
         - JER
+        AK8PFPuppi: "${default_jets_calibration.variations.total_variation.2017.AK4PFchs}"
       "2018": 
         AK4PFchs: 
         - JES_Total
         - JER
+        AK8PFPuppi: "${default_jets_calibration.variations.total_variation.2018.AK4PFchs}"
       2022_preEE:
         AK4PFPuppi:  
         - JES_Total
@@ -866,21 +874,31 @@ jets_calibration_clib:
   2016_PreVFP:
     AK4PFchs:
       json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2016preVFP_UL/jet_jerc.json.gz"
-      jec_mc: Summer19UL16_V7_MC
-      jec_data: Summer19UL16_RunFGH_V7_DATA
-      jer: Summer20UL16_JRV3_MC
+      jec_mc: Summer19UL16APV_V7_MC
+      jec_data:
+        B: Summer19UL16APV_RunBCD_V7_DATA
+        C: "${jets_calibration_clib.2016_PreVFP.AK4PFchs.jec_data.B}"
+        D: "${jets_calibration_clib.2016_PreVFP.AK4PFchs.jec_data.B}"
+        E: Summer19UL16APV_RunEF_V7_DATA
+        F: "${jets_calibration_clib.2016_PreVFP.AK4PFchs.jec_data.E}"
+      jer: Summer20UL16APV_JRV3_MC
+    AK8PFPuppi:
+      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2016preVFP_UL/fatJet_jerc.json.gz"
+      jec_mc: "${jets_calibration_clib.2016_PreVFP.AK4PFchs.jec_mc}"
+      jec_data: "${jets_calibration_clib.2016_PreVFP.AK4PFchs.jec_data}"
+      jer: "${jets_calibration_clib.2016_PreVFP.AK4PFchs.jer}"
 
   2016_PostVFP:
     AK4PFchs:
       json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2016postVFP_UL/jet_jerc.json.gz"
       jec_mc: Summer19UL16APV_V7_MC
-      jec_data:
-        B: Summer19UL16APV_RunBCD_V7_DATA
-        C: "${jets_calibration_clib.2016_PostVFP.AK4PFchs.jec_data.B}"
-        D: "${jets_calibration_clib.2016_PostVFP.AK4PFchs.jec_data.B}"
-        E: Summer19UL16APV_RunEF_V7_DATA
-        F: "${jets_calibration_clib.2016_PostVFP.AK4PFchs.jec_data.E}"
-      jer: Summer20UL16APV_JRV3_MC
+      jec_data: Summer19UL16_RunFGH_V7_DATA
+      jer: Summer20UL16_JRV3_MC
+    AK8PFPuppi:
+      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2016postVFP_UL/fatJet_jerc.json.gz"
+      jec_mc: "${jets_calibration_clib.2016_PostVFP.AK4PFchs.jec_mc}"
+      jec_data: "${jets_calibration_clib.2016_PostVFP.AK4PFchs.jec_data}"
+      jer: "${jets_calibration_clib.2016_PostVFP.AK4PFchs.jer}"
 
   "2017":
     AK4PFchs:
@@ -893,6 +911,11 @@ jets_calibration_clib:
         E: Summer19UL17_RunE_V5_DATA
         F: Summer19UL17_RunF_V5_DATA
       jer: Summer19UL17_JRV2_MC
+    AK8PFPuppi:
+      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2017_UL/fatJet_jerc.json.gz"
+      jec_mc: "${jets_calibration_clib.2017.AK4PFchs.jec_mc}"
+      jec_data: "${jets_calibration_clib.2017.AK4PFchs.jec_data}"
+      jer: "${jets_calibration_clib.2017.AK4PFchs.jer}"
 
   "2018":
     AK4PFchs:
@@ -904,6 +927,11 @@ jets_calibration_clib:
         C: Summer19UL18_RunC_V5_DATA
         D: Summer19UL18_RunD_V5_DATA
       jer: Summer19UL18_JRV2_MC
+    AK8PFPuppi:
+      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2018_UL/fatJet_jerc.json.gz"
+      jec_mc: "${jets_calibration_clib.2018.AK4PFchs.jec_mc}"
+      jec_data: "${jets_calibration_clib.2018.AK4PFchs.jec_data}"
+      jer: "${jets_calibration_clib.2018.AK4PFchs.jer}"
 
   2022_preEE:
     AK4PFPuppi:
