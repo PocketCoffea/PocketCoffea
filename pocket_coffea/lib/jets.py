@@ -624,8 +624,8 @@ def jet_correction_corrlib(
     chunk_metadata,
     level="L1L2L3Res",
     jet_coll_name="Jet",
-    apply_jec=True,
     jec_syst=True,
+    apply_jec=True,
     apply_jer=True,
     jer_syst=True,
 ):
@@ -647,8 +647,14 @@ def jet_correction_corrlib(
             jec_tag = jec_clib_dict[year]['jec_data'][chunk_metadata["era"]]
 
     # no jer and variations applied on data
-    if not isMC:
-        apply_jer = jec_syst = jer_syst = False
+    apply_jes = True
+    apply_jer = jes_syst = jer_syst = False
+    if isMC:
+        apply_jer=True
+        if jec_syst:
+            jes_syst = True
+            if "JER" in variations:
+                jer_syst = True
 
     tag_jec = "_".join([jec_tag, level, jet_type])
 
@@ -682,8 +688,8 @@ def jet_correction_corrlib(
         "run": jets.run_nr
     }
 
-    # jec central
-    if apply_jec:
+    # jes central
+    if apply_jes:
         # get the correction
         if tag_jec in list(cset.compound.keys()):
             sf = cset.compound[tag_jec]
@@ -694,8 +700,6 @@ def jet_correction_corrlib(
             raise Exception(f"[No JEC correction: {tag_jec} - Year: {year} - Era: {era} - Level: {level}")
         inputs = [eval_dict[input.name] for input in sf.inputs]
         sf_value = sf.evaluate(*inputs)
-        # jets["pt_jec"] = sf_value * jets["pt_raw"]
-        # jets["mass_jec"] = sf_value * jets["mass_raw"]
         # update the nominal pt and mass
         jets["pt"] = sf_value * jets["pt_raw"]
         jets["mass"] = sf_value * jets["mass_raw"]
@@ -752,8 +756,8 @@ def jet_correction_corrlib(
             jets["pt"] = jets["pt_jer"]
             jets["mass"] = jets["mass_jer"]
 
-    # jec systematics
-    if jec_syst:
+    # jes systematics
+    if jes_syst:
         # update evaluate dictionary
         eval_dict.update({"JetPt": jets.pt})
         # loop over all JES variations
@@ -774,13 +778,10 @@ def jet_correction_corrlib(
             # divide by correction since it is already applied before
             corr_up_variation = 1 + sf_delta
             corr_down_variation = 1 - sf_delta
-            # self.jets_calibrated[jet_coll_name][variation_type].up
+
             jets[f"pt_JES_{jes_vari}_up"] = jets.pt * corr_up_variation
             jets[f"pt_JES_{jes_vari}_down"] = jets.pt * corr_down_variation
             jets[f"mass_JES_{jes_vari}_up"] = jets.mass * corr_up_variation
             jets[f"mass_JES_{jes_vari}_down"] = jets.mass * corr_down_variation
-            # print("TESTS")
-    # print("TESTSTSTSTSTSTSTSTS")
     jets_jagged = ak.unflatten(jets, counts)
-    # events.Jet = jets_jagged
     return jets_jagged

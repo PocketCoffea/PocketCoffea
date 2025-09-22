@@ -20,8 +20,8 @@ class JetsCalibratorCorrlib(Calibrator):
     has_variations = True
     isMC_only = False
 
-    def __init__(self, params, metadata, **kwargs):
-        super().__init__(params, metadata, **kwargs)
+    def __init__(self, params, metadata, do_variations, **kwargs):
+        super().__init__(params, metadata, do_variations, **kwargs)
         self._year = metadata["year"]
         self.jet_calib_param = self.params.jets_calibration
         self.jets_calibrated = {}
@@ -71,8 +71,7 @@ class JetsCalibratorCorrlib(Calibrator):
                     "isMC": self.metadata["isMC"],
                     "era": self.metadata["era"] if "era" in self.metadata else None,
                 },
-                jec_syst=True,
-                jer_syst=True
+                jec_syst=self.do_variations
             )
             
             # Add to the list of the types calibrated
@@ -509,7 +508,7 @@ class METCalibrator(Calibrator):
         if not self.met_calib_active:
             return {}
         # we can check if the Jets calibrator has been applied
-        if "jet_calibration" not in already_applied_calibrators:
+        if ("jet_calibration" not in already_applied_calibrators) and ("jet_calibration_corrlib" not in already_applied_calibrators):
             raise ValueError("Jets calibrator must be applied before the MET calibrator.")
         if self.jet_collection not in orig_colls:
             # this means that the jets calibration has been skipped
