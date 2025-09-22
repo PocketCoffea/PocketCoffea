@@ -110,7 +110,6 @@ class JetsCalibrator(Calibrator):
                     ]
                     # we want to vary independently each jet type
         self._variations = list(sorted(set(available_jet_variations)))  # remove duplicates
-        breakpoint()
 
 
     def calibrate(self, events, orig_colls, variation, already_applied_calibrators=None):
