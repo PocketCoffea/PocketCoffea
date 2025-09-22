@@ -380,7 +380,9 @@ def test_jets_calibrator(events, params):
 
     from pocket_coffea.lib.jets import load_jet_factory
     jmefactory = load_jet_factory(params)
-    jets_calibrator = JetsCalibrator(params=params, metadata={"isMC": True, "year": "2018"}, jme_factory=jmefactory)
+    jets_calibrator = JetsCalibrator(params=params, metadata={"isMC": True, "year": "2018"},
+                                     do_variations=False,
+                                     jme_factory=jmefactory)
     jets_calibrator.initialize(events)
 
     orig_events = ak.copy(events)
