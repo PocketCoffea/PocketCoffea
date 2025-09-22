@@ -864,73 +864,82 @@ jets_calibration:
 
 jets_calibration_clib:
   2016_PreVFP:
-    json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2016preVFP_UL/jet_jerc.json.gz"
-    jec_mc: Summer19UL16_V7_MC
-    jec_data: Summer19UL16_RunFGH_V7_DATA
-    jer: Summer20UL16_JRV3_MC
+    AK4PFchs:
+      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2016preVFP_UL/jet_jerc.json.gz"
+      jec_mc: Summer19UL16_V7_MC
+      jec_data: Summer19UL16_RunFGH_V7_DATA
+      jer: Summer20UL16_JRV3_MC
 
   2016_PostVFP:
-    json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2016postVFP_UL/jet_jerc.json.gz"
-    jec_mc: Summer19UL16APV_V7_MC
-    jec_data:
-      B: Summer19UL16APV_RunBCD_V7_DATA
-      C: "${jets_calibration_clib.2016_PostVFP.jec_data.B}"
-      D: "${jets_calibration_clib.2016_PostVFP.jec_data.B}"
-      E: Summer19UL16APV_RunEF_V7_DATA
-      F: "${jets_calibration_clib.2016_PostVFP.jec_data.E}"
-    jer: Summer20UL16APV_JRV3_MC
+    AK4PFchs:
+      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2016postVFP_UL/jet_jerc.json.gz"
+      jec_mc: Summer19UL16APV_V7_MC
+      jec_data:
+        B: Summer19UL16APV_RunBCD_V7_DATA
+        C: "${jets_calibration_clib.2016_PostVFP.AK4PFchs.jec_data.B}"
+        D: "${jets_calibration_clib.2016_PostVFP.AK4PFchs.jec_data.B}"
+        E: Summer19UL16APV_RunEF_V7_DATA
+        F: "${jets_calibration_clib.2016_PostVFP.AK4PFchs.jec_data.E}"
+      jer: Summer20UL16APV_JRV3_MC
 
   "2017":
-    json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2017_UL/jet_jerc.json.gz"
-    jec_mc: Summer19UL17_V5_MC
-    jec_data:
-      B: Summer19UL17_RunB_V5_DATA
-      C: Summer19UL17_RunC_V5_DATA
-      D: Summer19UL17_RunD_V5_DATA
-      E: Summer19UL17_RunE_V5_DATA
-      F: Summer19UL17_RunF_V5_DATA
-    jer: Summer19UL17_JRV2_MC
+    AK4PFchs:
+      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2017_UL/jet_jerc.json.gz"
+      jec_mc: Summer19UL17_V5_MC
+      jec_data:
+        B: Summer19UL17_RunB_V5_DATA
+        C: Summer19UL17_RunC_V5_DATA
+        D: Summer19UL17_RunD_V5_DATA
+        E: Summer19UL17_RunE_V5_DATA
+        F: Summer19UL17_RunF_V5_DATA
+      jer: Summer19UL17_JRV2_MC
 
   "2018":
-    json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2018_UL/jet_jerc.json.gz"
-    jec_mc: Summer19UL18_V5_MC
-    jec_data:
-      A: Summer19UL18_RunA_V5_DATA
-      B: Summer19UL18_RunB_V5_DATA
-      C: Summer19UL18_RunC_V5_DATA
-      D: Summer19UL18_RunD_V5_DATA
-    jer: Summer19UL18_JRV2_MC
+    AK4PFchs:
+      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2018_UL/jet_jerc.json.gz"
+      jec_mc: Summer19UL18_V5_MC
+      jec_data:
+        A: Summer19UL18_RunA_V5_DATA
+        B: Summer19UL18_RunB_V5_DATA
+        C: Summer19UL18_RunC_V5_DATA
+        D: Summer19UL18_RunD_V5_DATA
+      jer: Summer19UL18_JRV2_MC
 
   2022_preEE:
-    json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2022_Summer22/jet_jerc.json.gz"
-    jec_mc: Summer22_22Sep2023_V2_MC
-    jec_data: Summer22_22Sep2023_RunCD_V2_DATA
-    jer: Summer22_22Sep2023_JRV1_MC
+    AK4PFPuppi:
+      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2022_Summer22/jet_jerc.json.gz"
+      jec_mc: Summer22_22Sep2023_V2_MC
+      jec_data: Summer22_22Sep2023_RunCD_V2_DATA
+      jer: Summer22_22Sep2023_JRV1_MC
 
   2022_postEE:
-    json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2022_Summer22EE/jet_jerc.json.gz"
-    jec_mc: Summer22EE_22Sep2023_V2_MC
-    jec_data:
-      E: Summer22EE_22Sep2023_RunE_V2_DATA
-      F: Summer22EE_22Sep2023_RunF_V2_DATA
-      G: Summer22EE_22Sep2023_RunG_V2_DATA
-    jer: Summer22EE_22Sep2023_JRV1_MC
+    AK4PFPuppi:
+      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2022_Summer22EE/jet_jerc.json.gz"
+      jec_mc: Summer22EE_22Sep2023_V2_MC
+      jec_data:
+        E: Summer22EE_22Sep2023_RunE_V2_DATA
+        F: Summer22EE_22Sep2023_RunF_V2_DATA
+        G: Summer22EE_22Sep2023_RunG_V2_DATA
+      jer: Summer22EE_22Sep2023_JRV1_MC
 
   2023_preBPix:
-    json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2023_Summer23/jet_jerc.json.gz"
-    jec_mc: Summer23Prompt23_V2_MC
-    jec_data: Summer23Prompt23_V2_DATA
-    jer: Summer23Prompt23_RunCv1234_JRV1_MC
+    AK4PFPuppi:
+      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2023_Summer23/jet_jerc.json.gz"
+      jec_mc: Summer23Prompt23_V2_MC
+      jec_data: Summer23Prompt23_V2_DATA
+      jer: Summer23Prompt23_RunCv1234_JRV1_MC
 
   2023_postBPix:
-    json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2023_Summer23BPix/jet_jerc.json.gz"
-    jec_mc: Summer23BPixPrompt23_V3_MC
-    jec_data: Summer23BPixPrompt23_RunD_V3_DATA
-    jer: Summer23BPixPrompt23_RunD_JRV1_MC
+    AK4PFPuppi:
+      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2023_Summer23BPix/jet_jerc.json.gz"
+      jec_mc: Summer23BPixPrompt23_V3_MC
+      jec_data: Summer23BPixPrompt23_RunD_V3_DATA
+      jer: Summer23BPixPrompt23_RunD_JRV1_MC
 
   "2024":
-    json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2024_Summer24/jet_jerc.json.gz"
-    jec_mc: Summer24Prompt24_V1_MC
-    jec_data: Summer24Prompt24_V1_DATA
-    jer: Summer23BPixPrompt23_RunD_JRV1_MC  # For the time being the 2023 jers shall be used https://cms-jerc.web.cern.ch/Recommendations/#2024_1
+    AK4PFPuppi:
+      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2024_Summer24/jet_jerc.json.gz"
+      jec_mc: Summer24Prompt24_V1_MC
+      jec_data: Summer24Prompt24_V1_DATA
+      jer: Summer23BPixPrompt23_RunD_JRV1_MC  # For the time being the 2023 jers shall be used https://cms-jerc.web.cern.ch/Recommendations/#2024_1
 

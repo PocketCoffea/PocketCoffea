@@ -635,16 +635,16 @@ def jet_correction_corrlib(
     jec_clib_dict = params["jets_calibration_clib"]
     variations = params.jets_calibration.variations[year][jet_type]
 
-    json_path = jec_clib_dict[year]["json_path"]
+    json_path = jec_clib_dict[year][jet_type]["json_path"]
     jer_tag = None
     if isMC:
-        jec_tag = jec_clib_dict[year]['jec_mc'] 
-        jer_tag = jec_clib_dict[year]['jer']
+        jec_tag = jec_clib_dict[year][jet_type]['jec_mc'] 
+        jer_tag = jec_clib_dict[year][jet_type]['jer']
     else:
-        if type(jec_clib_dict[year]['jec_data'])==str:
-            jec_tag = jec_clib_dict[year]['jec_data']
+        if type(jec_clib_dict[year][jet_type]['jec_data'])==str:
+            jec_tag = jec_clib_dict[year][jet_type]['jec_data']
         else:
-            jec_tag = jec_clib_dict[year]['jec_data'][chunk_metadata["era"]]
+            jec_tag = jec_clib_dict[year][jet_type]['jec_data'][chunk_metadata["era"]]
 
     # no jer and variations applied on data
     apply_jes = True
