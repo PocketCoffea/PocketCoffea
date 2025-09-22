@@ -1,26 +1,26 @@
 pileupJSONfiles:
   2016_PreVFP: 
-    file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2016preVFP_UL/puWeights.json.gz
+    file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2016preVFP_UL/puWeights.json.gz}
     name: Collisions16_UltraLegacy_goldenJSON
   2016_PostVFP: 
-    file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2016postVFP_UL/puWeights.json.gz
+    file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2016postVFP_UL/puWeights.json.gz}
     name: Collisions16_UltraLegacy_goldenJSON
   '2017':
-    file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2017_UL/puWeights.json.gz
+    file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2017_UL/puWeights.json.gz}
     name: Collisions17_UltraLegacy_goldenJSON
   '2018':
-    file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2018_UL/puWeights.json.gz
+    file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2018_UL/puWeights.json.gz}
     name: Collisions18_UltraLegacy_goldenJSON
   2022_preEE: 
-    file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2022_Summer22/puWeights.json.gz
+    file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2022_Summer22/puWeights.json.gz}
     name: Collisions2022_355100_357900_eraBCD_GoldenJson
   2022_postEE: 
-    file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2022_Summer22EE/puWeights.json.gz
+    file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2022_Summer22EE/puWeights.json.gz}
     name: Collisions2022_359022_362760_eraEFG_GoldenJson
   2023_preBPix:
-    file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2023_Summer23/puWeights.json.gz
+    file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2023_Summer23/puWeights.json.gz}
     name: Collisions2023_366403_369802_eraBC_GoldenJson
   2023_postBPix:
-    file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2023_Summer23BPix/puWeights.json.gz
+    file: ${cvmfs:/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2023_Summer23BPix/puWeights.json.gz}
     name: Collisions2023_369803_370790_eraD_GoldenJson
 
