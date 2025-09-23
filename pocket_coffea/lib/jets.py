@@ -261,19 +261,17 @@ def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tag
     jets = events[jet_type]
     cuts = params.object_preselection[jet_type]
 
-    # For 2024 no jetId key in Nano anymore. 
-    # For nanoV12 (i.e. 22/23), jet Id is also buggy, should therefore be rederived... To be done
-    # See https://twiki.cern.ch/twiki/bin/viewauth/CMS/JetID13p6TeV#nanoAOD_Flags
-    jetIdCut = True
-    if "jetId" in jets.fields:
-        jetIdCut = (jets.jetId >= cuts["jetId"])
-    else: print("No JetID cut applied, since key jetId missing in jet collections")
+    # For nanoV15 no jetId key in Nano anymore. 
+    # For nanoV12 (i.e. 22/23), jet Id is also buggy, should therefore be rederived
+    # in the following, if nano_version not explicitly specified in params, v9 is assumed for Run2UL, v12 for 22/23 and v15 for 2024
+    jets["jetId_corrected"] = add_jetId(events, jet_type, params, year)
+    print(jets.jetId_corrected >= cuts["jetId"])
 
     # Mask for  jets not passing the preselection
     mask_presel = (
         (jets.pt > cuts["pt"])
         & (np.abs(jets.eta) < cuts["eta"])
-        & jetIdCut
+        & (jets.jetId_corrected >= cuts["jetId"])
     )
     # Lepton cleaning
     # Only jets that are more distant than dr to ALL leptons are tagged as good jets
@@ -340,6 +338,96 @@ def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tag
 
     return jets[mask_good_jets], mask_good_jets
 
+def add_jetId(events, jet_type, params, year):
+    """
+    Add (or recompute) jet ID to the jets object based on the NanoAOD version.
+    Inspired by https://gitlab.cern.ch/cms-analysis/general/HiggsDNA/-/blob/master/higgs_dna/tools/jetID.py
+    """
+    jets = events[jet_type]
+    try:
+        nano_version = params["nano_version"]
+    except:
+        nano_version = 9
+        if year in ["2022_preEE", "2022_postEE", "2023_preBPix", "2023_postBPix"]: nano_version = 12
+        elif year in ["2024"]: nano_version = 15
+    abs_eta = abs(jets.eta)
+
+    # Return the existing jetId for NanoAOD versions below 12
+    if nano_version < 12:
+        return jets.jetId
+
+    # For NanoAOD version 12 and above, we recompute the jet ID criteria
+    # https://twiki.cern.ch/twiki/bin/viewauth/CMS/JetID13p6TeV
+    elif nano_version == 12:
+        # Default tight
+        passJetIdTight = ak.where(
+            abs_eta <= 2.7,
+            (jets.jetId & (1 << 1)) > 0,  # Tight criteria for abs_eta <= 2.7
+            ak.where(
+                (abs_eta > 2.7) & (abs_eta <= 3.0),
+                ((jets.jetId & (1 << 1)) > 0) & (jets.neHEF < 0.99),  # Tight criteria for 2.7 < abs_eta <= 3.0
+                ((jets.jetId & (1 << 1)) > 0) & (jets.neEmEF < 0.4)  # Tight criteria for 3.0 < abs_eta
+            )
+        )
+
+        # Default tight lepton veto
+        passJetIdTightLepVeto = ak.where(
+            abs_eta <= 2.7,
+            passJetIdTight & (jets.muEF < 0.8) & (jets.chEmEF < 0.8),  # add lepton veto for abs_eta <= 2.7
+            passJetIdTight  # No lepton veto for 2.7 < abs_eta
+        )
+
+        return (passJetIdTight * (1 << 1)) | (passJetIdTightLepVeto * (1 << 2))
+
+    else:
+        # Example code: https://gitlab.cern.ch/cms-nanoAOD/jsonpog-integration/-/blob/master/examples/jetidExample.py?ref_type=heads
+        # Load CorrectionSet
+        jsonFiles = {
+            "2022_preEE": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2022_Summer22/jetid.json.gz",
+            "2022_postEE": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2022_Summer22EE/jetid.json.gz",
+            "2023_preBPix": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2023_Summer23/jetid.json.gz",
+            "2023_postBPix": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2023_Summer23BPix/jetid.json.gz",
+            "2024": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2024_Summer24/jetid.json.gz",
+        }
+        cset = correctionlib.CorrectionSet.from_file(jsonFiles[year])
+
+        counts = ak.num(jets)
+        jets = ak.flatten(jets, axis=1)
+
+        eval_dict = {
+            "eta": jets.eta,
+            "chHEF": jets.chHEF,
+            "neHEF": jets.neHEF,
+            "chEmEF": jets.chEmEF,
+            "neEmEF": jets.neEmEF,
+            "muEF": jets.muEF,
+            "chMultiplicity": jets.chMultiplicity,
+            "neMultiplicity": jets.neMultiplicity,
+            "multiplicity": jets.chMultiplicity + jets.neMultiplicity
+        }
+
+        ## Default tight for NanoAOD version 13 and above
+        jet_algo_mapping = params.jets_calibration.collection[year]
+        jet_algo = next((k for k, v in jet_algo_mapping.items() if v == jet_type), None)
+        if jet_algo==None:
+            raise Exception(f"No mapping jet_type ({jet_type}) -> jet_algo (e.g. AK4PFPuppi) defined for year {year}")
+        jet_algo = jet_algo.replace("PF", "").upper()
+    
+        if jet_algo+"_Tight" not in list(cset.keys()):
+            raise Exception(f"No correction for jet collection {jet_algo} defined in correctionlib file {jsonFiles[year]}")
+        idTight = cset[jet_algo+"_Tight"]
+        inputsTight = [eval_dict[input.name] for input in idTight.inputs]
+        idTight_value = idTight.evaluate(*inputsTight) * 2  # equivalent to bit2
+
+        # Default tight lepton veto
+        idTightLepVeto = cset[jet_algo+"_TightLeptonVeto"]
+        inputsTightLepVeto = [eval_dict[input.name] for input in idTightLepVeto.inputs]
+        idTightLepVeto_value = idTightLepVeto.evaluate(*inputsTightLepVeto) * 4  # equivalent to bit3
+
+        # Default jet ID
+        id_value = idTight_value + idTightLepVeto_value
+
+        return ak.unflatten(id_value, counts)
 
 def jet_selection_nanoaodv12(events, jet_type, params, year, leptons_collection="", jet_tagger=""):
 
