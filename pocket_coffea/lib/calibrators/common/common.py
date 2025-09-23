@@ -34,8 +34,8 @@ class JetsCalibrator(Calibrator):
         # Load the calibration of each jet type requested by the parameters
         for jet_type, jet_coll_name in self.jet_calib_param.collection[self.year].items():
             # Define the key name to get the corrections
-            if "collection_name_map" in self.jet_calib_param and jet_type in self.jet_calib_param.collection_name_map[self.year]:
-                jet_type_key = self.jet_calib_param.collection_name_map[self.year][jet_type]
+            if "collection_name_alias" in self.jet_calib_param and jet_type in self.jet_calib_param.collection_name_alias[self.year]:
+                jet_type_key = self.jet_calib_param.collection_name_alias[self.year][jet_type]
             else:
                 jet_type_key=jet_type
                 
@@ -92,8 +92,8 @@ class JetsCalibrator(Calibrator):
         available_jet_variations = []
         for jet_type in self.jet_calib_param.collection[self.year].keys():
             # Define the key name to get the corrections
-            if "collection_name_map" in self.jet_calib_param and jet_type in self.jet_calib_param.collection_name_map[self.year]:
-                jet_type_key = self.jet_calib_param.collection_name_map[self.year][jet_type]
+            if "collection_name_alias" in self.jet_calib_param and jet_type in self.jet_calib_param.collection_name_alias[self.year]:
+                jet_type_key = self.jet_calib_param.collection_name_alias[self.year][jet_type]
             else:
                 jet_type_key=jet_type
                 
@@ -173,8 +173,8 @@ class JetsPtRegressionCalibrator(JetsCalibrator):
         # Load the calibration of each jet type requested by the parameters
         for jet_type, jet_coll_name in self.jet_calib_param.collection[self.year].items():
             # Define the key name to get the corrections
-            if "collection_name_map" in self.jet_calib_param and jet_type in self.jet_calib_param.collection_name_map[self.year]:
-                jet_type_key = self.jet_calib_param.collection_name_map[self.year][jet_type]
+            if "collection_name_alias" in self.jet_calib_param and jet_type in self.jet_calib_param.collection_name_alias[self.year]:
+                jet_type_key = self.jet_calib_param.collection_name_alias[self.year][jet_type]
             else:
                 jet_type_key=jet_type
                             
@@ -241,8 +241,8 @@ class JetsPtRegressionCalibrator(JetsCalibrator):
         available_jet_variations = []
         for jet_type in self.jet_calib_param.collection[self.year].keys():
             # Define the key name to get the corrections
-            if "collection_name_map" in self.jet_calib_param and jet_type in self.jet_calib_param.collection_name_map[self.year]:
-                jet_type_key = self.jet_calib_param.collection_name_map[self.year][jet_type]
+            if "collection_name_alias" in self.jet_calib_param and jet_type in self.jet_calib_param.collection_name_alias[self.year]:
+                jet_type_key = self.jet_calib_param.collection_name_alias[self.year][jet_type]
             else:
                 jet_type_key=jet_type
                 
