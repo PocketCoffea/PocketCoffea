@@ -29,7 +29,7 @@ def get_ele_scaled_etdependent(ele, json_scale,
                 np.abs(ele_eta_flat), 
                 ele_pt_flat, 
                 ele_gain_flat)
-        elif year == 2024:
+        elif year == "2024":
             scale = evaluator_scale.evaluate(
                 "scale", 
                 ele_runNr_flat, 
