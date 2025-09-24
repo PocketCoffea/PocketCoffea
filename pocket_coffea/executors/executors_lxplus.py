@@ -189,7 +189,7 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
 
         # Handle columns
         columncommand = ""
-        if len(self.config.columns) > 0:
+        if len(self.config.columns) > 0 and "dump_columns_as_arrays_per_chunk" in self.config.workflow_options:
             column_out_dir = self.config.workflow_options["dump_columns_as_arrays_per_chunk"]
             if not os.path.isabs(column_out_dir) and not column_out_dir.startswith(eos_prefix):
                 # If the config contains an absolute path, then the
