@@ -46,7 +46,7 @@ def jet_correction(params, events, jets, factory, jet_type, chunk_metadata, cach
             add_jec_variables(jets, rho, isMC=True), cache
         )
         # update the rawFactor of the corrected jets
-        corrected_jets["rawFactor"] = 1 - corrected_jets.pt_raw / corrected_jets.pt 
+        corrected_jets=ak.with_field(corrected_jets, 1 - corrected_jets.pt_raw / corrected_jets.pt, "rawFactor")
         return corrected_jets
     else:
         if chunk_metadata["era"] not in factory["Data"][jet_type][chunk_metadata["year"]]:
@@ -56,7 +56,7 @@ def jet_correction(params, events, jets, factory, jet_type, chunk_metadata, cach
             add_jec_variables(jets, rho, isMC=False), cache
         )
         # update the rawFactor of the corrected jets
-        corrected_jets["rawFactor"] = 1 - corrected_jets.pt_raw / corrected_jets.pt
+        corrected_jets=ak.with_field(corrected_jets, 1 - corrected_jets.pt_raw / corrected_jets.pt, "rawFactor")
         return corrected_jets
 
 def met_correction_after_jec(events, METcoll, jets_pre_jec, jets_post_jec):
