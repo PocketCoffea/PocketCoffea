@@ -572,6 +572,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
     def process_extra_after_skim(self):
         pass
 
+    def process_extra_after_calibrators(self, variation):
+        pass
+        
     def process_extra_before_presel(self, variation):
         pass
 
@@ -738,6 +741,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self.define_column_accumulators_extra()
 
         for variation in self.loop_over_variations():
+            # Custom code just after calibrations
+            self.process_extra_after_calibrators(variation)
             # Apply preselections
             self.apply_object_preselection(variation)
             self.count_objects(variation)
