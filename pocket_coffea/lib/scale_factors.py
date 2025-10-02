@@ -193,15 +193,21 @@ def get_mu_sf(params, year, pt, eta, counts, key=''):
         raise Exception(f"Muon SF key {key} not recognized")
     
     sfName = muonSF.sf_name[year][key]
+
+    if year in ["2023_preBPix", "2023_postBPix", "2024"]:
+        # Starting from 2023 SFs require non-abs value of eta:
+        eta = eta.to_numpy()
+    else:
+        eta = np.abs(eta.to_numpy())
     
     sf = muon_correctionset[sfName].evaluate(
-        np.abs(eta.to_numpy()), pt.to_numpy(), "nominal"
+        eta, pt.to_numpy(), "nominal"
     )
     sfup = muon_correctionset[sfName].evaluate(
-        np.abs(eta.to_numpy()), pt.to_numpy(), "systup"
+        eta, pt.to_numpy(), "systup"
     )
     sfdown = muon_correctionset[sfName].evaluate(
-        np.abs(eta.to_numpy()), pt.to_numpy(), "systdown"
+        eta, pt.to_numpy(), "systdown"
     )
     
     # The unflattened arrays are returned in order to have one row per event.
