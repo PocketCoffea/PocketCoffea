@@ -625,9 +625,6 @@ def jet_correction_corrlib(
     level="L1L2L3Res",
     jet_coll_name="Jet",
     jec_syst=True,
-    apply_jec=True,
-    apply_jer=True,
-    jer_syst=True,
 ):
     isMC = chunk_metadata["isMC"]
     year = chunk_metadata["year"]
