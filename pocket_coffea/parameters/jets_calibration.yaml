@@ -826,7 +826,7 @@ jets_calibration:
 
 
   rescale_MET_config:
-    20216_PreVFP:
+    2016_PreVFP:
       apply: True
       MET_collection: "MET"
       Jet_collection: "Jet"

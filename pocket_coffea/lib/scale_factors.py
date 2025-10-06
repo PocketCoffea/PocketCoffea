@@ -87,11 +87,11 @@ def get_ele_sf(
     '''
     electronSF = params["lepton_scale_factors"]["electron_sf"]
     # translate the `year` key into the corresponding key in the correction file provided by the EGM-POG
-    year_pog = electronSF["era_mapping"][year]
+    year_pog = electronSF["era_mapping"][year][key]
 
     if key in ['reco', 'id']:
         electron_correctionset = correctionlib.CorrectionSet.from_file(
-            electronSF.JSONfiles[year]["file"]
+            electronSF.JSONfiles[year]["files"][key]
         )
         map_name = electronSF.JSONfiles[year]["name"]
 
@@ -118,15 +118,22 @@ def get_ele_sf(
                 year_pog, "sfdown", sfname, eta_np, pt.to_numpy(), phi.to_numpy()
             )
         else:
+            # limit in pt for 2024 to 1000GeV in electronID.json
+            if year == "2024":
+                pt = np.where(pt.to_numpy()>=1000, 999., pt.to_numpy())
+                eta = np.clip(eta.to_numpy(), -2.49, 2.49)
+            else:
+                pt = pt.to_numpy()
+                eta = eta.to_numpy()
             # All other eras do not need phi:    
             sf = electron_correctionset[map_name].evaluate(
-                year_pog, "sf", sfname, eta.to_numpy(), pt.to_numpy()
+                year_pog, "sf", sfname, eta, pt
             )
             sfup = electron_correctionset[map_name].evaluate(
-                year_pog, "sfup", sfname, eta.to_numpy(), pt.to_numpy()
+                year_pog, "sfup", sfname, eta, pt
             )
             sfdown = electron_correctionset[map_name].evaluate(
-                year_pog, "sfdown", sfname, eta.to_numpy(), pt.to_numpy()
+                year_pog, "sfdown", sfname, eta, pt
             )
         # The unflattened arrays are returned in order to have one row per event.
         return (
@@ -147,7 +154,7 @@ def sf_ele_trigger(params, events, year):
     tuple: (sf, sfup, sfdown) per-event scale factor
     """
     electronSF = params.lepton_scale_factors.electron_sf
-    year_pog = electronSF.era_mapping[year]
+    year_pog = electronSF.era_mapping[year]["trigger"]
     map_name = electronSF.trigger_sf[year].name
     trigger_path = electronSF.trigger_sf[year].path
 
@@ -193,15 +200,21 @@ def get_mu_sf(params, year, pt, eta, counts, key=''):
         raise Exception(f"Muon SF key {key} not recognized")
     
     sfName = muonSF.sf_name[year][key]
+
+    if year in ["2023_preBPix", "2023_postBPix", "2024"]:
+        # Starting from 2023 SFs require non-abs value of eta:
+        eta = eta.to_numpy()
+    else:
+        eta = np.abs(eta.to_numpy())
     
     sf = muon_correctionset[sfName].evaluate(
-        np.abs(eta.to_numpy()), pt.to_numpy(), "nominal"
+        eta, pt.to_numpy(), "nominal"
     )
     sfup = muon_correctionset[sfName].evaluate(
-        np.abs(eta.to_numpy()), pt.to_numpy(), "systup"
+        eta, pt.to_numpy(), "systup"
     )
     sfdown = muon_correctionset[sfName].evaluate(
-        np.abs(eta.to_numpy()), pt.to_numpy(), "systdown"
+        eta, pt.to_numpy(), "systdown"
     )
     
     # The unflattened arrays are returned in order to have one row per event.
@@ -230,6 +243,9 @@ def sf_ele_reco(params, events, year):
     elif year in ["2022_preEE", "2022_postEE", "2023_preBPix", "2023_postBPix"]:
         pt_ranges += [("pt_lt_20", (ele_pt < 20)), 
                       ("pt_gt_20_lt_75", (ele_pt >= 20) & (ele_pt < 75)), 
+                      ("pt_gt_75", (ele_pt >= 75))]
+    elif year in ["2024"]:
+        pt_ranges += [("pt_gt_20_lt_75", (ele_pt >= 20) & (ele_pt < 75)), 
                       ("pt_gt_75", (ele_pt >= 75))]
     else:
         raise Exception("For chosen year "+year+" sf_ele_reco are not implemented yet")
