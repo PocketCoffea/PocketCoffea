@@ -6,7 +6,7 @@ from pocket_coffea.law_tasks.configuration.plotting import (
     plottingconfig,
     plottingsystematicsconfig,
 )
-from pocket_coffea.law_tasks.tasks.base import BaseTask
+from pocket_coffea.law_tasks.tasks.base import BaseTaskWithTest
 from pocket_coffea.law_tasks.tasks.runner import Runner
 from pocket_coffea.law_tasks.utils import (
     exclude_samples_from_plotting,
@@ -52,16 +52,11 @@ class NoMatchingVariableError(Exception):
 
 @luigi.util.inherits(plottingconfig)
 @luigi.util.inherits(Runner)
-class PlotterBase(BaseTask):
+class PlotterBase(BaseTaskWithTest):
     """Base class for plotting tasks"""
 
     def requires(self):
         return Runner.req(self)
-
-    def store_parts(self) -> tuple[str]:
-        if self.test:
-            return super().store_parts() + ("test",)
-        return super().store_parts()
 
     def setup_plot_manager(self):
         inp = self.input()
@@ -82,13 +77,13 @@ class PlotterBase(BaseTask):
         available_variables = list(output_coffea["variables"].keys())
         if self.variables:
             # get variables that should not be plotted
-            vars_to_pop = []
-            for variable in self.variables:
-                vars_to_pop.extend(
-                    filter_items_by_regex(
-                        variable, output_coffea["variables"], match=False
-                    )
-                )
+            output_variables = output_coffea["variables"]
+            vars_to_keep = {
+                key
+                for pattern in self.variables
+                for key in filter_items_by_regex(pattern, output_variables.keys())
+            }
+            vars_to_pop = set(output_variables.keys()) - vars_to_keep
 
             for key in vars_to_pop:
                 output_coffea["variables"].pop(key, None)
@@ -110,6 +105,7 @@ class PlotterBase(BaseTask):
             workers=self.plot_workers,
             log_x=self.log_scale_x,
             log_y=self.log_scale_y,
+            density=self.density,
         )
 
 
@@ -130,7 +126,14 @@ class Plotter(PlotterBase):
     def run(self):
         plot_manager = self.setup_plot_manager()
 
-        plot_manager.plot_datamc_all(syst=self.plot_syst, format=self.plot_format)
+        if self.compare:
+            plot_manager.plot_comparison_all(
+                ratio=not self.no_ratio, format=self.plot_format
+            )
+        else:
+            plot_manager.plot_datamc_all(
+                syst=self.plot_syst, ratio=not self.no_ratio, format=self.plot_format
+            )
 
         # touch output
         self.output().touch()
