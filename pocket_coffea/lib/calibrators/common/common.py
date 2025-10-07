@@ -9,6 +9,7 @@ from pocket_coffea.lib.leptons import (
     get_ele_scaled_etdependent, 
     get_ele_smeared_etdependent
     )
+from pocket_coffea.utils.utils import get_random_seed
 
 
 class JetsCalibratorCorrlib(Calibrator):
@@ -560,7 +561,7 @@ class ElectronsScaleCalibrator(Calibrator):
         # initialize the calibrator
         if not self.enabled:
             return
-        seed = abs(hash(events.metadata['fileuuid'])+events.metadata['entrystart'])
+        seed = get_random_seed(events.metadata, salt="ElectronScaleCalibrator")
         self.electrons = ak.with_field(events.Electron,
                                        events["Electron"]["deltaEtaSC"] + events["Electron"]["eta"],
                                        "etaSC")
