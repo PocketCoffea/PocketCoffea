@@ -21,6 +21,8 @@ def base_path() -> Path:
 
 def test_shape_variations_JEC_run2(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_shape_variations" )
+    if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):
+        os.remove("jets_calibrator_JES_JER_Syst.pkl.gz")
     outputdir = tmp_path_factory.mktemp("test_shape_variations")
     config = load_config("config_JEC_Run2.py", save_config=True, outputdir=outputdir)
     assert isinstance(config, Configurator)
@@ -62,6 +64,8 @@ def test_shape_variations_JEC_run2(base_path: Path, monkeypatch: pytest.MonkeyPa
 
 def test_shape_variations_JEC_run3(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_shape_variations" )
+    if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):
+        os.remove("jets_calibrator_JES_JER_Syst.pkl.gz")
     outputdir = tmp_path_factory.mktemp("test_shape_variations")
     config = load_config("config_JEC_Run3.py", save_config=True, outputdir=outputdir)
     assert isinstance(config, Configurator)
@@ -97,6 +101,8 @@ def test_shape_variations_JEC_run3(base_path: Path, monkeypatch: pytest.MonkeyPa
 
 def test_shape_variations_ele_SS_run3(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_shape_variations" )
+    if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):
+        os.remove("jets_calibrator_JES_JER_Syst.pkl.gz")
     outputdir = tmp_path_factory.mktemp("test_shape_variations")
     config = load_config("config_eleSS_Run3.py", save_config=True, outputdir=outputdir)
     assert isinstance(config, Configurator)
@@ -132,6 +138,8 @@ def test_shape_variations_ele_SS_run3(base_path: Path, monkeypatch: pytest.Monke
 
 def test_shape_variation_default_sequence(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_shape_variations" )
+    if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):
+        os.remove("jets_calibrator_JES_JER_Syst.pkl.gz")
     outputdir = tmp_path_factory.mktemp("test_shape_variations")
     config = load_config("config_allvars_JESall.py", save_config=True, outputdir=outputdir)
     assert isinstance(config, Configurator)
@@ -171,6 +179,8 @@ def test_shape_variation_default_sequence(base_path: Path, monkeypatch: pytest.M
 
 def test_shape_variation_default_sequence_comparison_with_legacy_run2(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_shape_variations" )
+    if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):
+        os.remove("jets_calibrator_JES_JER_Syst.pkl.gz")
     outputdir = tmp_path_factory.mktemp("test_shape_variations")
     config = load_config("config_allvars_Run2.py", save_config=True, outputdir=outputdir)
     assert isinstance(config, Configurator)
@@ -237,7 +247,6 @@ def test_shape_variation_default_sequence_comparison_with_legacy_run2(base_path:
 
     ref_H = ref_output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
     H = output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
-    breakpoint()
     assert np.allclose(ref_H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalDown"}].values() , H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalDown"}].values()),\
           "JES Total Down variation does not match with the reference output"
     
@@ -251,7 +260,9 @@ def test_shape_variation_default_sequence_comparison_with_legacy_run2(base_path:
 
 
 def test_shape_variation_default_sequence_comparison_with_legacy_run3(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
-    monkeypatch.chdir(base_path / "test_shape_variations" )
+    monkeypatch.chdir(base_path / "test_shape_variations")
+    if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):
+        os.remove("jets_calibrator_JES_JER_Syst.pkl.gz")
     outputdir = tmp_path_factory.mktemp("test_shape_variations")
     config = load_config("config_allvars_Run3.py", save_config=True, outputdir=outputdir)
     assert isinstance(config, Configurator)
@@ -309,7 +320,6 @@ def test_shape_variation_default_sequence_comparison_with_legacy_run3(base_path:
 
     ref_H = ref_output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2023_postBPix']
     H = output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2023_postBPix']
-    breakpoint()
     assert np.allclose(ref_H[{"cat":"baseline", "variation":"AK4PFPuppi_JES_TotalDown"}].values() , H[{"cat":"baseline", "variation":"AK4PFPuppi_JES_TotalDown"}].values()),\
           "JES Total Down variation does not match with the reference output"
 
@@ -325,6 +335,8 @@ def test_shape_variation_default_sequence_comparison_with_legacy_run3(base_path:
 @pytest.mark.skip
 def test_shape_variation_JEC_run3_pt_regression(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_shape_variations" )
+    if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):
+        os.remove("jets_calibrator_JES_JER_Syst.pkl.gz")
     outputdir = tmp_path_factory.mktemp("test_shape_variations")
     config = load_config("config_JEC_ptregr.py", save_config=True, outputdir=outputdir)
     assert isinstance(config, Configurator)
