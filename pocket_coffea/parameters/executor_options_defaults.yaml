@@ -37,6 +37,7 @@ condor@lxplus:
   local-virtualenv: false
   max-retries: 3
   split-by-category: false
+  eos-prefix: root://eosuser.cern.ch/
 
 
 dask@T3_CH_PSI:
