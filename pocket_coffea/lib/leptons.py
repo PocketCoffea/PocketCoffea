@@ -123,7 +123,7 @@ def get_ele_smeared_etdependent(mc_ele, jsonFileName, correction_name, isMC, onl
             np.abs(ele_eta_flat),
         )
         smearing_up = rng.normal(loc=1., scale=smear + unc_rho)
-        smearing_down = rng.normal(loc=1., scale=smear - unc_rho)
+        smearing_down = rng.normal(loc=1., scale=np.max(smear - unc_rho,0))
         mc_ele_pt_up = ak.unflatten(smearing_up * ele_pt_flat, counts=ele_counts)
         mc_ele_pt_down = ak.unflatten(smearing_down * ele_pt_flat, counts=ele_counts)
         return {"nominal": mc_ele_pt_corrected_nom,
@@ -160,7 +160,7 @@ def get_ele_smeared(mc_ele, jsonFileName,correction_name, isMC, only_nominal=Tru
             ele_r9_flat
         )
         smearing_up = rng.normal(loc=1., scale=rho + unc_rho)
-        smearing_down = rng.normal(loc=1., scale=rho - unc_rho)
+        smearing_down = rng.normal(loc=1., scale=np.max(rho - unc_rho,0))
         mc_ele_pt_up = ak.unflatten(smearing_up * ele_pt_flat, counts=ele_counts)
         mc_ele_pt_down = ak.unflatten(smearing_down * ele_pt_flat, counts=ele_counts)
         return {"nominal": mc_ele_pt_corrected_nom,
