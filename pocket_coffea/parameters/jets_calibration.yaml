@@ -461,7 +461,7 @@ default_jets_calibration:
           - JES_RelativeBal
           - JES_RelativeSample_2016
           - JER
-        AK8PFPuppi: "${default_jets_calibration.variations.full_variations.2016_PreVFP.AK4PFchs}"
+        #AK8PFPuppi: "${default_jets_calibration.variations.full_variations.2016_PreVFP.AK4PFchs}"
       2016_PostVFP: 
         AK4PFchs:
           - JES_Absolute
@@ -476,7 +476,7 @@ default_jets_calibration:
           - JES_RelativeBal
           - JES_RelativeSample_2016
           - JER
-        AK8PFPuppi: "${default_jets_calibration.variations.full_variations.2016_PostVFP.AK4PFchs}"
+        #AK8PFPuppi: "${default_jets_calibration.variations.full_variations.2016_PostVFP.AK4PFchs}"
       "2017": 
         AK4PFchs:          
           - JES_Absolute
@@ -491,7 +491,7 @@ default_jets_calibration:
           - JES_RelativeBal
           - JES_RelativeSample_2017
           - JER
-        AK8PFPuppi: "${default_jets_calibration.variations.full_variations.2017.AK4PFchs}"
+        #AK8PFPuppi: "${default_jets_calibration.variations.full_variations.2017.AK4PFchs}"
   
       "2018": 
         AK4PFchs:
@@ -507,7 +507,7 @@ default_jets_calibration:
           - JES_RelativeBal
           - JES_RelativeSample_2018
           - JER
-        AK8PFPuppi: "${default_jets_calibration.variations.full_variations.2018.AK4PFchs}"
+        #AK8PFPuppi: "${default_jets_calibration.variations.full_variations.2018.AK4PFchs}"
 
       2022_preEE:
         AK4PFPuppi: 
