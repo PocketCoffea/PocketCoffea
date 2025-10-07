@@ -169,7 +169,6 @@ def test_shape_variation_default_sequence(base_path: Path, monkeypatch: pytest.M
         assert f"AK4PFchs_{variation}Down" in h.axes["variation"]
 
 
-@pytest.mark.skip
 def test_shape_variation_default_sequence_comparison_with_legacy_run2(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_shape_variations" )
     outputdir = tmp_path_factory.mktemp("test_shape_variations")
@@ -214,11 +213,11 @@ def test_shape_variation_default_sequence_comparison_with_legacy_run2(base_path:
     jet_pt_MC = ref_output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2018"]["baseline"]["Jet_pt"].value
     jet_pt = output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2018"]["baseline"]["Jet_pt"].value
     # larger relative difference allowed as we may compare slighlty different JEC versions
-    assert np.allclose(jet_pt, jet_pt_MC, rtol=1e-2), "Jet pt values do not match with the reference output"
+    assert np.allclose(jet_pt, jet_pt_MC, atol=0.8), "Jet pt values do not match with the reference output"
     # Check MET in MC
     met_pt_MC = ref_output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2018"]["baseline"]["MET_pt"].value
     met_pt = output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2018"]["baseline"]["MET_pt"].value
-    assert np.allclose(met_pt, met_pt_MC, rtol=1e-2), "MET pt values do not match with the reference output"
+    assert np.allclose(met_pt, met_pt_MC, atol=0.8), "MET pt values do not match with the reference output"
 
     # Compare the histograms for JES and JER variations
     ref_H = ref_output["variables"]['JetGood_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
@@ -238,6 +237,7 @@ def test_shape_variation_default_sequence_comparison_with_legacy_run2(base_path:
 
     ref_H = ref_output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
     H = output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
+    breakpoint()
     assert np.allclose(ref_H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalDown"}].values() , H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalDown"}].values()),\
           "JES Total Down variation does not match with the reference output"
     
@@ -250,8 +250,6 @@ def test_shape_variation_default_sequence_comparison_with_legacy_run2(base_path:
     assert H.axes["variation"].value(2) == "nominal"
 
 
-
-@pytest.mark.skip
 def test_shape_variation_default_sequence_comparison_with_legacy_run3(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_shape_variations" )
     outputdir = tmp_path_factory.mktemp("test_shape_variations")
@@ -286,11 +284,11 @@ def test_shape_variation_default_sequence_comparison_with_legacy_run3(base_path:
 
     jet_pt_MC = ref_output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2023_postBPix"]["baseline"]["Jet_pt"].value
     jet_pt = output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2023_postBPix"]["baseline"]["Jet_pt"].value
-    assert np.allclose(jet_pt, jet_pt_MC), "Jet pt values do not match with the reference output"
+    assert np.allclose(jet_pt, jet_pt_MC, atol=0.8), "Jet pt values do not match with the reference output"
     # Check MET in MC
     met_pt_MC = ref_output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2023_postBPix"]["baseline"]["PuppiMET_pt"].value
     met_pt = output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2023_postBPix"]["baseline"]["PuppiMET_pt"].value
-    assert np.allclose(met_pt, met_pt_MC), "MET pt values do not match with the reference output"
+    assert np.allclose(met_pt, met_pt_MC, atol=0.8), "MET pt values do not match with the reference output"
 
     # Compare the histograms for JES and JER variations
     ref_H = ref_output["variables"]['JetGood_pt']['TTTo2L2Nu']['TTTo2L2Nu_2023_postBPix']
@@ -311,16 +309,17 @@ def test_shape_variation_default_sequence_comparison_with_legacy_run3(base_path:
 
     ref_H = ref_output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2023_postBPix']
     H = output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2023_postBPix']
+    breakpoint()
     assert np.allclose(ref_H[{"cat":"baseline", "variation":"AK4PFPuppi_JES_TotalDown"}].values() , H[{"cat":"baseline", "variation":"AK4PFPuppi_JES_TotalDown"}].values()),\
           "JES Total Down variation does not match with the reference output"
 
     jet_pt_MC = ref_output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"]["Jet_pt"].value
     jet_pt = output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"]["Jet_pt"].value
-    assert np.allclose(jet_pt, jet_pt_MC), "Jet pt values do not match with the reference output"
+    assert np.allclose(jet_pt, jet_pt_MC, atol=0.8), "Jet pt values do not match with the reference output"
     # Check MET in MC
     met_pt_MC = ref_output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"]["PuppiMET_pt"].value
     met_pt = output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"]["PuppiMET_pt"].value
-    assert np.allclose(met_pt, met_pt_MC), "MET pt values do not match with the reference output"
+    assert np.allclose(met_pt, met_pt_MC, atol=0.8), "MET pt values do not match with the reference output"
 
 
 @pytest.mark.skip

@@ -457,6 +457,7 @@ def jet_correction_corrlib(
     chunk_metadata,
     level="L1L2L3Res",
     jet_coll_name="Jet",
+    apply_jer=True,
     jec_syst=True,
 ):
     isMC = chunk_metadata["isMC"]
@@ -478,13 +479,14 @@ def jet_correction_corrlib(
 
     # no jer and variations applied on data
     apply_jes = True
-    apply_jer = jes_syst = jer_syst = False
+    jes_syst = jer_syst = False
     if isMC:
-        apply_jer=True
         if jec_syst:
             jes_syst = True
             if "JER" in variations:
                 jer_syst = True
+    else:
+        apply_jer = False
 
     tag_jec = "_".join([jec_tag, level, jet_type])
 

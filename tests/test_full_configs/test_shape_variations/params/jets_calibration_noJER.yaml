@@ -4,6 +4,30 @@ jets_calibration:
         AK4PFchs:   "${default_jets_calibration.factory_configuration_MC.AK4PFchs.JES_noJER}" 
         AK4PFPuppi: "${default_jets_calibration.factory_configuration_MC.AK4PFPuppi.JES_noJER}" 
 
+  apply_jer_MC:  # this is needed to know which collection is corrected with which jet factory
+    2016_PreVFP: 
+      AK4PFchs: False
+      AK8PFPuppi: False
+    2016_PostVFP: 
+      AK4PFchs: False
+      AK8PFPuppi: False
+    "2017": 
+      AK4PFchs: False
+      AK8PFPuppi: False
+    "2018": 
+      AK4PFchs: False
+      AK8PFPuppi: False
+    2022_preEE: 
+      AK4PFPuppi: False
+    2022_postEE: 
+      AK4PFPuppi: False
+    2023_preBPix: 
+      AK4PFPuppi: False
+    2023_postBPix: 
+      AK4PFPuppi: False
+    "2024": 
+      AK4PFPuppi: False
+
   variations: 
     2016_PreVFP: 
       AK4PFchs: 

@@ -746,6 +746,40 @@ jets_calibration:
       AK4PFPuppiPNetRegression: True
       AK4PFPuppiPNetRegressionPlusNeutrino: True
 
+  apply_jer_MC:  # this is needed to know which collection is corrected with which jet factory
+    2016_PreVFP: 
+      AK4PFchs: True
+      AK8PFPuppi: True
+    2016_PostVFP: 
+      AK4PFchs: True
+      AK8PFPuppi: True
+    "2017": 
+      AK4PFchs: True
+      AK8PFPuppi: True
+    "2018": 
+      AK4PFchs: True
+      AK8PFPuppi: True
+    2022_preEE: 
+      AK4PFPuppi: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+    2022_postEE: 
+      AK4PFPuppi: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+    2023_preBPix: 
+      AK4PFPuppi: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+    2023_postBPix: 
+      AK4PFPuppi: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+    "2024": 
+      AK4PFPuppi: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+
   apply_jec_Data:  # this is needed to know which collection is corrected with which jet factory
     2016_PreVFP: 
       AK4PFchs: False
