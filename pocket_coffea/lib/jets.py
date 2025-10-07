@@ -593,8 +593,8 @@ def jet_correction_corrlib(
         # loop over all JES variations
         jes_strings = [s[4:] for s in variations if s.startswith("JES")]
         for jes_vari in jes_strings:
-            # get the total uncertainty
-            tag_jec_syst = "_".join([jec_tag, "Regrouped" ,jes_vari, jet_type])
+            # If Regrouped variations are wanted, the Regrouped_ name must be used in the config
+            tag_jec_syst = "_".join([jec_tag, jes_vari, jet_type])
             try:
                 sf = cset[tag_jec_syst]
             except:
