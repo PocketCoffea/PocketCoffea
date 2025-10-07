@@ -891,7 +891,7 @@ jets_calibration_clib:
   2016_PostVFP:
     AK4PFchs:
       json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2016postVFP_UL/jet_jerc.json.gz"
-      jec_mc: Summer19UL16APV_V7_MC
+      jec_mc: Summer19UL16_V7_MC
       jec_data: Summer19UL16_RunFGH_V7_DATA
       jer: Summer20UL16_JRV3_MC
     AK8PFPuppi:
@@ -937,7 +937,7 @@ jets_calibration_clib:
     AK4PFPuppi:
       json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2022_Summer22/jet_jerc.json.gz"
       jec_mc: Summer22_22Sep2023_V2_MC
-      jec_data: Summer22_22Sep2023_RunCD_V2_DATA
+      jec_data: Summer22_22Sep2023_RunCD_V3_DATA
       jer: Summer22_22Sep2023_JRV1_MC
 
   2022_postEE:
@@ -961,7 +961,7 @@ jets_calibration_clib:
     AK4PFPuppi:
       json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2023_Summer23BPix/jet_jerc.json.gz"
       jec_mc: Summer23BPixPrompt23_V3_MC
-      jec_data: Summer23BPixPrompt23_RunD_V3_DATA
+      jec_data: Summer23BPixPrompt23_V3_DATA
       jer: Summer23BPixPrompt23_RunD_JRV1_MC
 
   "2024":
