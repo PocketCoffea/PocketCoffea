@@ -22,7 +22,7 @@ class JetsCalibratorCorrlib(Calibrator):
     this calibrator will raise an exception if configured to apply pT regression.
     """
     
-    name = "jet_calibration_corrlib"
+    name = "jet_calibration"
     has_variations = True
     isMC_only = False
 
@@ -77,7 +77,8 @@ class JetsCalibratorCorrlib(Calibrator):
                     "isMC": self.metadata["isMC"],
                     "era": self.metadata["era"] if "era" in self.metadata else None,
                 },
-                jec_syst=self.do_variations
+                jec_syst=self.do_variations,
+                apply_jer=self.jet_calib_param.apply_jer_MC[self.year][jet_type] if self.isMC else False,
             )
             
             # Add to the list of the types calibrated
@@ -155,7 +156,7 @@ class JetsCalibrator(Calibrator):
     this calibrator will raise an exception if configured to apply pT regression.
     """
     
-    name = "jet_calibration"
+    name = "jet_calibration_legacy"
     has_variations = True
     isMC_only = False
 
@@ -634,5 +635,5 @@ class MuonsCalibrator(Calibrator):
 
 #########################################
 default_calibrators_sequence = [
-    JetsCalibrator, METCalibrator, ElectronsScaleCalibrator
+    JetsCalibratorCorrlib, METCalibrator, ElectronsScaleCalibrator
 ]
