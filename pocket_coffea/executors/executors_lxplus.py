@@ -69,11 +69,11 @@ class DaskExecutorFactory(ExecutorFactoryABC):
         if "lxplus" not in socket.gethostname():
                 raise Exception("Trying to run with dask/lxplus not at CERN! Please try different runner options")
 
-        print(">> Creating dask-lxplus cluster")
-        n_port = 8786  #hardcoded by dask-cluster
-        if not check_port(8786):
+        n_port = self.run_options.get("dask-scheduler-port", 8786)
+        print(">> Creating dask-lxplus cluster transmitting on port:", n_port)
+        if not check_port(n_port):
             raise RuntimeError(
-                "Port '8786' is already occupied on this node. Try another machine."
+                f"Port '{n_port}' is already occupied on this node. Change the port or try a different machine."
             )
         # Creating a CERN Cluster, special configuration for dask-on-lxplus
         log_folder = "condor_log"
