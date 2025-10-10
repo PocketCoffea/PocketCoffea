@@ -986,8 +986,8 @@ jets_calibration_clib:
     AK4PFPuppi:
       json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2023_Summer23BPix/jet_jerc.json.gz"
       jec_mc: Summer23BPixPrompt23_V3_MC
-      jec_data: Summer23BPixPrompt23_RunD_V3_DATA
-      jer: Summer23BPixPrompt23_RunD_JRV1_MC
+      jec_data: Summer23BPixPrompt23_V3_DATA
+      jer: Summer23BPixPrompt23_JRV1_MC
 
   "2024":
     AK4PFPuppi:
