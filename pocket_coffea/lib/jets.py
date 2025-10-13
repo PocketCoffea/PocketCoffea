@@ -321,7 +321,7 @@ def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tag
     elif jet_type == "FatJet":
         # Apply the msd and preselection cuts
         mask_msd = events.FatJet.msoftdrop > cuts["msd"]
-        mask_good_jets = mask_presel & mask_msd
+        mask_good_jets = mask_presel & mask_msd & mask_lepton_cleaning
 
         if jet_tagger != "":
             if "PNetMD" in jet_tagger:
