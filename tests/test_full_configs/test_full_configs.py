@@ -14,6 +14,8 @@ import awkward as ak
 import hist
 from coffea.nanoevents import NanoEventsFactory, NanoAODSchema
 
+from scipy.stats import binom
+
 @pytest.fixture
 def base_path() -> Path:
     """Get the current folder of the test"""
@@ -109,6 +111,78 @@ def test_custom_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_pa
 
     compare_totalweight(output, ["nJetGood"])
 
+
+def test_delayed_eval(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
+    """
+    Test the delayed evaluation of branches.
+
+    This test defines a parity branch that is only computed for events ending up in histograms.
+    The branch is initialized to -1 for all events. It is then set to 0 for event events
+    and 1 to odd events. This test defines a region based off of the parity, calculated
+    at a different stage in the workflow. It then histograms the delayed parity branch
+    for each region and confirms that only the appropriate histogram bins are non-zero.
+
+    It also defines a systematic weight based on the parity branch. It then confirms that
+    the branch has been correctly defined at this stage.
+
+    In total, this test checks that the delayed branch is always calculated for passing
+    events and that it is calculated in time to define weights and fill histograms.
+
+    """
+    monkeypatch.chdir(base_path / "test_delayed_eval" )
+    outputdir = tmp_path_factory.mktemp("test_delayed_eval")
+    config = load_config("config.py", save_config=True, outputdir=outputdir)
+    assert isinstance(config, Configurator)
+
+    run_options = defaults.get_default_run_options()["general"]
+    run_options["limit-files"] = 1
+    run_options["limit-chunks"] = 1
+    run_options["chunksize"] = 500
+    config.filter_dataset(run_options["limit-files"])
+
+    executor_factory = executors_lib.get_executor_factory("iterative",
+                                                          run_options=run_options,
+                                                          outputdir=outputdir)
+
+    executor = executor_factory.get()
+
+    run = Runner(
+        executor=executor,
+        chunksize=run_options["chunksize"],
+        maxchunks=run_options["limit-chunks"],
+        schema=processor.NanoAODSchema,
+        format="root"
+    )
+    output = run(config.filesets, treename="Events",
+                 processor_instance=config.processor_instance)
+    save(output, outputdir / "output_all.coffea")
+
+
+    assert output is not None
+
+
+    H = output["variables"]["Parity"]["TTTo2L2Nu"]["TTTo2L2Nu_2018"]
+    for cat in ["2jets_even", "2jets_odd"]:
+        for key in H.axes["variation"]:
+            histValues = H[{"cat":cat, "variation":key}].values()
+            print(cat, key, histValues)
+            assert histValues[0] == 0 # Parity should not stay -1 if the events pass
+            if("even" in cat):
+                assert histValues[1] > 0 # Parity should be 0 if the events pass the even_event cut
+                assert histValues[2] == 0
+            else:
+                assert histValues[1] == 0 # Parity should be 1 if the events pass the odd_event cut
+                assert histValues[2] > 0
+        nomHistValues = H[{"cat":cat, "variation":"nominal"}].values()
+        parityVarHistValuesUp = H[{"cat":cat, "variation":"parity_weightUp"}].values()
+        parityVarHistValuesDown = H[{"cat":cat, "variation":"parity_weightDown"}].values()
+        print("Nominal", nomHistValues)
+        print("Parity weight Up", parityVarHistValuesUp)
+        print("Parity weight Down", parityVarHistValuesDown)
+        for x in range(3):
+            assert parityVarHistValuesUp[x] == nomHistValues[x]
+            assert parityVarHistValuesDown[x] ==  nomHistValues[x]
+    
 
     
 def test_custom_weights_on_data(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
@@ -284,7 +358,6 @@ def test_skimming(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_fac
 
     # Now we compare the total sumgenweight of this output with the previous one
     assert np.isclose(output["sum_genweights"]["TTTo2L2Nu_2018"], output2["sum_genweights"]["TTTo2L2Nu_2018"])
-
 
 ## Very difficult to test in the CDCI, disabled
 """
@@ -464,4 +537,3 @@ def test_columns_export_parquet(base_path: Path, monkeypatch: pytest.MonkeyPatch
     
     assert "JetGood_pt" in dataset.fields
     assert ak.all(ak.num(dataset.JetGood_pt, axis=1) >= 4)
- 
