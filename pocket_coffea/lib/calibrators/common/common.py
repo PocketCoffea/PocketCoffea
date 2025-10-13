@@ -376,6 +376,173 @@ class JetsPtRegressionCalibrator(JetsCalibrator):
         return jets_regressed, reg_mask_unflatten
 
 
+class JetsForType1METCalibrator(Calibrator):
+    """
+    This calibator applies the JEC to the jets and their uncertainties. 
+    The set of calibrations to be applied is defined in the parameters file under the 
+    `jets_calibration.collection` section.
+    All the jet types that have apply_jec_MC or apply_jec_Data set to True will be calibrated.
+    If the pT regression is requested for a jet type, it should be done by the JetsPtRegressionCalibrator, 
+    this calibrator will raise an exception if configured to apply pT regression.
+    """
+    
+    name = "jet_type1_met_calibration"
+    has_variations = True
+    isMC_only = False
+
+    def __init__(self, params, metadata, jme_factory, **kwargs):
+        super().__init__(params, metadata, **kwargs)
+        self.jme_factory = jme_factory
+        self._year = metadata["year"]
+        self.met_calib_param = self.params.MET_calibration
+        self.caches = [] 
+        self.jets_calibrated = {}
+        self.jets_calibrated_types = []
+        # It is filled dynamically in the initialize method
+        self.calibrated_collections = []
+        self.jets_muon_subtr_collections=[]
+
+    def initialize(self, events):
+        
+        # get the jet collection to correct the MET
+        jet_collections=set(self.jet_calib_param.collection[self.year].values())
+        
+        # add the low pt jets
+        if any(self.jet_calib_param.add_low_pt_jets[self.year].values()):
+            events["CorrT1METJet"]=self.get_low_pt_jets(events)
+            jet_collections.add("CorrT1METJet")
+            
+        for jet_coll in jet_collections:
+            jet_coll_subtr_muon=f"{jet_coll}MuonSubtr"
+            # Subtract the muon contribution from the four-vector of the jet
+            events[jet_coll_subtr_muon] = ak.with_field(
+                    events[jet_coll],
+                    1
+                    - (
+                        (1 - events[jet_coll].rawFactor)
+                        * (1 - events[jet_coll].muonSubtrFactor)
+                    ),
+                    "rawFactor",
+                )
+                
+            if "muonSubtrDeltaEta" in events[jet_coll_subtr_muon].fields:
+                events[jet_coll_subtr_muon] = ak.with_field(
+                    events[jet_coll_subtr_muon],
+                    events[jet_coll_subtr_muon].muonSubtrDeltaEta + events[jet_coll_subtr_muon].eta,
+                    "eta",
+                )
+                
+            if "muonSubtrDeltaPhi" in events[jet_coll_subtr_muon].fields:
+                events[jet_coll_subtr_muon] = ak.with_field(
+                    events[jet_coll_subtr_muon],
+                    events[jet_coll_subtr_muon].muonSubtrDeltaPhi + events[jet_coll_subtr_muon].phi,
+                    "phi",
+                )
+                
+            # compute EmEF for the jets
+            if "EmEF" not in events[jet_coll_subtr_muon].fields:
+                self.events[jet_coll_subtr_muon] = ak.with_field(
+                    self.events[jet_coll_subtr_muon],
+                    self.events[jet_coll_subtr_muon].chEmEF + self.events[jet_coll_subtr_muon].neEmEF,
+                    "EmEF",
+                )
+            self.jets_muon_subtr_collections.append(jet_coll_subtr_muon)
+            
+        # TODO how do i apply the JEC?
+        
+    def get_low_pt_jets(self, events):
+        # consider the lowpt jets collection for type 1 met correction
+        jet_low_pt = ak.copy(events["CorrT1METJet"])
+        jet_low_pt = ak.with_field(
+            jet_low_pt,
+            jet_low_pt.rawPt,
+            "pt",
+        )
+        jet_low_pt = ak.with_field(
+            jet_low_pt,
+            ak.zeros_like(jet_low_pt.pt, dtype=np.float32),
+            "mass",
+        )
+        jet_low_pt = ak.with_field(
+            jet_low_pt,
+            ak.zeros_like(jet_low_pt.pt, dtype=np.float32),
+            "rawFactor",
+        )
+        jet_low_pt = ak.with_field(
+            jet_low_pt,
+            ak.ones_like(jet_low_pt.pt, dtype=np.float32),
+            "PNetRegPtRawCorr",
+        )
+        jet_low_pt = ak.with_field(
+            jet_low_pt,
+            ak.ones_like(jet_low_pt.pt, dtype=np.float32),
+            "PNetRegPtRawCorrNeutrino",
+        )
+        jet_low_pt = ak.with_field(
+            jet_low_pt,
+            ak.zeros_like(jet_low_pt.pt, dtype=np.float32) - 1,
+            "btagPNetB",
+        )
+        jet_low_pt = ak.with_field(
+            jet_low_pt,
+            ak.zeros_like(jet_low_pt.pt, dtype=np.float32) - 1,
+            "btagPNetCvL",
+        )
+        # TODO: add the upart regression
+        
+        if "EmEF" not in jet_low_pt.fields:
+            # EmEF is needed for the jet cleaning in the type1 met correction
+            jet_low_pt = ak.with_field(
+                jet_low_pt,
+                ak.zeros_like(jet_low_pt.pt, dtype=np.float32) - 1,
+                "EmEF",
+            )
+            
+        fields_dict = {field: getattr(jet_low_pt, field) for field in jet_low_pt.fields}
+        jet_low_pt = ak.zip(
+            fields_dict,
+            with_name="Momentum4D",
+        )
+
+        return jet_low_pt
+
+
+    def calibrate(self, events, orig_colls, variation, already_applied_calibrators=None):
+        # The values have been already calculated in the initialize method
+        # We just need to apply the corrections to the events
+        out = {}
+        if variation == "nominal" or variation not in self._variations:
+            # If the variation is nominal or not in the list of variations, we return the nominal values
+            for jet_coll_name, jets in self.jets_calibrated.items():
+                out[jet_coll_name] = jets
+        else:
+            # get the jet type from the variation name
+            variation_parts = variation.split("_")
+            jet_type = variation_parts[0]
+            if jet_type not in self.jet_calib_param.collection[self.year]:
+                raise ValueError(f"Jet type {jet_type} not found in the parameters for year {self.year}.")
+            # get the variation type from the variation name
+            if variation.endswith("Up"):
+                variation_type = "_".join(variation_parts[1:])[:-2]  # remove 'Up'
+                direction = "up"
+            elif variation.endswith("Down"):
+                variation_type = "_".join(variation_parts[1:])[:-4]  # remove 'Down'
+                direction = "down"
+            else:
+                raise ValueError(f"JET Variation {variation} is not recognized. It should end with 'Up' or 'Down'.")
+           
+            # get the jet collection name from the parameters
+            jet_coll_name = self.jet_calib_param.collection[self.year][jet_type]
+            if jet_coll_name not in self.jets_calibrated:
+                raise ValueError(f"Jet collection {jet_coll_name} not found in the calibrated jets.")
+            # Apply the variation to the jets
+            if direction == "up":
+                out[jet_coll_name] = self.jets_calibrated[jet_coll_name][variation_type].up
+            elif direction == "down":
+                out[jet_coll_name] = self.jets_calibrated[jet_coll_name][variation_type].down
+            
+        return out
+
 ###########################################
 class METCalibrator(Calibrator):
 
@@ -435,6 +602,8 @@ class Type1METCalibrator(Calibrator):
        
     def initialize(self, events):
         pass
+        # if self.jet_calib_param.apply_type1_correction[self.year][met_coll] == False:
+        #     continue
 
     def calibrate(self, events, orig_colls, variation, already_applied_calibrators=None):
         '''The MET calibrator applies the difference from the uncalibrated Jets and the calibrated Jets after JEC to the MET collection.
