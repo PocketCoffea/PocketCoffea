@@ -230,6 +230,10 @@ class WeightsManager:
 
         _weightsCache.clear()
 
+    def get_available_weights(self):
+        """Return a list of the available weights of the WeightsManager."""
+        return self._available_weights
+
     def get_available_modifiers_byweight(self, weight:str):
         '''
         Return the available modifiers for the specific weight.
