@@ -378,19 +378,18 @@ class Datacard:
             dataset
         ].axes[-1]
 
+        processes_names = [
+            f"{process_name}_{year}"
+            for process_name, process in processes.items()
+            for year in process.years
+        ]
         if is_data:
-            processes_names = processes.keys()
             new_histogram = hist.Hist(
                 hist.axis.StrCategory(processes_names, name="process"),
                 variable_axis,
                 storage=hist.storage.Weight(),
             )
         else:
-            processes_names = [
-                f"{process_name}_{year}"
-                for process_name, process in processes.items()
-                for year in process.years
-            ]
             new_histogram = hist.Hist(
                 hist.axis.StrCategory(processes_names, name="process"),
                 hist.axis.StrCategory(self.shape_variations, name="variation"),
@@ -401,19 +400,12 @@ class Datacard:
 
         for process in processes.values():
             for sample in process.samples:
-                # data processes do not have attribute years
-                years = process.years if not is_data else [None]
+                years = process.years
                 for year in years:
-                    if is_data:
-                        assert year is None, "Data process should not have a year"
-                        process_index = new_histogram.axes["process"].index(
-                            process.name
-                        )
-                    else:
-                        assert year is not None, "MC process should have a year"
-                        process_index = new_histogram.axes["process"].index(
-                            f"{process.name}_{year}"
-                        )
+                    assert year is not None, "Processes should have a year"
+                    process_index = new_histogram.axes["process"].index(
+                        f"{process.name}_{year}"
+                    )
                     for dataset in self.get_datasets_by_sample(sample, year):
                         if self.is_empty_dataset(dataset):
                             continue
@@ -476,12 +468,8 @@ class Datacard:
             processes = self.mc_processes
         new_histograms = dict()
         for process in processes.values():
-            years = process.years if not is_data else [None]
-            for year in years:
-                if is_data:
-                    process_name_byyear = process.name
-                else:
-                    process_name_byyear = f"{process.name}_{year}"
+            for year in process.years:
+                process_name_byyear = f"{process.name}_{year}"
                 if is_data:
                     # create new 1d histogram
                     new_histogram = hist.Hist(
