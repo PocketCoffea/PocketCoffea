@@ -64,6 +64,7 @@ class Datacard:
         bins_edges: list[float] = None,
         bin_prefix: str = None,
         bin_suffix: str = None,
+        verbose: bool = True,
     ) -> None:
         """Initialize the Datacard."""
 
@@ -79,6 +80,7 @@ class Datacard:
         self.category = category
         self.bin_prefix = bin_prefix
         self.bin_suffix = bin_suffix
+        self.verbose = verbose
         if self.bin_suffix is None:
             self.bin_suffix = "_".join(self.years)
         self.number_width = 10
@@ -294,10 +296,11 @@ class Datacard:
                     for dataset in self.get_datasets_by_sample(sample, year):
                         if dataset not in self.histograms[sample]:
                             if self.is_empty_dataset(dataset):
-                                print(
-                                    f"Sample {sample} for dataset {dataset} has 0 events in category `presel`. "
-                                    f"Skipping this dataset."
-                                )
+                                if self.verbose:
+                                    print(
+                                        f"Sample {sample} for dataset {dataset} has 0 events in category `presel`. "
+                                        f"Skipping this dataset."
+                                    )
                                 continue
                             else:
                                 raise ValueError(
@@ -308,7 +311,7 @@ class Datacard:
                             missing_systematics = set(available_variations) - set(
                                 self.histograms[sample][dataset].axes["variation"]
                             )
-                            if missing_systematics:
+                            if missing_systematics and self.verbose:
                                 print(
                                     f"Sample {sample} for dataset {dataset} is missing the following "
                                     f"systematics: {missing_systematics}"
