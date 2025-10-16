@@ -371,25 +371,28 @@ class Datacard:
         )
 
         # Extract variable axis from the first dataset
-        dataset = list(
-            self.get_datasets_by_sample(list(processes.values())[0].samples[0])
-        )[0]
-        variable_axis = self.histograms[list(processes.values())[0].samples[0]][
-            dataset
-        ].axes[-1]
+        sample = list(processes.values())[0].samples[0]
+        datasets = list(self.get_datasets_by_sample(sample))
+        for dataset in datasets:
+            if not dataset in self.histograms[sample]:
+                continue
+            else:
+                variable_axis = self.histograms[sample][dataset].axes[-1]
+                break
 
-        processes_names = [
-            f"{process_name}_{year}"
-            for process_name, process in processes.items()
-            for year in process.years
-        ]
         if is_data:
+            processes_names = ["data_obs"]  # For data, we use a single process name without year
             new_histogram = hist.Hist(
                 hist.axis.StrCategory(processes_names, name="process"),
                 variable_axis,
                 storage=hist.storage.Weight(),
             )
         else:
+            processes_names = [
+                f"{process_name}_{year}"
+                for process_name, process in processes.items()
+                for year in process.years
+            ]
             new_histogram = hist.Hist(
                 hist.axis.StrCategory(processes_names, name="process"),
                 hist.axis.StrCategory(self.shape_variations, name="variation"),
@@ -403,18 +406,17 @@ class Datacard:
                 years = process.years
                 for year in years:
                     assert year is not None, "Processes should have a year"
-                    process_index = new_histogram.axes["process"].index(
-                        f"{process.name}_{year}"
-                    )
                     for dataset in self.get_datasets_by_sample(sample, year):
                         if self.is_empty_dataset(dataset):
                             continue
                         histogram = self.histograms[sample][dataset]
                         if is_data:
+                            process_index = new_histogram.axes["process"].index("data_obs")
                             new_histogram_view[process_index, :] += histogram[
                                 self.category, :
                             ].view()
                         else:
+                            process_index = new_histogram.axes["process"].index(f"{process.name}_{year}")
                             # Save nominal variation
                             variation_index_nominal = new_histogram.axes[
                                 "variation"
@@ -469,8 +471,8 @@ class Datacard:
         new_histograms = dict()
         for process in processes.values():
             for year in process.years:
-                process_name_byyear = f"{process.name}_{year}"
                 if is_data:
+                    process_name_byyear = f"{process.name}"
                     # create new 1d histogram
                     new_histogram = hist.Hist(
                         histogram.axes[-1],
@@ -480,6 +482,7 @@ class Datacard:
                     new_histogram_view[:] = histogram[process_name_byyear, :].view()
                     new_histograms[f"{process_name_byyear}_nominal"] = new_histogram
                 else:
+                    process_name_byyear = f"{process.name}_{year}"
                     # Save nominal shape
                     new_histogram = hist.Hist(
                         histogram.axes[-1],
@@ -562,9 +565,10 @@ class Datacard:
         # rates
         content += "rate".ljust(self.adjust_first_column)
         content += "".join(
-            f"{self.rate(process)}"[: self.number_width].ljust(self.adjust_columns)
-            for process in self.mc_processes.signal_processes
-            + self.mc_processes.background_processes
+            f"{self.rate(f'{process.name}_{year}')}"[: self.number_width].ljust(self.adjust_columns)
+            for process in self.mc_processes.values()
+            for year in process.years
+            if not process.is_data
         )
         content += self.linesep
         return content
