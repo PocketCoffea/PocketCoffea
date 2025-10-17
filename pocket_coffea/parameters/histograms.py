@@ -10,7 +10,7 @@ default_axis_settings = {
         "start": 0,
         'stop': 150,
         "lim": (0, 150),
-        'label': "$p_{T}^{\mu}$ [GeV]",
+        'label': r"$p_{T}^{\mu}$ [GeV]",
     },
     'muon_eta': {
         "field": "eta",
@@ -18,7 +18,7 @@ default_axis_settings = {
         "start": -2.5,
         'stop': 2.5,
         "lim": (-2.5, 2.5),
-        'label': "$\eta_{\mu}$",
+        'label': r"$\eta_{\mu}$",
     },
     'muon_phi': {
         "field": "phi",
@@ -26,7 +26,7 @@ default_axis_settings = {
         "start": -math.pi,
         'stop': math.pi,
         "lim": (-math.pi, math.pi),
-        'label': "$\phi_{\mu}$",
+        'label': r"$\phi_{\mu}$",
     },
     'electron_pt': {
         "field": "pt",
@@ -34,7 +34,7 @@ default_axis_settings = {
         "start": 0,
         'stop': 500,
         "lim": (0, 500),
-        'label': "$p_{T}^{e}$ [GeV]",
+        'label': r"$p_{T}^{e}$ [GeV]",
     },
     'electron_eta': {
         "field": "eta",
@@ -42,7 +42,7 @@ default_axis_settings = {
         "start": -2.5,
         'stop': 2.5,
         "lim": (-2.5, 2.5),
-        'label': "$\eta_{e}$",
+        'label': r"$\eta_{e}$",
     },
     "electron_etaSC": {
         "field": "etaSC",
@@ -77,7 +77,7 @@ default_axis_settings = {
             2.5,
         ],
         'lim': (-2.5, 2.5),
-        'label': "Electron Supercluster $\eta$",
+        'label': r"Electron Supercluster $\eta$",
     },
     'electron_phi': {
         "field": "phi",
@@ -85,7 +85,7 @@ default_axis_settings = {
         "start": -math.pi,
         'stop': math.pi,
         "lim": (-math.pi, math.pi),
-        'label': "$\phi_{e}$",
+        'label': r"$\phi_{e}$",
     },
     'lepton_pt': {
         "field": "pt",
@@ -93,7 +93,7 @@ default_axis_settings = {
         "start": 0,
         'stop': 300,
         "lim": (0, 300),
-        'label': "$p_{T}^{\ell}$ [GeV]",
+        'label': r"$p_{T}^{\ell}$ [GeV]",
     },
     'lepton_eta': {
         "field": "eta",
@@ -101,7 +101,7 @@ default_axis_settings = {
         "start": -2.5,
         'stop': 2.5,
         "lim": (-2.5, 2.5),
-        'label': "$\eta_{\ell}$",
+        'label': r"$\eta_{\ell}$",
     },
     'lepton_phi': {
         "field": "phi",
@@ -109,7 +109,7 @@ default_axis_settings = {
         "start": -math.pi,
         'stop': math.pi,
         "lim": (-math.pi, math.pi),
-        'label': "$\phi_{\ell}$",
+        'label': r"$\phi_{\ell}$",
     },
     'lepton_pdgId': {
         "field": "pdgId",
@@ -125,7 +125,7 @@ default_axis_settings = {
         "start": 0,
         'stop': 300,
         "lim": (0, 300),
-        'label': "$p_{T}^{j}$ [GeV]",
+        'label': r"$p_{T}^{j}$ [GeV]",
     },
     'jet_eta': {
         "field": "eta",
@@ -133,7 +133,7 @@ default_axis_settings = {
         "start": -2.5,
         'stop': 2.5,
         "lim": (-2.5, 2.5),
-        'label': "$\eta_{j}$",
+        'label': r"$\eta_{j}$",
     },
     'jet_phi': {
         "field": "phi",
@@ -141,7 +141,47 @@ default_axis_settings = {
         "start": -math.pi,
         'stop': math.pi,
         "lim": (-math.pi, math.pi),
-        'label': "$\phi_{j}$",
+        'label': r"$\phi_{j}$",
+    },
+    'genjet_pt': {
+        "field": "pt",
+        "bins": 50,
+        "start": 0,
+        'stop': 300,
+        "lim": (0, 300),
+        'label': r"$p_{T}^{j}$ [GeV]",
+    },
+    'genjet_eta': {
+        "field": "eta",
+        "bins": 50,
+        "start": -2.5,
+        'stop': 2.5,
+        "lim": (-2.5, 2.5),
+        'label': r"$\eta_{j}$",
+    },
+    'genjet_phi': {
+        "field": "phi",
+        "bins": 64,
+        "start": -math.pi,
+        'stop': math.pi,
+        "lim": (-math.pi, math.pi),
+        'label': r"$\phi_{j}$",
+    },
+    'genjet_hadronFlavour': {
+        "field": "hadronFlavour",
+        "bins": 8,
+        "start": -1,
+        'stop': 7,
+        "lim": (-1, 7),
+        'label': "hadron flavor",
+    },
+    'genjet_partonFlavour': {
+        "field": "partonFlavour",
+        "bins": 33,
+        "start": -10,
+        'stop': 23,
+        "lim": (-10, 23),
+        'label': "parton flavor",
     },
     'jet_btagDeepFlavB': {
         "field": "btagDeepFlavB",
@@ -166,6 +206,54 @@ default_axis_settings = {
         'stop': 1.0,
         "lim": (0, 1),
         'label': "AK4 DeepJet CvsB score",
+    },
+    'jet_btagPNetB': {
+        "field": "btagPNetB",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 PNet b-tag score",
+    },
+    'jet_btagPNetCvL': {
+        "field": "btagPNetCvL",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 PNet CvsL score",
+    },
+    'jet_btagPNetCvB': {
+        "field": "btagPNetCvB",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 PNet CvsB score",
+    },
+    'jet_btagRobustParTAK4B': {
+        "field": "btagRobustParTAK4B",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 RobustParT b-tag score",
+    },
+    'jet_btagRobustParTAK4CvL': {
+        "field": "btagRobustParTAK4CvL",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 RobustParT CvsL score",
+    },
+    'jet_btagRobustParTAK4CvB': {
+        "field": "btagRobustParTAK4CvB",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 RobustParT CvsB score",
     },
     'fatjet_pt': {
         "field": "pt",
@@ -373,7 +461,7 @@ default_axis_settings = {
         "start": 0,
         'stop': 1500,
         "lim": (0, 500),
-        'label': "$p_{T}^{parton}$ [GeV]",
+        'label': r"$p_{T}^{parton}$ [GeV]",
     },
     'parton_eta': {
         "field": "eta",
@@ -381,7 +469,7 @@ default_axis_settings = {
         "start": -4,
         'stop': 4,
         "lim": (-4, 4),
-        'label': "$\eta_{parton}$",
+        'label': r"$\eta_{parton}$",
     },
     'parton_phi': {
         "field": "phi",
@@ -389,7 +477,7 @@ default_axis_settings = {
         "start": -math.pi,
         'stop': math.pi,
         "lim": (-math.pi, math.pi),
-        'label': "$\phi_{parton}$",
+        'label': r"$\phi_{parton}$",
     },
     'parton_dRMatchedJet': {
         "field": "dRMatchedJet",
@@ -397,7 +485,7 @@ default_axis_settings = {
         "start": 0,
         'stop': 5,
         "lim": (0, 1),
-        'label': 'min ${\Delta}R_{parton,jet}$',
+        'label': r'min ${\Delta}R_{parton,jet}$',
     },
     'parton_pdgId': {
         "field": "pdgId",
@@ -421,7 +509,7 @@ default_axis_settings = {
         "start": -math.pi,
         'stop': math.pi,
         "lim": (-math.pi, math.pi),
-        'label': "MET $\phi$",
+        'label': r"MET $\phi$",
     },
     'mll': {
         "field": "mll",
@@ -429,29 +517,21 @@ default_axis_settings = {
         "start": 0,
         'stop': 1500,
         "lim": (0, 500),
-        'label': "$m_{\ell\ell}$ [GeV]",
+        'label': r"$m_{\ell\ell}$ [GeV]",
     },
 }
 
 collection_fields = {
-    'jet': ["eta", "pt", "phi", "btagDeepFlavB", "btagDeepFlavCvL", "btagDeepFlavCvB"],
+    'jet': ["eta", "pt", "phi"],
     'fatjet': [
         "eta",
         "pt",
         "phi",
         "mass",
         "msoftdrop",
-        "btagDDBvLV2",
-        "btagDDCvLV2",
-        "btagDDCvBV2",
-        # "particleNetMD_Xbb", "particleNetMD_Xcc",
-        "particleNetMD_Xbb_QCD",
-        "particleNetMD_Xcc_QCD",
-        "deepTagMD_ZHbbvsQCD",
-        "deepTagMD_ZHccvsQCD",
-        "btagHbb",
     ],
     'parton': ["eta", "pt", "phi", "dRMatchedJet", "pdgId"],
+    'genjet': ["eta", "pt", "phi", "hadronFlavour", "partonFlavour"],
     'electron': ["eta", "pt", "phi", "etaSC"],
     'muon': ["eta", "pt", "phi"],
     'lepton': ["eta", "pt", "phi", "pdgId"],
@@ -465,6 +545,26 @@ collection_fields = {
         "logsumcorrmass",
     ]
     #'sv': ["summass", "logsummass", "projmass", "logprojmass", "sv1mass", "logsv1mass", "sumcorrmass", "logsumcorrmass"]
+}
+
+
+taggers_fields = {
+    "jet": [
+        "btagDeepFlavB", "btagDeepFlavCvL", "btagDeepFlavCvB",
+        "btagPNetB", "btagPNetCvL", "btagPNetCvB",
+        "btagRobustParTAK4B", "btagRobustParTAK4CvL", "btagRobustParTAK4CvB"
+    ],
+    "fatjet": [
+        "btagDDBvLV2",
+        "btagDDCvLV2",
+        "btagDDCvBV2",
+        # "particleNetMD_Xbb", "particleNetMD_Xcc",
+        "particleNetMD_Xbb_QCD",
+        "particleNetMD_Xcc_QCD",
+        "deepTagMD_ZHbbvsQCD",
+        "deepTagMD_ZHccvsQCD",
+        "btagHbb",
+    ]        
 }
 
 
@@ -502,10 +602,70 @@ def _get_default_hist(name, type, coll, pos=None, fields=None, axis_settings=Non
     return out
 
 
+
 def jet_hists(coll="JetGood", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
     if name == None:
         name = coll
     return _get_default_hist(name, "jet", coll, pos, fields, axis_settings, **kwargs)
+
+def jet_taggers_hists(coll="JetGood", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
+    if name == None:
+        name = coll
+    out = {}
+    for field in taggers_fields["jet"]:
+        if fields == None or field in fields:
+            hist_name = f"{name}_{field}"
+            setting = deepcopy(default_axis_settings[f"jet_{field}"])
+            if axis_settings != None and f"jet_{field}" in axis_settings:
+                setting.update(axis_settings[f"jet_{field}"])
+            setting["coll"] = coll
+            # If the position argument is given the histogram is
+            # created for the specific position
+            if pos != None:
+                setting["pos"] = pos
+                # Avoid 0-indexing for the name of the histogram
+                hist_name += f"_{pos+1}"
+                setting["label"] = setting["label"] + " for Obj. #%i"%(pos+1)
+                
+            out[hist_name] = HistConf(
+                axes=[
+                    Axis(**setting),
+                ],
+                **kwargs
+            )
+    return out
+
+def fatjet_taggers_hists(coll="FatJetGood", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
+    if name == None:
+        name = coll
+    out = {}
+    for field in taggers_fields["fatjet"]:
+        if fields == None or field in fields:
+            hist_name = f"{name}_{field}"
+            setting = deepcopy(default_axis_settings[f"fatjet_{field}"])
+            if axis_settings != None and f"fatjet_{field}" in axis_settings:
+                setting.update(axis_settings[f"fatjet_{field}"])
+            setting["coll"] = coll
+            # If the position argument is given the histogram is
+            # created for the specific position
+            if pos != None:
+                setting["pos"] = pos
+                # Avoid 0-indexing for the name of the histogram
+                hist_name += f"_{pos+1}"
+                setting["label"] = setting["label"] + " for Obj. #%i"%(pos+1)
+                
+            out[hist_name] = HistConf(
+                axes=[
+                    Axis(**setting),
+                ],
+                **kwargs
+            )
+    return out
+            
+def genjet_hists(coll="MyGenJets", pos=None, fields=None, name=None, axis_settings=None, **kwargs):
+    if name == None:
+        name = coll
+    return _get_default_hist(name, "genjet", coll, pos, fields, axis_settings, **kwargs)
 
 
 def fatjet_hists(coll="FatJetGood", pos=None, fields=None, name=None, axis_settings=None, **kwargs):

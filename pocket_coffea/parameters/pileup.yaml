@@ -23,4 +23,7 @@ pileupJSONfiles:
   2023_postBPix:
     file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/LUM/2023_Summer23BPix/puWeights.json.gz
     name: Collisions2023_369803_370790_eraD_GoldenJson
+  "2024":
+    file: ${default_params_dir:}/puWeights_2024.json.gz
+    name: Pileup
 

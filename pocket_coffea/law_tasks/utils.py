@@ -17,6 +17,7 @@ from coffea.processor import NanoAODSchema, accumulate
 from coffea.processor import Runner as CoffeaRunner
 from coffea.processor.executor import ExecutorBase
 from omegaconf import OmegaConf
+
 from pocket_coffea.executors import executors_base
 from pocket_coffea.parameters import defaults as parameters_utils
 from pocket_coffea.utils import utils as pocket_utils
@@ -195,6 +196,15 @@ def modify_dataset_output_path(
 
 
 def import_analysis_config(cfg: FileName) -> tuple[Configurator, ModuleType]:
+    """Import the analysis configuration module and return the Configurator object.
+
+    :param cfg: path to the config.py file
+    :type cfg: FileName
+    :raises AttributeError: if config.py has no attribute `cfg`
+    :raises TypeError: if cfg is not of type Configurator (pocket_coffea)
+    :return: Configurator object and the imported module
+    :rtype: tuple[Configurator, ModuleType]
+    """
     config_module = pocket_utils.path_import(cfg)
 
     try:
@@ -430,9 +440,8 @@ def load_plotting_style(params_file: FileName, custom_plot_style: FileName = Non
     """
     parameters = OmegaConf.load(params_file)
     if os.path.isfile(custom_plot_style):
-        parameters = parameters_utils.merge_parameters_from_files(
-            parameters, custom_plot_style, update=True
-        )
+        # get the default parameters and overwrite them with the custom ones
+        parameters = parameters_utils.get_defaults_and_compose(custom_plot_style)
     elif (custom_plot_style is not None) and (custom_plot_style != law.NO_STR):
         warnings.warn(
             f"custom plotting style file {custom_plot_style} not found."

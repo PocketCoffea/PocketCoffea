@@ -5,6 +5,24 @@ from dask.distributed import Client, PipInstall, WorkerPlugin
 from distributed.diagnostics.plugin import UploadFile
 
 
+class PackageChecker(WorkerPlugin):
+    '''Pluging to check that PocketCoffea is available.
+    Sometimes the worker is not able to find the package,
+    so we need to check if it is available and restart the worker if it is not.
+    '''
+    def __init__(self, package_name):
+        self.package_name = package_name
+
+    def setup(self, worker):
+        try:
+            from importlib.util import find_spec
+            spec = find_spec(self.package_name)
+            if spec is None:
+                raise ImportError(f"Package {self.package_name} not found")
+        except ImportError:
+            worker.close(timeout=0, executor_wait=False, nanny=True, reason='eos-not-ready')
+            
+
 class DaskExecutorFactory(ExecutorFactoryABC):
 
     def __init__(self, run_options, outputdir, **kwargs):
@@ -17,6 +35,7 @@ class DaskExecutorFactory(ExecutorFactoryABC):
         ''' Start the DASK cluster here'''
         # At INFN AF, the best way to handle DASK clusters is to create them via the Dask labextension and then connect the client to it in your code
         self.dask_client = Client(address=self.sched_url)
+        #self.dask_client.register_worker_plugin(PackageChecker("pocket_coffea"))
         
     def customized_args(self):
         args = super().customized_args()

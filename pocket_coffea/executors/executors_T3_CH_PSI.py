@@ -7,7 +7,7 @@ from .executors_base import IterativeExecutorFactory, FuturesExecutorFactory
 from pocket_coffea.utils.network import check_port
 from pocket_coffea.parameters.dask_env import setup_dask
 
-    
+
 
 class DaskExecutorFactory(ExecutorFactoryABC):
     '''
@@ -22,10 +22,12 @@ class DaskExecutorFactory(ExecutorFactoryABC):
         env_worker = [
             'export XRD_RUNFORKHANDLER=1',
             'export MALLOC_TRIM_THRESHOLD_=0',
-            f'export X509_USER_PROXY={self.x509_path}',
             'ulimit -u unlimited',
             ]
-        
+        if not self.run_options['ignore-grid-certificate']:
+            env_worker.append(f'export X509_USER_PROXY={self.x509_path}')
+
+
         # Adding list of custom setup commands from user defined run options
         if self.run_options.get("custom-setup-commands", None):
             env_worker += self.run_options["custom-setup-commands"]
@@ -41,13 +43,13 @@ class DaskExecutorFactory(ExecutorFactoryABC):
                 raise Exception("CONDA prefix not found in env! Something is wrong with your conda installation if you want to use conda in the dask cluster.")
 
         # if local-virtual-env: true the dask job is configured to pickup
-        # the local virtual environment. 
+        # the local virtual environment.
         if self.run_options.get("local-virtualenv", False):
             env_worker.append(f"source {sys.prefix}/bin/activate")
 
         return env_worker
-    
-        
+
+
     def setup(self):
         ''' Start the DASK cluster here'''
         self.setup_proxyfile()
@@ -61,12 +63,12 @@ class DaskExecutorFactory(ExecutorFactoryABC):
         print(">>> Creating a SLURM cluster")
         self.dask_cluster = SLURMCluster(
                 queue=self.run_options['queue'],
-                cores=self.run_options['cores-per-worker'],
-                processes=self.run_options['cores-per-worker'],
+                cores=self.run_options.get('cores-per-worker', 1),
+                processes=self.run_options.get('cores-per-worker', 1),
                 memory=self.run_options['mem-per-worker'],
                 walltime=self.run_options["walltime"],
                 job_script_prologue=self.get_worker_env(),
-                local_directory=os.path.join(self.outputdir, "slurm_localdir"),
+                local_directory=os.path.join("/scratch", os.environ["USER"], "slurm_localdir"),
                 log_directory=os.path.join(self.outputdir, "slurm_log"),
             )
         print(self.get_worker_env())
@@ -76,7 +78,7 @@ class DaskExecutorFactory(ExecutorFactoryABC):
         self.dask_cluster.adapt(minimum=1 if self.run_options["adaptive"]
                                 else self.run_options['scaleout'],
                       maximum=self.run_options['scaleout'])
-        
+
         self.dask_client = Client(self.dask_cluster)
         print(">> Waiting for the first job to start...")
         self.dask_client.wait_for_workers(1)
@@ -87,13 +89,13 @@ class DaskExecutorFactory(ExecutorFactoryABC):
         #     print(f"Saving performance report to {self.performance_report_path}")
         #     self.performance_report(filename=performance_report_path):
 
-        
+
     def get(self):
         return coffea_processor.dask_executor(**self.customized_args())
 
     def customized_args(self):
         args = super().customized_args()
-        # in the futures executor Nworkers == N scalout
+        # in the futures executor Nworkers == N scaleout
         args["client"] = self.dask_client
         args["treereduction"] = self.run_options["tree-reduction"]
         args["retries"] = self.run_options["retries"]

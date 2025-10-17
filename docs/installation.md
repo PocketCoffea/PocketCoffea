@@ -36,8 +36,8 @@ The apptainer environment is activated on **lxplus** with the following command:
 ```bash
 apptainer shell -B /afs -B /cvmfs/cms.cern.ch \
                 -B /tmp  -B /eos/cms/  -B /etc/sysconfig/ngbauth-submit \
-                -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME="FILE:${XDG_RUNTIME_DIR}/krb5cc" 
-    /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-stable
+                -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME="FILE:${XDG_RUNTIME_DIR}/krb5cc" \
+    /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-stable
 ```
 
 N.B.: The command to start the apptainer image has changed when lxplus moved to the el9 machines by default. The
@@ -45,7 +45,7 @@ difference is about the handling of the kerberos ticket necessary to access to t
 shell command above setups correctly the environment.
 
 The last part of the command contains the image version on unpacked:
-**cms-analysis/general/pocketcoffea:lxplus-cc7-stable**. The stable version is the recommended one to stay up-to-date
+**cms-analysis/general/pocketcoffea:lxplus-el9-stable**. The stable version is the recommended one to stay up-to-date
 with the development without the rought edges of the main branch. 
 
 Once inside the environment no installation is needed. The PocketCoffea scripts are globally available and the user's
@@ -68,7 +68,7 @@ pocket-coffea
 /_/    \____/\___/_/|_|\___/\__/\____/\____/_/ /_/  \___/\__,_/
 
 
-Running PocketCoffea version 0.8.0
+Running PocketCoffea version 0.9.6
 - Documentation page:  https://pocketcoffea.readthedocs.io/
 - Repository:          https://github.com/PocketCoffea/PocketCoffea
 
@@ -83,15 +83,16 @@ If the user needs to modify locally the central PocketCoffea code, the apptainer
 
 
 ```bash
-#Enter the image
-apptainer shell --bind /afs -B /cvmfs/cms.cern.ch \
-         --bind /tmp  --bind /eos/cms/ -B /etc/sysconfig/ngbauth-submit \
-         -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME="FILE:${XDG_RUNTIME_DIR}/krb5cc"  \
-         /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-stable
-
 # Clone locally the PocketCoffea repo
 git clone git@github.com:PocketCoffea/PocketCoffea.git
 cd PocketCoffea
+
+#Enter the Singularity image
+apptainer shell --bind /afs -B /cvmfs/cms.cern.ch \
+         --bind /tmp  --bind /eos/cms/ -B /etc/sysconfig/ngbauth-submit \
+         -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME="FILE:${XDG_RUNTIME_DIR}/krb5cc"  \
+         /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-stable
+
 
 # Create a local virtual environment using the packages defined in the apptainer image
 python -m venv --system-site-packages myenv
@@ -101,28 +102,38 @@ source myenv/bin/activate
 
 # Install in EDITABLE mode
 pip install -e .[dev]
+
+# Set the PYTHONPATH to make sure the editable PocketCoffea installation is picked up
+export PYTHONPATH=`pwd`
+
+# One could also install additional packages if necessary for anaysis, eg:
+pip install lightgbm 
 ```
 
-The next time the user enters in the apptainer the virtual environment needs to be activated. 
+The next time the user enters in the apptainer the virtual environment needs to be activated and the PYTHONPATH needs to be set. 
 ```bash
 #Enter the image
 apptainer shell  -B /afs -B /cvmfs/cms.cern.ch -B /tmp  -B /eos/cms/  \
                  -B /etc/sysconfig/ngbauth-submit  \
-                 -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME="FILE:${XDG_RUNTIME_DIR}/krb5cc" 
-                 /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-stable
+                 -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME="FILE:${XDG_RUNTIME_DIR}/krb5cc" \
+                 /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-stable
 
 # Activate the virtual environment
 cd PocketCoffea
 source myenv/bin/activate
+export PYTHONPATH=`pwd`
 ```
 
 
 :::{admonition} Setup the job submission with local core changes
 :class: warning
 **N.B.**: In order to properly propagated the local environment and local code changes to jobs running on condor through
-Dask the user needs to setup the executor options properly with the `local-virtualenv: true` options. Checkout the
-running instructions for more details.  
+Dask/condor, the user needs to setup the executor option `local-virtualenv: true` or pass `--local-virtualenv` to the runner command.
+Checkout the [running instructions](https://pocketcoffea.readthedocs.io/en/stable/running.html) for more details.  
 :::
+
+### SWAN
+It is also possible to setup PocketCoffea within SWAN at CERN. See [Instructions](https://github.com/PocketCoffea/Tutorials/tree/main/Analysis_Facilities_Setup#cern-swan-analysis-facility) in a separate tutorial.
 
 ## Vanilla python package
 The PocketCoffea package has been published on Pypi. It can be installed with
@@ -167,7 +178,7 @@ git clone git@github.com:PocketCoffea/PocketCoffea.git
       ```bash
       # Install micromamba
       "${SHELL}" <(curl -L micro.mamba.pm/install.sh)
-      micromamba create -n pocket-coffea python=3.9 -c conda-forge
+      micromamba create -n pocket-coffea python=3.11 -c conda-forge
       micromamba activate pocket-coffea
       ```
 

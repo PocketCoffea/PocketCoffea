@@ -84,7 +84,7 @@ Options:
   -lc, --limit-chunks INTEGER     Limit number of chunks
   -e, --executor TEXT             Overwrite executor from config (to be used
                                   only with the --test options)
-  -s, --scaleout INTEGER          Overwrite scalout config
+  -s, --scaleout INTEGER          Overwrite scaleout config
   -c, --chunksize INTEGER         Overwrite chunksize config
   -q, --queue TEXT                Overwrite queue config
   -ll, --loglevel TEXT            Console logging level
@@ -111,11 +111,16 @@ respectively).
 | Site | Supported executor | Executor string|
 |------|--------------------|----------------|
 |lxplus| dask               | dask@lxplus    |
-|T3_CH_PSI| dask               | dask@T3_CH_PSI    |
-|T2_RWTH_Aachen| parsl         | parsl-condor@RWTH |
+|swan| dask                 | dask@swan      |
+|T3_CH_PSI| dask            | dask@T3_CH_PSI |
+|DESY NAF | parsl           | parsl@DESY     |
+|RWTH Aachen LX-Cluster | parsl, dask    | parsl@RWTH, dask@RWTH |
+|RWTH CLAIX | parsl, dask          | parsl@CLAIX, dask@CLAIX |
 |[Purdue Analysis Facility](https://analysis-facility.physics.purdue.edu)| dask | dask@purdue-af |
 |[INFN Analysis Facility](https://infn-cms-analysisfacility.readthedocs.io/)| dask | dask@infn-af |
-
+|Brown brux20 cluster | dask | dask@brux |
+|Brown CCV Oscar | dask | dask@oscar |
+|Maryland rubin cluster | dask, condor | dask@rubin condor@rubin |
 
 ---------------------------------------
 
@@ -132,22 +137,24 @@ The default options for the running options and different type of executors are 
 
 For example:
 ```yaml
-general: 
-  scalout: 1
-  chunksize: 100000
+general:
+  scaleout: 1
+  chunksize: 150000
   limit-files: null
   limit-chunks: null
   retries: 20
   tree-reduction: 20
   skip-bad-files: false
   voms-proxy: null
+  ignore-grid-certificate: false
+  group-samples: null
 
 dask@lxplus:
   scaleout: 10
   cores-per-worker: 1
   mem-per-worker: "2GB"
   disk-per-worker: "2GB"
-  worker-image: /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-cc7-stable
+  worker-image: /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-stable
   death-timeout: "3600"
   queue: "microcentury"
   adaptive: false
@@ -160,26 +167,27 @@ dask@lxplus:
 
 
 ### Executor options
-The dataset splitting (chunksize), the number of workers, and the other options, which may be executor-specific, must be
-configured by the user passing to `pocket-coffea run` a .yaml file containing options. These options are overwritten over the
-default options for the requested executor. 
+The dataset splitting (chunksize), the number of workers, memory and most other options
+can be re-configured by the user via custom `my_run_options.yaml` file, that is passed to
+`pocket-coffea run` command. These options are overwrite the default parameters of the
+requested executor.
 
-For example:
-```bash
+For example: `$> cat my_run_options.yaml`
 
-$> cat my_run_options.yaml
-
+```yaml
 scaleout: 400
 chunksize: 50000
 queue: "espresso"
 mem-per-worker: 6GB
-
-
+```
+then use `--custom-run-options my_run_options.yaml` to `run`:
+```bash
 $> pocket-coffea run  --cfg analysis_config.py -o output --executor dask@lxplus  --custom-run-options my_run_options.yaml
 ```
 
-The user can also modify on the fly some run options using arguments of the `pocket-coffea run` script. For example by limiting
-the number of files or number of chunks to analyse (for testing purposes)
+The user can also modify on the fly some run options using arguments to the `pocket-coffea
+run` script. For example, limiting the number of files or number of chunks to analyse (for
+testing purposes):
 
 ```bash
 $> pocket-coffea run  --cfg analysis_config.py -o output --executor dask@lxplus \
@@ -187,6 +195,47 @@ $> pocket-coffea run  --cfg analysis_config.py -o output --executor dask@lxplus 
               --chunksize 150000 --queue espresso
 ```
 
+
+### Process datasets separately and group samples
+By default, the `pocket-coffea run` command will run all the datasets together in one shot and a single output `output_all.coffea` is saved.
+In case one wants to save intermediate outputs, it is possible to run with the `--process-separately` option, where each dataset
+is processed separately and an independent output `output_{dataset}.coffea` is saved for each dataset.
+
+In case several datasets need to be processed with the `--process-separately` option, there is the additional possibility to group datasets
+belonging to the same sample, process them together and save an output `output_{group}.coffea` for each group.
+To group samples during processing it is sufficient to add an extra entry to the custom `run_options.yaml` file passed to `pocket-coffea run`,
+defining the dictionary `group-samples`. Each key in this dictionary corresponds to the group name, and the values of the dictionary are lists
+of samples.
+
+As an example, by adding the following snippet to the `run_options.yaml` file:
+
+```yaml
+group-samples:
+  signal:
+    - "ttHTobb"
+    - "ttHTobb_ttToSemiLep"
+  TTToSemiLeptonic:
+    - "TTToSemiLeptonic"
+  TTbbSemiLeptonic:
+    - "TTbbSemiLeptonic"
+  "TTTo2L2Nu_SingleTop":
+    - "TTTo2L2Nu"
+    - "SingleTop"
+  VJets:
+    - "WJetsToLNu_HT"
+    - "DYJetsToLL"
+  VV_TTV:
+    - "VV"
+    - "TTV"
+  DATA:
+    - "DATA_SingleEle"
+    - "DATA_SingleMuon"
+```
+and running the analysis with the command `pocket-coffea run --cfg config.py -ro run_options.yaml --process-separately`, will result in running
+the analysis processor sequentially for 7 times, saving 7 independent outputs: `output_signal.coffea`, `output_TTToSemiLeptonic.coffea`, `output_TTbbSemiLeptonic.coffea`,
+`output_TTTo2L2Nu_SingleTop.coffea`, `output_VJets.coffea`, `output_VV_TTV.coffea` and `output_DATA.coffea`.
+For example, the output file `output_signal.coffea` file will contain the output obtained by processing the datasets of the samples `ttHTobb` and `ttHTobb_ttToSemiLep`,
+for all the data-taking years specified in the `datasets["filter"]["year"]` dictionary in the constructor of the Configurator.
 
 ### Customize the executor software environment
 The software environment where the executor runs the analysis is defined by the python environment where the analysis is
@@ -206,16 +255,13 @@ it before executing the dask worker jobs.
 :::
 
 Moreover the user can add a list of completely custom setup commands that are run inside a worker job before executing
-the analysis processor. Just specify them in the run options:
+the analysis processor. Just specify them in the run options user file `my_run_options.yaml`:
 
 ```yaml
-$> cat my_run_options.yaml
-
 custom-setup-commands:
   - echo $HOME
   - source /etc/profile.d/conda.sh
   - export CUSTOM_VARIABLE=1
-
 ```
 
 ## Dask scheduler on lxplus
@@ -228,7 +274,7 @@ session, detach from it, exit lxplus, and at the next login reattch to the runni
 
 This service needs to be activate, only once, for your user with `systemctl --user enable --now tmux.service`. The full
 documentation about this (new) feature is available on the [Service
-Portal](https://cern.service-now.com/service-portal?id=kb_article&n=KB0008111).
+Portal](https://cern.service-now.com/service-portal?id=kb_article\&n=KB0008111).
 
 Once setup you can start a tmux session as:
 ```bash
@@ -321,7 +367,7 @@ The module is then used like this:
 
 ```bash
 $> pocket-coffea run --cfg analysis_config.py -o output --executor dask  --executor-custom-setup my_custom_executor.py
---run-options my_run_options.py
+--run-options my_run_options.yaml
 ```
 
 

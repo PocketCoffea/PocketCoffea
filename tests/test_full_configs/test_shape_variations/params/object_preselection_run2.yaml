@@ -1,0 +1,27 @@
+object_preselection:
+  Muon:
+    pt: 26.0
+    eta: 2.4
+    iso: 0.15  #PFIsoTight
+    id: tightId
+
+  Electron:
+    pt: 15.0
+    eta: 2.4
+    iso: 0.06
+    id: mvaFall17V2Iso_WP80
+
+  Jet:
+    dr_lepton: 0.4
+    pt: 30.0
+    eta: 2.4
+    jetId: 2
+    puId:
+      wp: L
+      value: 4
+      maxpt: 50.0
+    btag:
+      wp:
+        M
+    regression:
+      do: True

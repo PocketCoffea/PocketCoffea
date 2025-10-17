@@ -56,6 +56,28 @@ The first step in the processing reduces the number of events on which we need t
 * **Exporting skimmed files**
     Skimmed NanoAODs can be exported at this stage: check the Configurations page for details. 
 
+### Object calibration and systematic variations
+
+After the skimming phase, the framework applies object calibrations and handles systematic variations through the **Calibrators** system:
+
+* **Initialize Calibrators**
+    The `CalibratorsManager` is created with a sequence of `Calibrator` objects. Each calibrator declares which collections it modifies and what systematic variations it provides (e.g., JEC uncertainties, electron energy scale variations).
+
+* **Variation Loop**
+    The framework automatically loops over all requested systematic variations. For each variation:
+    - All calibrators in the sequence are applied to produce corrected object collections
+    - The original collections are preserved for calibrators that need uncorrected inputs
+    - Events are processed through the full analysis chain (preselection, categories, histograms)
+    - Events are reset to original state before processing the next variation
+
+* **Built-in Calibrators**
+    PocketCoffea provides ready-to-use calibrators for common corrections:
+    - **JetsCalibrator**: JEC/JER corrections with uncertainty variations
+    - **METCalibrator**: MET corrections after jet calibration
+    - **ElectronsScaleCalibrator**: Electron energy scale and smearing
+    
+See the [Calibrators](./calibrators.md) page for detailed documentation on the calibration system.
+
 ### Object cleaning and preselection
 
 * **Objects preselection**

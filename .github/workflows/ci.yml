@@ -68,7 +68,7 @@ jobs:
         run: python -m pytest -ra --cov=PocketCoffea
 
       - name: Upload coverage report
-        uses: codecov/codecov-action@v4.0.1
+        uses: codecov/codecov-action@v4.6.0
 
   dist:
     name: Distribution build
@@ -90,7 +90,7 @@ jobs:
       - name: Check products
         run: pipx run twine check dist/*
 
-      - uses: pypa/gh-action-pypi-publish@v1.10.0
+      - uses: pypa/gh-action-pypi-publish@v1.13.0
         if: github.event_name == 'release' && github.event.action == 'published'
         with:
           # Remember to generate this and set it in "GitHub Secrets"

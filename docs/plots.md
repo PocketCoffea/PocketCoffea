@@ -38,7 +38,8 @@ Other optional arguments are:
 - `--split_systematics`: Split systematic uncertainties in the ratio plot
 - `--partial_unc_band`: Plot only the partial uncertainty band corresponding to the systematics specified as the argument `only_syst`
 - `--overwrite`: If the output folder is already existing, overwrite its content
-- `--log`: Set y-axis scale to log
+- `--log-x`: Set x-axis scale to log
+- `--log-y`: Set y-axis scale to log
 - `--no-ratio`: Do not draw the ratio panel 
 - `--density`: Set density parameter to have a normalized plot
 - `--verbose`: Tells how much printing is done. 0 - for minimal, 2- for a lot (useful for debugging).
@@ -113,6 +114,21 @@ histogram is rescaled by the number specified.
 
 The `print_info` options would print a text on the plots for category
 name and the year (era period).
+
+In addition, all the default parameters related to the formatting of figures,
+such as `opts_figure`, `opts_data`, `opts_mc`, `opts_sig`, `opts_syst`, `opts_unc` and
+`opts_ylim`, can be overridden by passing custom parameters. For example, to set custom
+limits on the y-axis of logarithmic plots, one can include this dictionary in the
+`.yaml` file passed as the `-op` argument:
+```
+plotting_style:
+
+    opts_ylim:
+        datamc:
+            ylim_log:
+                lo: 0.01
+                hi: 1000000
+```
 
 ## Produce shape comparison plots
 

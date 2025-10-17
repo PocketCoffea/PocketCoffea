@@ -34,6 +34,7 @@ import os
 
 from pocket_coffea.workflows.tthbb_base_processor import ttHbbBaseProcessor 
 from pocket_coffea.lib.weights.common import common_weights
+from pocket_coffea.lib.calibrators.common import default_calibrators_sequence
 
 # importing custom cut functions
 from custom_cut_functions import *
@@ -94,8 +95,10 @@ cfg = Configurator(
         "4b" : [ get_nBtagEq(4, coll="BJetGood")]
     },
     
-    # Weights configuration
+    # Weights and calibrators configuration
     weights_classes = common_weights,
+    calibrators = default_calibrators_sequence,  # JetsCalibrator, METCalibrator, ElectronsScaleCalibrator
+
     weights = {
         "common": {
             "inclusive": ["genWeight","lumi","XS",
@@ -236,6 +239,89 @@ cfg = Configurator(
   Subsamples do not need to be exclusive. Subsample masks are applied before exporting histograms, columns and counting events.
   :::
 
+### Subsample-specific Configuration
+
+PocketCoffea allows applying weights and systematic variations specific to subsamples. When subsamples are defined, they can be referenced in the `weights` and `variations` configuration using their full name (original sample name + subsample suffix).
+
+In the example configuration, the `TTToSemiLeptonic` sample is split into three subsamples:
+- `TTToSemiLeptonic__=1b`
+- `TTToSemiLeptonic__=2b` 
+- `TTToSemiLeptonic__>2b`
+
+These subsamples can have different weight and variation configurations:
+
+```python
+cfg = Configurator(
+    datasets = {
+        "subsamples":{
+            "TTToSemiLeptonic": {
+                "=1b":  [get_nBtagEq(1, coll="Jet")],
+                "=2b" : [get_nBtagEq(2, coll="Jet")],
+                ">2b" : [get_nBtagMin(3, coll="Jet")]
+            }
+        }
+    },
+    
+    weights = {
+        "common": {
+            "inclusive": ["genWeight", "lumi", "XS", "pileup"],
+        },
+        "bysample": {
+            # Original sample weights (applied to all subsamples if not overridden)
+            "TTToSemiLeptonic": {
+                "inclusive": ["sf_btag", "sf_jet_puId"],
+            },
+            # Subsample-specific weights
+            "TTToSemiLeptonic__=1b": {
+                "inclusive": ["sf_btag_1b_specific"],  # Custom b-tag SF for 1b events
+                "bycategory": {
+                    "baseline": ["additional_1b_weight"]
+                }
+            },
+            "TTToSemiLeptonic__=2b": {
+                "inclusive": ["sf_btag_2b_specific"],  # Different b-tag SF for 2b events
+            },
+            "TTToSemiLeptonic__>2b": {
+                "inclusive": ["sf_btag_multi_specific", "top_pt_reweight"],
+            }
+        }
+    },
+    
+    variations = {
+        "weights": {
+            "bysample": {
+                "TTToSemiLeptonic__=1b": {
+                    "inclusive": ["sf_btag_1b_specific"],  # Only vary 1b-specific SF
+                },
+                "TTToSemiLeptonic__=2b": {
+                    "inclusive": ["sf_btag_2b_specific"],
+                },
+                "TTToSemiLeptonic__>2b": {
+                    "inclusive": ["sf_btag_multi_specific", "top_pt_reweight"],
+                }
+            }
+        },
+        "shape": {
+            "bysample": {
+                "TTToSemiLeptonic__>2b": {
+                    "inclusive": ["JESTotal", "JER"]  # Only apply shape variations to high b-jet multiplicity
+                }
+            }
+        }
+    }
+)
+```
+
+:::{tip}
+Subsample-specific configurations are particularly useful for:
+- Applying different scale factors based on event topology (e.g., different b-tagging efficiencies for different b-jet multiplicities)
+- Implementing data-driven background estimation techniques that require different weights per subsample
+:::
+
+:::{warning}
+When configuring weights and variations for subsamples, ensure that the subsample name exactly matches the automatically generated name format: `{original_sample}__{subsample_suffix}`.
+:::
+
 
 ## Workflow
 
@@ -253,6 +339,87 @@ cfg = Configurator(
 - `workflow_options`: dictionary with additional options for specific processors (user defined)
 
   
+## Calibrators
+
+Object calibrations and systematic variations are handled by the **Calibrators** system. The calibrator sequence is configured in the `Configurator`:
+
+```python
+from pocket_coffea.lib.calibrators.common import default_calibrators_sequence
+
+cfg = Configurator(
+    # Default calibrator sequence
+    calibrators = default_calibrators_sequence,
+    ....
+)
+```
+
+The `calibrators` parameter accepts a list of calibrator classes that will be applied sequentially to correct physics objects and handle systematic variations.
+
+For a detailed explanation of how calibrators work in the PocketCoffea workflow, see the [Object calibration and systematic variations](./concepts.md#object-calibration-and-systematic-variations) section in the Concepts page. For implementation details and creating custom calibrators, see the dedicated [Calibrators](./calibrators.md) page.
+
+
+
+### Default Calibrator Sequence
+
+PocketCoffea provides a default sequence of calibrators for common corrections:
+
+```python
+default_calibrators_sequence = [
+    JetsCalibrator, 
+    METCalibrator, 
+    ElectronsScaleCalibrator
+]
+```
+
+- **JetsCalibrator**: Applies JEC/JER corrections and provides systematic variations (JESUp/Down, JERUp/Down, etc.)
+- **METCalibrator**: Propagates jet corrections to MET collection
+- **ElectronsScaleCalibrator**: Handles electron energy scale and smearing corrections
+
+
+:::{warning}
+If the user does not specify a calibration sequence in the configuration, the default one defined in `pocket_coffea.lib.calibrators.common.common is used. It's always better to define explicitely the calibration sequence!
+:::
+
+### Custom Calibrator Sequence
+
+Users can define custom calibrator sequences by creating their own list:
+
+```python
+from pocket_coffea.lib.calibrators.common import JetsCalibrator, METCalibrator
+from my_custom_calibrators import MyCustomMuonCalibrator
+
+# Custom sequence
+my_calibrators = [
+    JetsCalibrator,
+    METCalibrator, 
+    MyCustomMuonCalibrator,  # Custom calibrator
+]
+
+cfg = Configurator(
+    calibrators = my_calibrators,
+    ....
+)
+```
+
+### Calibrator Parameters
+
+Calibrator behavior is usually controlled through the `parameters` configuration. Key calibrator parameters include:
+
+- **jets_calibration**: Controls JEC/JER application and variations
+- **lepton_scale_factors**: Configures electron/muon scale factors and corrections
+- **rescale_MET_config**: MET correction configuration
+
+See the [Parameters](./parameters.md) page for detailed calibrator parameter configuration, the [Calibrators](./calibrators.md) page for implementation details, and the [Concepts](./concepts.md#object-calibration-and-systematic-variations) page for how calibrators integrate into the workflow.
+
+:::{tip}
+The calibrator sequence order matters! For example, `METCalibrator` must come after `JetsCalibrator` because it needs the corrected jets to properly propagate JEC effects to the MET.
+:::
+
+:::{warning}
+All requested systematic variations from calibrators must be properly configured in the `variations` section of the configuration to be processed.
+:::
+
+
 ## Cuts and categories
 
 The events skimming, preselection and categorization is defined in a structured way in PocketCoffea:
@@ -307,6 +474,50 @@ In the configuration the categorization is split in:
 
 - **Categories**: Splitting of events for histograms and columns output.
 
+
+### Save skimmed NanoAOD
+PocketCoffea can dump events passing the skim selection to NanoAOD root files. This can be useful when your skimming
+efficiecy is high and you can trade the usage of some disk storage for higher processing speed. 
+
+The export of skimmed NanoAOD is activated by the `save_skimmed_files` argument of the `Configurator` object. If
+`save_skimmed_files!=None` then the processing stops after the skimming and one root file for each chunk is saved in the
+folder specified by the argument. 
+
+It is recommended to use a xrootd endpoint: `save_skimmed_files='root://eosuser.cern.ch:/eos/user/...`. 
+
+```python
+cfg = Configurator(
+     
+    workflow = ttHbbBaseProcessor,
+    workflow_options = {},
+    
+    save_skimmed_files = "root://eosuser.cern.ch://eos/user/x/xxx/skimmed_samples/Run2UL/",
+    skim = [get_nPVgood(1),
+            eventFlags,
+            goldenJson,
+            get_nBtagMin(3, minpt=15., coll="Jet", wp="M"),
+            get_HLTsel(primaryDatasets=["SingleEle", "SingleMuon"])],
+    )
+
+```
+
+The PocketCoffea output file contains the list of skimmed files with the number of skimmed events in each file. Moreover
+the root files contain a new branch called `skimRescaleGenWeight` which store for each event the scaling factor
+needed to recover the sum of genWeight of the original factor, and correct for the skimming efficiency.  The factor
+is computed as `(original sum of genweight / sum of genweights of skimmed files)` for each file. This factor needs to
+be multiplied to the sum of genweights accumulated in each chunk by the processor that runs on top of skimmed
+datasets. Therefore the dataset definition file for skimmed datasets must contain the `isSkim:True` metadata,
+which is used by the processor to apply the rescaling.
+
+:::{alert}
+**N.B.**: The skim is performed before the object calibration and preselection step. The analyzer must be careful to
+apply a loose enough skim that is invariant under the shape uncertainties applied later in the analysis. For example
+the selection on the minimum number of jets should be loose enought to not be affected by Jet energy scales, **which
+are applied later**. 
+:::
+
+A full tutorial of the necessar steps to produce a skim and then to use the pocketcoffea tools to prepare a new dataset
+configuration file can be found in the [How To section](./recipes.md#skimming-events).
 
 ### Categorization utilities
 PocketCoffea defines different ways to categorize events. 
@@ -478,6 +689,7 @@ class CustomTopSF(WeightWrapper):
 The class must be then passed to the configurator in order to be available:
 
 ```python
+from pocket_coffea.lib.weights.common import common_weights
 
 cfg = Configurator(
     weights_classes = common_weights + [CustomTopSF],  # note the addition here
@@ -505,6 +717,8 @@ Moreover, often weights are easier to define: simple computations can be wrapped
 defining a full WeightWrapper class. 
 
 ```python
+from pocket_coffea.lib.weights.weights import WeightLambda
+
 my_custom_sf  = WeightLambda.wrap_func(
     name="sf_custom",
     function=lambda params, metadata, events, size, shape_variations:
@@ -575,6 +789,7 @@ samples and categories.
   ```
   
 * **Shape variations**: shape variations are related to lepton, jets and MET scale variations and similar systematics. 
+  These variations are provided by the calibrators configured in the [Calibrators](#calibrators) section.
   The handling of these variations is more complex since everything after skimming (see [docs](./concepts.md#filtering))
   is rerun for each shape variation. 
   
@@ -599,7 +814,8 @@ samples and categories.
   ```
   
   :::{warning}
-  Only JES and JER variations have been implemented for the moment and are available to be used. 
+  The available shape variations depend on the calibrators configured in the [Calibrators](#calibrators) section. 
+  Currently, JES and JER variations are implemented and available through the `JetsCalibrator`. 
   The available JES variations depend on the jet calibration configuration defined in the parameters ([docs](./parameters.md#cross-references)).
   :::
   
@@ -657,6 +873,33 @@ cfg = Configurator(
     },
     ...
 )
+
+```
+
+The `HistConf` class has many options, particularly useful to exclude some categories or samples from a specific
+histogram. 
+
+```python
+
+@dataclass
+class HistConf:
+    axes: List[Axis]
+    storage: str = "weight"
+    autofill: bool = True  # Handle the filling automatically
+    variations: bool = True
+    only_variations: List[str] = None
+    exclude_samples: List[str] = None
+    only_samples: List[str] = None
+    exclude_categories: List[str] = None
+    only_categories: List[str] = None
+    no_weights: bool = False  # Do not fill the weights
+    metadata_hist: bool = False  # Non-event variables, for processing metadata
+    hist_obj = None
+    collapse_2D_masks = False  # if 2D masks are applied on the events
+    # and the data_ndim=1, when collapse_2D_mask=True the OR
+    # of the masks on the axis=2 is performed to get the mask
+    # on axis=1, otherwise an exception is raised
+    collapse_2D_masks_mode = "OR"  # Use OR or AND to collapse 2D masks for data_ndim=1 if collapse_2D_masks == True
 
 ```
 

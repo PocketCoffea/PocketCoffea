@@ -9,7 +9,9 @@ profiling/
 *~
 *.pyc
 slurm-*
-
+*.swp
+.#*
+*.pkl.gz
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -159,3 +161,4 @@ AnalysisConfigs/
 VHccPoCo/
 output*
 plots*
+.pkl.gz

@@ -13,9 +13,10 @@ from rich.console import Console
 from rich.prompt import Confirm, IntPrompt, Prompt
 from rich.table import Table
 from rich.tree import Tree
-
+import re
 from pocket_coffea.utils import rucio as rucio_utils
-
+import requests
+#from pocket_coffea.parameters.xsection import xsection
 def print_dataset_query(query, dataset_list, console, selected=[]):
     table = Table(title=f"Query: [bold red]{query}")
     table.add_column("Name", justify="left", style="cyan", no_wrap=True)
@@ -96,6 +97,7 @@ class DataDiscoveryCLI:
         self.last_query_list = None
         self.sites_allowlist = None
         self.sites_blocklist = None
+        self.sites_prioritylist = None
         self.sites_regex = None
         self.last_replicas_results = None
         self.final_output = None
@@ -105,6 +107,7 @@ class DataDiscoveryCLI:
         self.replica_results = defaultdict(list)
         self.replica_results_metadata = {}
         self.replica_results_bysite = {}
+        self.sort_replicas: str = "geoip"
 
         self.commands = [
             "help",
@@ -115,10 +118,12 @@ class DataDiscoveryCLI:
             "list-selected",
             "replicas",
             "list-replicas",
+            "set-sorting",
             "save",
             "clear",
             "allow-sites",
             "block-sites",
+            "priority-sites",
             "regex-sites",
             "sites-filters",
             "quit",
@@ -138,9 +143,11 @@ Some basic commands:
   - [bold cyan]query-results[/]: List the results of the last dataset query
   - [bold cyan]list-selected[/]: Print a list of the selected datasets
   - [bold cyan]list-replicas[/]: Print the selected files replicas for the selected dataset
+  - [bold cyan][set-sorting][/]: Set the sorting mode for replicas
   - [bold cyan]sites-filters[/]: show the active sites filters and ask to clear them
   - [bold cyan]allow-sites[/]: Restrict the grid sites available for replicas query only to the requested list
   - [bold cyan]block-sites[/]: Exclude grid sites from the available sites for replicas query
+  - [bold cyan]priority-sites[/]: Set priority for sites by which to order the replicas
   - [bold cyan]regex-sites[/]: Select sites with a regex for replica queries: e.g.  "T[123]_(FR|IT|BE|CH|DE)_\w+"
   - [bold cyan]save[/]: Save the selected datasets as a dataset definition file and also the replicas query results to file (json or yaml) for further processing
   - [bold cyan]clear[/]: Clear the selected datasets and replicas
@@ -164,6 +171,8 @@ Some basic commands:
                 self.do_replicas()
             elif command == "list-replicas":
                 self.do_list_replicas()
+            elif command == "set-sorting":
+                self.do_set_replicas_sorting()
             elif command == "save":
                 self.do_save()
             elif command == "clear":
@@ -172,6 +181,8 @@ Some basic commands:
                 self.do_allowlist_sites()
             elif command == "block-sites":
                 self.do_blocklist_sites()
+            elif command == "priority-sites":
+                self.do_prioritylist_sites()
             elif command == "regex-sites":
                 self.do_regex_sites()
             elif command == "sites-filters":
@@ -226,6 +237,88 @@ Some basic commands:
         else:
             print("First [bold red]query (Q)[/] for a dataset")
 
+    def generate_default_metadata(self, dataset):
+        year = self.extract_year_from_dataset_name(dataset)
+        isMC = self.is_mc_dataset(dataset)
+        try:
+            xsec = self.extract_xsec_from_dataset_name(dataset)
+        except Exception as e:
+            xsec = 1.0
+        primary_dataset,year_data,era_data = self.extract_era_from_dataset_name(dataset)
+        if isMC == True:
+            return {
+                "year": year,
+                "isMC": isMC,
+                "xsec": xsec
+            }
+        else:
+            return {
+                "year": year_data,
+                "isMC": isMC,
+                "primaryDataset": primary_dataset,
+                "era": era_data
+            }
+
+    def extract_year_from_dataset_name(self, dataset_name):
+        pattern = r'\/([^\/]+)NanoAOD'
+        match = re.search(pattern, dataset_name)
+        if not match:
+            return ""
+        if match.group(1) == 'RunIISummer20UL16NanoAODAPV':
+            return '2016_PreVFP'
+        elif match.group(1) == 'RunIISummer20UL16NanoAOD':
+            return '2016_PostVFP'
+        elif match.group(1) == 'RunIISummer20UL17':
+            return '2017'
+        elif match.group(1) == 'RunIISummer20UL18':
+            return '2018'
+        elif match.group(1) == 'Run3Summer22':
+            return '2022_preEE'
+        elif match.group(1) == 'Run3Summer22EE':
+            return '2022_postEE'
+        elif match.group(1) == 'Run3Summer23':
+            return '2023_preBPix'
+        elif match.group(1) == 'Run3Summer23BPix':
+            return '2023_postBPix'
+        elif match.group(1) == 'RunIII2024Summer24':
+            return '2024'
+        else:
+            return ""
+    
+    def extract_era_from_dataset_name(self, dataset_name):
+        pattern = r'/([^/]+)/Run(\d{4})([A-Z])'
+        match = re.search(pattern, dataset_name)
+        
+        if match:
+            primary_dataset = match.group(1)
+            year = match.group(2)
+            era = match.group(3)
+            return primary_dataset, year, era
+        else:
+            return "", "", ""
+    
+    def is_mc_dataset(self, dataset_name):
+        parts = dataset_name.split('/')
+        if len(parts) > 0 and 'SIM' in parts[-1]:
+            return True
+        else:
+            return False
+
+    def extract_xsec_from_dataset_name(self, dataset_name):
+        parts = dataset_name.split('/')
+        if len(parts) > 0:
+            parts =  parts[1]
+        url = 'https://xsdb-temp.app.cern.ch/api/search'
+        response = requests.post(url, json={'process_name': parts})
+        if response.status_code == 200:
+            data = response.json()
+            if isinstance(data, list) and len(data) > 0:
+                return float(data[0]['cross_section'])
+            else:
+                raise ValueError(f"No data found for process_name '{parts}'")
+        else:
+            raise ConnectionError(f"Failed to fetch data for process_name '{parts}'. Status code: {response.status_code}")
+
     def do_select(self, selection=None, metadata=None):
         """Selected the datasets from the list of query results. Input a list of indices
         also with range 4-6 or "all"."""
@@ -250,14 +343,15 @@ Some basic commands:
                 if metadata:
                     self.selected_datasets_metadata.append(metadata)
                 else:
-                    self.selected_datasets_metadata.append({
-                        "year": "",
-                        "isMC": True,
-                        "primaryDataset": "",
-                        "part": "",
-                        "era": "",
-                        "xsec": 1.0
-                    })
+                    self.selected_datasets_metadata.append(self.generate_default_metadata(self.last_query_list[s]))
+                    #self.selected_datasets_metadata.append({
+                    #    "year": "",
+                    #    "isMC": True,
+                    #    "primaryDataset": "",
+                    #    "part": "",
+                    #    "era": "",
+                    #    "xsec": 1.0
+                    #})
                 print(f"- ({s+1}) {self.last_query_list[s]}")
             else:
                 print(
@@ -317,9 +411,11 @@ Some basic commands:
                         dataset,
                         allowlist_sites=self.sites_allowlist,
                         blocklist_sites=self.sites_blocklist,
+                        prioritylist_sites=self.sites_prioritylist,
                         regex_sites=self.sites_regex,
                         mode="full",
                         client=self.rucio_client,
+                        sort=self.sort_replicas,
                     )
                 except Exception as e:
                     print(f"\n[red bold] Exception: {e}[/]")
@@ -463,6 +559,21 @@ Some basic commands:
         for s in self.sites_blocklist:
             print(f"- {s}")
 
+    def do_prioritylist_sites(self, sites=None):
+        """Choose prioritised sites by which to order replicas independent of location and availability."""
+        if sites is None:
+            sites = Prompt.ask(
+                "[yellow]List to order the available sites by (space-separated list, overwrites previous priority)"
+            ).split(" ")
+        if self.sites_prioritylist is not None:
+            print("[yellow]Overwriting priority order")
+        self.sites_prioritylist = sites
+        print("[green]Order of priority for available sites")
+        if len(self.sites_prioritylist) > 0:
+            for s in self.sites_prioritylist:
+                print(f"- {s}")
+        print("[yellow]Remember to set sorting to `priority`")
+
     def do_regex_sites(self, regex=None):
         if regex is None:
             regex = Prompt.ask("[yellow]Regex to restrict the available sites")
@@ -481,14 +592,23 @@ Some basic commands:
             for s in self.sites_blocklist:
                 print(f"- {s}")
 
+        print("[bold green]Priority-listed sites:")
+        if self.sites_prioritylist:
+            for s in self.sites_prioritylist:
+                print(f"- {s}")
+
         print(f"[bold cyan]Sites regex: [italics]{self.sites_regex}")
+
+        print(f"[bold green]Sorting set to: {self.sort_replicas}")
 
         if ask_clear:
             if Confirm.ask("Clear sites restrinction?", default=False):
                 self.sites_allowlist = None
                 self.sites_blocklist = None
                 self.sites_regex = None
+                self.sites_prioritylist = None
                 print("[bold green]Sites filters cleared")
+
 
     def do_list_replicas(self):
         selection = Prompt.ask(
@@ -510,6 +630,33 @@ Some basic commands:
                     T.add(f"[cyan]{f}")
 
             self.console.print(tree)
+
+    def do_set_replicas_sorting(self, sort: str = None):
+        """Set the sorting mode for the replicas.
+
+        If `sort` is None, it will ask the user for the sorting mode.
+        If user input is empty, the sorting mode will not be changed.
+
+        Parameters
+        ----------
+        sort : str, optional
+            how to sort replicas, by default None
+            if None, it will ask the user for the sorting mode.
+        """
+        print(
+            f"[bold cyan]Current sorting mode for replicas: [green]{self.sort_replicas}"
+        )
+        print("[bold cyan]Available sorting options: [yellow] geoip, priority")
+        if sort is None:
+            sort = Prompt.ask(
+                "[yellow]How to sort replicas? (leave empty to make no changes)"
+            )
+        if sort != "":
+            self.sort_replicas = sort
+            print(
+                f"[bold green]New sorting mode for replicas: [cyan]{self.sort_replicas}"
+            )
+
 
     def do_save(self, filename=None):
         """Save the replica information in yaml format"""        
@@ -580,19 +727,17 @@ Some basic commands:
             self.final_output = None
             print(f"[green]Selected datasets list emptied![/]")
 
-
     # Define a empty-list function
     def do_clear(self):
         if Confirm.ask("[red]Do you want to empty your selected samples list?[/]", default=False):
-          self.selected_datasets = []
-          self.selected_datasets_metadata = []
-          self.replica_results = defaultdict(list)
-          self.replica_results_metadata = {}
-          self.replica_results_bysite = {}
-          self.final_output = None
-          print(f"[green]Selected datasets list emptied![/]")
+            self.selected_datasets = []
+            self.selected_datasets_metadata = []
+            self.replica_results = defaultdict(list)
+            self.replica_results_metadata = {}
+            self.replica_results_bysite = {}
+            self.final_output = None
+            print(f"[green]Selected datasets list emptied![/]")
 
-        
     def load_dataset_definition(
         self,
         dataset_definition,
@@ -643,28 +788,29 @@ Some basic commands:
         self.do_list_selected()
         return out_replicas
 
-
-    
-
 # This is the main function that will be called by the CLI
-      
+
+
 @click.command()
 @click.option("--dataset-definition", help="Dataset definition file", type=str, required=False)
 @click.option("--output", help="Output name for dataset discovery output (no fileset preprocessing)", type=str, required=False, default="output_dataset.json")
 @click.option("--fileset-output", help="Output name for fileset", type=str, required=False, default="output_fileset")
 @click.option("--allow-sites", help="List of sites to be allowlisted", nargs="+", type=str)
 @click.option("--block-sites", help="List of sites to be blocklisted", nargs="+", type=str)
+@click.option("--priority-sites", help="List of priority order for sites", nargs="+", type=str)
 @click.option("--regex-sites", help="Regex string to be used to filter the sites", type=str)
 @click.option("--query-results-strategy", help="Mode for query results selection: [all|manual]", type=str, default="all")
 @click.option("--replicas-strategy", help="Mode for selecting replicas for datasets: [manual|round-robin|first|choose]", default="round-robin", required=False)
-def dataset_discovery_cli(dataset_definition, output, fileset_output, allow_sites, block_sites, regex_sites, query_results_strategy, replicas_strategy):
-    '''CLI for interactive dataset discovery'''
+def dataset_discovery_cli(dataset_definition, output, fileset_output, allow_sites, block_sites, priority_sites, regex_sites, query_results_strategy, replicas_strategy):
+    """CLI for interactive dataset discovery."""
     cli = DataDiscoveryCLI()
 
     if allow_sites:
         cli.sites_allowlist = allow_sites
     if block_sites:
         cli.sites_blocklist = block_sites
+    if priority_sites:
+        cli.sites_prioritylist = priority_sites
     if regex_sites:
         cli.sites_regex = regex_sites
 
@@ -682,5 +828,6 @@ def dataset_discovery_cli(dataset_definition, output, fileset_output, allow_site
 
     cli.start_cli()
 
+
 if __name__ == "__main__":
-    dataset_query_cli()
+    dataset_discovery_cli()

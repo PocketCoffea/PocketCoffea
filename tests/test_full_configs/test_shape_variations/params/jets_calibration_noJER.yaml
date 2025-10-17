@@ -1,0 +1,43 @@
+jets_calibration:
+  jet_types:
+      MC: 
+        AK4PFchs:   "${default_jets_calibration.factory_configuration_MC.AK4PFchs.JES_noJER}" 
+        AK4PFPuppi: "${default_jets_calibration.factory_configuration_MC.AK4PFPuppi.JES_noJER}" 
+
+  variations: 
+    2016_PreVFP: 
+      AK4PFchs: 
+      - JES_Total
+      #- JER
+    2016_PostVFP: 
+      AK4PFchs: 
+      - JES_Total
+      #- JER
+    "2017": 
+      AK4PFchs: 
+      - JES_Total
+      #- JER
+    "2018": 
+      AK4PFchs: 
+      - JES_Total
+      #- JER
+    2022_preEE:
+      AK4PFPuppi:  
+      - JES_Total
+      #- JER
+    2022_postEE:
+      AK4PFPuppi: 
+      - JES_Total
+      #- JER
+    2023_preBPix:
+      AK4PFPuppi:       
+      - JES_Total
+      #- JER
+    2023_postBPix:
+      AK4PFPuppi: 
+      - JES_Total
+      #- JER
+    "2024":
+      AK4PFPuppi: 
+      - JES_Total
+     # - JER

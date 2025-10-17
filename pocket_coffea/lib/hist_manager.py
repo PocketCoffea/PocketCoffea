@@ -112,16 +112,42 @@ def get_hist_axis_from_config(ax: Axis):
         )
 
 
+def weights_cache(fun):
+    '''
+    Function decorator to cache the weights calculation when they are ndim=1 on data_structure of ndim=1.
+    The weight is cached by (category, subsample, variation)
+    '''
+    def inner(self, category, subsample, variation, weight, mask, data_structure):
+        if mask.ndim == 2:
+            # Do not cache
+            return fun(self, weight, mask, data_structure)
+        #Cache only in the "by event" weight, which does not need to be
+        #broadcasted on the data dimension.
+        elif mask.ndim == 1 and (
+            (data_structure is None) or (data_structure.ndim == 1)
+        ):
+            name = (category, subsample, variation)
+            if name not in self._weights_cache:
+                self._weights_cache[name] = fun(self, weight, mask, data_structure)
+
+            return self._weights_cache[name]
+        else:
+            # if the mask is 2d, do not cache
+            return fun(self, weight, mask, data_structure)
+    return inner
+
 class HistManager:
     def __init__(
         self,
         hist_config,
         year,
         sample,
+        has_subsamples,
         subsamples,
         categories_config,
         variations_config,
         weights_manager,
+        calibrators_manager,
         processor_params,
         custom_axes=None,
         isMC=True,
@@ -129,23 +155,49 @@ class HistManager:
         self.processor_params = processor_params
         self.isMC = isMC
         self.year = year
+        self.sample = sample
+        self.has_subsamples = has_subsamples
         self.subsamples = subsamples
         self.weights_manager = weights_manager
+        self.calibrators_manager = calibrators_manager
         self.histograms = defaultdict(dict)
         self.variations_config = variations_config
         self.categories_config = categories_config
         self.available_categories = set(self.categories_config.keys())
         self.available_weights_variations = ["nominal"]
         self.available_shape_variations = []
+        # This dictionary is used to store the weights in some cases for performance reaso
+        self._weights_cache = {}
 
         # We take the variations config and we build the available variations
         # for each category and for the whole sample (if MC)
         # asking to the WeightsManager the available variations for the current specific chunk and metadata.
         self.available_weights_variations_bycat = defaultdict(list)
         self.available_shape_variations_bycat = defaultdict(list)
+        # Variations by subsabples
+        if self.has_subsamples:
+            self.available_weights_variations_bysubsample = {
+                sub : [] for sub in self.subsamples
+            }
+            self.available_weights_variations_bysubsample_bycat = {
+                sub : defaultdict(list) for sub in self.subsamples
+            } 
+            self.available_shape_variations_bysubsample = {
+                sub : [] for sub in self.subsamples
+            } 
+            self.available_shape_variations_bysubsample_bycat = {
+                sub : defaultdict(list) for sub in self.subsamples
+            }
+        else:
+            self.available_weights_variations_bysubsample = None
+            self.available_weights_variations_bysubsample_bycat = None
+            self.available_shape_variations_bysubsample = None
+            self.available_shape_variations_bysubsample_bycat = None
+            
             
         if self.isMC:
             # Weights variations
+            # This is checking only the full samples weights
             for cat, weights in self.variations_config["weights"].items():
                 self.available_weights_variations_bycat[cat].append("nominal")
                 for weight in weights:
@@ -153,47 +205,61 @@ class HistManager:
                     vars = self.weights_manager.get_available_modifiers_byweight(weight)
                     self.available_weights_variations += vars
                     self.available_weights_variations_bycat[cat] += vars
-            
+
+            # By subsample
+            if self.has_subsamples:
+                for subsample in self.subsamples:
+                    weights_by_subsample = self.variations_config["by_subsample"][f"{sample}__{subsample}"]["weights"]
+                    for cat, weights in weights_by_subsample.items():
+                        for weight in weights:
+                            # Ask the WeightsManager the available variations
+                            vars = self.weights_manager.get_available_modifiers_byweight(weight)
+                            self.available_weights_variations_bysubsample[subsample] += vars
+                            self.available_weights_variations_bysubsample_bycat[subsample][cat] += vars
+                    
             # Shape variations
             for cat, vars in self.variations_config["shape"].items():
+                # Ask the calibrators manager for available variations. 
+                # Each calibrator handles the available variations
                 for var in vars:
-                    # Check if the variation is a wildcard and the systematic requested has subvariations
-                    # defined in the parameters
-                    if (
-                        var
-                        in self.processor_params.systematic_variations.shape_variations
-                    ):
-                        for (
-                            subvariation
-                        ) in self.processor_params.systematic_variations.shape_variations[
-                            var
-                        ][
-                            self.year
-                        ]:
-                            self.wildcard_variations[var] = f"{var}_{subvariation}"
-                            self.available_weights_variations += [
-                                f"{var}_{subvariation}Up",
-                                f"{var}_{subvariation}Down",
-                            ]
-                            self.available_weights_variations_bycat[cat] += [
-                                f"{var}_{subvariation}Up",
-                                f"{var}_{subvariation}Down",
-                            ]
-                    else:
-                        vv = [f"{var}Up", f"{var}Down"]
-                        self.available_shape_variations += vv
-                        self.available_shape_variations_bycat[cat] += vv
+                    variations = self.calibrators_manager.get_available_variations(var)
+                    self.available_shape_variations += variations
+                    self.available_shape_variations_bycat[cat] += variations
+
+            # shape variations by subsamples
+            if self.has_subsamples:
+                for subsample in self.subsamples:
+                    for cat, vars in self.variations_config["by_subsample"][f"{sample}__{subsample}"]["shape"].items():
+                        for var in vars:
+                            variations = self.calibrators_manager.get_available_variations(var)
+                            self.available_shape_variations_bysubsample[subsample] += variations
+                            self.available_shape_variations_bysubsample_bycat[subsample][cat] += variations
+
+        else:  # DATA
+            # Add a "weight_variation" nominal for data in each category
+            for cat in self.categories_config.keys():
+                self.available_weights_variations += ["nominal"]
+                self.available_weights_variations_bycat[cat].append("nominal")
+                
+            
         # Reduce to set over all the categories
         self.available_weights_variations = set(self.available_weights_variations)
         self.available_shape_variations = set(self.available_shape_variations)
+        if self.has_subsamples:
+            self.available_weights_variations_bysubsample = {
+                sub: set(vars) for sub, vars in self.available_weights_variations_bysubsample.items()
+            }
+            self.available_shape_variations_bysubsample = {
+                sub: set(vars) for sub, vars in self.available_shape_variations_bysubsample.items()
+            }
         # Prepare the variations Axes summing all the required variations
-        # The variation config is organized as the weights one, by sample and by category
-
+        # The variation config is organized as the weights one, by sample and by category, and by subsample
+        
         for name, hcfg in deepcopy(hist_config).items():
             # Check if the histogram is active for the current sample
             # We only check for the parent sample, not for subsamples
             if hcfg.only_samples != None:
-                if sample not in cfg.only_samples:
+                if sample not in hcfg.only_samples:
                     continue
             elif hcfg.exclude_samples != None:
                 if sample in hcfg.exclude_samples:
@@ -216,58 +282,64 @@ class HistManager:
                 hcfg.only_categories, name="cat", label="Category", growth=False
             )
 
-            # Variation axes
-            if hcfg.variations:
-                # Get all the variation
-                allvariat = self.available_weights_variations.union(self.available_shape_variations)
-                
-                if hcfg.only_variations != None:
-                    # expand wild card and Up/Down
-                    only_variations = []
-                    for var in hcfg.only_variations:
-                        if var in self.wildcard_variations:
-                            only_variations += [
-                                f"{self.wildcard_variations[var]}Up",
-                                f"{self.wildcard_variations[var]}Down",
-                            ]
-                        else:
-                            only_variations += [
-                                f"{var}Up",
-                                f"{var}Down",
-                            ]
-                    # filtering the variation list with the available ones
-                    allvariat = set(
-                        filter(lambda v: v in only_variations or v == "nominal", allvariat)
-                    )
-                # sorted is needed to assure to have always the same order for all chunks
-                hcfg.only_variations = list(sorted(set(allvariat)))
-            else:
-                hcfg.only_variations = ["nominal"]
-            # Defining the variation axis
-            var_ax = hist.axis.StrCategory(
-                hcfg.only_variations, name="variation", label="Variation", growth=False
-            )
-
-            # Axis in the configuration + custom axes
-            if self.isMC:
-                all_axes = [cat_ax, var_ax]
-            else:
-                # no variation axis for data
-                all_axes = [cat_ax]
-            # the custom axis get included in the hcfg for future use
-            hcfg.axes = custom_axes + hcfg.axes
-            # Then we add those axes to the full list
-            for ax in hcfg.axes:
-                all_axes.append(get_hist_axis_from_config(ax))
-            # Creating an histogram object for each subsample
+            # Look over subsamples as we have different variataions for each subsample
+            # IF there are no subsamples the subsample == sample
             for subsample in self.subsamples:
-                hcfg_subs = deepcopy(hcfg)
+                hcfg_sub = deepcopy(hcfg)
+                # Variation axes
+                if hcfg_sub.variations:
+                    # Get all the variation
+                    if self.has_subsamples:
+                        allvariat = set.union(self.available_weights_variations, self.available_shape_variations,
+                                        self.available_weights_variations_bysubsample[subsample],
+                                        self.available_shape_variations_bysubsample[subsample])
+                    else:
+                        allvariat = set.union(self.available_weights_variations, self.available_shape_variations)
+
+                    if hcfg_sub.only_variations != None:
+                        # expand wild card and Up/Down
+                        only_variations = []
+                        for var in hcfg_sub.only_variations:
+                            # Check if it is a calibrator name wildcard
+                            # an empty string is returned if the calibrator is not found
+                            only_variations_calib = self.calibrators_manager.get_available_variations(var)
+                            if len(only_variations_calib)>0:
+                                only_variations += only_variations_calib
+                            else:
+                                # Just use the one explicitely asked
+                                only_variations.append(var)
+
+                        # filtering the variation list with the available ones
+                        allvariat = set(
+                            filter(lambda v: v in only_variations or v == "nominal", allvariat)
+                        )
+                    # sorted is needed to assure to have always the same order for all chunks
+                    hcfg_sub.only_variations = list(sorted(set(allvariat)))
+                else:
+                    hcfg_sub.only_variations = ["nominal"]
+                # Defining the variation axis
+                var_ax = hist.axis.StrCategory(
+                    hcfg_sub.only_variations, name="variation", label="Variation", growth=False
+                )
+
+                # Axis in the configuration + custom axes
+                if self.isMC:
+                    all_axes = [cat_ax, var_ax]
+                else:
+                    # no variation axis for data
+                    all_axes = [cat_ax]
+                # the custom axis get included in the hcfg for future use
+                hcfg_sub.axes = custom_axes + hcfg_sub.axes
+                # Then we add those axes to the full list
+                for ax in hcfg_sub.axes:
+                    all_axes.append(get_hist_axis_from_config(ax))
+                # Creating an histogram object for each subsample
                 # Build the histogram object with the additional axes
-                hcfg_subs.hist_obj = hist.Hist(
-                    *all_axes, storage=hcfg.storage, name="Counts"
+                hcfg_sub.hist_obj = hist.Hist(
+                    *all_axes, storage=hcfg_sub.storage, name="Counts"
                 )
                 # Save the hist in the configuration and store the full config object
-                self.histograms[subsample][name] = hcfg_subs
+                self.histograms[subsample][name] = hcfg_sub
 
     def get_histograms(self, subsample):
         # Exclude by default metadata histo
@@ -295,6 +367,8 @@ class HistManager:
         '''
         weights = {}
         if shape_variation == "nominal":
+            # This is not including the subsamples nominal+ variations
+            # which will be computed on the fly
             for variation in self.available_weights_variations_bycat[category]:
                 if variation == "nominal":
                     weights["nominal"] = self.weights_manager.get_weight(category)
@@ -305,7 +379,8 @@ class HistManager:
                     )
         else:
             # Save only the nominal weights if a shape variation is being processed
-            weights["nominal"] = weights_manager.get_weight(category)
+            weights["nominal"] = self.weights_manager.get_weight(category)
+
         return weights
 
     def fill_histograms(
@@ -325,17 +400,15 @@ class HistManager:
         events. The categories mask will be applied.
         '''
 
-        # Preloading weights
-        if self.isMC:
-            weights = {}
-            for category in self.available_categories:
-                weights[category] = self.__prefetch_weights(category, shape_variation)
+        # Preloading weights BOTH FOR data and MC
+        weights = {}
+        for category in self.available_categories:
+            weights[category] = self.__prefetch_weights(category, shape_variation)
+            
         # Cleaning the weights cache decorator between calls.
-        weights_cache.cache_.clear()
-
+        self._weights_cache.clear()
         # Looping on the histograms to read the values only once
         # Then categories, subsamples and weights are applied and masked correctly
-
         # ASSUNTION, the histograms are the same for each subsample
         # we can take the configuration of the first subsample
         for name, histo in self.histograms[self.subsamples[0]].items():
@@ -511,13 +584,14 @@ class HistManager:
                             for variation in histo.hist_obj.axes["variation"]:
                                 if variation in self.available_shape_variations:
                                     # We ignore other shape variations when
-                                    # we are already working on a shape variation
+                                    # we are working on the nominal shape variation
                                     continue
                                 # Only weights variations, since we are working on nominal sample
                                 # Check if this variation exists for this category
                                 if variation not in weights[category]:
                                     # it means that the variation is in the axes only
-                                    # because it is requested for another category
+                                    # because it is requested for another category or because the
+                                    # variation is by subsample. 
                                     # In this case we fill with the nominal variation
                                     # We get the weights for the current category
                                     weight_varied = weights[category]["nominal"]
@@ -525,17 +599,32 @@ class HistManager:
                                     # We get the weights for the current category
                                     weight_varied = weights[category][variation]
 
+                                # Check if there are weights by subsample
+                                if self.has_subsamples:
+                                    if variation == "nominal":
+                                        weight_sub = self.weights_manager.get_weight_only_subsample(
+                                            self.sample + "__" + subsample, category
+                                        )
+                                    else:
+                                        # If the variation is here only because it was requested for another category
+                                        # the weight manager will return the nominal subsample weight
+                                        weight_sub = self.weights_manager.get_weight_only_subsample(
+                                            self.sample + "__" + subsample, category, variation
+                                        )
+                                else:
+                                    weight_sub = 1.
+
                                 # Broadcast and mask the weight (using the cached value if possible)
-                                weight_varied = mask_and_broadcast_weight(
+                                weight_varied = self.mask_and_broadcast_weight(
                                     category,
                                     subsample,
                                     variation,
-                                    weight_varied,
+                                    weight_varied*weight_sub, # This creates a copy of the weight
                                     mask,
                                     data_structure,
                                 )
                                 if custom_weight != None and name in custom_weight:
-                                    weight_varied = weight_varied * mask_and_broadcast_weight(
+                                    weight_varied = weight_varied * self.mask_and_broadcast_weight(
                                         category + "customW",
                                         subsample,
                                         variation,
@@ -547,7 +636,7 @@ class HistManager:
                                     )
 
                                 # Then we apply the notnone mask
-                                weight_varied = weight_varied[all_axes_isnotnone]
+                                weight_varied = weight_varied[ak.to_numpy(all_axes_isnotnone)]
                                 # Fill the histogram
                                 try:
                                     self.histograms[subsample][name].hist_obj.fill(
@@ -561,19 +650,36 @@ class HistManager:
                                         f"Cannot fill histogram: {name}, {histo} {e}"
                                     )
                         else:
+                            # Check if this shape variation is requested for this category
+                            if shape_variation not in self.available_shape_variations_bycat[category]:
+                                # it means that the variation is in the axes only
+                                # because it is requested for another category.
+                                # We cannot fill just with the nominal, because we are running the shape
+                                # variation and the observable hist will be different, also if with nominal weights.
+                                continue
+                                
                             # Working on shape variation! only nominal weights
                             # (also using the cache which is cleaned for each shape variation
                             # at the beginning of the function)
-                            weights_nom = mask_and_broadcast_weight(
+                            weight_nom = weights[category]["nominal"]
+                            if self.has_subsamples:
+                                weight_sub = self.weights_manager.get_weight_only_subsample(
+                                    self.sample + "__" + subsample, category
+                                )
+                            else:
+                                weight_sub = 1.
+                                
+                            weight_nom = self.mask_and_broadcast_weight(
                                 category,
                                 subsample,
                                 "nominal",
-                                weights[category]["nominal"],
+                                weight_nom * weight_sub,
                                 mask,
                                 data_structure,
                             )
+                            
                             if custom_weight != None and name in custom_weight:
-                                weight_varied = weight_varied * mask_and_broadcast_weight(
+                                weight_nom = weight_nom * self.mask_and_broadcast_weight(
                                     category + "customW",
                                     subsample,
                                     "nominal",
@@ -584,20 +690,59 @@ class HistManager:
                                     data_structure,
                                 )
                             # Then we apply the notnone mask
-                            weights_nom = weights_nom[all_axes_isnotnone]
+                            weight_nom = weight_nom[all_axes_isnotnone]
                             # Fill the histogram
                             try:
                                 self.histograms[subsample][name].hist_obj.fill(
                                     cat=category,
                                     variation=shape_variation,
-                                    weight=weights_nom,
+                                    weight=weight_nom,
                                     **{**fill_categorical, **fill_numeric_masked},
                                 )
                             except Exception as e:
                                 raise Exception(
                                     f"Cannot fill histogram: {name}, {histo} {e}"
                                 )
+                    ##################################################################################
+                    elif not histo.no_weights and not self.isMC:   #DATA
+                        # Broadcast and mask the weight (using the cached value if possible)
+                        weight_data = weights[category]["nominal"]
+                        weight_data = self.mask_and_broadcast_weight(
+                            category,
+                            subsample,
+                            "nominal",
+                            weight_data,
+                            mask,
+                            data_structure,
+                        )
+                        if custom_weight != None and name in custom_weight:
+                            weight_data = weight_data * self.mask_and_broadcast_weight(
+                                category + "customW",
+                                subsample,
+                                "nominal",
+                                custom_weight[
+                                    name
+                                ],  # passing the custom weight to be masked and broadcasted
+                                mask,
+                                data_structure,
+                            )
 
+                        # Then we apply the notnone mask
+                        weight_data = weight_data[ak.to_numpy(all_axes_isnotnone)]
+                        # Fill the histogram
+                        try:
+                            # Data histograms don't have variations but now can be weighted
+                            self.histograms[subsample][name].hist_obj.fill(
+                                cat=category,
+                                weight=weight_data,
+                                **{**fill_categorical, **fill_numeric_masked},
+                            )
+                        except Exception as e:
+                            raise Exception(
+                                f"Cannot fill histogram for Data: {name}, {histo} {e}"
+                            )
+
+                    ######################################################
                     elif (
                         histo.no_weights and self.isMC
                     ):  # NO Weights modifier for the histogram
@@ -612,7 +757,7 @@ class HistManager:
                                 f"Cannot fill histogram: {name}, {histo} {e}"
                             )
 
-                    elif not self.isMC:
+                    elif histo.no_weights and not self.isMC:
                         # Fill histograms for Data
                         try:
                             self.histograms[subsample][name].hist_obj.fill(
@@ -629,79 +774,53 @@ class HistManager:
                         )
 
 
-###################
-# Utilities to handle the Weights cache
+        ###################
+        # Utilities to handle the Weights cache
 
+    @weights_cache
+    def mask_and_broadcast_weight(self, weight, mask, data_structure):
+        '''
+        The function mask the weights and broadcast them to the correct dimension.
+        The `data_structure` input is an array of 1-value with the structure of the data ALREADY masked.
+        We need instead to mask the weight value and broadcast it.
 
-def weights_cache(fun):
-    '''
-    Function decorator to cache the weights calculation when they are ndim=1 on data_structure of ndim=1.
-    The weight is cached by (category, subsample, variation)
-    '''
-    weights_cache.cache_ = {}
+        We need to handle different cases:
+        - Mask dimension=1 (mask on events):
+           If the data_structure.dim = 2 it means that we want to plot a collection
+           - we mask the weights by events (data is already masked)
+           - broadcast weight to the collection by multiplying to the datastructure (1-like array)
+           - flatten the final weight
+           If the data_structure.dim = 1:
+           - We just mask the weight by event
 
-    def inner(category, subsample, variation, weight, mask, data_structure):
-        if mask.ndim == 2:
-            # Do not cache
-            return fun(weight, mask, data_structure)
-        # Cache only in the "by event" weight, which does not need to be
-        # broadcasted on the data dimension.
-        elif mask.ndim == 1 and (
-            (data_structure is None) or (data_structure.ndim == 1)
-        ):
-            name = (category, subsample, variation)
-            if name not in weights_cache.cache_:
-                weights_cache.cache_[name] = fun(weight, mask, data_structure)
+        - Mask dimension=2 (mask on the collection)
+          It means that we are masking the collection, not the events.
+          - First we broadcast the weight to the structure of the mask
+          - Then we apply the mask
+          - Then we flatten the weight
 
-            return weights_cache.cache_[name]
+        '''    
+        if mask.ndim == 1 and not (data_structure is None) and data_structure.ndim == 2:
+            # If the mask has dim =1 and the data dim =2
+            # we need to mask the weight on dim=1, then to broadcast
+            # on the data_structure -> then flatten
+            allow_missing = False
+            if ak.sum(ak.is_none(data_structure, axis=-1)) > 0:
+                data_structure = ak.fill_none(data_structure, 0.)
+
+            return ak.to_numpy(
+                ak.flatten(data_structure * (weight[mask])), allow_missing=False
+            )
+
+        elif mask.ndim == 2:
+            # First we broadcast the weight then we mask
+            # if the mask is ndim==2 also the data is ndim==2.
+            # The weights are broadcasted at collection level, then masked, then flattened.
+            return ak.to_numpy(
+                ak.flatten((ak.ones_like(mask) * weight)[mask]), allow_missing=False
+            )
         else:
-            # if the mask is 2d, do not cache
-            return fun(weight, mask, data_structure)
-
-    return inner
+            return ak.to_numpy(weight[mask], allow_missing=False)
 
 
-@weights_cache
-def mask_and_broadcast_weight(weight, mask, data_structure):
-    '''
-    The function mask the weights and broadcast them to the correct dimension.
-    The `data_structure` input is an array of 1-value with the structure of the data ALREADY masked.
-    We need instead to mask the weight value and broadcast it.
 
-    We need to handle different cases:
-    - Mask dimension=1 (mask on events):
-       If the data_structure.dim = 2 it means that we want to plot a collection
-       - we mask the weights by events (data is already masked)
-       - broadcast weight to the collection by multiplying to the datastructure (1-like array)
-       - flatten the final weight
-       If the data_structure.dim = 1:
-       - We just mask the weight by event
-
-    - Mask dimension=2 (mask on the collection)
-      It means that we are masking the collection, not the events.
-      - First we broadcast the weight to the structure of the mask
-      - Then we apply the mask
-      - Then we flatten the weight
-
-    '''
-    if mask.ndim == 1 and not (data_structure is None) and data_structure.ndim == 2:
-        # If the mask has dim =1 and the data dim =2
-        # we need to mask the weight on dim=1, then to broadcast
-        # on the data_structure -> then flatten
-        allow_missing = False
-        if ak.sum(ak.is_none(data_structure, axis=-1)) > 0:
-            data_structure = ak.fill_none(data_structure, 0.)
-
-        return ak.to_numpy(
-            ak.flatten(data_structure * (weight[mask])), allow_missing=False
-        )
-
-    elif mask.ndim == 2:
-        # First we broadcast the weight then we mask
-        # if the mask is ndim==2 also the data is ndim==2.
-        # The weights are broadcasted at collection level, then masked, then flattened.
-        return ak.to_numpy(
-            ak.flatten((ak.ones_like(mask) * weight)[mask]), allow_missing=False
-        )
-    else:
-        return ak.to_numpy(weight[mask], allow_missing=False)
