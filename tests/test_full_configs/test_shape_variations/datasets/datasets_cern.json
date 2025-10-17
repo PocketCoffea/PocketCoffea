@@ -59,6 +59,20 @@
             "root://eoscms.cern.ch//eos/cms/store/data/Run2018A/EGamma/NANOAOD/UL2018_MiniAODv2_NanoAODv9_GT36-v1/2830000/10D2F672-4042-5F49-B8D5-73B90AF52CFD.root"]
      },
 
+     "TTTo2L2Nu_2023_postBPix": {
+        "metadata": {
+            "das_names": "['/Tto2L2Nu-2Jets_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/Run3Summer23BPixNanoAODv13-133X_mcRun3_2023_realistic_postBPix_ForNanov13_v2-v2/NANOAODSIM']",
+            "sample": "TTTo2L2Nu",
+            "year": "2023_postBPix",
+            "isMC": "True",
+            "xsec": "88.29",
+            "nevents": "100000",
+            "size": "100000"
+        },
+        "files": [
+            "root://eoscms.cern.ch//eos/cms/store/mc/Run3Summer23BPixNanoAODv13/TTto2L2Nu-2Jets_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/NANOAODSIM/133X_mcRun3_2023_realistic_postBPix_ForNanov13_v2-v2/100000/19029770-7419-4a59-ba9c-3e549e8561ff.root"]
+     },
+
      "DATA_EGamma_2023_EraD": {
         "metadata": {
             "das_names": "['/EGamma0/Run2023D-22Sep2023_v2-v1/NANOAOD']",

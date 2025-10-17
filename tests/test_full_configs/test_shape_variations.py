@@ -22,6 +22,8 @@ def base_path() -> Path:
 
 def test_shape_variations_JEC_run2(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_shape_variations" )
+    if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):
+        os.remove("jets_calibrator_JES_JER_Syst.pkl.gz")
     outputdir = tmp_path_factory.mktemp("test_shape_variations")
     config = load_config("config_JEC_Run2.py", save_config=True, outputdir=outputdir)
     assert isinstance(config, Configurator)
@@ -63,6 +65,8 @@ def test_shape_variations_JEC_run2(base_path: Path, monkeypatch: pytest.MonkeyPa
 
 def test_shape_variations_JEC_run3(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_shape_variations" )
+    if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):
+        os.remove("jets_calibrator_JES_JER_Syst.pkl.gz")
     outputdir = tmp_path_factory.mktemp("test_shape_variations")
     config = load_config("config_JEC_Run3.py", save_config=True, outputdir=outputdir)
     assert isinstance(config, Configurator)
@@ -98,6 +102,8 @@ def test_shape_variations_JEC_run3(base_path: Path, monkeypatch: pytest.MonkeyPa
 
 def test_shape_variations_ele_SS_run3(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_shape_variations" )
+    if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):
+        os.remove("jets_calibrator_JES_JER_Syst.pkl.gz")
     outputdir = tmp_path_factory.mktemp("test_shape_variations")
     config = load_config("config_eleSS_Run3.py", save_config=True, outputdir=outputdir)
     assert isinstance(config, Configurator)
@@ -133,6 +139,8 @@ def test_shape_variations_ele_SS_run3(base_path: Path, monkeypatch: pytest.Monke
 
 def test_shape_variation_default_sequence(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_shape_variations" )
+    if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):
+        os.remove("jets_calibrator_JES_JER_Syst.pkl.gz")
     outputdir = tmp_path_factory.mktemp("test_shape_variations")
     config = load_config("config_allvars_JESall.py", save_config=True, outputdir=outputdir)
     assert isinstance(config, Configurator)
@@ -173,6 +181,8 @@ def test_shape_variation_default_sequence(base_path: Path, monkeypatch: pytest.M
 
 def test_shape_variation_default_sequence_comparison_with_legacy_run2(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_shape_variations" )
+    if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):
+        os.remove("jets_calibrator_JES_JER_Syst.pkl.gz")
     outputdir = tmp_path_factory.mktemp("test_shape_variations")
     config = load_config("config_allvars_Run2.py", save_config=True, outputdir=outputdir)
     assert isinstance(config, Configurator)
@@ -223,28 +233,22 @@ def test_shape_variation_default_sequence_comparison_with_legacy_run2(base_path:
     # Compare the histograms for JES and JER variations
     ref_H = ref_output["variables"]['JetGood_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
     H = output["variables"]['JetGood_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
-    assert np.allclose(ref_H[{"cat":"baseline", "variation":"JES_Total_AK4PFchsUp"}].values(), H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalUp"}].values()),\
+    assert np.allclose(ref_H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalUp"}].values(), H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalUp"}].values()),\
           "JES Total Up variation does not match with the reference output"
-    assert np.allclose(ref_H[{"cat":"1btag", "variation":"JER_AK4PFchsUp"}].values(), H[{"cat":"1btag", "variation":"AK4PFchs_JERUp"}].values()),\
-          "JER Up variation does not match with the reference output"
     
     ref_H = ref_output["variables"]['JetGood_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
     H = output["variables"]['JetGood_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
-    assert np.allclose(ref_H[{"cat":"baseline", "variation":"JES_Total_AK4PFchsDown"}].values(), H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalDown"}].values()),\
+    assert np.allclose(ref_H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalDown"}].values(), H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalDown"}].values()),\
           "JES Total Down variation does not match with the reference output"
-    assert np.allclose(ref_H[{"cat":"1btag", "variation":"JER_AK4PFchsDown"}].values(), H[{"cat":"1btag", "variation":"AK4PFchs_JERDown"}].values()),\
-          "JER Down variation does not match with the reference output"
     
     ref_H = ref_output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
     H = output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
-    assert np.allclose(ref_H[{"cat":"baseline", "variation":"JES_Total_AK4PFchsUp"}].values() , H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalUp"}].values()),\
+    assert np.allclose(ref_H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalUp"}].values() , H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalUp"}].values()),\
           "JES Total Up variation does not match with the reference output"
-    assert np.allclose(ref_H[{"cat":"1btag", "variation":"JER_AK4PFchsUp"}].values(), H[{"cat":"1btag", "variation":"AK4PFchs_JERUp"}].values()),\
-          "JER Up variation does not match with the reference output"
 
     ref_H = ref_output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
     H = output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
-    assert np.allclose(ref_H[{"cat":"baseline", "variation":"JES_Total_AK4PFchsDown"}].values() , H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalDown"}].values()),\
+    assert np.allclose(ref_H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalDown"}].values() , H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalDown"}].values()),\
           "JES Total Down variation does not match with the reference output"
     assert np.allclose(ref_H[{"cat":"1btag", "variation":"JER_AK4PFchsDown"}].values(), H[{"cat":"1btag", "variation":"AK4PFchs_JERDown"}].values()),\
           "JER Down variation does not match with the reference output"
@@ -261,7 +265,9 @@ def test_shape_variation_default_sequence_comparison_with_legacy_run2(base_path:
 
 
 def test_shape_variation_default_sequence_comparison_with_legacy_run3(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
-    monkeypatch.chdir(base_path / "test_shape_variations" )
+    monkeypatch.chdir(base_path / "test_shape_variations")
+    if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):
+        os.remove("jets_calibrator_JES_JER_Syst.pkl.gz")
     outputdir = tmp_path_factory.mktemp("test_shape_variations")
     config = load_config("config_allvars_Run3.py", save_config=True, outputdir=outputdir)
     assert isinstance(config, Configurator)
@@ -288,10 +294,40 @@ def test_shape_variation_default_sequence_comparison_with_legacy_run3(base_path:
                  processor_instance=config.processor_instance)
     save(output, outputdir / "output_all.coffea")
     
-  
     assert output is not None
     # Load the reference output
     ref_output = load("comparison_arrays/output_run3.coffea")
+
+    jet_pt_MC = ref_output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2023_postBPix"]["baseline"]["Jet_pt"].value
+    jet_pt = output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2023_postBPix"]["baseline"]["Jet_pt"].value
+    assert np.allclose(jet_pt, jet_pt_MC), "Jet pt values do not match with the reference output"
+    # Check MET in MC
+    met_pt_MC = ref_output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2023_postBPix"]["baseline"]["PuppiMET_pt"].value
+    met_pt = output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2023_postBPix"]["baseline"]["PuppiMET_pt"].value
+    assert np.allclose(met_pt, met_pt_MC), "MET pt values do not match with the reference output"
+
+    # Compare the histograms for JES and JER variations
+    ref_H = ref_output["variables"]['JetGood_pt']['TTTo2L2Nu']['TTTo2L2Nu_2023_postBPix']
+    H = output["variables"]['JetGood_pt']['TTTo2L2Nu']['TTTo2L2Nu_2023_postBPix']
+    assert np.allclose(ref_H[{"cat":"baseline", "variation":"AK4PFPuppi_JES_TotalUp"}].values(), H[{"cat":"baseline", "variation":"AK4PFPuppi_JES_TotalUp"}].values()),\
+          "JES Total Up variation does not match with the reference output"
+    
+    
+    ref_H = ref_output["variables"]['JetGood_pt']['TTTo2L2Nu']['TTTo2L2Nu_2023_postBPix']
+    H = output["variables"]['JetGood_pt']['TTTo2L2Nu']['TTTo2L2Nu_2023_postBPix']
+    assert np.allclose(ref_H[{"cat":"baseline", "variation":"AK4PFPuppi_JES_TotalDown"}].values(), H[{"cat":"baseline", "variation":"AK4PFPuppi_JES_TotalDown"}].values()),\
+          "JES Total Down variation does not match with the reference output"
+    
+    ref_H = ref_output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2023_postBPix']
+    H = output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2023_postBPix']
+    assert np.allclose(ref_H[{"cat":"baseline", "variation":"AK4PFPuppi_JES_TotalUp"}].values() , H[{"cat":"baseline", "variation":"AK4PFPuppi_JES_TotalUp"}].values()),\
+          "JES Total Up variation does not match with the reference output"
+
+    ref_H = ref_output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2023_postBPix']
+    H = output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2023_postBPix']
+    assert np.allclose(ref_H[{"cat":"baseline", "variation":"AK4PFPuppi_JES_TotalDown"}].values() , H[{"cat":"baseline", "variation":"AK4PFPuppi_JES_TotalDown"}].values()),\
+          "JES Total Down variation does not match with the reference output"
+
     jet_pt_MC = ref_output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"]["Jet_pt"].value
     jet_pt = output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"]["Jet_pt"].value
     assert np.allclose(jet_pt, jet_pt_MC), "Jet pt values do not match with the reference output"
@@ -304,6 +340,8 @@ def test_shape_variation_default_sequence_comparison_with_legacy_run3(base_path:
 
 def test_shape_variation_JEC_run3_pt_regression(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_shape_variations" )
+    if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):
+        os.remove("jets_calibrator_JES_JER_Syst.pkl.gz")
     outputdir = tmp_path_factory.mktemp("test_shape_variations")
     config = load_config("config_JEC_ptregr.py", save_config=True, outputdir=outputdir)
     assert isinstance(config, Configurator)

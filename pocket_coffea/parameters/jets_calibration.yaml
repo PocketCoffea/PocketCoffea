@@ -244,6 +244,31 @@ default_jets_calibration:
           - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_JRV1_MC_PtResolution_AK4PFPuppi.jr.txt.gz"
           - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_JRV1_MC_SF_AK4PFPuppi.jersf.txt.gz"
 
+      JES_noJER:
+        2022_preEE:
+          - "${default_params_dir:}/jec/Summer22/Summer22_22Sep2023_V2_MC_L1FastJet_AK4PFPuppi.jec.txt.gz"
+          - "${default_params_dir:}/jec/Summer22/Summer22_22Sep2023_V2_MC_L2Relative_AK4PFPuppi.jec.txt.gz"
+          - "${default_params_dir:}/jec/Summer22/Summer22_22Sep2023_V2_MC_UncertaintySources_AK4PFPuppi.junc.txt.gz"
+          - "${default_params_dir:}/jec/Summer22/Summer22_22Sep2023_V2_MC_Uncertainty_AK4PFPuppi.junc.txt.gz"
+
+        2022_postEE:
+          - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_V2_MC_L1FastJet_AK4PFPuppi.jec.txt.gz"
+          - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_V2_MC_L2Relative_AK4PFPuppi.jec.txt.gz"
+          - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_V2_MC_UncertaintySources_AK4PFPuppi.junc.txt.gz"
+          - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_V2_MC_Uncertainty_AK4PFPuppi.junc.txt.gz"
+          
+        2023_preBPix:
+          - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_V1_MC_L1FastJet_AK4PFPuppi.jec.txt.gz"
+          - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_V1_MC_L2Relative_AK4PFPuppi.jec.txt.gz"
+          - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_V1_MC_UncertaintySources_AK4PFPuppi.junc.txt.gz"
+          - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_V1_MC_Uncertainty_AK4PFPuppi.junc.txt.gz"
+
+        2023_postBPix:
+          - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_V1_MC_L1FastJet_AK4PFPuppi.jec.txt.gz"
+          - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_V1_MC_L2Relative_AK4PFPuppi.jec.txt.gz"
+          - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_V1_MC_UncertaintySources_AK4PFPuppi.junc.txt.gz"
+          - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_V1_MC_Uncertainty_AK4PFPuppi.junc.txt.gz"
+
 
     AK4PFPuppiPNetRegression:
       JES_JER_Syst:
@@ -452,7 +477,6 @@ default_jets_calibration:
           - JES_Absolute
           - JES_Absolute_2016
           - JES_FlavorQCD
-          - JES_BBEC1
           - JES_EC2
           - JES_EC2_2016
           - JES_HF
@@ -462,12 +486,12 @@ default_jets_calibration:
           - JES_RelativeBal
           - JES_RelativeSample_2016
           - JER
+        #AK8PFPuppi: "${default_jets_calibration.variations.full_variations.2016_PreVFP.AK4PFchs}"
       2016_PostVFP: 
         AK4PFchs:
           - JES_Absolute
           - JES_Absolute_2016
           - JES_FlavorQCD
-          - JES_BBEC1
           - JES_EC2
           - JES_EC2_2016
           - JES_HF
@@ -477,12 +501,12 @@ default_jets_calibration:
           - JES_RelativeBal
           - JES_RelativeSample_2016
           - JER
+        #AK8PFPuppi: "${default_jets_calibration.variations.full_variations.2016_PostVFP.AK4PFchs}"
       "2017": 
         AK4PFchs:          
           - JES_Absolute
           - JES_Absolute_2017
           - JES_FlavorQCD
-          - JES_BBEC1
           - JES_EC2
           - JES_EC2_2017
           - JES_HF
@@ -492,13 +516,13 @@ default_jets_calibration:
           - JES_RelativeBal
           - JES_RelativeSample_2017
           - JER
+        #AK8PFPuppi: "${default_jets_calibration.variations.full_variations.2017.AK4PFchs}"
   
       "2018": 
         AK4PFchs:
           - JES_Absolute
           - JES_Absolute_2018
           - JES_FlavorQCD
-          - JES_BBEC1
           - JES_EC2
           - JES_EC2_2018
           - JES_HF
@@ -508,13 +532,13 @@ default_jets_calibration:
           - JES_RelativeBal
           - JES_RelativeSample_2018
           - JER
+        #AK8PFPuppi: "${default_jets_calibration.variations.full_variations.2018.AK4PFchs}"
 
       2022_preEE:
         AK4PFPuppi: 
           - JES_Absolute
           - JES_Absolute_2022
           - JES_FlavorQCD
-          - JES_BBEC1
           - JES_EC2
           - JES_EC2_2022
           - JES_HF
@@ -527,24 +551,22 @@ default_jets_calibration:
       2022_postEE:
         AK4PFPuppi: 
           - JES_Absolute
-          - JES_Absolute_2022
+          - JES_Absolute_2022EE
           - JES_FlavorQCD
-          - JES_BBEC1
           - JES_EC2
-          - JES_EC2_2022
+          - JES_EC2_2022EE
           - JES_HF
-          - JES_HF_2022
+          - JES_HF_2022EE
           - JES_BBEC1
-          - JES_BBEC1_2022
+          - JES_BBEC1_2022EE
           - JES_RelativeBal
-          - JES_RelativeSample_2022
+          - JES_RelativeSample_2022EE
           - JER
       2023_preBPix:
         AK4PFPuppi:      
           - JES_Absolute
           - JES_Absolute_2023
           - JES_FlavorQCD
-          - JES_BBEC1
           - JES_EC2
           - JES_EC2_2023
           - JES_HF
@@ -557,17 +579,30 @@ default_jets_calibration:
       2023_postBPix:
         AK4PFPuppi:      
           - JES_Absolute
-          - JES_Absolute_2023
+          - JES_Absolute_2023BPix
           - JES_FlavorQCD
-          - JES_BBEC1
           - JES_EC2
-          - JES_EC2_2023
+          - JES_EC2_2023BPix
           - JES_HF
-          - JES_HF_2023
+          - JES_HF_2023BPix
           - JES_BBEC1
-          - JES_BBEC1_2023
+          - JES_BBEC1_2023BPix
           - JES_RelativeBal
-          - JES_RelativeSample_2023
+          - JES_RelativeSample_2023BPix
+          - JER
+      "2024":
+        AK4PFPuppi:      
+          - JES_Absolute
+          - JES_Absolute_2024
+          - JES_FlavorQCD
+          - JES_EC2
+          - JES_EC2_2024
+          - JES_HF
+          - JES_HF_2024
+          - JES_BBEC1
+          - JES_BBEC1_2024
+          - JES_RelativeBal
+          - JES_RelativeSample_2024
           - JER
       
     total_variation: 
@@ -575,18 +610,22 @@ default_jets_calibration:
         AK4PFchs: 
         - JES_Total
         - JER
+        AK8PFPuppi: "${default_jets_calibration.variations.total_variation.2016_PreVFP.AK4PFchs}"
       2016_PostVFP: 
         AK4PFchs: 
         - JES_Total
         - JER
+        AK8PFPuppi: "${default_jets_calibration.variations.total_variation.2016_PostVFP.AK4PFchs}"
       "2017": 
         AK4PFchs: 
         - JES_Total
         - JER
+        AK8PFPuppi: "${default_jets_calibration.variations.total_variation.2017.AK4PFchs}"
       "2018": 
         AK4PFchs: 
         - JES_Total
         - JER
+        AK8PFPuppi: "${default_jets_calibration.variations.total_variation.2018.AK4PFchs}"
       2022_preEE:
         AK4PFPuppi:  
         - JES_Total
@@ -600,6 +639,10 @@ default_jets_calibration:
         - JES_Total
         - JER
       2023_postBPix:
+        AK4PFPuppi: 
+        - JES_Total
+        - JER
+      "2024":
         AK4PFPuppi: 
         - JES_Total
         - JER
@@ -659,6 +702,12 @@ jets_calibration:
       #AK8PFPuppi: "FatJet"
       #AK4PFPuppiPNetRegression: "Jet"
       #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
+
+    "2024":
+      AK4PFPuppi: "Jet"
+      #AK8PFPuppi: "FatJet"
+      #AK4PFPuppiPNetRegression: "Jet"
+      #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
      
   jec_name_map_MC: "${default_jets_calibration.jec_name_map_MC}"
   jec_name_map_Data: "${default_jets_calibration.jec_name_map_Data}"
@@ -692,6 +741,10 @@ jets_calibration:
       AK4PFPuppi: True
       AK4PFPuppiPNetRegression: True
       AK4PFPuppiPNetRegressionPlusNeutrino: True
+    "2024": 
+      AK4PFPuppi: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
 
   apply_jec_Data:  # this is needed to know which collection is corrected with which jet factory
     2016_PreVFP: 
@@ -719,6 +772,10 @@ jets_calibration:
       AK4PFPuppiPNetRegression: True
       AK4PFPuppiPNetRegressionPlusNeutrino: True
     2023_postBPix: 
+      AK4PFPuppi: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+    "2024": 
       AK4PFPuppi: True
       AK4PFPuppiPNetRegression: True
       AK4PFPuppiPNetRegressionPlusNeutrino: True
@@ -753,6 +810,10 @@ jets_calibration:
       AK4PFPuppi: False
       AK4PFPuppiPNetRegression: True
       AK4PFPuppiPNetRegressionPlusNeutrino: True
+    "2024": 
+      AK4PFPuppi: False
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
 
   apply_pt_regr_Data:
     2016_PreVFP: 
@@ -783,10 +844,14 @@ jets_calibration:
       AK4PFPuppi: False
       AK4PFPuppiPNetRegression: True
       AK4PFPuppiPNetRegressionPlusNeutrino: True
+    "2024": 
+      AK4PFPuppi: False
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
 
 
   rescale_MET_config:
-    20216_PreVFP:
+    2016_PreVFP:
       apply: True
       MET_collection: "MET"
       Jet_collection: "Jet"
@@ -818,9 +883,116 @@ jets_calibration:
       apply: True
       MET_collection: "PuppiMET"
       Jet_collection: "Jet"
+    "2024":
+      apply: True
+      MET_collection: "PuppiMET"
+      Jet_collection: "Jet"
   
   # By default only the total variations are included
   # The user can customize the wanted variations by changing the variations key in the user parameters.
   # the key default_jets_calibration.variations.full_variations contains the full setup of JET variations.
   # setup `jets_calibration.variations == "${default_jets_calibration.variations.full_variations}"` to use all variations
+  # variations: "${default_jets_calibration.variations.full_variations}"
   variations: "${default_jets_calibration.variations.total_variation}"
+
+jets_calibration_clib:
+  2016_PreVFP:
+    AK4PFchs:
+      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2016preVFP_UL/jet_jerc.json.gz"
+      jec_mc: Summer19UL16APV_V7_MC
+      jec_data:
+        B: Summer19UL16APV_RunBCD_V7_DATA
+        C: "${jets_calibration_clib.2016_PreVFP.AK4PFchs.jec_data.B}"
+        D: "${jets_calibration_clib.2016_PreVFP.AK4PFchs.jec_data.B}"
+        E: Summer19UL16APV_RunEF_V7_DATA
+        F: "${jets_calibration_clib.2016_PreVFP.AK4PFchs.jec_data.E}"
+      jer: Summer20UL16APV_JRV3_MC
+    AK8PFPuppi:
+      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2016preVFP_UL/fatJet_jerc.json.gz"
+      jec_mc: "${jets_calibration_clib.2016_PreVFP.AK4PFchs.jec_mc}"
+      jec_data: "${jets_calibration_clib.2016_PreVFP.AK4PFchs.jec_data}"
+      jer: "${jets_calibration_clib.2016_PreVFP.AK4PFchs.jer}"
+
+  2016_PostVFP:
+    AK4PFchs:
+      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2016postVFP_UL/jet_jerc.json.gz"
+      jec_mc: Summer19UL16APV_V7_MC
+      jec_data: Summer19UL16_RunFGH_V7_DATA
+      jer: Summer20UL16_JRV3_MC
+    AK8PFPuppi:
+      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2016postVFP_UL/fatJet_jerc.json.gz"
+      jec_mc: "${jets_calibration_clib.2016_PostVFP.AK4PFchs.jec_mc}"
+      jec_data: "${jets_calibration_clib.2016_PostVFP.AK4PFchs.jec_data}"
+      jer: "${jets_calibration_clib.2016_PostVFP.AK4PFchs.jer}"
+
+  "2017":
+    AK4PFchs:
+      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2017_UL/jet_jerc.json.gz"
+      jec_mc: Summer19UL17_V5_MC
+      jec_data:
+        B: Summer19UL17_RunB_V5_DATA
+        C: Summer19UL17_RunC_V5_DATA
+        D: Summer19UL17_RunD_V5_DATA
+        E: Summer19UL17_RunE_V5_DATA
+        F: Summer19UL17_RunF_V5_DATA
+      jer: Summer19UL17_JRV2_MC
+    AK8PFPuppi:
+      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2017_UL/fatJet_jerc.json.gz"
+      jec_mc: "${jets_calibration_clib.2017.AK4PFchs.jec_mc}"
+      jec_data: "${jets_calibration_clib.2017.AK4PFchs.jec_data}"
+      jer: "${jets_calibration_clib.2017.AK4PFchs.jer}"
+
+  "2018":
+    AK4PFchs:
+      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2018_UL/jet_jerc.json.gz"
+      jec_mc: Summer19UL18_V5_MC
+      jec_data:
+        A: Summer19UL18_RunA_V5_DATA
+        B: Summer19UL18_RunB_V5_DATA
+        C: Summer19UL18_RunC_V5_DATA
+        D: Summer19UL18_RunD_V5_DATA
+      jer: Summer19UL18_JRV2_MC
+    AK8PFPuppi:
+      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2018_UL/fatJet_jerc.json.gz"
+      jec_mc: "${jets_calibration_clib.2018.AK4PFchs.jec_mc}"
+      jec_data: "${jets_calibration_clib.2018.AK4PFchs.jec_data}"
+      jer: "${jets_calibration_clib.2018.AK4PFchs.jer}"
+
+  2022_preEE:
+    AK4PFPuppi:
+      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2022_Summer22/jet_jerc.json.gz"
+      jec_mc: Summer22_22Sep2023_V2_MC
+      jec_data: Summer22_22Sep2023_RunCD_V2_DATA
+      jer: Summer22_22Sep2023_JRV1_MC
+
+  2022_postEE:
+    AK4PFPuppi:
+      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2022_Summer22EE/jet_jerc.json.gz"
+      jec_mc: Summer22EE_22Sep2023_V2_MC
+      jec_data:
+        E: Summer22EE_22Sep2023_RunE_V2_DATA
+        F: Summer22EE_22Sep2023_RunF_V2_DATA
+        G: Summer22EE_22Sep2023_RunG_V2_DATA
+      jer: Summer22EE_22Sep2023_JRV1_MC
+
+  2023_preBPix:
+    AK4PFPuppi:
+      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2023_Summer23/jet_jerc.json.gz"
+      jec_mc: Summer23Prompt23_V2_MC
+      jec_data: Summer23Prompt23_V2_DATA
+      jer: Summer23Prompt23_RunCv1234_JRV1_MC
+
+  2023_postBPix:
+    AK4PFPuppi:
+      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2023_Summer23BPix/jet_jerc.json.gz"
+      jec_mc: Summer23BPixPrompt23_V3_MC
+      jec_data: Summer23BPixPrompt23_V3_DATA
+      jer: Summer23BPixPrompt23_JRV1_MC
+
+  "2024":
+    AK4PFPuppi:
+      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2024_Summer24/jet_jerc.json.gz"
+      jec_mc: Summer24Prompt24_V1_MC
+      jec_data: Summer24Prompt24_V1_DATA
+      jer: Summer23BPixPrompt23_RunD_JRV1_MC  # For the time being the 2023 jers shall be used https://cms-jerc.web.cern.ch/Recommendations/#2024_1
+

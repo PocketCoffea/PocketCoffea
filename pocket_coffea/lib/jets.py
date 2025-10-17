@@ -8,6 +8,7 @@ import numpy as np
 import correctionlib
 from coffea.jetmet_tools import  CorrectedMETFactory
 from ..lib.deltaR_matching import get_matching_pairs_indices, object_matching
+from correctionlib.schemav2 import Correction, CorrectionSet
 
 
 def add_jec_variables(jets, event_rho, isMC=True):
@@ -320,7 +321,7 @@ def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tag
     elif jet_type == "FatJet":
         # Apply the msd and preselection cuts
         mask_msd = events.FatJet.msoftdrop > cuts["msd"]
-        mask_good_jets = mask_presel & mask_msd
+        mask_good_jets = mask_presel & mask_msd & mask_lepton_cleaning
 
         if jet_tagger != "":
             if "PNetMD" in jet_tagger:
@@ -520,3 +521,264 @@ def get_dijet(jets, taggerVars=True, remnant_jet = False):
         return dijet
     else:
         return dijet, remnant
+
+
+def get_jer_correction_set(jer_json, jer_ptres_tag, jer_sf_tag):
+    # learned from: https://github.com/cms-nanoAOD/correctionlib/issues/130
+    with gzip.open(jer_json) as fin:
+        cset = CorrectionSet.parse_raw(fin.read())
+
+    cset.corrections = [
+        c
+        for c in cset.corrections
+        if c.name
+        in (
+            jer_ptres_tag,
+            jer_sf_tag,
+        )
+    ]
+    cset.compound_corrections = []
+
+    res = Correction.parse_obj(
+        {
+            "name": "JERSmear",
+            "description": "Jet smearing tool",
+            "inputs": [
+                {"name": "JetPt", "type": "real"},
+                {"name": "JetEta", "type": "real"},
+                {
+                    "name": "GenPt",
+                    "type": "real",
+                    "description": "matched GenJet pt, or -1 if no match",
+                },
+                {"name": "Rho", "type": "real", "description": "entropy source"},
+                {"name": "EventID", "type": "int", "description": "entropy source"},
+                {
+                    "name": "JER",
+                    "type": "real",
+                    "description": "Jet energy resolution",
+                },
+                {
+                    "name": "JERsf",
+                    "type": "real",
+                    "description": "Jet energy resolution scale factor",
+                },
+            ],
+            "output": {"name": "smear", "type": "real"},
+            "version": 1,
+            "data": {
+                "nodetype": "binning",
+                "input": "GenPt",
+                "edges": [-1, 0, 1],
+                "flow": "clamp",
+                "content": [
+                    # stochastic
+                    {
+                        # rewrite gen_pt with a random gaussian
+                        "nodetype": "transform",
+                        "input": "GenPt",
+                        "rule": {
+                            "nodetype": "hashprng",
+                            "inputs": ["JetPt", "JetEta", "Rho", "EventID"],
+                            "distribution": "normal",
+                        },
+                        "content": {
+                            "nodetype": "formula",
+                            # TODO min jet pt?
+                            "expression": "1+sqrt(max(x*x - 1, 0)) * y * z",
+                            "parser": "TFormula",
+                            # now gen_pt is actually the output of hashprng
+                            "variables": ["JERsf", "JER", "GenPt"],
+                        },
+                    },
+                    # deterministic
+                    {
+                        "nodetype": "formula",
+                        # TODO min jet pt?
+                        "expression": "1+(x-1)*(y-z)/y",
+                        "parser": "TFormula",
+                        "variables": ["JERsf", "JetPt", "GenPt"],
+                    },
+                ],
+            },
+        }
+    )
+    cset.corrections.append(res)
+    ceval = cset.to_evaluator()
+    return ceval
+
+def get_jersmear(_eval_dict, _ceval, _jer_sf_tag, _syst="nom"):
+    _eval_dict.update({"systematic": _syst})
+    _inputs_jer_sf = [_eval_dict[input.name] for input in _ceval[_jer_sf_tag].inputs]
+    _jer_sf = _ceval[_jer_sf_tag].evaluate(*_inputs_jer_sf)
+    _eval_dict.update({"JERsf": _jer_sf})
+    _inputs = [_eval_dict[input.name] for input in _ceval["JERSmear"].inputs]
+    _jersmear = _ceval["JERSmear"].evaluate(*_inputs)
+    return _eval_dict, _jersmear
+
+
+def jet_correction_corrlib(
+    params,
+    events,
+    jet_type,
+    chunk_metadata,
+    level="L1L2L3Res",
+    jet_coll_name="Jet",
+    jec_syst=True,
+):
+    isMC = chunk_metadata["isMC"]
+    year = chunk_metadata["year"]
+    era = chunk_metadata["era"]
+    jec_clib_dict = params["jets_calibration_clib"]
+    variations = params.jets_calibration.variations[year][jet_type]
+
+    json_path = jec_clib_dict[year][jet_type]["json_path"]
+    jer_tag = None
+    if isMC:
+        jec_tag = jec_clib_dict[year][jet_type]['jec_mc'] 
+        jer_tag = jec_clib_dict[year][jet_type]['jer']
+    else:
+        if type(jec_clib_dict[year][jet_type]['jec_data'])==str:
+            jec_tag = jec_clib_dict[year][jet_type]['jec_data']
+        else:
+            jec_tag = jec_clib_dict[year][jet_type]['jec_data'][chunk_metadata["era"]]
+
+    # no jer and variations applied on data
+    apply_jes = True
+    apply_jer = jes_syst = jer_syst = False
+    if isMC:
+        apply_jer=True
+        if jec_syst:
+            jes_syst = True
+            if "JER" in variations:
+                jer_syst = True
+
+    tag_jec = "_".join([jec_tag, level, jet_type])
+
+    # get the correction sets
+    cset = correctionlib.CorrectionSet.from_file(json_path)
+
+    # prepare inputs
+    jets_jagged = events[jet_coll_name]
+    counts = ak.num(jets_jagged)
+
+    if ("event_id" not in jets_jagged.fields) and (apply_jer or jer_syst):
+        jets_jagged["event_id"] = ak.ones_like(jets_jagged.pt) * events.event
+    if ("run_nr" not in jets_jagged.fields):
+        jets_jagged["run_nr"] = ak.ones_like(jets_jagged.pt) * events.run
+    if year in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
+        rho = events.fixedGridRhoFastjetAll
+    else:
+        rho = events.Rho.fixedGridRhoFastjetAll
+    jets_jagged = add_jec_variables(jets_jagged, rho, isMC)
+
+    # flatten
+
+    jets = ak.flatten(jets_jagged)
+    # evaluate dictionary
+    eval_dict = {
+        "JetPt": jets.pt_raw,
+        "JetEta": jets.eta,
+        "JetPhi": jets.phi,
+        "Rho": jets.event_rho,
+        "JetA": jets.area,
+        "run": jets.run_nr
+    }
+
+    # jes central
+    if apply_jes:
+        # get the correction
+        if tag_jec in list(cset.compound.keys()):
+            sf = cset.compound[tag_jec]
+        elif tag_jec in list(cset.keys()):
+            sf = cset[tag_jec]
+        else:
+            print(tag_jec, list(cset.keys()), list(cset.compound.keys()))
+            raise Exception(f"[No JEC correction: {tag_jec} - Year: {year} - Era: {era} - Level: {level}")
+        inputs = [eval_dict[input.name] for input in sf.inputs]
+        sf_value = sf.evaluate(*inputs)
+        # update the nominal pt and mass
+        jets["pt"] = sf_value * jets["pt_raw"]
+        jets["mass"] = sf_value * jets["mass_raw"]
+
+    # jer central and systematics
+    if apply_jer or jer_syst:
+        # learned from: https://github.com/cms-nanoAOD/correctionlib/issues/130
+
+        jer_ptres_tag = f"{jer_tag}_PtResolution_{jet_type}"
+        jer_sf_tag = f"{jer_tag}_ScaleFactor_{jet_type}"
+
+        ceval_jer = get_jer_correction_set(json_path, jer_ptres_tag, jer_sf_tag)
+        # update evaluate dictionary
+        eval_dict.update(
+            {
+                "JetPt": jets.pt,
+                "GenPt": jets.pt_gen,
+                "EventID": jets.event_id,
+            }
+        )
+        # get jer pt resolution
+        inputs_jer_ptres = [
+            eval_dict[input.name] for input in ceval_jer[jer_ptres_tag].inputs
+        ]
+        jer_ptres = ceval_jer[jer_ptres_tag].evaluate(*inputs_jer_ptres)
+        # update evaluate dictionary
+        eval_dict.update({"JER": jer_ptres})
+        # adjust pt gen
+        eval_dict.update(
+            {
+                "GenPt": np.where(
+                    np.abs(eval_dict["JetPt"] - eval_dict["GenPt"])
+                    < 3 * eval_dict["JetPt"] * eval_dict["JER"],
+                    eval_dict["GenPt"],
+                    -1.0,
+                ),
+            }
+        )
+        if apply_jer:
+            eval_dict, jersmear = get_jersmear(eval_dict, ceval_jer, jer_sf_tag, "nom")
+            jets["pt_jer"] = jets.pt * jersmear
+            jets["mass_jer"] = jets.mass * jersmear
+        if jer_syst:
+            # jer up
+            eval_dict, jersmear = get_jersmear(eval_dict, ceval_jer, jer_sf_tag, "up")
+            jets["pt_JER_up"] = jets.pt * jersmear
+            jets["mass_JER_up"] = jets.mass * jersmear
+            # jer down
+            eval_dict, jersmear = get_jersmear(eval_dict, ceval_jer, jer_sf_tag, "down")
+            jets["pt_JER_down"] = jets.pt * jersmear
+            jets["mass_JER_down"] = jets.mass * jersmear
+        if apply_jer:
+            # to avoid the sf: jer*jer_up or jer*jer_down, update the jer pt/mass after calculation of the jer up/down
+            jets["pt"] = jets["pt_jer"]
+            jets["mass"] = jets["mass_jer"]
+
+    # jes systematics
+    if jes_syst:
+        # update evaluate dictionary
+        eval_dict.update({"JetPt": jets.pt})
+        # loop over all JES variations
+        jes_strings = [s[4:] for s in variations if s.startswith("JES")]
+        for jes_vari in jes_strings:
+            # If Regrouped variations are wanted, the Regrouped_ name must be used in the config
+            tag_jec_syst = "_".join([jec_tag, jes_vari, jet_type])
+            try:
+                sf = cset[tag_jec_syst]
+            except:
+                raise Exception(
+                    f"[ jerc_jet ] No JEC systematic: {tag_jec_syst} - Year: {year} - Era: {era}"
+                )
+            # systematics
+            inputs = [eval_dict[input.name] for input in sf.inputs]
+            sf_delta = sf.evaluate(*inputs)
+
+            # divide by correction since it is already applied before
+            corr_up_variation = 1 + sf_delta
+            corr_down_variation = 1 - sf_delta
+
+            jets[f"pt_JES_{jes_vari}_up"] = jets.pt * corr_up_variation
+            jets[f"pt_JES_{jes_vari}_down"] = jets.pt * corr_down_variation
+            jets[f"mass_JES_{jes_vari}_up"] = jets.mass * corr_up_variation
+            jets[f"mass_JES_{jes_vari}_down"] = jets.mass * corr_down_variation
+    jets_jagged = ak.unflatten(jets, counts)
+    return jets_jagged

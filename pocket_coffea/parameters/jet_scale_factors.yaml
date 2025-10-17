@@ -42,7 +42,7 @@ jet_scale_factors:
             # Need to change to BTV/2024_Summer24/btagging.json.gz, as soon as UParTAK4_kinfit available in there,
             # currently only btag wps in BTV/2024_Summer24/btagging.json.gz
             file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2024_Summer24/btagging_preliminary.json.gz
-            name: "UParTAK4_kinfit"
+            name: "UParTAK4"
 
     ctagSF:
       # DeepJet AK4 tagger shape SF
