@@ -226,7 +226,7 @@ def import_analysis_config(cfg: FileName) -> tuple[Configurator, ModuleType]:
 
 
 def load_analysis_config(
-    cfg: FileName, output_dir: FileName, save: bool = True
+    cfg: FileName, output_dir: FileName = None, save: bool = True
 ) -> tuple[Configurator, dict]:
     """
     Load the analysis config.
@@ -247,6 +247,8 @@ def load_analysis_config(
     config.load()
 
     if save:
+        if output_dir is None:
+            raise ValueError("Output directory must be provided if save is True.")
         config.save_config(output_dir)
 
     run_options = getattr(config_module, "run_options", {})
@@ -306,6 +308,11 @@ def load_run_options(
 
     if scaleout is not None:
         run_options["scaleout"] = scaleout
+
+    if limit_chunks is not None:
+        run_options["limit-chunks"] = limit_chunks
+    if limit_files is not None:
+        run_options["limit-files"] = limit_files
 
     if test:
         run_options["limit-files"] = limit_files if limit_files is not None else 1
@@ -439,6 +446,11 @@ def load_plotting_style(params_file: FileName, custom_plot_style: FileName = Non
     :return: The plotting style parameters.
     """
     parameters = OmegaConf.load(params_file)
+    # if no custom plotting style is provided, return the parameters from params_file
+    if custom_plot_style is None or custom_plot_style == law.NO_STR:
+        OmegaConf.resolve(parameters)
+        return parameters["plotting_style"]
+
     if os.path.isfile(custom_plot_style):
         # get the default parameters and overwrite them with the custom ones
         parameters = parameters_utils.get_defaults_and_compose(custom_plot_style)
