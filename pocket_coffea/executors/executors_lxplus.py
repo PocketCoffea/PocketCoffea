@@ -1,17 +1,21 @@
 import os
-import sys
 import socket
-from coffea import processor as coffea_processor
-from .executors_base import ExecutorFactoryABC
-from .executors_manual_jobs import ExecutorFactoryManualABC
-from .executors_base import IterativeExecutorFactory, FuturesExecutorFactory
-from pocket_coffea.utils.network import check_port
-from pocket_coffea.parameters.dask_env import setup_dask
-from pocket_coffea.utils.configurator import Configurator
-from pocket_coffea.utils.rucio import get_xrootd_sites_map
+import sys
+from copy import deepcopy
+
 import cloudpickle
 import yaml
-from copy import deepcopy
+from coffea import processor as coffea_processor
+
+from pocket_coffea.parameters.dask_env import setup_dask
+from pocket_coffea.utils.configurator import Configurator
+from pocket_coffea.utils.network import check_port
+from pocket_coffea.utils.rucio import get_xrootd_sites_map
+
+from .executors_base import (ExecutorFactoryABC, FuturesExecutorFactory,
+                             IterativeExecutorFactory)
+from .executors_manual_jobs import ExecutorFactoryManualABC
+
 
 def get_worker_env(run_options,x509_path,exec_name="dask"):
     env_worker = [
@@ -116,7 +120,7 @@ class DaskExecutorFactory(ExecutorFactoryABC):
 
         
     def get(self):
-        return coffea_processor.dask_executor(**self.customized_args())
+        return coffea_processor.DaskExecutor(**self.customized_args())
 
     def customized_args(self):
         args = super().customized_args()
@@ -179,6 +183,11 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
         env_extras= "\n".join(env_extras_list)
 
         pythonpath = sys.prefix.rsplit('/', 1)[0]
+        runnerpath = f"{pythonpath}/pocket_coffea/scripts/runner.py"
+        if os.path.isfile(runnerpath):
+            runnercmd = "python " + runnerpath
+        else:
+            runnercmd = "pocket-coffea run"
 
         copy_command = "cp"
         eos_prefix = self.run_options["eos-prefix"]

@@ -517,7 +517,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                                                subsample_mask=self._subsamples[self._sample].get_mask(subs),
                                                weights_manager=self.weights_manager
                                                )
-                    fname = (self.events.behavior["__events_factory__"]._partition_key.replace( "/", "_" )
+                    fname = (self.events.attrs["@events_factory"]._partition_key.replace( "/", "_" )
                         + ".parquet")
                     for category, akarr in out_arrays.items():
                         # building the file name
@@ -548,7 +548,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                                                weights_manager=self.weights_manager
                                                )
                 # building the file name
-                fname = (self.events.behavior["__events_factory__"]._partition_key.replace( "/", "_" )
+                fname = (self.events.attrs["@events_factory"]._partition_key.replace( "/", "_" )
                          + ".parquet")
                 for category, akarr in out_arrays.items():
                     subdirs = [self._dataset, category]
@@ -698,12 +698,12 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         if self._isMC:
             # This is computed before any preselection
             if not self._isSkim:
-                self.output['sum_genweights'][self._dataset] = ak.sum(self.events.genWeight)
+                self.output['sum_genweights'][self._dataset] = np.sum(ak.to_numpy(self.events.genWeight))
             else:
                 # If the dataset is a skim, the sumgenweights are rescaled
-                self.output['sum_genweights'][self._dataset] = ak.sum(self.events.skimRescaleGenWeight * self.events.genWeight)
+                self.output['sum_genweights'][self._dataset] = np.sum(ak.to_numpy(self.events.skimRescaleGenWeight * self.events.genWeight))
             #FIXME: handle correctly the skim for the sum_signOf_genweights
-            self.output['sum_signOf_genweights'][self._dataset] = ak.sum(np.sign(self.events.genWeight))
+            self.output['sum_signOf_genweights'][self._dataset] = np.sum(ak.to_numpy(np.sign(self.events.genWeight)))
                 
         ########################
         # Then the first skimming happens.

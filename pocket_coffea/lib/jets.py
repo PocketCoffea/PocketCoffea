@@ -41,14 +41,14 @@ def jet_correction(params, events, jets, factory, jet_type, chunk_metadata, cach
              
     if chunk_metadata["isMC"]:
         return factory["MC"][jet_type][chunk_metadata["year"]].build(
-            add_jec_variables(jets, rho, isMC=True), cache
+            add_jec_variables(jets, rho, isMC=True)
         )
     else:
         if chunk_metadata["era"] not in factory["Data"][jet_type][chunk_metadata["year"]]:
             raise Exception(f"Factory for {jet_type} in {chunk_metadata['year']} and era {chunk_metadata['era']} not found. Check your jet calibration files.")
 
         return factory["Data"][jet_type][chunk_metadata["year"]][chunk_metadata["era"]].build(
-            add_jec_variables(jets, rho, isMC=False), cache
+            add_jec_variables(jets, rho, isMC=False)
         )
 
 def met_correction_after_jec(events, METcoll, jets_pre_jec, jets_post_jec):
