@@ -1,5 +1,6 @@
 from omegaconf import OmegaConf
 import os
+from pathlib import Path
 from typing import List
 
 def register_configuration_dir(key: str, directory: str):
@@ -28,21 +29,14 @@ def setup_cvmfs_resolver(groups_tags: dict = None):
     If groups_tags is None the latest version is used. Otherwise a dictionary with the group names
     and the corresponding tags must be provided.
     """
-    valid_periods = [
-        "Run2-2016preVFP-UL-NanoAODv9",
-        "Run2-2016postVFP-UL-NanoAODv9",
-        "Run2-2017-UL-NanoAODv9",
-        "Run2-2018-UL-NanoAODv9",
-        "Run3-22CDSep23-Summer22-NanoAODv12",
-        "Run3-22EFGSep23-Summer22EE-NanoAODv12",
-        "Run3-23CSep23-Summer23-NanoAODv12",
-        "Run3-23DSep23-Summer23BPix-NanoAODv12",
-        "Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15"
-    ]
-    valid_groups = [ "BTV", "DC", "EGM", "JME", "LUM", "MUO", "TAU"]
+    basepath = Path("/cvmfs/cms-griddata.cern.ch/cat/metadata/")
+    valid_groups = [ n.name for n in basepath.iterdir() if n.is_dir()]
+    pogpath = Path("/cvmfs/cms-griddata.cern.ch/cat/metadata/EGM")
+    # All the groups must share the same valid periods
+    valid_periods = [ n.name for n in pogpath.iterdir() if n.is_dir()]
     
     # Register the resolver
-    def cvmfs_path_resolver(period: str, group: str, file: str, tag="latest") -> str:
+    def cvmfs_path_resolver(period: str, group: str, file: str, tag=None) -> str:
         '''
         Resolver to get the cvmfs path for a given group, period and file.
         If a tag is provided, it is used to get the specific version of the file.
@@ -50,9 +44,9 @@ def setup_cvmfs_resolver(groups_tags: dict = None):
         If the group is not in the group_tags dictionary, the latest version is used.
         '''
         if group not in valid_groups:
-            raise ValueError(f"Invalid group '{group}'. Valid groups are: {valid_groups}")
+            raise ValueError(f"Invalid group '{group}' for period '{period}' file '{file}'. Valid groups are: {valid_groups}")
         if period not in valid_periods:
-            raise ValueError(f"Invalid period '{period}'. Valid periods are: {valid_periods}")
+            raise ValueError(f"Invalid period '{period}' for group '{group}' file '{file}'. Valid periods are: {valid_periods}")
         
         if tag is not None:
             tag = tag
@@ -61,7 +55,11 @@ def setup_cvmfs_resolver(groups_tags: dict = None):
         else:
             tag = "latest"
        
-        return f"/cvmfs/cms-griddata.cern.ch/cat/metadata/{group}/{period}/{tag}/{file}"
+        filepath = f"/cvmfs/cms-griddata.cern.ch/cat/metadata/{group}/{period}/{tag}/{file}"
+        # Check if the file exists
+        if not os.path.exists(filepath):
+            raise FileNotFoundError(f"File '{filepath}' not found on CVMFS.")
+        return filepath
     
     # Register the resolver with OmegaConf
     OmegaConf.register_new_resolver("cvmfs", cvmfs_path_resolver, replace=True)
