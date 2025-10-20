@@ -22,8 +22,53 @@ def register_configuration_dir(key: str, directory: str):
 register_configuration_dir("default_params_dir", os.path.dirname(os.path.abspath(__file__)))
 OmegaConf.register_new_resolver("pico_to_femto", lambda x: float(x)/1000.)
 
+def setup_cvmfs_resolver(groups_tags: dict = None):
+    """
+    Setup the CVMFS path resolver to point to the correct version of the POGs files
+    If groups_tags is None the latest version is used. Otherwise a dictionary with the group names
+    and the corresponding tags must be provided.
+    """
+    valid_periods = [
+        "Run2-2016preVFP-UL-NanoAODv9",
+        "Run2-2016postVFP-UL-NanoAODv9",
+        "Run2-2017-UL-NanoAODv9",
+        "Run2-2018-UL-NanoAODv9",
+        "Run3-22CDSep23-Summer22-NanoAODv12",
+        "Run3-22EFGSep23-Summer22EE-NanoAODv12",
+        "Run3-23CSep23-Summer23-NanoAODv12",
+        "Run3-23DSep23-Summer23BPix-NanoAODv12",
+        "Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15"
+    ]
+    valid_groups = [ "BTV", "DC", "EGM", "JME", "LUM", "MUO", "TAU"]
+    
+    # Register the resolver
+    def cvmfs_path_resolver(period: str, group: str, file: str, tag="latest") -> str:
+        '''
+        Resolver to get the cvmfs path for a given group, period and file.
+        If a tag is provided, it is used to get the specific version of the file.
+        Otherwise the group_tags dictionary is used to get the tag for the group.
+        If the group is not in the group_tags dictionary, the latest version is used.
+        '''
+        if group not in valid_groups:
+            raise ValueError(f"Invalid group '{group}'. Valid groups are: {valid_groups}")
+        if period not in valid_periods:
+            raise ValueError(f"Invalid period '{period}'. Valid periods are: {valid_periods}")
+        
+        if tag is not None:
+            tag = tag
+        elif groups_tags is not None and group in groups_tags:
+            tag = groups_tags[group]
+        else:
+            tag = "latest"
+       
+        return f"/cvmfs/cms-griddata.cern.ch/cat/metadata/{group}/{period}/{tag}/{file}"
+    
+    # Register the resolver with OmegaConf
+    OmegaConf.register_new_resolver("cvmfs", cvmfs_path_resolver, replace=True)
+
+
 ##############################################
-def get_default_parameters():
+def get_default_parameters(group_tags: dict = None) -> OmegaConf:
     '''
     This function loads the default parameters from the PocketCoffea package for
     - pileup files
@@ -39,6 +84,10 @@ def get_default_parameters():
     '''
     # The default configs are part of the package
     basedir = os.path.dirname(__file__)
+
+    # Loading the cvmfs resolver
+    setup_cvmfs_resolver(group_tags)
+
     pileup = OmegaConf.load(os.path.join(basedir, 'pileup.yaml'))
     event_flags = OmegaConf.load(os.path.join(basedir, 'event_flags.yaml'))
     lumi = OmegaConf.load(os.path.join(basedir, 'lumi.yaml'))
@@ -49,6 +98,7 @@ def get_default_parameters():
     lepton_scale_factors = OmegaConf.load(
         os.path.join(basedir, 'lepton_scale_factors.yaml')
     )
+    photon_sf = OmegaConf.load(os.path.join(basedir, 'photon_scale_factors.yaml'))
     met_xy = OmegaConf.load(os.path.join(basedir, "met_xy.yaml"))
     syst_variations = OmegaConf.load(os.path.join(basedir, 'variations.yaml'))
     plotting_style = OmegaConf.load(os.path.join(basedir, 'plotting_style.yaml'))
@@ -61,6 +111,7 @@ def get_default_parameters():
         jet_scale_factors,
         btagging,
         lepton_scale_factors,
+        photon_sf,
         met_xy,
         syst_variations,
         plotting_style
