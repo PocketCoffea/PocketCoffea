@@ -97,8 +97,8 @@ lepton_scale_factors:
 
       "2024":
         files:
-          reco: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,EGM,electron.json.gz}
-          id:   ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,EGM,electronID.json.gz}
+          reco: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,EGM,electron_v1.json.gz}
+          id:   ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,EGM,electronID_v1.json.gz}
         name: Electron-ID-SF
         reco:
           #pt_lt_20: #"RecoBelow20" bin is still missing for the moment.
@@ -160,31 +160,31 @@ lepton_scale_factors:
       
       correctionlib_config:
         '2022_preEE':
-          file: ${cvmfs:Run3-22CDSep23-Summer22-NanoAODv12,EGM,electronSS_EtDependent.json.gz}
+          file: ${cvmfs:Run3-22CDSep23-Summer22-NanoAODv12,EGM,electronSS.json.gz}
           correction_name:
             scale: "Scale"
             smear: "Smearing"
           et_dependent: false
         '2022_postEE':
-          file: ${cvmfs:Run3-22EFGSep23-Summer22EE-NanoAODv12,EGM,electronSS_EtDependent.json.gz}
+          file: ${cvmfs:Run3-22EFGSep23-Summer22EE-NanoAODv12,EGM,electronSS.json.gz}
           correction_name:
             scale: "Scale"
             smear: "Smearing"
           et_dependent: false
         '2023_preBPix':
-          file: ${cvmfs:Run3-23CSep23-Summer23-NanoAODv12,EGM,electronSS_EtDependent.json.gz}
+          file: ${cvmfs:Run3-23CSep23-Summer23-NanoAODv12,EGM,electronSS.json.gz}
           correction_name:
             scale: "2023PromptC_ScaleJSON"
             smear: "2023PromptC_SmearingJSON"
           et_dependent: false
         '2023_postBPix':
-          file: ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,EGM,electronSS_EtDependent.json.gz}
+          file: ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,EGM,electronSS.json.gz}
           correction_name:
             scale: "2023PromptD_ScaleJSON"
             smear: "2023PromptD_SmearingJSON"
           et_dependent: false
         '2024':
-          file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,EGM,electronSS_EtDependent.json.gz}
+          file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,EGM,electronSS_EtDependent_v1.json.gz}
           correction_name:
             scale: "EGMScale_Compound_Ele_2024"
             smear: "EGMSmearAndSyst_ElePTsplit_2024"
