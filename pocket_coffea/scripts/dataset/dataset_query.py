@@ -143,7 +143,7 @@ Some basic commands:
   - [bold cyan]query-results[/]: List the results of the last dataset query
   - [bold cyan]list-selected[/]: Print a list of the selected datasets
   - [bold cyan]list-replicas[/]: Print the selected files replicas for the selected dataset
-  - [bold cyan][set-sorting][/]: Set the sorting mode for replicas
+  - [bold cyan]set-sorting[/]: Set the sorting mode for replicas
   - [bold cyan]sites-filters[/]: show the active sites filters and ask to clear them
   - [bold cyan]allow-sites[/]: Restrict the grid sites available for replicas query only to the requested list
   - [bold cyan]block-sites[/]: Exclude grid sites from the available sites for replicas query
