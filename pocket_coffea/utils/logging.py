@@ -136,8 +136,6 @@ def try_and_log_error(error_file, exit_on_error=False):
         If True, prints the full traceback and exits the program when an error occurs.
         If False, logs the error and continues execution. Default is False.
     """
-    # Ensure parent directory exists
-    os.makedirs(os.path.dirname(error_file), exist_ok=True)
 
     def decorator(func):
         @wraps(func)
@@ -146,10 +144,14 @@ def try_and_log_error(error_file, exit_on_error=False):
                 return func(*args, **kwargs)
             except Exception as e:
                 error_trace = traceback.format_exc()
+                # Ensure parent directory exists
+                os.makedirs(os.path.dirname(error_file), exist_ok=True)
+                # Write traceback to error file
                 with open(error_file, "w") as f:
                     f.write(error_trace)
                 logging.error(f"Error occurred in '{func.__name__}', traceback saved to: {os.path.abspath(error_file)}")
                 
+                # Exit after logging the error traceback if specified
                 if exit_on_error:
                     print(f"\nFatal error in '{func.__name__}':")
                     print(error_trace)
