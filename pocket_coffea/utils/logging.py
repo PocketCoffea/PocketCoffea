@@ -149,11 +149,17 @@ def try_and_log_error(error_file, exit_on_error=False):
                 # Write traceback to error file
                 with open(error_file, "w") as f:
                     f.write(error_trace)
-                logging.error(f"Error occurred in '{func.__name__}', traceback saved to: {os.path.abspath(error_file)}")
+                if hasattr(func, '__name__'):
+                    logging.error(f"Error occurred in '{func.__name__}', traceback saved to: {os.path.abspath(error_file)}")
+                else:
+                    logging.error(f"Error occurred, traceback saved to: {os.path.abspath(error_file)}")
                 
                 # Exit after logging the error traceback if specified
                 if exit_on_error:
-                    print(f"\nFatal error in '{func.__name__}':")
+                    if hasattr(func, '__name__'):
+                        print(f"\nFatal error in '{func.__name__}':")
+                    else:
+                        print(f"\nFatal error:")
                     print(error_trace)
                     sys.exit(1)
                 return None  # prevent the exception from halting the main script if not exiting
