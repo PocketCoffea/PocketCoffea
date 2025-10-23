@@ -7,6 +7,7 @@ from distributed import Client
 from dask.distributed import performance_report
 from coffea import processor
 from coffea.util import save
+from coffea.nanoevents import NanoAODSchema
 
 from pocket_coffea.parameters.dask_env import setup_dask
 from pocket_coffea.utils.network import get_proxy_path
@@ -28,13 +29,13 @@ class BaseRunner:
     @property
     def executor_instance(self):
         if self.executor == "dask":
-            return processor.dask_executor
+            return processor.DaskExecutor
         elif self.executor == "futures":
-            return processor.futures_executor
+            return processor.FuturesExecutor
         elif self.executor == "parsl":
-            return processor.parsl_executor
+            return processor.ParslExecutor
         elif self.executor == "iterative":
-            return processor.iterative_executor
+            return processor.IterativeExecutor
 
     def setup_logging(self, loglevel):
         if (not setup_logging(console_log_output="stdout", console_log_level=loglevel, console_log_color=True,
@@ -67,7 +68,7 @@ class BaseRunner:
     def get_executor_args(self):
         executor_args = {
             'skipbadfiles': self.run_options.get('skipbadfiles',False),
-            'schema': processor.NanoAODSchema,
+            'schema': NanoAODSchema,
             'xrootdtimeout': self.run_options.get('xrootdtimeout', 600),
         }
 

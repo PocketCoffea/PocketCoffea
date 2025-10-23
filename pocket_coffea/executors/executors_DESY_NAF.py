@@ -89,7 +89,7 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
         print('Ready to run with parsl.')
 
     def get(self):
-        return coffea_processor.parsl_executor(**self.customized_args())
+        return coffea_processor.ParslExecutor(**self.customized_args())
 
     def customized_args(self):
         args = super().customized_args()

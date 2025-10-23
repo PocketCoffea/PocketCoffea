@@ -73,7 +73,7 @@ class DaskExecutorFactory(ExecutorFactoryABC):
 
         
     def get(self):
-        return coffea_processor.dask_executor(**self.customized_args())
+        return coffea_processor.DaskExecutor(**self.customized_args())
 
     def customized_args(self):
         args = super().customized_args()

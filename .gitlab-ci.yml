@@ -134,10 +134,10 @@ tests_lxplus_el9_latest:
 build_docker_lxplus_coffea2023:
   extends: .tag_skopeo
   rules:
-   - if: '$CI_COMMIT_REF_NAME == "coffea_2023"'
+   - if: '$CI_COMMIT_REF_NAME == "update/coffea-v2025"'
   variables:
     IMAGE_ORIGIN_TAG: ${CI_REGISTRY_IMAGE}:lxplus-el9-${CI_COMMIT_SHORT_SHA}
-    IMAGE_DESTINATION_TAG: ${CI_REGISTRY_IMAGE}:lxplus-el9-coffea2023
+    IMAGE_DESTINATION_TAG: ${CI_REGISTRY_IMAGE}:lxplus-el9-awk2-coffeaCalVer
 
 
 
