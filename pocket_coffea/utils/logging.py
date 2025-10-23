@@ -157,9 +157,9 @@ def try_and_log_error(error_file, exit_on_error=False):
                 # Exit after logging the error traceback if specified
                 if exit_on_error:
                     if hasattr(func, '__name__'):
-                        print(f"\nFatal error in '{func.__name__}':")
+                        logging.error(f"\nFatal error in '{func.__name__}':")
                     else:
-                        print(f"\nFatal error:")
+                        logging.error(f"\nFatal error:")
                     print(error_trace)
                     sys.exit(1)
                 return None  # prevent the exception from halting the main script if not exiting

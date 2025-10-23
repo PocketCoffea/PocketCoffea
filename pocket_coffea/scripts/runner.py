@@ -319,7 +319,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
             output = run(fileset_, treename="Events",
                          processor_instance=config.processor_instance)
             if output is None:
-                logging.error(f"Processing of dataset/group {group_name} failed, moving to the next one")
+                logging.error(f"Processing of dataset {group_name} failed, moving to the next one")
                 continue
             else:
                 print(f"Saving output to {outfile.format(group_name)}")
