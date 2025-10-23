@@ -20,6 +20,8 @@
 import os
 import sys
 import logging
+import traceback
+from functools import wraps
 
 # Logging formatter supporting colorized output
 class LogFormatter(logging.Formatter):
@@ -121,3 +123,45 @@ def setup_logging(
 
     # Success
     return True
+
+def try_and_log_error(error_file, exit_on_error=False):
+    """
+    Decorator to catch exceptions and log them to a specified error file.
+    
+    Parameters
+    ----------
+    error_file : str
+        Path to the error log file. The parent directory will be created if missing.
+    exit_on_error : bool, optional
+        If True, prints the full traceback and exits the program when an error occurs.
+        If False, logs the error and continues execution. Default is False.
+    """
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                error_trace = traceback.format_exc()
+                # Ensure parent directory exists
+                os.makedirs(os.path.dirname(error_file), exist_ok=True)
+                # Write traceback to error file
+                with open(error_file, "w") as f:
+                    f.write(error_trace)
+                if hasattr(func, '__name__'):
+                    logging.error(f"Error occurred in '{func.__name__}', traceback saved to: {os.path.abspath(error_file)}")
+                else:
+                    logging.error(f"Error occurred, traceback saved to: {os.path.abspath(error_file)}")
+                
+                # Exit after logging the error traceback if specified
+                if exit_on_error:
+                    if hasattr(func, '__name__'):
+                        logging.error(f"\nFatal error in '{func.__name__}':")
+                    else:
+                        logging.error(f"\nFatal error:")
+                    print(error_trace)
+                    sys.exit(1)
+                return None  # prevent the exception from halting the main script if not exiting
+        return wrapper
+    return decorator
