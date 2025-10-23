@@ -13,33 +13,21 @@ def get_ele_scaled_etdependent(ele, json_scale,
     evaluator_scale = evaluator.compound[correction_name]
     smear_and_syst_evaluator = evaluator[syst_correction_name]
     ele_gain_flat = ak.flatten(ele["seedGain"])
-    ele_eta_flat = ak.flatten(ele["etaSC"])
+    ele_eta_flat = ak.flatten(ele["etaSC"]) # eta of supercluster
     ele_r9_flat = ak.flatten(ele["r9"])
     ele_pt_flat = ak.flatten(ele["pt"])
     ele_counts = ak.num(ele["pt"])
     ele_runNr_flat = np.repeat(runNr, ele_counts)
     if not isMC: 
         # for data return nominal
-        if "2022" in year or "2023" in year:
-            scale = evaluator_scale.evaluate(
-                "scale", 
-                ele_runNr_flat, 
-                ele_eta_flat,
-                ele_r9_flat, 
-                np.abs(ele_eta_flat), 
-                ele_pt_flat, 
-                ele_gain_flat)
-        elif year == "2024":
-            scale = evaluator_scale.evaluate(
+        scale = evaluator_scale.evaluate(
                 "scale", 
                 ele_runNr_flat, 
                 ele_eta_flat,
                 ele_r9_flat,
                 ele_pt_flat, 
                 ele_gain_flat
-            )
-        else:
-            raise ValueError(f"Year {year} not supported for electron scale factors")
+        )
         ele_pt_corrected = ak.unflatten(scale * ele_pt_flat, counts=ele_counts)
         return {"nominal": ele_pt_corrected}
     else:
@@ -48,7 +36,7 @@ def get_ele_scaled_etdependent(ele, json_scale,
             "escale", 
             ele_pt_flat, 
             ele_r9_flat, 
-            np.abs(ele_eta_flat)
+            ele_eta_flat
         )
         ele_pt_scale_up = ak.unflatten((1+scale_MC_unc) * ele_pt_flat, counts=ele_counts)
         ele_pt_scale_down = ak.unflatten((1-scale_MC_unc) * ele_pt_flat, counts=ele_counts)
@@ -99,7 +87,7 @@ def get_ele_smeared_etdependent(mc_ele, jsonFileName, correction_name, isMC, onl
         return
     evaluator = correctionlib.CorrectionSet.from_file(jsonFileName)
     evaluator_smearing = evaluator[correction_name]
-    ele_eta_flat = ak.flatten(mc_ele["etaSC"])
+    ele_eta_flat = ak.flatten(mc_ele["etaSC"]) # eta of supercluster
     ele_r9_flat = ak.flatten(mc_ele["r9"])
     ele_pt_flat = ak.flatten(mc_ele["pt"])
     ele_counts = ak.num(mc_ele["pt"])
@@ -108,31 +96,35 @@ def get_ele_smeared_etdependent(mc_ele, jsonFileName, correction_name, isMC, onl
         "smear",
         ele_pt_flat,
         ele_r9_flat,
-        np.abs(ele_eta_flat),
+        ele_eta_flat,
     )
-    smearing = rng.normal(loc=1., scale=smear)
+    rnd_samples = rng.normal(loc=0., scale=1., size=len(ele_pt_flat))
+    smearing = 1 + smear * rnd_samples
     mc_ele_pt_corrected_nom = ak.unflatten(smearing * ele_pt_flat, counts=ele_counts)
 
     if only_nominal:
         return {"nominal": mc_ele_pt_corrected_nom}
     else:
-        unc_rho = evaluator_smearing.evaluate(
-            "esmear", 
+        smear_up = evaluator_smearing.evaluate(
+            "smear_up", 
             ele_pt_flat,
             ele_r9_flat,
-            np.abs(ele_eta_flat),
+            ele_eta_flat,
         )
-        smearing_up = rng.normal(loc=1., scale=smear + unc_rho)
-        smear_down = smear - unc_rho
-        smear_down = np.where(smear_down > 0., smear_down, 0.)
-        smearing_down = rng.normal(loc=1., scale=smear_down)
+        smear_down = evaluator_smearing.evaluate(
+            "smear_down", 
+            ele_pt_flat,
+            ele_r9_flat,
+            ele_eta_flat,
+        )
+        # using the same random number for up and down variations
+        smearing_up = 1 + smear_up * rnd_samples
+        smearing_down = 1 + smear_down * rnd_samples
         mc_ele_pt_up = ak.unflatten(smearing_up * ele_pt_flat, counts=ele_counts)
         mc_ele_pt_down = ak.unflatten(smearing_down * ele_pt_flat, counts=ele_counts)
         return {"nominal": mc_ele_pt_corrected_nom,
                 "up": mc_ele_pt_up, 
                 "down": mc_ele_pt_down}
-
-
 
 
 def get_ele_smeared(mc_ele, jsonFileName,correction_name, isMC, only_nominal=True, seed=125):
@@ -162,17 +154,12 @@ def get_ele_smeared(mc_ele, jsonFileName,correction_name, isMC, only_nominal=Tru
             ele_r9_flat
         )
         smearing_up = rng.normal(loc=1., scale=rho + unc_rho)
-        smear_down = rho - unc_rho
-        smear_down = np.where(smear_down > 0., smear_down, 0.)
-        smearing_down = rng.normal(loc=1., scale=smear_down)
+        smearing_down = rng.normal(loc=1., scale=rho - unc_rho)
         mc_ele_pt_up = ak.unflatten(smearing_up * ele_pt_flat, counts=ele_counts)
         mc_ele_pt_down = ak.unflatten(smearing_down * ele_pt_flat, counts=ele_counts)
         return {"nominal": mc_ele_pt_corrected_nom,
                 "up": mc_ele_pt_up, 
                 "down": mc_ele_pt_down}
-
-
-
 
 
 def lepton_selection(events, lepton_flavour, params):
