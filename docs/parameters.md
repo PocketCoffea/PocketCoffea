@@ -89,8 +89,12 @@ flags, btagging working points. The user can get a copy of the default set of pa
 >>> from pocket_coffea.parameters import defaults
 >>> default_parameters = defaults.get_default_parameters(
                                               groups_tags={
-                                                  "EGM": "2025-10-11",
-                                                  "JME": "latest"
+                                                  "EGM": {
+                                                    "Run3-22CDSep23-Summer22-NanoAODv12": "2025-10-11",
+                                                    "Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/": "2025-10-22"},
+                                                  "JME": {
+                                                    "Run3-22CDSep23-Summer22-NanoAODv12": "2025-10-11",
+                                                  }
                                               })
 
 >>> default_parameters.keys()
@@ -100,14 +104,21 @@ dict_keys(['pileupJSONfiles', 'event_flags', 'event_flags_data',
            'systematic_variations'])
 
 >>> default_parameters.jet_scale_factors.btagSF
-{'btagSF': {
-    '2016_PreVFP': {'file': '/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2016preVFP_UL/btagging.json.gz', 'name': 'deepJet_shape'},
-    '2016_PostVFP': {'file': '/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2016postVFP_UL/btagging.json.gz', 'name': 'deepJet_shape'}, 
-    '2017': {'file': '/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2017_UL/btagging.json.gz', 'name': 'deepJet_shape'}, 
-    '2018': {'file': '/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2018_UL/btagging.json.gz',
-    'name': 'deepJet_shape'}},
+{
+  '2022_preEE': {
+    'file': '/cvmfs/cms-griddata.cern.ch/cat/metadata/BTV/Run3-22CDSep23-Summer22-NanoAODv12/latest/btagging.json.gz',
+    'name': 'deepJet_shape'
+  },
+  '2022_postEE': {
+    'file': '/cvmfs/cms-griddata.cern.ch/cat/metadata/BTV/Run3-22EFGSep23-Summer22EE-NanoAODv12/latest/btagging.json.gz',
+    'name': 'deepJet_shape'
+  },
+  '2023_preBPix': {
+    'file': '/cvmfs/cms-griddata.cern.ch/cat/metadata/BTV/Run3-23CSep23-Summer23-NanoAODv12/latest/btagging.json.gz',
+    'name': 'deepJet_shape'
+  },
+  ...
 }
-
 ```
 
 The `OmegaConf` parameters object behaves like a python dictionary, where keys can be accessed directly as attributes. 
@@ -131,12 +142,11 @@ params = OmegaConf.merge(pileup, event_flags, lumi)
 ### Metadata files from correctionlib
 
 The metadata files stored on `cvmfs` are defined in the parameters files using an *OmegaConf Resolver*.  The format of the resolver is `${cvmfs:period,group,file,tag}`. 
-The default parameters resolve the location of the json files stored on cvfms by using the groups' tags passed as a dictionary to the `default.get_default_parameters()` function. If a group is not specified, the latest version is used. 
-
+The default parameters resolve the location of the json files stored on cvfms by using the groups' tags passed as a dictionary to the `default.get_default_parameters()` function for each run period. If a group:period pair is not specified, the latest version is used. 
 
 The resolution of the cvmfs file path goes as following:
 - If a tag is not specified, it is setup when requesting the default parameters:
-  -  If the group is specified in the `groups_tags` input of the `get_default_parameters()` dictionary, the specified **tag** is used for the all metadata files of thatgroup
+  -  If the group is specified in the `groups_tags` input of the `get_default_parameters()` dictionary, and the requested period is specified in the dictionary,  the specified **tag** is used for the all metadata files of that group for the requested period.
   - If the group is not specified, the **latest** version of the metadata is used. 
 
 - If the tag is specified, it won't be overwritten.

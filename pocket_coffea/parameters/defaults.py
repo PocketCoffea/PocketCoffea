@@ -27,7 +27,7 @@ def setup_cvmfs_resolver(groups_tags: dict = None):
     """
     Setup the CVMFS path resolver to point to the correct version of the POGs files
     If groups_tags is None the latest version is used. Otherwise a dictionary with the group names
-    and the corresponding tags must be provided.
+    and the corresponding tags for each period must be provided.
     """
     basepath = Path("/cvmfs/cms-griddata.cern.ch/cat/metadata/")
     valid_groups = [ n.name for n in basepath.iterdir() if n.is_dir()]
@@ -42,6 +42,14 @@ def setup_cvmfs_resolver(groups_tags: dict = None):
         If a tag is provided, it is used to get the specific version of the file.
         Otherwise the group_tags dictionary is used to get the tag for the group.
         If the group is not in the group_tags dictionary, the latest version is used.
+        The group_tags dictionary must have the following structure:
+        {
+            "EGM": {"period1": "tag1",
+                    "period2": "tag2" },
+            "BTV": {"period1": "tag3",
+                    "period2": "tag4"},
+            ...
+        }
         '''
         if group not in valid_groups:
             raise ValueError(f"Invalid group '{group}' for period '{period}' file '{file}'. Valid groups are: {valid_groups}")
@@ -50,8 +58,8 @@ def setup_cvmfs_resolver(groups_tags: dict = None):
         
         if tag is not None:
             tag = tag
-        elif groups_tags is not None and group in groups_tags:
-            tag = groups_tags[group]
+        elif groups_tags is not None and group in groups_tags and period in groups_tags[group]:
+            tag = groups_tags[group][period]
         else:
             tag = "latest"
        
