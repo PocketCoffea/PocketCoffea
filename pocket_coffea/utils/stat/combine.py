@@ -64,6 +64,7 @@ class Datacard:
         bins_edges: list[float] = None,
         bin_prefix: str = None,
         bin_suffix: str = None,
+        process_suffix: str = None,
         verbose: bool = True,
     ) -> None:
         """Initialize the Datacard."""
@@ -80,9 +81,12 @@ class Datacard:
         self.category = category
         self.bin_prefix = bin_prefix
         self.bin_suffix = bin_suffix
+        self.process_suffix = process_suffix
         self.verbose = verbose
         if self.bin_suffix is None:
             self.bin_suffix = "_".join(self.years)
+        if self.process_suffix is None:
+            self.process_suffix = "_".join(self.years)
         self.number_width = 10
         self.has_data = data_processes is not None
 
@@ -104,10 +108,10 @@ class Datacard:
         for process in self.mc_processes.values():
             for year in process.years:
                 if process.is_signal:
-                    self.process_id[f"{process.name}_{year}"] = id_signal
+                    self.process_id[f"{process.name}{self.process_suffix}"] = id_signal
                     id_signal -= 1
                 else:
-                    self.process_id[f"{process.name}_{year}"] = id_background
+                    self.process_id[f"{process.name}{self.process_suffix}"] = id_background
                     id_background += 1
         # self.processes = sorted(self.processes, key=lambda proc: proc.id)
 
@@ -240,7 +244,7 @@ class Datacard:
     def adjust_columns(self):
         return (
             max(
-                *[len(process) for process in self.mc_processes],
+                *[len(f"{process}{self.process_suffix}") for process in self.mc_processes],
                 len(self.bin),
             )
             + 4
@@ -323,7 +327,7 @@ class Datacard:
         # Loop over variations in self.histogram as saved after rearranging
         for process in self.mc_processes.values():
             for year in process.years:
-                process_name_byyear = f"{process.name}_{year}"
+                process_name_byyear = f"{process.name}{self.process_suffix}"
                 process_index = self.histogram.axes["process"].index(
                     process_name_byyear
                 )
@@ -392,7 +396,7 @@ class Datacard:
             )
         else:
             processes_names = [
-                f"{process_name}_{year}"
+                f"{process_name}{self.process_suffix}"
                 for process_name, process in processes.items()
                 for year in process.years
             ]
@@ -419,7 +423,7 @@ class Datacard:
                                 self.category, :
                             ].view()
                         else:
-                            process_index = new_histogram.axes["process"].index(f"{process.name}_{year}")
+                            process_index = new_histogram.axes["process"].index(f"{process.name}{self.process_suffix}")
                             # Save nominal variation
                             variation_index_nominal = new_histogram.axes[
                                 "variation"
@@ -485,7 +489,7 @@ class Datacard:
                     new_histogram_view[:] = histogram[process_name_byyear, :].view()
                     new_histograms[f"{process_name_byyear}_nominal"] = new_histogram
                 else:
-                    process_name_byyear = f"{process.name}_{year}"
+                    process_name_byyear = f"{process.name}{self.process_suffix}"
                     # Save nominal shape
                     new_histogram = hist.Hist(
                         histogram.axes[-1],
@@ -549,7 +553,7 @@ class Datacard:
         content += "process".ljust(self.adjust_first_column)
         # process names
         content += "".join(
-            f"{process.name}_{year}".ljust(self.adjust_columns)
+            f"{process.name}{self.process_suffix}".ljust(self.adjust_columns)
             for process in self.mc_processes.values()
             for year in process.years
             if not process.is_data
@@ -558,7 +562,7 @@ class Datacard:
         # process ids
         content += "process".ljust(self.adjust_first_column)
         content += "".join(
-            f"{self.process_id[f'{process.name}_{year}']}".ljust(self.adjust_columns)
+            f"{self.process_id[f'{process.name}{self.process_suffix}']}".ljust(self.adjust_columns)
             for process in self.mc_processes.values()
             for year in process.years
             if not process.is_data
@@ -568,7 +572,7 @@ class Datacard:
         # rates
         content += "rate".ljust(self.adjust_first_column)
         content += "".join(
-            f"{self.rate(f'{process.name}_{year}')}"[: self.number_width].ljust(self.adjust_columns)
+            f"{self.rate(f'{process.name}{self.process_suffix}')}"[: self.number_width].ljust(self.adjust_columns)
             for process in self.mc_processes.values()
             for year in process.years
             if not process.is_data
@@ -609,7 +613,7 @@ class Datacard:
                 if not process.is_signal and process.has_rateParam:
                     line = f"SF_{process.name}".ljust(self.adjust_syst_colum)
                     line += "rateParam".ljust(self.adjust_columns)
-                    line += f"* {process.name}_{year} 1 [0,5]".ljust(
+                    line += f"* {process.name}{self.process_suffix} 1 [0,5]".ljust(
                         self.adjust_columns
                     )
                     line += self.linesep
