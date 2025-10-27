@@ -14,11 +14,11 @@ from rich.console import Console
 
 from coffea.util import save
 from coffea import processor
-from coffea.processor import Runner
 
 from pocket_coffea.utils.configurator import Configurator
 from pocket_coffea.utils.utils import load_config, path_import, adapt_chunksize
-from pocket_coffea.utils.logging import setup_logging
+from pocket_coffea.utils.logging import setup_logging, try_and_log_error
+from pocket_coffea.utils.run import get_runner
 from pocket_coffea.utils.time import wait_until
 from pocket_coffea.parameters import defaults as parameters_utils
 from pocket_coffea.executors import executors_base, executors_manual_jobs
@@ -243,14 +243,18 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         if adapted_chunksize != run_options["chunksize"]:
             logging.info(f"Reducing chunksize from {run_options['chunksize']} to {adapted_chunksize} for datasets")
 
-        run = Runner(
+        # Get the coffea Runner wrapped with error logging
+        run = get_runner(
             executor=executor,
             chunksize=run_options["chunksize"],
             maxchunks=run_options["limit-chunks"],
             skipbadfiles=run_options['skip-bad-files'],
             schema=processor.NanoAODSchema,
             format="root",
+            error_log_file=f"{outputdir}/error/run_all.err",
+            exit_on_error=True
         )
+
         output = run(filesets_to_run, treename="Events",
                      processor_instance=config.processor_instance)
         
@@ -300,19 +304,27 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
             if adapted_chunksize != run_options["chunksize"]:
                 logging.info(f"Reducing chunksize from {run_options['chunksize']} to {adapted_chunksize} for dataset(s) {group_name}")
 
-            run = Runner(
+            # Get the coffea Runner wrapped with error logging
+            run = get_runner(
                 executor=executor,
-                chunksize=adapted_chunksize,
+                chunksize=run_options["chunksize"],
                 maxchunks=run_options["limit-chunks"],
                 skipbadfiles=run_options['skip-bad-files'],
                 schema=processor.NanoAODSchema,
                 format="root",
+                error_log_file=f"{outputdir}/error/run_{group_name}.err",
+                exit_on_error=False # Continue to next dataset on error
             )
+
             output = run(fileset_, treename="Events",
                          processor_instance=config.processor_instance)
-            print(f"Saving output to {outfile.format(group_name)}")
-            save(output, outfile.format(group_name))
-            print_processing_stats(output, dataset_start_time, run_options["scaleout"])
+            if output is None:
+                logging.error(f"Processing of dataset {group_name} failed, moving to the next one")
+                continue
+            else:
+                print(f"Saving output to {outfile.format(group_name)}")
+                save(output, outfile.format(group_name))
+                print_processing_stats(output, dataset_start_time, run_options["scaleout"])
 
 
     # If the processor has skimmed NanoAOD, we export a dataset_definition file
