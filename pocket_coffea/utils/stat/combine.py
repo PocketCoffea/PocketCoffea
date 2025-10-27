@@ -287,7 +287,7 @@ class Datacard:
     def _check_histograms(self) -> None:
         """Check if histograms are available for all processes and systematics."""
         available_variations = []
-        for systematic in self.systematics.get_systematics_by_type("shape"):
+        for systematic in self.systematics.get_systematics_by_name("shape"):
             for shift in ("Up", "Down"):
                 available_variations.append(f"{systematic}{shift}")
 
@@ -434,7 +434,7 @@ class Datacard:
                             for (
                                 syst_name,
                                 systematic,
-                            ) in self.systematics.get_systematics_by_type(
+                            ) in self.systematics.get_systematics_by_name(
                                 "shape"
                             ).items():
                                 for shift in ("Up", "Down"):
