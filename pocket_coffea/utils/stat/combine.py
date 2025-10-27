@@ -64,6 +64,7 @@ class Datacard:
         bins_edges: list[float] = None,
         bin_prefix: str = None,
         bin_suffix: str = None,
+        verbose: bool = True,
     ) -> None:
         """Initialize the Datacard."""
 
@@ -79,6 +80,7 @@ class Datacard:
         self.category = category
         self.bin_prefix = bin_prefix
         self.bin_suffix = bin_suffix
+        self.verbose = verbose
         if self.bin_suffix is None:
             self.bin_suffix = "_".join(self.years)
         self.number_width = 10
@@ -246,7 +248,10 @@ class Datacard:
 
     def is_empty_dataset(self, dataset: str) -> bool:
         """Check if dataset is empty"""
-        return self.cutflow["presel"][dataset] == 0
+        if dataset in self.cutflow["presel"].keys():
+            return self.cutflow["presel"][dataset] == 0
+        else:
+            return True
 
     def get_datasets_by_sample(self, sample: str, year: str = None) -> list[str]:
         """
@@ -291,10 +296,11 @@ class Datacard:
                     for dataset in self.get_datasets_by_sample(sample, year):
                         if dataset not in self.histograms[sample]:
                             if self.is_empty_dataset(dataset):
-                                print(
-                                    f"Sample {sample} for dataset {dataset} has 0 events in category `presel`. "
-                                    f"Skipping this dataset."
-                                )
+                                if self.verbose:
+                                    print(
+                                        f"Sample {sample} for dataset {dataset} has 0 events in category `presel`. "
+                                        f"Skipping this dataset."
+                                    )
                                 continue
                             else:
                                 raise ValueError(
@@ -305,7 +311,7 @@ class Datacard:
                             missing_systematics = set(available_variations) - set(
                                 self.histograms[sample][dataset].axes["variation"]
                             )
-                            if missing_systematics:
+                            if missing_systematics and self.verbose:
                                 print(
                                     f"Sample {sample} for dataset {dataset} is missing the following "
                                     f"systematics: {missing_systematics}"
@@ -368,15 +374,17 @@ class Datacard:
         )
 
         # Extract variable axis from the first dataset
-        dataset = list(
-            self.get_datasets_by_sample(list(processes.values())[0].samples[0])
-        )[0]
-        variable_axis = self.histograms[list(processes.values())[0].samples[0]][
-            dataset
-        ].axes[-1]
+        sample = list(processes.values())[0].samples[0]
+        datasets = list(self.get_datasets_by_sample(sample))
+        for dataset in datasets:
+            if not dataset in self.histograms[sample]:
+                continue
+            else:
+                variable_axis = self.histograms[sample][dataset].axes[-1]
+                break
 
         if is_data:
-            processes_names = processes.keys()
+            processes_names = ["data_obs"]  # For data, we use a single process name without year
             new_histogram = hist.Hist(
                 hist.axis.StrCategory(processes_names, name="process"),
                 variable_axis,
@@ -398,28 +406,20 @@ class Datacard:
 
         for process in processes.values():
             for sample in process.samples:
-                # data processes do not have attribute years
-                years = process.years if not is_data else [None]
+                years = process.years
                 for year in years:
-                    if is_data:
-                        assert year is None, "Data process should not have a year"
-                        process_index = new_histogram.axes["process"].index(
-                            process.name
-                        )
-                    else:
-                        assert year is not None, "MC process should have a year"
-                        process_index = new_histogram.axes["process"].index(
-                            f"{process.name}_{year}"
-                        )
+                    assert year is not None, "Processes should have a year"
                     for dataset in self.get_datasets_by_sample(sample, year):
                         if self.is_empty_dataset(dataset):
                             continue
                         histogram = self.histograms[sample][dataset]
                         if is_data:
+                            process_index = new_histogram.axes["process"].index("data_obs")
                             new_histogram_view[process_index, :] += histogram[
                                 self.category, :
                             ].view()
                         else:
+                            process_index = new_histogram.axes["process"].index(f"{process.name}_{year}")
                             # Save nominal variation
                             variation_index_nominal = new_histogram.axes[
                                 "variation"
@@ -473,13 +473,9 @@ class Datacard:
             processes = self.mc_processes
         new_histograms = dict()
         for process in processes.values():
-            years = process.years if not is_data else [None]
-            for year in years:
+            for year in process.years:
                 if is_data:
-                    process_name_byyear = process.name
-                else:
-                    process_name_byyear = f"{process.name}_{year}"
-                if is_data:
+                    process_name_byyear = f"{process.name}"
                     # create new 1d histogram
                     new_histogram = hist.Hist(
                         histogram.axes[-1],
@@ -489,6 +485,7 @@ class Datacard:
                     new_histogram_view[:] = histogram[process_name_byyear, :].view()
                     new_histograms[f"{process_name_byyear}_nominal"] = new_histogram
                 else:
+                    process_name_byyear = f"{process.name}_{year}"
                     # Save nominal shape
                     new_histogram = hist.Hist(
                         histogram.axes[-1],
@@ -571,9 +568,10 @@ class Datacard:
         # rates
         content += "rate".ljust(self.adjust_first_column)
         content += "".join(
-            f"{self.rate(process)}"[: self.number_width].ljust(self.adjust_columns)
-            for process in self.mc_processes.signal_processes
-            + self.mc_processes.background_processes
+            f"{self.rate(f'{process.name}_{year}')}"[: self.number_width].ljust(self.adjust_columns)
+            for process in self.mc_processes.values()
+            for year in process.years
+            if not process.is_data
         )
         content += self.linesep
         return content

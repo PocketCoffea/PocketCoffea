@@ -39,21 +39,21 @@ photon_scale_factors:
 
     JSONfiles:
       '2016_PreVFP':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016preVFP_UL/photon.json.gz
+          file: ${cvmfs:Run2-2016preVFP-UL-NanoAODv9,EGM,photon.json.gz}
       '2016_PostVFP':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016postVFP_UL/photon.json.gz
+          file: ${cvmfs:Run2-2016postVFP-UL-NanoAODv9,EGM,photon.json.gz}
       '2017':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2017_UL/photon.json.gz
+          file: ${cvmfs:Run2-2017-UL-NanoAODv9,EGM,photon.json.gz}
       '2018':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2018_UL/photon.json.gz
+          file: ${cvmfs:Run2-2018-UL-NanoAODv9,EGM,photon.json.gz}
       '2022_preEE':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/photon.json.gz
+          file: ${cvmfs:Run3-22CDSep23-Summer22-NanoAODv12,EGM,photon.json.gz}
       '2022_postEE':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/photon.json.gz
+          file: ${cvmfs:Run3-22EFGSep23-Summer22EE-NanoAODv12,EGM,photon.json.gz}
       '2023_preBPix':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/photon.json.gz
+          file: ${cvmfs:Run3-23CSep23-Summer23-NanoAODv12,EGM,photon.json.gz}
       '2023_postBPix':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/photon.json.gz
+          file: ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,EGM,photon.json.gz}
 
     era_mapping:
         "2016_PreVFP": "2016preVFP"
