@@ -932,7 +932,7 @@ jets_calibration:
 jets_calibration_clib:
   2016_PreVFP:
     AK4PFchs:
-      json_path: ${cvmfs:Run2-2016postVFP-UL-NanoAODv9,JME,jet_jerc.json.gz}
+      json_path: ${cvmfs:Run2-2016preVFP-UL-NanoAODv9,JME,jet_jerc.json.gz}
       jec_mc: Summer19UL16APV_V7_MC
       jec_data:
         B: Summer19UL16APV_RunBCD_V7_DATA
@@ -995,18 +995,18 @@ jets_calibration_clib:
   2022_preEE:
     AK4PFPuppi:
       json_path: ${cvmfs:Run3-22CDSep23-Summer22-NanoAODv12,JME,jet_jerc.json.gz}
-      jec_mc: Summer22_22Sep2023_V2_MC
+      jec_mc: Summer22_22Sep2023_V3_MC
       jec_data: Summer22_22Sep2023_RunCD_V3_DATA
       jer: Summer22_22Sep2023_JRV1_MC
 
   2022_postEE:
     AK4PFPuppi:
       json_path: ${cvmfs:Run3-22EFGSep23-Summer22EE-NanoAODv12,JME,jet_jerc.json.gz}
-      jec_mc: Summer22EE_22Sep2023_V2_MC
+      jec_mc: Summer22EE_22Sep2023_V3_MC
       jec_data:
-        E: Summer22EE_22Sep2023_RunE_V2_DATA
-        F: Summer22EE_22Sep2023_RunF_V2_DATA
-        G: Summer22EE_22Sep2023_RunG_V2_DATA
+        E: Summer22EE_22Sep2023_RunE_V3_DATA
+        F: Summer22EE_22Sep2023_RunF_V3_DATA
+        G: Summer22EE_22Sep2023_RunG_V3_DATA
       jer: Summer22EE_22Sep2023_JRV1_MC
 
   2023_preBPix:
