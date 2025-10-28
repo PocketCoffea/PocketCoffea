@@ -1,8 +1,4 @@
-import copy
-import importlib
 import gzip
-import cloudpickle
-
 import awkward as ak
 import numpy as np
 import correctionlib
@@ -424,8 +420,8 @@ def jet_correction_corrlib(
     variations,
     events,
     jet_type,
+    jet_coll_name,
     chunk_metadata,
-    jet_coll_name="Jet",
     apply_jer=True,
     jec_syst=True,
 ):
@@ -463,6 +459,7 @@ def jet_correction_corrlib(
     cset = correctionlib.CorrectionSet.from_file(json_path)
 
     # prepare inputs
+    # no need of copies
     jets_jagged = events[jet_coll_name]
     counts = ak.num(jets_jagged)
 
