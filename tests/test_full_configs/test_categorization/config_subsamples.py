@@ -32,7 +32,8 @@ parameters = defaults.merge_parameters_from_files(default_parameters,
                                                     f"{localdir}/params/triggers.yaml",
                                                    update=True)
 
-parameters.jets_calibration.jet_types.AK4PFchs["2018"].sort_by_pt = False
+# Disable pt sorting
+parameters.jets_calibration.sort_by_pt["2018"].AK4PFchs = False
 
 #Creating custom weight
 cfg = Configurator(

@@ -154,7 +154,7 @@ class JetsCalibrator(Calibrator):
             out[jet_coll_name]["mass"] = self.jets_calibrated[jet_coll_name][f"mass_{variation_type}_down"]
 
         # Need to reorder the jet collection by pt after the variation
-        if self.jet_calib_param.jet_types[jet_type][self._year].get("sort_by_pt", True):
+        if self.jet_calib_param.sort_by_pt[self._year][jet_type]:
             sorted_indices = ak.argsort(out[jet_coll_name]["pt"], axis=1, ascending=False)
             out[jet_coll_name] = out[jet_coll_name][sorted_indices]
    
