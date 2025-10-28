@@ -19,37 +19,6 @@ def add_jec_variables(jets, event_rho, isMC=True):
         jets["pt_gen"] = ak.values_astype(ak.fill_none(jets.matched_gen.pt, 0), np.float32)
     return jets
 
-def load_jet_factory(params):
-    #read the factory file from params and load it
-    with gzip.open(params.jets_calibration.factory_file) as fin:
-        try:
-            return cloudpickle.load(fin)
-        except Exception as e:
-            print(f"Error loading the jet factory file: {params.jets_calibration.factory_file} --> Please remove the file and rerun the code")
-            raise Exception(f"Error loading the jet factory file: {params.jets_calibration.factory_file} --> Please remove the file and rerun the code")
-        
-
-def jet_correction(params, events, jets, factory, jet_type, chunk_metadata, cache):
-    if chunk_metadata["year"] in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
-        rho = events.fixedGridRhoFastjetAll
-    else:
-        rho = events.Rho.fixedGridRhoFastjetAll
-
-    # Note: PNet jet regression should be applied via PNetRegressionCalibrator
-    # before calling this function, not within jet_correction itself.
-    # The regression code has been moved to pocket_coffea.lib.calibrators.common.pnet_regression.PNetRegressionCalibrator
-             
-    if chunk_metadata["isMC"]:
-        return factory["MC"][jet_type][chunk_metadata["year"]].build(
-            add_jec_variables(jets, rho, isMC=True), cache
-        )
-    else:
-        if chunk_metadata["era"] not in factory["Data"][jet_type][chunk_metadata["year"]]:
-            raise Exception(f"Factory for {jet_type} in {chunk_metadata['year']} and era {chunk_metadata['era']} not found. Check your jet calibration files.")
-
-        return factory["Data"][jet_type][chunk_metadata["year"]][chunk_metadata["era"]].build(
-            add_jec_variables(jets, rho, isMC=False), cache
-        )
 
 def met_correction_after_jec(events, METcoll, jets_pre_jec, jets_post_jec):
     '''This function rescale the MET vector by minus delta of the jets after JEC correction
@@ -451,11 +420,11 @@ def get_jersmear(_eval_dict, _ceval, _jer_sf_tag, _syst="nom"):
 
 
 def jet_correction_corrlib(
-    params,
+    calib_params,
+    variations,
     events,
     jet_type,
     chunk_metadata,
-    level="L1L2L3Res",
     jet_coll_name="Jet",
     apply_jer=True,
     jec_syst=True,
@@ -463,19 +432,19 @@ def jet_correction_corrlib(
     isMC = chunk_metadata["isMC"]
     year = chunk_metadata["year"]
     era = chunk_metadata["era"]
-    jec_clib_dict = params["jets_calibration_clib"]
-    variations = params.jets_calibration.variations[year][jet_type]
 
-    json_path = jec_clib_dict[year][jet_type]["json_path"]
+    json_path = calib_params["json_path"]
     jer_tag = None
     if isMC:
-        jec_tag = jec_clib_dict[year][jet_type]['jec_mc'] 
-        jer_tag = jec_clib_dict[year][jet_type]['jer']
+        jec_tag = calib_params['jec_mc'] 
+        jer_tag = calib_params['jer']
     else:
-        if type(jec_clib_dict[year][jet_type]['jec_data'])==str:
-            jec_tag = jec_clib_dict[year][jet_type]['jec_data']
+        if type(calib_params['jec_data'])==str:
+            jec_tag = calib_params['jec_data']
         else:
-            jec_tag = jec_clib_dict[year][jet_type]['jec_data'][chunk_metadata["era"]]
+            jec_tag = calib_params['jec_data'][chunk_metadata["era"]]
+    
+    level = calib_params['level']  # e.g. 'L1L2L3' for MC, 'L1L2L3Residual' for data
 
     # no jer and variations applied on data
     apply_jes = True
@@ -537,7 +506,7 @@ def jet_correction_corrlib(
         jets["mass"] = sf_value * jets["mass_raw"]
 
     # jer central and systematics
-    if apply_jer or jer_syst:
+    if apply_jer and jer_syst:
         # learned from: https://github.com/cms-nanoAOD/correctionlib/issues/130
 
         jer_ptres_tag = f"{jer_tag}_PtResolution_{jet_type}"
@@ -596,7 +565,7 @@ def jet_correction_corrlib(
         jes_strings = [s[4:] for s in variations if s.startswith("JES")]
         for jes_vari in jes_strings:
             # If Regrouped variations are wanted, the Regrouped_ name must be used in the config
-            tag_jec_syst = "_".join([jec_tag, "Regrouped",jes_vari, jet_type])
+            tag_jec_syst = "_".join([jec_tag, jes_vari, jet_type])
             try:
                 sf = cset[tag_jec_syst]
             except:

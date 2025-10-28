@@ -175,7 +175,7 @@ def test_shape_variation_default_sequence(base_path: Path, monkeypatch: pytest.M
     # Check the output
     params = config.parameters
     h = output["variables"]['nJetGood']['TTTo2L2Nu__ele']['TTTo2L2Nu_2018']
-    for variation in params.jets_calibration.variations["2018"]["AK4PFchs"]:
+    for variation in params.jets_calibration.variations["AK4PFchs"]["2018"]:
         assert f"AK4PFchs_{variation}Up" in h.axes["variation"]
         assert f"AK4PFchs_{variation}Down" in h.axes["variation"]
 
@@ -217,7 +217,7 @@ def test_shape_variation_default_sequence_comparison_with_legacy_run2(base_path:
        # Check the output
     h = output["variables"]['nJetGood']['TTTo2L2Nu']['TTTo2L2Nu_2018']
 
-    for variation in params.jets_calibration.variations["2018"]["AK4PFchs"]:
+    for variation in params.jets_calibration.variations["AK4PFchs"]["2018"]:
         assert f"AK4PFchs_{variation}Up" in h.axes["variation"]
         assert f"AK4PFchs_{variation}Down" in h.axes["variation"]
 
