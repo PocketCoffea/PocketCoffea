@@ -24,8 +24,6 @@ def base_path() -> Path:
 
 def test_shape_variations_JEC_run2(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_shape_variations" )
-    if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):
-        os.remove("jets_calibrator_JES_JER_Syst.pkl.gz")
     outputdir = tmp_path_factory.mktemp("test_shape_variations")
     config = load_config("config_JEC_Run2.py", save_config=True, outputdir=outputdir)
     assert isinstance(config, Configurator)
