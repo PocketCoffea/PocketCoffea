@@ -70,6 +70,8 @@ def test_subsamples(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_f
 def test_subsamples_and_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_subsamples" )
     outputdir = tmp_path_factory.mktemp("test_subsamples_and_weights")
+    if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):
+        os.remove("jets_calibrator_JES_JER_Syst.pkl.gz")
     config = load_config("config_weights_and_subsamples.py", save_config=True, outputdir=outputdir)
     assert isinstance(config, Configurator)
 
@@ -123,6 +125,8 @@ def test_subsamples_and_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch
 
 def test_subsamples_and_weights_splitbysubsamples(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_subsamples" )
+    if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):
+        os.remove("jets_calibrator_JES_JER_Syst.pkl.gz")
     outputdir = tmp_path_factory.mktemp("test_categorization_subsamples_and_weights_splitbysubsamples")
     config = load_config("config_weights_and_subsamples_splitbysubsamples.py", save_config=True, outputdir=outputdir)
     assert isinstance(config, Configurator)
