@@ -7,6 +7,7 @@ from pocket_coffea.parameters.cuts import passthrough
 from pocket_coffea.parameters.histograms import *
 from pocket_coffea.lib.categorization import StandardSelection, CartesianSelection, MultiCut
 from pocket_coffea.lib.columns_manager import ColOut
+from pocket_coffea.lib.calibrators.common import default_calibrators_sequence 
 
 import workflow
 from workflow import BasicProcessor
@@ -32,11 +33,15 @@ defaults.register_configuration_dir("config_dir", localdir+"/params")
 parameters = defaults.merge_parameters_from_files(default_parameters,
                                                     f"{localdir}/params/object_preselection.yaml",
                                                     f"{localdir}/params/triggers.yaml",
-                                                    f"{localdir}/params/jets_calibration_noJER.yaml",
                                                    update=True)
 
 # Disable pt sorting
+
+parameters.jets_calibration.variations = {"AK4PFchs" : {"2018" : ["JES_Total"]}}
+parameters.jets_calibration.collection["2018"] = {"AK4PFchs": "Jet"}
 parameters.jets_calibration.sort_by_pt["2018"].AK4PFchs = False
+parameters.jets_calibration.apply_jer_MC["2018"].AK4PFchs = False
+
 
 #Creating custom weight
 cfg = Configurator(
@@ -60,6 +65,7 @@ cfg = Configurator(
     },
 
     workflow = BasicProcessor,
+    workflow_options={"debug_calibrators": True},
 
     skim = [get_nPVgood(1), eventFlags, goldenJson,
             get_HLTsel(primaryDatasets=["SingleMuon", "SingleEle"])], 
@@ -87,6 +93,7 @@ cfg = Configurator(
     },
     # Passing a list of WeightWrapper objects
     weights_classes = common_weights,
+    calibrators = default_calibrators_sequence,
 
     variations = {
         "weights": {
@@ -104,6 +111,11 @@ cfg = Configurator(
             }
         
         },
+        "shape": {
+            "common": {
+                "inclusive": [ "jet_calibration"],
+            },
+        }
     },
 
     variables = {

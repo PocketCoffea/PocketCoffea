@@ -39,7 +39,7 @@ def test_subsamples(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_f
     run_options = defaults.get_default_run_options()["general"]
     run_options["limit-files"] = 1
     run_options["limit-chunks"] = 1
-    run_options["chunksize"] = 500
+    run_options["chunksize"] = 300
     config.filter_dataset(run_options["limit-files"])
 
     executor_factory = executors_lib.get_executor_factory("iterative",

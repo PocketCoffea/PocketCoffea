@@ -503,7 +503,7 @@ def jet_correction_corrlib(
         jets["mass"] = sf_value * jets["mass_raw"]
 
     # jer central and systematics
-    if apply_jer and jer_syst:
+    if apply_jer or jer_syst:
         # learned from: https://github.com/cms-nanoAOD/correctionlib/issues/130
 
         jer_ptres_tag = f"{jer_tag}_PtResolution_{jet_type}"

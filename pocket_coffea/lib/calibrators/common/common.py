@@ -83,7 +83,6 @@ class JetsCalibrator(Calibrator):
                 jec_syst=self.do_variations,
                 apply_jer=self.jet_calib_param.apply_jer_MC[self.year][jet_type] if self.isMC else False,
             )
-            
             # Add to the list of the types calibrated
             self.jets_calibrated_types.append(jet_type)
 

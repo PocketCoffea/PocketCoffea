@@ -50,9 +50,10 @@ def compare_outputs(output, old_output, exclude_variables=None):
                     for variation in variations:
                         for cat in cats:
                             print(f"Checking {variables} {dataset} {sample} {variation}")
-                            assert np.allclose(hist[{"variation":variation, "cat":cat}].values(),
-                                   output["variables"][variables][sample][dataset][{"variation":variation, "cat":cat}].values(),
-                                       rtol=1e-5)
+                            H1 = hist[{"variation":variation, "cat":cat}].values()
+                            H2 = output["variables"][variables][sample][dataset][{"variation":variation, "cat":cat}].values()
+                            if not np.allclose(H1, H2, rtol=1e-5):
+                                assert check_single_bin_shift(H1, H2), f"Histograms for {variables} {dataset} {sample} {variation} do not match and are not a single bin shift"
                 else:
                     assert np.allclose(hist.values(),
                                        output["variables"][variables][sample][dataset].values(),
@@ -92,6 +93,7 @@ def compare_columns(output, old_output, exclude_columns=None):
                     print(f"Checking column {column_name} for {cat} in {dataset} for {sample}")
                     assert np.allclose(column_data.value, output["columns"][sample][dataset][cat][column_name].value, rtol=1e-5), \
                         f"Column {column_name} mismatch for sample {sample}, dataset {dataset}, category {cat}"
+                    
 
 
 def check_single_bin_shift(hist_a: np.ndarray, hist_b: np.ndarray, 

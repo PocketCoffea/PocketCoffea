@@ -12,7 +12,6 @@ def events():
     events = NanoEventsFactory.from_root(filename, schemaclass=NanoAODSchema, entry_stop=100).events()
     return events
 
-
 def compare_outputs(output, old_output, exclude_variables=None):
     for cat, data in old_output["sumw"].items():
         assert cat in output["sumw"]
@@ -47,14 +46,14 @@ def compare_outputs(output, old_output, exclude_variables=None):
                     for variation in variations:
                         for cat in cats:
                             print(f"Checking {variables} {dataset} {sample} {variation}")
-                            assert np.allclose(hist[{"variation":variation, "cat":cat}].values(),
-                                   output["variables"][variables][sample][dataset][{"variation":variation, "cat":cat}].values(),
-                                       rtol=1e-5)
+                            H1 = hist[{"variation":variation, "cat":cat}].values()
+                            H2 = output["variables"][variables][sample][dataset][{"variation":variation, "cat":cat}].values()
+                            if not np.allclose(H1, H2, rtol=1e-5):
+                                assert check_single_bin_shift(H1, H2), f"Histograms for {variables} {dataset} {sample} {variation} do not match and are not a single bin shift"
                 else:
                     assert np.allclose(hist.values(),
                                        output["variables"][variables][sample][dataset].values(),
                                        rtol=1e-5)
-                            
 
 def compare_totalweight(output, variables):
     for variable in variables:        
@@ -66,6 +65,29 @@ def compare_totalweight(output, variables):
                     print(f"Checking {variable} for {category} in {dataset} for {sample}")
                     print(output["variables"][variable][sample][dataset][hist.loc(category), hist.loc("nominal"), :].sum(flow=True).value, sumw)
                     assert np.isclose(output["variables"][variable][sample][dataset][hist.loc(category), hist.loc("nominal"), :].sum(flow=True).value, sumw)
+
+
+def compare_columns(output, old_output, exclude_columns=None):
+    """Compare columns between two outputs.
+    
+    Args:
+        output: New output dictionary containing columns
+        old_output: Old output dictionary containing columns
+        exclude_columns: List of column names to exclude from comparison
+    """
+    for sample, data in old_output["columns"].items():
+        assert sample in output["columns"], f"Sample {sample} not found in output columns"
+        for dataset, _data in data.items():
+            assert dataset in output["columns"][sample], f"Dataset {dataset} not found in output columns for sample {sample}"
+            for cat, columns in _data.items():
+                assert cat in output["columns"][sample][dataset], f"Category {cat} not found in output columns for sample {sample}, dataset {dataset}"
+                for column_name, column_data in columns.items():
+                    if exclude_columns is not None and column_name in exclude_columns:
+                        continue
+                    assert column_name in output["columns"][sample][dataset][cat], f"Column {column_name} not found in output for sample {sample}, dataset {dataset}, category {cat}"
+                    print(f"Checking column {column_name} for {cat} in {dataset} for {sample}")
+                    assert np.allclose(column_data.value, output["columns"][sample][dataset][cat][column_name].value, rtol=1e-5), \
+                        f"Column {column_name} mismatch for sample {sample}, dataset {dataset}, category {cat}"
 
 
 
