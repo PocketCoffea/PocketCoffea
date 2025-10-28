@@ -6,6 +6,7 @@ from pocket_coffea.lib.cut_functions import get_nObj_min, get_nObj_eq, get_HLTse
 from pocket_coffea.parameters.cuts import passthrough
 from pocket_coffea.parameters.histograms import *
 from pocket_coffea.lib.categorization import StandardSelection, CartesianSelection, MultiCut
+from pocket_coffea.lib.columns_manager import ColOut
 
 import workflow
 from workflow import BasicProcessor
@@ -31,6 +32,7 @@ defaults.register_configuration_dir("config_dir", localdir+"/params")
 parameters = defaults.merge_parameters_from_files(default_parameters,
                                                     f"{localdir}/params/object_preselection.yaml",
                                                     f"{localdir}/params/triggers.yaml",
+                                                    f"{localdir}/params/jets_calibration_noJER.yaml",
                                                    update=True)
 
 # Disable pt sorting
@@ -118,7 +120,6 @@ cfg = Configurator(
                 ColOut(collection="PuppiMET", columns=["pt", "phi"]),
                 ColOut(collection="Electron", columns=["pt", "eta"]),
             ]
-
         }
     },
 )
