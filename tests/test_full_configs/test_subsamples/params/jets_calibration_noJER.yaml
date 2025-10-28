@@ -1,0 +1,5 @@
+jets_calibration:
+  jet_types:
+      MC: 
+        AK4PFchs:   "${default_jets_calibration.factory_configuration_MC.AK4PFchs.JES_noJER}" 
+        AK4PFPuppi: "${default_jets_calibration.factory_configuration_MC.AK4PFPuppi.JES_noJER}" 

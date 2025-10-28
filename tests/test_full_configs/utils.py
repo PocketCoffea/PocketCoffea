@@ -68,3 +68,26 @@ def compare_totalweight(output, variables):
                     print(output["variables"][variable][sample][dataset][hist.loc(category), hist.loc("nominal"), :].sum(flow=True).value, sumw)
                     assert np.isclose(output["variables"][variable][sample][dataset][hist.loc(category), hist.loc("nominal"), :].sum(flow=True).value, sumw)
 
+
+def compare_columns(output, old_output, exclude_columns=None):
+    """Compare columns between two outputs.
+    
+    Args:
+        output: New output dictionary containing columns
+        old_output: Old output dictionary containing columns
+        exclude_columns: List of column names to exclude from comparison
+    """
+    for sample, data in old_output["columns"].items():
+        assert sample in output["columns"], f"Sample {sample} not found in output columns"
+        for dataset, _data in data.items():
+            assert dataset in output["columns"][sample], f"Dataset {dataset} not found in output columns for sample {sample}"
+            for cat, columns in _data.items():
+                assert cat in output["columns"][sample][dataset], f"Category {cat} not found in output columns for sample {sample}, dataset {dataset}"
+                for column_name, column_data in columns.items():
+                    if exclude_columns is not None and column_name in exclude_columns:
+                        continue
+                    assert column_name in output["columns"][sample][dataset][cat], f"Column {column_name} not found in output for sample {sample}, dataset {dataset}, category {cat}"
+                    print(f"Checking column {column_name} for {cat} in {dataset} for {sample}")
+                    assert np.allclose(column_data.value, output["columns"][sample][dataset][cat][column_name].value, rtol=1e-5), \
+                        f"Column {column_name} mismatch for sample {sample}, dataset {dataset}, category {cat}"
+
