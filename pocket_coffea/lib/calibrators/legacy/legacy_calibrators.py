@@ -2,14 +2,7 @@ from ..calibrator import Calibrator
 import numpy as np
 import awkward as ak
 import cachetools
-from pocket_coffea.lib.jets import jet_correction, met_correction_after_jec, load_jet_factory, jet_correction_corrlib
-from pocket_coffea.lib.leptons import (
-    get_ele_scaled, 
-    get_ele_smeared, 
-    get_ele_scaled_etdependent, 
-    get_ele_smeared_etdependent
-    )
-from pocket_coffea.utils.utils import get_random_seed
+from pocket_coffea.lib.calibrators.legacy.legacy_jet_correction import jet_correction
 
 
 class JetsCalibrator(Calibrator):

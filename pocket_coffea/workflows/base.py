@@ -17,6 +17,7 @@ from coffea.analysis_tools import PackedSelection
 from ..lib.weights.weights_manager import WeightsManager
 from ..lib.columns_manager import ColumnsManager
 from ..lib.hist_manager import HistManager
+from ..lib.jets import load_jet_factory
 from ..lib.calibrators.calibrators_manager import CalibratorsManager
 from ..utils.skim import uproot_writeable, copy_file
 from ..utils.utils import dump_ak_array
@@ -60,7 +61,10 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Weights configuration
         self.weights_config_allsamples = self.cfg.weights_config
         self.weights_classes = self.cfg.weights_classes
-
+        
+        # Load the jet calibration factory once for all chunks
+        self.jmefactory = load_jet_factory(self.params)
+        
         # Custom axis for the histograms
         self.custom_axes = []
         self.custom_histogram_fields = {}
@@ -631,7 +635,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self.events,
             self.params,
             self._metadata,
-            requested_calibrator_variations=self.cfg.available_shape_variations[self._sample]
+            requested_calibrator_variations=self.cfg.available_shape_variations[self._sample],
+            # Additional arg to pass the jmefactory to the jet calibrator --> hacky
+            jme_factory=self.jmefactory,
         )
 
     def loop_over_variations(self):

@@ -1,4 +1,5 @@
 import gzip
+import cloudpickle
 import awkward as ak
 import numpy as np
 import correctionlib
@@ -16,6 +17,16 @@ def add_jec_variables(jets, event_rho, isMC=True):
     return jets
 
 
+def load_jet_factory(params):
+    #read the factory file from params and load it
+    with gzip.open(params.jets_calibration.factory_file) as fin:
+        try:
+            return cloudpickle.load(fin)
+        except Exception as e:
+            print(f"Error loading the jet factory file: {params.jets_calibration.factory_file} --> Please remove the file and rerun the code")
+            raise Exception(f"Error loading the jet factory file: {params.jets_calibration.factory_file} --> Please remove the file and rerun the code")
+        
+        
 def met_correction_after_jec(events, METcoll, jets_pre_jec, jets_post_jec):
     '''This function rescale the MET vector by minus delta of the jets after JEC correction
     and before the jEC correction.

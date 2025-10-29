@@ -20,6 +20,7 @@ from ..lib.cut_definition import Cut
 from ..lib.categorization import StandardSelection, CartesianSelection
 from ..parameters.cuts import passthrough
 from ..lib.hist_manager import Axis, HistConf
+from ..utils import build_jets_calibrator
 
 from pprint import PrettyPrinter
 
@@ -283,7 +284,11 @@ class Configurator:
         self.load_columns_config(self.columns_cfg)
 
         self.perform_checks()
-
+        
+        # Alway run the jet calibration builder
+        if not os.path.exists(self.parameters.jets_calibration.factory_file):
+            build_jets_calibrator.build(self.parameters.jets_calibration)
+            
         # Load the workflow as the last thing
         self.load_workflow()
 
