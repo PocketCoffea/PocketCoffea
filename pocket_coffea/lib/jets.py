@@ -583,3 +583,187 @@ def jet_correction_corrlib(
             jets[f"mass_JES_{jes_vari}_down"] = jets.mass * corr_down_variation
     jets_jagged = ak.unflatten(jets, counts)
     return jets_jagged
+
+
+
+
+def msoftdrop_correction(
+    calib_params,
+    variations,
+    events,
+    subjet_type,
+    jet_coll_name,
+    chunk_metadata,
+    apply_jer=True,
+    jec_syst=True,
+):
+    assert jet_coll_name in ["AK8PFPuppi"], "The softdrop mass correction can be applied only on large-radius jets."
+    assert subjet_type in ["AK4PFPuppi"], "The subjets within the AK8 jet must be corrected with AK4 jet corrections."
+    isMC = chunk_metadata["isMC"]
+    year = chunk_metadata["year"]
+    era = chunk_metadata["era"]
+
+    json_path = calib_params["json_path"]
+    jer_tag = None
+    if isMC:
+        jec_tag = calib_params['jec_mc'] 
+        jer_tag = calib_params['jer']
+    else:
+        if type(calib_params['jec_data'])==str:
+            jec_tag = calib_params['jec_data']
+        else:
+            jec_tag = calib_params['jec_data'][chunk_metadata["era"]]
+    
+    level = calib_params['level']  # e.g. 'L1L2L3' for MC, 'L1L2L3Residual' for data
+
+    # no jer and variations applied on data
+    apply_jes = True
+    jes_syst = jer_syst = False
+    if isMC:
+        if jec_syst:
+            jes_syst = True
+            if "JER" in variations:
+                jer_syst = True
+    else:
+        apply_jer = False
+
+    tag_jec = "_".join([jec_tag, level, subjet_type])
+
+    # get the correction sets
+    cset = correctionlib.CorrectionSet.from_file(json_path)
+
+    # prepare inputs
+    # no need of copies
+    jets_jagged = events[jet_coll_name]
+    counts = ak.num(jets_jagged)
+
+    # flatten jet collection
+    jets = ak.flatten(jets_jagged)
+
+    # get subjets
+    subjets_jagged = jets.subjets
+    counts_subjet = ak.num(subjets_jagged)
+
+    if ("event_id" not in subjets_jagged.fields) and (apply_jer or jer_syst):
+        subjets_jagged["event_id"] = ak.ones_like(subjets_jagged.pt) * events.event
+    if ("run_nr" not in subjets_jagged.fields):
+        subjets_jagged["run_nr"] = ak.ones_like(subjets_jagged.pt) * events.run
+    if year in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
+        rho = events.fixedGridRhoFastjetAll
+    else:
+        rho = events.Rho.fixedGridRhoFastjetAll
+    subjets_jagged = add_jec_variables(subjets_jagged, rho, isMC)
+
+    # flatten subjet collection
+    subjets = ak.flatten(subjets_jagged)
+
+    # evaluate dictionary
+    eval_dict = {
+        "JetPt": subjets.pt_raw,
+        "JetEta": subjets.eta,
+        "JetPhi": subjets.phi,
+        "Rho": subjets.event_rho,
+        "JetA": subjets.area,
+        "run": subjets.run_nr
+    }
+
+    # jes central
+    if apply_jes:
+        # get the correction
+        if tag_jec in list(cset.compound.keys()):
+            sf = cset.compound[tag_jec]
+        elif tag_jec in list(cset.keys()):
+            sf = cset[tag_jec]
+        else:
+            print(tag_jec, list(cset.keys()), list(cset.compound.keys()))
+            raise Exception(f"[No JEC correction: {tag_jec} - Year: {year} - Era: {era} - Level: {level}")
+        inputs = [eval_dict[input.name] for input in sf.inputs]
+        sf_value = sf.evaluate(*inputs)
+        # update the nominal pt and mass
+        subjets["pt"] = sf_value * subjets["pt_raw"]
+        subjets["mass"] = sf_value * subjets["mass_raw"]
+
+    # jer central and systematics
+    if apply_jer or jer_syst:
+        # learned from: https://github.com/cms-nanoAOD/correctionlib/issues/130
+
+        jer_ptres_tag = f"{jer_tag}_PtResolution_{subjet_type}"
+        jer_sf_tag = f"{jer_tag}_ScaleFactor_{subjet_type}"
+
+        ceval_jer = get_jer_correction_set(json_path, jer_ptres_tag, jer_sf_tag)
+        # update evaluate dictionary
+        eval_dict.update(
+            {
+                "JetPt": subjets.pt,
+                "GenPt": subjets.pt_gen,
+                "EventID": subjets.event_id,
+            }
+        )
+        # get jer pt resolution
+        inputs_jer_ptres = [
+            eval_dict[input.name] for input in ceval_jer[jer_ptres_tag].inputs
+        ]
+        jer_ptres = ceval_jer[jer_ptres_tag].evaluate(*inputs_jer_ptres)
+        # update evaluate dictionary
+        eval_dict.update({"JER": jer_ptres})
+        # adjust pt gen
+        eval_dict.update(
+            {
+                "GenPt": np.where(
+                    np.abs(eval_dict["JetPt"] - eval_dict["GenPt"])
+                    < 3 * eval_dict["JetPt"] * eval_dict["JER"],
+                    eval_dict["GenPt"],
+                    -1.0,
+                ),
+            }
+        )
+        if apply_jer:
+            eval_dict, jersmear = get_jersmear(eval_dict, ceval_jer, jer_sf_tag, "nom")
+            subjets["pt_jer"] = subjets.pt * jersmear
+            subjets["mass_jer"] = subjets.mass * jersmear
+        if jer_syst:
+            # jer up
+            eval_dict, jersmear = get_jersmear(eval_dict, ceval_jer, jer_sf_tag, "up")
+            subjets["pt_JER_up"] = subjets.pt * jersmear
+            subjets["mass_JER_up"] = subjets.mass * jersmear
+            # jer down
+            eval_dict, jersmear = get_jersmear(eval_dict, ceval_jer, jer_sf_tag, "down")
+            subjets["pt_JER_down"] = subjets.pt * jersmear
+            subjets["mass_JER_down"] = subjets.mass * jersmear
+        if apply_jer:
+            # to avoid the sf: jer*jer_up or jer*jer_down, update the jer pt/mass after calculation of the jer up/down
+            subjets["pt"] = subjets["pt_jer"]
+            subjets["mass"] = subjets["mass_jer"]
+
+    # jes systematics
+    if jes_syst:
+        # update evaluate dictionary
+        eval_dict.update({"JetPt": subjets.pt})
+        # loop over all JES variations
+        jes_strings = [s[4:] for s in variations if s.startswith("JES")]
+        for jes_vari in jes_strings:
+            # If Regrouped variations are wanted, the Regrouped_ name must be used in the config
+            tag_jec_syst = "_".join([jec_tag, jes_vari, subjet_type])
+            try:
+                sf = cset[tag_jec_syst]
+            except:
+                raise Exception(
+                    f"[ jerc_jet ] No JEC systematic: {tag_jec_syst} - Year: {year} - Era: {era}"
+                )
+            # systematics
+            inputs = [eval_dict[input.name] for input in sf.inputs]
+            sf_delta = sf.evaluate(*inputs)
+
+            # divide by correction since it is already applied before
+            corr_up_variation = 1 + sf_delta
+            corr_down_variation = 1 - sf_delta
+
+            subjets[f"pt_JES_{jes_vari}_up"] = subjets.pt * corr_up_variation
+            subjets[f"pt_JES_{jes_vari}_down"] = subjets.pt * corr_down_variation
+            subjets[f"mass_JES_{jes_vari}_up"] = subjets.mass * corr_up_variation
+            subjets[f"mass_JES_{jes_vari}_down"] = subjets.mass * corr_down_variation
+    subjets_jagged = ak.unflatten(subjets, counts_subjet)
+    # Update softdrop mass with invariant mass sum of calibrated subjets
+    jets["msoftdrop"] = ak.sum(subjets_jagged, axis=-1).mass
+    jets_jagged = ak.unflatten(jets, counts)
+    return jets_jagged

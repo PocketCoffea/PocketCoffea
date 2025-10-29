@@ -577,6 +577,65 @@ jets_calibration:
       AK4PFPuppiPNetRegression: True
       AK4PFPuppiPNetRegressionPlusNeutrino: True
 
+  apply_jec_msoftdrop_MC:
+    2016_PreVFP: 
+      AK8PFPuppi: False
+    2016_PostVFP: 
+      AK8PFPuppi: False
+    "2017": 
+      AK8PFPuppi: False
+    "2018": 
+      AK8PFPuppi: False
+    2022_preEE:
+      AK8PFPuppi: True
+    2022_postEE: 
+      AK8PFPuppi: True
+    2023_preBPix: 
+      AK8PFPuppi: True
+    2023_postBPix: 
+      AK8PFPuppi: True
+    "2024": 
+      AK8PFPuppi: True
+
+  apply_jec_msoftdrop_Data:
+    2016_PreVFP: 
+      AK8PFPuppi: False
+    2016_PostVFP: 
+      AK8PFPuppi: False
+    "2017": 
+      AK8PFPuppi: False
+    "2018": 
+      AK8PFPuppi: False
+    2022_preEE:
+      AK8PFPuppi: True
+    2022_postEE: 
+      AK8PFPuppi: True
+    2023_preBPix: 
+      AK8PFPuppi: True
+    2023_postBPix: 
+      AK8PFPuppi: True
+    "2024": 
+      AK8PFPuppi: True
+
+  apply_jer_msoftdrop_MC:
+    2016_PreVFP: 
+      AK8PFPuppi: False
+    2016_PostVFP: 
+      AK8PFPuppi: False
+    "2017": 
+      AK8PFPuppi: False
+    "2018": 
+      AK8PFPuppi: False
+    2022_preEE:
+      AK8PFPuppi: True
+    2022_postEE: 
+      AK8PFPuppi: True
+    2023_preBPix: 
+      AK8PFPuppi: True
+    2023_postBPix: 
+      AK8PFPuppi: True
+    "2024": 
+      AK8PFPuppi: True
 
   rescale_MET_config:
     2016_PreVFP:
