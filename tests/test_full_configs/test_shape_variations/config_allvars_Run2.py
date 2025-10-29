@@ -25,11 +25,14 @@ defaults.register_configuration_dir("config_dir", localdir+"/params")
 parameters = defaults.merge_parameters_from_files(default_parameters,
                                                     f"{localdir}/params/object_preselection_run2.yaml",
                                                     f"{localdir}/params/triggers.yaml",
+                                                    # f"{localdir}/params/jets_calibration_noJER.yaml",
                                                    update=True)
+                                                   
+parameters.jets_calibration.sort_by_pt["2018"].AK4PFchs = False
+parameters.jets_calibration.apply_jer_MC["2018"].AK4PFchs = False
+parameters.jets_calibration.sort_by_pt["2018"].AK8PFPuppi = False
+parameters.jets_calibration.apply_jer_MC["2018"].AK8PFPuppi = False
 
-#Creating custom weight
-from pocket_coffea.lib.weights.weights import WeightLambda
-import numpy as np
 
 
 cfg = Configurator(

@@ -3,8 +3,48 @@ import numpy as np
 import correctionlib
 
 
-def get_ele_scaled(ele, jsonFileName, correction_name, isMC, runNr):
-    evaluator = correctionlib.CorrectionSet.from_file(jsonFileName)
+def get_ele_scaled_etdependent(ele, json_scale, 
+                               correction_name, syst_correction_name,
+                               isMC, runNr, year):
+    '''
+    From example: https://gitlab.cern.ch/cms-analysis-metadata/EGM/examples/-/blob/latest/egmScaleAndSmearingExample.py
+    '''
+    evaluator = correctionlib.CorrectionSet.from_file(json_scale)
+    evaluator_scale = evaluator.compound[correction_name]
+    smear_and_syst_evaluator = evaluator[syst_correction_name]
+    ele_gain_flat = ak.flatten(ele["seedGain"])
+    ele_eta_flat = ak.flatten(ele["etaSC"]) # eta of supercluster
+    ele_r9_flat = ak.flatten(ele["r9"])
+    ele_pt_flat = ak.flatten(ele["pt"])
+    ele_counts = ak.num(ele["pt"])
+    ele_runNr_flat = np.repeat(runNr, ele_counts)
+    if not isMC: 
+        # for data return nominal
+        scale = evaluator_scale.evaluate(
+                "scale", 
+                ele_runNr_flat, 
+                ele_eta_flat,
+                ele_r9_flat,
+                ele_pt_flat, 
+                ele_gain_flat
+        )
+        ele_pt_corrected = ak.unflatten(scale * ele_pt_flat, counts=ele_counts)
+        return {"nominal": ele_pt_corrected}
+    else:
+        # MC: return shifts
+        scale_MC_unc = smear_and_syst_evaluator.evaluate(
+            "escale", 
+            ele_pt_flat, 
+            ele_r9_flat, 
+            ele_eta_flat
+        )
+        ele_pt_scale_up = ak.unflatten((1+scale_MC_unc) * ele_pt_flat, counts=ele_counts)
+        ele_pt_scale_down = ak.unflatten((1-scale_MC_unc) * ele_pt_flat, counts=ele_counts)
+        return {"up": ele_pt_scale_up, "down": ele_pt_scale_down}
+    
+
+def get_ele_scaled(ele, json_scale, correction_name, isMC, runNr):
+    evaluator = correctionlib.CorrectionSet.from_file(json_scale)
     evaluator_scale = evaluator[correction_name]
     ele_gain_flat = ak.flatten(ele["seedGain"])
     ele_eta_flat = ak.flatten(ele["etaSC"])
@@ -12,6 +52,7 @@ def get_ele_scaled(ele, jsonFileName, correction_name, isMC, runNr):
     ele_pt_flat = ak.flatten(ele["pt"])
     ele_counts = ak.num(ele["pt"])
     ele_runNr_flat = np.repeat(runNr, ele_counts)
+
     if not isMC: # for data return nominal
         scale = evaluator_scale.evaluate(
             "total_correction", 
@@ -35,6 +76,56 @@ def get_ele_scaled(ele, jsonFileName, correction_name, isMC, runNr):
         ele_pt_scale_up = ak.unflatten((1+scale_MC_unc) * ele_pt_flat, counts=ele_counts)
         ele_pt_scale_down = ak.unflatten((1-scale_MC_unc) * ele_pt_flat, counts=ele_counts)
         return {"up": ele_pt_scale_up, "down": ele_pt_scale_down}
+    
+
+
+def get_ele_smeared_etdependent(mc_ele, jsonFileName, correction_name, isMC, only_nominal=True, seed=125):
+    '''
+    From example: https://gitlab.cern.ch/cms-analysis-metadata/EGM/examples/-/blob/latest/egmScaleAndSmearingExample.py
+    '''
+    if not isMC:
+        return
+    evaluator = correctionlib.CorrectionSet.from_file(jsonFileName)
+    evaluator_smearing = evaluator[correction_name]
+    ele_eta_flat = ak.flatten(mc_ele["etaSC"]) # eta of supercluster
+    ele_r9_flat = ak.flatten(mc_ele["r9"])
+    ele_pt_flat = ak.flatten(mc_ele["pt"])
+    ele_counts = ak.num(mc_ele["pt"])
+    rng = np.random.default_rng(seed=seed)
+    smear = evaluator_smearing.evaluate(
+        "smear",
+        ele_pt_flat,
+        ele_r9_flat,
+        ele_eta_flat,
+    )
+    rnd_samples = rng.normal(loc=0., scale=1., size=len(ele_pt_flat))
+    smearing = 1 + smear * rnd_samples
+    mc_ele_pt_corrected_nom = ak.unflatten(smearing * ele_pt_flat, counts=ele_counts)
+
+    if only_nominal:
+        return {"nominal": mc_ele_pt_corrected_nom}
+    else:
+        smear_up = evaluator_smearing.evaluate(
+            "smear_up", 
+            ele_pt_flat,
+            ele_r9_flat,
+            ele_eta_flat,
+        )
+        smear_down = evaluator_smearing.evaluate(
+            "smear_down", 
+            ele_pt_flat,
+            ele_r9_flat,
+            ele_eta_flat,
+        )
+        # using the same random number for up and down variations
+        smearing_up = 1 + smear_up * rnd_samples
+        smearing_down = 1 + smear_down * rnd_samples
+        mc_ele_pt_up = ak.unflatten(smearing_up * ele_pt_flat, counts=ele_counts)
+        mc_ele_pt_down = ak.unflatten(smearing_down * ele_pt_flat, counts=ele_counts)
+        return {"nominal": mc_ele_pt_corrected_nom,
+                "up": mc_ele_pt_up, 
+                "down": mc_ele_pt_down}
+
 
 def get_ele_smeared(mc_ele, jsonFileName,correction_name, isMC, only_nominal=True, seed=125):
     if not isMC:
@@ -69,7 +160,6 @@ def get_ele_smeared(mc_ele, jsonFileName,correction_name, isMC, only_nominal=Tru
         return {"nominal": mc_ele_pt_corrected_nom,
                 "up": mc_ele_pt_up, 
                 "down": mc_ele_pt_down}
-
 
 
 def lepton_selection(events, lepton_flavour, params):

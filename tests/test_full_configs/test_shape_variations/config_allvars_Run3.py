@@ -26,35 +26,30 @@ defaults.register_configuration_dir("config_dir", localdir+"/params")
 parameters = defaults.merge_parameters_from_files(default_parameters,
                                                     f"{localdir}/params/object_preselection_run3.yaml",
                                                     f"{localdir}/params/triggers.yaml",
+                                                    f"{localdir}/params/jets_calibration_noJER.yaml",
                                                    update=True)
 
 #Creating custom weight
-from pocket_coffea.lib.weights.weights import WeightLambda
-import numpy as np
-
-
-
 cfg = Configurator(
     parameters = parameters,
     datasets = {
         "jsons": ['datasets/datasets_cern.json'],
         "filter" : {
-            "samples": ["DATA_SingleEle"
+            "samples": ["DATA_SingleEle", "TTTo2L2Nu"
                         ],
             "samples_exclude" : [],
             "year": ['2023_postBPix']
         },
         "subsamples": {
-            "TTTo2L2Nu": {
-                "ele": [get_nObj_min(1, coll="ElectronGood"), get_nObj_eq(0, coll="MuonGood")],
-                "mu":  [get_nObj_eq(0, coll="ElectronGood"), get_nObj_min(1, coll="MuonGood")],
-            },
+            # "TTTo2L2Nu": {
+            #     "ele": [get_nObj_min(1, coll="ElectronGood"), get_nObj_eq(0, coll="MuonGood")],
+            #     "mu":  [get_nObj_eq(0, coll="ElectronGood"), get_nObj_min(1, coll="MuonGood")],
+            # },
             "DATA_SingleMuon": {
                 "clean": [get_HLTsel(primaryDatasets=["SingleEle"], invert=True)], # crosscleaning SingleELe trigger on SIngleMuon
             }
         }
     },
-
     workflow = BasicProcessor,
 
     skim = [get_nPVgood(1), eventFlags, goldenJson,
@@ -120,6 +115,7 @@ cfg = Configurator(
             "inclusive": [
                 ColOut(collection="Jet", columns=["pt"]),
                 ColOut(collection="PuppiMET", columns=["pt", "phi"]),
+                ColOut(collection="Electron", columns=["pt", "eta"]),
             ]
 
         }

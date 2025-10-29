@@ -27,600 +27,284 @@ default_jets_calibration:
     UnClusteredEnergyDeltaX: MetUnclustEnUpDeltaX
     UnClusteredEnergyDeltaY: MetUnclustEnUpDeltaY
 
-  factory_files_dir: ${default_params_dir:}/jec/
-
-  factory_configuration_MC:
-    AK4PFchs:
-      JES_JER_Syst:
-        2016_PreVFP:
-          - "${default_params_dir:}/jec/Summer19UL16APV_V7_MC_L1FastJet_AK4PFchs.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL16APV_V7_MC_L2Relative_AK4PFchs.jec.txt.gz"
-          - "${default_params_dir:}/jec/RegroupedV2_Summer19UL16APV_V7_MC_UncertaintySources_AK4PFchs.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL16APV_V7_MC_Uncertainty_AK4PFchs.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer20UL16_JRV3_MC_PtResolution_AK4PFchs.jr.txt.gz"
-          - "${default_params_dir:}/jec/Summer20UL16_JRV3_MC_SF_AK4PFchs.jersf.txt.gz"
-
-        2016_PostVFP:
-          - "${default_params_dir:}/jec/Summer19UL16_V7_MC_L1FastJet_AK4PFchs.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL16_V7_MC_L2Relative_AK4PFchs.jec.txt.gz"
-          - "${default_params_dir:}/jec/RegroupedV2_Summer19UL16_V7_MC_UncertaintySources_AK4PFchs.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL16_V7_MC_Uncertainty_AK4PFchs.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer20UL16_JRV3_MC_PtResolution_AK4PFchs.jr.txt.gz"
-          - "${default_params_dir:}/jec/Summer20UL16_JRV3_MC_SF_AK4PFchs.jersf.txt.gz"
-
-        "2017":
-          - "${default_params_dir:}/jec/Summer19UL17_V5_MC_L1FastJet_AK4PFchs.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL17_V5_MC_L2Relative_AK4PFchs.jec.txt.gz"
-          - "${default_params_dir:}/jec/RegroupedV2_Summer19UL17_V5_MC_UncertaintySources_AK4PFchs.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL17_V5_MC_Uncertainty_AK4PFchs.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL17_JRV3_MC_PtResolution_AK4PFchs.jr.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL17_JRV3_MC_SF_AK4PFchs.jersf.txt.gz"
-
-        "2018":
-          - "${default_params_dir:}/jec/Summer19UL18_V5_MC_L1FastJet_AK4PFchs.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL18_V5_MC_L2Relative_AK4PFchs.jec.txt.gz"
-          - "${default_params_dir:}/jec/RegroupedV2_Summer19UL18_V5_MC_UncertaintySources_AK4PFchs.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL18_V5_MC_Uncertainty_AK4PFchs.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL18_JRV2_MC_PtResolution_AK4PFchs.jr.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL18_JRV2_MC_SF_AK4PFchs.jersf.txt.gz"
-
-      ####################################################################################
-      JES_JER_noJESSyst:
-        2016_PreVFP:
-          - "${default_params_dir:}/jec/Summer19UL16APV_V7_MC_L1FastJet_AK4PFchs.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL16APV_V7_MC_L2Relative_AK4PFchs.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer20UL16_JRV3_MC_PtResolution_AK4PFchs.jr.txt.gz"
-          - "${default_params_dir:}/jec/Summer20UL16_JRV3_MC_SF_AK4PFchs.jersf.txt.gz"
-
-        2016_PostVFP:
-          - "${default_params_dir:}/jec/Summer19UL16_V7_MC_L1FastJet_AK4PFchs.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL16_V7_MC_L2Relative_AK4PFchs.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer20UL16_JRV3_MC_PtResolution_AK4PFchs.jr.txt.gz"
-          - "${default_params_dir:}/jec/Summer20UL16_JRV3_MC_SF_AK4PFchs.jersf.txt.gz"
-
-        "2017":
-          - "${default_params_dir:}/jec/Summer19UL17_V5_MC_L1FastJet_AK4PFchs.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL17_V5_MC_L2Relative_AK4PFchs.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL17_JRV3_MC_PtResolution_AK4PFchs.jr.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL17_JRV3_MC_SF_AK4PFchs.jersf.txt.gz"
-          
-        "2018":
-          - "${default_params_dir:}/jec/Summer19UL18_V5_MC_L1FastJet_AK4PFchs.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL18_V5_MC_L2Relative_AK4PFchs.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL18_JRV2_MC_PtResolution_AK4PFchs.jr.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL18_JRV2_MC_SF_AK4PFchs.jersf.txt.gz"
-
-
-      #################################################################################       
-      JES_noJER:
-        2016_PreVFP:
-          - "${default_params_dir:}/jec/Summer19UL16APV_V7_MC_L1FastJet_AK4PFchs.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL16APV_V7_MC_L2Relative_AK4PFchs.jec.txt.gz"
-          - "${default_params_dir:}/jec/RegroupedV2_Summer19UL16APV_V7_MC_UncertaintySources_AK4PFchs.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL16APV_V7_MC_Uncertainty_AK4PFchs.junc.txt.gz"
-
-        2016_PostVFP:
-          - "${default_params_dir:}/jec/Summer19UL16_V7_MC_L1FastJet_AK4PFchs.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL16_V7_MC_L2Relative_AK4PFchs.jec.txt.gz"
-          - "${default_params_dir:}/jec/RegroupedV2_Summer19UL16_V7_MC_UncertaintySources_AK4PFchs.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL16_V7_MC_Uncertainty_AK4PFchs.junc.txt.gz"
-
-        "2017":
-          - "${default_params_dir:}/jec/Summer19UL17_V5_MC_L1FastJet_AK4PFchs.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL17_V5_MC_L2Relative_AK4PFchs.jec.txt.gz"
-          - "${default_params_dir:}/jec/RegroupedV2_Summer19UL17_V5_MC_UncertaintySources_AK4PFchs.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL17_V5_MC_Uncertainty_AK4PFchs.junc.txt.gz"
-          
-        "2018":
-          - "${default_params_dir:}/jec/Summer19UL18_V5_MC_L1FastJet_AK4PFchs.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL18_V5_MC_L2Relative_AK4PFchs.jec.txt.gz"
-          - "${default_params_dir:}/jec/RegroupedV2_Summer19UL18_V5_MC_UncertaintySources_AK4PFchs.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL18_V5_MC_Uncertainty_AK4PFchs.junc.txt.gz"
-
-     
-
-    #===============================================================    
-    #===============================================================
-    # Ak8 jets
-    AK8PFPuppi:
-      JES_JER_Syst:
-        2016_PreVFP:
-          - "${default_params_dir:}/jec/Summer19UL16APV_V7_MC_L1FastJet_AK8PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL16APV_V7_MC_L2Relative_AK8PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL16APV_V7_MC_UncertaintySources_AK8PFPuppi.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL16APV_V7_MC_Uncertainty_AK8PFPuppi.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer20UL16_JRV3_MC_PtResolution_AK8PFPuppi.jr.txt.gz"
-          - "${default_params_dir:}/jec/Summer20UL16_JRV3_MC_SF_AK8PFPuppi.jersf.txt.gz"
-
-        2016_PostVFP:
-          - "${default_params_dir:}/jec/Summer19UL16_V7_MC_L1FastJet_AK8PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL16_V7_MC_L2Relative_AK8PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL16_V7_MC_UncertaintySources_AK8PFPuppi.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL16_V7_MC_Uncertainty_AK8PFPuppi.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer20UL16_JRV3_MC_PtResolution_AK8PFPuppi.jr.txt.gz"
-          - "${default_params_dir:}/jec/Summer20UL16_JRV3_MC_SF_AK8PFPuppi.jersf.txt.gz"
-
-        "2017":
-          - "${default_params_dir:}/jec/Summer19UL17_V5_MC_L1FastJet_AK8PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL17_V5_MC_L2Relative_AK8PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL17_V5_MC_UncertaintySources_AK8PFPuppi.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL17_V5_MC_Uncertainty_AK8PFPuppi.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL17_JRV3_MC_PtResolution_AK8PFPuppi.jr.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL17_JRV3_MC_SF_AK8PFPuppi.jersf.txt.gz"
-          
-        
-        "2018":
-          - "${default_params_dir:}/jec/Summer19UL18_V5_MC_L1FastJet_AK8PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL18_V5_MC_L2Relative_AK8PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL18_V5_MC_UncertaintySources_AK8PFPuppi.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL18_V5_MC_Uncertainty_AK8PFPuppi.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL18_JRV2_MC_PtResolution_AK8PFPuppi.jr.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL18_JRV2_MC_SF_AK8PFPuppi.jersf.txt.gz"
-
-      ####################################################################################
-      JES_JER_noJESSyst:
-        2016_PreVFP:
-          - "${default_params_dir:}/jec/Summer19UL16APV_V7_MC_L1FastJet_AK8PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL16APV_V7_MC_L2Relative_AK8PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer20UL16_JRV3_MC_PtResolution_AK8PFPuppi.jr.txt.gz"
-          - "${default_params_dir:}/jec/Summer20UL16_JRV3_MC_SF_AK8PFPuppi.jersf.txt.gz"
-
-        2016_PostVFP:
-          - "${default_params_dir:}/jec/Summer19UL16_V7_MC_L1FastJet_AK8PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL16_V7_MC_L2Relative_AK8PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer20UL16_JRV3_MC_PtResolution_AK8PFPuppi.jr.txt.gz"
-          - "${default_params_dir:}/jec/Summer20UL16_JRV3_MC_SF_AK8PFPuppi.jersf.txt.gz"
-
-        "2017":
-          - "${default_params_dir:}/jec/Summer19UL17_V5_MC_L1FastJet_AK8PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL17_V5_MC_L2Relative_AK8PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL17_JRV3_MC_PtResolution_AK8PFPuppi.jr.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL17_JRV3_MC_SF_AK8PFPuppi.jersf.txt.gz"
-          
-        "2018":
-          - "${default_params_dir:}/jec/Summer19UL18_V5_MC_L1FastJet_AK8PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL18_V5_MC_L2Relative_AK8PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL18_JRV2_MC_PtResolution_AK8PFPuppi.jr.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL18_JRV2_MC_SF_AK8PFPuppi.jersf.txt.gz"
-
-      #################################################################################       
-      JES_noJER:
-        2016_PreVFP:
-          - "${default_params_dir:}/jec/Summer19UL16APV_V7_MC_L1FastJet_AK8PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL16APV_V7_MC_L2Relative_AK8PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL16APV_V7_MC_UncertaintySources_AK8PFPuppi.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL16APV_V7_MC_Uncertainty_AK8PFPuppi.junc.txt.gz"
-
-        2016_PostVFP:
-          - "${default_params_dir:}/jec/Summer19UL16_V7_MC_L1FastJet_AK8PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL16_V7_MC_L2Relative_AK8PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL16_V7_MC_UncertaintySources_AK8PFPuppi.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL16_V7_MC_Uncertainty_AK8PFPuppi.junc.txt.gz"
-
-        "2017":
-          - "${default_params_dir:}/jec/Summer19UL17_V5_MC_L1FastJet_AK8PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL17_V5_MC_L2Relative_AK8PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL17_V5_MC_UncertaintySources_AK8PFPuppi.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL17_V5_MC_Uncertainty_AK8PFPuppi.junc.txt.gz"
-          
-        "2018":
-          - "${default_params_dir:}/jec/Summer19UL18_V5_MC_L1FastJet_AK8PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL18_V5_MC_L2Relative_AK8PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL18_V5_MC_UncertaintySources_AK8PFPuppi.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer19UL18_V5_MC_Uncertainty_AK8PFPuppi.junc.txt.gz"
-
-      
-    AK4PFPuppi:
-      JES_JER_Syst:
-        2022_preEE:
-          - "${default_params_dir:}/jec/Summer22/Summer22_22Sep2023_V2_MC_L1FastJet_AK4PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer22/Summer22_22Sep2023_V2_MC_L2Relative_AK4PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer22/Summer22_22Sep2023_V2_MC_UncertaintySources_AK4PFPuppi.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer22/Summer22_22Sep2023_V2_MC_Uncertainty_AK4PFPuppi.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer22/Summer22Run3_V1_MC_PtResolution_AK4PFPuppi.jr.txt.gz"
-          - "${default_params_dir:}/jec/Summer22/Summer22Run3_V1_MC_SF_AK4PFPuppi.jersf.txt.gz"
-
-        2022_postEE:
-          - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_V2_MC_L1FastJet_AK4PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_V2_MC_L2Relative_AK4PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_V2_MC_UncertaintySources_AK4PFPuppi.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_V2_MC_Uncertainty_AK4PFPuppi.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer22EE/Summer22EEPrompt22_JRV1_MC_PtResolution_AK4PFPuppi.jr.txt.gz"
-          - "${default_params_dir:}/jec/Summer22EE/Summer22EEPrompt22_JRV1_MC_SF_AK4PFPuppi.jersf.txt.gz"
-          
-        2023_preBPix:
-          - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_V1_MC_L1FastJet_AK4PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_V1_MC_L2Relative_AK4PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_V1_MC_UncertaintySources_AK4PFPuppi.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_V1_MC_Uncertainty_AK4PFPuppi.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_JRV1_MC_PtResolution_AK4PFPuppi.jr.txt.gz"
-          - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_JRV1_MC_SF_AK4PFPuppi.jersf.txt.gz"
-
-        2023_postBPix:
-          - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_V1_MC_L1FastJet_AK4PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_V1_MC_L2Relative_AK4PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_V1_MC_UncertaintySources_AK4PFPuppi.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_V1_MC_Uncertainty_AK4PFPuppi.junc.txt.gz"
-          - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_JRV1_MC_PtResolution_AK4PFPuppi.jr.txt.gz"
-          - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_JRV1_MC_SF_AK4PFPuppi.jersf.txt.gz"
-
-
-    AK4PFPuppiPNetRegression:
-      JES_JER_Syst:
-        2022_preEE:
-          # - "${default_params_dir:}/jec/Summer22/Summer22_22Sep2023_V2_MC_L1FastJet_AK4PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/AK4PFPNet/Summer22Run3_V3_MC_L2Relative_AK4PFPNet.jec.txt.gz"
-          # - "${default_params_dir:}/jec/Summer22/Summer22_22Sep2023_V2_MC_UncertaintySources_AK4PFPuppi.junc.txt.gz"
-          # - "${default_params_dir:}/jec/Summer22/Summer22_22Sep2023_V2_MC_Uncertainty_AK4PFPuppi.junc.txt.gz"
-          # - "${default_params_dir:}/jec/Summer22/Summer22Run3_V1_MC_PtResolution_AK4PFPuppi.jr.txt.gz"
-          # - "${default_params_dir:}/jec/Summer22/Summer22Run3_V1_MC_SF_AK4PFPuppi.jersf.txt.gz"
-
-        2022_postEE:
-          # - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_V2_MC_L1FastJet_AK4PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/AK4PFPNet/Summer22EERun3_V3_MC_L2Relative_AK4PFPNet.jec.txt.gz"
-          # - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_V2_MC_UncertaintySources_AK4PFPuppi.junc.txt.gz"
-          # - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_V2_MC_Uncertainty_AK4PFPuppi.junc.txt.gz"
-          # - "${default_params_dir:}/jec/Summer22EE/Summer22EEPrompt22_JRV1_MC_PtResolution_AK4PFPuppi.jr.txt.gz"
-          # - "${default_params_dir:}/jec/Summer22EE/Summer22EEPrompt22_JRV1_MC_SF_AK4PFPuppi.jersf.txt.gz"
-          
-        2023_preBPix:
-          # - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_V1_MC_L1FastJet_AK4PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/AK4PFPNet/Summer23Run3_V3_MC_L2Relative_AK4PFPNet.jec.txt.gz"
-          # - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_V1_MC_UncertaintySources_AK4PFPuppi.junc.txt.gz"
-          # - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_V1_MC_Uncertainty_AK4PFPuppi.junc.txt.gz"
-          # - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_JRV1_MC_PtResolution_AK4PFPuppi.jr.txt.gz"
-          # - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_JRV1_MC_SF_AK4PFPuppi.jersf.txt.gz"
-
-        2023_postBPix:
-          # - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_V1_MC_L1FastJet_AK4PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/AK4PFPNet/Summer23BPixRun3_V3_MC_L2Relative_AK4PFPNet.jec.txt.gz"
-          # - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_V1_MC_UncertaintySources_AK4PFPuppi.junc.txt.gz"
-          # - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_V1_MC_Uncertainty_AK4PFPuppi.junc.txt.gz"
-          # - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_JRV1_MC_PtResolution_AK4PFPuppi.jr.txt.gz"
-          # - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_JRV1_MC_SF_AK4PFPuppi.jersf.txt.gz"
-
-
-    AK4PFPuppiPNetRegressionPlusNeutrino:
-      JES_JER_Syst:
-        2022_preEE:
-          # - "${default_params_dir:}/jec/Summer22/Summer22_22Sep2023_V2_MC_L1FastJet_AK4PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/AK4PFPNetPlusNeutrino/Summer22Run3_V3_MC_L2Relative_AK4PFPNetPlusNeutrino.jec.txt.gz"
-          # - "${default_params_dir:}/jec/Summer22/Summer22_22Sep2023_V2_MC_UncertaintySources_AK4PFPuppi.junc.txt.gz"
-          # - "${default_params_dir:}/jec/Summer22/Summer22_22Sep2023_V2_MC_Uncertainty_AK4PFPuppi.junc.txt.gz"
-          # - "${default_params_dir:}/jec/Summer22/Summer22Run3_V1_MC_PtResolution_AK4PFPuppi.jr.txt.gz"
-          # - "${default_params_dir:}/jec/Summer22/Summer22Run3_V1_MC_SF_AK4PFPuppi.jersf.txt.gz"
-
-        2022_postEE:
-          # - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_V2_MC_L1FastJet_AK4PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/AK4PFPNetPlusNeutrino/Summer22EERun3_V3_MC_L2Relative_AK4PFPNetPlusNeutrino.jec.txt.gz"
-          # - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_V2_MC_UncertaintySources_AK4PFPuppi.junc.txt.gz"
-          # - "${default_params_dir:}/jec/Summer22EE/Summer22EE_22Sep2023_V2_MC_Uncertainty_AK4PFPuppi.junc.txt.gz"
-          # - "${default_params_dir:}/jec/Summer22EE/Summer22EEPrompt22_JRV1_MC_PtResolution_AK4PFPuppi.jr.txt.gz"
-          # - "${default_params_dir:}/jec/Summer22EE/Summer22EEPrompt22_JRV1_MC_SF_AK4PFPuppi.jersf.txt.gz"
-          
-        2023_preBPix:
-          # - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_V1_MC_L1FastJet_AK4PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/AK4PFPNetPlusNeutrino/Summer23Run3_V3_MC_L2Relative_AK4PFPNetPlusNeutrino.jec.txt.gz"
-          # - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_V1_MC_UncertaintySources_AK4PFPuppi.junc.txt.gz"
-          # - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_V1_MC_Uncertainty_AK4PFPuppi.junc.txt.gz"
-          # - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_JRV1_MC_PtResolution_AK4PFPuppi.jr.txt.gz"
-          # - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_JRV1_MC_SF_AK4PFPuppi.jersf.txt.gz"
-
-        2023_postBPix:
-          # - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_V1_MC_L1FastJet_AK4PFPuppi.jec.txt.gz"
-          - "${default_params_dir:}/jec/AK4PFPNetPlusNeutrino/Summer23BPixRun3_V3_MC_L2Relative_AK4PFPNetPlusNeutrino.jec.txt.gz"
-          # - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_V1_MC_UncertaintySources_AK4PFPuppi.junc.txt.gz"
-          # - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_V1_MC_Uncertainty_AK4PFPuppi.junc.txt.gz"
-          # - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_JRV1_MC_PtResolution_AK4PFPuppi.jr.txt.gz"
-          # - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_JRV1_MC_SF_AK4PFPuppi.jersf.txt.gz"
-
-  ########################## Data ########################################
-  factory_configuration_Data:
-    AK4PFPuppi:
-      JES:
-        2022_preEE:
-          C:
-            - "${default_params_dir:}/jec/Summer22/Summer22-22Sep2023_RunCD_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer22/Summer22-22Sep2023_RunCD_V2_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer22/Summer22-22Sep2023_RunCD_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
-
-          D: "${default_jets_calibration.factory_configuration_Data.AK4PFPuppi.JES.2022_preEE.C}"
-                 
-        2022_postEE:
-          E:
-            - "${default_params_dir:}/jec/Summer22EE/Summer22EE-22Sep2023_RunE_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer22EE/Summer22EE-22Sep2023_RunE_V2_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer22EE/Summer22EE-22Sep2023_RunE_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
-          F:
-            - "${default_params_dir:}/jec/Summer22EE/Summer22EE-22Sep2023_RunF_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer22EE/Summer22EE-22Sep2023_RunF_V2_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer22EE/Summer22EE-22Sep2023_RunF_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
-          G:
-            - "${default_params_dir:}/jec/Summer22EE/Summer22EE-22Sep2023_RunG_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer22EE/Summer22EE-22Sep2023_RunG_V2_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer22EE/Summer22EE-22Sep2023_RunG_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
-
-        2023_preBPix:
-          Cv1:
-            - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L1FastJet_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
-          Cv2: "${default_jets_calibration.factory_configuration_Data.AK4PFPuppi.JES.2023_preBPix.Cv1}"
-          Cv3: "${default_jets_calibration.factory_configuration_Data.AK4PFPuppi.JES.2023_preBPix.Cv1}"
-          Cv4:
-            - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_RunCv4_V1_DATA_L1FastJet_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_RunCv4_V1_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_RunCv4_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
-          
-        2023_postBPix:
-          D:
-            - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_RunD_V1_DATA_L1FastJet_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_RunD_V1_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_RunD_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
-
-
-    AK4PFPuppiPNetRegression:
-      JES:
-        2022_preEE:
-          C:
-            # - "${default_params_dir:}/jec/Summer22/Summer22-22Sep2023_RunCD_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/AK4PFPNet/Summer22-22Sep2023_RunCD_V2_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer22/Summer22-22Sep2023_RunCD_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
-
-          D: "${default_jets_calibration.factory_configuration_Data.AK4PFPuppiPNetRegression.JES.2022_preEE.C}"
-                 
-        2022_postEE:
-          E:
-            # - "${default_params_dir:}/jec/Summer22EE/Summer22EE-22Sep2023_RunE_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/AK4PFPNet/Summer22EE-22Sep2023_RunE_V2_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer22EE/Summer22EE-22Sep2023_RunE_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
-          F:
-            # - "${default_params_dir:}/jec/Summer22EE/Summer22EE-22Sep2023_RunF_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/AK4PFPNet/Summer22EE-22Sep2023_RunF_V2_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer22EE/Summer22EE-22Sep2023_RunF_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
-          G:
-            # - "${default_params_dir:}/jec/Summer22EE/Summer22EE-22Sep2023_RunG_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/AK4PFPNet/Summer22EE-22Sep2023_RunG_V2_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer22EE/Summer22EE-22Sep2023_RunG_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
-
-        2023_preBPix:
-          Cv1:
-            # - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L1FastJet_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/AK4PFPNet/Summer23Prompt23_RunCv123_V1_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
-          Cv2: "${default_jets_calibration.factory_configuration_Data.AK4PFPuppiPNetRegression.JES.2023_preBPix.Cv1}"
-          Cv3: "${default_jets_calibration.factory_configuration_Data.AK4PFPuppiPNetRegression.JES.2023_preBPix.Cv1}"
-          Cv4:
-            # - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_RunCv4_V1_DATA_L1FastJet_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/AK4PFPNet/Summer23Prompt23_RunCv4_V1_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_RunCv4_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
-          
-        2023_postBPix:
-          D:
-            # - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_RunD_V1_DATA_L1FastJet_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/AK4PFPNet/Summer23BPixPrompt23_RunD_V1_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_RunD_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
-    
-    
-    AK4PFPuppiPNetRegressionPlusNeutrino:
-      JES:
-        2022_preEE:
-          C:
-            # - "${default_params_dir:}/jec/Summer22/Summer22-22Sep2023_RunCD_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/AK4PFPNetPlusNeutrino/Summer22-22Sep2023_RunCD_V2_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer22/Summer22-22Sep2023_RunCD_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
-
-          D: "${default_jets_calibration.factory_configuration_Data.AK4PFPuppiPNetRegressionPlusNeutrino.JES.2022_preEE.C}"
-                 
-        2022_postEE:
-          E:
-            # - "${default_params_dir:}/jec/Summer22EE/Summer22EE-22Sep2023_RunE_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/AK4PFPNetPlusNeutrino/Summer22EE-22Sep2023_RunE_V2_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer22EE/Summer22EE-22Sep2023_RunE_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
-          F:
-            # - "${default_params_dir:}/jec/Summer22EE/Summer22EE-22Sep2023_RunF_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/AK4PFPNetPlusNeutrino/Summer22EE-22Sep2023_RunF_V2_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer22EE/Summer22EE-22Sep2023_RunF_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
-          G:
-            # - "${default_params_dir:}/jec/Summer22EE/Summer22EE-22Sep2023_RunG_V2_DATA_L1FastJet_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/AK4PFPNetPlusNeutrino/Summer22EE-22Sep2023_RunG_V2_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer22EE/Summer22EE-22Sep2023_RunG_V2_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
-
-        2023_preBPix:
-          Cv1:
-            # - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L1FastJet_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/AK4PFPNetPlusNeutrino/Summer23Prompt23_RunCv123_V1_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
-          Cv2: "${default_jets_calibration.factory_configuration_Data.AK4PFPuppiPNetRegressionPlusNeutrino.JES.2023_preBPix.Cv1}"
-          Cv3: "${default_jets_calibration.factory_configuration_Data.AK4PFPuppiPNetRegressionPlusNeutrino.JES.2023_preBPix.Cv1}"
-          Cv4:
-            # - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_RunCv4_V1_DATA_L1FastJet_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/AK4PFPNetPlusNeutrino/Summer23Prompt23_RunCv4_V1_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_RunCv4_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
-          
-        2023_postBPix:
-          D:
-            # - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_RunD_V1_DATA_L1FastJet_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/AK4PFPNetPlusNeutrino/Summer23BPixPrompt23_RunD_V1_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_RunD_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
-
-
+  
   variations:
     full_variations: 
-      2016_PreVFP: 
-        AK4PFchs: 
-          - JES_Absolute
-          - JES_Absolute_2016
-          - JES_FlavorQCD
-          - JES_EC2
-          - JES_EC2_2016
-          - JES_HF
-          - JES_HF_2016
-          - JES_BBEC1
-          - JES_BBEC1_2016
-          - JES_RelativeBal
-          - JES_RelativeSample_2016
+      AK4PFchs:
+        2016_PreVFP: 
+          - JES_Regrouped_Absolute
+          - JES_Regrouped_Absolute_2016
+          - JES_Regrouped_FlavorQCD
+          - JES_Regrouped_EC2
+          - JES_Regrouped_EC2_2016
+          - JES_Regrouped_HF
+          - JES_Regrouped_HF_2016
+          - JES_Regrouped_BBEC1
+          - JES_Regrouped_BBEC1_2016
+          - JES_Regrouped_RelativeBal
+          - JES_Regrouped_RelativeSample_2016
           - JER
-        AK8PFPuppi: "${default_jets_calibration.variations.full_variations.2016_PreVFP.AK4PFchs}"
-      2016_PostVFP: 
-        AK4PFchs:
-          - JES_Absolute
-          - JES_Absolute_2016
-          - JES_FlavorQCD
-          - JES_EC2
-          - JES_EC2_2016
-          - JES_HF
-          - JES_HF_2016
-          - JES_BBEC1
-          - JES_BBEC1_2016
-          - JES_RelativeBal
-          - JES_RelativeSample_2016
+        2016_PostVFP:
+          - JES_Regrouped_Absolute
+          - JES_Regrouped_Absolute_2016
+          - JES_Regrouped_FlavorQCD
+          - JES_Regrouped_EC2
+          - JES_Regrouped_EC2_2016
+          - JES_Regrouped_HF
+          - JES_Regrouped_HF_2016
+          - JES_Regrouped_BBEC1
+          - JES_Regrouped_BBEC1_2016
+          - JES_Regrouped_RelativeBal
+          - JES_Regrouped_RelativeSample_2016
           - JER
-        AK8PFPuppi: "${default_jets_calibration.variations.full_variations.2016_PostVFP.AK4PFchs}"
-      "2017": 
-        AK4PFchs:          
-          - JES_Absolute
-          - JES_Absolute_2017
-          - JES_FlavorQCD
-          - JES_EC2
-          - JES_EC2_2017
-          - JES_HF
-          - JES_HF_2017
-          - JES_BBEC1
-          - JES_BBEC1_2017
-          - JES_RelativeBal
-          - JES_RelativeSample_2017
+        "2017":          
+          - JES_Regrouped_Absolute
+          - JES_Regrouped_Absolute_2017
+          - JES_Regrouped_FlavorQCD
+          - JES_Regrouped_EC2
+          - JES_Regrouped_EC2_2017
+          - JES_Regrouped_HF
+          - JES_Regrouped_HF_2017
+          - JES_Regrouped_BBEC1
+          - JES_Regrouped_BBEC1_2017
+          - JES_Regrouped_RelativeBal
+          - JES_Regrouped_RelativeSample_2017
           - JER
-        AK8PFPuppi: "${default_jets_calibration.variations.full_variations.2017.AK4PFchs}"
-  
-      "2018": 
-        AK4PFchs:
-          - JES_Absolute
-          - JES_Absolute_2018
-          - JES_FlavorQCD
-          - JES_EC2
-          - JES_EC2_2018
-          - JES_HF
-          - JES_HF_2018
-          - JES_BBEC1
-          - JES_BBEC1_2018
-          - JES_RelativeBal
-          - JES_RelativeSample_2018
+        "2018":
+          - JES_Regrouped_Absolute
+          - JES_Regrouped_Absolute_2018
+          - JES_Regrouped_FlavorQCD
+          - JES_Regrouped_EC2
+          - JES_Regrouped_EC2_2018
+          - JES_Regrouped_HF
+          - JES_Regrouped_HF_2018
+          - JES_Regrouped_BBEC1
+          - JES_Regrouped_BBEC1_2018
+          - JES_Regrouped_RelativeBal
+          - JES_Regrouped_RelativeSample_2018
           - JER
-        AK8PFPuppi: "${default_jets_calibration.variations.full_variations.2018.AK4PFchs}"
-
-      2022_preEE:
-        AK4PFPuppi: 
-          - JES_Absolute
-          - JES_Absolute_2022
-          - JES_FlavorQCD
-          - JES_EC2
-          - JES_EC2_2022
-          - JES_HF
-          - JES_HF_2022
-          - JES_BBEC1
-          - JES_BBEC1_2022
-          - JES_RelativeBal
-          - JES_RelativeSample_2022
+      AK8PFPuppi: "${default_jets_calibration.variations.full_variations.AK4PFchs}"
+      AK4PFPuppi:
+        2022_preEE: 
+          - JES_Regrouped_Absolute
+          - JES_Regrouped_Absolute_2022
+          - JES_Regrouped_FlavorQCD
+          - JES_Regrouped_EC2
+          - JES_Regrouped_EC2_2022
+          - JES_Regrouped_HF
+          - JES_Regrouped_HF_2022
+          - JES_Regrouped_BBEC1
+          - JES_Regrouped_BBEC1_2022
+          - JES_Regrouped_RelativeBal
+          - JES_Regrouped_RelativeSample_2022
           - JER
-      2022_postEE:
-        AK4PFPuppi: 
-          - JES_Absolute
-          - JES_Absolute_2022EE
-          - JES_FlavorQCD
-          - JES_EC2
-          - JES_EC2_2022EE
-          - JES_HF
-          - JES_HF_2022EE
-          - JES_BBEC1
-          - JES_BBEC1_2022EE
-          - JES_RelativeBal
-          - JES_RelativeSample_2022EE
+        2022_postEE: 
+          - JES_Regrouped_Absolute
+          - JES_Regrouped_Absolute_2022EE
+          - JES_Regrouped_FlavorQCD
+          - JES_Regrouped_EC2
+          - JES_Regrouped_EC2_2022EE
+          - JES_Regrouped_HF
+          - JES_Regrouped_HF_2022EE
+          - JES_Regrouped_BBEC1
+          - JES_Regrouped_BBEC1_2022EE
+          - JES_Regrouped_RelativeBal
+          - JES_Regrouped_RelativeSample_2022EE
           - JER
-      2023_preBPix:
-        AK4PFPuppi:      
-          - JES_Absolute
-          - JES_Absolute_2023
-          - JES_FlavorQCD
-          - JES_EC2
-          - JES_EC2_2023
-          - JES_HF
-          - JES_HF_2023
-          - JES_BBEC1
-          - JES_BBEC1_2023
-          - JES_RelativeBal
-          - JES_RelativeSample_2023
+        2023_preBPix:      
+          - JES_Regrouped_Absolute
+          - JES_Regrouped_Absolute_2023
+          - JES_Regrouped_FlavorQCD
+          - JES_Regrouped_EC2
+          - JES_Regrouped_EC2_2023
+          - JES_Regrouped_HF
+          - JES_Regrouped_HF_2023
+          - JES_Regrouped_BBEC1
+          - JES_Regrouped_BBEC1_2023
+          - JES_Regrouped_RelativeBal
+          - JES_Regrouped_RelativeSample_2023
           - JER
-      2023_postBPix:
-        AK4PFPuppi:      
-          - JES_Absolute
-          - JES_Absolute_2023BPix
-          - JES_FlavorQCD
-          - JES_EC2
-          - JES_EC2_2023BPix
-          - JES_HF
-          - JES_HF_2023BPix
-          - JES_BBEC1
-          - JES_BBEC1_2023BPix
-          - JES_RelativeBal
-          - JES_RelativeSample_2023BPix
+        2023_postBPix:      
+          - JES_Regrouped_Absolute
+          - JES_Regrouped_Absolute_2023BPix
+          - JES_Regrouped_FlavorQCD
+          - JES_Regrouped_EC2
+          - JES_Regrouped_EC2_2023BPix
+          - JES_Regrouped_HF
+          - JES_Regrouped_HF_2023BPix
+          - JES_Regrouped_BBEC1
+          - JES_Regrouped_BBEC1_2023BPix
+          - JES_Regrouped_RelativeBal
+          - JES_Regrouped_RelativeSample_2023BPix
           - JER
-      "2024":
-        AK4PFPuppi:      
-          - JES_Absolute
-          - JES_Absolute_2024
-          - JES_FlavorQCD
-          - JES_EC2
-          - JES_EC2_2024
-          - JES_HF
-          - JES_HF_2024
-          - JES_BBEC1
-          - JES_BBEC1_2024
-          - JES_RelativeBal
-          - JES_RelativeSample_2024
+        "2024":      
+          - JES_Regrouped_Absolute
+          - JES_Regrouped_Absolute_2024
+          - JES_Regrouped_FlavorQCD
+          - JES_Regrouped_EC2
+          - JES_Regrouped_EC2_2024
+          - JES_Regrouped_HF
+          - JES_Regrouped_HF_2024
+          - JES_Regrouped_BBEC1
+          - JES_Regrouped_BBEC1_2024
+          - JES_Regrouped_RelativeBal
+          - JES_Regrouped_RelativeSample_2024
           - JER
       
     total_variation: 
-      2016_PreVFP: 
-        AK4PFchs: 
+      AK4PFchs:
+        2016_PreVFP: 
         - JES_Total
         - JER
-        AK8PFPuppi: "${default_jets_calibration.variations.total_variation.2016_PreVFP.AK4PFchs}"
-      2016_PostVFP: 
-        AK4PFchs: 
+        2016_PostVFP: 
         - JES_Total
         - JER
-        AK8PFPuppi: "${default_jets_calibration.variations.total_variation.2016_PostVFP.AK4PFchs}"
-      "2017": 
-        AK4PFchs: 
+        "2017": 
         - JES_Total
         - JER
-        AK8PFPuppi: "${default_jets_calibration.variations.total_variation.2017.AK4PFchs}"
-      "2018": 
-        AK4PFchs: 
+        "2018": 
         - JES_Total
         - JER
-        AK8PFPuppi: "${default_jets_calibration.variations.total_variation.2018.AK4PFchs}"
+      AK8PFPuppi:
+        2016_PreVFP: "${default_jets_calibration.variations.total_variation.AK4PFchs.2016_PreVFP}"
+        2016_PostVFP: "${default_jets_calibration.variations.total_variation.AK4PFchs.2016_PostVFP}"
+        "2017": "${default_jets_calibration.variations.total_variation.AK4PFchs.2017}"
+        "2018": "${default_jets_calibration.variations.total_variation.AK4PFchs.2018}"
+      AK4PFPuppi:
+        2022_preEE:  
+        - JES_Total
+        - JER
+        2022_postEE: 
+        - JES_Total
+        - JER
+        2023_preBPix:       
+        - JES_Total
+        - JER
+        2023_postBPix: 
+        - JES_Total
+        - JER
+        "2024": 
+        - JES_Total
+        - JER
+
+
+  factory_config_clib:
+    AK4PFchs:
+      2016_PreVFP:
+        json_path: ${cvmfs:Run2-2016preVFP-UL-NanoAODv9,JME,jet_jerc.json.gz}
+        jec_mc: Summer19UL16APV_V7_MC
+        jec_data:
+          B: Summer19UL16APV_RunBCD_V7_DATA
+          C: Summer19UL16APV_RunBCD_V7_DATA
+          D: Summer19UL16APV_RunBCD_V7_DATA
+          E: Summer19UL16APV_RunEF_V7_DATA
+          F: Summer19UL16APV_RunEF_V7_DATA
+        jer: Summer20UL16APV_JRV3_MC
+        level: L1L2L3Res
+
+      2016_PostVFP:
+        json_path: ${cvmfs:Run2-2016postVFP-UL-NanoAODv9,JME,jet_jerc.json.gz}
+        jec_mc: Summer19UL16_V7_MC
+        jec_data: Summer19UL16_RunFGH_V7_DATA
+        jer: Summer20UL16_JRV3_MC
+        level: L1L2L3Res
+
+      "2017":
+        json_path: ${cvmfs:Run2-2017-UL-NanoAODv9,JME,jet_jerc.json.gz}
+        jec_mc: Summer19UL17_V5_MC
+        jec_data:
+          B: Summer19UL17_RunB_V5_DATA
+          C: Summer19UL17_RunC_V5_DATA
+          D: Summer19UL17_RunD_V5_DATA
+          E: Summer19UL17_RunE_V5_DATA
+          F: Summer19UL17_RunF_V5_DATA
+        jer: Summer19UL17_JRV2_MC
+        level: L1L2L3Res
+
+      "2018":
+        json_path: ${cvmfs:Run2-2018-UL-NanoAODv9,JME,jet_jerc.json.gz}
+        jec_mc: Summer19UL18_V5_MC
+        jec_data:
+          A: Summer19UL18_RunA_V5_DATA
+          B: Summer19UL18_RunB_V5_DATA
+          C: Summer19UL18_RunC_V5_DATA
+          D: Summer19UL18_RunD_V5_DATA
+        jer: Summer19UL18_JRV2_MC
+        level: L1L2L3Res
+
+
+    AK4PFPuppi:
       2022_preEE:
-        AK4PFPuppi:  
-        - JES_Total
-        - JER
+        json_path: ${cvmfs:Run3-22CDSep23-Summer22-NanoAODv12,JME,jet_jerc.json.gz}
+        jec_mc: Summer22_22Sep2023_V3_MC
+        jec_data: Summer22_22Sep2023_RunCD_V3_DATA
+        jer: Summer22_22Sep2023_JRV1_MC
+        level: L1L2L3Res
+      
       2022_postEE:
-        AK4PFPuppi: 
-        - JES_Total
-        - JER
+        json_path: ${cvmfs:Run3-22EFGSep23-Summer22EE-NanoAODv12,JME,jet_jerc.json.gz}
+        jec_mc: Summer22EE_22Sep2023_V3_MC
+        jec_data:
+          E: Summer22EE_22Sep2023_RunE_V3_DATA
+          F: Summer22EE_22Sep2023_RunF_V3_DATA
+          G: Summer22EE_22Sep2023_RunG_V3_DATA
+        jer: Summer22EE_22Sep2023_JRV1_MC
+        level: L1L2L3Res
+
       2023_preBPix:
-        AK4PFPuppi:       
-        - JES_Total
-        - JER
+        json_path: ${cvmfs:Run3-23CSep23-Summer23-NanoAODv12,JME,jet_jerc.json.gz}
+        jec_mc: Summer23Prompt23_V2_MC
+        jec_data: Summer23Prompt23_V2_DATA
+        jer: Summer23Prompt23_RunCv1234_JRV1_MC
+        level: L1L2L3Res
+      
       2023_postBPix:
-        AK4PFPuppi: 
-        - JES_Total
-        - JER
+        json_path: ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,JME,jet_jerc.json.gz}
+        jec_mc: Summer23BPixPrompt23_V3_MC
+        jec_data: Summer23BPixPrompt23_V3_DATA
+        jer: Summer23BPixPrompt23_JRV1_MC
+        level: L1L2L3Res
+
       "2024":
-        AK4PFPuppi: 
-        - JES_Total
-        - JER
+        json_path: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,JME,jet_jerc.json.gz}
+        jec_mc: Summer24Prompt24_V1_MC
+        jec_data: Summer24Prompt24_V1_DATA
+        jer: Summer23BPixPrompt23_RunD_JRV1_MC  # For the time being the 2023 jers shall be used https://cms-jerc.web.cern.ch/Recommendations/#2024_1
+        level: L1L2L3Res
+
+
+    AK8PFPuppi:
+      2016_PreVFP:
+        json_path: ${cvmfs:Run2-2016preVFP-UL-NanoAODv9,JME,fatJet_jerc.json.gz}
+        jec_mc: "${default_jets_calibration.factory_config_clib.AK4PFchs.2016_PreVFP.jec_mc}"
+        jec_data: "${default_jets_calibration.factory_config_clib.AK4PFchs.2016_PreVFP.jec_data}"
+        jer: "${default_jets_calibration.factory_config_clib.AK4PFchs.2016_PreVFP.jer}"
+        level: L1L2L3Res
+
+      2016_PostVFP:
+        json_path: ${cvmfs:Run2-2016postVFP-UL-NanoAODv9,JME,fatJet_jerc.json.gz}
+        jec_mc: "${default_jets_calibration.factory_config_clib.AK4PFchs.2016_PostVFP.jec_mc}"
+        jec_data: "${default_jets_calibration.factory_config_clib.AK4PFchs.2016_PostVFP.jec_data}"
+        jer: "${default_jets_calibration.factory_config_clib.AK4PFchs.2016_PostVFP.jer}"
+        level: L1L2L3Res
+
+      "2017":
+        json_path: ${cvmfs:Run2-2017-UL-NanoAODv9,JME,fatJet_jerc.json.gz}
+        jec_mc: "${default_jets_calibration.factory_config_clib.AK4PFchs.2017.jec_mc}"
+        jec_data: "${default_jets_calibration.factory_config_clib.AK4PFchs.2017.jec_data}"
+        jer: "${default_jets_calibration.factory_config_clib.AK4PFchs.2017.jer}"
+        level: L1L2L3Res
+
+      "2018":
+        json_path: ${cvmfs:Run2-2018-UL-NanoAODv9,JME,fatJet_jerc.json.gz}
+        jec_mc: "${default_jets_calibration.factory_config_clib.AK4PFchs.2018.jec_mc}"
+        jec_data: "${default_jets_calibration.factory_config_clib.AK4PFchs.2018.jec_data}"
+        jer: "${default_jets_calibration.factory_config_clib.AK4PFchs.2018.jer}"
+        level: L1L2L3Res
+
+
+
+
 
 #####################################################################################
 # Default jets calibration for the user used by the processor
@@ -630,16 +314,11 @@ default_jets_calibration:
 jets_calibration:
   factory_file: "./jets_calibrator_JES_JER_Syst.pkl.gz"
   jet_types:
-    MC: 
-      AK4PFchs: "${default_jets_calibration.factory_configuration_MC.AK4PFchs.JES_JER_Syst}" 
-      AK4PFPuppi: "${default_jets_calibration.factory_configuration_MC.AK4PFPuppi.JES_JER_Syst}" 
-      AK4PFPuppiPNetRegression: "${default_jets_calibration.factory_configuration_MC.AK4PFPuppiPNetRegression.JES_JER_Syst}" 
-      AK4PFPuppiPNetRegressionPlusNeutrino: "${default_jets_calibration.factory_configuration_MC.AK4PFPuppiPNetRegressionPlusNeutrino.JES_JER_Syst}" 
-      AK8PFPuppi: "${default_jets_calibration.factory_configuration_MC.AK8PFPuppi.JES_JER_Syst}"
-    Data:
-      AK4PFPuppi: "${default_jets_calibration.factory_configuration_Data.AK4PFPuppi.JES}" 
-      AK4PFPuppiPNetRegression: "${default_jets_calibration.factory_configuration_Data.AK4PFPuppiPNetRegression.JES}" 
-      AK4PFPuppiPNetRegressionPlusNeutrino: "${default_jets_calibration.factory_configuration_Data.AK4PFPuppiPNetRegressionPlusNeutrino.JES}" 
+    AK4PFchs: "${default_jets_calibration.factory_config_clib.AK4PFchs}" 
+    AK4PFPuppi: "${default_jets_calibration.factory_config_clib.AK4PFPuppi}" 
+    # AK4PFPuppiPNetRegression: "${default_jets_calibration.factory_config_clib.AK4PFPuppiPNetRegression}" 
+    # AK4PFPuppiPNetRegressionPlusNeutrino: "${default_jets_calibration.factory_config_clib.AK4PFPuppiPNetRegressionPlusNeutrino}" 
+    AK8PFPuppi: "${default_jets_calibration.factory_config_clib.AK8PFPuppi}"
     
   collection:  # this is needed to know which collection is corrected with which jet factory
     2016_PreVFP:
@@ -686,8 +365,82 @@ jets_calibration:
      
   jec_name_map_MC: "${default_jets_calibration.jec_name_map_MC}"
   jec_name_map_Data: "${default_jets_calibration.jec_name_map_Data}"
+
+  sort_by_pt:
+    2016_PreVFP:
+      AK4PFchs: True
+      AK8PFPuppi: True
+    2016_PostVFP:
+      AK4PFchs: True
+      AK8PFPuppi: True  
+    "2017":
+      AK4PFchs: True
+      AK8PFPuppi: True
+    "2018":
+      AK4PFchs: True
+      AK8PFPuppi: True    
+    2022_preEE:
+      AK4PFPuppi: True
+      #AK8PFPuppi: True
+      #AK4PFPuppiPNetRegression: True
+      #AK4PFPuppiPNetRegressionPlusNeutrino: True
+    2022_postEE:
+      AK4PFPuppi: True
+      #AK8PFPuppi: True
+      #AK4PFPuppiPNetRegression: True
+      #AK4PFPuppiPNetRegressionPlusNeutrino: True
+    2023_preBPix:
+      AK4PFPuppi: True
+      #AK8PFPuppi: True
+      #AK4PFPuppiPNetRegression: True
+      #AK4PFPuppiPNetRegressionPlusNeutrino: True
+    2023_postBPix:
+      AK4PFPuppi: True
+      #AK8PFPuppi: True
+      #AK4PFPuppiPNetRegression: True
+      #AK4PFPuppiPNetRegressionPlusNeutrino: True
+    "2024":
+      AK4PFPuppi: True
+      #AK8PFPuppi: True
+      #AK4PFPuppiPNetRegression: True
+      #AK4PFPuppiPNetRegressionPlusNeutrino: True
+
   
   apply_jec_MC:  # this is needed to know which collection is corrected with which jet factory
+    2016_PreVFP: 
+      AK4PFchs: True
+      AK8PFPuppi: True
+    2016_PostVFP: 
+      AK4PFchs: True
+      AK8PFPuppi: True
+    "2017": 
+      AK4PFchs: True
+      AK8PFPuppi: True
+    "2018": 
+      AK4PFchs: True
+      AK8PFPuppi: True
+    2022_preEE: 
+      AK4PFPuppi: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+    2022_postEE: 
+      AK4PFPuppi: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+    2023_preBPix: 
+      AK4PFPuppi: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+    2023_postBPix: 
+      AK4PFPuppi: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+    "2024": 
+      AK4PFPuppi: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+
+  apply_jer_MC:  # this is needed to know which collection is corrected with which jet factory
     2016_PreVFP: 
       AK4PFchs: True
       AK8PFPuppi: True
@@ -826,7 +579,7 @@ jets_calibration:
 
 
   rescale_MET_config:
-    20216_PreVFP:
+    2016_PreVFP:
       apply: True
       MET_collection: "MET"
       Jet_collection: "Jet"
@@ -862,6 +615,9 @@ jets_calibration:
       apply: True
       MET_collection: "PuppiMET"
       Jet_collection: "Jet"
+
+
+    
   
   # By default only the total variations are included
   # The user can customize the wanted variations by changing the variations key in the user parameters.
@@ -869,105 +625,3 @@ jets_calibration:
   # setup `jets_calibration.variations == "${default_jets_calibration.variations.full_variations}"` to use all variations
   # variations: "${default_jets_calibration.variations.full_variations}"
   variations: "${default_jets_calibration.variations.total_variation}"
-
-jets_calibration_clib:
-  2016_PreVFP:
-    AK4PFchs:
-      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2016preVFP_UL/jet_jerc.json.gz"
-      jec_mc: Summer19UL16APV_V7_MC
-      jec_data:
-        B: Summer19UL16APV_RunBCD_V7_DATA
-        C: "${jets_calibration_clib.2016_PreVFP.AK4PFchs.jec_data.B}"
-        D: "${jets_calibration_clib.2016_PreVFP.AK4PFchs.jec_data.B}"
-        E: Summer19UL16APV_RunEF_V7_DATA
-        F: "${jets_calibration_clib.2016_PreVFP.AK4PFchs.jec_data.E}"
-      jer: Summer20UL16APV_JRV3_MC
-    AK8PFPuppi:
-      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2016preVFP_UL/fatJet_jerc.json.gz"
-      jec_mc: "${jets_calibration_clib.2016_PreVFP.AK4PFchs.jec_mc}"
-      jec_data: "${jets_calibration_clib.2016_PreVFP.AK4PFchs.jec_data}"
-      jer: "${jets_calibration_clib.2016_PreVFP.AK4PFchs.jer}"
-
-  2016_PostVFP:
-    AK4PFchs:
-      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2016postVFP_UL/jet_jerc.json.gz"
-      jec_mc: Summer19UL16APV_V7_MC
-      jec_data: Summer19UL16_RunFGH_V7_DATA
-      jer: Summer20UL16_JRV3_MC
-    AK8PFPuppi:
-      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2016postVFP_UL/fatJet_jerc.json.gz"
-      jec_mc: "${jets_calibration_clib.2016_PostVFP.AK4PFchs.jec_mc}"
-      jec_data: "${jets_calibration_clib.2016_PostVFP.AK4PFchs.jec_data}"
-      jer: "${jets_calibration_clib.2016_PostVFP.AK4PFchs.jer}"
-
-  "2017":
-    AK4PFchs:
-      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2017_UL/jet_jerc.json.gz"
-      jec_mc: Summer19UL17_V5_MC
-      jec_data:
-        B: Summer19UL17_RunB_V5_DATA
-        C: Summer19UL17_RunC_V5_DATA
-        D: Summer19UL17_RunD_V5_DATA
-        E: Summer19UL17_RunE_V5_DATA
-        F: Summer19UL17_RunF_V5_DATA
-      jer: Summer19UL17_JRV2_MC
-    AK8PFPuppi:
-      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2017_UL/fatJet_jerc.json.gz"
-      jec_mc: "${jets_calibration_clib.2017.AK4PFchs.jec_mc}"
-      jec_data: "${jets_calibration_clib.2017.AK4PFchs.jec_data}"
-      jer: "${jets_calibration_clib.2017.AK4PFchs.jer}"
-
-  "2018":
-    AK4PFchs:
-      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2018_UL/jet_jerc.json.gz"
-      jec_mc: Summer19UL18_V5_MC
-      jec_data:
-        A: Summer19UL18_RunA_V5_DATA
-        B: Summer19UL18_RunB_V5_DATA
-        C: Summer19UL18_RunC_V5_DATA
-        D: Summer19UL18_RunD_V5_DATA
-      jer: Summer19UL18_JRV2_MC
-    AK8PFPuppi:
-      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2018_UL/fatJet_jerc.json.gz"
-      jec_mc: "${jets_calibration_clib.2018.AK4PFchs.jec_mc}"
-      jec_data: "${jets_calibration_clib.2018.AK4PFchs.jec_data}"
-      jer: "${jets_calibration_clib.2018.AK4PFchs.jer}"
-
-  2022_preEE:
-    AK4PFPuppi:
-      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2022_Summer22/jet_jerc.json.gz"
-      jec_mc: Summer22_22Sep2023_V2_MC
-      jec_data: Summer22_22Sep2023_RunCD_V2_DATA
-      jer: Summer22_22Sep2023_JRV1_MC
-
-  2022_postEE:
-    AK4PFPuppi:
-      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2022_Summer22EE/jet_jerc.json.gz"
-      jec_mc: Summer22EE_22Sep2023_V2_MC
-      jec_data:
-        E: Summer22EE_22Sep2023_RunE_V2_DATA
-        F: Summer22EE_22Sep2023_RunF_V2_DATA
-        G: Summer22EE_22Sep2023_RunG_V2_DATA
-      jer: Summer22EE_22Sep2023_JRV1_MC
-
-  2023_preBPix:
-    AK4PFPuppi:
-      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2023_Summer23/jet_jerc.json.gz"
-      jec_mc: Summer23Prompt23_V2_MC
-      jec_data: Summer23Prompt23_V2_DATA
-      jer: Summer23Prompt23_RunCv1234_JRV1_MC
-
-  2023_postBPix:
-    AK4PFPuppi:
-      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2023_Summer23BPix/jet_jerc.json.gz"
-      jec_mc: Summer23BPixPrompt23_V3_MC
-      jec_data: Summer23BPixPrompt23_RunD_V3_DATA
-      jer: Summer23BPixPrompt23_RunD_JRV1_MC
-
-  "2024":
-    AK4PFPuppi:
-      json_path: "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2024_Summer24/jet_jerc.json.gz"
-      jec_mc: Summer24Prompt24_V1_MC
-      jec_data: Summer24Prompt24_V1_DATA
-      jer: Summer23BPixPrompt23_RunD_JRV1_MC  # For the time being the 2023 jers shall be used https://cms-jerc.web.cern.ch/Recommendations/#2024_1
-
