@@ -13,10 +13,7 @@ import workflow
 from workflow import BasicProcessor
 
 # Register custom modules in cloudpickle to propagate them to dask workers
-import cloudpickle
 import custom_cut_functions
-cloudpickle.register_pickle_by_value(workflow)
-cloudpickle.register_pickle_by_value(custom_cut_functions)
 
 from custom_cut_functions import *
 import os
@@ -29,10 +26,14 @@ from pocket_coffea.lib.weights.common import common_weights
 from pocket_coffea.parameters import defaults
 default_parameters = defaults.get_default_parameters()
 defaults.register_configuration_dir("config_dir", localdir+"/params")
+default_parameters.jets_calibration.jet_types.MC = {}
+default_parameters.jets_calibration.variations = {}
+default_parameters.jets_calibration.collection = {}
 
 parameters = defaults.merge_parameters_from_files(default_parameters,
                                                     f"{localdir}/params/object_preselection.yaml",
                                                     f"{localdir}/params/triggers.yaml",
+                                                    f"{localdir}/params/jets_calibration_noJER.yaml",
                                                    update=True)
 
 # Disable pt sorting

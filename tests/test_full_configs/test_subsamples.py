@@ -27,7 +27,7 @@ def test_subsamples(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_f
     config = load_config("config_subsamples.py", save_config=True, outputdir=outputdir)
     assert isinstance(config, Configurator)
 
-    # Check the subsamples config
+    #Check the subsamples config
     assert config.samples == ['TTTo2L2Nu', 'DATA_SingleMuon']
     assert config.has_subsamples["TTTo2L2Nu"] == True
     assert config.has_subsamples["DATA_SingleMuon"] == True
@@ -43,7 +43,8 @@ def test_subsamples(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_f
     config.filter_dataset(run_options["limit-files"])
 
     executor_factory = executors_lib.get_executor_factory("iterative",
-                                                          run_options=run_options,                                                          outputdir=outputdir)
+                                                        run_options=run_options,         
+                                                        outputdir=outputdir)
 
     executor = executor_factory.get()
 
