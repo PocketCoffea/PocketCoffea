@@ -23,11 +23,13 @@ def base_path() -> Path:
 
 def test_subsamples(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_subsamples" )
+    if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):
+        os.remove("jets_calibrator_JES_JER_Syst.pkl.gz")
     outputdir = tmp_path_factory.mktemp("test_categorization_subsamples")
     config = load_config("config_subsamples.py", save_config=True, outputdir=outputdir)
     assert isinstance(config, Configurator)
 
-    # Check the subsamples config
+    #Check the subsamples config
     assert config.samples == ['TTTo2L2Nu', 'DATA_SingleMuon']
     assert config.has_subsamples["TTTo2L2Nu"] == True
     assert config.has_subsamples["DATA_SingleMuon"] == True
@@ -39,7 +41,7 @@ def test_subsamples(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_f
     run_options = defaults.get_default_run_options()["general"]
     run_options["limit-files"] = 1
     run_options["limit-chunks"] = 1
-    run_options["chunksize"] = 500
+    run_options["chunksize"] = 300
     config.filter_dataset(run_options["limit-files"])
 
     executor_factory = executors_lib.get_executor_factory("iterative",

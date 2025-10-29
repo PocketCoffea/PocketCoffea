@@ -27,11 +27,7 @@ parameters = defaults.merge_parameters_from_files(default_parameters,
                                                     f"{localdir}/params/triggers.yaml",
                                                     f"{localdir}/params/jets_calibration_noJER.yaml",
                                                    update=True)
-                                                   
-#Creating custom weight
-from pocket_coffea.lib.weights.weights import WeightLambda
-import numpy as np
-
+     
 
 cfg = Configurator(
     parameters = parameters,

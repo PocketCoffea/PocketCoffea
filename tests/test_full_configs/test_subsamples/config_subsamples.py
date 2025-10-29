@@ -6,15 +6,13 @@ from pocket_coffea.parameters.cuts import passthrough
 from pocket_coffea.parameters.histograms import *
 from pocket_coffea.lib.categorization import StandardSelection, CartesianSelection, MultiCut
 from pocket_coffea.lib.columns_manager import ColOut
+from pocket_coffea.lib.calibrators.common import default_calibrators_sequence 
 
 import workflow
 from workflow import BasicProcessor
 
 # Register custom modules in cloudpickle to propagate them to dask workers
-import cloudpickle
 import custom_cut_functions
-cloudpickle.register_pickle_by_value(workflow)
-cloudpickle.register_pickle_by_value(custom_cut_functions)
 
 from custom_cut_functions import *
 import os
@@ -44,10 +42,10 @@ cfg = Configurator(
             "year": ['2018']
         },
         "subsamples": {
-            # "TTTo2L2Nu": {
-            #     # "ele": [get_nObj_min(1, coll="ElectronGood"), get_nObj_eq(0, coll="MuonGood")],
-            #     # "mu":  [get_nObj_eq(0, coll="ElectronGood"), get_nObj_min(1, coll="MuonGood")],
-            # },
+            "TTTo2L2Nu": {
+                "ele": [get_nObj_min(1, coll="ElectronGood"), get_nObj_eq(0, coll="MuonGood")],
+                "mu":  [get_nObj_eq(0, coll="ElectronGood"), get_nObj_min(1, coll="MuonGood")],
+            },
             "DATA_SingleMuon": {
                 "clean": [get_HLTsel(primaryDatasets=["SingleEle"], invert=True)], # crosscleaning SingleELe trigger on SIngleMuon
             }
@@ -82,6 +80,7 @@ cfg = Configurator(
     },
     # Passing a list of WeightWrapper objects
     weights_classes = common_weights,
+    calibrators = default_calibrators_sequence,
 
     variations = {
         "weights": {
@@ -99,6 +98,11 @@ cfg = Configurator(
             }
         
         },
+        "shape": {
+            "common": {
+                "inclusive": [ "jet_calibration"],
+            },
+        }
     },
 
     variables = {
