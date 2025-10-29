@@ -13,7 +13,10 @@ def add_jec_variables(jets, event_rho, isMC=True):
     jets["mass_raw"] = (1 - jets.rawFactor) * jets.mass
     jets["event_rho"] = ak.broadcast_arrays(event_rho, jets.pt)[0]
     if isMC:
-        jets["pt_gen"] = ak.values_astype(ak.fill_none(jets.matched_gen.pt, 0), np.float32)
+        try:
+            jets["pt_gen"] = ak.values_astype(ak.fill_none(jets.matched_gen.pt, 0), np.float32)
+        except AttributeError:
+            jets["pt_gen"] = ak.zeros_like(jets.pt, dtype=np.float32)
     return jets
 
 
