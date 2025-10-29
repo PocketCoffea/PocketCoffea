@@ -8,6 +8,10 @@ jets_calibration:
     "2018": 
       AK4PFchs: 
       - JES_Total
-      AK8PFPuppi: 
+      AK4PFPuppi: 
       - JES_Total
-     
+
+  collection:
+    "2018":
+      AK4PFchs: "Jet"
+      

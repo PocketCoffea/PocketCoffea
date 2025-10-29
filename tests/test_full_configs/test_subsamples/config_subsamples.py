@@ -25,6 +25,9 @@ from pocket_coffea.lib.weights.common import common_weights
 from pocket_coffea.parameters import defaults
 default_parameters = defaults.get_default_parameters()
 defaults.register_configuration_dir("config_dir", localdir+"/params")
+default_parameters.jets_calibration.jet_types.MC = {}
+default_parameters.jets_calibration.variations = {}
+default_parameters.jets_calibration.collection = {}
 
 parameters = defaults.merge_parameters_from_files(default_parameters,
                                                     f"{localdir}/params/object_preselection.yaml",
