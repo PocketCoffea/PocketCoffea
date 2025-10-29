@@ -90,8 +90,6 @@ def compare_columns(output, old_output, exclude_columns=None):
                         f"Column {column_name} mismatch for sample {sample}, dataset {dataset}, category {cat}"
 
 
-
-
 def check_single_bin_shift(hist_a: np.ndarray, hist_b: np.ndarray, 
                           tolerance: float = 1e-10) -> bool:
     """
