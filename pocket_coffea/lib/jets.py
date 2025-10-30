@@ -15,6 +15,13 @@ def add_jec_variables(jets, event_rho, isMC=True):
         jets["pt_gen"] = ak.values_astype(ak.fill_none(jets.matched_gen.pt, 0), np.float32)
     return jets
 
+def add_jec_variables_subjet(jets, event_rho, isMC=True):
+    jets["pt_raw"] = (1 - jets.rawFactor) * jets.pt
+    jets["mass_raw"] = (1 - jets.rawFactor) * jets.mass
+    jets["event_rho"] = ak.broadcast_arrays(event_rho, jets.pt)[0]
+
+    return jets
+
 
 def met_correction_after_jec(events, METcoll, jets_pre_jec, jets_post_jec):
     '''This function rescale the MET vector by minus delta of the jets after JEC correction
@@ -597,8 +604,13 @@ def msoftdrop_correction(
     apply_jer=True,
     jec_syst=True,
 ):
-    assert jet_coll_name in ["AK8PFPuppi"], "The softdrop mass correction can be applied only on large-radius jets."
-    assert subjet_type in ["AK4PFPuppi"], "The subjets within the AK8 jet must be corrected with AK4 jet corrections."
+    """Apply softdrop mass correction to large-radius jets (FatJet) using correctionlib.
+    The correction consists in applying AK4 jet corrections to the subjets of the large-radius jets.
+    The corrected softdrop mass is computed as the invariant mass of the two corrected subjets.
+    Only the JES correction and variations are applied, while the JER correction is not applied to the subjets."""
+
+    assert jet_coll_name in ["FatJet"], f"{jet_coll_name} collection cannot be calibrated. The softdrop mass correction can be applied only on large-radius jets."
+    assert subjet_type in ["AK4PFchs", "AK4PFPuppi"], f"{subjet_type} subjet type cannot be calibrated. The subjets can be calibrated only using corrections of type AK4PFchs or AK4PFPuppi."
     isMC = chunk_metadata["isMC"]
     year = chunk_metadata["year"]
     era = chunk_metadata["era"]
@@ -637,6 +649,10 @@ def msoftdrop_correction(
     jets_jagged = events[jet_coll_name]
     counts = ak.num(jets_jagged)
 
+    # get event id and run number for jer
+    event_id = ak.ones_like(jets_jagged.subjets.pt) * events.event
+    event_run = ak.ones_like(jets_jagged.subjets.pt) * events.run
+
     # flatten jet collection
     jets = ak.flatten(jets_jagged)
 
@@ -645,14 +661,19 @@ def msoftdrop_correction(
     counts_subjet = ak.num(subjets_jagged)
 
     if ("event_id" not in subjets_jagged.fields) and (apply_jer or jer_syst):
-        subjets_jagged["event_id"] = ak.ones_like(subjets_jagged.pt) * events.event
+        subjets_jagged["event_id"] = ak.ones_like(subjets_jagged.pt) * ak.flatten(event_id)
+        
     if ("run_nr" not in subjets_jagged.fields):
-        subjets_jagged["run_nr"] = ak.ones_like(subjets_jagged.pt) * events.run
+        subjets_jagged["run_nr"] = ak.ones_like(subjets_jagged.pt) * ak.flatten(event_run)
     if year in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
         rho = events.fixedGridRhoFastjetAll
     else:
         rho = events.Rho.fixedGridRhoFastjetAll
-    subjets_jagged = add_jec_variables(subjets_jagged, rho, isMC)
+
+    # Broadcast rho to subjets
+    rho = ak.ones_like(jets_jagged.subjets.pt) * rho
+    rho = ak.flatten(rho)
+    subjets_jagged = add_jec_variables_subjet(subjets_jagged, rho, isMC)
 
     # flatten subjet collection
     subjets = ak.flatten(subjets_jagged)
@@ -682,58 +703,6 @@ def msoftdrop_correction(
         # update the nominal pt and mass
         subjets["pt"] = sf_value * subjets["pt_raw"]
         subjets["mass"] = sf_value * subjets["mass_raw"]
-
-    # jer central and systematics
-    if apply_jer or jer_syst:
-        # learned from: https://github.com/cms-nanoAOD/correctionlib/issues/130
-
-        jer_ptres_tag = f"{jer_tag}_PtResolution_{subjet_type}"
-        jer_sf_tag = f"{jer_tag}_ScaleFactor_{subjet_type}"
-
-        ceval_jer = get_jer_correction_set(json_path, jer_ptres_tag, jer_sf_tag)
-        # update evaluate dictionary
-        eval_dict.update(
-            {
-                "JetPt": subjets.pt,
-                "GenPt": subjets.pt_gen,
-                "EventID": subjets.event_id,
-            }
-        )
-        # get jer pt resolution
-        inputs_jer_ptres = [
-            eval_dict[input.name] for input in ceval_jer[jer_ptres_tag].inputs
-        ]
-        jer_ptres = ceval_jer[jer_ptres_tag].evaluate(*inputs_jer_ptres)
-        # update evaluate dictionary
-        eval_dict.update({"JER": jer_ptres})
-        # adjust pt gen
-        eval_dict.update(
-            {
-                "GenPt": np.where(
-                    np.abs(eval_dict["JetPt"] - eval_dict["GenPt"])
-                    < 3 * eval_dict["JetPt"] * eval_dict["JER"],
-                    eval_dict["GenPt"],
-                    -1.0,
-                ),
-            }
-        )
-        if apply_jer:
-            eval_dict, jersmear = get_jersmear(eval_dict, ceval_jer, jer_sf_tag, "nom")
-            subjets["pt_jer"] = subjets.pt * jersmear
-            subjets["mass_jer"] = subjets.mass * jersmear
-        if jer_syst:
-            # jer up
-            eval_dict, jersmear = get_jersmear(eval_dict, ceval_jer, jer_sf_tag, "up")
-            subjets["pt_JER_up"] = subjets.pt * jersmear
-            subjets["mass_JER_up"] = subjets.mass * jersmear
-            # jer down
-            eval_dict, jersmear = get_jersmear(eval_dict, ceval_jer, jer_sf_tag, "down")
-            subjets["pt_JER_down"] = subjets.pt * jersmear
-            subjets["mass_JER_down"] = subjets.mass * jersmear
-        if apply_jer:
-            # to avoid the sf: jer*jer_up or jer*jer_down, update the jer pt/mass after calculation of the jer up/down
-            subjets["pt"] = subjets["pt_jer"]
-            subjets["mass"] = subjets["mass_jer"]
 
     # jes systematics
     if jes_syst:
