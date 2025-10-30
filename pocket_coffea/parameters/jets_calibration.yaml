@@ -1,33 +1,119 @@
 default_jets_calibration:
-  jec_name_map_MC:
-    JetPt: pt
-    JetMass: mass
-    JetEta: eta
-    JetPhi: phi
-    JetA: area
-    ptGenJet: pt_gen
-    ptRaw: pt_raw
-    massRaw: mass_raw
-    Rho: event_rho
-    METpt: pt
-    METphi: phi
-    UnClusteredEnergyDeltaX: MetUnclustEnUpDeltaX
-    UnClusteredEnergyDeltaY: MetUnclustEnUpDeltaY
-  jec_name_map_Data:
-    JetPt: pt
-    JetMass: mass
-    JetEta: eta
-    JetPhi: phi
-    JetA: area
-    ptRaw: pt_raw
-    massRaw: mass_raw
-    Rho: event_rho
-    METpt: pt
-    METphi: phi
-    UnClusteredEnergyDeltaX: MetUnclustEnUpDeltaX
-    UnClusteredEnergyDeltaY: MetUnclustEnUpDeltaY
+  factory_config_clib:
+    AK4PFchs:
+      2016_PreVFP:
+        json_path: ${cvmfs:Run2-2016preVFP-UL-NanoAODv9,JME,jet_jerc.json.gz}
+        jec_mc: Summer19UL16APV_V7_MC
+        jec_data:
+          B: Summer19UL16APV_RunBCD_V7_DATA
+          C: Summer19UL16APV_RunBCD_V7_DATA
+          D: Summer19UL16APV_RunBCD_V7_DATA
+          E: Summer19UL16APV_RunEF_V7_DATA
+          F: Summer19UL16APV_RunEF_V7_DATA
+        jer: Summer20UL16APV_JRV3_MC
+        level: L1L2L3Res
 
-  
+      2016_PostVFP:
+        json_path: ${cvmfs:Run2-2016postVFP-UL-NanoAODv9,JME,jet_jerc.json.gz}
+        jec_mc: Summer19UL16_V7_MC
+        jec_data: Summer19UL16_RunFGH_V7_DATA
+        jer: Summer20UL16_JRV3_MC
+        level: L1L2L3Res
+
+      "2017":
+        json_path: ${cvmfs:Run2-2017-UL-NanoAODv9,JME,jet_jerc.json.gz}
+        jec_mc: Summer19UL17_V5_MC
+        jec_data:
+          B: Summer19UL17_RunB_V5_DATA
+          C: Summer19UL17_RunC_V5_DATA
+          D: Summer19UL17_RunD_V5_DATA
+          E: Summer19UL17_RunE_V5_DATA
+          F: Summer19UL17_RunF_V5_DATA
+        jer: Summer19UL17_JRV2_MC
+        level: L1L2L3Res
+
+      "2018":
+        json_path: ${cvmfs:Run2-2018-UL-NanoAODv9,JME,jet_jerc.json.gz}
+        jec_mc: Summer19UL18_V5_MC
+        jec_data:
+          A: Summer19UL18_RunA_V5_DATA
+          B: Summer19UL18_RunB_V5_DATA
+          C: Summer19UL18_RunC_V5_DATA
+          D: Summer19UL18_RunD_V5_DATA
+        jer: Summer19UL18_JRV2_MC
+        level: L1L2L3Res
+
+
+    AK4PFPuppi:
+      2022_preEE:
+        json_path: ${cvmfs:Run3-22CDSep23-Summer22-NanoAODv12,JME,jet_jerc.json.gz}
+        jec_mc: Summer22_22Sep2023_V3_MC
+        jec_data: Summer22_22Sep2023_RunCD_V3_DATA
+        jer: Summer22_22Sep2023_JRV1_MC
+        level: L1L2L3Res
+      
+      2022_postEE:
+        json_path: ${cvmfs:Run3-22EFGSep23-Summer22EE-NanoAODv12,JME,jet_jerc.json.gz}
+        jec_mc: Summer22EE_22Sep2023_V3_MC
+        jec_data:
+          E: Summer22EE_22Sep2023_RunE_V3_DATA
+          F: Summer22EE_22Sep2023_RunF_V3_DATA
+          G: Summer22EE_22Sep2023_RunG_V3_DATA
+        jer: Summer22EE_22Sep2023_JRV1_MC
+        level: L1L2L3Res
+
+      2023_preBPix:
+        json_path: ${cvmfs:Run3-23CSep23-Summer23-NanoAODv12,JME,jet_jerc.json.gz}
+        jec_mc: Summer23Prompt23_V2_MC
+        jec_data: Summer23Prompt23_V2_DATA
+        jer: Summer23Prompt23_RunCv1234_JRV1_MC
+        level: L1L2L3Res
+      
+      2023_postBPix:
+        json_path: ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,JME,jet_jerc.json.gz}
+        jec_mc: Summer23BPixPrompt23_V3_MC
+        jec_data: Summer23BPixPrompt23_V3_DATA
+        jer: Summer23BPixPrompt23_JRV1_MC
+        level: L1L2L3Res
+
+      "2024":
+        json_path: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,JME,jet_jerc.json.gz}
+        jec_mc: Summer24Prompt24_V1_MC
+        jec_data: Summer24Prompt24_V1_DATA
+        jer: Summer23BPixPrompt23_RunD_JRV1_MC  # For the time being the 2023 jers shall be used https://cms-jerc.web.cern.ch/Recommendations/#2024_1
+        level: L1L2L3Res
+
+
+    AK8PFPuppi:
+      2016_PreVFP:
+        json_path: ${cvmfs:Run2-2016preVFP-UL-NanoAODv9,JME,fatJet_jerc.json.gz}
+        jec_mc: "${default_jets_calibration.factory_config_clib.AK4PFchs.2016_PreVFP.jec_mc}"
+        jec_data: "${default_jets_calibration.factory_config_clib.AK4PFchs.2016_PreVFP.jec_data}"
+        jer: "${default_jets_calibration.factory_config_clib.AK4PFchs.2016_PreVFP.jer}"
+        level: L1L2L3Res
+
+      2016_PostVFP:
+        json_path: ${cvmfs:Run2-2016postVFP-UL-NanoAODv9,JME,fatJet_jerc.json.gz}
+        jec_mc: "${default_jets_calibration.factory_config_clib.AK4PFchs.2016_PostVFP.jec_mc}"
+        jec_data: "${default_jets_calibration.factory_config_clib.AK4PFchs.2016_PostVFP.jec_data}"
+        jer: "${default_jets_calibration.factory_config_clib.AK4PFchs.2016_PostVFP.jer}"
+        level: L1L2L3Res
+
+      "2017":
+        json_path: ${cvmfs:Run2-2017-UL-NanoAODv9,JME,fatJet_jerc.json.gz}
+        jec_mc: "${default_jets_calibration.factory_config_clib.AK4PFchs.2017.jec_mc}"
+        jec_data: "${default_jets_calibration.factory_config_clib.AK4PFchs.2017.jec_data}"
+        jer: "${default_jets_calibration.factory_config_clib.AK4PFchs.2017.jer}"
+        level: L1L2L3Res
+
+      "2018":
+        json_path: ${cvmfs:Run2-2018-UL-NanoAODv9,JME,fatJet_jerc.json.gz}
+        jec_mc: "${default_jets_calibration.factory_config_clib.AK4PFchs.2018.jec_mc}"
+        jec_data: "${default_jets_calibration.factory_config_clib.AK4PFchs.2018.jec_data}"
+        jer: "${default_jets_calibration.factory_config_clib.AK4PFchs.2018.jer}"
+        level: L1L2L3Res
+
+  # factory available variations
   variations:
     full_variations: 
       AK4PFchs:
@@ -188,122 +274,6 @@ default_jets_calibration:
         - JER
 
 
-  factory_config_clib:
-    AK4PFchs:
-      2016_PreVFP:
-        json_path: ${cvmfs:Run2-2016preVFP-UL-NanoAODv9,JME,jet_jerc.json.gz}
-        jec_mc: Summer19UL16APV_V7_MC
-        jec_data:
-          B: Summer19UL16APV_RunBCD_V7_DATA
-          C: Summer19UL16APV_RunBCD_V7_DATA
-          D: Summer19UL16APV_RunBCD_V7_DATA
-          E: Summer19UL16APV_RunEF_V7_DATA
-          F: Summer19UL16APV_RunEF_V7_DATA
-        jer: Summer20UL16APV_JRV3_MC
-        level: L1L2L3Res
-
-      2016_PostVFP:
-        json_path: ${cvmfs:Run2-2016postVFP-UL-NanoAODv9,JME,jet_jerc.json.gz}
-        jec_mc: Summer19UL16_V7_MC
-        jec_data: Summer19UL16_RunFGH_V7_DATA
-        jer: Summer20UL16_JRV3_MC
-        level: L1L2L3Res
-
-      "2017":
-        json_path: ${cvmfs:Run2-2017-UL-NanoAODv9,JME,jet_jerc.json.gz}
-        jec_mc: Summer19UL17_V5_MC
-        jec_data:
-          B: Summer19UL17_RunB_V5_DATA
-          C: Summer19UL17_RunC_V5_DATA
-          D: Summer19UL17_RunD_V5_DATA
-          E: Summer19UL17_RunE_V5_DATA
-          F: Summer19UL17_RunF_V5_DATA
-        jer: Summer19UL17_JRV2_MC
-        level: L1L2L3Res
-
-      "2018":
-        json_path: ${cvmfs:Run2-2018-UL-NanoAODv9,JME,jet_jerc.json.gz}
-        jec_mc: Summer19UL18_V5_MC
-        jec_data:
-          A: Summer19UL18_RunA_V5_DATA
-          B: Summer19UL18_RunB_V5_DATA
-          C: Summer19UL18_RunC_V5_DATA
-          D: Summer19UL18_RunD_V5_DATA
-        jer: Summer19UL18_JRV2_MC
-        level: L1L2L3Res
-
-
-    AK4PFPuppi:
-      2022_preEE:
-        json_path: ${cvmfs:Run3-22CDSep23-Summer22-NanoAODv12,JME,jet_jerc.json.gz}
-        jec_mc: Summer22_22Sep2023_V3_MC
-        jec_data: Summer22_22Sep2023_RunCD_V3_DATA
-        jer: Summer22_22Sep2023_JRV1_MC
-        level: L1L2L3Res
-      
-      2022_postEE:
-        json_path: ${cvmfs:Run3-22EFGSep23-Summer22EE-NanoAODv12,JME,jet_jerc.json.gz}
-        jec_mc: Summer22EE_22Sep2023_V3_MC
-        jec_data:
-          E: Summer22EE_22Sep2023_RunE_V3_DATA
-          F: Summer22EE_22Sep2023_RunF_V3_DATA
-          G: Summer22EE_22Sep2023_RunG_V3_DATA
-        jer: Summer22EE_22Sep2023_JRV1_MC
-        level: L1L2L3Res
-
-      2023_preBPix:
-        json_path: ${cvmfs:Run3-23CSep23-Summer23-NanoAODv12,JME,jet_jerc.json.gz}
-        jec_mc: Summer23Prompt23_V2_MC
-        jec_data: Summer23Prompt23_V2_DATA
-        jer: Summer23Prompt23_RunCv1234_JRV1_MC
-        level: L1L2L3Res
-      
-      2023_postBPix:
-        json_path: ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,JME,jet_jerc.json.gz}
-        jec_mc: Summer23BPixPrompt23_V3_MC
-        jec_data: Summer23BPixPrompt23_V3_DATA
-        jer: Summer23BPixPrompt23_JRV1_MC
-        level: L1L2L3Res
-
-      "2024":
-        json_path: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,JME,jet_jerc.json.gz}
-        jec_mc: Summer24Prompt24_V1_MC
-        jec_data: Summer24Prompt24_V1_DATA
-        jer: Summer23BPixPrompt23_RunD_JRV1_MC  # For the time being the 2023 jers shall be used https://cms-jerc.web.cern.ch/Recommendations/#2024_1
-        level: L1L2L3Res
-
-
-    AK8PFPuppi:
-      2016_PreVFP:
-        json_path: ${cvmfs:Run2-2016preVFP-UL-NanoAODv9,JME,fatJet_jerc.json.gz}
-        jec_mc: "${default_jets_calibration.factory_config_clib.AK4PFchs.2016_PreVFP.jec_mc}"
-        jec_data: "${default_jets_calibration.factory_config_clib.AK4PFchs.2016_PreVFP.jec_data}"
-        jer: "${default_jets_calibration.factory_config_clib.AK4PFchs.2016_PreVFP.jer}"
-        level: L1L2L3Res
-
-      2016_PostVFP:
-        json_path: ${cvmfs:Run2-2016postVFP-UL-NanoAODv9,JME,fatJet_jerc.json.gz}
-        jec_mc: "${default_jets_calibration.factory_config_clib.AK4PFchs.2016_PostVFP.jec_mc}"
-        jec_data: "${default_jets_calibration.factory_config_clib.AK4PFchs.2016_PostVFP.jec_data}"
-        jer: "${default_jets_calibration.factory_config_clib.AK4PFchs.2016_PostVFP.jer}"
-        level: L1L2L3Res
-
-      "2017":
-        json_path: ${cvmfs:Run2-2017-UL-NanoAODv9,JME,fatJet_jerc.json.gz}
-        jec_mc: "${default_jets_calibration.factory_config_clib.AK4PFchs.2017.jec_mc}"
-        jec_data: "${default_jets_calibration.factory_config_clib.AK4PFchs.2017.jec_data}"
-        jer: "${default_jets_calibration.factory_config_clib.AK4PFchs.2017.jer}"
-        level: L1L2L3Res
-
-      "2018":
-        json_path: ${cvmfs:Run2-2018-UL-NanoAODv9,JME,fatJet_jerc.json.gz}
-        jec_mc: "${default_jets_calibration.factory_config_clib.AK4PFchs.2018.jec_mc}"
-        jec_data: "${default_jets_calibration.factory_config_clib.AK4PFchs.2018.jec_data}"
-        jer: "${default_jets_calibration.factory_config_clib.AK4PFchs.2018.jer}"
-        level: L1L2L3Res
-
-
-
 
 
 #####################################################################################
@@ -312,7 +282,6 @@ default_jets_calibration:
 # The user can build it from the default factory configurations above
 
 jets_calibration:
-  factory_file: "./jets_calibrator_JES_JER_Syst.pkl.gz"
   jet_types:
     AK4PFchs: "${default_jets_calibration.factory_config_clib.AK4PFchs}" 
     AK4PFPuppi: "${default_jets_calibration.factory_config_clib.AK4PFPuppi}" 
@@ -362,9 +331,7 @@ jets_calibration:
       #AK8PFPuppi: "FatJet"
       #AK4PFPuppiPNetRegression: "Jet"
       #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
-     
-  jec_name_map_MC: "${default_jets_calibration.jec_name_map_MC}"
-  jec_name_map_Data: "${default_jets_calibration.jec_name_map_Data}"
+
 
   sort_by_pt:
     2016_PreVFP:
