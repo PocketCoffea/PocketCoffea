@@ -23,8 +23,6 @@ def base_path() -> Path:
 
 def test_subsamples(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_subsamples" )
-    if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):
-        os.remove("jets_calibrator_JES_JER_Syst.pkl.gz")
     outputdir = tmp_path_factory.mktemp("test_categorization_subsamples")
     config = load_config("config_subsamples.py", save_config=True, outputdir=outputdir)
     assert isinstance(config, Configurator)
@@ -45,7 +43,8 @@ def test_subsamples(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_f
     config.filter_dataset(run_options["limit-files"])
 
     executor_factory = executors_lib.get_executor_factory("iterative",
-                                                          run_options=run_options,                                                          outputdir=outputdir)
+                                                        run_options=run_options,         
+                                                        outputdir=outputdir)
 
     executor = executor_factory.get()
 

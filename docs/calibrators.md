@@ -146,14 +146,33 @@ jets_calibration:
     2022:
       AK4PFchs: "Jet"
       AK8PFPuppi: "FatJet"
+
+  jet_types:
+    AK4PFchs:
+        2016_PreVFP:
+        json_path: ${cvmfs:Run2-2016preVFP-UL-NanoAODv9,JME,jet_jerc.json.gz}
+        jec_mc: Summer19UL16APV_V7_MC
+        jec_data:
+          B: Summer19UL16APV_RunBCD_V7_DATA
+          C: Summer19UL16APV_RunBCD_V7_DATA
+          D: Summer19UL16APV_RunBCD_V7_DATA
+          E: Summer19UL16APV_RunEF_V7_DATA
+          F: Summer19UL16APV_RunEF_V7_DATA
+        jer: Summer20UL16APV_JRV3_MC
+        level: L1L2L3Res
+    ... 
+
+
   apply_jec_MC:
     2022:
       AK4PFchs: true
       AK8PFPuppi: true
+
   apply_jec_Data:
     2022:
       AK4PFchs: true
       AK8PFPuppi: false
+
   variations:
     2022:
       AK4PFchs: ["jec", "jer"]

@@ -8,7 +8,6 @@ from pocket_coffea.lib.calibrators.common.common import (
     MuonsCalibrator)
 from pocket_coffea.lib.calibrators.calibrator import Calibrator
 from pocket_coffea.lib.calibrators.calibrators_manager import CalibratorsManager
-from pocket_coffea.utils import build_jets_calibrator
 
 from pocket_coffea.parameters import defaults
 import awkward as ak
@@ -375,23 +374,34 @@ def test_calibrators_sequence(events, params):
 
 
 def test_jets_calibrator(events, params):
-    if not os.path.exists(params.jets_calibration.factory_file):
-        build_jets_calibrator.build(params.jets_calibration)
-
-    from pocket_coffea.lib.jets import load_jet_factory
-    jmefactory = load_jet_factory(params)
     jets_calibrator = JetsCalibrator(params=params, metadata={"isMC": True, "year": "2018"},
-                                     do_variations=False,
-                                     jme_factory=jmefactory)
+                                     do_variations=True)
     jets_calibrator.initialize(events)
 
     orig_events = ak.copy(events)
+
     out1 = jets_calibrator.calibrate(events, {}, variation="nominal")
-
     assert "Jet" in out1
-    variation = jets_calibrator.variations[0]
-    out2 = jets_calibrator.calibrate(events, {}, variation=variation)
+    
+    for variation in jets_calibrator.variations:
+        out2 = jets_calibrator.calibrate(events, {}, variation=variation)
 
-    assert "Jet" in out2
-    assert ak.all(out2["Jet"].pt != orig_events.Jet.pt)
-    assert ak.all(out2["Jet"].pt != out1["Jet"].pt)
+        if "AK4" in variation:
+            assert "Jet" in out2
+            assert ak.all(out2["Jet"].pt != orig_events.Jet.pt)
+            assert ak.all(out2["Jet"].pt != out1["Jet"].pt)
+
+            # Check that the jets are always sorted by pt
+            sorted_indices1 = ak.argsort(out2["Jet"].pt, axis=1, ascending=False)
+            sorted_jets1 = out2["Jet"][sorted_indices1]
+            assert ak.all(sorted_jets1.pt[:, :-1] >= sorted_jets1.pt[:, 1:])
+
+        if "AK8" in variation:
+            assert "FatJet" in out2
+            assert ak.all(out2["FatJet"].pt != orig_events.FatJet.pt)
+            assert ak.all(out2["FatJet"].pt != out1["FatJet"].pt)
+
+            # Check that the fatjets are always sorted by pt
+            sorted_indices2 = ak.argsort(out2["FatJet"].pt, axis=1, ascending=False)
+            sorted_jets2 = out2["FatJet"][sorted_indices2]
+            assert ak.all(sorted_jets2.pt[:, :-1] >= sorted_jets2.pt[:, 1:])

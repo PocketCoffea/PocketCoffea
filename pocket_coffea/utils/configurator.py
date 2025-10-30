@@ -284,11 +284,14 @@ class Configurator:
         self.load_columns_config(self.columns_cfg)
 
         self.perform_checks()
-
-        # Alway run the jet calibration builder
-        if not os.path.exists(self.parameters.jets_calibration.factory_file):
-            build_jets_calibrator.build(self.parameters.jets_calibration)
-
+        
+        # Check if the jet calibration is legacy or not, and build the
+        # calibrator factory file if not present
+        if self.parameters.jets_calibration.get("legacy_txt_calibration", False):
+            print("Using legacy txt jet calibration, factory building needed. Please switch to the new correctionlib calibration if possible.")
+            if not os.path.exists(self.parameters.jets_calibration.factory_file):
+                build_jets_calibrator.build(self.parameters.jets_calibration)
+            
         # Load the workflow as the last thing
         self.load_workflow()
 
