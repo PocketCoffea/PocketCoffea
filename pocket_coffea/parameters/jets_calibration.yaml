@@ -73,7 +73,7 @@ default_jets_calibration:
         json_path: ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,JME,jet_jerc.json.gz}
         jec_mc: Summer23BPixPrompt23_V3_MC
         jec_data: Summer23BPixPrompt23_V3_DATA
-        jer: Summer23BPixPrompt23_JRV1_MC
+        jer: Summer23BPixPrompt23_RunD_JRV1_MC
         level: L1L2L3Res
 
       "2024":
