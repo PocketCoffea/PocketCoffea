@@ -63,7 +63,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self.weights_classes = self.cfg.weights_classes
         
         # Load the jet calibration factory once for all chunks
-        self.jmefactory = load_jet_factory(self.params)
+        if self.params.jets_calibration.get("legacy_txt_calibration", False):
+            self.jmefactory = load_jet_factory(self.params)
         
         # Custom axis for the histograms
         self.custom_axes = []
@@ -630,15 +631,25 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''Creates the calibator manager and initialize all the calibrators.
         This prepares also the list of avaialable shape variations for this chunk.
         That will be utilized by the HistManager to create the histograms variations axes.'''
-        self.calibrators_manager = CalibratorsManager(
-            self.cfg.calibrators,
-            self.events,
-            self.params,
-            self._metadata,
-            requested_calibrator_variations=self.cfg.available_shape_variations[self._sample],
-            # Additional arg to pass the jmefactory to the jet calibrator --> hacky
-            jme_factory=self.jmefactory,
-        )
+
+        if self.params.jets_calibration.get("legacy_txt_calibration", False):
+            self.calibrators_manager = CalibratorsManager(
+                self.cfg.calibrators,
+                self.events,
+                self.params,
+                self._metadata,
+                requested_calibrator_variations=self.cfg.available_shape_variations[self._sample],
+                # Additional arg to pass the jmefactory to the jet calibrator --> hack until we remove it 
+                jme_factory=self.jmefactory,
+            )
+        else:
+            self.calibrators_manager = CalibratorsManager(
+                self.cfg.calibrators,
+                self.events,
+                self.params,
+                self._metadata,
+                requested_calibrator_variations=self.cfg.available_shape_variations[self._sample],
+            )
 
     def loop_over_variations(self):
         # Get the requested shape variations by calibrator
