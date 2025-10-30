@@ -382,7 +382,7 @@ class JetsSoftdropMassCalibrator(Calibrator):
     this calibrator will raise an exception if configured to apply pT regression.
     """
     
-    name = "jet_calibration"
+    name = "msoftdrop_calibration"
     has_variations = True
     isMC_only = False
 
@@ -401,9 +401,17 @@ class JetsSoftdropMassCalibrator(Calibrator):
         for jet_type, jet_coll_name in self.jet_calib_param.collection[self.year].items():
             # Calibrate only AK8 jets
             if jet_type in ["AK8PFPuppi"]:
-                subjet_type = "AK4PFPuppi"
+                # Define the subjet type for the correction of subjets
+                if self.year in ["2016_preVFP", "2016_postVFP", "2017", "2018"]:
+                    subjet_type = "AK4PFchs"
+                else:
+                    subjet_type = "AK4PFPuppi"
             else:
+                print("WARNING: JetsSoftdropMassCalibrator only supports AK8PFPuppi jets for softdrop mass calibration." +
+                      f" Jet type {jet_type} will be skipped.")
                 continue
+
+
             # Check if the collection is enables in the parameters
             if self.isMC:
                 if (self.jet_calib_param.apply_jec_msoftdrop_MC[self.year][jet_type] == False):
@@ -413,17 +421,6 @@ class JetsSoftdropMassCalibrator(Calibrator):
                 if self.jet_calib_param.apply_jec_msoftdrop_Data[self.year][jet_type] == False:
                     # If the collection is not enabled, we skip it
                     continue
-
-            # Check the Pt regression is not requested for this jet type 
-            # and in that case send a warning and skim them
-            if self.isMC and self.jet_calib_param.apply_jec_msoftdrop_MC[self.year][jet_type]:
-                print(f"WARNING: Jet type {jet_type} is requested to be calibrated with pT regression: " +
-                                    "skipped by JetCalibrator. Please activate the JetsPtRegressionCalibrator.")
-                continue
-            if not self.isMC and self.jet_calib_param.apply_jec_msoftdrop_Data[self.year][jet_type]:
-                print(f"WARNING: Jet type {jet_type} is requested to be calibrated with pT regression: " +
-                                    "skipped by JetCalibrator. Please activate the JetsPtRegressionCalibrator.")
-                continue
 
             # register the collection as calibrated by this calibrator
             self.calibrated_collections.append(jet_coll_name)
@@ -445,6 +442,8 @@ class JetsSoftdropMassCalibrator(Calibrator):
             )
             # Add to the list of the types calibrated
             self.jets_calibrated_types.append(jet_type)
+
+        assert len(self.jets_calibrated_types) > 0, "No jet types were calibrated in JetsSoftdropMassCalibrator. Please check the configuration."
 
         # Prepare the list of available variations
         # For this we just read from the parameters
