@@ -11,7 +11,7 @@ from pocket_coffea.lib.leptons import (
     )
 from pocket_coffea.utils.utils import get_random_seed
 import copy
-
+from omegaconf import OmegaConf
 
 class JetsCalibrator(Calibrator):
     """
@@ -66,10 +66,29 @@ class JetsCalibrator(Calibrator):
                                     "skipped by JetCalibrator. Please activate the JetsPtRegressionCalibrator.")
                 continue
 
+            
+            # Check if the pt regression is requested, if not skip it
+            if ((self.isMC and self.jet_calib_param.apply_pt_regr_MC[self.year][jet_type]) 
+                    or
+               (not self.isMC and self.jet_calib_param.apply_pt_regr_Data[self.year][jet_type])):
+                # Get the regression parameters by collection if they are present
+                regression_params = OmegaConf.select(self.params,
+                                                     "object_preselection." + jet_coll_name + ".regression")
+                
+                # Apply the regression to the jets before the JEC
+                # I'm not 100% sure a softcopy is needed here, but the apply_regression method modifies the jets
+                # in place, so to be safe we make a copy. This is a soft copy, so the array data is not copied.
+                # This just makes sure that the original events[jet_coll_name] is not modified.
+                jets_regressed, reg_mask = self.apply_regression(copy.copy(events[jet_coll_name]), 
+                                                                 jet_type, regression_params)
+                # replacing the collecation in place, so that the JEC is applied to the regressed jets
+                events[jet_coll_name] = jets_regressed[reg_mask]
+
+
             # register the collection as calibrated by this calibrator
             self.calibrated_collections.append(jet_coll_name)
 
-            self.jets_calibrated[jet_coll_name] = jet_correction_corrlib(
+            corrected_jets = jet_correction_corrlib(
                 calib_params=self.jet_calib_param.jet_types[jet_type][self._year],
                 variations=self.jet_calib_param.variations[jet_type][self._year],
                 events=events,
@@ -83,6 +102,10 @@ class JetsCalibrator(Calibrator):
                 jec_syst=self.do_variations,
                 apply_jer=self.jet_calib_param.apply_jer_MC[self.year][jet_type] if self.isMC else False,
             )
+            # update the rawFactor of the corrected jets
+            self.jets_calibrated[jet_coll_name] = ak.with_field(corrected_jets, 
+                                                                1 - corrected_jets.pt_raw / corrected_jets.pt, 
+                                                                "rawFactor")
             # Add to the list of the types calibrated
             self.jets_calibrated_types.append(jet_type)
 
@@ -106,14 +129,129 @@ class JetsCalibrator(Calibrator):
                     # we want to vary independently each jet type
         self._variations = list(sorted(set(available_jet_variations)))  # remove duplicates
 
+    def apply_regression(self, jets, jet_type, regression_params=None):
+        """
+        Apply PNet regression to jets.
+        
+        Args:
+            jets: Jets collection to apply regression on
+            
+        Returns:
+            Dictionary with calibrated jet collection # TODO: change
+        """
+        # Apply regression only to specific jet types (AK4PFPuppi, AK4PFchs)
+        # This check should ideally be done based on jet type parameter, but for now
+        # we assume it's applied to the main Jet collection
+
+        # Flatten jets for easier processing
+        j_flat, nj = ak.flatten(jets), ak.num(jets)
+
+        if "PNet" in jet_type:
+            # Use PNet regression
+            pt_raw_corr='PNetRegPtRawCorr'
+            pt_raw_corr_neutrino='PNetRegPtRawCorrNeutrino'
+            btag_b='btagPNetB'
+            btag_cvl='btagPNetCvL'
+            do_plus_neutrino = "PlusNeutrino" in jet_type
+        elif "UParTAK4V1" in jet_type:
+            # Use UParTAK4V1 regression
+            pt_raw_corr='UParTAK4V1RegPtRawCorr'
+            pt_raw_corr_neutrino='UParTAK4V1RegPtRawCorrNeutrino'
+            btag_b='btagUParTAK4B'
+            btag_cvl='btagUParTAK4CvL'
+            do_plus_neutrino = "PlusNeutrino" in jet_typec
+        elif "UParTAK4" in jet_type:
+            # Use UParTAK4 regression
+            pt_raw_corr='UParTAK4RegPtRawCorr'
+            pt_raw_corr_neutrino='UParTAK4RegPtRawCorrNeutrino'
+            btag_b='btagUParTAK4B'
+            btag_cvl='btagUParTAK4CvL'
+            do_plus_neutrino = "PlusNeutrino" in jet_type
+        else:
+            raise ValueError(f"Regression algorithm {jet_type} is not supported."+
+                             " Supported algorithms are: PNet, UParTAK4, UParTAK4V1.")
+
+        # Check if required fields exist
+        required_fields = ['rawFactor', pt_raw_corr, pt_raw_corr_neutrino, btag_b, btag_cvl]
+        missing_fields = [field for field in required_fields if field not in j_flat.fields]
+
+        if missing_fields:
+            # If required fields are missing, raise an error
+            raise ValueError(f"Missing required fields for regression: {', '.join(missing_fields)}. " +
+                             "Please ensure the jets collection contains the necessary fields for regression.")
+
+        # Get the regression factor
+        if "PNet" in jet_type:
+            reg_j_factor = j_flat[pt_raw_corr]
+            if do_plus_neutrino:
+                reg_j_factor = reg_j_factor * j_flat[pt_raw_corr_neutrino]
+        elif "UParTAK4" in jet_type:
+            if do_plus_neutrino:
+                reg_j_factor = j_flat[pt_raw_corr_neutrino]
+            else:                
+                reg_j_factor = j_flat[pt_raw_corr]
+
+        # Obtain the regressed PT and Mass
+        reg_j_pt = (
+            j_flat["pt"]
+            * (1 - j_flat["rawFactor"])
+            * reg_j_factor
+        )
+        reg_j_mass = (
+            j_flat["mass"]
+            * (1 - j_flat["rawFactor"])
+            * reg_j_factor
+        )
+
+        if regression_params is None:
+            reg_mask = ak.ones_like(reg_j_pt, dtype=bool)
+        else:   
+            # If regression parameters are provided, we use them
+            # to select the jets to apply the regression to
+            cut_btagB=getattr(regression_params, 'cut_btagB', -1.)
+            cut_btagCvL=getattr(regression_params, 'cut_btagCvL', -1.)
+        
+            # Select which jets to apply the regression to (cuts are provided via parameter yaml)
+            reg_mask = (j_flat[btag_b] >= cut_btagB) | (j_flat[btag_cvl] >= cut_btagCvL)
+
+        # Apply regression only to jets where the regression is not 0
+        reg_mask = (reg_mask) & (j_flat[pt_raw_corr] != 0) & (j_flat[pt_raw_corr_neutrino] != 0)
+        
+        # WARNING: Keeping both regressed and not regressed jets
+        # can lead to issues if the regression is applied on only
+        # part of the jets because the JEC should be applied ONLY
+        # to the jets that have the regression applied.
+        # This is why we throw away the jets that do not have the regression applied
+
+        new_j_pt_flat = ak.mask(reg_j_pt, reg_mask)
+        new_j_pt = ak.unflatten(new_j_pt_flat, nj)
+
+        new_j_mass_flat = ak.mask(reg_j_mass, reg_mask)
+        new_j_mass = ak.unflatten(new_j_mass_flat, nj)
+
+        # Update the raw factor to 0 for the jets where regression is applied
+        # because the REGRESSED PT IS THE NEW PT RAW of the jet_regressed collection
+        new_raw_factor_flat = ak.mask(ak.zeros_like(j_flat['rawFactor']), reg_mask)
+        new_raw_factor = ak.unflatten(new_raw_factor_flat, nj)
+
+        # Replace the PT and Mass variables in the original jets collection
+        reg_mask_unflatten = ak.unflatten(reg_mask, nj)
+        jets_regressed = ak.mask(jets, reg_mask_unflatten)
+        jets_regressed = ak.with_field(jets_regressed, new_j_pt, 'pt')
+        jets_regressed = ak.with_field(jets_regressed, new_j_mass, 'mass')
+        jets_regressed = ak.with_field(jets_regressed, new_raw_factor, 'rawFactor')
+
+        return jets_regressed, reg_mask_unflatten
 
     def calibrate(self, events, orig_colls, variation, already_applied_calibrators=None):
         # The values have been already calculated in the initialize method
         # We just need to apply the corrections to the events
         out = {}
         for jet_coll_name, jets in self.jets_calibrated.items():
-            # Creating a soft copy of the jets to avoid modifying the original one 
-            # stored in the calibrator when replaing the pt correctly
+            # Creating a soft copy of the jets to avoid modifying the original one
+            # stored in the calibrator when replacing the pt correctly.
+            # In practice this is not using more memory, it is just making sure that changes of
+            # pointers in the out dict do not affect the calibrator internal state.
             # N.B: we don't just replace the pt and mass in the jets from events
             # because we want to use the collection initialized in the calibrator. 
             out[jet_coll_name] = copy.copy(jets)
@@ -159,217 +297,6 @@ class JetsCalibrator(Calibrator):
    
         return out
 
-
-class JetsPtRegressionCalibrator(JetsCalibrator):
-    """
-    This calibrator applied the Pt regression from PNet and UParTAK4 to the jets, before
-    applying dedicated JEC calibrators.
-
-    It is a subclass of JetsCalibrator, so it can be used in the same way.
-    The jet_calibation.yaml parameters configures the regression and JEC to be applied. 
-    Dedicated jet_types are used to distinguish between the different regression algorithms.
-
-    All the jets type with "Regression" in their name will be calibrated by this calibrator, the 
-    others will be ignored (and should be calibrated by the JetsCalibrator).
-
-    The do_variations flag is passed to the base class, but it is not used in this calibrator,
-    as the variations are always computed by the coffea JEC evaluator.
-    """
-    name = "jet_calibration_with_pt_regression"
-    has_variations = True
-    isMC_only = False
-
-    def __init__(self, params, metadata, do_variations, jme_factory, **kwargs):
-        super().__init__(params, metadata, do_variations, jme_factory, **kwargs)
-        # It is filled dynamically in the initialize method depending on the parameters
-        self.calibrated_collections = []
-  
-    def initialize(self, events):
-        # Load the calibration of each jet type requested by the parameters
-        for jet_type, jet_coll_name in self.jet_calib_param.collection[self.year].items():
-            
-            # check if the jet regression is requested, if not skip it
-            if self.isMC:
-                if not self.jet_calib_param.apply_pt_regr_MC[self.year][jet_type]:
-                    # If the collection is not enabled, we skip it
-                    continue    
-            else:
-                if not self.jet_calib_param.apply_pt_regr_Data[self.year][jet_type]:
-                    # If the collection is not enabled, we skip it
-                    continue
-
-            if jet_coll_name in self.jets_calibrated:
-                # If the collection is already calibrated with another jet_type, raise an error for misconfiguration
-                raise ValueError(f"Jet collection {jet_coll_name} is already calibrated with another jet type. " +
-                                 f"Current jet type: {jet_type}. Previous jet types: {self.jets_calibrated[jet_coll_name]}")
-            # Check if the JEC application is requested for this jet type: it should! 
-            # in case it is not raise an error as this jets should ne calibated after the regression
-            # Check if the collection is enables in the parameters
-            if self.isMC and self.jet_calib_param.apply_jec_MC[self.year][jet_type] == False:
-                raise ValueError(f"Jet type {jet_type} is requested to be calibrated with Pt regression" + 
-                                  " but the JEC application is not configured. Please check the parameters." +
-                                   " In case you only want to apply the JEC and not the regression, use JetsCalibrator instead.")
-            if not self.isMC and self.jet_calib_param.apply_jec_Data[self.year][jet_type] == False:
-                raise ValueError(f"Jet type {jet_type} is requested to be calibrated with Pt regression" + 
-                                  " but the JEC application is not configured. Please check the parameters." +
-                                   " In case you only want to apply the JEC and not the regression, use JetsCalibrator instead.")
-
-            self.calibrated_collections.append(jet_coll_name)
-
-            regression_params = None
-            # Get the regression parameters by collection
-            if hasattr(self.params, 'object_preselection') and hasattr(self.params.object_preselection, jet_coll_name):
-                jet_params = self.params.object_preselection[jet_coll_name]
-                if hasattr(jet_params, 'regression'):
-                    regression_params = jet_params.regression
-
-            # Apply the regression to the jets before the JEC
-            jets_regressed, reg_mask = self.apply_regression(events[jet_coll_name], jet_type, regression_params)
-
-            cache = cachetools.Cache(np.inf)
-            self.caches.append(cache)
-            self.jets_calibrated[jet_coll_name] = jet_correction(
-                params=self.params,
-                events=events,
-                jets=jets_regressed[reg_mask],  # passing the regressed jets
-                factory=self.jme_factory,
-                jet_type=jet_type,
-                chunk_metadata={
-                    "year": self.metadata["year"],
-                    "isMC": self.metadata["isMC"],
-                    "era": self.metadata["era"] if "era" in self.metadata else None,
-                },
-                cache=cache
-            )
-            
-            # Add to the list of the types calibrated
-            self.jets_calibrated_types.append(jet_type)
-
-        # Prepare the list of available variations
-        # For this we just read from the parameters
-        available_jet_variations = []
-        for jet_type in self.jet_calib_param.collection[self.year].keys():
-            if jet_type not in self.jets_calibrated_types:
-                # If the jet type is not calibrated, we skip it
-                continue
-            if jet_type in self.jet_calib_param.variations[self.year]:
-                # If the jet type has variations, we add them to the list
-                # of variations available for this calibrator
-                for variation in self.jet_calib_param.variations[self.year][jet_type]:
-                    available_jet_variations +=[
-                        f"{jet_type}_{variation}Up",
-                        f"{jet_type}_{variation}Down"
-                    ]
-                    # we want to vary independently each jet type
-        self._variations = list(sorted(set(available_jet_variations)))  # remove duplicates
-
-    def apply_regression(self, jets, jet_type, regression_params=None):
-        """
-        Apply PNet regression to jets.
-        
-        Args:
-            jets: Jets collection to apply regression on
-            
-        Returns:
-            Dictionary with calibrated jet collection # TODO: change
-        """
-        # Apply regression only to specific jet types (AK4PFPuppi, AK4PFchs)
-        # This check should ideally be done based on jet type parameter, but for now
-        # we assume it's applied to the main Jet collection
-
-        # Flatten jets for easier processing
-        j_flat, nj = ak.flatten(jets), ak.num(jets)
-
-        if "PNet" in jet_type:
-            # Use PNet regression
-            pt_raw_corr='PNetRegPtRawCorr'
-            pt_raw_corr_neutrino='PNetRegPtRawCorrNeutrino'
-            btag_b='btagPNetB'
-            btag_cvl='btagPNetCvL'
-            do_plus_neutrino = "PlusNeutrino" in jet_type
-        elif "UParTAK4" in jet_type:
-            # Use UParTAK4 regression
-            pt_raw_corr='UParTAK4RegPtRawCorr'
-            pt_raw_corr_neutrino='UParTAK4RegPtRawCorrNeutrino'
-            btag_b='btagUParTAK4B'
-            btag_cvl='btagUParTAK4CvL'
-            do_plus_neutrino = "PlusNeutrino" in jet_type
-        else:
-            raise ValueError(f"Regression algorithm {jet_type} is not supported."+
-                             " Supported algorithms are: PNet, UParTAK4.")
-
-        # Check if required fields exist
-        required_fields = ['rawFactor', pt_raw_corr, pt_raw_corr_neutrino, btag_b, btag_cvl]
-        missing_fields = [field for field in required_fields if field not in j_flat.fields]
-
-        if missing_fields:
-            # If required fields are missing, raise an error
-            raise ValueError(f"Missing required fields for regression: {', '.join(missing_fields)}. " +
-                             "Please ensure the jets collection contains the necessary fields for regression.")
-
-        # Obtain the regressed PT and Mass
-        reg_j_pt = (
-            j_flat["pt"]
-            * (1 - j_flat["rawFactor"])
-            * j_flat[pt_raw_corr]
-            * (
-                j_flat[pt_raw_corr_neutrino] if do_plus_neutrino else 1
-            )
-        )
-        reg_j_mass = (
-            j_flat["mass"]
-            * (1 - j_flat["rawFactor"])
-            * j_flat[pt_raw_corr]
-            * (
-                j_flat[pt_raw_corr_neutrino] if do_plus_neutrino else 1
-            )
-        )
-
-        if regression_params is None:
-            reg_mask = ak.ones_like(reg_j_pt, dtype=bool)
-        else:   
-            # If regression parameters are provided, we use them
-            # to select the jets to apply the regression to
-            cut_btagB=getattr(regression_params, 'cut_btagB', -1.)
-            cut_btagCvL=getattr(regression_params, 'cut_btagCvL', -1.)
-        
-            # Select which jets to apply the regression to (cuts are provided via parameter yaml)
-            reg_mask = (j_flat[btag_b] >= cut_btagB) | (j_flat[btag_cvl] >= cut_btagCvL)
-
-        # Apply regression only to jets where the regression is not 0
-        reg_mask = (reg_mask) & (j_flat[pt_raw_corr] != 0) & (j_flat[pt_raw_corr_neutrino] != 0)
-
-        # WARNING: Keeping both regressed and not regressed jets
-        # can lead to issues if the regression is applied on only
-        # part of the jets because the JEC should be applied ONLY
-        # to the jets that have the regression applied.
-        # This is why we throw away the jets that do not have the regression applied
-
-        # An alternative is to apply the regression only to the jets that have the regression applied
-        # but then the JEC would be wrong for these jets
-        # Apply regression where mask is True, keep original values otherwise
-        # new_j_pt_flat = ak.where(reg_mask, reg_j_pt, j_flat['pt'])
-        new_j_pt_flat = ak.mask(reg_j_pt, reg_mask)
-        new_j_pt = ak.unflatten(new_j_pt_flat, nj)
-
-        # new_j_mass_flat = ak.where(reg_mask, reg_j_mass, j_flat['mass'])
-        new_j_mass_flat = ak.mask(reg_j_mass, reg_mask)
-        new_j_mass = ak.unflatten(new_j_mass_flat, nj)
-
-        # Update the raw factor to 0 for the jets where regression is applied
-        # because the regressed pt is the new pt raw
-        # new_raw_factor_flat = ak.where(reg_mask, 0, j_flat['rawFactor'])
-        new_raw_factor_flat = ak.mask(ak.zeros_like(j_flat['rawFactor']), reg_mask)
-        new_raw_factor = ak.unflatten(new_raw_factor_flat, nj)
-
-        # Replace the PT and Mass variables in the original jets collection
-        reg_mask_unflatten=ak.unflatten(reg_mask, nj)
-        jets_regressed=ak.mask(jets, reg_mask_unflatten)
-        jets_regressed = ak.with_field(jets_regressed, new_j_pt, 'pt')
-        jets_regressed = ak.with_field(jets_regressed, new_j_mass, 'mass')
-        jets_regressed = ak.with_field(jets_regressed, new_raw_factor, 'rawFactor')
-
-        return jets_regressed, reg_mask_unflatten
 
 
 ###########################################
