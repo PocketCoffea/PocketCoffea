@@ -287,9 +287,9 @@ class Datacard:
     def _check_histograms(self) -> None:
         """Check if histograms are available for all processes and systematics."""
         available_variations = []
-        for systematic in self.systematics.get_systematics_by_name("shape"):
+        for systematic in self.systematics.get_systematics_by_type("shape").values():
             for shift in ("Up", "Down"):
-                available_variations.append(f"{systematic}{shift}")
+                available_variations.append(f"{systematic.name}{shift}")
 
         for process in self.mc_processes.values():
             for sample in process.samples:
@@ -431,14 +431,11 @@ class Datacard:
                             new_histogram_view[
                                 process_index, variation_index_nominal, :
                             ] += histogram[self.category, "nominal", :].view()
-                            for (
-                                syst_name,
-                                systematic,
-                            ) in self.systematics.get_systematics_by_name(
+                            for systematic in self.systematics.get_systematics_by_type(
                                 "shape"
-                            ).items():
+                            ).values():
                                 for shift in ("Up", "Down"):
-                                    variation = f"{syst_name}{shift}"
+                                    variation = f"{systematic.name}{shift}"
                                     variation_index = new_histogram.axes[
                                         "variation"
                                     ].index(f"{systematic.datacard_name}{shift}")
