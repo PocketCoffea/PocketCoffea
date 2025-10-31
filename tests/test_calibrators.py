@@ -411,7 +411,6 @@ def test_jets_calibrator(events, params):
 
 def test_jets_softdrop_mass_calibrator(events, params):
     """Test the JetsSoftdropMassCalibrator for AK8 jets softdrop mass correction"""
-    breakpoint()
     # Test requires AK8 jets to be present in events
     if "FatJet" not in events.fields:
         pytest.skip("FatJet collection not found in test events")
