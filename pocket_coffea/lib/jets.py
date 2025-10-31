@@ -679,12 +679,14 @@ def msoftdrop_correction(
     subjets = ak.flatten(subjets_jagged)
 
     # evaluate dictionary
+    # The jet area is needed only for L1 corrections, but for PUPPI jets this correction is not derived
+    # It is safe to apply L1L2L3 corrections by passing an average area of 0.5 (= π × 0.4 × 0.4) for all jets as input.
     eval_dict = {
         "JetPt": subjets.pt_raw,
         "JetEta": subjets.eta,
         "JetPhi": subjets.phi,
         "Rho": subjets.event_rho,
-        "JetA": subjets.area,
+        "JetA": 0.5 * ak.ones_like(subjets.pt_raw), # Get "dummy" area for subjets
         "run": subjets.run_nr
     }
 
