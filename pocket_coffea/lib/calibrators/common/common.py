@@ -407,34 +407,58 @@ class ElectronsScaleCalibrator(Calibrator):
     def calibrate(self, events, orig_colls, variation, already_applied_calibrators=None):
         if not self.enabled:
             return {}
-        if self.isMC:
-            if variation == "nominal" or variation not in self._variations:
-                # If the variation is nominal or not handled by this calibrator
-                # we return the original pt
-                return {"Electron.pt": self.smeared_pt["pt"]["nominal"],
-                        "Electron.pt_original": self.electrons["pt_original"],
-                        "Electron.energyErr": self.smeared_pt["energyErr"]["nominal"]}
-            elif variation == "ele_scaleUp":
-                return {"Electron.pt": self.scaled_pt["pt"]["up"],
+        if self.et_dependent:
+            if self.isMC:
+                if variation == "nominal" or variation not in self._variations:
+                    # If the variation is nominal or not handled by this calibrator
+                    # we return the original pt
+                    return {"Electron.pt": self.smeared_pt["pt"]["nominal"],
+                            "Electron.pt_original": self.electrons["pt_original"],
+                            "Electron.energyErr": self.smeared_pt["energyErr"]["nominal"]}
+                elif variation == "ele_scaleUp":
+                    return {"Electron.pt": self.scaled_pt["pt"]["up"],
+                            "Electron.pt_original": self.electrons["pt_original"],
+                            "Electron.energyErr": self.scaled_pt["energyErr"]["up"]}
+                elif variation == "ele_scaleDown":
+                    return {"Electron.pt": self.scaled_pt["pt"]["down"],
+                            "Electron.pt_original": self.electrons["pt_original"],
+                            "Electron.energyErr": self.scaled_pt["energyErr"]["down"]}
+                elif variation == "ele_smearUp":
+                    return {"Electron.pt": self.smeared_pt["pt"]["up"],
+                            "Electron.pt_original": self.electrons["pt_original"],
+                            "Electron.energyErr": self.smeared_pt["energyErr"]["up"]}
+                elif variation == "ele_smearDown":
+                    return {"Electron.pt": self.smeared_pt["pt"]["down"],
+                            "Electron.pt_original": self.electrons["pt_original"],
+                            "Electron.energyErr": self.smeared_pt["energyErr"]["down"]}
+            else:
+                # If the events are data, we do not apply smearing
+                return {"Electron.pt": self.scaled_pt["pt"]["nominal"],
                         "Electron.pt_original": self.electrons["pt_original"],
                         "Electron.energyErr": self.scaled_pt["energyErr"]["nominal"]}
-            elif variation == "ele_scaleDown":
-                return {"Electron.pt": self.scaled_pt["pt"]["down"],
-                        "Electron.pt_original": self.electrons["pt_original"],
-                        "Electron.energyErr": self.scaled_pt["energyErr"]["nominal"]}
-            elif variation == "ele_smearUp":
-                return {"Electron.pt": self.smeared_pt["pt"]["up"],
-                        "Electron.pt_original": self.electrons["pt_original"],
-                        "Electron.energyErr": self.smeared_pt["energyErr"]["up"]}
-            elif variation == "ele_smearDown":
-                return {"Electron.pt": self.smeared_pt["pt"]["down"],
-                        "Electron.pt_original": self.electrons["pt_original"],
-                        "Electron.energyErr": self.smeared_pt["energyErr"]["down"]}
-        else:
-            # If the events are data, we do not apply smearing
-            return {"Electron.pt": self.scaled_pt["pt"]["nominal"],
-                    "Electron.pt_original": self.electrons["pt_original"],
-                    "Electron.energyErr": self.scaled_pt["energyErr"]["nominal"]}
+        else:  # older, non pt dependent corrections, energyErr not available
+            if self.isMC:
+                if variation == "nominal" or variation not in self._variations:
+                    # If the variation is nominal or not handled by this calibrator
+                    # we return the original pt
+                    return {"Electron.pt": self.smeared_pt["pt"]["nominal"],
+                            "Electron.pt_original": self.electrons["pt_original"]}
+                elif variation == "ele_scaleUp":
+                    return {"Electron.pt": self.scaled_pt["pt"]["up"],
+                            "Electron.pt_original": self.electrons["pt_original"]}
+                elif variation == "ele_scaleDown":
+                    return {"Electron.pt": self.scaled_pt["pt"]["down"],
+                            "Electron.pt_original": self.electrons["pt_original"]}
+                elif variation == "ele_smearUp":
+                    return {"Electron.pt": self.smeared_pt["pt"]["up"],
+                            "Electron.pt_original": self.electrons["pt_original"]}
+                elif variation == "ele_smearDown":
+                    return {"Electron.pt": self.smeared_pt["pt"]["down"],
+                            "Electron.pt_original": self.electrons["pt_original"]}
+            else:
+                # If the events are data, we do not apply smearing
+                return {"Electron.pt": self.scaled_pt["pt"]["nominal"],
+                        "Electron.pt_original": self.electrons["pt_original"]}
 
 #####################################################
 class MuonsCalibrator(Calibrator):
