@@ -43,4 +43,7 @@ The user can customize the process from the confguration file or by redefining w
   
 - [Join](https://mattermost.web.cern.ch/cms-exp/channels/pocketcoffea---qa) the Q&A CMS Mattermost channel for technical questions
 
+## Testing 
+At the moment this repository is mirrored to the CERN GitLab:  https://gitlab.cern.ch/cms-analysis/general/PocketCoffea.
 
+Tests are running on the GitLab [CDCI](https://gitlab.cern.ch/cms-analysis/general/PocketCoffea/-/pipelines) for every commit. Docker images are created for the latest, stable branchs, and for tags, and are pushed to `/cvmfs` with the [`unpacked`](https://gitlab.cern.ch/unpacked/sync) CERN service. 
