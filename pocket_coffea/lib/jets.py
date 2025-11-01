@@ -1,4 +1,5 @@
 import gzip
+from numba import njit
 import awkward as ak
 import numpy as np
 import correctionlib
@@ -663,7 +664,7 @@ def msoftdrop_correction(
     if not ak.any(events_have_jets):
         return jets_jagged
     
-    # Check which jets have subjets and msoftdrop > 0
+    # Check which jets have subjets and msoftdrop > 0: this are the only jets that will be corrected
     has_subjets_per_jet = (ak.count(jets_jagged.subjets.pt, axis=-1) > 0) & (jets_jagged.msoftdrop > 0)
 
     # Check which events have at least one jet with subjets
@@ -678,6 +679,7 @@ def msoftdrop_correction(
     
     # Get only the valid (non-None) jets for processing
     valid_jets = jets_with_subjets[~ak.is_none(jets_with_subjets, axis=1)]
+    valid_indices = ak.local_index(jets_with_subjets, axis=1)[~ak.is_none(jets_with_subjets, axis=1)]
 
     # Only proceed if there are valid jets with subjets
     if ak.sum(ak.num(valid_jets)) == 0:
@@ -695,19 +697,12 @@ def msoftdrop_correction(
     counts_subjet = ak.num(subjets_jagged)
 
     # Create new branches for subjets to store the event and run number and the event rho
+    # and broadcast event variables to subjets
     event_variables = ["event_id", "run_nr", "rho"]
     for var in event_variables:
         if var in jets_flat.fields:
             subjets_jagged[var] = ak.ones_like(subjets_jagged.pt) * jets_flat[var]
 
-    # Broadcast rho to subjets - only for jets with subjets
-    #rho_broadcasted = ak.broadcast_arrays(rho, jets_jagged.pt)[0]
-    #rho_filtered = ak.flatten(ak.mask(rho_broadcasted, has_subjets_per_jet))
-    #rho_filtered = rho_filtered[~ak.is_none(rho_filtered)]
-    #
-    ## Create rho array for subjets
-    #rho_for_subjets = ak.ones_like(subjets_jagged.pt) * rho_filtered
-    #rho_for_subjets = ak.flatten(rho_for_subjets)
     subjets_jagged = add_jec_variables_subjet(subjets_jagged, subjets_jagged["rho"], isMC)
 
     # flatten subjet collection
@@ -773,16 +768,78 @@ def msoftdrop_correction(
     subjets_jagged_corrected = ak.unflatten(subjets, counts_subjet)
     
     # Compute corrected softdrop mass from corrected subjets
-    corrected_msoftdrop = subjets_jagged_corrected.sum(axis=-1).mass
+    # This has the shape of valid_jets (jets with subjets)
+    corrected_msoftdrop_for_valid_jets = subjets_jagged_corrected.sum(axis=-1).mass
+    
+    # Unflatten corrected msoftdrop to match the valid_jets structure
+    corrected_msoftdrop_for_valid_jets = ak.unflatten(corrected_msoftdrop_for_valid_jets, counts_valid)
+    
+    # Now we need to map this back to the original jets_jagged structure
+    # Create a masked array with the same structure as jets_jagged but with corrected values
+    # where jets have subjets, and None elsewhere
+    corrected_msoftdrop_masked = ak.copy(jets_with_subjets.msoftdrop)  # This has None for jets without subjets
 
-    # Unflatten corrected msoftdrop to match the original jets structure
-    corrected_msoftdrop = ak.unflatten(corrected_msoftdrop, counts_valid)
-    mask_isnan = np.isnan(corrected_msoftdrop)
-    valid_mask = has_subjets_per_jet[~ak.is_none(jets_with_subjets, axis=1)] & (~mask_isnan)
+    @njit
+    def replace_at_indices(a, indices, a_corrected, array_builder=ak.ArrayBuilder()):
+        """
+        Replace elements of array `a` at positions specified by `indices` 
+        with values from `a_corrected`.
+        `indices` is a jagged array where each sub-array contains the indices
+        to be replaced for the corresponding sub-array in `a`.
+        `a_corrected` is a jagged array with the same shape as `indices`,
+        containing the new values to insert.
+        The shape of `a` is different from that of `indices` and `a_corrected`,
+        but they share the same outer dimension.
+        
+        Parameters:
+        -----------
+        a : array
+            Original array to be modified
+        indices : array
+            Indices where replacements should occur
+        a_corrected : array
+            Corrected values to insert (same shape as indices)
+        
+        Returns:
+        --------
+        array : Modified copy of `a`
+        """
+        
+        # Replace values at specified indices
+        for ievt, values in enumerate(a):
+            array_values = []
+            for i in range(len(values)):
+                if i in indices[ievt]:
+                    array_values.append(a_corrected[ievt][i])
+                else:
+                    array_values.append(values[i])
+            array_builder.begin_list()
+            for val in array_values:
+                array_builder.append(val)
+            array_builder.end_list()
 
-    # Replace only valid entries in the original jets_jagged
-    new_msoftdrop = ak.copy(jets_jagged.msoftdrop)
-    new_msoftdrop = ak.where(valid_mask, corrected_msoftdrop, jets_jagged.msoftdrop)
+        return array_builder
+    
+    corrected_msoftdrop_masked = replace_at_indices(
+        ak.Array(corrected_msoftdrop_masked, behavior={}),
+        ak.Array(valid_indices, behavior={}),
+        ak.Array(corrected_msoftdrop_for_valid_jets, behavior={})
+    ).snapshot()
+    
+    # Finally, use ak.where to replace None values in the corrected softdrop mass with the original msoftdrop values
+    # None values happen when the msoftdrop mass = -1 in the NanoAOD
+    # nan values also need to be removed
+    new_msoftdrop = ak.where(
+        ak.is_none(corrected_msoftdrop_masked, axis=-1),
+        jets_jagged.msoftdrop,
+        corrected_msoftdrop_masked
+    )
+    new_msoftdrop = ak.where(
+        np.isnan(new_msoftdrop),
+        jets_jagged.msoftdrop,
+        new_msoftdrop
+    )
+    breakpoint()
     jets_jagged["msoftdrop"] = new_msoftdrop
 
     return jets_jagged
