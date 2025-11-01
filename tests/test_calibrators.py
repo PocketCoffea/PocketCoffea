@@ -13,7 +13,7 @@ from pocket_coffea.lib.calibrators.calibrators_manager import CalibratorsManager
 from pocket_coffea.parameters import defaults
 import awkward as ak
 import numpy as np
-from utils import events
+from utils import events, events_run3
 
 
 @pytest.fixture(scope="module")
@@ -409,117 +409,106 @@ def test_jets_calibrator(events, params):
             assert ak.all(sorted_jets2.pt[:, :-1] >= sorted_jets2.pt[:, 1:])
 
 
-def test_jets_softdrop_mass_calibrator(events, params):
+def test_jets_softdrop_mass_calibrator(events_run3, params):
     """Test the JetsSoftdropMassCalibrator for AK8 jets softdrop mass correction"""
     # Test requires AK8 jets to be present in events
-    if "FatJet" not in events.fields:
-        pytest.skip("FatJet collection not found in test events")
-    
-    # Check if we have jets with subjets (required for softdrop mass correction)
-    if hasattr(events.FatJet, 'subjets') and ak.any(ak.num(events.FatJet.subjets) > 0):
-        jets_with_subjets = True
-    else:
-        jets_with_subjets = False
-        print("Warning: No subjets found in FatJet collection, creating mock subjets for testing")
-    
-    # Create the calibrator
-    softdrop_calibrator = JetsSoftdropMassCalibrator(
-        params=params, 
-        metadata={"isMC": True, "year": "2018"},
-        do_variations=True
-    )
-    
-    # Store original events for comparison
-    orig_events = ak.copy(events)
-    original_msoftdrop = ak.copy(events.FatJet.msoftdrop) if "msoftdrop" in events.FatJet.fields else None
-    
-    try:
-        # Initialize the calibrator
-        softdrop_calibrator.initialize(events)
+    for year, events in events_run3.items():
+        print(f"\n=== Testing JetsSoftdropMassCalibrator for year {year} ===")
+        if "FatJet" not in events.fields:
+            pytest.skip("FatJet collection not found in test events")
         
-        print(f"Calibrator initialized successfully")
-        print(f"Available variations: {softdrop_calibrator.variations}")
-        print(f"Calibrated collections: {softdrop_calibrator.calibrated_collections}")
-        
-        # Test nominal calibration
-        out_nominal = softdrop_calibrator.calibrate(events, {}, variation="nominal")
+        # Check if we have jets with subjets (required for softdrop mass correction)
+        if hasattr(events.FatJet, 'subjets') and ak.any(ak.num(events.FatJet.subjets) > 0):
+            jets_with_subjets = True
+        else:
+            jets_with_subjets = False
+            print("Warning: No subjets found in FatJet collection, creating mock subjets for testing")
 
-        # Check that calibration produces output
-        assert isinstance(out_nominal, dict), "Calibrator should return a dictionary"
+        isMC = "genWeight" in events.fields
+
+        # Create the calibrator
+        softdrop_calibrator = JetsSoftdropMassCalibrator(
+            params=params, 
+            metadata={"isMC": isMC, "year": year},
+            do_variations=True
+        )
         
-        if "msoftdrop" in out_nominal:
-            print("✓ FatJet collection found in calibrated output")
+        # Store original events for comparison
+        orig_events = ak.copy(events)
+        original_msoftdrop = ak.copy(events.FatJet.msoftdrop) if "msoftdrop" in events.FatJet.fields else None
+
+        assert original_msoftdrop is not None, "msoftdrop field not found in FatJet collection"
+        
+        try:
+            # Initialize the calibrator
+            softdrop_calibrator.initialize(events)
             
-            # Check that msoftdrop field exists
-            if "msoftdrop" in out_nominal["FatJet"].fields:
-                print("✓ msoftdrop field found in calibrated FatJet collection")
+            print(f"Calibrator initialized successfully")
+            print(f"Available variations: {softdrop_calibrator.variations}")
+            print(f"Calibrated collections: {softdrop_calibrator.calibrated_collections}")
+            
+            # Test nominal calibration
+            out_nominal = softdrop_calibrator.calibrate(events, {}, variation="nominal")
+
+            # Check that calibration produces output
+            assert isinstance(out_nominal, dict), "Calibrator should return a dictionary"
+            assert "FatJet" in out_nominal, "FatJet collection should be in calibrated output"
+            assert "msoftdrop" in out_nominal["FatJet"].fields, "msoftdrop field should be in calibrated FatJet collection"
+
+            calibrated_msoftdrop = out_nominal["FatJet"].msoftdrop
+            
+            # Calculate and print the ratio of corrected/original
+            # Only for jets where both original and corrected values are > 0
+            valid_mask = (original_msoftdrop > 0) & (calibrated_msoftdrop > 0)
+            
+            if ak.any(valid_mask):
+                ratio = ak.where(valid_mask, calibrated_msoftdrop / original_msoftdrop, 1.0)
+                mean_ratio = ak.mean(ratio[valid_mask])
+                std_ratio = ak.std(ratio[valid_mask])
                 
-                calibrated_msoftdrop = out_nominal["FatJet"].msoftdrop
-                
-                if original_msoftdrop is not None:
-                    # Calculate and print the ratio of corrected/original
-                    # Only for jets where both original and corrected values are > 0
-                    valid_mask = (original_msoftdrop > 0) & (calibrated_msoftdrop > 0)
-                    
-                    if ak.any(valid_mask):
-                        ratio = ak.where(valid_mask, calibrated_msoftdrop / original_msoftdrop, 1.0)
-                        mean_ratio = ak.mean(ratio[valid_mask])
-                        std_ratio = ak.std(ratio[valid_mask])
-                        
-                        print(f"✓ Softdrop mass correction statistics:")
-                        print(f"  - Number of valid jets: {ak.sum(valid_mask)}")
-                        print(f"  - Mean correction ratio (corrected/original): {mean_ratio:.4f}")
-                        print(f"  - Std deviation of ratio: {std_ratio:.4f}")
-                        print(f"  - Min ratio: {ak.min(ratio[valid_mask]):.4f}")
-                        print(f"  - Max ratio: {ak.max(ratio[valid_mask]):.4f}")
-                        
-                        # Basic sanity checks
-                        assert ak.all(calibrated_msoftdrop >= 0), "Calibrated msoftdrop should be non-negative"
-                        assert not ak.all(ratio == 1.0), "Correction should have some effect"
-                    else:
-                        print("⚠ No valid jets found for ratio calculation")
-                else:
-                    print("⚠ Original msoftdrop not available for comparison")
-                    
+                print(f"✓ Softdrop mass correction statistics:")
+                print(f"  - Number of valid jets: {ak.sum(valid_mask)}")
+                print(f"  - Mean correction ratio (corrected/original): {mean_ratio:.4f}")
+                print(f"  - Std deviation of ratio: {std_ratio:.4f}")
+                print(f"  - Min ratio: {ak.min(ratio[valid_mask]):.4f}")
+                print(f"  - Max ratio: {ak.max(ratio[valid_mask]):.4f}")
             else:
-                print("⚠ msoftdrop field not found in calibrated output")
-        else:
-            print("⚠ FatJet collection not found in calibrated output")
-        
-        # Test systematic variations if available
-        if softdrop_calibrator.variations:
-            print(f"\n✓ Testing {len(softdrop_calibrator.variations)} systematic variations...")
+                print("⚠ No valid jets found for ratio calculation")
             
-            for i, variation in enumerate(softdrop_calibrator.variations[:3]):  # Test first 3 variations
-                print(f"  Testing variation: {variation}")
-                out_var = softdrop_calibrator.calibrate(events, {}, variation=variation)
+            # Test systematic variations if available
+            if softdrop_calibrator.variations:
+                print(f"\n✓ Testing {len(softdrop_calibrator.variations)} systematic variations...")
                 
-                if "FatJet" in out_var and "msoftdrop" in out_var["FatJet"].fields:
-                    var_msoftdrop = out_var["FatJet"].msoftdrop
-                    nominal_msoftdrop = out_nominal["FatJet"].msoftdrop
+                for i, variation in enumerate(softdrop_calibrator.variations[:3]):  # Test first 3 variations
+                    print(f"  Testing variation: {variation}")
+                    out_var = softdrop_calibrator.calibrate(events, {}, variation=variation)
                     
-                    # Check that variation produces different results from nominal
-                    if not ak.all(var_msoftdrop == nominal_msoftdrop):
-                        print(f"    ✓ Variation {variation} produces different results from nominal")
-                    else:
-                        print(f"    ⚠ Variation {variation} produces same results as nominal")
+                    if "FatJet" in out_var and "msoftdrop" in out_var["FatJet"].fields:
+                        var_msoftdrop = out_var["FatJet"].msoftdrop
+                        nominal_msoftdrop = out_nominal["FatJet"].msoftdrop
                         
-                    # Basic sanity check
-                    assert ak.all(var_msoftdrop >= 0), f"Variation {variation} should produce non-negative msoftdrop"
-        else:
-            print("ℹ No systematic variations available to test")
+                        # Check that variation produces different results from nominal
+                        if not ak.all(var_msoftdrop == nominal_msoftdrop):
+                            print(f"    ✓ Variation {variation} produces different results from nominal")
+                        else:
+                            print(f"    ⚠ Variation {variation} produces same results as nominal")
+                            
+                        # Basic sanity check
+                        assert ak.all(var_msoftdrop >= 0), f"Variation {variation} should produce non-negative msoftdrop"
+            else:
+                print("⚠ No systematic variations available to test")
+                
+            print("\n✓ JetsSoftdropMassCalibrator test completed successfully!")
             
-        print("\n✓ JetsSoftdropMassCalibrator test completed successfully!")
-        
-    except Exception as e:
-        print(f"\n✗ Error in JetsSoftdropMassCalibrator test: {str(e)}")
-        # Print more details for debugging
-        print(f"Available FatJet fields: {list(events.FatJet.fields) if 'FatJet' in events.fields else 'No FatJet'}")
-        if "FatJet" in events.fields and hasattr(events.FatJet, 'subjets'):
-            print(f"FatJet has subjets: True")
-            print(f"Number of jets with subjets: {ak.sum(ak.num(events.FatJet.subjets) > 0)}")
-        else:
-            print(f"FatJet has subjets: False")
-        
-        # Re-raise the exception for pytest
-        raise
+        except Exception as e:
+            print(f"\n✗ Error in JetsSoftdropMassCalibrator test: {str(e)}")
+            # Print more details for debugging
+            print(f"Available FatJet fields: {list(events.FatJet.fields) if 'FatJet' in events.fields else 'No FatJet'}")
+            if "FatJet" in events.fields and hasattr(events.FatJet, 'subjets'):
+                print(f"FatJet has subjets: True")
+                print(f"Number of jets with subjets: {ak.sum(ak.count(events.FatJet.subjets.pt, axis=-1) > 0)}")
+            else:
+                print(f"FatJet has subjets: False")
+            
+            # Re-raise the exception for pytest
+            raise

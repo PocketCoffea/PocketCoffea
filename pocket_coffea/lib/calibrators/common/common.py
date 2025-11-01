@@ -447,21 +447,34 @@ class JetsSoftdropMassCalibrator(Calibrator):
         # Prepare the list of available variations
         # For this we just read from the parameters
         available_jet_variations = []
-        for jet_type in self.jet_calib_param.collection[self.year].keys():
-            if jet_type not in self.jets_calibrated_types:
-                # If the jet type is not calibrated, we skip it
-                continue
-            if jet_type in self.jet_calib_param.variations:
-                if self.year not in self.jet_calib_param.variations[jet_type]:
-                    continue
-                # If the jet type has variations, we add them to the list
-                # of variations available for this calibrator
-                for variation in self.jet_calib_param.variations[jet_type][self.year]:
-                    available_jet_variations +=[
-                        f"{jet_type}_{variation}Up",
-                        f"{jet_type}_{variation}Down"
-                    ]
-                    # we want to vary independently each jet type
+
+        # N.B.: JES variations are not yet implemented for msoftdrop
+        #for jet_type in self.jet_calib_param.collection[self.year].keys():
+        #    if jet_type in ["AK8PFPuppi"]:
+        #        # Define the subjet type for the correction of subjets
+        #        if self.year in ["2016_preVFP", "2016_postVFP", "2017", "2018"]:
+        #            subjet_type = "AK4PFchs"
+        #        else:
+        #            subjet_type = "AK4PFPuppi"
+        #    else:
+        #        continue
+        #    if subjet_type not in self.jets_calibrated_types:
+        #        # If the jet type is not calibrated, we skip it
+        #        continue
+        #    if subjet_type in self.jet_calib_param.variations:
+        #        if self.year not in self.jet_calib_param.variations[jet_type]:
+        #            continue
+        #        # If the jet type has variations, we add them to the list
+        #        # of variations available for this calibrator
+        #        for variation in self.jet_calib_param.variations[jet_type][self.year]:
+        #            if "JER" in variation:
+        #                # Softdrop mass variations do not include JER variations
+        #                continue
+        #            available_jet_variations +=[
+        #                f"{subjet_type}_{variation}Up",
+        #                f"{subjet_type}_{variation}Down"
+        #            ]
+        #            # we want to vary independently each jet type
         self._variations = list(sorted(set(available_jet_variations)))  # remove duplicates
 
 
@@ -470,6 +483,8 @@ class JetsSoftdropMassCalibrator(Calibrator):
         # We just need to apply the corrections to the events
         out = {}
         for jet_coll_name, jets in self.jets_calibrated.items():
+            if not jet_coll_name == "FatJet":
+                continue
             # Creating a soft copy of the jets to avoid modifying the original one 
             # stored in the calibrator when replaing the pt correctly
             # N.B: we don't just replace the pt and mass in the jets from events

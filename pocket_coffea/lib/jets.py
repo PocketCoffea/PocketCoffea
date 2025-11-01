@@ -839,7 +839,41 @@ def msoftdrop_correction(
         jets_jagged.msoftdrop,
         new_msoftdrop
     )
-    breakpoint()
     jets_jagged["msoftdrop"] = new_msoftdrop
+
+    # N.B.: to be tested yet: JES variations on msoftdrop
+    #if jes_syst:
+    #    for jes_vari in jes_strings:
+    #        for shift in ["up", "down"]:
+    #            subjets_jagged_corrected_varied = ak.zip({
+    #                "pt": subjets_jagged_corrected[f"pt_JES_{jes_vari}_{shift}"],
+    #                "mass": subjets_jagged_corrected[f"mass_JES_{jes_vari}_{shift}"],
+    #                "eta": subjets_jagged_corrected.eta,
+    #                "phi": subjets_jagged_corrected.phi,
+    #                "charge": ak.zeros_like(subjets_jagged_corrected.pt)
+    #            }, with_name="PtEtaPhiMCandidate")
+    #            corrected_msoftdrop_for_valid_jets = subjets_jagged_corrected_varied.sum(axis=-1).mass
+    #            corrected_msoftdrop_for_valid_jets = ak.unflatten(corrected_msoftdrop_for_valid_jets, counts_valid)                
+    #            corrected_msoftdrop_masked = ak.copy(jets_with_subjets.msoftdrop)  # This has None for jets without subjets
+    #            corrected_msoftdrop_masked = replace_at_indices(
+    #                ak.Array(corrected_msoftdrop_masked, behavior={}),
+    #                ak.Array(valid_indices, behavior={}),
+    #                ak.Array(corrected_msoftdrop_for_valid_jets, behavior={})
+    #            ).snapshot()
+    #            
+    #            # Finally, use ak.where to replace None values in the corrected softdrop mass with the original msoftdrop values
+    #            # None values happen when the msoftdrop mass = -1 in the NanoAOD
+    #            # nan values also need to be removed
+    #            new_msoftdrop = ak.where(
+    #                ak.is_none(corrected_msoftdrop_masked, axis=-1),
+    #                jets_jagged.msoftdrop,
+    #                corrected_msoftdrop_masked
+    #            )
+    #            new_msoftdrop = ak.where(
+    #                np.isnan(new_msoftdrop),
+    #                jets_jagged.msoftdrop,
+    #                new_msoftdrop
+    #            )
+    #            jets_jagged[f"msoftdrop_JES_{jes_vari}_{shift}"] = new_msoftdrop
 
     return jets_jagged
