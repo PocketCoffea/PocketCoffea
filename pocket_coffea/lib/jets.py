@@ -601,7 +601,6 @@ def msoftdrop_correction(
     subjet_type,
     jet_coll_name,
     chunk_metadata,
-    apply_jer=True,
     jec_syst=True,
 ):
     """Apply softdrop mass correction to large-radius jets (FatJet) using correctionlib.
@@ -616,10 +615,8 @@ def msoftdrop_correction(
     era = chunk_metadata["era"]
 
     json_path = calib_params["json_path"]
-    jer_tag = None
     if isMC:
         jec_tag = calib_params['jec_mc'] 
-        jer_tag = calib_params['jer']
     else:
         if type(calib_params['jec_data'])==str:
             jec_tag = calib_params['jec_data']
@@ -630,14 +627,10 @@ def msoftdrop_correction(
 
     # no jer and variations applied on data
     apply_jes = True
-    jes_syst = jer_syst = False
+    jes_syst = False
     if isMC:
         if jec_syst:
             jes_syst = True
-            if "JER" in variations:
-                jer_syst = True
-    else:
-        apply_jer = False
 
     tag_jec = "_".join([jec_tag, level, subjet_type])
 
@@ -645,35 +638,77 @@ def msoftdrop_correction(
     cset = correctionlib.CorrectionSet.from_file(json_path)
 
     # prepare inputs
-    # no need of copies
     jets_jagged = events[jet_coll_name]
     counts = ak.num(jets_jagged)
 
-    # get event id and run number for jer
-    event_id = ak.ones_like(jets_jagged.subjets.pt) * events.event
-    event_run = ak.ones_like(jets_jagged.subjets.pt) * events.run
+    # Create new branch for jets to store the event and run number
+    jets_jagged["event_id"] = ak.ones_like(jets_jagged.pt) * events.event
+    jets_jagged["run_nr"] = ak.ones_like(jets_jagged.pt) * events.run
 
-    # flatten jet collection
-    jets = ak.flatten(jets_jagged)
-
-    # get subjets
-    subjets_jagged = jets.subjets
-    counts_subjet = ak.num(subjets_jagged)
-
-    if ("event_id" not in subjets_jagged.fields) and (apply_jer or jer_syst):
-        subjets_jagged["event_id"] = ak.ones_like(subjets_jagged.pt) * ak.flatten(event_id)
-        
-    if ("run_nr" not in subjets_jagged.fields):
-        subjets_jagged["run_nr"] = ak.ones_like(subjets_jagged.pt) * ak.flatten(event_run)
     if year in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
         rho = events.fixedGridRhoFastjetAll
     else:
         rho = events.Rho.fixedGridRhoFastjetAll
+    
+    jets_jagged["rho"] = ak.ones_like(jets_jagged.pt) * rho
 
-    # Broadcast rho to subjets
-    rho = ak.ones_like(jets_jagged.subjets.pt) * rho
-    rho = ak.flatten(rho)
-    subjets_jagged = add_jec_variables_subjet(subjets_jagged, rho, isMC)
+    # Early return if no jets in any event
+    if ak.sum(counts) == 0:
+        return jets_jagged
+    
+    # Create mask for events that have jets
+    events_have_jets = counts > 0
+    
+    # Only process events that have jets
+    if not ak.any(events_have_jets):
+        return jets_jagged
+    
+    # Check which jets have subjets and msoftdrop > 0
+    has_subjets_per_jet = (ak.count(jets_jagged.subjets.pt, axis=-1) > 0) & (jets_jagged.msoftdrop > 0)
+
+    # Check which events have at least one jet with subjets
+    events_have_jets_with_subjets = ak.any(has_subjets_per_jet, axis=1) & events_have_jets
+    
+    if not ak.any(events_have_jets_with_subjets):
+        return jets_jagged
+    
+    # Only process subjets from jets that actually have them
+    # Use ak.mask to filter out jets without subjets, avoiding None values
+    jets_with_subjets = ak.mask(jets_jagged, has_subjets_per_jet)
+    
+    # Get only the valid (non-None) jets for processing
+    valid_jets = jets_with_subjets[~ak.is_none(jets_with_subjets, axis=1)]
+
+    # Only proceed if there are valid jets with subjets
+    if ak.sum(ak.num(valid_jets)) == 0:
+        return jets_jagged
+    
+    # flatten jet collection (only jets with subjets)
+    jets_flat = ak.flatten(valid_jets)
+    counts_valid = ak.num(valid_jets)
+    
+    # get subjets from valid jets only
+    subjets_jagged = jets_flat.subjets
+    # mask None subjets (in case some jets have no subjets)
+    subjets_jagged = subjets_jagged[~ak.is_none(subjets_jagged, axis=1)]
+    # get counts before flattening subjets
+    counts_subjet = ak.num(subjets_jagged)
+
+    # Create new branches for subjets to store the event and run number and the event rho
+    event_variables = ["event_id", "run_nr", "rho"]
+    for var in event_variables:
+        if var in jets_flat.fields:
+            subjets_jagged[var] = ak.ones_like(subjets_jagged.pt) * jets_flat[var]
+
+    # Broadcast rho to subjets - only for jets with subjets
+    #rho_broadcasted = ak.broadcast_arrays(rho, jets_jagged.pt)[0]
+    #rho_filtered = ak.flatten(ak.mask(rho_broadcasted, has_subjets_per_jet))
+    #rho_filtered = rho_filtered[~ak.is_none(rho_filtered)]
+    #
+    ## Create rho array for subjets
+    #rho_for_subjets = ak.ones_like(subjets_jagged.pt) * rho_filtered
+    #rho_for_subjets = ak.flatten(rho_for_subjets)
+    subjets_jagged = add_jec_variables_subjet(subjets_jagged, subjets_jagged["rho"], isMC)
 
     # flatten subjet collection
     subjets = ak.flatten(subjets_jagged)
@@ -733,8 +768,21 @@ def msoftdrop_correction(
             subjets[f"pt_JES_{jes_vari}_down"] = subjets.pt * corr_down_variation
             subjets[f"mass_JES_{jes_vari}_up"] = subjets.mass * corr_up_variation
             subjets[f"mass_JES_{jes_vari}_down"] = subjets.mass * corr_down_variation
-    subjets_jagged = ak.unflatten(subjets, counts_subjet)
-    # Update softdrop mass with invariant mass sum of calibrated subjets
-    jets["msoftdrop"] = ak.sum(subjets_jagged, axis=-1).mass
-    jets_jagged = ak.unflatten(jets, counts)
+    
+    # Reconstruct subjets back to jagged array
+    subjets_jagged_corrected = ak.unflatten(subjets, counts_subjet)
+    
+    # Compute corrected softdrop mass from corrected subjets
+    corrected_msoftdrop = subjets_jagged_corrected.sum(axis=-1).mass
+
+    # Unflatten corrected msoftdrop to match the original jets structure
+    corrected_msoftdrop = ak.unflatten(corrected_msoftdrop, counts_valid)
+    mask_isnan = np.isnan(corrected_msoftdrop)
+    valid_mask = has_subjets_per_jet[~ak.is_none(jets_with_subjets, axis=1)] & (~mask_isnan)
+
+    # Replace only valid entries in the original jets_jagged
+    new_msoftdrop = ak.copy(jets_jagged.msoftdrop)
+    new_msoftdrop = ak.where(valid_mask, corrected_msoftdrop, jets_jagged.msoftdrop)
+    jets_jagged["msoftdrop"] = new_msoftdrop
+
     return jets_jagged
