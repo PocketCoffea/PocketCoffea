@@ -810,7 +810,13 @@ def msoftdrop_correction(
             array_values = []
             for i in range(len(values)):
                 if i in indices[ievt]:
-                    array_values.append(a_corrected[ievt][i])
+                    # Find the position of i in indices[ievt]
+                    idx_pos = -1
+                    for j in range(len(indices[ievt])):
+                        if indices[ievt][j] == i:
+                            idx_pos = j
+                            break
+                    array_values.append(a_corrected[ievt][idx_pos])
                 else:
                     array_values.append(values[i])
             array_builder.begin_list()
