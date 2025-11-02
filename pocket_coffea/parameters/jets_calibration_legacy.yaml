@@ -653,6 +653,7 @@ default_jets_calibration:
 # The user can build it from the default factory configurations above
 
 jets_calibration:
+  legacy_txt_calibration: true
   factory_file: "./jets_calibrator_JES_JER_Syst.pkl.gz"
   jet_types:
     MC: 
