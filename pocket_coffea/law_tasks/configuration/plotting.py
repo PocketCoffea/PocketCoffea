@@ -31,6 +31,16 @@ class plottingconfig(luigi.Config):
         description="Output format of the plots", default="pdf"
     )
     variables = law.CSVParameter(description="List of variables to plot", default=())
+    no_ratio = luigi.BoolParameter(
+        default=False, description="Do not plot the ratio subplot"
+    )
+    compare = luigi.BoolParameter(
+        default=False,
+        description="If true, compare shapes of different samples instead of data/MC",
+    )
+    density = luigi.BoolParameter(
+        default=False, description="If true, normalize histograms"
+    )
 
 
 class plottingsystematicsconfig(luigi.Config):
