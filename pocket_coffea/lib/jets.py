@@ -1,11 +1,11 @@
 import gzip
 import cloudpickle
-from numba import njit
 import awkward as ak
 import numpy as np
 import correctionlib
 from coffea.jetmet_tools import  CorrectedMETFactory
 from correctionlib.schemav2 import Correction, CorrectionSet
+from pocket_coffea.utils.utils import replace_at_indices
 
 
 def add_jec_variables(jets, event_rho, isMC=True):
@@ -792,57 +792,11 @@ def msoftdrop_correction(
     # where jets have subjets, and None elsewhere
     corrected_msoftdrop_masked = ak.copy(jets_with_subjets.msoftdrop)  # This has None for jets without subjets
 
-    @njit
-    def replace_at_indices(a, indices, a_corrected, array_builder=ak.ArrayBuilder()):
-        """
-        Replace elements of array `a` at positions specified by `indices` 
-        with values from `a_corrected`.
-        `indices` is a jagged array where each sub-array contains the indices
-        to be replaced for the corresponding sub-array in `a`.
-        `a_corrected` is a jagged array with the same shape as `indices`,
-        containing the new values to insert.
-        The shape of `a` is different from that of `indices` and `a_corrected`,
-        but they share the same outer dimension.
-        
-        Parameters:
-        -----------
-        a : array
-            Original array to be modified
-        indices : array
-            Indices where replacements should occur
-        a_corrected : array
-            Corrected values to insert (same shape as indices)
-        
-        Returns:
-        --------
-        array : Modified copy of `a`
-        """
-        
-        # Replace values at specified indices
-        for ievt, values in enumerate(a):
-            array_values = []
-            for i in range(len(values)):
-                if i in indices[ievt]:
-                    # Find the position of i in indices[ievt]
-                    idx_pos = -1
-                    for j in range(len(indices[ievt])):
-                        if indices[ievt][j] == i:
-                            idx_pos = j
-                            break
-                    array_values.append(a_corrected[ievt][idx_pos])
-                else:
-                    array_values.append(values[i])
-            array_builder.begin_list()
-            for val in array_values:
-                array_builder.append(val)
-            array_builder.end_list()
-
-        return array_builder
-    
     corrected_msoftdrop_masked = replace_at_indices(
         ak.Array(corrected_msoftdrop_masked, behavior={}),
         ak.Array(valid_indices, behavior={}),
-        ak.Array(corrected_msoftdrop_for_valid_jets, behavior={})
+        ak.Array(corrected_msoftdrop_for_valid_jets, behavior={}),
+        array_builder=ak.ArrayBuilder()
     ).snapshot()
     
     # Finally, use ak.where to replace None values in the corrected softdrop mass with the original msoftdrop values

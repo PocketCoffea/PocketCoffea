@@ -8,6 +8,8 @@ import pathlib
 import shutil
 from .configurator import Configurator
 import hashlib
+from numba import njit
+import awkward as ak
 
 @contextmanager
 def add_to_path(p):
@@ -121,3 +123,55 @@ def dump_ak_array(
         assert os.path.isfile(destination)
     pathlib.Path(local_file).unlink()
 
+@njit
+def replace_at_indices(a, indices, a_corrected, array_builder):
+    """
+    Replace elements of array `a` at positions specified by `indices` 
+    with values from `a_corrected`.
+    `indices` is a jagged array where each sub-array contains the indices
+    to be replaced for the corresponding sub-array in `a`.
+    `a_corrected` is a jagged array with the same shape as `indices`,
+    containing the new values to insert.
+    The shape of `a` is different from that of `indices` and `a_corrected`,
+    but they share the same outer dimension.
+    
+    Parameters:
+    -----------
+    a : array
+        Original array to be modified
+    indices : array
+        Indices where replacements should occur
+    a_corrected : array
+        Corrected values to insert (same shape as indices)
+    array_builder : ak.ArrayBuilder, optional
+        ArrayBuilder to use. If None, a new one is created.
+    
+    Returns:
+    --------
+    array : Modified copy of `a`
+    """
+    
+    # Create a new ArrayBuilder for each call to avoid accumulation
+    if array_builder is None:
+        raise ValueError("array_builder must be provided and cannot be None.")
+    
+    # Replace values at specified indices
+    for ievt, values in enumerate(a):
+        array_values = []
+        for i in range(len(values)):
+            if i in indices[ievt]:
+                # Find the position of i in indices[ievt]
+                idx_pos = -1
+                for j in range(len(indices[ievt])):
+                    if indices[ievt][j] == i:
+                        idx_pos = j
+                        break
+                array_values.append(a_corrected[ievt][idx_pos])
+            else:
+                array_values.append(values[i])
+        array_builder.begin_list()
+        for val in array_values:
+            array_builder.append(val)
+        array_builder.end_list()
+
+    return array_builder
