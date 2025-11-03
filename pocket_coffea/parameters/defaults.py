@@ -93,7 +93,7 @@ def get_default_parameters(group_tags: dict = None) -> OmegaConf:
 
     # Loading the cvmfs resolver
     setup_cvmfs_resolver(group_tags)
-
+    nano_version = OmegaConf.load(os.path.join(basedir, "nano_version.yaml"))
     pileup = OmegaConf.load(os.path.join(basedir, 'pileup.yaml'))
     event_flags = OmegaConf.load(os.path.join(basedir, 'event_flags.yaml'))
     lumi = OmegaConf.load(os.path.join(basedir, 'lumi.yaml'))
@@ -110,6 +110,7 @@ def get_default_parameters(group_tags: dict = None) -> OmegaConf:
     plotting_style = OmegaConf.load(os.path.join(basedir, 'plotting_style.yaml'))
 
     all = OmegaConf.merge(
+        nano_version,
         pileup,
         event_flags,
         lumi,

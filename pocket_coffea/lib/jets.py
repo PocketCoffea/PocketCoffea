@@ -70,15 +70,13 @@ def met_xy_correction(params, events, METcol,  year, era):
 
 
 def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tagger=""):
-
     jets = events[jet_type]
     cuts = params.object_preselection[jet_type]
 
     # For nanoV15 no jetId key in Nano anymore. 
     # For nanoV12 (i.e. 22/23), jet Id is also buggy, should therefore be rederived
     # in the following, if nano_version not explicitly specified in params, v9 is assumed for Run2UL, v12 for 22/23 and v15 for 2024
-    jets["jetId_corrected"] = add_jetId(events, jet_type, params, year)
-    print(jets.jetId_corrected >= cuts["jetId"])
+    jets["jetId_corrected"] = compute_jetId(events, jet_type, params, year)
 
     # Mask for  jets not passing the preselection
     mask_presel = (
@@ -151,20 +149,19 @@ def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tag
 
     return jets[mask_good_jets], mask_good_jets
 
-def add_jetId(events, jet_type, params, year):
+def compute_jetId(events, jet_type, params, year):
     """
     Add (or recompute) jet ID to the jets object based on the NanoAOD version.
     Inspired by https://gitlab.cern.ch/cms-analysis/general/HiggsDNA/-/blob/master/higgs_dna/tools/jetID.py
     """
     jets = events[jet_type]
     try:
-        nano_version = params["nano_version"]
+        if nano_version := events.metadata.get("nano_version", None) is None:
+            nano_version = params["default_nano_version"][year]
     except:
-        nano_version = 9
-        if year in ["2022_preEE", "2022_postEE", "2023_preBPix", "2023_postBPix"]: nano_version = 12
-        elif year in ["2024"]: nano_version = 15
+        raise Exception("Please specify the `nano_version` in the file metadata or the default nano version in the parameters under `default_nano_version` key.")
+    
     abs_eta = abs(jets.eta)
-
     # Return the existing jetId for NanoAOD versions below 12
     if nano_version < 12:
         return jets.jetId
@@ -189,20 +186,14 @@ def add_jetId(events, jet_type, params, year):
             passJetIdTight & (jets.muEF < 0.8) & (jets.chEmEF < 0.8),  # add lepton veto for abs_eta <= 2.7
             passJetIdTight  # No lepton veto for 2.7 < abs_eta
         )
-
         return (passJetIdTight * (1 << 1)) | (passJetIdTightLepVeto * (1 << 2))
 
-    else:
+
+    elif nano_version >= 15:
         # Example code: https://gitlab.cern.ch/cms-nanoAOD/jsonpog-integration/-/blob/master/examples/jetidExample.py?ref_type=heads
         # Load CorrectionSet
-        jsonFiles = {
-            "2022_preEE": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2022_Summer22/jetid.json.gz",
-            "2022_postEE": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2022_Summer22EE/jetid.json.gz",
-            "2023_preBPix": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2023_Summer23/jetid.json.gz",
-            "2023_postBPix": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2023_Summer23BPix/jetid.json.gz",
-            "2024": "/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2024_Summer24/jetid.json.gz",
-        }
-        cset = correctionlib.CorrectionSet.from_file(jsonFiles[year])
+        jsonFile = params.jet_scale_factors.jet_id[year]
+        cset = correctionlib.CorrectionSet.from_file(jsonFile)
 
         counts = ak.num(jets)
         jets = ak.flatten(jets, axis=1)
@@ -227,7 +218,7 @@ def add_jetId(events, jet_type, params, year):
         jet_algo = jet_algo.replace("PF", "").upper()
     
         if jet_algo+"_Tight" not in list(cset.keys()):
-            raise Exception(f"No correction for jet collection {jet_algo} defined in correctionlib file {jsonFiles[year]}")
+            raise Exception(f"No correction for jet collection {jet_algo} defined in correctionlib file {jsonFile}")
         idTight = cset[jet_algo+"_Tight"]
         inputsTight = [eval_dict[input.name] for input in idTight.inputs]
         idTight_value = idTight.evaluate(*inputsTight) * 2  # equivalent to bit2
@@ -242,96 +233,6 @@ def add_jetId(events, jet_type, params, year):
 
         return ak.unflatten(id_value, counts)
 
-def jet_selection_nanoaodv12(events, jet_type, params, year, leptons_collection="", jet_tagger=""):
-
-    jets = events[jet_type]
-    cuts = params.object_preselection[jet_type]
-
-    # Bug fix for NanoAOD v12 https://gitlab.cern.ch/cms-jetmet/coordination/coordination/-/issues/117
-    
-    mask_presel = (
-        (jets.pt > cuts["pt"])
-        & (np.abs(jets.eta) < cuts["eta"])
-    )
-        
-    if cuts["jetId"] == 6:
-        passJetIdTight = ak.zeros_like(jets.pt, dtype=bool)
-        passJetIdTightLepVeto = ak.zeros_like(jets.pt, dtype=bool)
-        
-        passJetIdTight = ak.where((np.abs(jets.eta) <= 2.7), (jets.jetId & (1 << 1))>0, passJetIdTight)
-        passJetIdTight = ak.where((np.abs(jets.eta) > 2.7) & (np.abs(jets.eta) <= 3.0), ((jets.jetId & (1 << 1))>0 & (jets.neHEF < 0.99)), passJetIdTight)
-        passJetIdTight = ak.where((np.abs(jets.eta) > 3.0), ((jets.jetId & (1 << 1))>0 & (jets.neEmEF < 0.4)), passJetIdTight)
-        passJetIdTightLepVeto = ak.where((np.abs(jets.eta) <= 2.7), (passJetIdTight & (jets.muEF < 0.8) & (jets.chEmEF < 0.8)),passJetIdTight)
-    
-    # Only jets that are more distant than dr to ALL leptons are tagged as good jets
-    # Mask for  jets not passing the preselection
-    
-    # Lepton cleaning
-    if leptons_collection != "":
-        dR_jets_lep = jets.metric_table(events[leptons_collection])
-        mask_lepton_cleaning = ak.prod(dR_jets_lep > cuts["dr_lepton"], axis=2) == 1
-    else:
-        mask_lepton_cleaning = True
-
-    if jet_type == "Jet":
-        # Selection on PUid. Only available in Run2 UL, thus we need to determine which sample we run over;
-        if year in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
-            mask_jetpuid = (jets.puId >= params.jet_scale_factors.jet_puId[year]["working_point"][cuts["puId"]["wp"]]) | (
-                jets.pt >= cuts["puId"]["maxpt"]
-            )
-        else:
-            mask_jetpuid = True        
-        
-        if cuts["jetId"] == 6:
-            mask_good_jets = mask_presel & mask_lepton_cleaning & mask_jetpuid & passJetIdTightLepVeto
-        else:
-            mask_good_jets = mask_presel & mask_lepton_cleaning & mask_jetpuid 
-
-        if jet_tagger != "":
-            if "PNet" in jet_tagger:
-                B   = "btagPNetB"
-                CvL = "btagPNetCvL"
-                CvB = "btagPNetCvB"
-            elif "DeepFlav" in jet_tagger:
-                B   = "btagDeepFlavB"
-                CvL = "btagDeepFlavCvL"
-                CvB = "btagDeepFlavCvB"
-            elif "RobustParT" in jet_tagger:
-                B   = "btagRobustParTAK4B"
-                CvL = "btagRobustParTAK4CvL"
-                CvB = "btagRobustParTAK4CvB"
-            else:
-                raise NotImplementedError(f"This tagger is not implemented: {jet_tagger}")
-            
-            if B not in jets.fields or CvL not in jets.fields or CvB not in jets.fields:
-                raise NotImplementedError(f"{B}, {CvL}, and/or {CvB} are not available in the input.")
-
-            jets["btagB"] = jets[B]
-            jets["btagCvL"] = jets[CvL]
-            jets["btagCvB"] = jets[CvB]
-
-    elif jet_type == "FatJet":
-        # Apply the msd and preselection cuts
-        mask_msd = events.FatJet.msoftdrop > cuts["msd"]
-        mask_good_jets = mask_presel & mask_msd
-
-        if jet_tagger != "":
-            if "PNetMD" in jet_tagger:
-                BB   = "particleNet_XbbVsQCD"
-                CC   = "particleNet_XccVsQCD"
-            elif "PNet" in jet_tagger:
-                BB   = "particleNetWithMass_HbbvsQCD"
-                CC   = "particleNetWithMass_HccvsQCD"
-            else:
-                raise NotImplementedError(f"This tagger is not implemented: {jet_tagger}")
-            
-            if BB not in jets.fields or CC not in jets.fields:
-                raise NotImplementedError(f"{BB} and/or {CC} are not available in the input.")
-
-            jets["btagBB"] = jets[BB]
-            jets["btagCC"] = jets[CC]
-
-    return jets[mask_good_jets], mask_good_jets
 
 def btagging(Jet, btag, wp, veto=False):
     if veto:
