@@ -16,7 +16,7 @@ from coffea.util import save
 from coffea import processor
 
 from pocket_coffea.utils.configurator import Configurator
-from pocket_coffea.utils.utils import load_config, path_import, adapt_chunksize, save_failed_jobs, load_failed_jobs
+from pocket_coffea.utils.utils import load_config, path_import, adapt_chunksize, save_failed_jobs, load_failed_jobs, FAILED_JOBS_FILENAME
 from pocket_coffea.utils.logging import setup_logging, try_and_log_error
 from pocket_coffea.utils.run import get_runner
 from pocket_coffea.utils.time import wait_until
@@ -364,7 +364,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         # Save the list of failed jobs
         if len(failed_jobs_list) > 0:
             save_failed_jobs(failed_jobs_list, outputdir)
-            logging.warning(f"{len(failed_jobs_list)} job(s) failed. Failed jobs saved to {os.path.join(outputdir, 'failed_jobs.json')}")
+            logging.warning(f"{len(failed_jobs_list)} job(s) failed. Failed jobs saved to {os.path.join(outputdir, FAILED_JOBS_FILENAME)}")
         else:
             logging.info("All jobs completed successfully.")
 

@@ -193,9 +193,13 @@ def save_failed_jobs(failed_jobs_list, outputdir):
         Output directory where the failed_jobs.json file will be saved
     """
     failed_jobs_file = os.path.join(outputdir, FAILED_JOBS_FILENAME)
-    with open(failed_jobs_file, 'w') as f:
-        json.dump(failed_jobs_list, f, indent=2)
-    logging.info(f"Failed jobs saved to {failed_jobs_file}")
+    try:
+        with open(failed_jobs_file, 'w') as f:
+            json.dump(failed_jobs_list, f, indent=2)
+        logging.info(f"Failed jobs saved to {failed_jobs_file}")
+    except (IOError, OSError) as e:
+        logging.error(f"Failed to save failed jobs to {failed_jobs_file}: {e}")
+        raise
 
 def load_failed_jobs(outputdir):
     """
@@ -215,7 +219,14 @@ def load_failed_jobs(outputdir):
     if not os.path.exists(failed_jobs_file):
         return None
     
-    with open(failed_jobs_file, 'r') as f:
-        failed_jobs_list = json.load(f)
-    logging.info(f"Loaded {len(failed_jobs_list)} failed jobs from {failed_jobs_file}")
-    return failed_jobs_list
+    try:
+        with open(failed_jobs_file, 'r') as f:
+            failed_jobs_list = json.load(f)
+        logging.info(f"Loaded {len(failed_jobs_list)} failed jobs from {failed_jobs_file}")
+        return failed_jobs_list
+    except (IOError, OSError) as e:
+        logging.error(f"Failed to read failed jobs file {failed_jobs_file}: {e}")
+        raise
+    except json.JSONDecodeError as e:
+        logging.error(f"Failed to parse failed jobs file {failed_jobs_file}: {e}")
+        raise
