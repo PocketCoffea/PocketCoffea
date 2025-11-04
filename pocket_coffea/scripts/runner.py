@@ -55,6 +55,9 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         outputdir, "output_{}.coffea"
     )
     logfile = os.path.join(outputdir, "logfile.log")
+    
+    # Store loaded failed jobs for reuse
+    failed_jobs_to_resubmit = None
     # Prepare logging
     if (not setup_logging(console_log_output="stdout", console_log_level=loglevel, console_log_color=True,
                         logfile_file=logfile, logfile_log_level="info", logfile_log_color=False,
@@ -221,16 +224,16 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
             logging.error("The --resubmit-failed option requires --process-separately to be set")
             exit(1)
         
-        failed_jobs = load_failed_jobs(outputdir)
-        if failed_jobs is None:
+        failed_jobs_to_resubmit = load_failed_jobs(outputdir)
+        if failed_jobs_to_resubmit is None:
             logging.error(f"No failed_jobs.json file found in {outputdir}. Cannot resubmit failed jobs.")
             exit(1)
         
-        if len(failed_jobs) == 0:
+        if len(failed_jobs_to_resubmit) == 0:
             logging.info("No failed jobs to resubmit.")
             exit(0)
         
-        logging.info(f"Resubmitting {len(failed_jobs)} failed jobs: {failed_jobs}")
+        logging.info(f"Resubmitting {len(failed_jobs_to_resubmit)} failed jobs: {failed_jobs_to_resubmit}")
         # Note: we will filter filesets_groups later after groups are constructed
         # since failed jobs refer to group names, not individual dataset names
 
@@ -307,8 +310,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
 
         # Filter filesets_groups if resubmitting failed jobs
         if resubmit_failed:
-            failed_jobs = load_failed_jobs(outputdir)
-            filesets_groups = {group_name: fileset_ for group_name, fileset_ in filesets_groups.items() if group_name in failed_jobs}
+            filesets_groups = {group_name: fileset_ for group_name, fileset_ in filesets_groups.items() if group_name in failed_jobs_to_resubmit}
             logging.info(f"Filtered to {len(filesets_groups)} groups/datasets for resubmission")
             if len(filesets_groups) == 0:
                 logging.info("No matching failed jobs to resubmit.")

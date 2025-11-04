@@ -13,6 +13,9 @@ import awkward as ak
 import json
 import logging
 
+# Constant for the failed jobs filename
+FAILED_JOBS_FILENAME = "failed_jobs.json"
+
 @contextmanager
 def add_to_path(p):
     old_path = sys.path
@@ -189,7 +192,7 @@ def save_failed_jobs(failed_jobs_list, outputdir):
     outputdir : str
         Output directory where the failed_jobs.json file will be saved
     """
-    failed_jobs_file = os.path.join(outputdir, "failed_jobs.json")
+    failed_jobs_file = os.path.join(outputdir, FAILED_JOBS_FILENAME)
     with open(failed_jobs_file, 'w') as f:
         json.dump(failed_jobs_list, f, indent=2)
     logging.info(f"Failed jobs saved to {failed_jobs_file}")
@@ -208,7 +211,7 @@ def load_failed_jobs(outputdir):
     list of str or None
         List of dataset or group names that failed processing, or None if file doesn't exist
     """
-    failed_jobs_file = os.path.join(outputdir, "failed_jobs.json")
+    failed_jobs_file = os.path.join(outputdir, FAILED_JOBS_FILENAME)
     if not os.path.exists(failed_jobs_file):
         return None
     
