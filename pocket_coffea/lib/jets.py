@@ -6,6 +6,7 @@ import correctionlib
 from coffea.jetmet_tools import  CorrectedMETFactory
 from ..lib.deltaR_matching import get_matching_pairs_indices, object_matching
 from correctionlib.schemav2 import Correction, CorrectionSet
+from ..utils.utils import get_nano_version
 
 
 def add_jec_variables(jets, event_rho, isMC=True):
@@ -155,12 +156,8 @@ def compute_jetId(events, jet_type, params, year):
     Inspired by https://gitlab.cern.ch/cms-analysis/general/HiggsDNA/-/blob/master/higgs_dna/tools/jetID.py
     """
     jets = events[jet_type]
-    try:
-        if nano_version := events.metadata.get("nano_version", None) is None:
-            nano_version = params["default_nano_version"][year]
-    except:
-        raise Exception("Please specify the `nano_version` in the file metadata or the default nano version in the parameters under `default_nano_version` key.")
-    
+    # Get the nano version from events metadata or from default parameters
+    nano_version = get_nano_version(events, params, year)
     abs_eta = abs(jets.eta)
     # Return the existing jetId for NanoAOD versions below 12
     if nano_version < 12:
@@ -179,7 +176,6 @@ def compute_jetId(events, jet_type, params, year):
                 ((jets.jetId & (1 << 1)) > 0) & (jets.neEmEF < 0.4)  # Tight criteria for 3.0 < abs_eta
             )
         )
-
         # Default tight lepton veto
         passJetIdTightLepVeto = ak.where(
             abs_eta <= 2.7,
@@ -187,7 +183,6 @@ def compute_jetId(events, jet_type, params, year):
             passJetIdTight  # No lepton veto for 2.7 < abs_eta
         )
         return (passJetIdTight * (1 << 1)) | (passJetIdTightLepVeto * (1 << 2))
-
 
     elif nano_version >= 15:
         # Example code: https://gitlab.cern.ch/cms-nanoAOD/jsonpog-integration/-/blob/master/examples/jetidExample.py?ref_type=heads

@@ -121,3 +121,24 @@ def dump_ak_array(
         assert os.path.isfile(destination)
     pathlib.Path(local_file).unlink()
 
+
+
+def get_nano_version(events, params, year):
+    '''Helper function to get the nano version from the events metadata or from the default parameters.'''
+    if "nano_version" in events.metadata:
+        nano_version = events.metadata["nano_version"]
+    else:
+        if events.metadata["isMC"]:
+            # Try to extract from the sample name
+            if "NanoAODv12" in events.metadata["filename"]:
+                nano_version = 12
+            elif "NanoAODv15" in events.metadata["filename"]:
+                nano_version = 15
+            else:
+                # For MC if it's not defined we take the default nano version
+                nano_version = params["default_nano_version"][year]
+        else:
+            # For data if it's not defined we take the default nano version
+            nano_version = params["default_nano_version"][year]
+
+    return nano_version
