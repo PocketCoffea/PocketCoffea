@@ -65,6 +65,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Load the jet calibration factory once for all chunks
         if self.params.jets_calibration.get("legacy_txt_calibration", False):
             self.jmefactory = load_jet_factory(self.params)
+        else:
+            self.jmefactory = None
         
         # Custom axis for the histograms
         self.custom_axes = []
