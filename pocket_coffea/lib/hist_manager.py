@@ -150,6 +150,7 @@ class HistManager:
         calibrators_manager,
         processor_params,
         custom_axes=None,
+        debug_logger=None,
         isMC=True,
     ):
         self.processor_params = processor_params
@@ -166,6 +167,7 @@ class HistManager:
         self.available_categories = set(self.categories_config.keys())
         self.available_weights_variations = ["nominal"]
         self.available_shape_variations = []
+        self.debug_logger = debug_logger
         # This dictionary is used to store the weights in some cases for performance reaso
         self._weights_cache = {}
 
@@ -645,6 +647,19 @@ class HistManager:
                                         weight=weight_varied,
                                         **{**fill_categorical, **fill_numeric_masked},
                                     )
+                                    
+                                    # DEBUG: Log histogram filling
+                                    if self.debug_logger is not None:
+                                        self.debug_logger.log_histogram_fill(
+                                            name,
+                                            category,
+                                            variation,
+                                            len(weight_varied),
+                                            subsample=subsample,
+                                            mask=mask,
+                                            weights=weight_varied
+                                        )
+                                        
                                 except Exception as e:
                                     raise Exception(
                                         f"Cannot fill histogram: {name}, {histo} {e}"
@@ -699,6 +714,19 @@ class HistManager:
                                     weight=weight_nom,
                                     **{**fill_categorical, **fill_numeric_masked},
                                 )
+                                
+                                # DEBUG: Log histogram filling for shape variation
+                                if self.debug_logger is not None:
+                                    self.debug_logger.log_histogram_fill(
+                                        name,
+                                        category,
+                                        shape_variation,
+                                        len(weight_nom),
+                                        subsample=subsample,
+                                        mask=mask,
+                                        weights=weight_nom
+                                    )
+                                    
                             except Exception as e:
                                 raise Exception(
                                     f"Cannot fill histogram: {name}, {histo} {e}"
@@ -737,6 +765,19 @@ class HistManager:
                                 weight=weight_data,
                                 **{**fill_categorical, **fill_numeric_masked},
                             )
+                            
+                            # DEBUG: Log histogram filling for data
+                            if self.debug_logger is not None:
+                                self.debug_logger.log_histogram_fill(
+                                    name,
+                                    category,
+                                    "data",
+                                    len(weight_data),
+                                    subsample=subsample,
+                                    mask=mask,
+                                    weights=weight_data
+                                )
+                                
                         except Exception as e:
                             raise Exception(
                                 f"Cannot fill histogram for Data: {name}, {histo} {e}"
