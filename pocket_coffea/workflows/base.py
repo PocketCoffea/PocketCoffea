@@ -137,6 +137,24 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self._era = self.events.metadata["era"]
         # Loading metadata for subsamples
         self._hasSubsamples = self.cfg.has_subsamples[self._sample]
+        # Extract nano version
+        if "nano_version" in self.events.metadata:
+            self.nano_version = self.events.metadata["nano_version"]
+        else:
+            if self._isMC:
+                # Try to extract from the sample name
+                if "NanoAODv12" in self.events.metadata["filename"]:
+                    self.nano_version = 12
+                elif "NanoAODv15" in self.events.metadata["filename"]:
+                    self.nano_version = 15  
+                else:
+                    # For MC if it's not defined we take the default nano version
+                    self.nano_version = self.params.default_nano_version[self._year] 
+                              
+            else:
+                # For data if it's not defined we take the default nano version
+                self.nano_version = self.params.default_nano_version[self._year]
+
         # Store all metadata in a single dict for easier access
         self._metadata = {
             "year": self._year,
@@ -146,6 +164,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             "isMC": self._isMC,
             "isSkim": self._isSkim,
             "era": self._era,
+            "nano_version": self.nano_version,
         }
 
     def load_metadata_extra(self):

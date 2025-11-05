@@ -5,7 +5,7 @@ import numpy as np
 import correctionlib
 from coffea.jetmet_tools import  CorrectedMETFactory
 from correctionlib.schemav2 import Correction, CorrectionSet
-from pocket_coffea.utils.utils import replace_at_indices
+from ..utils.utils import get_nano_version, replace_at_indices
 
 
 def add_jec_variables(jets, event_rho, isMC=True):
@@ -77,23 +77,19 @@ def met_xy_correction(params, events, METcol,  year, era):
 
 
 def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tagger=""):
-
     jets = events[jet_type]
     cuts = params.object_preselection[jet_type]
 
-    # For 2024 no jetId key in Nano anymore. 
-    # For nanoV12 (i.e. 22/23), jet Id is also buggy, should therefore be rederived... To be done
-    # See https://twiki.cern.ch/twiki/bin/viewauth/CMS/JetID13p6TeV#nanoAOD_Flags
-    jetIdCut = True
-    if "jetId" in jets.fields:
-        jetIdCut = (jets.jetId >= cuts["jetId"])
-    else: print("No JetID cut applied, since key jetId missing in jet collections")
+    # For nanoV15 no jetId key in Nano anymore. 
+    # For nanoV12 (i.e. 22/23), jet Id is also buggy, should therefore be rederived
+    # in the following, if nano_version not explicitly specified in params, v9 is assumed for Run2UL, v12 for 22/23 and v15 for 2024
+    jets["jetId_corrected"] = compute_jetId(events, jet_type, params, year)
 
     # Mask for  jets not passing the preselection
     mask_presel = (
         (jets.pt > cuts["pt"])
         & (np.abs(jets.eta) < cuts["eta"])
-        & jetIdCut
+        & (jets.jetId_corrected >= cuts["jetId"])
     )
     # Lepton cleaning
     # Only jets that are more distant than dr to ALL leptons are tagged as good jets
@@ -160,97 +156,84 @@ def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tag
 
     return jets[mask_good_jets], mask_good_jets
 
-
-def jet_selection_nanoaodv12(events, jet_type, params, year, leptons_collection="", jet_tagger=""):
-
+def compute_jetId(events, jet_type, params, year):
+    """
+    Add (or recompute) jet ID to the jets object based on the NanoAOD version.
+    Inspired by https://gitlab.cern.ch/cms-analysis/general/HiggsDNA/-/blob/master/higgs_dna/tools/jetID.py
+    """
     jets = events[jet_type]
-    cuts = params.object_preselection[jet_type]
+    # Get the nano version from events metadata or from default parameters
+    nano_version = get_nano_version(events, params, year)
+    abs_eta = abs(jets.eta)
+    # Return the existing jetId for NanoAOD versions below 12
+    if nano_version < 12:
+        return jets.jetId
 
-    # Bug fix for NanoAOD v12 https://gitlab.cern.ch/cms-jetmet/coordination/coordination/-/issues/117
-    
-    mask_presel = (
-        (jets.pt > cuts["pt"])
-        & (np.abs(jets.eta) < cuts["eta"])
-    )
-        
-    if cuts["jetId"] == 6:
-        passJetIdTight = ak.zeros_like(jets.pt, dtype=bool)
-        passJetIdTightLepVeto = ak.zeros_like(jets.pt, dtype=bool)
-        
-        passJetIdTight = ak.where((np.abs(jets.eta) <= 2.7), (jets.jetId & (1 << 1))>0, passJetIdTight)
-        passJetIdTight = ak.where((np.abs(jets.eta) > 2.7) & (np.abs(jets.eta) <= 3.0), ((jets.jetId & (1 << 1))>0 & (jets.neHEF < 0.99)), passJetIdTight)
-        passJetIdTight = ak.where((np.abs(jets.eta) > 3.0), ((jets.jetId & (1 << 1))>0 & (jets.neEmEF < 0.4)), passJetIdTight)
-        passJetIdTightLepVeto = ak.where((np.abs(jets.eta) <= 2.7), (passJetIdTight & (jets.muEF < 0.8) & (jets.chEmEF < 0.8)),passJetIdTight)
-    
-    # Only jets that are more distant than dr to ALL leptons are tagged as good jets
-    # Mask for  jets not passing the preselection
-    
-    # Lepton cleaning
-    if leptons_collection != "":
-        dR_jets_lep = jets.metric_table(events[leptons_collection])
-        mask_lepton_cleaning = ak.prod(dR_jets_lep > cuts["dr_lepton"], axis=2) == 1
-    else:
-        mask_lepton_cleaning = True
-
-    if jet_type == "Jet":
-        # Selection on PUid. Only available in Run2 UL, thus we need to determine which sample we run over;
-        if year in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
-            mask_jetpuid = (jets.puId >= params.jet_scale_factors.jet_puId[year]["working_point"][cuts["puId"]["wp"]]) | (
-                jets.pt >= cuts["puId"]["maxpt"]
+    # For NanoAOD version 12 and above, we recompute the jet ID criteria
+    # https://twiki.cern.ch/twiki/bin/viewauth/CMS/JetID13p6TeV
+    elif nano_version == 12:
+        # Default tight
+        passJetIdTight = ak.where(
+            abs_eta <= 2.7,
+            (jets.jetId & (1 << 1)) > 0,  # Tight criteria for abs_eta <= 2.7
+            ak.where(
+                (abs_eta > 2.7) & (abs_eta <= 3.0),
+                ((jets.jetId & (1 << 1)) > 0) & (jets.neHEF < 0.99),  # Tight criteria for 2.7 < abs_eta <= 3.0
+                ((jets.jetId & (1 << 1)) > 0) & (jets.neEmEF < 0.4)  # Tight criteria for 3.0 < abs_eta
             )
-        else:
-            mask_jetpuid = True        
-        
-        if cuts["jetId"] == 6:
-            mask_good_jets = mask_presel & mask_lepton_cleaning & mask_jetpuid & passJetIdTightLepVeto
-        else:
-            mask_good_jets = mask_presel & mask_lepton_cleaning & mask_jetpuid 
+        )
+        # Default tight lepton veto
+        passJetIdTightLepVeto = ak.where(
+            abs_eta <= 2.7,
+            passJetIdTight & (jets.muEF < 0.8) & (jets.chEmEF < 0.8),  # add lepton veto for abs_eta <= 2.7
+            passJetIdTight  # No lepton veto for 2.7 < abs_eta
+        )
+        return (passJetIdTight * (1 << 1)) | (passJetIdTightLepVeto * (1 << 2))
 
-        if jet_tagger != "":
-            if "PNet" in jet_tagger:
-                B   = "btagPNetB"
-                CvL = "btagPNetCvL"
-                CvB = "btagPNetCvB"
-            elif "DeepFlav" in jet_tagger:
-                B   = "btagDeepFlavB"
-                CvL = "btagDeepFlavCvL"
-                CvB = "btagDeepFlavCvB"
-            elif "RobustParT" in jet_tagger:
-                B   = "btagRobustParTAK4B"
-                CvL = "btagRobustParTAK4CvL"
-                CvB = "btagRobustParTAK4CvB"
-            else:
-                raise NotImplementedError(f"This tagger is not implemented: {jet_tagger}")
-            
-            if B not in jets.fields or CvL not in jets.fields or CvB not in jets.fields:
-                raise NotImplementedError(f"{B}, {CvL}, and/or {CvB} are not available in the input.")
+    elif nano_version >= 15:
+        # Example code: https://gitlab.cern.ch/cms-nanoAOD/jsonpog-integration/-/blob/master/examples/jetidExample.py?ref_type=heads
+        # Load CorrectionSet
+        jsonFile = params.jet_scale_factors.jet_id[year]
+        cset = correctionlib.CorrectionSet.from_file(jsonFile)
 
-            jets["btagB"] = jets[B]
-            jets["btagCvL"] = jets[CvL]
-            jets["btagCvB"] = jets[CvB]
+        counts = ak.num(jets)
+        jets = ak.flatten(jets, axis=1)
 
-    elif jet_type == "FatJet":
-        # Apply the msd and preselection cuts
-        mask_msd = events.FatJet.msoftdrop > cuts["msd"]
-        mask_good_jets = mask_presel & mask_msd
+        eval_dict = {
+            "eta": jets.eta,
+            "chHEF": jets.chHEF,
+            "neHEF": jets.neHEF,
+            "chEmEF": jets.chEmEF,
+            "neEmEF": jets.neEmEF,
+            "muEF": jets.muEF,
+            "chMultiplicity": jets.chMultiplicity,
+            "neMultiplicity": jets.neMultiplicity,
+            "multiplicity": jets.chMultiplicity + jets.neMultiplicity
+        }
 
-        if jet_tagger != "":
-            if "PNetMD" in jet_tagger:
-                BB   = "particleNet_XbbVsQCD"
-                CC   = "particleNet_XccVsQCD"
-            elif "PNet" in jet_tagger:
-                BB   = "particleNetWithMass_HbbvsQCD"
-                CC   = "particleNetWithMass_HccvsQCD"
-            else:
-                raise NotImplementedError(f"This tagger is not implemented: {jet_tagger}")
-            
-            if BB not in jets.fields or CC not in jets.fields:
-                raise NotImplementedError(f"{BB} and/or {CC} are not available in the input.")
+        ## Default tight for NanoAOD version 13 and above
+        jet_algo_mapping = params.jets_calibration.collection[year]
+        jet_algo = next((k for k, v in jet_algo_mapping.items() if v == jet_type), None)
+        if jet_algo==None:
+            raise Exception(f"No mapping jet_type ({jet_type}) -> jet_algo (e.g. AK4PFPuppi) defined for year {year}")
+        jet_algo = jet_algo.replace("PF", "").upper()
+    
+        if jet_algo+"_Tight" not in list(cset.keys()):
+            raise Exception(f"No correction for jet collection {jet_algo} defined in correctionlib file {jsonFile}")
+        idTight = cset[jet_algo+"_Tight"]
+        inputsTight = [eval_dict[input.name] for input in idTight.inputs]
+        idTight_value = idTight.evaluate(*inputsTight) * 2  # equivalent to bit2
 
-            jets["btagBB"] = jets[BB]
-            jets["btagCC"] = jets[CC]
+        # Default tight lepton veto
+        idTightLepVeto = cset[jet_algo+"_TightLeptonVeto"]
+        inputsTightLepVeto = [eval_dict[input.name] for input in idTightLepVeto.inputs]
+        idTightLepVeto_value = idTightLepVeto.evaluate(*inputsTightLepVeto) * 4  # equivalent to bit3
 
-    return jets[mask_good_jets], mask_good_jets
+        # Default jet ID
+        id_value = idTight_value + idTightLepVeto_value
+
+        return ak.unflatten(id_value, counts)
+
 
 def btagging(Jet, btag, wp, veto=False):
     if veto:
