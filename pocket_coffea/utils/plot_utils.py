@@ -995,14 +995,14 @@ class Shape:
             axes = self.ax
         if self.is_mc_only:
             hep.cms.text(
-                "Simulation Preliminary",
+                "Work in Progress",
                 fontsize=self.style.fontsize,
                 loc=self.style.experiment_label_loc,
                 ax=self.ax,
             )
         else:
             hep.cms.text(
-                "Preliminary",
+                "Work in Progress",
                 fontsize=self.style.fontsize,
                 loc=self.style.experiment_label_loc,
                 ax=self.ax,
@@ -1761,7 +1761,7 @@ class SystUnc:
             )
             axes = self.ax
         hep.cms.text(
-            "Simulation Preliminary",
+            "Work in Progress",
             fontsize=self.style.fontsize,
             loc=self.style.experiment_label_loc,
             ax=self.ax,

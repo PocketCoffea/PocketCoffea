@@ -9,7 +9,6 @@ from pocket_coffea.parameters.dask_env import setup_dask
 
 import parsl
 from parsl.providers import CondorProvider
-from parsl.channels import LocalChannel
 from parsl.config import Config
 from parsl.executors import HighThroughputExecutor
 from parsl.launchers import SrunLauncher, SingleNodeLauncher
@@ -63,7 +62,7 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
                     HighThroughputExecutor(
                         label="coffea_parsl_condor",
                         address=address_by_hostname(),
-                        max_workers=1,
+                        # max_workers=1,
                         # Condor
                         provider=CondorProvider(
                             nodes_per_block=1,
