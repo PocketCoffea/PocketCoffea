@@ -66,6 +66,7 @@ pocket_coffea = ["pocket_coffea/*.txt",
 pocket-coffea="pocket_coffea.__main__:cli"
 runner="pocket_coffea.scripts.runner:run"
 make-plots="pocket_coffea.scripts.plot.make_plots:make_plots"
+plot-cutflow="pocket_coffea.scripts.plot.plot_cutflow:plot_cutflow"
 build-datasets="pocket_coffea.scripts.dataset.build_datasets:build_datasets"
 dataset-discovery-cli="pocket_coffea.scripts.dataset.dataset_query:dataset_discovery_cli"
 hadd-skimmed-files="pocket_coffea.scripts.hadd_skimmed_files:hadd_skimmed_files"
