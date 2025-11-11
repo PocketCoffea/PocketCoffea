@@ -449,13 +449,8 @@ class WeightsManager:
         return overall_weight
 
 
-def get_weights_by_cat_var(variations_config, weights_manager, category, variation):
+def get_weights_by_cat_var(available_weights_variations, weights_manager, category, variation):
     """Get weights that are variated by category to save to histogram or column."""
-    available_weights_variations = []
-    for weight in variations_config["weights"][category]:
-        # Ask the WeightsManager the available variations
-        vars = weights_manager.get_available_modifiers_byweight(weight)
-        available_weights_variations += vars
     weights = {}
     if variation == "nominal":
         # This is not including the subsamples nominal+ variations

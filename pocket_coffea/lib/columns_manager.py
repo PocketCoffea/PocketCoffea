@@ -50,7 +50,12 @@ class ColumnsManager:
                 self.output[category][variation]["weight"] = column_accumulator(
                     ak.to_numpy(weights_manager.get_weight(category)[mask], allow_missing=False))
                 if weights_manager._isMC:
-                    for weight in get_weights_by_cat_var(self.variations_config, weights_manager, category, variation):
+                    available_weights_variations = []
+                    for weight in self.variations_config["weights"][category]:
+                        # Ask the WeightsManager the available variations
+                        vars = weights_manager.get_available_modifiers_byweight(weight)
+                        available_weights_variations += vars
+                    for weight in get_weights_by_cat_var(available_weights_variations, weights_manager, category, variation).keys():
                         # Ask the WeightsManager the available variations
                         if weight != "nominal":
                             self.output[category][variation][f"weight_variation_{weight}"] = column_accumulator(
@@ -140,7 +145,12 @@ class ColumnsManager:
             if weights_manager: # no present for data
                 out_by_cat["weight"] = weights_manager.get_weight(category)[mask]
                 if weights_manager._isMC:
-                    for weight in get_weights_by_cat_var(self.variations_config, weights_manager, category, variation):
+                    available_weights_variations = []
+                    for weight in self.variations_config["weights"][category]:
+                        # Ask the WeightsManager the available variations
+                        vars = weights_manager.get_available_modifiers_byweight(weight)
+                        available_weights_variations += vars
+                    for weight in get_weights_by_cat_var(available_weights_variations, weights_manager, category, variation).keys():
                         # Ask the WeightsManager the available variations
                         out_by_cat[f"weight_{weight}"] = weights_manager.get_weight(category, modifier=weight)[mask]
 
