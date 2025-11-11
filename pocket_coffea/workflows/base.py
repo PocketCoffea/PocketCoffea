@@ -507,7 +507,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
             if name in self._columns:
                 self.column_managers[subs] = ColumnsManager(
-                    self._columns[name], self._categories
+                    self._columns[name],
+                    self._categories,
+                    variations_config=self.cfg.variations_config[self._sample] if self._isMC else None,
                 )
 
     def define_column_accumulators_extra(self):
@@ -532,6 +534,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     out_arrays = self.column_managers[subs].fill_ak_arrays(
                                                self.events,
                                                self._categories,
+                                               variation,
                                                subsample_mask=self._subsamples[self._sample].get_mask(subs),
                                                weights_manager=self.weights_manager
                                                )
@@ -564,6 +567,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 out_arrays = self.column_managers[self._sample].fill_ak_arrays(
                                                self.events,
                                                self._categories,
+                                               variation,
                                                subsample_mask=None,
                                                weights_manager=self.weights_manager
                                                )

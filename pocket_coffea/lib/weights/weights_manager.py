@@ -447,3 +447,28 @@ class WeightsManager:
                     overall_weight = (self._weightsIncl_subsamples[subsample].weight() *
                                       self._weightsByCat_subsamples[subsample][category].weight())
         return overall_weight
+
+
+def get_weights_by_cat_var(variations_config, weights_manager, category, variation):
+    """Get weights that are variated by category to save to histogram or column."""
+    available_weights_variations = []
+    for weight in variations_config["weights"][category]:
+        # Ask the WeightsManager the available variations
+        vars = weights_manager.get_available_modifiers_byweight(weight)
+        available_weights_variations += vars
+    weights = {}
+    if variation == "nominal":
+        # This is not including the subsamples nominal+ variations
+        # which will be computed on the fly
+        for variation in available_weights_variations:
+            if variation == "nominal":
+                weights["nominal"] = weights_manager.get_weight(category)
+            else:
+                # Check if the variation is available in this category
+                weights[variation] = weights_manager.get_weight(
+                    category, modifier=variation
+                )
+    else:
+        # Save only the nominal weights if a shape variation is being processed
+        weights["nominal"] = weights_manager.get_weight(category)
+    return weights
