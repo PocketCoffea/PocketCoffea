@@ -204,10 +204,10 @@ class JetsPtRegressionCalibrator(JetsCalibrator):
 
             cache = cachetools.Cache(np.inf)
             self.caches.append(cache)
-            self.jets_calibrated[jet_coll_name] = jet_correction(
+            calibrated_jet = jet_correction(
                 params=self.params,
                 events=events,
-                jets=jets_regressed[reg_mask],  # passing the regressed jets
+                jets=jets_regressed,  # passing the regressed jets
                 factory=self.jme_factory,
                 jet_type=jet_type,
                 chunk_metadata={
@@ -217,7 +217,7 @@ class JetsPtRegressionCalibrator(JetsCalibrator):
                 },
                 cache=cache
             )
-            
+            self.jets_calibrated[jet_coll_name]=calibrated_jet[reg_mask]
             # Add to the list of the types calibrated
             self.jets_calibrated_types.append(jet_type)
 
@@ -324,23 +324,18 @@ class JetsPtRegressionCalibrator(JetsCalibrator):
         # An alternative is to apply the regression only to the jets that have the regression applied
         # but then the JEC would be wrong for these jets
         # Apply regression where mask is True, keep original values otherwise
-        # new_j_pt_flat = ak.where(reg_mask, reg_j_pt, j_flat['pt'])
-        new_j_pt_flat = ak.mask(reg_j_pt, reg_mask)
-        new_j_pt = ak.unflatten(new_j_pt_flat, nj)
+        new_j_pt = ak.unflatten(reg_j_pt, nj)
 
-        # new_j_mass_flat = ak.where(reg_mask, reg_j_mass, j_flat['mass'])
-        new_j_mass_flat = ak.mask(reg_j_mass, reg_mask)
-        new_j_mass = ak.unflatten(new_j_mass_flat, nj)
+        new_j_mass = ak.unflatten(reg_j_mass, nj)
 
         # Update the raw factor to 0 for the jets where regression is applied
         # because the regressed pt is the new pt raw
-        # new_raw_factor_flat = ak.where(reg_mask, 0, j_flat['rawFactor'])
-        new_raw_factor_flat = ak.mask(ak.zeros_like(j_flat['rawFactor']), reg_mask)
+        new_raw_factor_flat = ak.zeros_like(j_flat['rawFactor'])
         new_raw_factor = ak.unflatten(new_raw_factor_flat, nj)
-
+        
         # Replace the PT and Mass variables in the original jets collection
         reg_mask_unflatten=ak.unflatten(reg_mask, nj)
-        jets_regressed=ak.mask(jets, reg_mask_unflatten)
+        jets_regressed=ak.copy(jets)
         jets_regressed = ak.with_field(jets_regressed, new_j_pt, 'pt')
         jets_regressed = ak.with_field(jets_regressed, new_j_mass, 'mass')
         jets_regressed = ak.with_field(jets_regressed, new_raw_factor, 'rawFactor')
