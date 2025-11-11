@@ -82,7 +82,7 @@ class JetsCalibrator(Calibrator):
                 jets_regressed, reg_mask = self.apply_regression(copy.copy(events[jet_coll_name]), 
                                                                  jet_type, regression_params)
                 # replacing the collecation in place, so that the JEC is applied to the regressed jets
-                events[jet_coll_name] = jets_regressed[reg_mask]
+                events[jet_coll_name] = jets_regressed
 
 
             # register the collection as calibrated by this calibrator
@@ -159,7 +159,7 @@ class JetsCalibrator(Calibrator):
             pt_raw_corr_neutrino='UParTAK4V1RegPtRawCorrNeutrino'
             btag_b='btagUParTAK4B'
             btag_cvl='btagUParTAK4CvL'
-            do_plus_neutrino = "PlusNeutrino" in jet_typec
+            do_plus_neutrino = "PlusNeutrino" in jet_type
         elif "UParTAK4" in jet_type:
             # Use UParTAK4 regression
             pt_raw_corr='UParTAK4RegPtRawCorr'
@@ -223,11 +223,9 @@ class JetsCalibrator(Calibrator):
         # to the jets that have the regression applied.
         # This is why we throw away the jets that do not have the regression applied
 
-        new_j_pt_flat = ak.mask(reg_j_pt, reg_mask)
-        new_j_pt = ak.unflatten(new_j_pt_flat, nj)
+        new_j_pt = ak.unflatten(reg_j_pt, nj)
 
-        new_j_mass_flat = ak.mask(reg_j_mass, reg_mask)
-        new_j_mass = ak.unflatten(new_j_mass_flat, nj)
+        new_j_mass = ak.unflatten(reg_j_mass, nj)
 
         # Update the raw factor to 0 for the jets where regression is applied
         # because the REGRESSED PT IS THE NEW PT RAW of the jet_regressed collection
@@ -236,7 +234,7 @@ class JetsCalibrator(Calibrator):
 
         # Replace the PT and Mass variables in the original jets collection
         reg_mask_unflatten = ak.unflatten(reg_mask, nj)
-        jets_regressed = ak.mask(jets, reg_mask_unflatten)
+        jets_regressed = copy.copy(jets)
         jets_regressed = ak.with_field(jets_regressed, new_j_pt, 'pt')
         jets_regressed = ak.with_field(jets_regressed, new_j_mass, 'mass')
         jets_regressed = ak.with_field(jets_regressed, new_raw_factor, 'rawFactor')

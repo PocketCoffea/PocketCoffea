@@ -2,6 +2,7 @@ from ..calibrator import Calibrator
 import numpy as np
 import awkward as ak
 import cachetools
+import copy
 from pocket_coffea.lib.calibrators.legacy.legacy_jet_correction import jet_correction
 
 
@@ -217,7 +218,7 @@ class JetsPtRegressionCalibrator(JetsCalibrator):
                 },
                 cache=cache
             )
-            self.jets_calibrated[jet_coll_name]=calibrated_jet[reg_mask]
+            self.jets_calibrated[jet_coll_name]=calibrated_jet#[reg_mask]
             # Add to the list of the types calibrated
             self.jets_calibrated_types.append(jet_type)
 
@@ -335,7 +336,7 @@ class JetsPtRegressionCalibrator(JetsCalibrator):
         
         # Replace the PT and Mass variables in the original jets collection
         reg_mask_unflatten=ak.unflatten(reg_mask, nj)
-        jets_regressed=ak.copy(jets)
+        jets_regressed = copy.copy(jets)
         jets_regressed = ak.with_field(jets_regressed, new_j_pt, 'pt')
         jets_regressed = ak.with_field(jets_regressed, new_j_mass, 'mass')
         jets_regressed = ak.with_field(jets_regressed, new_raw_factor, 'rawFactor')
