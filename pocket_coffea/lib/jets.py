@@ -172,23 +172,37 @@ def compute_jetId(events, jet_type, params, year):
     # For NanoAOD version 12 and above, we recompute the jet ID criteria
     # https://twiki.cern.ch/twiki/bin/viewauth/CMS/JetID13p6TeV
     elif nano_version == 12:
-        # Default tight
-        passJetIdTight = ak.where(
-            abs_eta <= 2.7,
-            (jets.jetId & (1 << 1)) > 0,  # Tight criteria for abs_eta <= 2.7
-            ak.where(
-                (abs_eta > 2.7) & (abs_eta <= 3.0),
-                ((jets.jetId & (1 << 1)) > 0) & (jets.neHEF < 0.99),  # Tight criteria for 2.7 < abs_eta <= 3.0
-                ((jets.jetId & (1 << 1)) > 0) & (jets.neEmEF < 0.4)  # Tight criteria for 3.0 < abs_eta
+        if jet_type == "Jet":
+            # Default tight
+            passJetIdTight = ak.where(
+                abs_eta <= 2.7,
+                (jets.jetId & (1 << 1)) > 0,  # Tight criteria for abs_eta <= 2.7
+                ak.where(
+                    (abs_eta > 2.7) & (abs_eta <= 3.0),
+                    ((jets.jetId & (1 << 1)) > 0) & (jets.neHEF < 0.99),  # Tight criteria for 2.7 < abs_eta <= 3.0
+                    ((jets.jetId & (1 << 1)) > 0) & (jets.neEmEF < 0.4)  # Tight criteria for 3.0 < abs_eta
+                )
             )
-        )
-        # Default tight lepton veto
-        passJetIdTightLepVeto = ak.where(
-            abs_eta <= 2.7,
-            passJetIdTight & (jets.muEF < 0.8) & (jets.chEmEF < 0.8),  # add lepton veto for abs_eta <= 2.7
-            passJetIdTight  # No lepton veto for 2.7 < abs_eta
-        )
-        return (passJetIdTight * (1 << 1)) | (passJetIdTightLepVeto * (1 << 2))
+            # Default tight lepton veto
+            passJetIdTightLepVeto = ak.where(
+                abs_eta <= 2.7,
+                passJetIdTight & (jets.muEF < 0.8) & (jets.chEmEF < 0.8),  # add lepton veto for abs_eta <= 2.7
+                passJetIdTight  # No lepton veto for 2.7 < abs_eta
+            )
+            return (passJetIdTight * (1 << 1)) | (passJetIdTightLepVeto * (1 << 2))
+
+        elif jet_type == "FatJet":
+            # For nanoAOD v12, only using the original branch in the tracker acceptance
+            passJetIdTight = ak.where(
+                abs_eta <= 2.7,
+                (jets.jetId & (1 << 1)) > 0,  # Tight criteria for abs_eta <= 2.7
+                ak.zeros_like(jets.jetId) 
+                )
+            # Not tight lepveto for FatJet
+            return (passJetIdTight * (1 << 1)) 
+        else:
+            raise ValueError(f"Jet type {jet_type} not recognized for JetID")
+
 
     elif nano_version >= 15:
         # Example code: https://gitlab.cern.ch/cms-nanoAOD/jsonpog-integration/-/blob/master/examples/jetidExample.py?ref_type=heads
