@@ -89,9 +89,9 @@ def compare_columns(output, old_output, exclude_columns=None):
                 for column_name, column_data in columns.items():
                     if exclude_columns is not None and column_name in exclude_columns:
                         continue
-                    assert column_name in output["columns"][sample][dataset][cat], f"Column {column_name} not found in output for sample {sample}, dataset {dataset}, category {cat}"
+                    assert column_name in output["columns"][sample][dataset][cat]["nominal"], f"Column {column_name} not found in output for sample {sample}, dataset {dataset}, category {cat}"
                     print(f"Checking column {column_name} for {cat} in {dataset} for {sample}")
-                    assert np.allclose(column_data.value, output["columns"][sample][dataset][cat][column_name].value, rtol=1e-5), \
+                    assert np.allclose(column_data.value, output["columns"][sample][dataset][cat]["nominal"][column_name].value, rtol=1e-5), \
                         f"Column {column_name} mismatch for sample {sample}, dataset {dataset}, category {cat}"
                     
 
