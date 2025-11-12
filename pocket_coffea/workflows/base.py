@@ -288,8 +288,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self._preselection_masks.all(*self._preselection_masks.names)
         ]
         self.nEvents_after_presel = self.nevents
-        if variation == "nominal":
-            self.output['cutflow']['presel'][self._dataset] = self.nEvents_after_presel
+        self.output['cutflow']['presel'].setdefault(self._dataset, {})[variation] = self.nEvents_after_presel
         self.has_events = self.nEvents_after_presel > 0
 
     def define_categories(self, variation):
@@ -395,23 +394,23 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             else:
                 mask_on_events = mask
 
-            self.output["cutflow"][category][self._dataset] = {self._sample: ak.sum(mask_on_events)}
+            self.output["cutflow"][category].setdefault(self._dataset, {}).setdefault(self._sample, {})[variation] = ak.sum(mask_on_events)
             if self._isMC:
                 w = self.weights_manager.get_weight(category)
-                self.output["sumw"][category][self._dataset] = {self._sample: ak.sum(w * mask_on_events)}
-                self.output["sumw2"][category][self._dataset] = {self._sample: ak.sum((w**2) * mask_on_events)}
+                self.output["sumw"][category].setdefault(self._dataset, {}).setdefault(self._sample, {})[variation] = ak.sum(w * mask_on_events)
+                self.output["sumw2"][category].setdefault(self._dataset, {}).setdefault(self._sample, {})[variation] = ak.sum((w**2) * mask_on_events)
 
             # If subsamples are defined we also save their metadata
             if self._hasSubsamples:
                 for subs, subsam_mask in self._subsamples[self._sample].get_masks():
                     # get the subsample specific weight
                     mask_withsub = mask_on_events & subsam_mask
-                    self.output["cutflow"][category][self._dataset][f"{self._sample}__{subs}"] = ak.sum(mask_withsub)
+                    self.output["cutflow"][category].setdefault(self._dataset, {}).setdefault(f"{self._sample}__{subs}", {})[variation] = ak.sum(mask_withsub)
                     if self._isMC:
                         w_tot = w * self.weights_manager.get_weight_only_subsample(subsample=f"{self._sample}__{subs}",
                                                                                    category=category)
-                        self.output["sumw"][category][self._dataset][f"{self._sample}__{subs}"] = ak.sum(w_tot * mask_withsub)
-                        self.output["sumw2"][category][self._dataset][f"{self._sample}__{subs}"] = ak.sum(((w_tot)**2) * mask_withsub)
+                        self.output["sumw"][category].setdefault(self._dataset, {}).setdefault(f"{self._sample}__{subs}", {})[variation] = ak.sum(w_tot * mask_withsub)
+                        self.output["sumw2"][category].setdefault(self._dataset, {}).setdefault(f"{self._sample}__{subs}", {})[variation] = ak.sum(((w_tot)**2) * mask_withsub)
 
 
     def define_custom_axes_extra(self):
@@ -816,8 +815,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self.fill_column_accumulators_extra(variation)
 
             # Count events
-            if variation == "nominal":
-                self.count_events(variation)
+            self.count_events(variation)
 
         self.stop_time = time.time()
         self.save_processing_metadata()
@@ -854,6 +852,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                         histo *= scaling
 
         # rescale sumw
+        # TODO: confirm, that nominal sumw is fine.
         for cat, catdata in output["sumw"].items():
             for dataset, dataset_data in catdata.items():
                 # Getting the first sample for the dataset in the "sumw" output
@@ -875,9 +874,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     rescale = False
                     
                 if rescale and dataset in sumgenw_dict:
-                    scaling = 1/sumgenw_dict[dataset]
+                    scaling = 1 / sumgenw_dict[dataset]
                     for sample in dataset_data.keys():
-                        dataset_data[sample] *= scaling
+                        dataset_data[sample]["nominal"] *= scaling
 
         # rescale sumw2
         for cat, catdata in output["sumw2"].items():
@@ -901,7 +900,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 if rescale and dataset in sumgenw_dict:
                     scaling = 1/sumgenw_dict[dataset]**2
                     for sample in dataset_data.keys():
-                        dataset_data[sample] *= scaling
+                        dataset_data[sample]["nominal"] *= scaling
 
 
     def postprocess(self, accumulator):
