@@ -218,7 +218,8 @@ class JetsPtRegressionCalibrator(JetsCalibrator):
                 },
                 cache=cache
             )
-            self.jets_calibrated[jet_coll_name]=calibrated_jet#[reg_mask]
+            self.jets_calibrated[jet_coll_name]=calibrated_jet
+            
             # Add to the list of the types calibrated
             self.jets_calibrated_types.append(jet_type)
 
