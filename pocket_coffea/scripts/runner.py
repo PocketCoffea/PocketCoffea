@@ -16,7 +16,7 @@ from coffea.util import save
 from coffea import processor
 
 from pocket_coffea.utils.configurator import Configurator
-from pocket_coffea.utils.utils import load_config, path_import, adapt_chunksize
+from pocket_coffea.utils.utils import load_config, path_import, adapt_chunksize, save_failed_jobs, load_failed_jobs, FAILED_JOBS_FILENAME
 from pocket_coffea.utils.logging import setup_logging, try_and_log_error
 from pocket_coffea.utils.run import get_runner
 from pocket_coffea.utils.time import wait_until
@@ -42,11 +42,12 @@ from pocket_coffea.utils.benchmarking import print_processing_stats
 @click.option("--filter-years", type=str, help="Filter the data taking period of the datasets to be processed (comma separated list)")
 @click.option("--filter-samples", type=str, help="Filter the samples to be processed (comma separated list)")
 @click.option("--filter-datasets", type=str, help="Filter the datasets to be processed (comma separated list)")
+@click.option("--resubmit-failed", is_flag=True, help="Resubmit only failed jobs from previous run (requires failed_jobs.json)", default=False)
 
 def run(cfg,  custom_run_options, outputdir, test, limit_files,
            limit_chunks, executor, scaleout, chunksize,
            queue, loglevel, process_separately, executor_custom_setup,
-           filter_years, filter_samples, filter_datasets):
+           filter_years, filter_samples, filter_datasets, resubmit_failed):
     '''Run an analysis on NanoAOD files using PocketCoffea processors'''
     # Setting up the output dir
     os.makedirs(outputdir, exist_ok=True)
@@ -54,6 +55,9 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         outputdir, "output_{}.coffea"
     )
     logfile = os.path.join(outputdir, "logfile.log")
+    
+    # Store loaded failed jobs for reuse
+    failed_jobs_to_resubmit = None
     # Prepare logging
     if (not setup_logging(console_log_output="stdout", console_log_level=loglevel, console_log_color=True,
                         logfile_file=logfile, logfile_log_level="info", logfile_log_color=False,
@@ -214,6 +218,25 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     if filter_datasets:
         filesets_to_run = {dataset: files for dataset, files in filesets_to_run.items() if dataset in filter_datasets}
 
+    # Handle resubmission of failed jobs
+    if resubmit_failed:
+        if not process_separately:
+            logging.error("The --resubmit-failed option requires --process-separately to be set")
+            exit(1)
+        
+        failed_jobs_to_resubmit = load_failed_jobs(outputdir)
+        if failed_jobs_to_resubmit is None:
+            logging.error(f"No failed_jobs.json file found in {outputdir}. Cannot resubmit failed jobs.")
+            exit(1)
+        
+        if len(failed_jobs_to_resubmit) == 0:
+            logging.info("No failed jobs to resubmit.")
+            exit(0)
+        
+        logging.info(f"Resubmitting {len(failed_jobs_to_resubmit)} failed jobs: {failed_jobs_to_resubmit}")
+        # Note: we will filter filesets_groups later after groups are constructed
+        # since failed jobs refer to group names, not individual dataset names
+
     if len(filesets_to_run) == 0:
         print("No datasets to process, closing")
         exit(1)
@@ -285,6 +308,17 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         else:
             filesets_groups = {dataset:{dataset:files} for dataset, files in filesets_to_run.items()}
 
+        # Filter filesets_groups if resubmitting failed jobs
+        if resubmit_failed:
+            filesets_groups = {group_name: fileset_ for group_name, fileset_ in filesets_groups.items() if group_name in failed_jobs_to_resubmit}
+            logging.info(f"Filtered to {len(filesets_groups)} groups/datasets for resubmission")
+            if len(filesets_groups) == 0:
+                logging.info("No matching failed jobs to resubmit.")
+                exit(0)
+
+        # Track failed jobs during processing
+        failed_jobs_list = []
+
         # Running separately on each dataset
         for group_name, fileset_ in filesets_groups.items():
             dataset_start_time = time.time()
@@ -320,11 +354,19 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
                          processor_instance=config.processor_instance)
             if output is None:
                 logging.error(f"Processing of dataset {group_name} failed, moving to the next one")
+                failed_jobs_list.append(group_name)
                 continue
             else:
                 print(f"Saving output to {outfile.format(group_name)}")
                 save(output, outfile.format(group_name))
                 print_processing_stats(output, dataset_start_time, run_options["scaleout"])
+
+        # Save the list of failed jobs
+        if len(failed_jobs_list) > 0:
+            save_failed_jobs(failed_jobs_list, outputdir)
+            logging.warning(f"{len(failed_jobs_list)} job(s) failed. Failed jobs saved to {os.path.join(outputdir, FAILED_JOBS_FILENAME)}")
+        else:
+            logging.info("All jobs completed successfully.")
 
 
     # If the processor has skimmed NanoAOD, we export a dataset_definition file
