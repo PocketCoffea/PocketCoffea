@@ -465,3 +465,79 @@ def test_columns_export_parquet(base_path: Path, monkeypatch: pytest.MonkeyPatch
     assert "JetGood_pt" in dataset.fields
     assert ak.all(ak.num(dataset.JetGood_pt, axis=1) >= 4)
  
+
+def test_debug_logging(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
+    """Test that the super verbose debug logging feature works correctly."""
+    monkeypatch.chdir(base_path / "test_debug_logging")
+    outputdir = tmp_path_factory.mktemp("test_debug_logging")
+    config = load_config("config.py", save_config=True, outputdir=outputdir)
+    assert isinstance(config, Configurator)
+
+    # Verify debug is enabled in configuration
+    assert config.workflow_options.get("super_debug", {}).get("enabled", False) == True
+
+    run_options = defaults.get_default_run_options()["general"]
+    run_options["limit-files"] = 1
+    run_options["limit-chunks"] = 1
+    run_options["chunksize"] = 500  # Small chunk for testing
+    config.filter_dataset(run_options["limit-files"])
+
+    executor_factory = executors_lib.get_executor_factory(
+        "iterative",
+        run_options=run_options,
+        outputdir=outputdir
+    )
+
+    executor = executor_factory.get()
+
+    run = Runner(
+        executor=executor,
+        chunksize=run_options["chunksize"],
+        maxchunks=run_options["limit-chunks"],
+        schema=processor.NanoAODSchema,
+        format="root"
+    )
+    output = run(config.filesets, treename="Events",
+                 processor_instance=config.processor_instance)
+    save(output, outputdir / "output_all.coffea")
+    
+    assert output is not None
+
+    # Check that the debug log file was created
+    debug_log_path = Path("debug_logs/test_debug.log")
+    assert debug_log_path.exists(), f"Debug log file {debug_log_path} was not created"
+    
+    # Read the log file content
+    with open(debug_log_path, 'r') as f:
+        log_content = f.read()
+    
+    # Verify key sections are present in the log
+    assert "PocketCoffea Super Verbose Debug Log" in log_content, "Log header missing"
+    assert "STEP START: PROCESSING_START" in log_content, "Processing start step missing"
+    assert "STEP START: SKIMMING" in log_content, "Skimming step missing"
+    assert "STEP START: INITIALIZATION" in log_content, "Initialization step missing"
+    assert "STEP START: VARIATION_nominal" in log_content, "Variation step missing"
+    assert "Events at initial:" in log_content, "Initial event count missing"
+    assert "Events at after_skim:" in log_content, "After skim event count missing"
+    
+    # Check for weight logging
+    assert "Weight initialized:" in log_content or "WEIGHT" in log_content, "Weight logging missing"
+    
+    # Check for histogram logging
+    assert "Histogram filled:" in log_content or "HIST" in log_content, "Histogram logging missing"
+    
+    # Check for selection logging
+    assert "Selection:" in log_content or "SELECT" in log_content, "Selection logging missing"
+    
+    # Check for summary
+    assert "PROCESSING SUMMARY" in log_content, "Processing summary missing"
+    assert "Total processing time:" in log_content, "Total time missing from summary"
+    
+    # Verify that the processing actually worked
+    assert "TTTo2L2Nu" in output["variables"]["nJetGood"]
+    H = output["variables"]["nJetGood"]["TTTo2L2Nu"]["TTTo2L2Nu_2018"]
+    assert H[{"cat": "baseline", "variation": "nominal"}].values().sum() > 0
+    
+    print(f"\n✓ Debug log file created successfully at {debug_log_path}")
+    print(f"✓ Log contains {len(log_content)} characters")
+    print(f"✓ All key logging sections verified")

@@ -31,6 +31,7 @@ class CalibratorsManager():
                  params,
                  metadata=None,
                  requested_calibrator_variations=None,
+                 debug_logger=None,
                  **kwargs
                  ):
         self.calibrator_list = calibrators_list
@@ -41,6 +42,7 @@ class CalibratorsManager():
         self.available_variations_bycalibrator = defaultdict(list)
         self.requested_calibrator_variations = requested_calibrator_variations
         self.original_coll = {}
+        self.debug_logger = debug_logger
 
         # Initialize all the calibrators
         for calibrator in self.calibrator_list:
@@ -60,6 +62,15 @@ class CalibratorsManager():
             # storing the list of calibrator touching a collection in a dictionary
             for calibrated_collection in C.calibrated_collections:
                 self.calibrated_collections[calibrated_collection].append(C)
+            
+            # DEBUG: Log calibrator initialization
+            if self.debug_logger is not None:
+                self.debug_logger.log_calibrator_init(
+                    C.name,
+                    C.calibrated_collections,
+                    C.has_variations,
+                    C.variations if C.has_variations else None
+                )
             
         # Create the list of variations
         for calibrator in self.calibrator_sequence:
@@ -104,6 +115,13 @@ class CalibratorsManager():
         for calibrator in self.calibrator_sequence:
             if debug:
                 print(f"Applying calibrator: {calibrator.name} for variation: {variation}")
+            
+            # Store events before calibration for comparison (for debug logging)
+            events_before = None
+            if self.debug_logger is not None and self.debug_logger.enabled:
+                # We just keep a reference for comparison, no deep copy
+                events_before = events
+            
             # If the variation is not handled by the calibrator
             # it will return the nominal collection. 
             # we don't want to control this in the manager, we 
@@ -113,6 +131,7 @@ class CalibratorsManager():
                                          already_applied_calibrators=applied_calibrators)
             if debug:
                 print(f"Calibrator {calibrator.name} returned collections: {colls.keys()}")
+            
             for col in colls:
                 if col not in calibrator.calibrated_collections:
                     raise ValueError(f"Calibrator {calibrator.name} is trying to calibrated a collection that it does not declare to handle:{col}. ")
@@ -138,6 +157,17 @@ class CalibratorsManager():
                             # and it is not a problem
                             self.original_coll[col] = None
                     events[collection, field] = colls[col]
+            
+            # DEBUG: Log calibration application
+            if self.debug_logger is not None:
+                self.debug_logger.log_calibrator_apply(
+                    calibrator.name,
+                    variation,
+                    list(colls.keys()),
+                    events_before,
+                    events
+                )
+            
             # Keep track of the calibrators applied
             applied_calibrators.append(calibrator.name)
         return events

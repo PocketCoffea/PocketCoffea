@@ -35,6 +35,7 @@ class WeightsManager:
         weightsWrappers,
         metadata,
         storeIndividual=False,
+        debug_logger=None,
     ):
         self.params = params
         self._sample = metadata["sample"]
@@ -44,6 +45,8 @@ class WeightsManager:
         self.weightsConf = weightsConf
         self.weightsConf_subsamples = weightsConf["by_subsample"]
         self.has_subsamples = len(self.weightsConf_subsamples) > 0
+        self.debug_logger = debug_logger
+        
         #load the weights objects from the wrappers
         self._weightsObj = {}
         for w in weightsWrappers:
@@ -52,6 +55,14 @@ class WeightsManager:
                 continue
             # this allows to have variations depending on the metadata
             self._weightsObj[w.name] = w(params, metadata)
+            
+            # DEBUG: Log weight initialization
+            if self.debug_logger is not None:
+                self.debug_logger.log_weight_init(
+                    w.name,
+                    self._weightsObj[w.name].has_variations,
+                    self._weightsObj[w.name].variations if self._weightsObj[w.name].has_variations else None
+                )
         # Store the available variations for the weights
         self._available_weights = list(self._weightsObj.keys())
         self._available_modifiers_byweight = {}
@@ -149,13 +160,30 @@ class WeightsManager:
                 # it means that the weight is defined in a processor.
                 # The configurator has already checked that it is defined somewhere.
                 # DO nothing
-                return
+                return installed_modifiers
             if w not in _weightsCache:
                 out = self._weightsObj[w].compute(
                     events, size, shape_variation
                 )
                 # the output is a WeightData or WeightDataMultiVariation object
                 _weightsCache[w] = out
+                
+                # DEBUG: Log weight computation
+                if self.debug_logger is not None:
+                    if isinstance(out, WeightData):
+                        self.debug_logger.log_weight_compute(
+                            w,
+                            shape_variation,
+                            nominal=out.nominal,
+                            up=out.up,
+                            down=out.down
+                        )
+                    elif isinstance(out, WeightDataMultiVariation):
+                        self.debug_logger.log_weight_compute(
+                            w,
+                            shape_variation,
+                            nominal=out.nominal
+                        )
             else:
                 out = _weightsCache[w]
 
@@ -385,6 +413,16 @@ class WeightsManager:
                     # We don't need a else here as
                     # if the modifier is not defined without subsample then the code above is already
                     # checking that the modifier may exist in the subsample
+        
+        # DEBUG: Log the total weight
+        if self.debug_logger is not None and overall_weight is not None:
+            n_events = len(overall_weight) if hasattr(overall_weight, '__len__') else 1
+            self.debug_logger.log_weight_total(
+                category,
+                modifier,
+                overall_weight,
+                n_events
+            )
                         
         return overall_weight
 
