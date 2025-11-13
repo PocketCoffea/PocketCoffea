@@ -548,32 +548,8 @@ default_jets_calibration:
           - JES_RelativeBal
           - JES_RelativeSample_2022
           - JER
-        AK4PFPuppiPNetRegression: 
-          - JES_Absolute
-          - JES_Absolute_2022
-          - JES_FlavorQCD
-          - JES_EC2
-          - JES_EC2_2022
-          - JES_HF
-          - JES_HF_2022
-          - JES_BBEC1
-          - JES_BBEC1_2022
-          - JES_RelativeBal
-          - JES_RelativeSample_2022
-          - JER
-        AK4PFPuppiPNetRegressionPlusNeutrino: 
-          - JES_Absolute
-          - JES_Absolute_2022
-          - JES_FlavorQCD
-          - JES_EC2
-          - JES_EC2_2022
-          - JES_HF
-          - JES_HF_2022
-          - JES_BBEC1
-          - JES_BBEC1_2022
-          - JES_RelativeBal
-          - JES_RelativeSample_2022
-          - JER
+        AK4PFPuppiPNetRegression: "${default_jets_calibration.variations.full_variations.2022_preEE.AK4PFPuppi}"
+        AK4PFPuppiPNetRegressionPlusNeutrino: "${default_jets_calibration.variations.full_variations.2022_preEE.AK4PFPuppi}"
       2022_postEE:
         AK4PFPuppi: 
           - JES_Absolute
@@ -588,32 +564,8 @@ default_jets_calibration:
           - JES_RelativeBal
           - JES_RelativeSample_2022EE
           - JER
-        AK4PFPuppiPNetRegression: 
-          - JES_Absolute
-          - JES_Absolute_2022EE
-          - JES_FlavorQCD
-          - JES_EC2
-          - JES_EC2_2022EE
-          - JES_HF
-          - JES_HF_2022EE
-          - JES_BBEC1
-          - JES_BBEC1_2022EE
-          - JES_RelativeBal
-          - JES_RelativeSample_2022EE
-          - JER
-        AK4PFPuppiPNetRegressionPlusNeutrino: 
-          - JES_Absolute
-          - JES_Absolute_2022EE
-          - JES_FlavorQCD
-          - JES_EC2
-          - JES_EC2_2022EE
-          - JES_HF
-          - JES_HF_2022EE
-          - JES_BBEC1
-          - JES_BBEC1_2022EE
-          - JES_RelativeBal
-          - JES_RelativeSample_2022EE
-          - JER
+        AK4PFPuppiPNetRegression: "${default_jets_calibration.variations.full_variations.2022_postEE.AK4PFPuppi}"
+        AK4PFPuppiPNetRegressionPlusNeutrino: "${default_jets_calibration.variations.full_variations.2022_postEE.AK4PFPuppi}"
       2023_preBPix:
         AK4PFPuppi:      
           - JES_Absolute
@@ -628,32 +580,8 @@ default_jets_calibration:
           - JES_RelativeBal
           - JES_RelativeSample_2023
           - JER
-        AK4PFPuppiPNetRegression:      
-          - JES_Absolute
-          - JES_Absolute_2023
-          - JES_FlavorQCD
-          - JES_EC2
-          - JES_EC2_2023
-          - JES_HF
-          - JES_HF_2023
-          - JES_BBEC1
-          - JES_BBEC1_2023
-          - JES_RelativeBal
-          - JES_RelativeSample_2023
-          - JER
-        AK4PFPuppiPNetRegressionPlusNeutrino:      
-          - JES_Absolute
-          - JES_Absolute_2023
-          - JES_FlavorQCD
-          - JES_EC2
-          - JES_EC2_2023
-          - JES_HF
-          - JES_HF_2023
-          - JES_BBEC1
-          - JES_BBEC1_2023
-          - JES_RelativeBal
-          - JES_RelativeSample_2023
-          - JER
+        AK4PFPuppiPNetRegression: "${default_jets_calibration.variations.full_variations.2023_preBPix.AK4PFPuppi}"
+        AK4PFPuppiPNetRegressionPlusNeutrino: "${default_jets_calibration.variations.full_variations.2023_preBPix.AK4PFPuppi}"
       2023_postBPix:
         AK4PFPuppi:      
           - JES_Absolute
@@ -668,32 +596,8 @@ default_jets_calibration:
           - JES_RelativeBal
           - JES_RelativeSample_2023BPix
           - JER
-        AK4PFPuppiPNetRegression:      
-          - JES_Absolute
-          - JES_Absolute_2023BPix
-          - JES_FlavorQCD
-          - JES_EC2
-          - JES_EC2_2023BPix
-          - JES_HF
-          - JES_HF_2023BPix
-          - JES_BBEC1
-          - JES_BBEC1_2023BPix
-          - JES_RelativeBal
-          - JES_RelativeSample_2023BPix
-          - JER
-        AK4PFPuppiPNetRegressionPlusNeutrino:      
-          - JES_Absolute
-          - JES_Absolute_2023BPix
-          - JES_FlavorQCD
-          - JES_EC2
-          - JES_EC2_2023BPix
-          - JES_HF
-          - JES_HF_2023BPix
-          - JES_BBEC1
-          - JES_BBEC1_2023BPix
-          - JES_RelativeBal
-          - JES_RelativeSample_2023BPix
-          - JER
+        AK4PFPuppiPNetRegression: "${default_jets_calibration.variations.full_variations.2023_postBPix.AK4PFPuppi}"
+        AK4PFPuppiPNetRegressionPlusNeutrino: "${default_jets_calibration.variations.full_variations.2023_postBPix.AK4PFPuppi}"
       "2024":
         AK4PFPuppi:      
           - JES_Absolute
@@ -734,42 +638,26 @@ default_jets_calibration:
         AK4PFPuppi:  
         - JES_Total
         - JER
-        AK4PFPuppiPNetRegression:  
-        - JES_Total
-        - JER
-        AK4PFPuppiPNetRegressionPlusNeutrino:  
-        - JES_Total
-        - JER
+        AK4PFPuppiPNetRegression: "${default_jets_calibration.variations.total_variation.2022_preEE.AK4PFPuppi}"
+        AK4PFPuppiPNetRegressionPlusNeutrino: "${default_jets_calibration.variations.total_variation.2022_preEE.AK4PFPuppi}"
       2022_postEE:
         AK4PFPuppi: 
         - JES_Total
         - JER
-        AK4PFPuppiPNetRegression: 
-        - JES_Total
-        - JER
-        AK4PFPuppiPNetRegressionPlusNeutrino: 
-        - JES_Total
-        - JER
+        AK4PFPuppiPNetRegression: "${default_jets_calibration.variations.total_variation.2022_postEE.AK4PFPuppi}"
+        AK4PFPuppiPNetRegressionPlusNeutrino: "${default_jets_calibration.variations.total_variation.2022_postEE.AK4PFPuppi}"
       2023_preBPix:
         AK4PFPuppi:       
         - JES_Total
         - JER
-        AK4PFPuppiPNetRegression:       
-        - JES_Total
-        - JER
-        AK4PFPuppiPNetRegressionPlusNeutrino:       
-        - JES_Total
-        - JER
+        AK4PFPuppiPNetRegression: "${default_jets_calibration.variations.total_variation.2023_preBPix.AK4PFPuppi}"
+        AK4PFPuppiPNetRegressionPlusNeutrino: "${default_jets_calibration.variations.total_variation.2023_preBPix.AK4PFPuppi}"
       2023_postBPix:
         AK4PFPuppi: 
         - JES_Total
         - JER
-        AK4PFPuppiPNetRegression: 
-        - JES_Total
-        - JER
-        AK4PFPuppiPNetRegressionPlusNeutrino: 
-        - JES_Total
-        - JER
+        AK4PFPuppiPNetRegression: "${default_jets_calibration.variations.total_variation.2023_postBPix.AK4PFPuppi}"
+        AK4PFPuppiPNetRegressionPlusNeutrino: "${default_jets_calibration.variations.total_variation.2023_postBPix.AK4PFPuppi}"
       "2024":
         AK4PFPuppi: 
         - JES_Total
