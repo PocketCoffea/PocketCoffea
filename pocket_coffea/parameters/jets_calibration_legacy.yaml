@@ -412,19 +412,19 @@ default_jets_calibration:
           Cv1:
             # - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L1FastJet_AK4PFPuppi.txt.gz"
             - "${default_params_dir:}/jec/AK4PFPNet/Summer23Prompt23_RunCv123_V1_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
+            - "${default_params_dir:}/jec/AK4PFPNet/Summer23Prompt23_RunCv123_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
           Cv2: "${default_jets_calibration.factory_configuration_Data.AK4PFPuppiPNetRegression.JES.2023_preBPix.Cv1}"
           Cv3: "${default_jets_calibration.factory_configuration_Data.AK4PFPuppiPNetRegression.JES.2023_preBPix.Cv1}"
           Cv4:
             # - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_RunCv4_V1_DATA_L1FastJet_AK4PFPuppi.txt.gz"
             - "${default_params_dir:}/jec/AK4PFPNet/Summer23Prompt23_RunCv4_V1_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_RunCv4_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
+            - "${default_params_dir:}/jec/AK4PFPNet/Summer23Prompt23_RunCv4_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
           
         2023_postBPix:
           D:
             # - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_RunD_V1_DATA_L1FastJet_AK4PFPuppi.txt.gz"
             - "${default_params_dir:}/jec/AK4PFPNet/Summer23BPixPrompt23_RunD_V1_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_RunD_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
+            - "${default_params_dir:}/jec/AK4PFPNet/Summer23BPixPrompt23_RunD_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
     
     
     AK4PFPuppiPNetRegressionPlusNeutrino:
@@ -455,19 +455,19 @@ default_jets_calibration:
           Cv1:
             # - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L1FastJet_AK4PFPuppi.txt.gz"
             - "${default_params_dir:}/jec/AK4PFPNetPlusNeutrino/Summer23Prompt23_RunCv123_V1_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_RunCv123_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
+            - "${default_params_dir:}/jec/AK4PFPNetPlusNeutrino/Summer23Prompt23_RunCv123_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
           Cv2: "${default_jets_calibration.factory_configuration_Data.AK4PFPuppiPNetRegressionPlusNeutrino.JES.2023_preBPix.Cv1}"
           Cv3: "${default_jets_calibration.factory_configuration_Data.AK4PFPuppiPNetRegressionPlusNeutrino.JES.2023_preBPix.Cv1}"
           Cv4:
             # - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_RunCv4_V1_DATA_L1FastJet_AK4PFPuppi.txt.gz"
             - "${default_params_dir:}/jec/AK4PFPNetPlusNeutrino/Summer23Prompt23_RunCv4_V1_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer23/Summer23Prompt23_RunCv4_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
+            - "${default_params_dir:}/jec/AK4PFPNetPlusNeutrino/Summer23Prompt23_RunCv4_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
           
         2023_postBPix:
           D:
             # - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_RunD_V1_DATA_L1FastJet_AK4PFPuppi.txt.gz"
             - "${default_params_dir:}/jec/AK4PFPNetPlusNeutrino/Summer23BPixPrompt23_RunD_V1_DATA_L2Relative_AK4PFPuppi.txt.gz"
-            - "${default_params_dir:}/jec/Summer23BPix/Summer23BPixPrompt23_RunD_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
+            - "${default_params_dir:}/jec/AK4PFPNetPlusNeutrino/Summer23BPixPrompt23_RunD_V1_DATA_L2L3Residual_AK4PFPuppi.txt.gz"
 
 
   variations:
@@ -548,8 +548,60 @@ default_jets_calibration:
           - JES_RelativeBal
           - JES_RelativeSample_2022
           - JER
+        AK4PFPuppiPNetRegression: 
+          - JES_Absolute
+          - JES_Absolute_2022
+          - JES_FlavorQCD
+          - JES_EC2
+          - JES_EC2_2022
+          - JES_HF
+          - JES_HF_2022
+          - JES_BBEC1
+          - JES_BBEC1_2022
+          - JES_RelativeBal
+          - JES_RelativeSample_2022
+          - JER
+        AK4PFPuppiPNetRegressionPlusNeutrino: 
+          - JES_Absolute
+          - JES_Absolute_2022
+          - JES_FlavorQCD
+          - JES_EC2
+          - JES_EC2_2022
+          - JES_HF
+          - JES_HF_2022
+          - JES_BBEC1
+          - JES_BBEC1_2022
+          - JES_RelativeBal
+          - JES_RelativeSample_2022
+          - JER
       2022_postEE:
         AK4PFPuppi: 
+          - JES_Absolute
+          - JES_Absolute_2022EE
+          - JES_FlavorQCD
+          - JES_EC2
+          - JES_EC2_2022EE
+          - JES_HF
+          - JES_HF_2022EE
+          - JES_BBEC1
+          - JES_BBEC1_2022EE
+          - JES_RelativeBal
+          - JES_RelativeSample_2022EE
+          - JER
+        AK4PFPuppiPNetRegression: 
+          - JES_Absolute
+          - JES_Absolute_2022EE
+          - JES_FlavorQCD
+          - JES_EC2
+          - JES_EC2_2022EE
+          - JES_HF
+          - JES_HF_2022EE
+          - JES_BBEC1
+          - JES_BBEC1_2022EE
+          - JES_RelativeBal
+          - JES_RelativeSample_2022EE
+          - JER
+        AK4PFPuppiPNetRegressionPlusNeutrino: 
           - JES_Absolute
           - JES_Absolute_2022EE
           - JES_FlavorQCD
@@ -576,8 +628,60 @@ default_jets_calibration:
           - JES_RelativeBal
           - JES_RelativeSample_2023
           - JER
+        AK4PFPuppiPNetRegression:      
+          - JES_Absolute
+          - JES_Absolute_2023
+          - JES_FlavorQCD
+          - JES_EC2
+          - JES_EC2_2023
+          - JES_HF
+          - JES_HF_2023
+          - JES_BBEC1
+          - JES_BBEC1_2023
+          - JES_RelativeBal
+          - JES_RelativeSample_2023
+          - JER
+        AK4PFPuppiPNetRegressionPlusNeutrino:      
+          - JES_Absolute
+          - JES_Absolute_2023
+          - JES_FlavorQCD
+          - JES_EC2
+          - JES_EC2_2023
+          - JES_HF
+          - JES_HF_2023
+          - JES_BBEC1
+          - JES_BBEC1_2023
+          - JES_RelativeBal
+          - JES_RelativeSample_2023
+          - JER
       2023_postBPix:
         AK4PFPuppi:      
+          - JES_Absolute
+          - JES_Absolute_2023BPix
+          - JES_FlavorQCD
+          - JES_EC2
+          - JES_EC2_2023BPix
+          - JES_HF
+          - JES_HF_2023BPix
+          - JES_BBEC1
+          - JES_BBEC1_2023BPix
+          - JES_RelativeBal
+          - JES_RelativeSample_2023BPix
+          - JER
+        AK4PFPuppiPNetRegression:      
+          - JES_Absolute
+          - JES_Absolute_2023BPix
+          - JES_FlavorQCD
+          - JES_EC2
+          - JES_EC2_2023BPix
+          - JES_HF
+          - JES_HF_2023BPix
+          - JES_BBEC1
+          - JES_BBEC1_2023BPix
+          - JES_RelativeBal
+          - JES_RelativeSample_2023BPix
+          - JER
+        AK4PFPuppiPNetRegressionPlusNeutrino:      
           - JES_Absolute
           - JES_Absolute_2023BPix
           - JES_FlavorQCD
@@ -630,16 +734,40 @@ default_jets_calibration:
         AK4PFPuppi:  
         - JES_Total
         - JER
+        AK4PFPuppiPNetRegression:  
+        - JES_Total
+        - JER
+        AK4PFPuppiPNetRegressionPlusNeutrino:  
+        - JES_Total
+        - JER
       2022_postEE:
         AK4PFPuppi: 
+        - JES_Total
+        - JER
+        AK4PFPuppiPNetRegression: 
+        - JES_Total
+        - JER
+        AK4PFPuppiPNetRegressionPlusNeutrino: 
         - JES_Total
         - JER
       2023_preBPix:
         AK4PFPuppi:       
         - JES_Total
         - JER
+        AK4PFPuppiPNetRegression:       
+        - JES_Total
+        - JER
+        AK4PFPuppiPNetRegressionPlusNeutrino:       
+        - JES_Total
+        - JER
       2023_postBPix:
         AK4PFPuppi: 
+        - JES_Total
+        - JER
+        AK4PFPuppiPNetRegression: 
+        - JES_Total
+        - JER
+        AK4PFPuppiPNetRegressionPlusNeutrino: 
         - JES_Total
         - JER
       "2024":
