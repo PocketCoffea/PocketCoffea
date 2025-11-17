@@ -22,18 +22,22 @@ def compare_outputs(output, old_output, exclude_variables=None):
         for dataset, _data in data.items():
             assert dataset in output["sumw"][cat]
             for sample, sumw in _data.items():
-                assert np.isclose(sumw, output["sumw"][cat][dataset][sample], rtol=1e-5)
+                assert np.isclose(sumw, output["sumw"][cat][dataset][sample]["nominal"], rtol=1e-5)
 
     # Testing cutflow
     for cat, data in old_output["cutflow"].items():
         assert cat in output["cutflow"]
         for dataset, _data in data.items():
             assert dataset in output["cutflow"][cat]
-            if cat in ["initial", "skim", "presel"]:
+            # TODO: expand to more variations
+            if cat in ["initial", "skim"]:
                 assert np.allclose(_data, output["cutflow"][cat][dataset], rtol=1e-5)
                 continue
+            elif cat in ["presel"]:
+                assert np.allclose(_data, output["cutflow"][cat][dataset]["nominal"], rtol=1e-5)
+                continue
             for sample, cutflow in _data.items():
-                assert np.allclose(cutflow, output["cutflow"][cat][dataset][sample], rtol=1e-5)
+                assert np.allclose(cutflow, output["cutflow"][cat][dataset][sample]["nominal"], rtol=1e-5)
 
     metadata = output["datasets_metadata"]["by_dataset"]
     # Testing variables
@@ -66,6 +70,7 @@ def compare_totalweight(output, variables):
         for category, datasets in output["sumw"].items():
             for dataset, samples in datasets.items():
                 for sample, sumw in samples.items():
+                    sumw = sumw["nominal"]
                     if dataset not in output["variables"][variable][sample]:
                         continue
                     print(f"Checking {variable} for {category} in {dataset} for {sample}")

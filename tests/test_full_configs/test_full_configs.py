@@ -91,7 +91,7 @@ def test_custom_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_pa
     assert output is not None
 
     # Check the output
-    assert np.isclose(output["sumw"]["2jets_B"]["TTTo2L2Nu_2018"]["TTTo2L2Nu"]/output["sumw"]["2jets"]["TTTo2L2Nu_2018"]["TTTo2L2Nu"], 2.0)
+    assert np.isclose(output["sumw"]["2jets_B"]["TTTo2L2Nu_2018"]["TTTo2L2Nu"]["nominal"]/output["sumw"]["2jets"]["TTTo2L2Nu_2018"]["TTTo2L2Nu"]["nominal"], 2.0)
     
     H = output["variables"]["nJetGood"]["TTTo2L2Nu"]["TTTo2L2Nu_2018"]
     assert np.isclose(H[{"cat":"2jets_B", "variation":"nominal"}].values().sum()/ H[{"cat":"2jets", "variation":"nominal"}].values().sum(), 2.0)
