@@ -512,3 +512,370 @@ def test_jets_softdrop_mass_calibrator(events_run3, params):
             
             # Re-raise the exception for pytest
             raise
+            
+            
+def test_muons_calibrator(events, params):
+    """
+    Tests the updated MuonsCalibrator to ensure:
+    - pt_original is stored and preserved
+    - energyErr exists and is zeros
+    - nominal returns smeared pt
+    - scaleUp/scaleDown use scaled_pt
+    - smearUp/smearDown use smeared_pt
+    """
+
+    mu_cal = MuonsCalibrator(
+        params=params,
+        metadata={"isMC": True, "year": "2022_preEE"},
+        do_variations=True
+    )
+
+    # ---- INITIALIZE ----
+    mu_cal.initialize(events)
+
+    # Required fields must be created
+    assert hasattr(mu_cal, "muons")
+    assert "pt_original" in mu_cal.muons.fields
+    assert "energyErr" in mu_cal.muons.fields
+
+    original_pt = ak.copy(mu_cal.muons.pt_original)
+    original_err = ak.copy(mu_cal.muons.energyErr)
+
+    # Check pt_original stores real uncalibrated pt
+    assert ak.all(original_pt == events.Muon.pt)
+    assert ak.all(original_err == 0)
+
+    # ---- CHECK VARIATIONS DEFINED CORRECTLY ----
+    assert mu_cal.variations == [
+        "muon_scaleUp",
+        "muon_scaleDown",
+        "muon_smearUp",
+        "muon_smearDown",
+    ]
+
+    # ---- NOMINAL ----
+    out_nom = mu_cal.calibrate(events, {}, variation="nominal")
+
+    assert "Muon.pt" in out_nom
+    assert "Muon.pt_original" in out_nom
+    assert "Muon.energyErr" in out_nom
+
+    assert ak.all(out_nom["Muon.pt_original"] == original_pt)
+    assert ak.all(out_nom["Muon.energyErr"] == 0)
+
+    expected_nom_pt = mu_cal.smeared_pt["pt"]["nominal"]
+    assert ak.all(out_nom["Muon.pt"] == expected_nom_pt)
+
+    # ---- SCALE UP ----
+    out_scale_up = mu_cal.calibrate(events, {}, variation="muon_scaleUp")
+    assert ak.all(out_scale_up["Muon.pt"] == mu_cal.scaled_pt["pt"]["up"])
+    assert ak.all(out_scale_up["Muon.pt_original"] == original_pt)
+
+    # ---- SCALE DOWN ----
+    out_scale_down = mu_cal.calibrate(events, {}, variation="muon_scaleDown")
+    assert ak.all(out_scale_down["Muon.pt"] == mu_cal.scaled_pt["pt"]["down"])
+    assert ak.all(out_scale_down["Muon.pt_original"] == original_pt)
+
+    # ---- SMEAR UP ----
+    out_smear_up = mu_cal.calibrate(events, {}, variation="muon_smearUp")
+    assert ak.all(out_smear_up["Muon.pt"] == mu_cal.smeared_pt["pt"]["up"])
+    assert ak.all(out_smear_up["Muon.pt_original"] == original_pt)
+
+    # ---- SMEAR DOWN ----
+    out_smear_down = mu_cal.calibrate(events, {}, variation="muon_smearDown")
+    assert ak.all(out_smear_down["Muon.pt"] == mu_cal.smeared_pt["pt"]["down"])
+    assert ak.all(out_smear_down["Muon.pt_original"] == original_pt)
+    
+    
+def test_muons_calibrator_explicit(events, params):
+    """
+    Explicitly tests:
+    - nominal == smeared_pt["nominal"]
+    - scaleUp/down == scaled_pt
+    - smearUp/down == smeared_pt
+    - pt_original preserved
+    - energyErr is always zeros
+    """
+
+    mu_cal = MuonsCalibrator(
+        params=params,
+        metadata={"isMC": True, "year": "2022_preEE"},  # ensure enabled
+        do_variations=True,
+    )
+
+    # initialize
+    mu_cal.initialize(events)
+
+    mu = events.Muon
+    pt_raw = ak.copy(mu.pt)
+
+    # convenience
+    s = mu_cal.smeared_pt["pt"]
+    sc = mu_cal.scaled_pt["pt"]
+    e = mu_cal.smeared_pt["energyErr"]["nominal"]
+
+    # ---- nominal ----
+    out = mu_cal.calibrate(events, {}, variation="nominal")
+    assert ak.all(out["Muon.pt"] == s["nominal"])
+    assert ak.all(out["Muon.pt_original"] == pt_raw)
+    assert ak.all(out["Muon.energyErr"] == e)
+
+    # ---- scale up ----
+    out = mu_cal.calibrate(events, {}, variation="muon_scaleUp")
+    assert ak.all(out["Muon.pt"] == sc["up"])
+    assert ak.all(out["Muon.pt_original"] == pt_raw)
+    assert ak.all(out["Muon.energyErr"] == 0)
+
+    # ---- scale down ----
+    out = mu_cal.calibrate(events, {}, variation="muon_scaleDown")
+    assert ak.all(out["Muon.pt"] == sc["down"])
+    assert ak.all(out["Muon.pt_original"] == pt_raw)
+    assert ak.all(out["Muon.energyErr"] == 0)
+
+    # ---- smear up ----
+    out = mu_cal.calibrate(events, {}, variation="muon_smearUp")
+    assert ak.all(out["Muon.pt"] == s["up"])
+    assert ak.all(out["Muon.pt_original"] == pt_raw)
+    assert ak.all(out["Muon.energyErr"] == 0)
+
+    # ---- smear down ----
+    out = mu_cal.calibrate(events, {}, variation="muon_smearDown")
+    assert ak.all(out["Muon.pt"] == s["down"])
+    assert ak.all(out["Muon.pt_original"] == pt_raw)
+    assert ak.all(out["Muon.energyErr"] == 0)
+
+
+
+def test_muons_calibrator_mechanism(events, params):
+    class MyMuonCalibrator(Calibrator):
+        name = 'test_muon_calibrator'
+        has_variations = True
+        isMC_only = True
+        calibrated_collections = ["Muon.pt"]
+
+        def initialize(self, events):
+            self._variations = [
+                "test_muon_variation_1Up",
+                "test_muon_variation_1Down",
+                "test_muon_variation_2Up",
+                "test_muon_variation_2Down"
+            ]
+
+        def calibrate(self, events, events_orig, variation, already_applied_calibrators=None):
+            self.cache = {
+                "nominal": {
+                    "Muon.pt": events.Muon.pt * 1.2
+                },
+                "test_muon_variation_1Up": {
+                    "Muon.pt": events.Muon.pt * 1.3
+                },
+                "test_muon_variation_1Down": {
+                    "Muon.pt": events.Muon.pt * 1.1
+                },
+                "test_muon_variation_2Up": {
+                    "Muon.pt": events.Muon.pt * 1.4
+                },
+                "test_muon_variation_2Down": {
+                    "Muon.pt": events.Muon.pt * 1.0
+                }
+            }
+            return self.cache.get(variation, self.cache["nominal"])
+
+    manager = CalibratorsManager(
+        calibrators_list=[MyMuonCalibrator],
+        events=events,
+        params=params,
+        metadata={"isMC": True, "year": "2022_preEE"}
+    )
+
+    # Initialization checks
+    assert len(manager.calibrator_sequence) == 1
+    assert manager.calibrator_sequence[0].name == "test_muon_calibrator"
+
+    # Variation check
+    assert manager.calibrator_sequence[0].variations == [
+        "test_muon_variation_1Up",
+        "test_muon_variation_1Down",
+        "test_muon_variation_2Up",
+        "test_muon_variation_2Down"
+    ]
+
+    assert manager.available_variations == [
+        "nominal",
+        "test_muon_variation_1Up",
+        "test_muon_variation_1Down",
+        "test_muon_variation_2Up",
+        "test_muon_variation_2Down"
+    ]
+
+    assert manager.calibrated_collections["Muon.pt"] == [manager.calibrator_sequence[0]]
+    assert manager.available_variations_bycalibrator["test_muon_calibrator"] == [
+        "test_muon_variation_1Up",
+        "test_muon_variation_1Down",
+        "test_muon_variation_2Up",
+        "test_muon_variation_2Down"
+    ]
+
+    # Apply nominal
+    original_pt = ak.copy(events.Muon.pt)
+    events = manager.calibrate(events, variation="nominal")
+    assert ak.all(events.Muon.pt == original_pt * 1.2)
+    manager.reset_events_to_original(events)
+
+    # 1Up
+    events = manager.calibrate(events, variation="test_muon_variation_1Up")
+    assert ak.all(events.Muon.pt == original_pt * 1.3)
+    manager.reset_events_to_original(events)
+
+    # 1Down
+    events = manager.calibrate(events, variation="test_muon_variation_1Down")
+    assert ak.all(events.Muon.pt == original_pt * 1.1)
+    manager.reset_events_to_original(events)
+
+    # 2Up
+    events = manager.calibrate(events, variation="test_muon_variation_2Up")
+    assert ak.all(events.Muon.pt == original_pt * 1.4)
+    manager.reset_events_to_original(events)
+
+    # 2Down
+    events = manager.calibrate(events, variation="test_muon_variation_2Down")
+    assert ak.all(events.Muon.pt == original_pt * 1.0)
+    manager.reset_events_to_original(events)
+
+
+def test_muons_calibrator_variations_single(events, params):
+    class MyMuonCalibrator(Calibrator):
+        name = 'test_muon_calibrator2'
+        has_variations = True
+        isMC_only = True
+        calibrated_collections = ["Muon.pt"]
+
+        def initialize(self, events):
+            self._variations = [
+                "test_muon_variation_1Up",
+                "test_muon_variation_1Down",
+                "test_muon_variation_2Up",
+                "test_muon_variation_2Down"
+            ]
+
+        def calibrate(self, events, events_orig, variation, already_applied_calibrators=None):
+            self.cache = {
+                "nominal": {"Muon.pt": events.Muon.pt * 1.2},
+                "test_muon_variation_1Up": {"Muon.pt": events.Muon.pt * 1.3},
+                "test_muon_variation_1Down": {"Muon.pt": events.Muon.pt * 1.1},
+                "test_muon_variation_2Up": {"Muon.pt": events.Muon.pt * 1.4},
+                "test_muon_variation_2Down": {"Muon.pt": events.Muon.pt * 1.0},
+            }
+            return self.cache.get(variation, self.cache["nominal"])
+
+    manager = CalibratorsManager(
+        calibrators_list=[MyMuonCalibrator],
+        events=events,
+        params=params,
+        metadata={"isMC": True, "year": "2022_preEE"}
+    )
+
+    original_pt = ak.copy(events.Muon.pt)
+
+    for variation, events in manager.calibration_loop(events):
+
+        assert ak.all(manager.original_coll["Muon.pt"] == original_pt)
+
+        if variation == "nominal":
+            assert ak.all(events.Muon.pt == original_pt * 1.2)
+        elif variation == "test_muon_variation_1Up":
+            assert ak.all(events.Muon.pt == original_pt * 1.3)
+        elif variation == "test_muon_variation_1Down":
+            assert ak.all(events.Muon.pt == original_pt * 1.1)
+        elif variation == "test_muon_variation_2Up":
+            assert ak.all(events.Muon.pt == original_pt * 1.4)
+        elif variation == "test_muon_variation_2Down":
+            assert ak.all(events.Muon.pt == original_pt * 1.0)
+
+
+
+def test_muons_calibrators_sequence(events, params):
+    class MyMuonCalibrator1(Calibrator):
+        name = 'test_muon_calibrator3'
+        has_variations = True
+        isMC_only = True
+        calibrated_collections = ["Muon.pt"]
+
+        def initialize(self, events):
+            self._variations = [
+                "test_muon_variation_1Up",
+                "test_muon_variation_1Down",
+                "test_muon_variation_2Up",
+                "test_muon_variation_2Down"
+            ]
+
+        def calibrate(self, events, events_orig, variation, already_applied_calibrators=None):
+
+            self.cache = {
+                "nominal": {"Muon.pt": events.Muon.pt * 1.2},
+                "test_muon_variation_1Up": {"Muon.pt": events.Muon.pt * 1.3},
+                "test_muon_variation_1Down": {"Muon.pt": events.Muon.pt * 1.1},
+                "test_muon_variation_2Up": {"Muon.pt": events.Muon.pt * 1.4},
+                "test_muon_variation_2Down": {"Muon.pt": events.Muon.pt * 1.0},
+            }
+            return self.cache.get(variation, self.cache["nominal"])
+
+    class MyMuonCalibrator2(Calibrator):
+        name = 'test_muon_calibrator4'
+        has_variations = True
+        isMC_only = True
+        calibrated_collections = ["Muon.pt"]
+
+        def initialize(self, events):
+            self._variations = [
+                "test_muon_variation_3Up",
+                "test_muon_variation_3Down",
+                "test_muon_variation_4Up",
+                "test_muon_variation_4Down"
+            ]
+
+        def calibrate(self, events, events_orig, variation, already_applied_calibrators=None):
+            assert "test_muon_calibrator3" in already_applied_calibrators
+
+            self.cache = {
+                "nominal": {"Muon.pt": events.Muon.pt + 5.},
+                "test_muon_variation_3Up": {"Muon.pt": events.Muon.pt + 6.},
+                "test_muon_variation_3Down": {"Muon.pt": events.Muon.pt + 4.},
+                "test_muon_variation_4Up": {"Muon.pt": events.Muon.pt + 7.},
+                "test_muon_variation_4Down": {"Muon.pt": events.Muon.pt + 3.},
+            }
+            return self.cache.get(variation, self.cache["nominal"])
+
+    manager = CalibratorsManager(
+        calibrators_list=[MyMuonCalibrator1, MyMuonCalibrator2],
+        events=events,
+        params=params,
+        metadata={"isMC": True, "year": "2022_preEE"}
+    )
+
+    original_pt = ak.copy(events.Muon.pt)
+
+    for variation, events in manager.calibration_loop(events):
+
+        assert ak.all(manager.original_coll["Muon.pt"] == original_pt)
+
+        if variation == "nominal":
+            assert ak.all(events.Muon.pt == original_pt * 1.2 + 5.)
+        elif variation == "test_muon_variation_1Up":
+            assert ak.all(events.Muon.pt == original_pt * 1.3 + 5.)
+        elif variation == "test_muon_variation_1Down":
+            assert ak.all(events.Muon.pt == original_pt * 1.1 + 5.)
+        elif variation == "test_muon_variation_2Up":
+            assert ak.all(events.Muon.pt == original_pt * 1.4 + 5.)
+        elif variation == "test_muon_variation_2Down":
+            assert ak.all(events.Muon.pt == original_pt * 1.0 + 5.)
+        elif variation == "test_muon_variation_3Up":
+            assert ak.all(events.Muon.pt == original_pt * 1.2 + 6.)
+        elif variation == "test_muon_variation_3Down":
+            assert ak.all(events.Muon.pt == original_pt * 1.2 + 4.)
+        elif variation == "test_muon_variation_4Up":
+            assert ak.all(events.Muon.pt == original_pt * 1.2 + 7.)
+        elif variation == "test_muon_variation_4Down":
+            assert ak.all(events.Muon.pt == original_pt * 1.2 + 3.)
+
+
