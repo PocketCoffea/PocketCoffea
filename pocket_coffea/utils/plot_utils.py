@@ -80,7 +80,7 @@ class Style:
         self.has_colors_mc = "colors_mc" in style_cfg
         self.has_signal_samples = "signal_samples" in style_cfg
         self.has_order_mc = "order_mc" in style_cfg
-
+        self.has_custom_title = "cms_label" in style_cfg
         self.has_blind_hists = False
         if "blind_hists" in style_cfg:
             if (
@@ -997,20 +997,28 @@ class Shape:
         else:
             self.fig, self.ax = plt.subplots(1, 1, **self.style.opts_figure["datamc"])
             axes = self.ax
-        if self.is_mc_only:
+        if self.has_custom_title:
             hep.cms.text(
-                "Simulation Preliminary",
+                self.style.cms_label,
                 fontsize=self.style.fontsize,
                 loc=self.style.experiment_label_loc,
                 ax=self.ax,
             )
         else:
-            hep.cms.text(
-                "Preliminary",
-                fontsize=self.style.fontsize,
-                loc=self.style.experiment_label_loc,
-                ax=self.ax,
-            )
+            if self.is_mc_only:
+                hep.cms.text(
+                    "Simulation Preliminary",
+                    fontsize=self.style.fontsize,
+                    loc=self.style.experiment_label_loc,
+                    ax=self.ax,
+                )
+            else:
+                hep.cms.text(
+                    "Preliminary",
+                    fontsize=self.style.fontsize,
+                    loc=self.style.experiment_label_loc,
+                    ax=self.ax,
+                )
         if self.toplabel:
             hep.cms.lumitext(
                 text=self.toplabel,
