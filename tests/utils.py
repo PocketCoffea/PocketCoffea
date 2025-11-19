@@ -9,7 +9,7 @@ def events():
     filename = "root://eoscms.cern.ch//eos/cms/store/mc/RunIISummer20UL18NanoAODv9/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/106X_upgrade2018_realistic_v16_L1v1-v1/280000/01881676-C30A-2142-B3B2-7A8449DAF8EF.root"
 
     print(filename)
-    events = NanoEventsFactory.from_root(filename, schemaclass=NanoAODSchema, entry_stop=100).events()
+    events = NanoEventsFactory.from_root(filename, schemaclass=NanoAODSchema, entry_stop=1000).events()
     return events
 
 @pytest.fixture(scope="session")
@@ -34,18 +34,22 @@ def compare_outputs(output, old_output, exclude_variables=None):
         for dataset, _data in data.items():
             assert dataset in output["sumw"][cat]
             for sample, sumw in _data.items():
-                assert np.isclose(sumw, output["sumw"][cat][dataset][sample], rtol=1e-5)
+                assert np.isclose(sumw, output["sumw"][cat][dataset][sample]["nominal"], rtol=1e-5)
 
     # Testing cutflow
     for cat, data in old_output["cutflow"].items():
         assert cat in output["cutflow"]
         for dataset, _data in data.items():
             assert dataset in output["cutflow"][cat]
-            if cat in ["initial", "skim", "presel"]:
+            # TODO: expand to more variations
+            if cat in ["initial", "skim"]:
                 assert np.allclose(_data, output["cutflow"][cat][dataset], rtol=1e-5)
                 continue
+            elif cat in ["presel"]:
+                assert np.allclose(_data, output["cutflow"][cat][dataset]["nominal"], rtol=1e-5)
+                continue
             for sample, cutflow in _data.items():
-                assert np.allclose(cutflow, output["cutflow"][cat][dataset][sample], rtol=1e-5)
+                assert np.allclose(cutflow, output["cutflow"][cat][dataset][sample]["nominal"], rtol=1e-5)
 
     metadata = output["datasets_metadata"]["by_dataset"]
     # Testing variables
@@ -76,6 +80,7 @@ def compare_totalweight(output, variables):
         for category, datasets in output["sumw"].items():
             for dataset, samples in datasets.items():
                 for sample, sumw in samples.items():
+                    sumw = sumw["nominal"]
                     if dataset not in output["variables"][variable][sample]:
                         continue
                     print(f"Checking {variable} for {category} in {dataset} for {sample}")
@@ -100,9 +105,9 @@ def compare_columns(output, old_output, exclude_columns=None):
                 for column_name, column_data in columns.items():
                     if exclude_columns is not None and column_name in exclude_columns:
                         continue
-                    assert column_name in output["columns"][sample][dataset][cat], f"Column {column_name} not found in output for sample {sample}, dataset {dataset}, category {cat}"
+                    assert column_name in output["columns"][sample][dataset][cat]["nominal"], f"Column {column_name} not found in output for sample {sample}, dataset {dataset}, category {cat}"
                     print(f"Checking column {column_name} for {cat} in {dataset} for {sample}")
-                    assert np.allclose(column_data.value, output["columns"][sample][dataset][cat][column_name].value, rtol=1e-5), \
+                    assert np.allclose(column_data.value, output["columns"][sample][dataset][cat]["nominal"][column_name].value, rtol=1e-5), \
                         f"Column {column_name} mismatch for sample {sample}, dataset {dataset}, category {cat}"
 
 
