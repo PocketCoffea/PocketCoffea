@@ -1,3 +1,5 @@
+##THIS IS THE MuonScaRe.py from https://gitlab.cern.ch/cms-muonPOG/muonscarekit/-/tree/master/scripts?ref_type=heads
+
 import numpy as np
 import math
 from scipy.special import erfinv, erf
@@ -5,9 +7,26 @@ from random import random
 import awkward as ak
 from typing import List
 
-
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
+
+
+# cache for lazily imported ROOT module
+_ROOT = None
+
+
+def import_ROOT():
+    global _ROOT
+
+    if _ROOT is None:
+        import ROOT
+        ROOT.gROOT.SetBatch(True)
+        ROOT.gErrorIgnoreLevel = ROOT.kError
+        ROOT.RooMsgService.instance().setGlobalKillBelow(ROOT.RooFit.ERROR)
+        _ROOT = ROOT
+    
+    return _ROOT
+
 
 class SeedSequence:
     def __init__(self, seeds: List[int]):
@@ -137,7 +156,24 @@ class CrystallBall:
         return result
 
 
-def get_rndm(eta, phi, nL, evtNr, lumiNr, cset, nested=False):
+def _get_rnd_func(rnd_gen):
+    if isinstance(rnd_gen, str):
+        rnd_gen = rnd_gen.lower()
+        if rnd_gen == "root":
+            ROOT = import_ROOT()
+            rnd_func = lambda seed: ROOT.TRandom3(int(seed)).Rndm()
+        elif rnd_gen == "np":
+            rnd_func = lambda seed: np.random.Generator(np.random.MT19937(seed=seed)).random()
+        else:
+            raise ValueError(f"unknown rnd_gen string '{rnd_gen}', should either be 'root' or 'np'")
+    elif callable(rnd_gen):
+        rnd_func = rnd_gen
+    else:
+        raise TypeError(f"unsupported rnd_gen '{rnd_gen}', should be string or callable")
+    return rnd_func
+
+
+def get_rndm(eta, phi, nL, evtNr, lumiNr, cset, nested=False, rnd_gen="root"):
     # obtain parameters from correctionlib
     if nested:
         eta_f, phi_f, nL_f, nmuons = ak.flatten(eta), ak.flatten(phi), ak.flatten(nL), ak.num(nL)
@@ -159,7 +195,8 @@ def get_rndm(eta, phi, nL, evtNr, lumiNr, cset, nested=False):
     ]
 
     # get random number following the CB
-    rndm_f = np.fromiter((np.random.default_rng(int(seed)).random() for seed in seeds), dtype=float)
+    rnd_func = _get_rnd_func(rnd_gen)
+    rndm_f = [rnd_func(seed) for seed in seeds]
 
     cb_f = CrystallBall(mean_f, sigma_f, alpha_f, n_f)
 
@@ -220,15 +257,11 @@ def get_k(eta, var, cset, nested=False):
     return result
 
 
-def filter_boundaries(pt_corr, pt, nested, low_pt_threshold = 26):
+def filter_boundaries(pt_corr, pt, nested, low_pt_threshold = 26, silent=False):
     if not nested:
         pt_corr = np.asarray(pt_corr)
         pt = np.asarray(pt)
-    # Total number of muons
-    if nested:
-        total_muons = ak.sum(ak.num(pt))
-    else:
-        total_muons = len(pt)
+
     # Check for pt values outside the range of [low_pt_threshold, 200]
     outside_bounds = (pt < low_pt_threshold) | (pt > 200)
 
@@ -238,10 +271,11 @@ def filter_boundaries(pt_corr, pt, nested, low_pt_threshold = 26):
         n_pt_outside = np.sum(outside_bounds)
 
     if n_pt_outside > 0:
-        print(
-            f"[filter_boundaries] {n_pt_outside} out of {total_muons} muons have pt outside [{low_pt_threshold}, 200] GeV. "
-            "Setting those entries to their initial value."
-        )
+        if not silent:
+            print(
+                f"There are {n_pt_outside} events with muon pt outside of [" + str(low_pt_threshold) + ",200] GeV. "
+                "Setting those entries to their initial value."
+            )
         pt_corr = np.where(pt>200, pt, pt_corr)
         pt_corr = np.where(pt<low_pt_threshold, pt, pt_corr)
 
@@ -254,17 +288,18 @@ def filter_boundaries(pt_corr, pt, nested, low_pt_threshold = 26):
         n_nan = np.sum(nan_entries)
 
     if n_nan > 0:
-        print(
-            f"There are {n_nan} nan entries in the corrected pt. "
-            "This might be due to the number of tracker layers hitting boundaries. "
-            "Setting those entries to their initial value."
-        )
+        if not silent:
+            print(
+                f"There are {n_nan} nan entries in the corrected pt. "
+                "This might be due to the number of tracker layers hitting boundaries. "
+                "Setting those entries to their initial value."
+            )
         pt_corr = np.where(np.isnan(pt_corr), pt, pt_corr)
 
     return pt_corr
 
 
-def pt_resol(pt, eta, phi, nL, evtNr, lumiNr, cset, nested=False, low_pt_threshold = 26):
+def pt_resol(pt, eta, phi, nL, evtNr, lumiNr, cset, nested=False, low_pt_threshold = 26, rnd_gen="root"):
     """"
     Function for the calculation of the resolution correction
     Input: 
@@ -275,7 +310,7 @@ def pt_resol(pt, eta, phi, nL, evtNr, lumiNr, cset, nested=False, low_pt_thresho
 
     This function should only be applied to reco muons in MC!
     """
-    rndm = get_rndm(eta, phi, nL, evtNr, lumiNr, cset, nested)
+    rndm = get_rndm(eta, phi, nL, evtNr, lumiNr, cset, nested, rnd_gen=rnd_gen)
     std = get_std(pt, eta, nL, cset, nested)
     k = get_k(eta, "nom", cset, nested)
 
@@ -285,17 +320,6 @@ def pt_resol(pt, eta, phi, nL, evtNr, lumiNr, cset, nested=False, low_pt_thresho
 
     pt_filter = (pt_corr / pt > 2) | (pt_corr / pt < 0.1) | (pt_corr < 0)
     pt_corr = ak.where(pt_filter, pt, pt_corr)
-    
-    print("[pt_resol] Example pt values before and after correction:")
-    if nested:
-        flat_pt = ak.flatten(pt)
-        flat_pt_corr = ak.flatten(pt_corr)
-    else:
-        flat_pt = pt
-        flat_pt_corr = pt_corr
-
-    for i in range(min(5, len(flat_pt))):
-        print(f"  muon {i}: pt = {flat_pt[i]:.2f} → pt_corr = {flat_pt_corr[i]:.2f}")
 
     return pt_corr
 
@@ -390,17 +414,6 @@ def pt_scale(is_data, pt, eta, phi, charge, cset, nested=False, low_pt_threshold
     pt_corr = 1. / (m/pt + charge * a)
 
     pt_corr = filter_boundaries(pt_corr, pt, nested, low_pt_threshold)
-    # Print example pt values before and after scale correction
-    print("[pt_scale] Example pt values before and after correction:")
-    if nested:
-        flat_pt = ak.flatten(pt)
-        flat_pt_corr = ak.flatten(pt_corr)
-    else:
-        flat_pt = pt
-        flat_pt_corr = pt_corr
-
-    for i in range(min(5, len(flat_pt))):
-        print(f"  muon {i}: pt = {flat_pt[i]:.2f} → pt_corr = {flat_pt_corr[i]:.2f}")
 
     return pt_corr
 
@@ -441,3 +454,4 @@ def pt_scale_var(pt, eta, phi, charge, updn, cset, nested=False):
         pt_var = pt_var - unc
 
     return pt_var
+

@@ -680,7 +680,8 @@ class MuonsCalibrator(Calibrator):
             pt_corr = pt_resol(
                 pt_scaled, mu.eta, mu.phi, mu.nTrackerLayers,
                 events.event, events.luminosityBlock,
-                self.cset, nested=True
+                self.cset, nested=True,
+                rnd_gen="np" # ← ROOT-FREE
             )
         else:
             pt_corr = pt_scaled
