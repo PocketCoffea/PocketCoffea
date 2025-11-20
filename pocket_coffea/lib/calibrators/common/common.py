@@ -12,6 +12,8 @@ from pocket_coffea.lib.leptons import (
 from pocket_coffea.utils.utils import get_random_seed
 import copy
 from omegaconf import OmegaConf
+from pocket_coffea.lib.muon_scale_and_resolution import pt_scale, pt_resol, pt_scale_var, pt_resol_var
+import correctionlib
 
 class JetsCalibrator(Calibrator):
     """
@@ -612,20 +614,168 @@ class ElectronsScaleCalibrator(Calibrator):
                 return {"Electron.pt": self.scaled_pt["pt"]["nominal"],
                         "Electron.pt_original": self.electrons["pt_original"]}
 
-#####################################################
 class MuonsCalibrator(Calibrator):
+
+    name = "muons_scale_and_resolution"
+    has_variations = True
+    isMC_only = False
+    calibrated_collections = ["Muon.pt", "Muon.pt_original", "Muon.energyErr"]
+
+
     def __init__(self, params, metadata, do_variations=True, **kwargs):
         super().__init__(params, metadata, do_variations, **kwargs)
-        # initialize variations
+
+        self._year = metadata["year"]
+        self.isMC = metadata["isMC"]
+        self.mscare_params = self.params.lepton_scale_factors.muon_sf.scale_and_resolution
+
+        if not self.mscare_params.apply[self._year]:
+            self.enabled = False
+            self._variations = []
+            self.calibrated_collections = []
+            return
+
+        self.enabled = True
+        self.cset = correctionlib.CorrectionSet.from_file(
+            self.mscare_params.correctionlib_config[self._year]["file"]
+        )
+
+        # Define variations
+        if self.isMC:
+            self._variations = [
+                "muon_scaleUp",
+                "muon_scaleDown",
+                "muon_smearUp",
+                "muon_smearDown",
+            ]
+        else:
+            self._variations = []
+        
+        # Storage for all nominal + variations
+        self.cache = {}
 
     def initialize(self, events):
-        # initialize the calibrator
-        pass
+        if not self.enabled:
+            return
 
-    def calibrate( events, orig_colls, variation, already_applied_calibrators=None):
-        pass
+        mu = events.Muon
+        
+        self.muons = ak.with_field(mu, mu.pt, "pt_original")
+        self.muons = ak.with_field(self.muons, ak.zeros_like(mu.pt), "energyErr")  
+
+        # Save raw pt
+        pt_raw = mu.pt
+        self.cache["pt_raw"] = pt_raw
+
+        flag = 0 if self.isMC else 1
+
+        # Nominal scale → pt_scaled
+        pt_scaled = pt_scale(
+            flag, mu.pt, mu.eta, mu.phi, mu.charge,
+            self.cset, nested=True
+        )
+
+        # Smearing or not
+        if self.isMC:
+            pt_corr = pt_resol(
+                pt_scaled, mu.eta, mu.phi, mu.nTrackerLayers,
+                events.event, events.luminosityBlock,
+                self.cset, nested=True,
+                rnd_gen="np" # ← ROOT-FREE
+            )
+        else:
+            pt_corr = pt_scaled
+            
+        self.pt_corr = pt_corr
+
+        if self.isMC:
+            smear_up  = pt_resol_var(pt_scaled, pt_corr, mu.eta, "up", self.cset, nested=True)
+            smear_down = pt_resol_var(pt_scaled, pt_corr, mu.eta, "dn", self.cset, nested=True)
+        else:
+            smear_up = smear_down = pt_scaled
+
+        # like Electron: smeared_pt["pt"]["nominal"] etc.
+        self.smeared_pt = {
+            "pt": {
+                "nominal": pt_corr,
+                "up": smear_up,
+                "down": smear_down,
+            },
+            "energyErr": {
+                "nominal": ak.zeros_like(pt_raw),
+                "up": ak.zeros_like(pt_raw),
+                "down": ak.zeros_like(pt_raw),
+            }
+        }
+
+        if self.isMC:
+            scale_up = pt_scale_var(pt_corr, mu.eta, mu.phi, mu.charge, "up", self.cset, nested=True)
+            scale_down = pt_scale_var(pt_corr, mu.eta, mu.phi, mu.charge, "dn", self.cset, nested=True)
+        else:
+            scale_up = scale_down = pt_scaled
+
+        self.scaled_pt = {
+            "pt": {
+                "nominal": pt_scaled,
+                "up": scale_up,
+                "down": scale_down,
+            },
+            "energyErr": {
+                "nominal": ak.zeros_like(pt_raw),
+                "up": ak.zeros_like(pt_raw),
+                "down": ak.zeros_like(pt_raw),
+            }
+        }
+       
+
+    def calibrate(self, events, orig_colls, variation, already_applied_calibrators=None):
+
+        if not self.enabled:
+            return {}
+
+
+        # ---- NOMINAL ----
+        if variation == "nominal" or variation not in self._variations:
+            return {
+                "Muon.pt": self.smeared_pt["pt"]["nominal"],
+                "Muon.pt_original": self.muons["pt_original"],
+                "Muon.energyErr": self.smeared_pt["energyErr"]["nominal"],
+            }
+
+        # ---- SCALE UP ----
+        if variation == "muon_scaleUp":
+            return {
+                "Muon.pt": self.scaled_pt["pt"]["up"],
+                "Muon.pt_original": self.muons["pt_original"],
+                "Muon.energyErr": self.scaled_pt["energyErr"]["up"],
+            }
+
+        # ---- SCALE DOWN ----
+        if variation == "muon_scaleDown":
+            return {
+                "Muon.pt": self.scaled_pt["pt"]["down"],
+                "Muon.pt_original": self.muons["pt_original"],
+                "Muon.energyErr": self.scaled_pt["energyErr"]["down"],
+            }
+
+        # ---- SMEAR UP ----
+        if variation == "muon_smearUp":
+            return {
+                "Muon.pt": self.smeared_pt["pt"]["up"],
+                "Muon.pt_original": self.muons["pt_original"],
+                "Muon.energyErr": self.smeared_pt["energyErr"]["up"],
+            }
+
+        # ---- SMEAR DOWN ----
+        if variation == "muon_smearDown":
+            return {
+                "Muon.pt": self.smeared_pt["pt"]["down"],
+                "Muon.pt_original": self.muons["pt_original"],
+                "Muon.energyErr": self.smeared_pt["energyErr"]["down"],
+            }
+
 
 #########################################
 default_calibrators_sequence = [
-    JetsCalibrator, METCalibrator, ElectronsScaleCalibrator
+    JetsCalibrator, METCalibrator, ElectronsScaleCalibrator, MuonsCalibrator,
 ]
