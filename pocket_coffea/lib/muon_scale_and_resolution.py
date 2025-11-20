@@ -10,24 +10,6 @@ from typing import List
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
-
-# cache for lazily imported ROOT module
-_ROOT = None
-
-
-def import_ROOT():
-    global _ROOT
-
-    if _ROOT is None:
-        import ROOT
-        ROOT.gROOT.SetBatch(True)
-        ROOT.gErrorIgnoreLevel = ROOT.kError
-        ROOT.RooMsgService.instance().setGlobalKillBelow(ROOT.RooFit.ERROR)
-        _ROOT = ROOT
-    
-    return _ROOT
-
-
 class SeedSequence:
     def __init__(self, seeds: List[int]):
         self.seeds = [s & 0xFFFFFFFF for s in seeds]
@@ -159,10 +141,7 @@ class CrystallBall:
 def _get_rnd_func(rnd_gen):
     if isinstance(rnd_gen, str):
         rnd_gen = rnd_gen.lower()
-        if rnd_gen == "root":
-            ROOT = import_ROOT()
-            rnd_func = lambda seed: ROOT.TRandom3(int(seed)).Rndm()
-        elif rnd_gen == "np":
+        if rnd_gen == "np":
             rnd_func = lambda seed: np.random.Generator(np.random.MT19937(seed=seed)).random()
         else:
             raise ValueError(f"unknown rnd_gen string '{rnd_gen}', should either be 'root' or 'np'")
