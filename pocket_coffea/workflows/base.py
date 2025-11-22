@@ -71,6 +71,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Custom axis for the histograms
         self.custom_axes = []
         self.custom_histogram_fields = {}
+        
 
         # Output format
         # Accumulators for the output
@@ -188,6 +189,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         define the cut at the preselection level, not at skim level.
         '''
         self._skim_masks = PackedSelection()
+        
+        events_before = self.nevents
 
         for skim_func in self._skim:
             # Apply the skim function and add it to the mask
@@ -199,6 +202,13 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 isMC=self._isMC,
             )
             self._skim_masks.add(skim_func.id, mask)
+            
+            # DEBUG: Log each skim cut
+            self.debug_logger.log_selection_mask(
+                skim_func.id, 
+                mask, 
+                events_before
+            )
 
         # Finally we skim the events and count them
         self.events = self.events[self._skim_masks.all(*self._skim_masks.names)]
@@ -272,6 +282,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
         # The preselection mask is applied after the objects have been corrected
         self._preselection_masks = PackedSelection()
+        
+        events_before = self.nevents
 
         for cut in self._preselections:
             # Apply the cut function and add it to the mask
@@ -283,6 +295,14 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 isMC=self._isMC,
             )
             self._preselection_masks.add(cut.id, mask)
+            
+            # DEBUG: Log each preselection cut
+            self.debug_logger.log_selection_mask(
+                f"presel_{cut.id}_{variation}",
+                mask,
+                events_before
+            )
+            
         # Now that the preselection mask is complete we can apply it to events
         self.events = self.events[
             self._preselection_masks.all(*self._preselection_masks.names)
@@ -353,6 +373,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self.weights_config_allsamples[self._sample],
             self.weights_classes,
             storeIndividual=False,
+            debug_logger=self.debug_logger,
             metadata={
                 "year": self._year,
                 "sample": self._sample,
@@ -446,6 +467,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             weights_manager=self.weights_manager,
             calibrators_manager=self.calibrators_manager,
             custom_axes=self.custom_axes,
+            debug_logger=self.debug_logger,
             isMC=self._isMC,
         )
 
@@ -660,6 +682,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 self.params,
                 self._metadata,
                 requested_calibrator_variations=self.cfg.available_shape_variations[self._sample],
+                debug_logger=self.debug_logger,
                 # Additional arg to pass the jmefactory to the jet calibrator --> hack until we remove it 
                 jme_factory=self.jmefactory,
             )
@@ -670,6 +693,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 self.params,
                 self._metadata,
                 requested_calibrator_variations=self.cfg.available_shape_variations[self._sample],
+                debug_logger=self.debug_logger,
             )
 
     def loop_over_variations(self):
@@ -716,15 +740,55 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Define the accumulator instance for this chunk
         self.output = copy.deepcopy(self.output_format)
 
+        # Debug logger will be initialized after metadata is loaded (needs dataset and range)
+
         ###################
         # At the beginning of the processing the initial number of events
         # and the sum of the genweights is stored for later use
         #################
         self.load_metadata()
         self.load_metadata_extra()
+        
+        # Initialize debug logger per chunk with dataset and entry range-based filename
+        from ..utils.debug_logger import SuperVerboseDebugLogger
+        dbg_opts_root = self.workflow_options or {}
+        debug_options = dbg_opts_root.get("super_debug", {})
+        # Build default filename using dataset and chunk span if not provided
+        if debug_options.get("log_filename", None) is None:
+            fuuid = self.events.metadata.get("fileuuid", "nofuuid")
+            estart = self.events.metadata.get("entrystart", 0)
+            estop = self.events.metadata.get("entrystop", 0)
+            safe_dataset = str(self._dataset).replace("/", "_")
+            chunk_name = f"{safe_dataset}__{fuuid}__{estart}__{estop}.log"
+            log_filename = chunk_name
+        else:
+            log_filename = debug_options.get("log_filename")
+
+        self.debug_logger = SuperVerboseDebugLogger(
+            enabled=debug_options.get("enabled", False),
+            output_dir=debug_options.get("output_dir", "debug_logs"),
+            log_filename=log_filename,
+            sample_size=debug_options.get("sample_size", 10),
+            check_zeros=debug_options.get("check_zeros", True),
+            check_nans=debug_options.get("check_nans", True),
+            check_infs=debug_options.get("check_infs", True),
+        )
+        
+        # DEBUG: Log processing start
+        self.debug_logger.step_start("PROCESSING_START", {
+            "dataset": self._dataset,
+            "sample": self._sample,
+            "year": self._year,
+            "isMC": self._isMC,
+            "n_events_initial": self.nevents
+        })
 
         self.nEvents_initial = self.nevents
         self.output['cutflow']['initial'][self._dataset] = self.nEvents_initial
+        
+        # DEBUG: Log initial events
+        self.debug_logger.log_events_count("initial", self.nEvents_initial, self.events)
+        
         if self._isMC:
             # This is computed before any preselection
             if not self._isSkim:
@@ -734,6 +798,12 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 self.output['sum_genweights'][self._dataset] = ak.sum(self.events.skimRescaleGenWeight * self.events.genWeight)
             #FIXME: handle correctly the skim for the sum_signOf_genweights
             self.output['sum_signOf_genweights'][self._dataset] = ak.sum(np.sign(self.events.genWeight))
+            
+            # DEBUG: Log genweights
+            self.debug_logger.log_array("genWeight", self.events.genWeight, 
+                                         context="Initial genWeight distribution")
+        
+        self.debug_logger.step_end("PROCESSING_START")
                 
         ########################
         # Then the first skimming happens.
@@ -742,21 +812,38 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # BE CAREFUL: objects are not corrected and cleaned at this stage, the skimming
         # selections MUST be loose and inclusive w.r.t the final selections.
         #########################
+        # DEBUG: Start skimming
+        self.debug_logger.step_start("SKIMMING")
+        
         # Customization point for derived workflows before skimming
         self.process_extra_before_skim()
         # MET filter, lumimask, + custom skimming function
         self.skim_events()
+        
+        # DEBUG: Log skim results
+        self.debug_logger.log_events_count("after_skim", self.nEvents_after_skim, self.events)
+        self.debug_logger.step_end("SKIMMING", {
+            "events_before": self.nEvents_initial,
+            "events_after": self.nEvents_after_skim,
+            "efficiency": self.nEvents_after_skim / self.nEvents_initial if self.nEvents_initial > 0 else 0
+        })
+        
         if not self.has_events:
+            self.debug_logger.log_warning("No events after skim, stopping processing")
+            self.debug_logger.close()
             return self.output
 
         if self.cfg.save_skimmed_files:
             self.export_skimmed_chunk()
+            self.debug_logger.close()
             return self.output
 
         #########################
         # After the skimming we apply the object corrections and preselection
         # Doing so we avoid to compute them on the full NanoAOD dataset
         #########################
+        # DEBUG: Start initialization
+        self.debug_logger.step_start("INITIALIZATION")
 
         self.process_extra_after_skim()
         # Define and load the calibators
@@ -769,13 +856,23 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self.define_histograms_extra()
         self.define_column_accumulators()
         self.define_column_accumulators_extra()
+        
+        self.debug_logger.step_end("INITIALIZATION")
 
         for variation in self.loop_over_variations():
+            # DEBUG: Start variation processing
+            self.debug_logger.step_start(f"VARIATION_{variation}")
+            self.debug_logger.log_info(f"Processing variation: {variation}")
+            
             # Custom code just after calibrations
             self.process_extra_after_calibrators(variation)
+            
             # Apply preselections
+            self.debug_logger.step_start(f"OBJECT_PRESELECTION_{variation}")
             self.apply_object_preselection(variation)
             self.count_objects(variation)
+            self.debug_logger.step_end(f"OBJECT_PRESELECTION_{variation}")
+            
             # Compute variables after object preselection
             self.define_common_variables_before_presel(variation)
             # Customization point for derived workflows after preselection cuts
@@ -783,10 +880,21 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
             # This will remove all the events not passing preselection
             # from further processing
+            events_before_presel = self.nevents
+            self.debug_logger.step_start(f"EVENT_PRESELECTION_{variation}")
             self.apply_preselections(variation)
+            self.debug_logger.log_events_count(f"after_presel_{variation}", 
+                                               self.nEvents_after_presel, self.events)
+            self.debug_logger.step_end(f"EVENT_PRESELECTION_{variation}", {
+                "events_before": events_before_presel,
+                "events_after": self.nEvents_after_presel,
+                "efficiency": self.nEvents_after_presel / events_before_presel if events_before_presel > 0 else 0
+            })
 
             # If not events remains after the preselection we skip the chunk
             if not self.has_events:
+                self.debug_logger.log_warning(f"No events after preselection for variation {variation}")
+                self.debug_logger.step_end(f"VARIATION_{variation}")
                 continue
 
             ##########################
@@ -801,21 +909,31 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self.define_categories(variation)
 
             # Weights
+            self.debug_logger.step_start(f"WEIGHTS_{variation}")
             self.compute_weights(variation)
             self.compute_weights_extra(variation)
+            self.debug_logger.step_end(f"WEIGHTS_{variation}")
 
             # Fill histograms
+            self.debug_logger.step_start(f"HISTOGRAMS_{variation}")
             self.fill_histograms(variation)
             self.fill_histograms_extra(variation)
             self.fill_column_accumulators(variation)
             self.fill_column_accumulators_extra(variation)
+            self.debug_logger.step_end(f"HISTOGRAMS_{variation}")
 
             # Count events
             if variation == "nominal":
                 self.count_events(variation)
+            
+            self.debug_logger.step_end(f"VARIATION_{variation}")
 
         self.stop_time = time.time()
         self.save_processing_metadata()
+        
+        # Close debug logger
+        self.debug_logger.close()
+        
         return self.output
 
 
