@@ -141,9 +141,9 @@ def get_JetVetoMap_Mask(events, params, year, processor_params, sample, isMC, **
     # in the following, if nano_version not explicitly specified in params, v9 is assumed for Run2UL, v12 for 22/23 and v15 for 2024
     jets = ak.with_field(events["Jet"], compute_jetId(events, "Jet", processor_params, year), "jetId_corrected")
     mask_for_VetoMap = (
-        (jets["jetId_corrected"]>=2) # Must fulfill tight jetId
+        (jets["jetId_corrected"]>=6) # Must fulfill tightLepVeto
         & (abs(jets.eta) < 5.19) # Must be within HCal acceptance
-        & (jets.pt*(1-jets.muonSubtrFactor) > 15.) # May no be Muons misreconstructed as jets
+        & (jets.pt > 15.) # Minimum pT
         & ((jets["neEmEF"]+jets["chEmEF"])<0.9) # Energy fraction not dominated by ECal
     )
     jets = jets[mask_for_VetoMap]
