@@ -997,7 +997,7 @@ class Shape:
         else:
             self.fig, self.ax = plt.subplots(1, 1, **self.style.opts_figure["datamc"])
             axes = self.ax
-        if self.has_custom_title:
+        if self.style.has_custom_title:
             hep.cms.text(
                 self.style.cms_label,
                 fontsize=self.style.fontsize,
