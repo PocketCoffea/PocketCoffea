@@ -6,10 +6,8 @@ from pocket_coffea.parameters.cuts import passthrough
 from pocket_coffea.parameters.histograms import *
 from pocket_coffea.lib.categorization import StandardSelection, CartesianSelection, MultiCut
 from pocket_coffea.lib.calibrators.common import default_calibrators_sequence 
-from pocket_coffea.lib.columns_manager import ColOut
 
 from workflow_shape_variations import BasicProcessor
-
 
 from custom_cut_functions import *
 import os
@@ -26,10 +24,10 @@ defaults.register_configuration_dir("config_dir", localdir+"/params")
 parameters = defaults.merge_parameters_from_files(default_parameters,
                                                     f"{localdir}/params/object_preselection_run3.yaml",
                                                     f"{localdir}/params/triggers.yaml",
-                                                    f"{localdir}/params/jets_calibration_noJER.yaml",
+                                                    f"{localdir}/params/jets_calibration.yaml",
                                                    update=True)
 
-#Creating custom weight
+
 cfg = Configurator(
     parameters = parameters,
     datasets = {
@@ -41,15 +39,16 @@ cfg = Configurator(
             "year": ['2023_postBPix']
         },
         "subsamples": {
-            # "TTTo2L2Nu": {
-            #     "ele": [get_nObj_min(1, coll="ElectronGood"), get_nObj_eq(0, coll="MuonGood")],
-            #     "mu":  [get_nObj_eq(0, coll="ElectronGood"), get_nObj_min(1, coll="MuonGood")],
-            # },
+            "TTTo2L2Nu": {
+                "ele": [get_nObj_min(1, coll="ElectronGood"), get_nObj_eq(0, coll="MuonGood")],
+                "mu":  [get_nObj_eq(0, coll="ElectronGood"), get_nObj_min(1, coll="MuonGood")],
+            },
             "DATA_SingleMuon": {
                 "clean": [get_HLTsel(primaryDatasets=["SingleEle"], invert=True)], # crosscleaning SingleELe trigger on SIngleMuon
             }
         }
     },
+
     workflow = BasicProcessor,
 
     skim = [get_nPVgood(1), eventFlags, goldenJson,
@@ -97,7 +96,7 @@ cfg = Configurator(
         },
         "shape": {
             "common": {
-                "inclusive": [ "jet_calibration"],
+                "inclusive": [ "jet_calibration", "electron_scale_and_smearing"],
             },
         }
     },
@@ -107,11 +106,11 @@ cfg = Configurator(
         **jet_hists(),
         **count_hist("JetGood"),
         **count_hist("BJetGood"),
-        "MET_pt": HistConf([Axis(coll="PuppiMET", field="pt", label="MET pT [GeV]", bins=50, start=0, stop=200)]),
+        "MET_pt": HistConf([Axis(coll="MET", field="pt", label="MET pT [GeV]", bins=50, start=0, stop=200)]),
     },
 
     columns = {
-        "common": {
+       "common": {
             "inclusive": [
                 ColOut(collection="Jet", columns=["pt"]),
                 ColOut(collection="PuppiMET", columns=["pt", "phi"]),

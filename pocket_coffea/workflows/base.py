@@ -17,9 +17,7 @@ from coffea.analysis_tools import PackedSelection
 from ..lib.weights.weights_manager import WeightsManager
 from ..lib.columns_manager import ColumnsManager
 from ..lib.hist_manager import HistManager
-from ..lib.jets import jet_correction, met_correction_after_jec, load_jet_factory
-from ..lib.leptons import get_ele_smeared, get_ele_scaled
-from ..lib.categorization import CartesianSelection
+from ..lib.jets import load_jet_factory
 from ..lib.calibrators.calibrators_manager import CalibratorsManager
 from ..utils.skim import uproot_writeable, copy_file
 from ..utils.utils import dump_ak_array
@@ -63,10 +61,13 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Weights configuration
         self.weights_config_allsamples = self.cfg.weights_config
         self.weights_classes = self.cfg.weights_classes
-
+        
         # Load the jet calibration factory once for all chunks
-        self.jmefactory = load_jet_factory(self.params)
-
+        if self.params.jets_calibration.get("legacy_txt_calibration", False):
+            self.jmefactory = load_jet_factory(self.params)
+        else:
+            self.jmefactory = None
+        
         # Custom axis for the histograms
         self.custom_axes = []
         self.custom_histogram_fields = {}
@@ -138,6 +139,24 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self._era = self.events.metadata["era"]
         # Loading metadata for subsamples
         self._hasSubsamples = self.cfg.has_subsamples[self._sample]
+        # Extract nano version
+        if "nano_version" in self.events.metadata:
+            self.nano_version = self.events.metadata["nano_version"]
+        else:
+            if self._isMC:
+                # Try to extract from the sample name
+                if "NanoAODv12" in self.events.metadata["filename"]:
+                    self.nano_version = 12
+                elif "NanoAODv15" in self.events.metadata["filename"]:
+                    self.nano_version = 15  
+                else:
+                    # For MC if it's not defined we take the default nano version
+                    self.nano_version = self.params.default_nano_version[self._year] 
+                              
+            else:
+                # For data if it's not defined we take the default nano version
+                self.nano_version = self.params.default_nano_version[self._year]
+
         # Store all metadata in a single dict for easier access
         self._metadata = {
             "year": self._year,
@@ -147,6 +166,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             "isMC": self._isMC,
             "isSkim": self._isSkim,
             "era": self._era,
+            "nano_version": self.nano_version,
         }
 
     def load_metadata_extra(self):
@@ -632,15 +652,25 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''Creates the calibator manager and initialize all the calibrators.
         This prepares also the list of avaialable shape variations for this chunk.
         That will be utilized by the HistManager to create the histograms variations axes.'''
-        self.calibrators_manager = CalibratorsManager(
-            self.cfg.calibrators,
-            self.events,
-            self.params,
-            self._metadata,
-            requested_calibrator_variations=self.cfg.available_shape_variations[self._sample],
-            # Additional arg to pass the jmefactory to the jet calibrator --> hacky
-            jme_factory=self.jmefactory,
-        )
+
+        if self.params.jets_calibration.get("legacy_txt_calibration", False):
+            self.calibrators_manager = CalibratorsManager(
+                self.cfg.calibrators,
+                self.events,
+                self.params,
+                self._metadata,
+                requested_calibrator_variations=self.cfg.available_shape_variations[self._sample],
+                # Additional arg to pass the jmefactory to the jet calibrator --> hack until we remove it 
+                jme_factory=self.jmefactory,
+            )
+        else:
+            self.calibrators_manager = CalibratorsManager(
+                self.cfg.calibrators,
+                self.events,
+                self.params,
+                self._metadata,
+                requested_calibrator_variations=self.cfg.available_shape_variations[self._sample],
+            )
 
     def loop_over_variations(self):
         # Get the requested shape variations by calibrator

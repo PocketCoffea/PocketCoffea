@@ -128,3 +128,11 @@ jet_scale_factors:
         '2024':
             file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,JME,jetvetomaps.json.gz}
             name: "Summer24Prompt24_RunBCDEFGHI_V1"
+
+
+    jet_id:
+        "2022_preEE": ${cvmfs:Run3-22CDSep23-Summer22-NanoAODv12,JME,jetid.json.gz}
+        "2022_postEE": ${cvmfs:Run3-22EFGSep23-Summer22EE-NanoAODv12,JME,jetid.json.gz}
+        "2023_preBPix": ${cvmfs:Run3-23CSep23-Summer23-NanoAODv12,JME,jetid.json.gz}
+        "2023_postBPix": ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,JME,jetid.json.gz}
+        "2024": ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,JME,jetid.json.gz}

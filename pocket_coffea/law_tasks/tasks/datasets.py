@@ -17,70 +17,7 @@ from pocket_coffea.law_tasks.utils import (
 )
 from pocket_coffea.utils.dataset import build_datasets
 
-# this is a nice idea but does not currently work because the datasets definition file
-# needs to exist in the output of the CreateDatasets task
 
-
-# class DatasetDefinitionExists(law.ExternalTask):
-#     """Check existence of dataset definition file
-#     External task, the datasets definition needs to be written by hand
-#     """
-
-#     definition_file = luigi.Parameter(description="Path to the dataset definition file")  #noqa
-
-#     def output(self):
-#         return law.LocalFileTarget(os.path.abspath(self.definition_file))
-
-
-# @luigi.util.inherits(datasetconfig)
-# class MergeDatasetsDefinition(law.Task):
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         # if wildcard in --datasets-definition parameter create a list
-#         # if not list only has one entry
-#         self.datasets_definition_list = glob.glob(self.dataset_definition)
-#         if not self.datasets_definition_list:
-#             warnings.warn(
-#                 law.util.colored(
-#                     "No datasets definition file found."
-#                     "Check the path to the datasets definition file:"
-#                     f"{self.dataset_definition}",
-#                     color="light red",
-#                 ),
-#                 stacklevel=2,
-#             )
-#             self.datasets_definition_list = [self.dataset_definition]
-
-#     def requires(self):
-#         # check that all the dataset definition files exist
-#         return [
-#             DatasetDefinitionExists(definition_file=definition)
-#             for definition in self.datasets_definition_list
-#         ]
-
-#     def output(self):
-#         return law.LocalFileTarget(os.path.abspath("datasets/datasets_merged.json"))
-
-#     def run(self):
-#         # load the datasets definition files and merge them into one
-#         # dump it into a new file
-#         merged_datasets = merge_datasets_definition(
-#             [dataset.abspath for dataset in self.input()]
-#         )
-
-#         # make sure, that the dataset_dir is full path in the datasets definition
-#         # so that the build_datasets function saves it at the correct path
-#         merged_datasets = modify_dataset_output_path(
-#             dataset_definition=merged_datasets, output_dir=self.dataset_dir
-#         )
-
-#         self.output().dump(
-#             merged_datasets,
-#             indent=4,
-#         )
-
-
-# @luigi.util.requires(MergeDatasetsDefinition)
 @luigi.util.inherits(baseconfig)
 @luigi.util.inherits(datasetconfig)
 class CreateDatasets(BaseTask):
@@ -142,6 +79,9 @@ class CreateDatasets(BaseTask):
             dataset_configuration=self.dataset_config,
             output_file=self.merged_dataset_file,
         )
+
+        # create parent directory
+        self.output()["json files"][0].parent.touch()
 
         # build the dataset json file
         build_datasets(

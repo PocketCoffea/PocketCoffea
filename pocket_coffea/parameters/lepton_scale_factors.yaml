@@ -292,4 +292,47 @@ lepton_scale_factors:
       '2023_postBPix':
           file: ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,MUO,muon_Z.json.gz}
       '2024':
-          file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,MUO,muon_Z.json.gz}    
+          file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,MUO,muon_Z.json.gz}   
+          
+    scale_and_resolution:
+      apply: 
+        '2016_PreVFP': False
+        '2016_PostVFP': False
+        '2017': False
+        '2018': False
+        '2022_preEE': True
+        '2022_postEE': True
+        '2023_preBPix': True
+        '2023_postBPix': True
+        '2024': True
+
+      correctionlib_config:
+        '2022_preEE':
+          file: ${cvmfs:Run3-22CDSep23-Summer22-NanoAODv12,MUO,muon_scalesmearing.json.gz}
+          correction_name:
+            cb: "cb_params"
+            poly: "poly_params"
+
+        '2022_postEE':
+          file: ${cvmfs:Run3-22EFGSep23-Summer22EE-NanoAODv12,MUO,muon_scalesmearing.json.gz}
+          correction_name:
+            cb: "cb_params"
+            poly: "poly_params"
+
+        '2023_preBPix':
+          file: ${cvmfs:Run3-23CSep23-Summer23-NanoAODv12,MUO,muon_scalesmearing.json.gz}
+          correction_name:
+            cb: "cb_params"
+            poly: "poly_params"
+
+        '2023_postBPix':
+          file: ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,MUO,muon_scalesmearing.json.gz}
+          correction_name:
+            cb: "cb_params"
+            poly: "poly_params"
+
+        '2024':
+          file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,MUO,muon_scalesmearing.json.gz}
+          correction_name:
+            cb: "cb_params"
+            poly: "poly_params" 

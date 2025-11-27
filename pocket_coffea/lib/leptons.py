@@ -16,6 +16,8 @@ def get_ele_scaled_etdependent(ele, json_scale,
     ele_eta_flat = ak.flatten(ele["etaSC"]) # eta of supercluster
     ele_r9_flat = ak.flatten(ele["r9"])
     ele_pt_flat = ak.flatten(ele["pt"])
+    ele_energy_flat = ak.flatten(ele.energy)
+    ele_energyErr_flat = ak.flatten(ele["energyErr"])
     ele_counts = ak.num(ele["pt"])
     ele_runNr_flat = np.repeat(runNr, ele_counts)
     if not isMC: 
@@ -29,7 +31,16 @@ def get_ele_scaled_etdependent(ele, json_scale,
                 ele_gain_flat
         )
         ele_pt_corrected = ak.unflatten(scale * ele_pt_flat, counts=ele_counts)
-        return {"nominal": ele_pt_corrected}
+
+        # Correct the energyError
+        smear = smear_and_syst_evaluator.evaluate("smear", ele_pt_flat * scale, 
+                                                  ele_r9_flat, ele_eta_flat)
+        energyErr_corrected = ak.unflatten(
+                np.sqrt((ele_energyErr_flat)**2 + (ele_energy_flat * smear)**2) * scale,
+                counts=ele_counts)
+        
+        return {"pt": {"nominal": ele_pt_corrected}, 
+                "energyErr": {"nominal": energyErr_corrected}}
     else:
         # MC: return shifts
         scale_MC_unc = smear_and_syst_evaluator.evaluate(
@@ -38,9 +49,21 @@ def get_ele_scaled_etdependent(ele, json_scale,
             ele_r9_flat, 
             ele_eta_flat
         )
-        ele_pt_scale_up = ak.unflatten((1+scale_MC_unc) * ele_pt_flat, counts=ele_counts)
-        ele_pt_scale_down = ak.unflatten((1-scale_MC_unc) * ele_pt_flat, counts=ele_counts)
-        return {"up": ele_pt_scale_up, "down": ele_pt_scale_down}
+        scale_up = 1 + scale_MC_unc
+        scale_down = 1 - scale_MC_unc
+        ele_pt_scale_up = ak.unflatten(ele_pt_flat*scale_up, counts=ele_counts)
+        ele_pt_scale_down = ak.unflatten(ele_pt_flat*scale_down, counts=ele_counts)
+
+        ele_energyErr_corrected_up = ak.unflatten(ele_energyErr_flat * scale_up, counts=ele_counts)
+        ele_energyErr_corrected_down = ak.unflatten(ele_energyErr_flat * scale_down, counts=ele_counts)
+
+        return {"pt": {
+                    "up": ele_pt_scale_up, "down": ele_pt_scale_down
+                },
+                "energyErr": {
+                    "up": ele_energyErr_corrected_up,
+                    "down": ele_energyErr_corrected_down
+                }}
     
 
 def get_ele_scaled(ele, json_scale, correction_name, isMC, runNr):
@@ -90,6 +113,8 @@ def get_ele_smeared_etdependent(mc_ele, jsonFileName, correction_name, isMC, onl
     ele_eta_flat = ak.flatten(mc_ele["etaSC"]) # eta of supercluster
     ele_r9_flat = ak.flatten(mc_ele["r9"])
     ele_pt_flat = ak.flatten(mc_ele["pt"])
+    ele_energy_flat = ak.flatten(mc_ele.energy)
+    ele_energyErr_flat = ak.flatten(mc_ele["energyErr"])
     ele_counts = ak.num(mc_ele["pt"])
     rng = np.random.default_rng(seed=seed)
     smear = evaluator_smearing.evaluate(
@@ -102,8 +127,13 @@ def get_ele_smeared_etdependent(mc_ele, jsonFileName, correction_name, isMC, onl
     smearing = 1 + smear * rnd_samples
     mc_ele_pt_corrected_nom = ak.unflatten(smearing * ele_pt_flat, counts=ele_counts)
 
+    mc_energyErr_corrected_nom = ak.unflatten(
+        np.sqrt((ele_energyErr_flat)**2 + (ele_energy_flat * smear)**2) * smearing, 
+        counts=ele_counts)
+
     if only_nominal:
-        return {"nominal": mc_ele_pt_corrected_nom}
+        return {"pt": {"nominal": mc_ele_pt_corrected_nom},
+                "energyErr": {"nominal": mc_energyErr_corrected_nom}}
     else:
         smear_up = evaluator_smearing.evaluate(
             "smear_up", 
@@ -122,9 +152,26 @@ def get_ele_smeared_etdependent(mc_ele, jsonFileName, correction_name, isMC, onl
         smearing_down = 1 + smear_down * rnd_samples
         mc_ele_pt_up = ak.unflatten(smearing_up * ele_pt_flat, counts=ele_counts)
         mc_ele_pt_down = ak.unflatten(smearing_down * ele_pt_flat, counts=ele_counts)
-        return {"nominal": mc_ele_pt_corrected_nom,
-                "up": mc_ele_pt_up, 
-                "down": mc_ele_pt_down}
+
+        mc_energyErr_corrected_smearing_up = ak.unflatten(
+                np.sqrt((ele_energyErr_flat)**2 + (ele_energy_flat * smear_up)**2) * smearing_up,
+                counts=ele_counts)
+        mc_energyErr_corrected_smearing_down = ak.unflatten(
+            np.sqrt((ele_energyErr_flat)**2 + (ele_energy_flat * smear_down)**2) * smearing_down,
+            counts=ele_counts
+        )
+
+        return {"pt": {
+                    "nominal": mc_ele_pt_corrected_nom,
+                    "up": mc_ele_pt_up, 
+                    "down": mc_ele_pt_down
+                },
+                "energyErr": {
+                    "nominal": mc_energyErr_corrected_nom,
+                    "up": mc_energyErr_corrected_smearing_up,
+                    "down": mc_energyErr_corrected_smearing_down
+                }
+        }
 
 
 def get_ele_smeared(mc_ele, jsonFileName,correction_name, isMC, only_nominal=True, seed=125):

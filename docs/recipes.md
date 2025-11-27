@@ -1,5 +1,4 @@
 # HOW-TOs for common tasks
-
 :::{alert}
 Page under construction! Come back for more common analysis steps recipes.
 :::
@@ -7,7 +6,6 @@ Page under construction! Come back for more common analysis steps recipes.
 ## HLT trigger selection
 
 ## Define a new cut function
-
 
 ## Skimming events
 Skimming NanoAOD events and save the reduced files on disk can speedup a lot the processing of the analysis. The recommended executor for the skimming process is the direct condor-job executor, which splits the workload in condor jobs without using the dask scheduler. This makes the resubmission of failed skim jobs easier. 
@@ -65,26 +63,14 @@ The jet calibration system is built around three main concepts:
 
 The system maps jet types to collections and applies the appropriate corrections based on data-taking period, MC/Data status, and systematic variation requests.
 
-:::{warning}
-The system uses a pickled factory file (`jets_calibrator_JES_JER_Syst.pkl.gz`) that contains pre-compiled correction functions. If you modify the factory configuration, you may need to regenerate this file using the factory building utilities in PocketCoffea.
-:::
-
 #### Available Calibrators
 
 **JetsCalibrator**: Standard JEC/JER calibrator for regular jet collections
 - Applies JEC (L1FastJet, L2Relative, etc.) and JER corrections
 - Handles systematic variations (JES uncertainties, JER variations)
 - Works with both MC and Data
+- Can apply the pT regression to some jets collections before calibration.
 
-**JetsPtRegressionCalibrator**: Calibrator that applies ML-based pT regression before JEC
-- Supports ParticleNet (`PNet`) and UParTAK4 regression algorithms
-- Applied to jet types with "Regression" in their name
-- Regression applied selectively based on b-tagging scores
-- Followed by standard JEC corrections
-
-**METCalibrator**: Propagates jet corrections to MET
-- Recalculates MET based on differences between uncalibrated and calibrated jets
-- Must be applied after jet calibration
 
 #### Configuration Structure
 
@@ -95,16 +81,46 @@ Defines the correction files for each jet type, data-taking period, and correcti
 
 ```yaml
 default_jets_calibration:
-  factory_configuration_MC:
+  factory_config_clib:
     AK4PFchs:
-      JES_JER_Syst:  # Full corrections with systematics
-        2016_PreVFP:
-          - "path/to/L1FastJet_file.jec.txt.gz"
-          - "path/to/L2Relative_file.jec.txt.gz"
-          - "path/to/UncertaintySources_file.junc.txt.gz"
-          - "path/to/JER_SF_file.jersf.txt.gz"
-      JES_JER_noJESSyst:  # JEC+JER without JES systematics
-      JES_noJER:          # JEC only, no JER
+      2016_PreVFP:
+        json_path: ${cvmfs:Run2-2016preVFP-UL-NanoAODv9,JME,jet_jerc.json.gz}
+        jec_mc: Summer19UL16APV_V7_MC
+        jec_data:
+          B: Summer19UL16APV_RunBCD_V7_DATA
+          C: Summer19UL16APV_RunBCD_V7_DATA
+          D: Summer19UL16APV_RunBCD_V7_DATA
+          E: Summer19UL16APV_RunEF_V7_DATA
+          F: Summer19UL16APV_RunEF_V7_DATA
+        jer: Summer20UL16APV_JRV3_MC
+        level: L1L2L3Res
+
+      2016_PostVFP:
+        json_path: ${cvmfs:Run2-2016postVFP-UL-NanoAODv9,JME,jet_jerc.json.gz}
+        jec_mc: Summer19UL16_V7_MC
+        jec_data: Summer19UL16_RunFGH_V7_DATA
+        jer: Summer20UL16_JRV3_MC
+        level: L1L2L3Res
+
+    ....
+    AK4PFPuppi:
+      2022_preEE:
+        json_path: ${cvmfs:Run3-22CDSep23-Summer22-NanoAODv12,JME,jet_jerc.json.gz}
+        jec_mc: Summer22_22Sep2023_V3_MC
+        jec_data: Summer22_22Sep2023_RunCD_V3_DATA
+        jer: Summer22_22Sep2023_JRV1_MC
+        level: L1L2L3Res
+      
+      2022_postEE:
+        json_path: ${cvmfs:Run3-22EFGSep23-Summer22EE-NanoAODv12,JME,jet_jerc.json.gz}
+        jec_mc: Summer22EE_22Sep2023_V3_MC
+        jec_data:
+          E: Summer22EE_22Sep2023_RunE_V3_DATA
+          F: Summer22EE_22Sep2023_RunF_V3_DATA
+          G: Summer22EE_22Sep2023_RunG_V3_DATA
+        jer: Summer22EE_22Sep2023_JRV1_MC
+        level: L1L2L3Res
+
 ```
 
 ##### Collection Mapping
@@ -119,11 +135,22 @@ jets_calibration:
       AK4PFPuppiPNetRegression: "Jet"
 ```
 
+The jet type is just an internal labels used in the PocketCoffea configuration to link various pieces of the jets configuration together. 
+
+:::{warning}
+All the collections defined in the `jets_calibration.collection` entry will be calibrated by the configured JetsCalibrator if included in the calibrators sequence. It is not allowed to match the same jet collection to multiple jet types: an error will be raised.
+:::
+
 ##### Calibration Control Flags
 Enable/disable different correction types per jet type and period:
 
 ```yaml
   apply_jec_MC:           # Apply JEC to MC
+    2022_preEE:
+      AK4PFPuppi: True
+      AK4PFPuppiPNetRegression: True
+
+  apply_jer_MC:           # Apply JER to MC
     2022_preEE:
       AK4PFPuppi: True
       AK4PFPuppiPNetRegression: True
@@ -136,24 +163,41 @@ Enable/disable different correction types per jet type and period:
     2022_preEE:
       AK4PFPuppi: False
       AK4PFPuppiPNetRegression: True
+
+  sort_by_pt:
+    2016_PreVFP:
+      AK4PFchs: True
+      AK8PFPuppi: True
+    2016_PostVFP:
+      AK4PFchs: True
+      AK8PFPuppi: True  
 ```
 
 ##### Systematic Variations
-Define which systematic variations to include:
+Different sets of systematic variations are available in the default parameter set. 
 
 ```yaml
+default_jets_calibration:
   variations:
     full_variations:      # All individual JES sources
-      2022_preEE:
-        AK4PFPuppi:
-          - JES_Absolute
-          - JES_FlavorQCD
+      AK4PFPuppi:
+        2022_preEE:
+          - JES_Regrouped_Absolute
+          - JES_Regrouped_FlavorQCD
           - JER
     total_variation:      # Total JES uncertainty
-      2022_preEE:
-        AK4PFPuppi:
+      AK4PFPuppi:
+        2022_preEE:
           - JES_Total
           - JER
+```
+
+The set of variations to use needs to be setup in the `jets_calibration.variation` key. For example: 
+
+```yaml
+jets_calibration:
+  variations: "${default_jets_calibration.variations.total_variation}"
+
 ```
 
 The user can also enable only some of the variations for different data taking periods
@@ -201,6 +245,7 @@ jets_calibration:
     2022_preEE:
       AK4PFPuppiCustomSetOfCorrections: "Jet"  # Enable PNet regression
 ```
+
 
 ### Jet energy regression
 Starting from Run3 datasetes the ParticleNet jet energy regression corrections are part of the `Jet` object in NanoAOD. But they are not applied by default. In PocketCoffea the regression can be turned On/Off via configuration by using the `JetPtRegressionCalibrator` in the calibration sequence and by activating the pt regression in the jets calibration configuration
