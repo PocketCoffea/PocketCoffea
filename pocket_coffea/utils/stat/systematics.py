@@ -97,7 +97,7 @@ class Systematics(dict[str, SystematicUncertainty]):
         return [key for key in self if self[key].typ == syst_type]
 
     def get_systematics_by_type(self, syst_type: str) -> dict[SystematicUncertainty]:
-        """Dict of Systematics of a specific type."""
+        """Dict of Systematics of a specific type by datacard_name."""
         return {name: syst for name, syst in self.items() if syst.typ == syst_type}
 
     def get_systematics_by_process(
