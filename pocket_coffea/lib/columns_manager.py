@@ -31,7 +31,7 @@ class ColumnsManager:
         for cat in categories:
             self.cfg[cat].append(cfg)
 
-    def fill_columns_accumulators(self, events, cuts_masks, subsample_mask=None, weights_manager=None):
+    def fill_columns_accumulators(self, events, cuts_masks, variation: str, subsample_mask=None, weights_manager=None):
         self.output = {}
         for category, outarrays in self.cfg.items():
             self.output[category] = {}
@@ -43,10 +43,33 @@ class ColumnsManager:
             # Getting the weights
             # Only for nominal variation for the moment
             if weights_manager:
-                self.output[category]["weight"] = column_accumulator(
-                    ak.to_numpy(weights_manager.get_weight(category)[mask], allow_missing=False))
-                
+                self.output[category]["weight"] = {
+                    variation: column_accumulator(
+                        ak.to_numpy(
+                            weights_manager.get_weight(category)[mask],
+                            allow_missing=False,
+                        )
+                    )
+                }
+
             for outarray in outarrays:
+                if weights_manager and (variation == "nominal"):
+                    if weights_manager.weightsConf["is_split_bycat"]:
+                        modifier = weights_manager.get_available_modifiers_bycategory(
+                            category
+                        )
+                    else:
+                        modifier = weights_manager._available_modifiers_inclusive
+                    for mod in modifier:
+                        self.output[category]["weight"][mod] = column_accumulator(
+                            ak.to_numpy(
+                                weights_manager.get_weight(category, modifier=mod)[
+                                    mask
+                                ],
+                                allow_missing=False,
+                            )
+                        )
+
                 # Check if the cut is multidimensional
                 # if so we need to check the collection
                 if mask.ndim > 1:
@@ -76,7 +99,7 @@ class ColumnsManager:
                     N = ak.num(data)
                     self.output[category][
                         f"{outarray.collection}_N"
-                    ] = column_accumulator(ak.to_numpy(N, allow_missing=False))
+                    ] = {variation: column_accumulator(ak.to_numpy(N, allow_missing=False))}
                 # looping on the columns
                 for col in outarray.columns:
                     if data.ndim > 1 and not outarray.flatten:
@@ -106,12 +129,13 @@ class ColumnsManager:
 
                     self.output[category][
                         f"{outarray.collection}_{col}"
-                    ] = column_accumulator(
+                    ] = {variation: column_accumulator(
                         ak.to_numpy(
                             out,
                             allow_missing=False,
                         )
                     )
+                    }
         return self.output
 
     def fill_ak_arrays(self, events, cuts_masks, subsample_mask=None, weights_manager=None):

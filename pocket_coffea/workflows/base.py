@@ -517,8 +517,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
 
     def fill_column_accumulators(self, variation):
-        if variation != "nominal":
-            return
+        # if variation != "nominal":
+        #     return
 
         if len(self.column_managers) == 0:
             return
@@ -549,14 +549,21 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     # Filling columns to be accumulated for all the chunks
                     # Calling hist manager with a subsample mask
                     if self.column_managers[subs].ncols == 0: break
-                    self.output["columns"][f"{self._sample}__{subs}"]= {
-                        self._dataset : self.column_managers[subs].fill_columns_accumulators(
+                    out_columns = self.column_managers[subs].fill_columns_accumulators(
                                                    self.events,
                                                    self._categories,
                                                    subsample_mask=self._subsamples[self._sample].get_mask(subs),
-                                                   weights_manager=self.weights_manager
+                                                   weights_manager=self.weights_manager,
+                                                   variation=variation,
                                                    )
-                    }
+                    sample_name = f"{self._sample}__{subs}"
+                    if sample_name not in outcols:
+                        outcols[sample_name] = {self._dataset: out_columns}
+                    else:
+                        for sample_dict in outcols[sample_name].values():
+                            for category, columns_dict in sample_dict.items():
+                                for key, value in columns_dict.items():
+                                    value |= out_columns[category][key]
         else:
             # NO subsamples
             if self.column_managers[self._sample].ncols == 0: return
@@ -574,14 +581,22 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     subdirs = [self._dataset, category]
                     dump_ak_array(akarr, fname, self.workflow_options["dump_columns_as_arrays_per_chunk"]+"/", subdirs)
             else:
-                self.output["columns"][self._sample] = { self._dataset: self.column_managers[
+                out_columns = self.column_managers[
                     self._sample
                 ].fill_columns_accumulators(
                     self.events,
                     self._categories,
-                    subsample_mask = None,
-                    weights_manager=self.weights_manager
-                ) }
+                    subsample_mask=None,
+                    weights_manager=self.weights_manager,
+                    variation=variation,
+                )
+                if self._sample not in outcols:
+                    self.output["columns"][self._sample] = {self._dataset: out_columns}
+                else:
+                    for sample_dict in outcols[self._sample].values():
+                        for category, columns_dict in sample_dict.items():
+                            for key, value in columns_dict.items():
+                                value |= out_columns[category][key]
 
     def fill_column_accumulators_extra(self, variation):
         pass
