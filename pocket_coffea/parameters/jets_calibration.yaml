@@ -78,7 +78,7 @@ default_jets_calibration:
 
       "2024":
         json_path: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,JME,jet_jerc.json.gz}
-        jec_mc: Summer24Prompt24_V1_MC
+        jec_mc: Summer24Prompt24_V2_MC
         jec_data: Summer24Prompt24_V1_DATA
         jer: Summer23BPixPrompt23_RunD_JRV1_MC  # For the time being the 2023 jers shall be used https://cms-jerc.web.cern.ch/Recommendations/#2024_1
         level: L1L2L3Res
