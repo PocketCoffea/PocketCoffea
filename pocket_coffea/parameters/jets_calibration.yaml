@@ -368,7 +368,7 @@ jets_calibration:
       AK4PFPuppi: "Jet"
       #AK4PFPuppiPNetRegression: "Jet"
       #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
-      #AK8PFPuppi: "FatJet"
+      AK8PFPuppi: "FatJet"
      
   sort_by_pt:
     2016_PreVFP:
