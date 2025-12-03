@@ -63,8 +63,8 @@ if __name__ == '__main__':
                 else:
                     x = down_file(fname, out, ith)
                     run_futures.append(x)
-        out_dict[key]["files"] = new_list
         out_dict[key]["metadata"] = sample_dict[key]["metadata"]
+        out_dict[key]["files"] = new_list
 
     for i, r in enumerate(run_futures):
         r.result()
