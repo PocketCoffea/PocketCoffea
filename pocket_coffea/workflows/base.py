@@ -852,7 +852,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                         histo *= scaling
 
         # rescale sumw
-        # TODO: confirm, that nominal sumw is fine.
         for cat, catdata in output["sumw"].items():
             for dataset, dataset_data in catdata.items():
                 # Getting the first sample for the dataset in the "sumw" output
