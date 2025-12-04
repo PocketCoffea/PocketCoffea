@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import List
 from coffea.processor.accumulator import column_accumulator
 import awkward as ak
+from .weights.weights_manager import get_weights_by_cat_var
 
 
 @dataclass
@@ -17,9 +18,11 @@ class ColOut:
 
 
 class ColumnsManager:
-    def __init__(self, cfg, categories_config):
+    def __init__(self, cfg, categories_config, variations_config):
         self.cfg = cfg
         self.categories_config = categories_config
+        self.variations_config = variations_config
+        self.output = {}
 
     @property
     def ncols(self):
@@ -31,21 +34,33 @@ class ColumnsManager:
         for cat in categories:
             self.cfg[cat].append(cfg)
 
-    def fill_columns_accumulators(self, events, cuts_masks, subsample_mask=None, weights_manager=None):
-        self.output = {}
+    def fill_columns_accumulators(self, events, cuts_masks, variation, subsample_mask=None, weights_manager=None):
+        """Fill columns of a given variation in all categories and return the output containing also previously filled variations."""
         for category, outarrays in self.cfg.items():
-            self.output[category] = {}
+            if category not in self.output.keys():
+                self.output[category] = {}
+            self.output[category][variation] = {}
             # Computing mask
             mask = cuts_masks.get_mask(category)
             if subsample_mask is not None:
                 mask = mask & subsample_mask
 
-            # Getting the weights
-            # Only for nominal variation for the moment
+            # Getting the weight variations into nominal column s
             if weights_manager:
-                self.output[category]["weight"] = column_accumulator(
+                self.output[category][variation]["weight"] = column_accumulator(
                     ak.to_numpy(weights_manager.get_weight(category)[mask], allow_missing=False))
-                
+                if weights_manager._isMC:
+                    available_weights_variations = []
+                    for weight in self.variations_config["weights"][category]:
+                        # Ask the WeightsManager the available variations
+                        vars = weights_manager.get_available_modifiers_byweight(weight)
+                        available_weights_variations += vars
+                    for weight in get_weights_by_cat_var(available_weights_variations, weights_manager, category, variation).keys():
+                        # Ask the WeightsManager the available variations
+                        if weight != "nominal":
+                            self.output[category][variation][f"weight_variation_{weight}"] = column_accumulator(
+                                ak.to_numpy(weights_manager.get_weight(category, modifier=weight)[mask], allow_missing=False))
+
             for outarray in outarrays:
                 # Check if the cut is multidimensional
                 # if so we need to check the collection
@@ -59,7 +74,7 @@ class ColumnsManager:
                             while exporting collection {outarray.collection}! Please check your categorization"
                         )
                 # Applying mask after getting the collection
-                if(outarray.collection=="events"):
+                if (outarray.collection == "events"):
                     data = events[mask]
                 else:
                     data = events[outarray.collection][mask]
@@ -74,7 +89,7 @@ class ColumnsManager:
 
                 if outarray.store_size and data.ndim > 1:
                     N = ak.num(data)
-                    self.output[category][
+                    self.output[category][variation][
                         f"{outarray.collection}_N"
                     ] = column_accumulator(ak.to_numpy(N, allow_missing=False))
                 # looping on the columns
@@ -104,7 +119,7 @@ class ColumnsManager:
                         else:
                             out = data[col]
 
-                    self.output[category][
+                    self.output[category][variation][
                         f"{outarray.collection}_{col}"
                     ] = column_accumulator(
                         ak.to_numpy(
@@ -114,7 +129,7 @@ class ColumnsManager:
                     )
         return self.output
 
-    def fill_ak_arrays(self, events, cuts_masks, subsample_mask=None, weights_manager=None):
+    def fill_ak_arrays(self, events, cuts_masks, variation, subsample_mask=None, weights_manager=None):
         self.output = {}
         for category, outarrays in self.cfg.items():
             if len(outarrays)==0:
@@ -129,7 +144,15 @@ class ColumnsManager:
             # Only for nominal variation for the moment
             if weights_manager: # no present for data
                 out_by_cat["weight"] = weights_manager.get_weight(category)[mask]
-            
+                if weights_manager._isMC:
+                    available_weights_variations = []
+                    for weight in self.variations_config["weights"][category]:
+                        # Ask the WeightsManager the available variations
+                        vars = weights_manager.get_available_modifiers_byweight(weight)
+                        available_weights_variations += vars
+                    for weight in get_weights_by_cat_var(available_weights_variations, weights_manager, category, variation).keys():
+                        # Ask the WeightsManager the available variations
+                        out_by_cat[f"weight_{weight}"] = weights_manager.get_weight(category, modifier=weight)[mask]
 
             for outarray in outarrays:
                 # Check if the cut is multidimensional
