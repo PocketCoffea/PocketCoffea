@@ -8,7 +8,7 @@ from pocket_coffea.executors import executors_base as executors_lib
 from coffea import processor
 from coffea.processor import Runner
 from coffea.util import load, save
-from utils import compare_outputs, compare_columns, compare_totalweight
+from tests.utils import compare_outputs, compare_columns, compare_totalweight
 import numpy as np
 import awkward as ak
 from coffea.nanoevents import NanoEventsFactory, NanoAODSchema

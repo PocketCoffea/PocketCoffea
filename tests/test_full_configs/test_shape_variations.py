@@ -13,7 +13,7 @@ import awkward as ak
 import hist
 from coffea.nanoevents import NanoEventsFactory, NanoAODSchema
 from pocket_coffea.parameters import defaults
-from utils import check_single_bin_shift
+from tests.utils import check_single_bin_shift
 
 
 @pytest.fixture
