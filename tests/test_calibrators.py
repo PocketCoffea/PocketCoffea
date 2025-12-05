@@ -13,7 +13,7 @@ from pocket_coffea.lib.calibrators.calibrators_manager import CalibratorsManager
 from pocket_coffea.parameters import defaults
 import awkward as ak
 import numpy as np
-from utils import events, events_run3
+from tests.utils import events, events_run3
 
 
 @pytest.fixture(scope="module")
@@ -512,8 +512,8 @@ def test_jets_softdrop_mass_calibrator(events_run3, params):
             
             # Re-raise the exception for pytest
             raise
-            
-            
+
+
 def test_muons_calibrator(events, params):
     """
     Tests the updated MuonsCalibrator to ensure:
@@ -585,8 +585,8 @@ def test_muons_calibrator(events, params):
     out_smear_down = mu_cal.calibrate(events, {}, variation="muon_smearDown")
     assert ak.all(out_smear_down["Muon.pt"] == mu_cal.smeared_pt["pt"]["down"])
     assert ak.all(out_smear_down["Muon.pt_original"] == original_pt)
-    
-    
+
+
 def test_muons_calibrator_explicit(events, params):
     """
     Explicitly tests:
@@ -643,4 +643,3 @@ def test_muons_calibrator_explicit(events, params):
     assert ak.all(out["Muon.pt"] == s["down"])
     assert ak.all(out["Muon.pt_original"] == pt_raw)
     assert ak.all(out["Muon.energyErr"] == 0)
-

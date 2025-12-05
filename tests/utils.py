@@ -3,6 +3,9 @@ import os
 import numpy as np
 from coffea.nanoevents import NanoEventsFactory, NanoAODSchema
 import hist
+import numpy as np
+from typing import Union
+
 
 @pytest.fixture(scope="session")
 def events():
@@ -86,7 +89,6 @@ def compare_totalweight(output, variables):
                     print(f"Checking {variable} for {category} in {dataset} for {sample}")
                     print(output["variables"][variable][sample][dataset][hist.loc(category), hist.loc("nominal"), :].sum(flow=True).value, sumw)
                     assert np.isclose(output["variables"][variable][sample][dataset][hist.loc(category), hist.loc("nominal"), :].sum(flow=True).value, sumw)
-
 
 def compare_columns(output, old_output, exclude_columns=None):
     """Compare columns between two outputs.
