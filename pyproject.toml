@@ -75,6 +75,22 @@ print-parameters="pocket_coffea.scripts.print_parameters:print_parameters"
 make-config="pocket_coffea.scripts.make_config:make_config"
 check-jobs="pocket_coffea.scripts.check_jobs:check_jobs"
 
+
+[tool.ruff]
+src = ["pocket_coffea"]
+extend-exclude = ["*.ipynb"] #for now
+
+# maybe better
+# [tool.ruff.lint.per-file-ignores]
+# "*.ipynb" = ["E402"]
+
+[tool.ruff.lint]
+extend-select = [
+    "B",  # flake8-bugbear
+    "I",  # isort
+    "UP",  # pyupgrade
+]
+
 # [tool.flake8]
 # extend-ignore = ["E203", "E501", "E722", "B950"]
 # extend-select = ["B9"]
