@@ -96,7 +96,7 @@ cfg = Configurator(
         },
         "shape": {
             "common": {
-                "inclusive": [ "jet_calibration", "electron_scale_and_smearing"],
+                "inclusive": [ "jets_calibration", "electron_scale_and_smearing"],
             },
         }
     },

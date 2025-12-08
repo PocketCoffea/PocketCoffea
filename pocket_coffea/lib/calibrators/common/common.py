@@ -25,7 +25,7 @@ class JetsCalibrator(Calibrator):
     this calibrator will raise an exception if configured to apply pT regression.
     """
     
-    name = "jet_calibration"
+    name = "jets_calibration"
     has_variations = True
     isMC_only = False
 
@@ -479,7 +479,7 @@ class METCalibrator(Calibrator):
         if not self.met_calib_active:
             return {}
         # we can check if the Jets calibrator has been applied
-        if ("jet_calibration" not in already_applied_calibrators) and ("jet_calibration_corrlib" not in already_applied_calibrators):
+        if ("jets_calibration" not in already_applied_calibrators) and ("jets_calibration_corrlib" not in already_applied_calibrators):
             raise ValueError("Jets calibrator must be applied before the MET calibrator.")
         if self.jet_collection not in orig_colls:
             # this means that the jets calibration has been skipped

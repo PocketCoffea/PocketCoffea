@@ -304,7 +304,7 @@ cfg = Configurator(
         "shape": {
             "bysample": {
                 "TTToSemiLeptonic__>2b": {
-                    "inclusive": ["jet_calibration"]  # Only apply shape variations to high b-jet multiplicity
+                    "inclusive": ["jets_calibration"]  # Only apply shape variations to high b-jet multiplicity
                 }
             }
         }
@@ -801,14 +801,14 @@ cfg = Configurator(
         "weights": {...},
         # Shape variations
         "shape": {
-            "common": {"inclusive": ["jet_calibration"]}
+            "common": {"inclusive": ["jets_calibration"]}
         },
     },
 )
 ```
 :::{warning}
 The available shape variations depend on the calibrators configured in the [Calibrators](#calibrators) section.
-For the `shape` configuration you must reference the calibrator names (for example `jet_calibration`).
+For the `shape` configuration you must reference the calibrator names (for example `jets_calibration`).
 Currently, JES and JER variations are implemented and available through the `JetsCalibrator`.
 The available JES variations depend on the jet calibration configuration defined in the parameters ([docs](./parameters.md#cross-references)).
   :::

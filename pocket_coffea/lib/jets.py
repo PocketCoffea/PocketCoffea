@@ -54,7 +54,7 @@ def met_correction_after_jec(events, METcoll, jets_pre_jec, jets_post_jec):
 
 
 def met_correction(params, MET, jets):
-    met_factory = CorrectedMETFactory(params.jet_calibration.jec_name_map) # to be fixed
+    met_factory = CorrectedMETFactory(params.jets_calibration.jec_name_map) # to be fixed
     return met_factory.build(MET, jets, {})
     
 def met_xy_correction(params, events, METcol,  year, era):

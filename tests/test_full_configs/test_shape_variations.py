@@ -262,7 +262,7 @@ def test_shape_variation_default_sequence_comparison_with_legacy_run2(base_path:
     if not np.allclose(ref_met_down, met_down):
         assert check_single_bin_shift(ref_met_down, met_down), "MET JES Total Down variation should show up to a single bin shift pattern"
 
-    # Check that the MET histograms only the jet_calibration variations
+    # Check that the MET histograms only the jets_calibration variations
     H = output["variables"]['MET_pt_2']['TTTo2L2Nu']['TTTo2L2Nu_2018']
     assert H.axes["variation"].size == 3
     assert H.axes["variation"].value(0) == "AK4PFchs_JES_TotalDown"
