@@ -4,7 +4,7 @@ from pocket_coffea.lib.cut_functions import get_HLTsel, get_HLTsel_custom
 from pocket_coffea.lib.cut_definition import Cut
 from pocket_coffea.parameters import defaults
 import awkward as ak
-from utils import events
+from tests.utils import events
 
 
 @pytest.fixture(scope="module")
