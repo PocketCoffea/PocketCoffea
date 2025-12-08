@@ -55,18 +55,17 @@ class JetsCalibrator(Calibrator):
                 raise ValueError(f"Jet collection {jet_coll_name} is already calibrated with another jet type. " +
                                  f"Current jet type: {jet_type}. Previous jet types: {self.jets_calibrated[jet_coll_name]}")
 
-            # Check the Pt regression is not requested for this jet type 
-            # and in that case send a warning and skim them
-            if self.isMC and self.jet_calib_param.apply_pt_regr_MC[self.year][jet_type]:
-                print(f"WARNING: Jet type {jet_type} is requested to be calibrated with pT regression: " +
-                                    "skipped by JetCalibrator. Please activate the JetsPtRegressionCalibrator.")
-                continue
-            if not self.isMC and self.jet_calib_param.apply_pt_regr_Data[self.year][jet_type]:
-                print(f"WARNING: Jet type {jet_type} is requested to be calibrated with pT regression: " +
-                                    "skipped by JetCalibrator. Please activate the JetsPtRegressionCalibrator.")
-                continue
+            # # Check the Pt regression is not requested for this jet type 
+            # # and in that case send a warning and skim them
+            # if self.isMC and self.jet_calib_param.apply_pt_regr_MC[self.year][jet_type]:
+            #     print(f"WARNING: Jet type {jet_type} is requested to be calibrated with pT regression: " +
+            #                         "skipped by JetCalibrator. Please activate the JetsPtRegressionCalibrator.")
+            #     continue
+            # if not self.isMC and self.jet_calib_param.apply_pt_regr_Data[self.year][jet_type]:
+            #     print(f"WARNING: Jet type {jet_type} is requested to be calibrated with pT regression: " +
+            #                         "skipped by JetCalibrator. Please activate the JetsPtRegressionCalibrator.")
+            #     continue
 
-            
             # Check if the pt regression is requested, if not skip it
             if ((self.isMC and self.jet_calib_param.apply_pt_regr_MC[self.year][jet_type]) 
                     or
@@ -103,9 +102,15 @@ class JetsCalibrator(Calibrator):
                 apply_jer=self.jet_calib_param.apply_jer_MC[self.year][jet_type] if self.isMC else False,
             )
             # update the rawFactor of the corrected jets
-            self.jets_calibrated[jet_coll_name] = ak.with_field(corrected_jets, 
-                                                                1 - corrected_jets.pt_raw / corrected_jets.pt, 
-                                                                "rawFactor")
+            self.jets_calibrated[jet_coll_name] = ak.with_field(
+                corrected_jets,
+                ak.where(
+                    corrected_jets.pt != 0,
+                    1 - corrected_jets.pt_raw / corrected_jets.pt,
+                    0,
+                ),
+                "rawFactor",
+            )
             # Add to the list of the types calibrated
             self.jets_calibrated_types.append(jet_type)
 
@@ -131,13 +136,16 @@ class JetsCalibrator(Calibrator):
 
     def apply_regression(self, jets, jet_type, regression_params=None):
         """
-        Apply PNet regression to jets.
+        Apply pT regression to jets.
         
         Args:
             jets: Jets collection to apply regression on
+            jet_type: Type of jet regression to apply
+            regression_params: Parameters for regression selection cuts
             
         Returns:
-            Dictionary with calibrated jet collection # TODO: change
+            Dictionary with calibrated jet collection
+            Mask of jets where regression was applied
         """
         # Apply regression only to specific jet types (AK4PFPuppi, AK4PFchs)
         # This check should ideally be done based on jet type parameter, but for now
@@ -229,7 +237,7 @@ class JetsCalibrator(Calibrator):
 
         # Update the raw factor to 0 for the jets where regression is applied
         # because the REGRESSED PT IS THE NEW PT RAW of the jet_regressed collection
-        new_raw_factor_flat = ak.mask(ak.zeros_like(j_flat['rawFactor']), reg_mask)
+        new_raw_factor_flat = ak.zeros_like(j_flat['rawFactor'])
         new_raw_factor = ak.unflatten(new_raw_factor_flat, nj)
 
         # Replace the PT and Mass variables in the original jets collection
