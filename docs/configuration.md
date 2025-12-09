@@ -304,7 +304,7 @@ cfg = Configurator(
         "shape": {
             "bysample": {
                 "TTToSemiLeptonic__>2b": {
-                    "inclusive": ["JESTotal", "JER"]  # Only apply shape variations to high b-jet multiplicity
+                    "inclusive": ["jets_calibration"]  # Only apply shape variations to high b-jet multiplicity
                 }
             }
         }
@@ -755,68 +755,62 @@ Systematics variations are also configured in the `Configurator`. Weights and sh
 The configuration is applied in an hierarchical fashion as for the `Weights`, to compact the matrix of
 samples and categories. 
 
-* **Weights variations**:  if the weights defined in the `WeightsManager` has up and down variations, they can be
-  activated by just putting the weight name in the `variations` configuration. Up and down shapes will be exported for
-  histograms. 
+### Weight Variations
+If the weights defined in the `WeightsManager` have up and down variations, they can be activated by just putting the weight name in the `variations` configuration. Up and down shapes will be exported for histograms. 
   
-  ```python
-  cfg = Configurator(
-     ....
-    variations = {
+```python
+cfg = Configurator(
+    ...,
+    variations={
         "weights": {
             "common": {
-                "inclusive": [  "pileup",
-                                "sf_ele_reco", "sf_ele_id",
-                                "sf_mu_id", "sf_mu_iso",
-                                 "sf_jet_puId","sf_btag"  
-                              ],
-                "bycategory" : {
-                }
+                "inclusive": [
+                    "pileup",
+                    "sf_ele_reco",
+                    "sf_ele_id",
+                    "sf_mu_id",
+                    "sf_mu_iso",
+                    "sf_jet_puId",
+                    "sf_btag",
+                ],
+                "bycategory": {},
             },
             "bysample": {
-              "TTToSemiLeptonic": {
+                "TTToSemiLeptonic": {
                     "inclusive": [],
                     "bycategory": {}
                 }
             } 
         },
-        "shape": {
-        ....
-        }
-    },
-    ...
-  )
-  ```
+        "shape": {...},
+    }
+)
+```
   
-* **Shape variations**: shape variations are related to lepton, jets and MET scale variations and similar systematics. 
-  These variations are provided by the calibrators configured in the [Calibrators](#calibrators) section.
-  The handling of these variations is more complex since everything after skimming (see [docs](./concepts.md#filtering))
-  is rerun for each shape variation. 
+### Shape variations
+Shape variations are related to lepton, jets and MET scale variations and similar systematics.
+These variations are provided by the calibrators configured in the [Calibrators](#calibrators) section.
+The handling of these variations is more complex since everything after skimming (see [docs](./concepts.md#filtering)) is rerun for each shape variation.
+
+Have a look at the base processor [get_shape_variations()](pocket_coffea.workflows.base.BaseProcessorABC.get_shape_variations) function to learn about their implementation.
   
-  Have a look at the base processor
-  [get_shape_variations()](pocket_coffea.workflows.base.BaseProcessorABC.get_shape_variations) function to learn about
-  their implementation. 
-  
-  
-  ```pythony
-  cfg = Configurator(
-     ....
+```python
+cfg = Configurator(
+    ...,
     variations = {
-        "weights": .....
+        "weights": {...},
         # Shape variations
         "shape": {
-            "common":
-              "inclusive": ["JESTotal","JER"]
-        }
+            "common": {"inclusive": ["jets_calibration"]}
+        },
     },
-    ...
-  )
-  ```
-  
-  :::{warning}
-  The available shape variations depend on the calibrators configured in the [Calibrators](#calibrators) section. 
-  Currently, JES and JER variations are implemented and available through the `JetsCalibrator`. 
-  The available JES variations depend on the jet calibration configuration defined in the parameters ([docs](./parameters.md#cross-references)).
+)
+```
+:::{warning}
+The available shape variations depend on the calibrators configured in the [Calibrators](#calibrators) section.
+For the `shape` configuration you must reference the calibrator names (for example `jets_calibration`).
+Currently, JES and JER variations are implemented and available through the `JetsCalibrator`.
+The available JES variations depend on the jet calibration configuration defined in the parameters ([docs](./parameters.md#cross-references)).
   :::
   
   

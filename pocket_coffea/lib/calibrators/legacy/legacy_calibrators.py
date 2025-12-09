@@ -15,7 +15,7 @@ class JetsCalibrator(Calibrator):
     this calibrator will raise an exception if configured to apply pT regression.
     """
     
-    name = "jet_calibration_legacy"
+    name = "jets_calibration_legacy"
     has_variations = True
     isMC_only = False
 
@@ -151,7 +151,7 @@ class JetsPtRegressionCalibrator(JetsCalibrator):
     The do_variations flag is passed to the base class, but it is not used in this calibrator,
     as the variations are always computed by the coffea JEC evaluator.
     """
-    name = "jet_calibration_with_pt_regression_legacy"
+    name = "jets_calibration_with_pt_regression_legacy"
     has_variations = True
     isMC_only = False
 

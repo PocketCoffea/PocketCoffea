@@ -67,7 +67,7 @@ def calibrate(self, events, events_original_collections, variation, already_appl
 PocketCoffea provides several ready-to-use calibrators:
 
 ### JetsCalibrator
-- **Name**: `"jet_calibration"`
+- **Name**: `"jets_calibration"`
 - **Purpose**: Applies Jet Energy Corrections (JEC) and Jet Energy Resolution (JER)
 - **Collections**: `["Jet", "FatJet"]`
 - **Variations**: JEC and JER uncertainties (e.g., `"jet_jecUp"`, `"jet_jerDown"`)
@@ -103,7 +103,7 @@ cfg = Configurator(
     variations = {
         "shape": {
             "common": {
-                "inclusive": ["jet_calibration"],  # Run jet variations for all samples
+                "inclusive": ["jets_calibration"],  # Run jet variations for all samples
             },
             "bysample": {
                 "MC_Sample": {
@@ -243,8 +243,8 @@ class AdvancedCalibrator(Calibrator):
 
     def calibrate(self, events, orig_colls, variation, already_applied_calibrators=None):
         # Check dependencies
-        if "jet_calibration" not in already_applied_calibrators:
-            raise ValueError("This calibrator requires jet_calibration to be applied first")
+        if "jets_calibration" not in already_applied_calibrators:
+            raise ValueError("This calibrator requires jets_calibration to be applied first")
         
         # Use original jets if needed for some calculation
         if "Jet" in orig_colls:
@@ -281,7 +281,7 @@ variations = {
     "shape": {
         "common": {
             "inclusive": [
-                "jet_calibration",           # All JEC/JER variations
+                "jets_calibration",           # All JEC/JER variations
                 "electron_scale_and_smearing" # All electron variations
             ],
         },
