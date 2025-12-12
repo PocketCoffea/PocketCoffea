@@ -1,6 +1,8 @@
 """Systematic Uncertainties and Utilities for Statistical Analysis"""
 
 from dataclasses import dataclass
+from collections import defaultdict
+from copy import deepcopy
 
 from pocket_coffea.utils.stat.processes import Process
 
@@ -72,9 +74,47 @@ class Systematics(dict[str, SystematicUncertainty]):
             raise TypeError(
                 f"All elements of {systematics} must be of type SystematicUncertainty"
             )
+        systematics = self.merge_duplicates(systematics)
         super().__init__(
             {systematic.datacard_name: systematic for systematic in systematics}
         )
+
+    def merge_duplicates(self, systematics: list[SystematicUncertainty]) -> list[SystematicUncertainty]:
+        """Merge systematics with the same name together to have them as correlated systematics in the datacard."""
+        grouped: dict[tuple[str,str], list[SystematicUncertainty]] = defaultdict(list)
+
+        for syst in systematics:
+            key = (syst.datacard_name, syst.name)
+            grouped[key].append(syst)
+
+        merged_systematics: list[SystematicUncertainty] = []
+
+        for (_,_), systs in grouped.items():
+            if len(systs) == 1:
+                merged_systematics.append(systs[0])
+                continue
+            base = deepcopy(systs[0])
+            for other in systs[1:]:
+                if base.typ != other.typ:
+                    raise ValueError(
+                        f"Inconsystent type of systematics with same name '{base.name}': "
+                        f"{base.typ} vs {other.typ}"
+                    )
+                if base.years != other.years:
+                    raise ValueError(
+                        f"Inconsistent years for systematic '{base.name}': "
+                        f"{base.years} vs {other.years}"
+                    )
+                for proc, val in other.processes.items():
+                    if proc in base.processes and base.processes[proc] != val:
+                        raise ValueError(
+                            f"Conflicting values for process '{proc}' in "
+                            f"systematic '{base.name}': "
+                            f"{base.processes[proc]} vs {val}"
+                        )
+                    base.processes[proc] = val
+                merged_systematics.append(base)
+        return merged_systematics
 
     @property
     def variations_names(self) -> list[str]:
