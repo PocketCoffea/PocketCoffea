@@ -35,23 +35,24 @@ Input datasets for the analyses are defined in a JSON file following the syntax 
 
 ```python
 {
-    "DYJetsToLL_M-50":{
+    "DYJetsToLL_M-50": {
         "sample": "DYJetsToLL",
         "json_output": "datasets/DYJetsToLL_M-50.json",
-        "files":[
-            { "das_names": 
-                ["/DYJetsToLL_M-50_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM"],
-              "metadata": {
-                  "year":"2018",
-                  "isMC": true,
-                  "xsec": 6077.22,
-                  "part": "M-50"
-              },
-              "dbs_instance": "prod/global"  # No need to include it, using prod/global by default
+        "files": [
+            {
+                "das_names": [
+                    "/DYJetsToLL_M-50_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIISummer20UL18NanoAODv9-106X_upgrade2018_realistic_v16_L1v1-v2/NANOAODSIM"
+                ],
+                "metadata": {
+                    "year": "2018",
+                    "isMC": true,
+                    "xsec": 6077.22,
+                    "part": "M-50",
+                },
+                "dbs_instance": "prod/global",  # No need to include it, using prod/global by default
             }
-        ]
+        ],
     },
-
     "DATA_SingleMuon": {
         "sample": "DATA_SingleMuon",
         "json_output": "datasets/DATA_SingleMuon.json",
@@ -64,8 +65,8 @@ Input datasets for the analyses are defined in a JSON file following the syntax 
                     "year": "2018",
                     "isMC": false,
                     "primaryDataset": "SingleMuon",
-                    "era": "A"
-                }
+                    "era": "A",
+                },
             },
             {
                 "das_names": [
@@ -75,12 +76,12 @@ Input datasets for the analyses are defined in a JSON file following the syntax 
                     "year": "2018",
                     "isMC": false,
                     "primaryDataset": "SingleMuon",
-                    "era": "B"
+                    "era": "B",
                 },
-                "dbs_instance": "prod/global" 
-            }
-         ]
-    }
+                "dbs_instance": "prod/global",
+            },
+        ],
+    },
 }
 ```
 
