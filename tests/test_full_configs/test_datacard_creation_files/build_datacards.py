@@ -51,7 +51,7 @@ def get_uncertainty_name(pocketcoffea_name, year):
         "JES_Total": f"CMS_scale_j_{get_year(year, year_type=0)}",
         "JER": f"CMS_res_j_{get_year(year, year_type=0)}",
         "pileup": f"CMS_pileup_{get_year(year, year_type=0)}",
-        "luminosity": f"lumi_13TeV_{get_year(year, year_type=1)}",
+        "luminosity": f"lumi_13p6TeV_{get_year(year, year_type=1)}",
         "sf_ele_reco": "CMS_eff_e_reco_13p6TeV",
         "sf_ele_id": "CMS_eff_e_id_13p6TeV",
         "sf_mu_reco": f"CMS_eff_m_reco_{get_year(year, year_type=0)}",
@@ -117,7 +117,7 @@ def add_variation_axis(histogram):
     return new_hist
 
 
-def build_datacard(input_dir, output="./datacards"):
+def build_datacard(input_dir, output="./datacards", single_year=True):
     if not os.path.exists(output):
         os.makedirs(output)
 
@@ -287,6 +287,6 @@ def build_datacard(input_dir, output="./datacards"):
                 mcstat=auto_mc_stats,
                 data_processes=data_processes,
                 category=region_name,
-                single_year=False,
+                single_year=single_year,
                 )
         datacard.dump(directory=f"{output}/{hist_cat}", card_name=f"{region_name}_{_label}.txt", shapes_name=f"shapes_{region_name}_{_label}.root")
