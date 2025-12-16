@@ -21,6 +21,7 @@ from ..lib.jets import load_jet_factory
 from ..lib.calibrators.calibrators_manager import CalibratorsManager
 from ..utils.skim import uproot_writeable, copy_file
 from ..utils.utils import dump_ak_array
+from ..lib.delayed_eval import DelayedEvalBranchManager
 
 from ..utils.configurator import Configurator
 
@@ -71,6 +72,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Custom axis for the histograms
         self.custom_axes = []
         self.custom_histogram_fields = {}
+
+        # Delayed evaluation of branches
+        self.delayed_branches = DelayedEvalBranchManager(self)
 
         # Output format
         # Accumulators for the output
@@ -785,6 +789,10 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             # Customization point for derived workflows after preselection cuts
             self.process_extra_before_presel(variation)
 
+            # Prepare delayed branches snapshot on nominal before preselections filter out events
+            if variation == "nominal":
+                self.delayed_branches.prepare_nominal_snapshot(self.events)
+
             # This will remove all the events not passing preselection
             # from further processing
             self.apply_preselections(variation)
@@ -803,6 +811,10 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             # This function applies all the cut functions in the cfg file
             # Each category is an AND of some cuts.
             self.define_categories(variation)
+
+            # Update delayed branches for this variation after final categories are defined
+            # so they see the final selection masks
+            self.delayed_branches.update_for_current_variation(self.events, self._categories)
 
             # Weights
             self.compute_weights(variation)
