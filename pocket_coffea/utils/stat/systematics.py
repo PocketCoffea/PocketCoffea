@@ -100,11 +100,6 @@ class Systematics(dict[str, SystematicUncertainty]):
                         f"Inconsystent type of systematics with same name '{base.name}': "
                         f"{base.typ} vs {other.typ}"
                     )
-                if base.years != other.years:
-                    raise ValueError(
-                        f"Inconsistent years for systematic '{base.name}': "
-                        f"{base.years} vs {other.years}"
-                    )
                 for proc, val in other.processes.items():
                     if proc in base.processes and base.processes[proc] != val:
                         raise ValueError(
@@ -113,6 +108,7 @@ class Systematics(dict[str, SystematicUncertainty]):
                             f"{base.processes[proc]} vs {val}"
                         )
                     base.processes[proc] = val
+                    base.years += other.years
                 merged_systematics.append(base)
         return merged_systematics
 
