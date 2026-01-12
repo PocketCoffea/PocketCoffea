@@ -69,12 +69,7 @@ from pocket_coffea.utils.stat import Datacard
 output = load("output.coffea")
 
 # define Processes and Systematics
-mc_processes = Processes(
-    [
-        MCProcess(name="ttbar", ...),
-        MCProcess(name="dy", ...)
-    ]
-)
+mc_processes = Processes([MCProcess(name="ttbar", ...), MCProcess(name="dy", ...)])
 
 data_processes = Processes(
     [
@@ -106,11 +101,5 @@ The utilities can be used to create datacards for separate variables and categor
 ```python
 from pocket_coffea.utils.stat import combine_datacard
 
-combine_datacards(
-    datacards={
-        filename: Datacard(...)
-    },
-    directory=output_directory,
-    ...
-)
+combine_datacards(datacards={filename: Datacard(...)}, directory=output_directory, ...)
 ```

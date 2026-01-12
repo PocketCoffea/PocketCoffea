@@ -97,11 +97,11 @@ lepton_scale_factors:
 
       "2024":
         files:
-          reco: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,EGM,electron_v1.json.gz,2025-08-15}
-          id:   ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,EGM,electronID_v1.json.gz,2025-08-15}
+          reco: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,EGM,electron.json.gz}
+          id:   ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,EGM,electron.json.gz}
         name: Electron-ID-SF
         reco:
-          #pt_lt_20: #"RecoBelow20" bin is still missing for the moment.
+          pt_lt_20: RecoBelow20
           pt_gt_20_lt_75: Reco20to75
           pt_gt_75: RecoAbove75
 
@@ -140,7 +140,7 @@ lepton_scale_factors:
         reco: "2023PromptD"
         trigger: "2023PromptD"
       "2024": 
-        id: "2024"
+        id: "2024Prompt"
         reco: "2024Prompt"
         #trigger: "2024Prompt"
 

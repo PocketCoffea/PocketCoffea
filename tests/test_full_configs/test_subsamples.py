@@ -8,7 +8,7 @@ from pocket_coffea.executors import executors_base as executors_lib
 from coffea import processor
 from coffea.processor import Runner
 from coffea.util import load, save
-from utils import compare_outputs, compare_columns, compare_totalweight
+from tests.utils import compare_outputs, compare_columns, compare_totalweight
 import numpy as np
 import awkward as ak
 from coffea.nanoevents import NanoEventsFactory, NanoAODSchema
@@ -104,8 +104,8 @@ def test_subsamples_and_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch
     # some checks
     assert output is not None
     sw = output["sumw"]
-    assert np.isclose(sw["1btag_B"]["TTTo2L2Nu_2018"]["TTTo2L2Nu"] / sw["1btag"]["TTTo2L2Nu_2018"]["TTTo2L2Nu"], 3.)
-    assert np.isclose(sw["1btag_B"]["TTTo2L2Nu_2018"]["TTTo2L2Nu__ele"] / sw["1btag"]["TTTo2L2Nu_2018"]["TTTo2L2Nu__ele"], 3.)
+    assert np.isclose(sw["1btag_B"]["TTTo2L2Nu_2018"]["TTTo2L2Nu"]["nominal"] / sw["1btag"]["TTTo2L2Nu_2018"]["TTTo2L2Nu"]["nominal"], 3.)
+    assert np.isclose(sw["1btag_B"]["TTTo2L2Nu_2018"]["TTTo2L2Nu__ele"]["nominal"] / sw["1btag"]["TTTo2L2Nu_2018"]["TTTo2L2Nu__ele"]["nominal"], 3.)
 
     # Checking variations
     h = output["variables"]["ElectronGood_eta"]["TTTo2L2Nu__ele"]["TTTo2L2Nu_2018"]
@@ -160,10 +160,10 @@ def test_subsamples_and_weights_splitbysubsamples(base_path: Path, monkeypatch: 
      # some checks
     assert output is not None
     sw = output["sumw"]
-    assert np.isclose(sw["B"]["TTTo2L2Nu_2018"]["TTTo2L2Nu"] / sw["A"]["TTTo2L2Nu_2018"]["TTTo2L2Nu"], 1.)
+    assert np.isclose(sw["B"]["TTTo2L2Nu_2018"]["TTTo2L2Nu"]["nominal"] / sw["A"]["TTTo2L2Nu_2018"]["TTTo2L2Nu"]["nominal"], 1.)
     # Ele 2 has the same cut but not additional scale factor applied by suybsample
-    assert np.isclose(sw["A"]["TTTo2L2Nu_2018"]["TTTo2L2Nu__ele"] / sw["A"]["TTTo2L2Nu_2018"]["TTTo2L2Nu__ele2"], 2.)
-    assert np.isclose(sw["B"]["TTTo2L2Nu_2018"]["TTTo2L2Nu__ele"] / sw["B"]["TTTo2L2Nu_2018"]["TTTo2L2Nu__ele2"], 6.)
+    assert np.isclose(sw["A"]["TTTo2L2Nu_2018"]["TTTo2L2Nu__ele"]["nominal"] / sw["A"]["TTTo2L2Nu_2018"]["TTTo2L2Nu__ele2"]["nominal"], 2.)
+    assert np.isclose(sw["B"]["TTTo2L2Nu_2018"]["TTTo2L2Nu__ele"]["nominal"] / sw["B"]["TTTo2L2Nu_2018"]["TTTo2L2Nu__ele2"]["nominal"], 6.)
 
     # check histograms
     h1 = output["variables"]["nJetGood"]["TTTo2L2Nu__ele"]["TTTo2L2Nu_2018"]

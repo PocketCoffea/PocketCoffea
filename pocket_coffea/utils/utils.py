@@ -108,9 +108,10 @@ def dump_ak_array(
         else os.path.join(location, os.path.join(merged_subdirs, fname))
     )
     awkward.to_parquet(akarr, local_file)
-    if xrootd:
+    if xrootd: # fix XRootD mkdir offen meet problem like: Exception: [ERROR] Server responded with an error: [3018] Unable to mkdir ...（your dir）..; File exists
         copyproc = XRootD.client.CopyProcess()
-        copyproc.add_job(local_file, destination, force=True)
+        #old: copyproc.add_job(local_file, destination, force=True)
+        copyproc.add_job(local_file, destination, mkdir=True, force=True) 
         copyproc.prepare()
         status, response = copyproc.run()
         if status.status != 0:

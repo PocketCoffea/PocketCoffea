@@ -78,8 +78,8 @@ default_jets_calibration:
 
       "2024":
         json_path: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,JME,jet_jerc.json.gz}
-        jec_mc: Summer24Prompt24_V1_MC
-        jec_data: Summer24Prompt24_V1_DATA
+        jec_mc: Summer24Prompt24_V2_MC
+        jec_data: Summer24Prompt24_V2_DATA
         jer: Summer23BPixPrompt23_RunD_JRV1_MC  # For the time being the 2023 jers shall be used https://cms-jerc.web.cern.ch/Recommendations/#2024_1
         level: L1L2L3Res
 
@@ -141,12 +141,12 @@ default_jets_calibration:
         jer: "${default_jets_calibration.factory_config_clib.AK4PFPuppi.2023_postBPix.jer}"
         level: L1L2L3Res
 
-      #"2024":
-        # json_path: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,JME,fatJet_jerc.json.gz}
-        # jec_mc: "${default_jets_calibration.factory_config_clib.AK4PFPuppi.2024.jec_mc}"
-        # jec_data: "${default_jets_calibration.factory_config_clib.AK4PFPuppi.2024.jec_data}"
-        # jer: "${default_jets_calibration.factory_config_clib.AK4PFPuppi.2024.jer}"
-        # level: L1L2L3Res
+      "2024":
+        json_path: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,JME,fatJet_jerc.json.gz}
+        jec_mc: "${default_jets_calibration.factory_config_clib.AK4PFPuppi.2024.jec_mc}"
+        jec_data: "${default_jets_calibration.factory_config_clib.AK4PFPuppi.2024.jec_data}"
+        jer: "${default_jets_calibration.factory_config_clib.AK4PFPuppi.2024.jer}"
+        level: L1L2L3Res
 
   # factory available variations
   variations:
@@ -368,7 +368,7 @@ jets_calibration:
       AK4PFPuppi: "Jet"
       #AK4PFPuppiPNetRegression: "Jet"
       #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
-      #AK8PFPuppi: "FatJet"
+      AK8PFPuppi: "FatJet"
      
   sort_by_pt:
     2016_PreVFP:
