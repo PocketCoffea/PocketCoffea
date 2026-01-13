@@ -350,9 +350,7 @@ class PtRegrProcessor(BaseProcessorABC):
     def process_extra_after_skim(self):
         # Create extra Jet collections for testing
         self.events["JetPtReg"] = ak.copy(self.events["Jet"])
-        #self.events["JetPtRegPlusNeutrino"] = ak.copy(self.events["Jet"])
-
-
+        # self.events["JetPtRegPlusNeutrino"] = ak.copy(self.events["Jet"])
 ```
 
 
@@ -373,6 +371,7 @@ The following code is a custom executor which is meant to be filled in with deta
 from pocket_coffea.executors.executors_lxplus import DaskExecutorFactory
 from dask.distributed import WorkerPlugin, Worker, Client
 
+
 class WorkerInferenceSessionPlugin(WorkerPlugin):
     def __init__(self, model_path, session_name):
         super().__init__()
@@ -381,12 +380,14 @@ class WorkerInferenceSessionPlugin(WorkerPlugin):
 
     async def setup(self, worker: Worker):
         import onnxruntime as ort
+
         session = ort.InferenceSession(
             self.model_path,
-            #Whatever other options you use
-            providers=["CPUExecutionProvider"]
-        ) 
-        worker.data["model_session_"+self.session_name] = session
+            # Whatever other options you use
+            providers=["CPUExecutionProvider"],
+        )
+        worker.data["model_session_" + self.session_name] = session
+
 
 class OnnxExecutorFactory(DaskExecutorFactory):
     def __init__(self, **kwargs):
@@ -402,40 +403,43 @@ class OnnxExecutorFactory(DaskExecutorFactory):
         self.dask_client.close()
         self.dask_cluster.close()
 
+
 def get_executor_factory(executor_name, **kwargs):
     return OnnxExecutorFactory(**kwargs)
 ```
 
 To use the model to process events in the `workflow.py` file, one would do something like this. See [here](https://github.com/PocketCoffea/AnalysisConfigs/blob/main/configs/ttHbb/semileptonic/sig_bkg_classifier/workflow_test_spanet.py) for another example.
 ```python
-#import the get_worker function
+# import the get_worker function
 from dask.distributed import get_worker
 
-#Rest of workflow 
+# Rest of workflow
 
-#Suppose you want to apply your model after preselection. You would do e.g.
-def process_extra_after_presel()
+
+# Suppose you want to apply your model after preselection. You would do e.g.
+def process_extra_after_presel():
     try:
         worker = get_worker()
     except ValueError:
         worker = None
 
-    #Whatever needs to be done to prepare the inputs to the model
+    # Whatever needs to be done to prepare the inputs to the model
 
     if worker is None:
-        #make it work running locally too
+        # make it work running locally too
         import onnxruntime as ort
+
         session = ort.InferenceSession(
             self.model_path,
-            #Whatever other options you use
-            providers=["CPUExecutionProvider"]
+            # Whatever other options you use
+            providers=["CPUExecutionProvider"],
         )
     else:
         session = worker.data["model_session_ModelName"]
-		
-    #Continue as you normally would when using an ML model with onnxruntime, e.g.
+
+    # Continue as you normally would when using an ML model with onnxruntime, e.g.
     model_output = session.run(
-        #inputs and options   
+        # inputs and options
     )
 ```
 To run with the custom executor, assuming the file is called `custom_executor.py`, one replaces `--executor dask@lxplus` with `--executor-custom-setup custom_executor.py` for example:

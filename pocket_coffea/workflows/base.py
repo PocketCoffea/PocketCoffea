@@ -288,8 +288,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self._preselection_masks.all(*self._preselection_masks.names)
         ]
         self.nEvents_after_presel = self.nevents
-        if variation == "nominal":
-            self.output['cutflow']['presel'][self._dataset] = self.nEvents_after_presel
+        self.output['cutflow']['presel'].setdefault(self._dataset, {})[variation] = self.nEvents_after_presel
         self.has_events = self.nEvents_after_presel > 0
 
     def define_categories(self, variation):
@@ -395,23 +394,23 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             else:
                 mask_on_events = mask
 
-            self.output["cutflow"][category][self._dataset] = {self._sample: ak.sum(mask_on_events)}
+            self.output["cutflow"][category].setdefault(self._dataset, {}).setdefault(self._sample, {})[variation] = ak.sum(mask_on_events)
             if self._isMC:
                 w = self.weights_manager.get_weight(category)
-                self.output["sumw"][category][self._dataset] = {self._sample: ak.sum(w * mask_on_events)}
-                self.output["sumw2"][category][self._dataset] = {self._sample: ak.sum((w**2) * mask_on_events)}
+                self.output["sumw"][category].setdefault(self._dataset, {}).setdefault(self._sample, {})[variation] = ak.sum(w * mask_on_events)
+                self.output["sumw2"][category].setdefault(self._dataset, {}).setdefault(self._sample, {})[variation] = ak.sum((w**2) * mask_on_events)
 
             # If subsamples are defined we also save their metadata
             if self._hasSubsamples:
                 for subs, subsam_mask in self._subsamples[self._sample].get_masks():
                     # get the subsample specific weight
                     mask_withsub = mask_on_events & subsam_mask
-                    self.output["cutflow"][category][self._dataset][f"{self._sample}__{subs}"] = ak.sum(mask_withsub)
+                    self.output["cutflow"][category].setdefault(self._dataset, {}).setdefault(f"{self._sample}__{subs}", {})[variation] = ak.sum(mask_withsub)
                     if self._isMC:
                         w_tot = w * self.weights_manager.get_weight_only_subsample(subsample=f"{self._sample}__{subs}",
                                                                                    category=category)
-                        self.output["sumw"][category][self._dataset][f"{self._sample}__{subs}"] = ak.sum(w_tot * mask_withsub)
-                        self.output["sumw2"][category][self._dataset][f"{self._sample}__{subs}"] = ak.sum(((w_tot)**2) * mask_withsub)
+                        self.output["sumw"][category].setdefault(self._dataset, {}).setdefault(f"{self._sample}__{subs}", {})[variation] = ak.sum(w_tot * mask_withsub)
+                        self.output["sumw2"][category].setdefault(self._dataset, {}).setdefault(f"{self._sample}__{subs}", {})[variation] = ak.sum(((w_tot)**2) * mask_withsub)
 
 
     def define_custom_axes_extra(self):
@@ -507,7 +506,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
             if name in self._columns:
                 self.column_managers[subs] = ColumnsManager(
-                    self._columns[name], self._categories
+                    self._columns[name],
+                    self._categories,
+                    variations_config=self.cfg.variations_config[self._sample] if self._isMC else None,
                 )
 
     def define_column_accumulators_extra(self):
@@ -517,71 +518,74 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
 
     def fill_column_accumulators(self, variation):
-        if variation != "nominal":
-            return
-
+        """Fill columns for a given variation either on disk as `parquet` file or in the output `coffea` file. Different variations are stored as subfolders of categories."""
         if len(self.column_managers) == 0:
             return
 
         outcols = self.output["columns"]
-        # TODO Fill column accumulator for different variations
         if self._hasSubsamples:
             # call the filling for each
             for subs in self._subsamples[self._sample].keys():
-                if self.workflow_options!=None and self.workflow_options.get("dump_columns_as_arrays_per_chunk", None)!=None:
+                if self.workflow_options is not None and self.workflow_options.get("dump_columns_as_arrays_per_chunk", None) is not None:
                     # filling awkward arrays to be dumped per chunk
-                    if self.column_managers[subs].ncols == 0: break
+                    if self.column_managers[subs].ncols == 0:
+                        break
                     out_arrays = self.column_managers[subs].fill_ak_arrays(
                                                self.events,
                                                self._categories,
+                                               variation,
                                                subsample_mask=self._subsamples[self._sample].get_mask(subs),
                                                weights_manager=self.weights_manager
                                                )
-                    fname = (self.events.behavior["__events_factory__"]._partition_key.replace( "/", "_" )
+                    fname = (self.events.behavior["__events_factory__"]._partition_key.replace("/", "_")
                         + ".parquet")
                     for category, akarr in out_arrays.items():
                         # building the file name
-                        subdirs = [self._dataset, subs, category]
-                        dump_ak_array(akarr, fname, self.workflow_options["dump_columns_as_arrays_per_chunk"]+"/", subdirs)
-
+                        subdirs = [self._dataset, subs, category, variation]
+                        dump_ak_array(akarr, fname, self.workflow_options["dump_columns_as_arrays_per_chunk"] + "/", subdirs)
 
                 else:
                     # Filling columns to be accumulated for all the chunks
                     # Calling hist manager with a subsample mask
-                    if self.column_managers[subs].ncols == 0: break
-                    self.output["columns"][f"{self._sample}__{subs}"]= {
-                        self._dataset : self.column_managers[subs].fill_columns_accumulators(
+                    if self.column_managers[subs].ncols == 0:
+                        break
+                    outcols[f"{self._sample}__{subs}"] = {
+                        self._dataset: self.column_managers[subs].fill_columns_accumulators(
                                                    self.events,
                                                    self._categories,
+                                                   variation,
                                                    subsample_mask=self._subsamples[self._sample].get_mask(subs),
                                                    weights_manager=self.weights_manager
                                                    )
                     }
         else:
             # NO subsamples
-            if self.column_managers[self._sample].ncols == 0: return
-            if self.workflow_options!=None and self.workflow_options.get("dump_columns_as_arrays_per_chunk", None)!=None:
+            if self.column_managers[self._sample].ncols == 0:
+                return
+            if self.workflow_options is not None and self.workflow_options.get("dump_columns_as_arrays_per_chunk", None) is not None:
                 out_arrays = self.column_managers[self._sample].fill_ak_arrays(
                                                self.events,
                                                self._categories,
+                                               variation,
                                                subsample_mask=None,
                                                weights_manager=self.weights_manager
                                                )
                 # building the file name
-                fname = (self.events.behavior["__events_factory__"]._partition_key.replace( "/", "_" )
+                fname = (self.events.behavior["__events_factory__"]._partition_key.replace("/", "_")
                          + ".parquet")
                 for category, akarr in out_arrays.items():
-                    subdirs = [self._dataset, category]
-                    dump_ak_array(akarr, fname, self.workflow_options["dump_columns_as_arrays_per_chunk"]+"/", subdirs)
+                    subdirs = [self._dataset, category, variation]
+                    dump_ak_array(akarr, fname, self.workflow_options["dump_columns_as_arrays_per_chunk"] + "/", subdirs)
             else:
-                self.output["columns"][self._sample] = { self._dataset: self.column_managers[
+                outcols[self._sample] = {self._dataset: self.column_managers[
                     self._sample
                 ].fill_columns_accumulators(
                     self.events,
                     self._categories,
-                    subsample_mask = None,
+                    variation,
+                    subsample_mask=None,
                     weights_manager=self.weights_manager
-                ) }
+                )}
 
     def fill_column_accumulators_extra(self, variation):
         pass
@@ -811,8 +815,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self.fill_column_accumulators_extra(variation)
 
             # Count events
-            if variation == "nominal":
-                self.count_events(variation)
+            self.count_events(variation)
 
         self.stop_time = time.time()
         self.save_processing_metadata()
@@ -870,9 +873,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     rescale = False
                     
                 if rescale and dataset in sumgenw_dict:
-                    scaling = 1/sumgenw_dict[dataset]
+                    scaling = 1 / sumgenw_dict[dataset]
                     for sample in dataset_data.keys():
-                        dataset_data[sample] *= scaling
+                        dataset_data[sample]["nominal"] *= scaling
 
         # rescale sumw2
         for cat, catdata in output["sumw2"].items():
@@ -896,7 +899,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 if rescale and dataset in sumgenw_dict:
                     scaling = 1/sumgenw_dict[dataset]**2
                     for sample in dataset_data.keys():
-                        dataset_data[sample] *= scaling
+                        dataset_data[sample]["nominal"] *= scaling
 
 
     def postprocess(self, accumulator):

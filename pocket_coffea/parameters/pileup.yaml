@@ -24,6 +24,6 @@ pileupJSONfiles:
     file: ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,LUM,puWeights.json.gz}
     name: Collisions2023_369803_370790_eraD_GoldenJson
   "2024":
-    file: ${default_params_dir:}/puWeights_2024.json.gz
-    name: Pileup
+    file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,LUM,puWeights_BCDEFGHI.json.gz}
+    name: Collisions24_BCDEFGHI_goldenJSON
 

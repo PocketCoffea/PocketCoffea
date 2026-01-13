@@ -80,7 +80,7 @@ class Style:
         self.has_colors_mc = "colors_mc" in style_cfg
         self.has_signal_samples = "signal_samples" in style_cfg
         self.has_order_mc = "order_mc" in style_cfg
-
+        self.has_custom_title = "cms_label" in style_cfg
         self.has_blind_hists = False
         if "blind_hists" in style_cfg:
             if (
@@ -508,6 +508,22 @@ class Shape:
                 ax = [ax for ax in h.axes if ax.name == axis_name][0]
                 if len(ax) == len(categorical_axes_dict[axis_name]):
                     categories_sorted[axis_name] = [ax.value(i) for i in range(len(ax))]
+
+        # If no sample has all the categories, we need to define a sorting
+        for axis_name in categorical_axes_dict.keys():
+            if axis_name not in categories_sorted:
+                ax_example = [ax for ax in h0.axes if ax.name == axis_name][0]
+                cats = list(categorical_axes_dict[axis_name])
+                if isinstance(ax_example, hist.axis.StrCategory):
+                    if "nominal" in cats:
+                        cats.remove("nominal")
+                        cats.sort()
+                        cats.insert(0, "nominal")
+                    else:
+                        cats.sort()
+                else:
+                    cats.sort()
+                categories_sorted[axis_name] = cats
 
         # Use the union of sets to define categorical_axes
         for i, (axis_name, categories) in enumerate(categorical_axes_dict.items()):
@@ -997,20 +1013,28 @@ class Shape:
         else:
             self.fig, self.ax = plt.subplots(1, 1, **self.style.opts_figure["datamc"])
             axes = self.ax
-        if self.is_mc_only:
+        if self.style.has_custom_title:
             hep.cms.text(
-                "Simulation Preliminary",
+                self.style.cms_label,
                 fontsize=self.style.fontsize,
                 loc=self.style.experiment_label_loc,
                 ax=self.ax,
             )
         else:
-            hep.cms.text(
-                "Preliminary",
-                fontsize=self.style.fontsize,
-                loc=self.style.experiment_label_loc,
-                ax=self.ax,
-            )
+            if self.is_mc_only:
+                hep.cms.text(
+                    "Simulation Preliminary",
+                    fontsize=self.style.fontsize,
+                    loc=self.style.experiment_label_loc,
+                    ax=self.ax,
+                )
+            else:
+                hep.cms.text(
+                    "Preliminary",
+                    fontsize=self.style.fontsize,
+                    loc=self.style.experiment_label_loc,
+                    ax=self.ax,
+                )
         if self.toplabel:
             hep.cms.lumitext(
                 text=self.toplabel,

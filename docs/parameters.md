@@ -86,39 +86,42 @@ PocketCoffea defines a set of default parameters sets for the most common CMS pa
 flags, btagging working points. The user can get a copy of the default set of parameters programmatically: 
 
 ```python
->>> from pocket_coffea.parameters import defaults
->>> default_parameters = defaults.get_default_parameters(
-                                              groups_tags={
-                                                  "EGM": {
-                                                    "Run3-22CDSep23-Summer22-NanoAODv12": "2025-10-11",
-                                                    "Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/": "2025-10-22"},
-                                                  "JME": {
-                                                    "Run3-22CDSep23-Summer22-NanoAODv12": "2025-10-11",
-                                                  }
-                                              })
+from pocket_coffea.parameters import defaults
 
->>> default_parameters.keys()
-dict_keys(['pileupJSONfiles', 'event_flags', 'event_flags_data',
-           'lumi', 'default_jets_calibration', 'jets_calibration', 
-           'jet_scale_factors', 'btagging', 'lepton_scale_factors',
-           'systematic_variations'])
+default_parameters = defaults.get_default_parameters(
+    groups_tags={
+        "EGM": {
+            "Run3-22CDSep23-Summer22-NanoAODv12": "2025-10-11",
+            "Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/": "2025-10-22",
+        },
+        "JME": {
+            "Run3-22CDSep23-Summer22-NanoAODv12": "2025-10-11",
+        },
+    }
+)
 
->>> default_parameters.jet_scale_factors.btagSF
-{
-  '2022_preEE': {
-    'file': '/cvmfs/cms-griddata.cern.ch/cat/metadata/BTV/Run3-22CDSep23-Summer22-NanoAODv12/latest/btagging.json.gz',
-    'name': 'deepJet_shape'
-  },
-  '2022_postEE': {
-    'file': '/cvmfs/cms-griddata.cern.ch/cat/metadata/BTV/Run3-22EFGSep23-Summer22EE-NanoAODv12/latest/btagging.json.gz',
-    'name': 'deepJet_shape'
-  },
-  '2023_preBPix': {
-    'file': '/cvmfs/cms-griddata.cern.ch/cat/metadata/BTV/Run3-23CSep23-Summer23-NanoAODv12/latest/btagging.json.gz',
-    'name': 'deepJet_shape'
-  },
-  ...
-}
+default_parameters.keys()
+# dict_keys(['pileupJSONfiles', 'event_flags', 'event_flags_data',
+#            'lumi', 'default_jets_calibration', 'jets_calibration',
+#            'jet_scale_factors', 'btagging', 'lepton_scale_factors',
+#            'systematic_variations'])
+
+default_parameters.jet_scale_factors.btagSF
+# {
+#   '2022_preEE': {
+#     'file': '/cvmfs/cms-griddata.cern.ch/cat/metadata/BTV/Run3-22CDSep23-Summer22-NanoAODv12/latest/btagging.json.gz',
+#     'name': 'deepJet_shape'
+#   },
+#   '2022_postEE': {
+#     'file': '/cvmfs/cms-griddata.cern.ch/cat/metadata/BTV/Run3-22EFGSep23-Summer22EE-NanoAODv12/latest/btagging.json.gz',
+#     'name': 'deepJet_shape'
+#   },
+#   '2023_preBPix': {
+#     'file': '/cvmfs/cms-griddata.cern.ch/cat/metadata/BTV/Run3-23CSep23-Summer23-NanoAODv12/latest/btagging.json.gz',
+#     'name': 'deepJet_shape'
+#   },
+#   ...
+# }
 ```
 
 The `OmegaConf` parameters object behaves like a python dictionary, where keys can be accessed directly as attributes. 
@@ -130,12 +133,13 @@ Parameters set can also be loaded directly from yaml files:
 ```python
 ### Using the PocketCoffea interface
 from pocket_coffea.parameters import defaults
+
 default.compose_parameters_from_files(["params/triggers.yaml", "params/leptons.yaml"])
 
 ## Using directly the OmegaConf interface
-pileup = OmegaConf.load('pileup.yaml')
-event_flags = OmegaConf.load('event_flags.yaml')
-lumi = OmegaConf.load('lumi.yaml')
+pileup = OmegaConf.load("pileup.yaml")
+event_flags = OmegaConf.load("event_flags.yaml")
+lumi = OmegaConf.load("lumi.yaml")
 params = OmegaConf.merge(pileup, event_flags, lumi)
 ```
 
@@ -165,12 +169,13 @@ The most direct way to modify parameters is just to load the defaults and manual
 configuration file or in a script. 
 
 ```python
->>> from pocket_coffea.parameters import defaults
->>> default_parameters = defaults.get_default_parameters()
+from pocket_coffea.parameters import defaults
+
+default_parameters = defaults.get_default_parameters()
 # Now the user can customize the params as a dictionary
->>> a["custom_param"] = {"2018": 3.45, "2017": [2,3,4,5]}
->>> a.custom_param
-{'2018': 3.45, '2017': [2, 3, 4, 5]}
+a["custom_param"] = {"2018": 3.45, "2017": [2, 3, 4, 5]}
+a.custom_param
+# {'2018': 3.45, '2017': [2, 3, 4, 5]}
 ```
 
 A best practice is to save parameters customization in yaml files along the analyses configuration. 
@@ -179,12 +184,15 @@ configuration.
 
 ```python
 from pocket_coffea.parameters import defaults
+
 default_parameters = defaults.get_default_parameters()
 
-parameters = defaults.merge_parameters_from_files(default_parameters,
-                                                  f"{localdir}/params/object_preselection.yaml",
-                                                  f"{localdir}/params/triggers.yaml",
-                                                  update=True)
+parameters = defaults.merge_parameters_from_files(
+    default_parameters,
+    f"{localdir}/params/object_preselection.yaml",
+    f"{localdir}/params/triggers.yaml",
+    update=True,
+)
 ```
 
 The method `defaults.merge_parameters_from_files` loads the additional parameters from the yaml files passed by the user
@@ -224,11 +232,12 @@ The user can define additional macros using the helper before loading the parame
 
 ```python
 from pocket_coffea.parameters import defaults
+
 default_parameters = defaults.get_default_parameters()
 localdir = os.path.dirname(os.path.abspath(__file__))
 
 # Register  a new macro
-defaults.register_configuration_dir("config_dir", localdir+"/params")
+defaults.register_configuration_dir("config_dir", localdir + "/params")
 ```
 
 :::{important}

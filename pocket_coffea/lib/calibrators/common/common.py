@@ -161,7 +161,7 @@ class JetsCalibrator(Calibrator):
             pt_raw_corr_neutrino='UParTAK4V1RegPtRawCorrNeutrino'
             btag_b='btagUParTAK4B'
             btag_cvl='btagUParTAK4CvL'
-            do_plus_neutrino = "PlusNeutrino" in jet_typec
+            do_plus_neutrino = "PlusNeutrino" in jet_type
         elif "UParTAK4" in jet_type:
             # Use UParTAK4 regression
             pt_raw_corr='UParTAK4RegPtRawCorr'

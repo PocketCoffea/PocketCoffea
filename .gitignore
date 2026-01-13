@@ -67,6 +67,10 @@ coverage.xml
 .pytest_cache/
 cover/
 
+# Test outputs
+tests/test_full_configs/test_columns/columns/
+tests/test_full_configs/test_skimming/skim/
+
 # Translations
 *.mo
 *.pot

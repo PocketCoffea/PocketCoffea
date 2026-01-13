@@ -20,13 +20,13 @@ def get_pho_sf(params, year, pt, eta, counts, key=''):
         sfName = photonSF.sf_name[year][key]
     
         sf = photon_correctionset[sfName].evaluate(
-        year_pog, "nominal", "Medium", np.abs(eta.to_numpy()), pt.to_numpy()
+        year_pog, "nominal", "Medium", eta.to_numpy(), pt.to_numpy()
         )
         sfup = photon_correctionset[sfName].evaluate(
-        year_pog, "systup", "Medium" , np.abs(eta.to_numpy()), pt.to_numpy() 
+        year_pog, "systup", "Medium" , eta.to_numpy(), pt.to_numpy() 
         )
         sfdown = photon_correctionset[sfName].evaluate(
-        year_pog, "systdown", "Medium", np.abs(eta.to_numpy()), pt.to_numpy()
+        year_pog, "systdown", "Medium", eta.to_numpy(), pt.to_numpy()
         )
 
     elif key == "pxseed":
@@ -101,30 +101,18 @@ def get_ele_sf(
             sfname = electronSF["id"][params.object_preselection["Electron"]["id"]]
         
         if year in ["2023_preBPix", "2023_postBPix"]:
-            # Starting from 2023 SFs require the phi:
-            if key == 'reco' and pt_region == 'pt_lt_20':
-                # It also appears that for RecoBelow20 SFs the eta must be positive (absolute value).
-                eta_np = np.abs(eta.to_numpy())
-            else:
-                eta_np = eta.to_numpy()
-                
             sf = electron_correctionset[map_name].evaluate(
-                year_pog, "sf", sfname, eta_np, pt.to_numpy(),  phi.to_numpy()
+                year_pog, "sf", sfname, eta.to_numpy(), pt.to_numpy(),  phi.to_numpy()
             )
             sfup = electron_correctionset[map_name].evaluate(
-                year_pog, "sfup", sfname, eta_np, pt.to_numpy(), phi.to_numpy()
+                year_pog, "sfup", sfname, eta.to_numpy(), pt.to_numpy(), phi.to_numpy()
             )
             sfdown = electron_correctionset[map_name].evaluate(
-                year_pog, "sfdown", sfname, eta_np, pt.to_numpy(), phi.to_numpy()
+                year_pog, "sfdown", sfname, eta.to_numpy(), pt.to_numpy(), phi.to_numpy()
             )
         else:
-            # limit in pt for 2024 to 1000GeV in electronID.json
-            if year == "2024":
-                pt = np.where(pt.to_numpy()>=1000, 999., pt.to_numpy())
-                eta = np.clip(eta.to_numpy(), -2.49, 2.49)
-            else:
-                pt = pt.to_numpy()
-                eta = eta.to_numpy()
+            pt = pt.to_numpy()
+            eta = eta.to_numpy()
             # All other eras do not need phi:    
             sf = electron_correctionset[map_name].evaluate(
                 year_pog, "sf", sfname, eta, pt
@@ -233,19 +221,16 @@ def sf_ele_reco(params, events, year):
     '''
     coll = params.lepton_scale_factors.electron_sf.collection
     ele_pt = events[coll].pt
-    ele_eta = events[coll].etaSC # This is added on top of NanoAOD
+    ele_eta = events[coll].eta + events[coll].deltaEtaSC # Get the supercluster eta
     ele_phi = events[coll].phi
 
     pt_ranges = []
     if year in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
         pt_ranges += [("pt_lt_20", (ele_pt < 20)), 
                       ("pt_gt_20", (ele_pt >= 20))]
-    elif year in ["2022_preEE", "2022_postEE", "2023_preBPix", "2023_postBPix"]:
+    elif year in ["2022_preEE", "2022_postEE", "2023_preBPix", "2023_postBPix", "2024"]:
         pt_ranges += [("pt_lt_20", (ele_pt < 20)), 
                       ("pt_gt_20_lt_75", (ele_pt >= 20) & (ele_pt < 75)), 
-                      ("pt_gt_75", (ele_pt >= 75))]
-    elif year in ["2024"]:
-        pt_ranges += [("pt_gt_20_lt_75", (ele_pt >= 20) & (ele_pt < 75)), 
                       ("pt_gt_75", (ele_pt >= 75))]
     else:
         raise Exception("For chosen year "+year+" sf_ele_reco are not implemented yet")
@@ -293,7 +278,7 @@ def sf_ele_id(params, events, year):
     '''
     coll = params.lepton_scale_factors.electron_sf.collection
     ele_pt = events[coll].pt
-    ele_eta = events[coll].etaSC
+    ele_eta = events[coll].eta + events[coll].deltaEtaSC # Get the supercluster eta
     ele_phi = events[coll].phi
 
     ele_pt_flat, ele_eta_flat, ele_phi_flat, ele_counts = (
