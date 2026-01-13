@@ -1,0 +1,31 @@
+imax 1 number of channels
+jmax 1 number of processes minus 1
+kmax 13 number of nuisance parameters
+--------------------------------------------------------------------------------
+shapes * 2btag_2023_postBPix shapes_2btag_run3.root $PROCESS_nominal $PROCESS_$SYSTEMATIC
+--------------------------------------------------------------------------------
+bin 2btag_2023_postBPix
+observation 0.0
+--------------------------------------------------------------------------------
+bin                                2btag_2023_postBPix               2btag_2023_postBPix               
+process                            TTTo2L2Nu_2023_postBPix           backgroundSample_2023_postBPix    
+process                            0                                 1                                 
+rate                               104875.762                        85162.1896                        
+--------------------------------------------------------------------------------
+CMS_btag_fullShape_cferr1 shape    1.0                                -                                
+CMS_btag_fullShape_cferr2 shape    1.0                               1.0                               
+CMS_btag_fullShape_hf     shape    1.0                               1.0                               
+CMS_btag_fullShape_lf     shape    1.0                               1.0                               
+CMS_eff_e_id_13p6TeV      shape    1.0                               1.0                               
+CMS_eff_e_reco_13p6TeV    shape    1.0                               1.0                               
+CMS_eff_m_id_total        shape    1.0                               1.0                               
+CMS_eff_m_iso_total       shape    1.0                               1.0                               
+CMS_pileup_2023BPIX       shape    1.0                               1.0                               
+CMS_res_j_2023BPIX        shape    1.0                               1.0                               
+CMS_scale_j_2023BPIX      shape     -                                1.0                               
+alpha_s                   lnN      1.017                             1.017                             
+lumi_13TeV_2023           lnN      1.015                             1.015                             
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+2btag_2023_postBPix autoMCStats 10 0 1
+--------------------------------------------------------------------------------
