@@ -270,6 +270,10 @@ def ProbBsorted(jets,temp=None):
         raise NotImplementedError(f"Using the tagger name while calling `ProbBsorted` is deprecated. Please use `jet_tagger={temp}` as an argument to `jet_selection`.")
     return jets[ak.argsort(jets["btagB"], axis=1, ascending=False)]
 
+def CCsorted(fatjets,temp=None):    
+    if temp is not None:
+        raise NotImplementedError(f"Using the tagger name while calling `CCsorted` is deprecated. Please use `jet_tagger={temp}` as an argument to `jet_selection`.")
+    return fatjets[ak.argsort(fatjets["btagCC"], axis=1, ascending=False)]
 
 def get_dijet(jets, taggerVars=True, remnant_jet = False):
     if isinstance(taggerVars,str):
