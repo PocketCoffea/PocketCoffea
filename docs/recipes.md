@@ -141,7 +141,7 @@ The jet type is just an internal labels used in the PocketCoffea configuration t
 All the collections defined in the `jets_calibration.collection` entry will be calibrated by the configured JetsCalibrator if included in the calibrators sequence. It is not allowed to match the same jet collection to multiple jet types: an error will be raised.
 :::
 
-#### Collection Name Aliases
+##### Collection Name Aliases
 To allow to use the same calibration settings on different ket collections, it is possible to define aliases for the collection names with the `collection_name_alias` key. For example, if you have a jet collection called `JetCustom` that you want to calibrate in the same way as you do for the `Jet` collection, which is mapped to the `AK4PFPuppi` jet type, your configuration would look like this:
 
 ```yaml
@@ -149,15 +149,15 @@ jets_calibration:
   collection:
     2022_preEE:
       AK4PFPuppi: "Jet"
+      AK4PFPuppiCustom: "JetCustom"
   collection_name_alias:
       2022_preEE:
-        JetCustom : "AK4PFPuppi"
+        AK4PFPuppiCustom : "AK4PFPuppi"
 ```
 
 :::{warning}
-The application of the variations has not been tested yet when using `collection_name_alias`. Please use with caution.
+In order to merge the variations of the `JetCustom` collection, you need to define a `merge_collections_for_variations` entry as specified in section [Merging Systematic Variations](#merging-systematic-variations).
 :::
-
 
 ##### Calibration Control Flags
 Enable/disable different correction types per jet type and period:
@@ -228,6 +228,21 @@ jets_calibration:
         - JES_Total  # Only total JES uncertainty
         - JER        # JER variations
 ```
+
+##### Merging Systematic Variations
+By default, each systematic variation produces a separate collection of calibrated jets. To reduce the number of collections, variations can be merged into a single collection per jet type. This is configured using the `merge_collections_for_variations` key, which specifies which jet types should have their variations merged and under which new name:, e.g.:
+
+```yaml
+jets_calibration:
+  merge_collections_for_variations:
+    2022_preEE:
+      AK4Jet: 
+        - AK4PFPuppi
+        - AK4PFPuppiPNetRegression
+        - AK4PFPuppiCustom
+```
+
+This will create variation with the name `AK4Jet_{variation}_[up|down]` that merges the variations from the specified jet types.
 
 #### MET Recalibration
 Configure MET corrections that propagate jet calibration changes:
@@ -374,7 +389,11 @@ class PtRegrProcessor(BaseProcessorABC):
 
 ```
 
-### Merge regressed and standard jet pT
+Further references:  
+* The analysis note: [AN-2022/094](https://cms.cern.ch/iCMS/jsp/db_notes/noteInfo.jsp?cmsnoteid=CMS%20AN-2022/094)
+* Measuring response in Z+b events: [presentation](https://indico.cern.ch/event/1451196/contributions/6181213/attachments/2949253/5183620/cooperstein_HH4b_oct162024.pdf)
+
+#### Merge regressed and standard jet pT
 In some cases, e.g. PNet regression in NanoAODv12, the regression can be applied only to a subset of jets (e.g. cutting on pT and eta of the jet). In this case, one may want to merge the regressed pT values with the standard pT values for jets failing the regression criteria. In order to do this, your configuration would look like this:
 
 ```yaml
@@ -415,12 +434,12 @@ class PtRegrProcessor(BaseProcessorABC):
 ```
 
 :::{warning}
-The application of the variations has not been tested yet when merging the regressed and standard pT. Please use with caution.
+In order to merge the variations of the `Jet` and `JetPtReg` collections, you need to define a `merge_collections_for_variations` entry as specified in section [Merging Systematic Variations](#merging-systematic-variations).
 :::
 
-Further references:  
-* The analysis note: [AN-2022/094](https://cms.cern.ch/iCMS/jsp/db_notes/noteInfo.jsp?cmsnoteid=CMS%20AN-2022/094)
-* Measuring response in Z+b events: [presentation](https://indico.cern.ch/event/1451196/contributions/6181213/attachments/2949253/5183620/cooperstein_HH4b_oct162024.pdf)
+:::{warning}
+When merging the collections like this, make sure to set the `sort_by_pt` option to `False` for the jet typea in the jets calibration configuration, otherwise the jet ordering will be changed and the merging will fail.
+:::
 
 
 ## Create a custom executor to use `onnxruntime`

@@ -128,9 +128,19 @@ class JetsCalibrator(Calibrator):
                 # If the jet type has variations, we add them to the list
                 # of variations available for this calibrator
                 for variation in self.jet_calib_param.variations[jet_type_alias][self.year]:
+                    variation_jet_type = jet_type
+                    # Check if the jet type is merged for variations
+                    if (
+                        "merge_collections_for_variations" in self.jet_calib_param
+                        and self.year in self.jet_calib_param.merge_collections_for_variations
+                    ):
+                        for merged_jet_type, jets_to_merge in self.jet_calib_param.merge_collections_for_variations[self.year].items():
+                            if jet_type_alias in jets_to_merge:
+                                variation_jet_type = merged_jet_type
+                                break
                     available_jet_variations +=[
-                        f"{jet_type}_{variation}Up",
-                        f"{jet_type}_{variation}Down"
+                        f"{variation_jet_type}_{variation}Up",
+                        f"{variation_jet_type}_{variation}Down"
                     ]
                     # we want to vary independently each jet type
         self._variations = list(sorted(set(available_jet_variations)))  # remove duplicates
@@ -273,13 +283,6 @@ class JetsCalibrator(Calibrator):
         variation_parts = variation.split("_")
         jet_type = variation_parts[0]
         
-        if "collection_name_alias" in self.jet_calib_param and jet_type in self.jet_calib_param.collection_name_alias[self.year]:
-            jet_type_alias = self.jet_calib_param.collection_name_alias[self.year][jet_type]
-        else:
-            jet_type_alias=jet_type
-            
-        if jet_type not in self.jet_calib_param.collection[self.year]:
-            raise ValueError(f"Jet type {jet_type} not found in the parameters for year {self.year}.")
         # get the variation type from the variation name
         if variation.endswith("Up"):
             variation_type = "_".join(variation_parts[1:])[:-2]  # remove 'Up'
@@ -290,8 +293,32 @@ class JetsCalibrator(Calibrator):
         else:
             raise ValueError(f"JET Variation {variation} is not recognized. It should end with 'Up' or 'Down'.")
         
+        # Check if the jet type is merged for variations
+        if (
+            "merge_collections_for_variations" in self.jet_calib_param
+            and self.year in self.jet_calib_param.merge_collections_for_variations
+            and jet_type
+            in self.jet_calib_param.merge_collections_for_variations[self.year]
+        ):
+            for jet_type_to_merge in self.jet_calib_param.merge_collections_for_variations[self.year][jet_type]:
+                self.apply_variation(out, jet_type_to_merge, variation_type, direction)
+        else:
+            self.apply_variation(out, jet_type, variation_type, direction)
+   
+        return out
+    
+    def apply_variation(self, out, jet_type, variation_type, direction):
+        if "collection_name_alias" in self.jet_calib_param and jet_type in self.jet_calib_param.collection_name_alias[self.year]:
+            jet_type_alias = self.jet_calib_param.collection_name_alias[self.year][jet_type]
+        else:
+            jet_type_alias=jet_type
+            
+        if jet_type not in self.jet_calib_param.collection[self.year]:
+            raise ValueError(f"Jet type {jet_type} not found in the parameters for year {self.year}.")
+        
         # get the jet collection name from the parameters
         jet_coll_name = self.jet_calib_param.collection[self.year][jet_type]
+        
         if jet_coll_name not in self.jets_calibrated:
             raise ValueError(f"Jet collection {jet_coll_name} not found in the calibrated jets.")
         # Apply the variation to the jets
@@ -307,9 +334,6 @@ class JetsCalibrator(Calibrator):
         if self.jet_calib_param.sort_by_pt[self._year][jet_type_alias]:
             sorted_indices = ak.argsort(out[jet_coll_name]["pt"], axis=1, ascending=False)
             out[jet_coll_name] = out[jet_coll_name][sorted_indices]
-   
-        return out
-
 
 
 class JetsSoftdropMassCalibrator(Calibrator):
