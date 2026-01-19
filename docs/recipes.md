@@ -132,7 +132,7 @@ jets_calibration:
     2022_preEE:
       AK4PFPuppi: "Jet"
       AK8PFPuppi: "FatJet"
-      AK4PFPuppiPNetRegression: "Jet"
+      # AK4PFPuppiPNetRegression: "Jet"
 ```
 
 The jet type is just an internal labels used in the PocketCoffea configuration to link various pieces of the jets configuration together. 
@@ -140,6 +140,24 @@ The jet type is just an internal labels used in the PocketCoffea configuration t
 :::{warning}
 All the collections defined in the `jets_calibration.collection` entry will be calibrated by the configured JetsCalibrator if included in the calibrators sequence. It is not allowed to match the same jet collection to multiple jet types: an error will be raised.
 :::
+
+#### Collection Name Aliases
+To allow to use the same calibration settings on different ket collections, it is possible to define aliases for the collection names with the `collection_name_alias` key. For example, if you have a jet collection called `JetCustom` that you want to calibrate in the same way as you do for the `Jet` collection, which is mapped to the `AK4PFPuppi` jet type, your configuration would look like this:
+
+```yaml
+jets_calibration:
+  collection:
+    2022_preEE:
+      AK4PFPuppi: "Jet"
+  collection_name_alias:
+      2022_preEE:
+        JetCustom : "AK4PFPuppi"
+```
+
+:::{warning}
+The application of the variations has not been tested yet when using `collection_name_alias`. Please use with caution.
+:::
+
 
 ##### Calibration Control Flags
 Enable/disable different correction types per jet type and period:
@@ -337,6 +355,7 @@ object_preselections:
           wp:
             M
 ```
+
 This clone of the Jet collection needs to be defined in the `process_extra_after_skim` function of the user's workflow
 
 ```python
@@ -355,10 +374,53 @@ class PtRegrProcessor(BaseProcessorABC):
 
 ```
 
+### Merge regressed and standard jet pT
+In some cases, e.g. PNet regression in NanoAODv12, the regression can be applied only to a subset of jets (e.g. cutting on pT and eta of the jet). In this case, one may want to merge the regressed pT values with the standard pT values for jets failing the regression criteria. In order to do this, your configuration would look like this:
+
+```yaml
+jets_calibration:
+  collection:
+    2022_preEE:
+      AK4PFPuppi: "Jet"
+      AK4PFPuppiPNetRegression: "JetPtReg"
+      #AK4PFPuppiPNetRegressionPlusNeutrino: "JetPtReg"
+
+```
+
+The merging of the pT values can be done in the user's workflow, e.g. in the `apply_object_preselection` section:
+
+```python
+from pocket_coffea.workflows.base import BaseProcessorABC
+
+
+class PtRegrProcessor(BaseProcessorABC):
+    def __init__(self, cfg) -> None:
+        super().__init__(cfg=cfg)
+
+    def process_extra_after_skim(self):
+        # Create extra Jet collections for testing
+        self.events["JetPtReg"] = ak.copy(self.events["Jet"])
+        #self.events["JetPtRegPlusNeutrino"] = ak.copy(self.events["Jet"])
+
+    def apply_object_preselection(self, variation):
+        # Use the regressed pt from PNet collection if available,
+        # otherwise use the JEC corrected pt collection
+        # This way we consider correctly all fields which change depending on
+        # the pt definition, namely the pt, mass and the associated systematic variations
+        self.events["Jet"] = ak.where(
+            self.events["JetPtReg"].pt > 0,
+            self.events["JetPtReg"],
+            self.events.Jet,
+        )
+```
+
+:::{warning}
+The application of the variations has not been tested yet when merging the regressed and standard pT. Please use with caution.
+:::
 
 Further references:  
 * The analysis note: [AN-2022/094](https://cms.cern.ch/iCMS/jsp/db_notes/noteInfo.jsp?cmsnoteid=CMS%20AN-2022/094)
-* Measuring response in Z+b events: [presenation](https://indico.cern.ch/event/1451196/contributions/6181213/attachments/2949253/5183620/cooperstein_HH4b_oct162024.pdf)
+* Measuring response in Z+b events: [presentation](https://indico.cern.ch/event/1451196/contributions/6181213/attachments/2949253/5183620/cooperstein_HH4b_oct162024.pdf)
 
 
 ## Create a custom executor to use `onnxruntime`
