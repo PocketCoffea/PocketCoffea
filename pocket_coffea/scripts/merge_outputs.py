@@ -19,18 +19,19 @@ mem_threshold = 0.5 # ~50% + memory needed to dump files, is the empirical thres
 
 def merge_group_reduction(output_files, N_reduction=5, cachedir="merge_cache", max_mem_gb=8, verbose=False):
     with Progress() as progress:
-        task1 = progress.add_task("[red]Merging...", total=len(output_files))
+        task1 = progress.add_task("[cyan]Merging...", total=len(output_files))
     
         def reduce_in_groups(iterable, group_size):
             result = None
             # Always work with the iterator directly, don't recreate it
             while batch := list(islice(iterable, group_size)):
+                batchlen = len(batch)
                 if verbose:
                     filesize = sum([os.path.getsize(f) for f in batch])/1024**3
                     print(f"File size (on disk) to load: {filesize:.3f} GB")
                 loaded_batch = [load(f) for f in batch]
                 batch_acc = accumulate(loaded_batch)
-                del loaded_batch
+                del loaded_batch, batch
                 if result is None:
                     result = batch_acc
                 else:
@@ -39,11 +40,12 @@ def merge_group_reduction(output_files, N_reduction=5, cachedir="merge_cache", m
                 if verbose: 
                     print(f"Current memory usage: {mem_usage:.3f} GB ({mem_usage/max_mem_gb*100:.1f}%)")
                 del batch_acc
-                progress.update(task1, advance=len(batch))
+                progress.update(task1, advance=batchlen)
                 if mem_usage > max_mem_gb * mem_threshold:
                     # return the result so-far, and remaining iterator
                     return result, iterable
-                
+
+            gc.collect()
             return result, None
 
         # Convert to iterator once at the beginning
@@ -71,18 +73,35 @@ def merge_group_reduction(output_files, N_reduction=5, cachedir="merge_cache", m
     print(f"[green][b]Since outputs were too large to fit in memory, I created {len(new_output_files)} fragmented output files.[/] These may be moved to and merged on a high-memory machine.[/]")
     exit()
 
-def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, N_reduction=5, max_mem_gb=None, cache_dir=None, verbose=False):
+def process_failed(mark_failed, statusfile, job_dir, job_name, message="missing"):
+    if mark_failed and statusfile:
+        statusfilesuff = statusfile.split('/')[-1]
+        os.system(f"mv {statusfile} {job_dir}/{job_name}.failed")
+        print(f"[yellow]Job {job_name} {message}: {statusfilesuff} -> {job_name}.failed[/]")
+    else:
+        print(f"[red]Job {job_name} output is {message}[/]")
+
+def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, N_reduction=5, max_mem_gb=None, cache_dir=None, verbose=False, skip_check=False, mark_failed=False):
     '''Merge coffea output files'''
     if jobs_config is not None:
+        # check if the user provided the config file or the directory
+        if not os.path.isfile(jobs_config):
+            if os.path.isfile(f"{jobs_config}/jobs_config.yaml"):
+                jobs_config = f"{jobs_config}/jobs_config.yaml"
+            elif os.path.isfile(f"{jobs_config}/job/jobs_config.yaml"):
+                jobs_config = f"{jobs_config}/job/jobs_config.yaml"
+
         # read the job configuration file
         print(f"Reading job configuration file {jobs_config}")
         with open(jobs_config, 'r') as f:
             job_config = yaml.safe_load(f)
         if "split_by_category" in job_config:   # Ensure back compatibility
             split_by_category = job_config["split_by_category"]
-            print("Jobs were split by category, hence will merge per category.")
+            if split_by_category:
+                print("Jobs were split by category, hence will merge per category.")
         else:
             split_by_category = False
+        job_dir = f'{job_config["job_dir"]}'
 
     if outputfile is None:
         if jobs_config is None:
@@ -135,15 +154,24 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, N_reduc
         output_files_by_category = {}
         # First check that the jobs are done
         with Progress() as progress:
-            task_ = progress.add_task("[red]Checking output files from jobs...", total=len(list(jobs_list.keys())))
+            task_ = progress.add_task("[cyan]Checking output files from jobs...[/]", total=len(list(jobs_list.keys())))
             for job_name, job in jobs_list.items():
                 # Check output
+                statusfile = None
+                if mark_failed:                    
+                    statusfiles = [fl for fl in glob(f"{job_dir}/{job_name}.*") if not fl.endswith(".sub")]
+                    if len(statusfiles) > 1:
+                        print(f"[red]Multiple status files found for job {job_name}: {statusfiles}")
+                    elif len(statusfiles) == 0:
+                        print(f"[red]No status file found for job {job_name}!")
+                    else:
+                        statusfile = statusfiles[0]
                 if split_by_category:
                     # Listing all files with glob is slow   
                     this_job_outputs = glob(job['output_file'].replace("job_","*job_"))
-                    if len(this_job_outputs) == 0:
-                        print(f"[red]Job {job_name} output is missing[/]")
+                    if len(this_job_outputs) == 0:                        
                         alldone = False
+                        process_failed(mark_failed, statusfile, job_dir, job_name, message="missing")
                     else:
                         output_files.extend(this_job_outputs)
                         for this_job_output in this_job_outputs:
@@ -153,15 +181,22 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, N_reduc
                             output_files_by_category[this_category].append(this_job_output)
                 else:
                     if not os.path.exists(job['output_file']):
-                        print(f"[red]Job {job_name} output is missing[/]")
                         alldone = False
-                    output_files.append(job['output_file'])
+                        process_failed(mark_failed, statusfile, job_dir, job_name, message="missing")
+                    elif (size := os.path.getsize(job['output_file'])) < 10:                        
+                        alldone = False
+                        process_failed(mark_failed, statusfile, job_dir, job_name, message=f"corrupted (size is {size:.0f} bytes)")
+                    else:
+                        output_files.append(job['output_file'])
                 progress.update(task_, advance=1)
 
-        if not alldone:
+        if not alldone and not skip_check:
             print(f"[red]Not all jobs are done yet[/]")
             exit(1)
-        print(f"[green]All jobs are done[/]")
+        if alldone:
+            print(f"[green]All jobs are done[/]")
+        elif skip_check:
+            print(f"[yellow]All jobs are not done, but proceeding since --skip-check is True[/]")
 
         noutput = len(output_files)
         if noutput < 100:
@@ -282,9 +317,22 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, N_reduc
     help="Overwrite output file if it exists",
 )
 
-def main(inputfiles, outputfile, jobs_config, force, reduction, max_mem_gb, cache_dir, verbose):
+@click.option(
+    "-s",
+    "--skip-check",
+    is_flag=True,
+    help="Skip checking if all jobs were complete",
+)
+
+@click.option(
+    "--mark-failed",
+    is_flag=True,
+    help="Mark condor@lxplus job status as failed",
+)
+
+def main(inputfiles, outputfile, jobs_config, force, reduction, max_mem_gb, cache_dir, verbose, skip_check, mark_failed):
     '''Merge coffea output files'''
-    merge_outputs(inputfiles, outputfile, jobs_config, force, reduction, max_mem_gb, cache_dir, verbose)
+    merge_outputs(inputfiles, outputfile, jobs_config, force, reduction, max_mem_gb, cache_dir, verbose, skip_check, mark_failed)
 
 if __name__ == "__main__":
     main()
