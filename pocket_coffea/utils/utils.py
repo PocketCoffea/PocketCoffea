@@ -10,6 +10,11 @@ from .configurator import Configurator
 import hashlib
 from numba import njit
 import awkward as ak
+import json
+import logging
+
+# Constant for the failed jobs filename
+FAILED_JOBS_FILENAME = "failed_jobs.json"
 
 @contextmanager
 def add_to_path(p):
@@ -198,3 +203,53 @@ def replace_at_indices(a, indices, a_corrected, array_builder):
         array_builder.end_list()
 
     return array_builder
+
+def save_failed_jobs(failed_jobs_list, outputdir):
+    """
+    Save the list of failed job names to a JSON file.
+    
+    Parameters
+    ----------
+    failed_jobs_list : list of str
+        List of dataset or group names that failed processing
+    outputdir : str
+        Output directory where the failed_jobs.json file will be saved
+    """
+    failed_jobs_file = os.path.join(outputdir, FAILED_JOBS_FILENAME)
+    try:
+        with open(failed_jobs_file, 'w') as f:
+            json.dump(failed_jobs_list, f, indent=2)
+        logging.info(f"Failed jobs saved to {failed_jobs_file}")
+    except (IOError, OSError) as e:
+        logging.error(f"Failed to save failed jobs to {failed_jobs_file}: {e}")
+        raise
+
+def load_failed_jobs(outputdir):
+    """
+    Load the list of failed job names from a JSON file.
+    
+    Parameters
+    ----------
+    outputdir : str
+        Output directory where the failed_jobs.json file is located
+        
+    Returns
+    -------
+    list of str or None
+        List of dataset or group names that failed processing, or None if file doesn't exist
+    """
+    failed_jobs_file = os.path.join(outputdir, FAILED_JOBS_FILENAME)
+    if not os.path.exists(failed_jobs_file):
+        return None
+    
+    try:
+        with open(failed_jobs_file, 'r') as f:
+            failed_jobs_list = json.load(f)
+        logging.info(f"Loaded {len(failed_jobs_list)} failed jobs from {failed_jobs_file}")
+        return failed_jobs_list
+    except (IOError, OSError) as e:
+        logging.error(f"Failed to read failed jobs file {failed_jobs_file}: {e}")
+        raise
+    except json.JSONDecodeError as e:
+        logging.error(f"Failed to parse failed jobs file {failed_jobs_file}: {e}")
+        raise
