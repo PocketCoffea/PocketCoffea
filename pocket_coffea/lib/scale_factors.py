@@ -121,6 +121,7 @@ def get_ele_sf(
             # limit in pt for 2024 to 1000GeV in electronID.json
             if year == "2024":
                 pt = np.where(pt.to_numpy()>=1000, 999., pt.to_numpy())
+                pt = np.clip(pt, 20., 999.)
                 eta = np.clip(eta.to_numpy(), -2.49, 2.49)
             else:
                 pt = pt.to_numpy()
