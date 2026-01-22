@@ -3,8 +3,71 @@ import numpy as np
 import correctionlib
 
 
-def get_ele_scaled(ele, jsonFileName, correction_name, isMC, runNr):
-    evaluator = correctionlib.CorrectionSet.from_file(jsonFileName)
+def get_ele_scaled_etdependent(ele, json_scale, 
+                               correction_name, syst_correction_name,
+                               isMC, runNr, year):
+    '''
+    From example: https://gitlab.cern.ch/cms-analysis-metadata/EGM/examples/-/blob/latest/egmScaleAndSmearingExample.py
+    '''
+    evaluator = correctionlib.CorrectionSet.from_file(json_scale)
+    evaluator_scale = evaluator.compound[correction_name]
+    smear_and_syst_evaluator = evaluator[syst_correction_name]
+    ele_gain_flat = ak.flatten(ele["seedGain"])
+    ele_eta_flat = ak.flatten(ele["etaSC"]) # eta of supercluster
+    ele_r9_flat = ak.flatten(ele["r9"])
+    ele_pt_flat = ak.flatten(ele["pt"])
+    ele_energy_flat = ak.flatten(ele.energy)
+    ele_energyErr_flat = ak.flatten(ele["energyErr"])
+    ele_counts = ak.num(ele["pt"])
+    ele_runNr_flat = np.repeat(runNr, ele_counts)
+    if not isMC: 
+        # for data return nominal
+        scale = evaluator_scale.evaluate(
+                "scale", 
+                ele_runNr_flat, 
+                ele_eta_flat,
+                ele_r9_flat,
+                ele_pt_flat, 
+                ele_gain_flat
+        )
+        ele_pt_corrected = ak.unflatten(scale * ele_pt_flat, counts=ele_counts)
+
+        # Correct the energyError
+        smear = smear_and_syst_evaluator.evaluate("smear", ele_pt_flat * scale, 
+                                                  ele_r9_flat, ele_eta_flat)
+        energyErr_corrected = ak.unflatten(
+                np.sqrt((ele_energyErr_flat)**2 + (ele_energy_flat * smear)**2) * scale,
+                counts=ele_counts)
+        
+        return {"pt": {"nominal": ele_pt_corrected}, 
+                "energyErr": {"nominal": energyErr_corrected}}
+    else:
+        # MC: return shifts
+        scale_MC_unc = smear_and_syst_evaluator.evaluate(
+            "escale", 
+            ele_pt_flat, 
+            ele_r9_flat, 
+            ele_eta_flat
+        )
+        scale_up = 1 + scale_MC_unc
+        scale_down = 1 - scale_MC_unc
+        ele_pt_scale_up = ak.unflatten(ele_pt_flat*scale_up, counts=ele_counts)
+        ele_pt_scale_down = ak.unflatten(ele_pt_flat*scale_down, counts=ele_counts)
+
+        ele_energyErr_corrected_up = ak.unflatten(ele_energyErr_flat * scale_up, counts=ele_counts)
+        ele_energyErr_corrected_down = ak.unflatten(ele_energyErr_flat * scale_down, counts=ele_counts)
+
+        return {"pt": {
+                    "up": ele_pt_scale_up, "down": ele_pt_scale_down
+                },
+                "energyErr": {
+                    "up": ele_energyErr_corrected_up,
+                    "down": ele_energyErr_corrected_down
+                }}
+    
+
+def get_ele_scaled(ele, json_scale, correction_name, isMC, runNr):
+    evaluator = correctionlib.CorrectionSet.from_file(json_scale)
     evaluator_scale = evaluator[correction_name]
     ele_gain_flat = ak.flatten(ele["seedGain"])
     ele_eta_flat = ak.flatten(ele["etaSC"])
@@ -12,6 +75,7 @@ def get_ele_scaled(ele, jsonFileName, correction_name, isMC, runNr):
     ele_pt_flat = ak.flatten(ele["pt"])
     ele_counts = ak.num(ele["pt"])
     ele_runNr_flat = np.repeat(runNr, ele_counts)
+
     if not isMC: # for data return nominal
         scale = evaluator_scale.evaluate(
             "total_correction", 
@@ -35,6 +99,80 @@ def get_ele_scaled(ele, jsonFileName, correction_name, isMC, runNr):
         ele_pt_scale_up = ak.unflatten((1+scale_MC_unc) * ele_pt_flat, counts=ele_counts)
         ele_pt_scale_down = ak.unflatten((1-scale_MC_unc) * ele_pt_flat, counts=ele_counts)
         return {"up": ele_pt_scale_up, "down": ele_pt_scale_down}
+    
+
+
+def get_ele_smeared_etdependent(mc_ele, jsonFileName, correction_name, isMC, only_nominal=True, seed=125):
+    '''
+    From example: https://gitlab.cern.ch/cms-analysis-metadata/EGM/examples/-/blob/latest/egmScaleAndSmearingExample.py
+    '''
+    if not isMC:
+        return
+    evaluator = correctionlib.CorrectionSet.from_file(jsonFileName)
+    evaluator_smearing = evaluator[correction_name]
+    ele_eta_flat = ak.flatten(mc_ele["etaSC"]) # eta of supercluster
+    ele_r9_flat = ak.flatten(mc_ele["r9"])
+    ele_pt_flat = ak.flatten(mc_ele["pt"])
+    ele_energy_flat = ak.flatten(mc_ele.energy)
+    ele_energyErr_flat = ak.flatten(mc_ele["energyErr"])
+    ele_counts = ak.num(mc_ele["pt"])
+    rng = np.random.default_rng(seed=seed)
+    smear = evaluator_smearing.evaluate(
+        "smear",
+        ele_pt_flat,
+        ele_r9_flat,
+        ele_eta_flat,
+    )
+    rnd_samples = rng.normal(loc=0., scale=1., size=len(ele_pt_flat))
+    smearing = 1 + smear * rnd_samples
+    mc_ele_pt_corrected_nom = ak.unflatten(smearing * ele_pt_flat, counts=ele_counts)
+
+    mc_energyErr_corrected_nom = ak.unflatten(
+        np.sqrt((ele_energyErr_flat)**2 + (ele_energy_flat * smear)**2) * smearing, 
+        counts=ele_counts)
+
+    if only_nominal:
+        return {"pt": {"nominal": mc_ele_pt_corrected_nom},
+                "energyErr": {"nominal": mc_energyErr_corrected_nom}}
+    else:
+        smear_up = evaluator_smearing.evaluate(
+            "smear_up", 
+            ele_pt_flat,
+            ele_r9_flat,
+            ele_eta_flat,
+        )
+        smear_down = evaluator_smearing.evaluate(
+            "smear_down", 
+            ele_pt_flat,
+            ele_r9_flat,
+            ele_eta_flat,
+        )
+        # using the same random number for up and down variations
+        smearing_up = 1 + smear_up * rnd_samples
+        smearing_down = 1 + smear_down * rnd_samples
+        mc_ele_pt_up = ak.unflatten(smearing_up * ele_pt_flat, counts=ele_counts)
+        mc_ele_pt_down = ak.unflatten(smearing_down * ele_pt_flat, counts=ele_counts)
+
+        mc_energyErr_corrected_smearing_up = ak.unflatten(
+                np.sqrt((ele_energyErr_flat)**2 + (ele_energy_flat * smear_up)**2) * smearing_up,
+                counts=ele_counts)
+        mc_energyErr_corrected_smearing_down = ak.unflatten(
+            np.sqrt((ele_energyErr_flat)**2 + (ele_energy_flat * smear_down)**2) * smearing_down,
+            counts=ele_counts
+        )
+
+        return {"pt": {
+                    "nominal": mc_ele_pt_corrected_nom,
+                    "up": mc_ele_pt_up, 
+                    "down": mc_ele_pt_down
+                },
+                "energyErr": {
+                    "nominal": mc_energyErr_corrected_nom,
+                    "up": mc_energyErr_corrected_smearing_up,
+                    "down": mc_energyErr_corrected_smearing_down
+                }
+        }
+
 
 def get_ele_smeared(mc_ele, jsonFileName,correction_name, isMC, only_nominal=True, seed=125):
     if not isMC:
@@ -71,7 +209,6 @@ def get_ele_smeared(mc_ele, jsonFileName,correction_name, isMC, only_nominal=Tru
                 "down": mc_ele_pt_down}
 
 
-
 def lepton_selection(events, lepton_flavour, params):
 
     leptons = events[lepton_flavour]
@@ -95,6 +232,38 @@ def lepton_selection(events, lepton_flavour, params):
         # Requirements on isolation and id
         passes_iso = leptons.pfRelIso04_all < cuts["iso"]
         passes_id = leptons[cuts['id']] == True
+
+        good_leptons = passes_eta & passes_pt & passes_iso & passes_id
+
+    return leptons[good_leptons]
+
+def lepton_selection_mvaTTH(events, lepton_flavour, params):
+
+    leptons = events[lepton_flavour]
+    cuts = params.object_preselection[lepton_flavour]
+    # Requirements on pT and eta
+    passes_eta = abs(leptons.eta) < cuts["eta"]
+    passes_pt = leptons.pt > cuts["pt"]
+
+    if lepton_flavour == "Electron":
+        # Requirements on SuperCluster eta, isolation and id
+        etaSC = abs(leptons.deltaEtaSC + leptons.eta)
+        passes_SC = np.invert((etaSC >= 1.4442) & (etaSC <= 1.5660))
+        passes_iso = True
+        passes_sip3d = leptons.sip3d < cuts["sip3d"]
+        passes_lostHits = leptons.lostHits <= cuts["lostHits"]
+        passes_dxy_check = abs(leptons.dxy) < cuts["dxy"]
+        passes_dz_check = abs(leptons.dz) < cuts["dz"]
+        if "iso" in cuts.keys():
+            passes_iso = leptons.pfRelIso03_all < cuts["iso"]
+        passes_id = (leptons[cuts['id']] > cuts['wp']['tight'])
+
+        good_leptons = passes_eta & passes_pt & passes_SC & passes_iso & passes_sip3d & passes_lostHits & passes_dxy_check & passes_dz_check & passes_id
+
+    elif lepton_flavour == "Muon":
+        # Requirements on isolation and id
+        passes_iso = leptons.pfRelIso04_all < cuts["iso"]
+        passes_id  = leptons[cuts['id']] == True
 
         good_leptons = passes_eta & passes_pt & passes_iso & passes_id
 

@@ -29,6 +29,8 @@ systematic_variations:
       '2018': "${.2016_PreVFP}"
       '2022_preEE': "${.2016_PreVFP}"
       '2022_postEE': "${.2016_PreVFP}"
+      '2023_preBPix': "${.2016_PreVFP}"
+      '2023_postBPix': "${.2016_PreVFP}"
 
     sf_ctag:
       '2016_PreVFP':

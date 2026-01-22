@@ -1,8 +1,8 @@
 import pytest
 from pocket_coffea.lib.categorization import MaskStorage
+from tests.utils import events
 
 import awkward as ak
-from utils import events
 
 def test_mask_storage_1D(events):
     #count the number of jets

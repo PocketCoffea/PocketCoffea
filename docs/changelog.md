@@ -37,9 +37,7 @@ analysis:
 ```python
 from pocket_coffea.lib.cut_functions import get_nPVgood, goldenJson, eventFlags
 
-cfg = Configurator(
-    skim = [get_nPVgood(1), eventFlags, goldenJson]
-)
+cfg = Configurator(skim=[get_nPVgood(1), eventFlags, goldenJson])
 ```
 
 This change is enough to preserve the same cuts applied before 0.9.5.
@@ -48,9 +46,9 @@ This change is enough to preserve the same cuts applied before 0.9.5.
 The signature of the jet cleaning function used often in the object preselection step of processor has been changes to
 add explicitely the year argument. 
 
-```python
+```diff
 - def jet_selection(events, jet_type, params, leptons_collection=""):
-+ def jet_selection(events, jet_type, params, *year*, leptons_collection=""):
++ def jet_selection(events, jet_type, params, year, leptons_collection=""):
 ```
 
 This signature change can be unnoticed by users using the `leptons_collection` argument. Please cross-check your

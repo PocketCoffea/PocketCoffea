@@ -20,28 +20,6 @@ from pocket_coffea.utils import build_jets_calibrator
 law.contrib.load("coffea")
 
 
-@luigi.util.inherits(baseconfig)
-class JetCalibration(BaseTask):
-    # set version to None, Jet calibration is independend of analysis or version
-    version = None
-    # skip output removal if not interactively
-    skip_output_removal = True
-
-    def __init__(self, *args, **kwargs):
-        # initialize task and all parameters
-        super().__init__(*args, **kwargs)
-        self.config, _ = import_analysis_config(self.cfg)
-        self.factory_file = self.config.parameters.jets_calibration.factory_file
-        self.jets_calibration = self.config.parameters.jets_calibration
-
-    def output(self):
-        # output file for jets calibration as defined in parameters
-        return law.LocalFileTarget(os.path.abspath(self.factory_file))
-
-    def run(self):
-        build_jets_calibrator.build(self.jets_calibration)
-
-
 @luigi.util.inherits(baseconfig, runnerconfig)
 class Runner(BaseTask):
     """Run the analysis with pocket_coffea
@@ -52,10 +30,7 @@ class Runner(BaseTask):
     config = None
 
     def requires(self) -> dict[str, law.Task]:
-        return {
-            "datasets": CreateDatasets.req(self),
-            "jets_calibration": JetCalibration.req(self),
-        }
+        return CreateDatasets.req(self)
 
     def store_parts(self) -> tuple[str]:
         if self.test:

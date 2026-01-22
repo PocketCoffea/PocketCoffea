@@ -45,11 +45,18 @@ class Calibrator(ABC, metaclass=CalibratorRegistry):
     # The calibrated collections format is expected to be "collection.field"
     calibrated_collections: List[str] = []
     
-    def __init__(self, params=None, metadata=None, **kwargs):
+    def __init__(self, params=None, metadata=None, do_variations=True, **kwargs):
+        '''
+        The constructor of the calibrator. It receives the params and metadata
+        dictionaries. The derived class can use them to configure the calibrator.
+        The do_variations flag is used to enable or disable the variations: that's used 
+        by the calibrators manager to signal to the calibrator that the variations
+        are available but not requested for this chunk (from configuration)'''
         self.params = params
         self.metadata = metadata
         self.isMC = self.metadata["isMC"]
         self.year = self.metadata["year"]
+        self.do_variations = do_variations  
         # Variations must be setup in the constructor of the derived class.
         
     @abstractmethod

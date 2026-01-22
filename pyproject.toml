@@ -57,10 +57,10 @@ exclude = ["tests/*","docs/*","datasets/*","config/*"]
 include-package-data = true
 
 [tool.setuptools.package-data]
-pocket_coffea = ["pockect_coffea/*.txt",
-              "pockect_coffea/*.yaml",
-              "pockect_coffea/*.json",
-              "pockect_coffea/*.txt.gz"]
+pocket_coffea = ["pocket_coffea/*.txt",
+              "pocket_coffea/*.yaml",
+              "pocket_coffea/*.json",
+              "pocket_coffea/*.txt.gz"]
 
 [project.scripts]
 pocket-coffea="pocket_coffea.__main__:cli"
@@ -72,7 +72,7 @@ hadd-skimmed-files="pocket_coffea.scripts.hadd_skimmed_files:hadd_skimmed_files"
 merge-outputs="pocket_coffea.scripts.merge_outputs:main"
 split-output="pocket_coffea.scripts.split_output:main"
 print-parameters="pocket_coffea.scripts.print_parameters:print_parameters"
-make-config="pocket_coffea.sripts.make_config:make_config"
+make-config="pocket_coffea.scripts.make_config:make_config"
 check-jobs="pocket_coffea.scripts.check_jobs:check_jobs"
 
 # [tool.flake8]
