@@ -3,7 +3,7 @@ notebooks/.ipynb_checkpoints
 .ipynb_checkpoints/
 plots/
 histograms/
-output/
+output*
 logs/
 profiling/
 *~
@@ -52,8 +52,7 @@ MANIFEST
 pip-log.txt
 pip-delete-this-directory.txt
 
-# Unit test / coverage reports
-htmlcov/
+# Unit test / coverage reportshtmlcov/
 .tox/
 .nox/
 .coverage
@@ -159,6 +158,3 @@ cython_debug/
 # User data (analysis configs outside pocket-coffea)
 AnalysisConfigs/
 VHccPoCo/
-output*
-plots*
-.pkl.gz
