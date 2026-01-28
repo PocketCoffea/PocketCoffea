@@ -13,7 +13,7 @@ from pocket_coffea.utils.utils import get_random_seed
 import copy
 from omegaconf import OmegaConf
 from pocket_coffea.lib.muon_scale_and_resolution import pt_scale, pt_resol, pt_scale_var, pt_resol_var
-from ..utils.utils import get_nano_version
+from pocket_coffea.utils.utils import get_nano_version
 import correctionlib
 
 class JetsCalibrator(Calibrator):
