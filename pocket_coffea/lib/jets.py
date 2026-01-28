@@ -448,6 +448,7 @@ def jet_correction_corrlib(
     jet_type,
     jet_coll_name,
     chunk_metadata,
+    nano_version,
     apply_jer=True,
     jec_syst=True,
 ):
@@ -493,7 +494,7 @@ def jet_correction_corrlib(
         jets_jagged["event_id"] = ak.ones_like(jets_jagged.pt) * events.event
     if ("run_nr" not in jets_jagged.fields):
         jets_jagged["run_nr"] = ak.ones_like(jets_jagged.pt) * events.run
-    if year in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
+    if year in ['2016_PreVFP', '2016_PostVFP','2017','2018'] and nano_version <= 9:
         rho = events.fixedGridRhoFastjetAll
     else:
         rho = events.Rho.fixedGridRhoFastjetAll
@@ -620,6 +621,7 @@ def msoftdrop_correction(
     subjet_type,
     jet_coll_name,
     chunk_metadata,
+    nano_version,
     jec_syst=True,
 ):
     """Apply softdrop mass correction to large-radius jets (FatJet) using correctionlib.
@@ -664,7 +666,7 @@ def msoftdrop_correction(
     jets_jagged["event_id"] = ak.ones_like(jets_jagged.pt) * events.event
     jets_jagged["run_nr"] = ak.ones_like(jets_jagged.pt) * events.run
 
-    if year in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
+    if year in ['2016_PreVFP', '2016_PostVFP','2017','2018'] and nano_version <= 9:
         rho = events.fixedGridRhoFastjetAll
     else:
         rho = events.Rho.fixedGridRhoFastjetAll
