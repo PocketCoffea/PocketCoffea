@@ -13,7 +13,7 @@ import awkward as ak
 import hist
 from coffea.nanoevents import NanoEventsFactory, NanoAODSchema
 from pocket_coffea.parameters import defaults
-from utils import check_single_bin_shift
+from tests.utils import check_single_bin_shift
 
 
 @pytest.fixture
@@ -132,9 +132,10 @@ def test_shape_variations_ele_SS_run3(base_path: Path, monkeypatch: pytest.Monke
     assert output is not None
     
     # Check the output
-    pt_orig = output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"]["ElectronGood_pt_original"]
-    pt = output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"]["ElectronGood_pt"]
-    assert np.all(pt_orig != pt)
+    for variation in output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"].keys():
+        pt_orig = output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"][variation]["ElectronGood_pt_original"]
+        pt = output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"][variation]["ElectronGood_pt"]
+        assert np.all(pt_orig != pt)
 
 
 def test_shape_variation_default_sequence(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
@@ -221,13 +222,15 @@ def test_shape_variation_default_sequence_comparison_with_legacy_run2(base_path:
 
     # Load the reference output
     ref_output = load("comparison_arrays/output_run2.coffea")
+    # TODO: create new reference file with the variations inside
+    # Then expand test to check the columns of each variation
     jet_pt_MC = ref_output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2018"]["baseline"]["Jet_pt"].value
-    jet_pt = output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2018"]["baseline"]["Jet_pt"].value
+    jet_pt = output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2018"]["baseline"]["nominal"]["Jet_pt"].value
     # larger relative difference allowed as we may compare slighlty different JEC versions
     assert np.allclose(jet_pt, jet_pt_MC), "Jet pt values do not match with the reference output"
     # Check MET in MC
     met_pt_MC = ref_output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2018"]["baseline"]["MET_pt"].value
-    met_pt = output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2018"]["baseline"]["MET_pt"].value
+    met_pt = output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2018"]["baseline"]["nominal"]["MET_pt"].value
     assert np.allclose(met_pt, met_pt_MC), "MET pt values do not match with the reference output"
 
     # Compare the histograms for JES and JER variations
@@ -303,13 +306,13 @@ def test_shape_variation_default_sequence_comparison_with_legacy_run3(base_path:
     ref_output = load("comparison_arrays/output_run3.coffea")
 
     jet_pt_MC = ref_output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2023_postBPix"]["baseline"]["Jet_pt"].value
-    jet_pt = output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2023_postBPix"]["baseline"]["Jet_pt"].value
+    jet_pt = output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2023_postBPix"]["baseline"]["nominal"]["Jet_pt"].value
 
     # Some differences are expected as we may compare slightly different JEC versions
     assert np.allclose(jet_pt, jet_pt_MC, atol=0.8), "Jet pt values do not match with the reference output"
     # Check MET in MC
     met_pt_MC = ref_output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2023_postBPix"]["baseline"]["PuppiMET_pt"].value
-    met_pt = output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2023_postBPix"]["baseline"]["PuppiMET_pt"].value
+    met_pt = output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2023_postBPix"]["baseline"]["nominal"]["PuppiMET_pt"].value
     assert np.allclose(met_pt, met_pt_MC, atol=0.8), "MET pt values do not match with the reference output"
 
     # Compare the histograms for JES and JER variations
@@ -342,11 +345,11 @@ def test_shape_variation_default_sequence_comparison_with_legacy_run3(base_path:
         assert check_single_bin_shift(ref_met_down, met_down), "MET JES Total Down variation should show up to a single bin shift pattern"
 
     jet_pt_MC = ref_output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"]["Jet_pt"].value
-    jet_pt = output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"]["Jet_pt"].value
+    jet_pt = output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"]["nominal"]["Jet_pt"].value
     assert np.allclose(jet_pt, jet_pt_MC, atol=1.5), "Jet pt values do not match with the reference output"
     # Check MET in MC
     met_pt_MC = ref_output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"]["PuppiMET_pt"].value
-    met_pt = output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"]["PuppiMET_pt"].value
+    met_pt = output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"]["nominal"]["PuppiMET_pt"].value
     assert np.allclose(met_pt, met_pt_MC, atol=1.5), "MET pt values do not match with the reference output"
 
 

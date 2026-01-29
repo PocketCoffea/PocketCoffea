@@ -132,13 +132,31 @@ jets_calibration:
     2022_preEE:
       AK4PFPuppi: "Jet"
       AK8PFPuppi: "FatJet"
-      AK4PFPuppiPNetRegression: "Jet"
+      # AK4PFPuppiPNetRegression: "Jet"
 ```
 
 The jet type is just an internal labels used in the PocketCoffea configuration to link various pieces of the jets configuration together. 
 
 :::{warning}
 All the collections defined in the `jets_calibration.collection` entry will be calibrated by the configured JetsCalibrator if included in the calibrators sequence. It is not allowed to match the same jet collection to multiple jet types: an error will be raised.
+:::
+
+##### Collection Name Aliases
+To allow to use the same calibration settings on different ket collections, it is possible to define aliases for the collection names with the `collection_name_alias` key. For example, if you have a jet collection called `JetCustom` that you want to calibrate in the same way as you do for the `Jet` collection, which is mapped to the `AK4PFPuppi` jet type, your configuration would look like this:
+
+```yaml
+jets_calibration:
+  collection:
+    2022_preEE:
+      AK4PFPuppi: "Jet"
+      AK4PFPuppiCustom: "JetCustom"
+  collection_name_alias:
+      2022_preEE:
+        AK4PFPuppiCustom : "AK4PFPuppi"
+```
+
+:::{warning}
+In order to merge the variations of the `JetCustom` collection, you need to define a `merge_collections_for_variations` entry as specified in section [Merging Systematic Variations](#merging-systematic-variations).
 :::
 
 ##### Calibration Control Flags
@@ -210,6 +228,21 @@ jets_calibration:
         - JES_Total  # Only total JES uncertainty
         - JER        # JER variations
 ```
+
+##### Merging Systematic Variations
+By default, each systematic variation produces a separate collection of calibrated jets. To reduce the number of collections, variations can be merged into a single collection per jet type. This is configured using the `merge_collections_for_variations` key, which specifies which jet types should have their variations merged and under which new name:, e.g.:
+
+```yaml
+jets_calibration:
+  merge_collections_for_variations:
+    2022_preEE:
+      AK4Jet: 
+        - AK4PFPuppi
+        - AK4PFPuppiPNetRegression
+        - AK4PFPuppiCustom
+```
+
+This will create variation with the name `AK4Jet_{variation}_[up|down]` that merges the variations from the specified jet types.
 
 #### MET Recalibration
 Configure MET corrections that propagate jet calibration changes:
@@ -337,7 +370,41 @@ object_preselections:
           wp:
             M
 ```
+
 This clone of the Jet collection needs to be defined in the `process_extra_after_skim` function of the user's workflow
+
+```python
+from pocket_coffea.workflows.base import BaseProcessorABC
+
+
+class PtRegrProcessor(BaseProcessorABC):
+    def __init__(self, cfg) -> None:
+        super().__init__(cfg=cfg)
+
+    def process_extra_after_skim(self):
+        # Create extra Jet collections for testing
+        self.events["JetPtReg"] = ak.copy(self.events["Jet"])
+        # self.events["JetPtRegPlusNeutrino"] = ak.copy(self.events["Jet"])
+```
+
+Further references:  
+* The analysis note: [AN-2022/094](https://cms.cern.ch/iCMS/jsp/db_notes/noteInfo.jsp?cmsnoteid=CMS%20AN-2022/094)
+* Measuring response in Z+b events: [presentation](https://indico.cern.ch/event/1451196/contributions/6181213/attachments/2949253/5183620/cooperstein_HH4b_oct162024.pdf)
+
+#### Merge regressed and standard jet pT
+In some cases, e.g. PNet regression in NanoAODv12, the regression can be applied only to a subset of jets (e.g. cutting on pT and eta of the jet). In this case, one may want to merge the regressed pT values with the standard pT values for jets failing the regression criteria. In order to do this, your configuration would look like this:
+
+```yaml
+jets_calibration:
+  collection:
+    2022_preEE:
+      AK4PFPuppi: "Jet"
+      AK4PFPuppiPNetRegression: "JetPtReg"
+      #AK4PFPuppiPNetRegressionPlusNeutrino: "JetPtReg"
+
+```
+
+The merging of the pT values can be done in the user's workflow, e.g. in the `apply_object_preselection` section:
 
 ```python
 from pocket_coffea.workflows.base import BaseProcessorABC
@@ -352,13 +419,25 @@ class PtRegrProcessor(BaseProcessorABC):
         self.events["JetPtReg"] = ak.copy(self.events["Jet"])
         #self.events["JetPtRegPlusNeutrino"] = ak.copy(self.events["Jet"])
 
-
+    def apply_object_preselection(self, variation):
+        # Use the regressed pt from PNet collection if available,
+        # otherwise use the JEC corrected pt collection
+        # This way we consider correctly all fields which change depending on
+        # the pt definition, namely the pt, mass and the associated systematic variations
+        self.events["Jet"] = ak.where(
+            self.events["JetPtReg"].pt > 0,
+            self.events["JetPtReg"],
+            self.events.Jet,
+        )
 ```
 
+:::{warning}
+In order to merge the variations of the `Jet` and `JetPtReg` collections, you need to define a `merge_collections_for_variations` entry as specified in section [Merging Systematic Variations](#merging-systematic-variations).
+:::
 
-Further references:  
-* The analysis note: [AN-2022/094](https://cms.cern.ch/iCMS/jsp/db_notes/noteInfo.jsp?cmsnoteid=CMS%20AN-2022/094)
-* Measuring response in Z+b events: [presenation](https://indico.cern.ch/event/1451196/contributions/6181213/attachments/2949253/5183620/cooperstein_HH4b_oct162024.pdf)
+:::{warning}
+When merging the collections like this, make sure to set the `sort_by_pt` option to `False` for the jet typea in the jets calibration configuration, otherwise the jet ordering will be changed and the merging will fail.
+:::
 
 
 ## Create a custom executor to use `onnxruntime`
@@ -373,6 +452,7 @@ The following code is a custom executor which is meant to be filled in with deta
 from pocket_coffea.executors.executors_lxplus import DaskExecutorFactory
 from dask.distributed import WorkerPlugin, Worker, Client
 
+
 class WorkerInferenceSessionPlugin(WorkerPlugin):
     def __init__(self, model_path, session_name):
         super().__init__()
@@ -381,12 +461,14 @@ class WorkerInferenceSessionPlugin(WorkerPlugin):
 
     async def setup(self, worker: Worker):
         import onnxruntime as ort
+
         session = ort.InferenceSession(
             self.model_path,
-            #Whatever other options you use
-            providers=["CPUExecutionProvider"]
-        ) 
-        worker.data["model_session_"+self.session_name] = session
+            # Whatever other options you use
+            providers=["CPUExecutionProvider"],
+        )
+        worker.data["model_session_" + self.session_name] = session
+
 
 class OnnxExecutorFactory(DaskExecutorFactory):
     def __init__(self, **kwargs):
@@ -402,40 +484,43 @@ class OnnxExecutorFactory(DaskExecutorFactory):
         self.dask_client.close()
         self.dask_cluster.close()
 
+
 def get_executor_factory(executor_name, **kwargs):
     return OnnxExecutorFactory(**kwargs)
 ```
 
 To use the model to process events in the `workflow.py` file, one would do something like this. See [here](https://github.com/PocketCoffea/AnalysisConfigs/blob/main/configs/ttHbb/semileptonic/sig_bkg_classifier/workflow_test_spanet.py) for another example.
 ```python
-#import the get_worker function
+# import the get_worker function
 from dask.distributed import get_worker
 
-#Rest of workflow 
+# Rest of workflow
 
-#Suppose you want to apply your model after preselection. You would do e.g.
-def process_extra_after_presel()
+
+# Suppose you want to apply your model after preselection. You would do e.g.
+def process_extra_after_presel():
     try:
         worker = get_worker()
     except ValueError:
         worker = None
 
-    #Whatever needs to be done to prepare the inputs to the model
+    # Whatever needs to be done to prepare the inputs to the model
 
     if worker is None:
-        #make it work running locally too
+        # make it work running locally too
         import onnxruntime as ort
+
         session = ort.InferenceSession(
             self.model_path,
-            #Whatever other options you use
-            providers=["CPUExecutionProvider"]
+            # Whatever other options you use
+            providers=["CPUExecutionProvider"],
         )
     else:
         session = worker.data["model_session_ModelName"]
-		
-    #Continue as you normally would when using an ML model with onnxruntime, e.g.
+
+    # Continue as you normally would when using an ML model with onnxruntime, e.g.
     model_output = session.run(
-        #inputs and options   
+        # inputs and options
     )
 ```
 To run with the custom executor, assuming the file is called `custom_executor.py`, one replaces `--executor dask@lxplus` with `--executor-custom-setup custom_executor.py` for example:

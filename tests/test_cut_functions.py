@@ -1,5 +1,5 @@
 import pytest
-from utils import events
+from tests.utils import events
 
 from pocket_coffea.lib.cut_functions import *
 

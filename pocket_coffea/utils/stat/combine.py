@@ -249,7 +249,7 @@ class Datacard:
     def is_empty_dataset(self, dataset: str) -> bool:
         """Check if dataset is empty"""
         if dataset in self.cutflow["presel"].keys():
-            return self.cutflow["presel"][dataset] == 0
+            return self.cutflow["presel"][dataset]["nominal"] == 0
         else:
             return True
 

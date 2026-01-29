@@ -123,6 +123,10 @@ def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tag
                 B   = "btagRobustParTAK4B"
                 CvL = "btagRobustParTAK4CvL"
                 CvB = "btagRobustParTAK4CvB"
+            elif "UParT" in jet_tagger:
+                B   = "btagUParTAK4B"
+                CvL = "btagUParTAK4CvL"
+                CvB = "btagUParTAK4CvB"
             else:
                 raise NotImplementedError(f"This tagger is not implemented: {jet_tagger}")
             
@@ -266,6 +270,10 @@ def ProbBsorted(jets,temp=None):
         raise NotImplementedError(f"Using the tagger name while calling `ProbBsorted` is deprecated. Please use `jet_tagger={temp}` as an argument to `jet_selection`.")
     return jets[ak.argsort(jets["btagB"], axis=1, ascending=False)]
 
+def CCsorted(fatjets,temp=None):    
+    if temp is not None:
+        raise NotImplementedError(f"Using the tagger name while calling `CCsorted` is deprecated. Please use `jet_tagger={temp}` as an argument to `jet_selection`.")
+    return fatjets[ak.argsort(fatjets["btagCC"], axis=1, ascending=False)]
 
 def get_dijet(jets, taggerVars=True, remnant_jet = False):
     if isinstance(taggerVars,str):
@@ -321,7 +329,7 @@ def get_dijet(jets, taggerVars=True, remnant_jet = False):
     fields["j2mass"] = ak.where( (njet >= 2), jets[:,1].mass, -1)
 
 
-    if "jetId" in jets.fields and taggerVars:
+    if taggerVars:
         '''This dijet fuction should work for GenJets as well. But the btags are not available for them
         Thus, one has to check if a Jet is a GenJet or reco Jet. The jetId variable is only available in reco Jets'''
         fields["j1CvsL"] = ak.where( (njet >= 2), jets[:,0]["btagCvL"], -1)

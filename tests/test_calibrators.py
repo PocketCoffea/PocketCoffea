@@ -13,7 +13,7 @@ from pocket_coffea.lib.calibrators.calibrators_manager import CalibratorsManager
 from pocket_coffea.parameters import defaults
 import awkward as ak
 import numpy as np
-from utils import events, events_run3
+from tests.utils import events, events_run3
 
 
 @pytest.fixture(scope="module")
@@ -512,3 +512,134 @@ def test_jets_softdrop_mass_calibrator(events_run3, params):
             
             # Re-raise the exception for pytest
             raise
+
+
+def test_muons_calibrator(events, params):
+    """
+    Tests the updated MuonsCalibrator to ensure:
+    - pt_original is stored and preserved
+    - energyErr exists and is zeros
+    - nominal returns smeared pt
+    - scaleUp/scaleDown use scaled_pt
+    - smearUp/smearDown use smeared_pt
+    """
+
+    mu_cal = MuonsCalibrator(
+        params=params,
+        metadata={"isMC": True, "year": "2022_preEE"},
+        do_variations=True
+    )
+
+    # ---- INITIALIZE ----
+    mu_cal.initialize(events)
+
+    # Required fields must be created
+    assert hasattr(mu_cal, "muons")
+    assert "pt_original" in mu_cal.muons.fields
+    assert "energyErr" in mu_cal.muons.fields
+
+    original_pt = ak.copy(mu_cal.muons.pt_original)
+    original_err = ak.copy(mu_cal.muons.energyErr)
+
+    # Check pt_original stores real uncalibrated pt
+    assert ak.all(original_pt == events.Muon.pt)
+    assert ak.all(original_err == 0)
+
+    # ---- CHECK VARIATIONS DEFINED CORRECTLY ----
+    assert mu_cal.variations == [
+        "muon_scaleUp",
+        "muon_scaleDown",
+        "muon_smearUp",
+        "muon_smearDown",
+    ]
+
+    # ---- NOMINAL ----
+    out_nom = mu_cal.calibrate(events, {}, variation="nominal")
+
+    assert "Muon.pt" in out_nom
+    assert "Muon.pt_original" in out_nom
+    assert "Muon.energyErr" in out_nom
+
+    assert ak.all(out_nom["Muon.pt_original"] == original_pt)
+    assert ak.all(out_nom["Muon.energyErr"] == 0)
+
+    expected_nom_pt = mu_cal.smeared_pt["pt"]["nominal"]
+    assert ak.all(out_nom["Muon.pt"] == expected_nom_pt)
+
+    # ---- SCALE UP ----
+    out_scale_up = mu_cal.calibrate(events, {}, variation="muon_scaleUp")
+    assert ak.all(out_scale_up["Muon.pt"] == mu_cal.scaled_pt["pt"]["up"])
+    assert ak.all(out_scale_up["Muon.pt_original"] == original_pt)
+
+    # ---- SCALE DOWN ----
+    out_scale_down = mu_cal.calibrate(events, {}, variation="muon_scaleDown")
+    assert ak.all(out_scale_down["Muon.pt"] == mu_cal.scaled_pt["pt"]["down"])
+    assert ak.all(out_scale_down["Muon.pt_original"] == original_pt)
+
+    # ---- SMEAR UP ----
+    out_smear_up = mu_cal.calibrate(events, {}, variation="muon_smearUp")
+    assert ak.all(out_smear_up["Muon.pt"] == mu_cal.smeared_pt["pt"]["up"])
+    assert ak.all(out_smear_up["Muon.pt_original"] == original_pt)
+
+    # ---- SMEAR DOWN ----
+    out_smear_down = mu_cal.calibrate(events, {}, variation="muon_smearDown")
+    assert ak.all(out_smear_down["Muon.pt"] == mu_cal.smeared_pt["pt"]["down"])
+    assert ak.all(out_smear_down["Muon.pt_original"] == original_pt)
+
+
+def test_muons_calibrator_explicit(events, params):
+    """
+    Explicitly tests:
+    - nominal == smeared_pt["nominal"]
+    - scaleUp/down == scaled_pt
+    - smearUp/down == smeared_pt
+    - pt_original preserved
+    - energyErr is always zeros
+    """
+
+    mu_cal = MuonsCalibrator(
+        params=params,
+        metadata={"isMC": True, "year": "2022_preEE"},  # ensure enabled
+        do_variations=True,
+    )
+
+    # initialize
+    mu_cal.initialize(events)
+
+    mu = events.Muon
+    pt_raw = ak.copy(mu.pt)
+
+    # convenience
+    s = mu_cal.smeared_pt["pt"]
+    sc = mu_cal.scaled_pt["pt"]
+    e = mu_cal.smeared_pt["energyErr"]["nominal"]
+
+    # ---- nominal ----
+    out = mu_cal.calibrate(events, {}, variation="nominal")
+    assert ak.all(out["Muon.pt"] == s["nominal"])
+    assert ak.all(out["Muon.pt_original"] == pt_raw)
+    assert ak.all(out["Muon.energyErr"] == e)
+
+    # ---- scale up ----
+    out = mu_cal.calibrate(events, {}, variation="muon_scaleUp")
+    assert ak.all(out["Muon.pt"] == sc["up"])
+    assert ak.all(out["Muon.pt_original"] == pt_raw)
+    assert ak.all(out["Muon.energyErr"] == 0)
+
+    # ---- scale down ----
+    out = mu_cal.calibrate(events, {}, variation="muon_scaleDown")
+    assert ak.all(out["Muon.pt"] == sc["down"])
+    assert ak.all(out["Muon.pt_original"] == pt_raw)
+    assert ak.all(out["Muon.energyErr"] == 0)
+
+    # ---- smear up ----
+    out = mu_cal.calibrate(events, {}, variation="muon_smearUp")
+    assert ak.all(out["Muon.pt"] == s["up"])
+    assert ak.all(out["Muon.pt_original"] == pt_raw)
+    assert ak.all(out["Muon.energyErr"] == 0)
+
+    # ---- smear down ----
+    out = mu_cal.calibrate(events, {}, variation="muon_smearDown")
+    assert ak.all(out["Muon.pt"] == s["down"])
+    assert ak.all(out["Muon.pt_original"] == pt_raw)
+    assert ak.all(out["Muon.energyErr"] == 0)

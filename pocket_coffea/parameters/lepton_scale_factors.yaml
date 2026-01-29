@@ -97,11 +97,11 @@ lepton_scale_factors:
 
       "2024":
         files:
-          reco: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,EGM,electron_v1.json.gz,2025-08-15}
-          id:   ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,EGM,electronID_v1.json.gz,2025-08-15}
+          reco: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,EGM,electron.json.gz}
+          id:   ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,EGM,electron.json.gz}
         name: Electron-ID-SF
         reco:
-          #pt_lt_20: #"RecoBelow20" bin is still missing for the moment.
+          pt_lt_20: RecoBelow20
           pt_gt_20_lt_75: Reco20to75
           pt_gt_75: RecoAbove75
 
@@ -140,7 +140,7 @@ lepton_scale_factors:
         reco: "2023PromptD"
         trigger: "2023PromptD"
       "2024": 
-        id: "2024"
+        id: "2024Prompt"
         reco: "2024Prompt"
         #trigger: "2024Prompt"
 
@@ -292,4 +292,47 @@ lepton_scale_factors:
       '2023_postBPix':
           file: ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,MUO,muon_Z.json.gz}
       '2024':
-          file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,MUO,muon_Z.json.gz}    
+          file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,MUO,muon_Z.json.gz}   
+          
+    scale_and_resolution:
+      apply: 
+        '2016_PreVFP': False
+        '2016_PostVFP': False
+        '2017': False
+        '2018': False
+        '2022_preEE': True
+        '2022_postEE': True
+        '2023_preBPix': True
+        '2023_postBPix': True
+        '2024': True
+
+      correctionlib_config:
+        '2022_preEE':
+          file: ${cvmfs:Run3-22CDSep23-Summer22-NanoAODv12,MUO,muon_scalesmearing.json.gz}
+          correction_name:
+            cb: "cb_params"
+            poly: "poly_params"
+
+        '2022_postEE':
+          file: ${cvmfs:Run3-22EFGSep23-Summer22EE-NanoAODv12,MUO,muon_scalesmearing.json.gz}
+          correction_name:
+            cb: "cb_params"
+            poly: "poly_params"
+
+        '2023_preBPix':
+          file: ${cvmfs:Run3-23CSep23-Summer23-NanoAODv12,MUO,muon_scalesmearing.json.gz}
+          correction_name:
+            cb: "cb_params"
+            poly: "poly_params"
+
+        '2023_postBPix':
+          file: ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,MUO,muon_scalesmearing.json.gz}
+          correction_name:
+            cb: "cb_params"
+            poly: "poly_params"
+
+        '2024':
+          file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,MUO,muon_scalesmearing.json.gz}
+          correction_name:
+            cb: "cb_params"
+            poly: "poly_params" 
