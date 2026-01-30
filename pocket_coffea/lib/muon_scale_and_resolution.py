@@ -236,7 +236,7 @@ def get_k(eta, var, cset, nested=False):
     return result
 
 
-def filter_boundaries(pt_corr, pt, nested, low_pt_threshold = 26, silent=False):
+def filter_boundaries(pt_corr, pt, nested, low_pt_threshold = 26, silent=True):
     if not nested:
         pt_corr = np.asarray(pt_corr)
         pt = np.asarray(pt)

@@ -314,6 +314,14 @@ default_jets_calibration:
         - JES_Total
         - JER
 
+      AK4PFPuppiPNetRegressionPlusNeutrino:
+        2022_preEE: "${default_jets_calibration.variations.total_variation.AK4PFPuppi.2022_preEE}"
+        2022_postEE: "${default_jets_calibration.variations.total_variation.AK4PFPuppi.2022_postEE}"
+        2023_preBPix: "${default_jets_calibration.variations.total_variation.AK4PFPuppi.2023_preBPix}"
+        2023_postBPix: "${default_jets_calibration.variations.total_variation.AK4PFPuppi.2023_postBPix}"
+        2024: "${default_jets_calibration.variations.total_variation.AK4PFPuppi.2024}"
+        
+
 #####################################################################################
 # Default jets calibration for the user used by the processor
 # The user can overwrite `jets_calibration` to get the desired factory.
@@ -322,9 +330,10 @@ default_jets_calibration:
 jets_calibration:
   jet_types:
     AK4PFchs: "${default_jets_calibration.factory_config_clib.AK4PFchs}" 
-    AK4PFPuppi: "${default_jets_calibration.factory_config_clib.AK4PFPuppi}" 
-    # AK4PFPuppiPNetRegression: "${default_jets_calibration.factory_config_clib.AK4PFPuppiPNetRegression}" 
-    # AK4PFPuppiPNetRegressionPlusNeutrino: "${default_jets_calibration.factory_config_clib.AK4PFPuppiPNetRegressionPlusNeutrino}" 
+    AK4PFPuppi: "${default_jets_calibration.factory_config_clib.AK4PFPuppi}"
+    # Thre are no dedicated JECs for Regressed jets, so we have to use the corrections for nominall Puppi jets:
+    # AK4PFPuppiPNetRegression: "${default_jets_calibration.factory_config_clib.AK4PFPuppi}" 
+    AK4PFPuppiPNetRegressionPlusNeutrino: "${default_jets_calibration.factory_config_clib.AK4PFPuppi}" 
     AK8PFPuppi: "${default_jets_calibration.factory_config_clib.AK8PFPuppi}"
     
   collection:  # this is needed to know which collection is corrected with which jet factory
@@ -344,26 +353,22 @@ jets_calibration:
       AK4PFPuppi: "Jet"
       #AK4PFPuppiPNetRegression: "Jet"
       #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
-      AK8PFPuppi: "FatJet"
-      
+      AK8PFPuppi: "FatJet"      
     2022_postEE:
       AK4PFPuppi: "Jet"
       #AK4PFPuppiPNetRegression: "Jet"
       #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
       AK8PFPuppi: "FatJet"
-
     2023_preBPix:
       AK4PFPuppi: "Jet"
       #AK4PFPuppiPNetRegression: "Jet"
       #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
       AK8PFPuppi: "FatJet"
-      
     2023_postBPix:
       AK4PFPuppi: "Jet"
       #AK4PFPuppiPNetRegression: "Jet"
       #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
       AK8PFPuppi: "FatJet"
-
     "2024":
       AK4PFPuppi: "Jet"
       #AK4PFPuppiPNetRegression: "Jet"
@@ -386,28 +391,28 @@ jets_calibration:
     2022_preEE:
       AK4PFPuppi: True
       AK8PFPuppi: True
-      #AK4PFPuppiPNetRegression: True
-      #AK4PFPuppiPNetRegressionPlusNeutrino: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
     2022_postEE:
       AK4PFPuppi: True
       AK8PFPuppi: True
-      #AK4PFPuppiPNetRegression: True
-      #AK4PFPuppiPNetRegressionPlusNeutrino: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
     2023_preBPix:
       AK4PFPuppi: True
       AK8PFPuppi: True
-      #AK4PFPuppiPNetRegression: True
-      #AK4PFPuppiPNetRegressionPlusNeutrino: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
     2023_postBPix:
       AK4PFPuppi: True
       AK8PFPuppi: True
-      #AK4PFPuppiPNetRegression: True
-      #AK4PFPuppiPNetRegressionPlusNeutrino: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
     "2024":
       AK4PFPuppi: True
       AK8PFPuppi: True
-      #AK4PFPuppiPNetRegression: True
-      #AK4PFPuppiPNetRegressionPlusNeutrino: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
 
   
   apply_jec_MC:  # this is needed to know which collection is corrected with which jet factory

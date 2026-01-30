@@ -689,6 +689,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             # We need to set the events to the calibrated ones
             # and call the function to apply the preselection
             # print("workflow/base.py: processing the variation - ", variation)
+            
             self.events = events_calibrated
             yield variation
         

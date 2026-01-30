@@ -192,7 +192,7 @@ default_jets_calibration:
           - JER
 ```
 
-The set of variations to use needs to be setup in the `jets_calibration.variation` key. For example: 
+The set of variations to be used has to be setup in the `jets_calibration.variation` key. For example: 
 
 ```yaml
 jets_calibration:
@@ -243,7 +243,7 @@ jets_calibration:
   # Enable specific jet types
   collection:
     2022_preEE:
-      AK4PFPuppiCustomSetOfCorrections: "Jet"  # Enable PNet regression
+      AK4PFPuppiCustomSetOfCorrections: "Jet"
 ```
 
 
@@ -269,8 +269,8 @@ jets_calibration:
       AK4PFPuppiPNetRegression: "Jet"
       #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
 
-  apply_pt_regr_Data:
-    apply_pt_regr_MC:
+  apply_pt_regr_MC:
+	2022_preEE:
       AK4PFPuppiPNetRegression: True
       #AK4PFPuppiPNetRegressionPlusNeutrino: True
     2022_postEE: 

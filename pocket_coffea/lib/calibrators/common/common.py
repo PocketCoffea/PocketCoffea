@@ -43,6 +43,7 @@ class JetsCalibrator(Calibrator):
         # Load the calibration of each jet type requested by the parameters
         for jet_type, jet_coll_name in self.jet_calib_param.collection[self.year].items():
             # Check if the collection is enables in the parameters
+            # print("Working on ", jet_type, jet_coll_name )
             if self.isMC:
                 if (self.jet_calib_param.apply_jec_MC[self.year][jet_type] == False):
                     # If the collection is not enabled, we skip it
@@ -56,27 +57,28 @@ class JetsCalibrator(Calibrator):
                 # If the collection is already calibrated with another jet_type, raise an error for misconfiguration
                 raise ValueError(f"Jet collection {jet_coll_name} is already calibrated with another jet type. " +
                                  f"Current jet type: {jet_type}. Previous jet types: {self.jets_calibrated[jet_coll_name]}")
-
+            '''
             # Check the Pt regression is not requested for this jet type 
-            # and in that case send a warning and skim them
+            # and in that case send a warning and skip them
             if self.isMC and self.jet_calib_param.apply_pt_regr_MC[self.year][jet_type]:
-                print(f"WARNING: Jet type {jet_type} is requested to be calibrated with pT regression: " +
+                print(f"WARNING: Jet type {jet_type} (MC) is requested to be calibrated with pT regression: " +
                                     "skipped by JetCalibrator. Please activate the JetsPtRegressionCalibrator.")
                 continue
             if not self.isMC and self.jet_calib_param.apply_pt_regr_Data[self.year][jet_type]:
-                print(f"WARNING: Jet type {jet_type} is requested to be calibrated with pT regression: " +
+                print(f"WARNING: Jet type {jet_type} (Data) is requested to be calibrated with pT regression: " +
                                     "skipped by JetCalibrator. Please activate the JetsPtRegressionCalibrator.")
                 continue
 
-            
-            # Check if the pt regression is requested, if not skip it
+            '''
+            # Check if the pt regression is requested, and if so - apply it
             if ((self.isMC and self.jet_calib_param.apply_pt_regr_MC[self.year][jet_type]) 
                     or
                (not self.isMC and self.jet_calib_param.apply_pt_regr_Data[self.year][jet_type])):
                 # Get the regression parameters by collection if they are present
                 regression_params = OmegaConf.select(self.params,
                                                      "object_preselection." + jet_coll_name + ".regression")
-                
+
+                # print("Applying regression, using params:", regression_params)
                 # Apply the regression to the jets before the JEC
                 # I'm not 100% sure a softcopy is needed here, but the apply_regression method modifies the jets
                 # in place, so to be safe we make a copy. This is a soft copy, so the array data is not copied.
@@ -90,13 +92,16 @@ class JetsCalibrator(Calibrator):
             # register the collection as calibrated by this calibrator
             self.calibrated_collections.append(jet_coll_name)
 
+            jet_type_for_calibration = jet_type
+            if jet_type in ['AK4PFPuppiPNetRegression', 'AK4PFPuppiPNetRegressionPlusNeutrino']:
+                jet_type_for_calibration = 'AK4PFPuppi'
             corrected_jets = jet_correction_corrlib(
-                calib_params=self.jet_calib_param.jet_types[jet_type][self._year],
-                variations=self.jet_calib_param.variations[jet_type][self._year],
-                events=events,
-                jet_type = jet_type,
-                jet_coll_name=jet_coll_name,
-                chunk_metadata={
+                calib_params = self.jet_calib_param.jet_types[jet_type][self._year],
+                variations   = self.jet_calib_param.variations[jet_type][self._year],
+                events = events,
+                jet_type = jet_type_for_calibration,
+                jet_coll_name = jet_coll_name,
+                chunk_metadata = {
                     "year": self._year,
                     "isMC": self.metadata["isMC"],
                     "era": self.metadata["era"] if "era" in self.metadata else None,
