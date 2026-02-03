@@ -44,13 +44,14 @@ import concurrent.futures
 @click.option('--index-file', type=str, help='Path of the index file to be copied recursively in the plots directory and its subdirectories', required=False, default=None)
 @click.option('--no-cache', is_flag=True, help='Do not cache the histograms for faster plotting', required=False, default=False)
 @click.option('--split-by-category', is_flag=True, help='If split-by-category was used during running and merging', required=False, default=False)
+@click.option('--by-dataset', type=str, multiple=True, help='Split specified samples by dataset instead of collapsing them. Usage: --by-dataset SAMPLE1 --by-dataset SAMPLE2', required=False, default=None)
 
 def make_plots(*args, **kwargs):
     return make_plots_core(*args, **kwargs)
 
 def make_plots_core(input_dir, cfg, overwrite_parameters, outputdir, inputfiles,
                workers, only_cat, only_year, only_syst, exclude_hist, only_hist, split_systematics, partial_unc_band, no_syst,
-               overwrite, log_x, log_y, density, verbose, format, systematics_shifts, no_ratio, no_systematics_ratio, compare, index_file, no_cache, split_by_category):
+               overwrite, log_x, log_y, density, verbose, format, systematics_shifts, no_ratio, no_systematics_ratio, compare, index_file, no_cache, split_by_category, by_dataset):
     '''Plot histograms produced by PocketCoffea processors'''
 
     if split_by_category: 
@@ -67,7 +68,7 @@ def make_plots_core(input_dir, cfg, overwrite_parameters, outputdir, inputfiles,
         for ifl, file in enumerate(all_files):
             make_plots_core(input_dir, cfg, overwrite_parameters, outputdir, [file],
                workers, only_cat, only_year, only_syst, exclude_hist, only_hist, split_systematics, partial_unc_band, no_syst,
-               overwrite or ifl > 0, log_x, log_y, density, verbose, format, systematics_shifts, no_ratio, no_systematics_ratio, compare, index_file, no_cache, False)
+               overwrite or ifl > 0, log_x, log_y, density, verbose, format, systematics_shifts, no_ratio, no_systematics_ratio, compare, index_file, no_cache, False, by_dataset)
             gc.collect()
 
         print("[green]Done making plots for all category-split files![/]")
@@ -153,7 +154,8 @@ def make_plots_core(input_dir, cfg, overwrite_parameters, outputdir, inputfiles,
         verbose=verbose,
         save=True,
         index_file=index_file,
-        cache=not no_cache
+        cache=not no_cache,
+        split_by_dataset_samples=by_dataset
     )
 
     print("Started plotting.  Please wait...")
