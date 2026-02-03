@@ -748,16 +748,16 @@ class Shape:
             for s_to_group in samples_list:
                 if s_to_group not in self.h_dict.keys():
                     if self.verbose>=1:
-                        print(f"{self.name}: WARNING. Sample ",s_to_group," is not in the list of samples: ", list(self.h_dict.keys()), "Skipping it.")
+                        print(f"{self.name}: WARNING. Sample '{s_to_group}' is not in the list of samples: {list(self.h_dict.keys())}. Skipping it.")
                     cleaned_samples_list[sample_new].remove(s_to_group)
                     continue
                 if self.verbose>=1:
-                    print(f"\t {self.name}: Sample ",s_to_group," will be grouped into sample", sample_new)
+                    print(f"\t {self.name}: Sample '{s_to_group}' will be grouped into sample '{sample_new}'")
 
         for sample_new, samples_list in cleaned_samples_list.items():
             if len(samples_list)==0:
                 if self.verbose>=1:
-                    print("WARNING. The list of samples to group is empty!  Group name:", sample_new)
+                    print(f"WARNING. The list of samples to group is empty!  Group name: '{sample_new}'")
                 continue
 
             h_dict_grouped[sample_new] = self._stack_sum(
