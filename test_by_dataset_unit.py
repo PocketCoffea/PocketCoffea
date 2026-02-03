@@ -11,7 +11,10 @@ import hist
 from copy import deepcopy
 
 # Add the parent directory to the path so we can import the modules
-sys.path.insert(0, '/home/runner/work/PocketCoffea/PocketCoffea')
+# Try to detect the project root dynamically
+script_dir = os.path.dirname(os.path.abspath(__file__))
+if script_dir not in sys.path:
+    sys.path.insert(0, script_dir)
 
 def test_split_by_dataset_basic():
     """Test basic split by dataset functionality"""

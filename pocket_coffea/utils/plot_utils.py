@@ -706,6 +706,8 @@ class Shape:
                 # Keep this sample as-is (will be collapsed by group_samples)
                 h_dict_split[sample] = datasets
         
+        # Use deepcopy to ensure we don't have references to the original h_dict
+        # This prevents potential issues when the original h_dict is modified later
         self.h_dict = deepcopy(h_dict_split)
 
     def group_samples(self):
