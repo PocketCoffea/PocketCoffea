@@ -77,9 +77,12 @@ def get_JetVetoMap(name="JetVetoMaps"):
     )
        
 def get_JetVetoMap_Mask(events, params, year, processor_params, sample, isMC, **kwargs):
-    jets = events.Jet
+    # jets = events.Jet
+    from .jets import compute_jetId
+    jets = ak.with_field(events["Jet"], compute_jetId(events, "Jet", processor_params, year), "jetId_corrected")
     mask_for_VetoMap = (
-        ((jets.jetId & 2)==2) # Must fulfill tight jetId
+        # ((jets.jetId & 2)==2) # Must fulfill tight jetId
+        (jets["jetId_corrected"]>=2)
         & (abs(jets.eta) < 5.19) # Must be within HCal acceptance
         & (jets.pt*(1-jets.muonSubtrFactor) > 15.) # May no be Muons misreconstructed as jets
         & ((jets["neEmEF"]+jets["chEmEF"])<0.9) # Energy fraction not dominated by ECal
