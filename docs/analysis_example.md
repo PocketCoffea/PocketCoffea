@@ -284,21 +284,24 @@ This is done usually in the preamble of the analysis config file:
 
 ```python
 import os
+
 localdir = os.path.dirname(os.path.abspath(__file__))
 
 # Loading default parameters
 from pocket_coffea.parameters import defaults
+
 default_parameters = defaults.get_default_parameters()
-defaults.register_configuration_dir("config_dir", localdir+"/params")
+defaults.register_configuration_dir("config_dir", localdir + "/params")
 
-parameters = defaults.merge_parameters_from_files(default_parameters,
-                                                  f"{localdir}/params/object_preselection.yaml",
-                                                  f"{localdir}/params/triggers.yaml",
-                                                  update=True)
-
+parameters = defaults.merge_parameters_from_files(
+    default_parameters,
+    f"{localdir}/params/object_preselection.yaml",
+    f"{localdir}/params/triggers.yaml",
+    update=True,
+)
 ```
 
-The `parameters` object can be manipualted freely by the user and then passed to the `Configurator` class to be used in
+The `parameters` object can be manipulated freely by the user and then passed to the `Configurator` class to be used in
 the analysis. The parameters are then **dumped** along with the analysis output to preserve them.
 
 ## Configuration
@@ -308,7 +311,7 @@ A specific analysis *run* is defined in PocketCoffea using an instance of a `Con
 This class groups all the information about skimming, categorization, datasets, and outputs.
 The next sections of the tutorial briefly describes how to configure it for the Zmumu analysis.
 
-The configurator instance is created inside the main configuration file `example_config.py` and assied to a variable
+The configurator instance is created inside the main configuration file `example_config.py` and assigned to a variable
 called `cfg`. This special name is used by the framework when the file is passed to the `pocket-coffea run` script to be
 executed.
 
@@ -324,20 +327,21 @@ from custom_cut_functions import *
 
 
 cfg = Configurator(
-    parameters = parameters,
-    datasets = {
-        "jsons": [f"{localdir}/datasets/DATA_SingleMuon.json",
-                  f"{localdir}/datasets/DYJetsToLL_M-50.json"
-                    ],
-        "filter" : {
-            "samples": ["DATA_SingleMuon",
-                        "DYJetsToLL"],
-            "samples_exclude" : [],
-            "year": ['2018']
-        }
+    parameters=parameters,
+    datasets={
+        "jsons": [
+            f"{localdir}/datasets/DATA_SingleMuon.json",
+            f"{localdir}/datasets/DYJetsToLL_M-50.json",
+        ],
+        "filter": {
+            "samples": ["DATA_SingleMuon", "DYJetsToLL"],
+            "samples_exclude": [],
+            "year": ["2018"],
+        },
     },
-    #.....continues
-    workflow = ZmumuBaseProcessor,
+    # .....continues
+    workflow=ZmumuBaseProcessor,
+)
 ```
 
 Datasets are specified by passing the list of json to be used and they can be filtered by year of sample type.
@@ -392,7 +396,7 @@ object_preselection:
 
 ```
 
-This parameters are used by the functions which filters the object collections in the `workflow.py` file.
+These parameters are used by the selector functions to filter the object collections in the `workflow.py` file.
 
 
 ## Event selection
@@ -409,7 +413,7 @@ only on the events passing the skim selection, while the others are discarded fr
 reducing the computational load on the processor.  In the config file, we specify two skim cuts: one is selecting events
 with at least one 18 GeV muon and the second is requiring the HLT ``SingleMuon`` path.
 
-Triggers are specified in a parameter yaml files under the `params` dir (but the localtion is up to the user).
+Triggers are specified in a parameter yaml files under the `params` dir (but the location is up to the user).
 The parameters are then loaded and added to the default parameters in the preamble of `example_config.py`,  which we pass as an argument to the factory function ``get_HLTsel()``.
 
 
@@ -425,19 +429,25 @@ with Cut objects provided by the library.
 
 
 ```python
-from pocket_coffea.lib.cut_functions import get_nObj_min, get_HLTsel, eventFlags, get_nPVgood, goldenJson
+from pocket_coffea.lib.cut_functions import (
+    get_nObj_min,
+    get_HLTsel,
+    eventFlags,
+    get_nPVgood,
+    goldenJson,
+)
 
 cfg = Configurator(
     # .....
-
-    skim = [
-            eventFlags,
-            goldenJson,
-            get_nPVgood(1),
-            get_nObj_min(1, 18., "Muon"),
-            # Asking only SingleMuon triggers since we are only using SingleMuon PD data
-            get_HLTsel(primaryDatasets=["SingleMuon"])],
-
+    skim=[
+        eventFlags,
+        goldenJson,
+        get_nPVgood(1),
+        get_nObj_min(1, 18.0, "Muon"),
+        # Asking only SingleMuon triggers since we are only using SingleMuon PD data
+        get_HLTsel(primaryDatasets=["SingleMuon"]),
+    ],
+)
 ```
 
 ### Event preselection
@@ -450,27 +460,29 @@ directly passed to the constructor of the ``Cut`` object as the dictionary ``par
 ```python
 def dimuon(events, params, year, sample, **kwargs):
     # Masks for same-flavor (SF) and opposite-sign (OS)
-    SF = ((events.nMuonGood == 2) & (events.nElectronGood == 0))
-    OS = events.ll.charge == 0$
+    SF = (events.nMuonGood == 2) & (events.nElectronGood == 0)
+    OS = events.ll.charge == 0
     mask = (
-       (events.nLeptonGood == 2)
-       & (ak.firsts(events.MuonGood.pt) > params["pt_leading_muon"])
-       & OS & SF
-       & (events.ll.mass > params["mll"]["low"])
-       & (events.ll.mass < params["mll"]["high"])
+        (events.nLeptonGood == 2)
+        & (ak.firsts(events.MuonGood.pt) > params["pt_leading_muon"])
+        & OS
+        & SF
+        & (events.ll.mass > params["mll"]["low"])
+        & (events.ll.mass < params["mll"]["high"])
     )
 
     # Pad None values with False
     return ak.where(ak.is_none(mask), False, mask)
 
+
 dimuon_presel = Cut(
     name="dilepton",
     params={
-       "pt_leading_muon": 25,
-       "mll": {'low': 25, 'high': 2000},
+        "pt_leading_muon": 25,
+        "mll": {"low": 25, "high": 2000},
     },
     function=dimuon,
- )
+)
 ```
 
 In a scenario of an analysis requiring several different cuts, a dedicated library of cuts and functions can be defined
@@ -482,8 +494,8 @@ The ``preselections`` field in the config file is updated accordingly:
 ```python
 cfg = Configurator(
     # .....
-
-    preselections = [dimuon_presel],
+    preselections=[dimuon_presel],
+)
 ```
 
 ### Categorization
@@ -494,10 +506,10 @@ defined with the ``passthrough`` factory cut that is just passing the events thr
 ```python
 cfg = Configurator(
     # .....
-
-    categories = {
+    categories={
         "baseline": [passthrough],
     },
+)
 ```
 
 If for example $Z\rightarrow ee$ events were also included in the analysis, one could have defined a more general "dilepton"
@@ -514,21 +526,22 @@ from pocket_coffea.lib.weights.common import common_weights
 
 cfg = Configurator(
     # .....
-    weights_classes = common_weights,  # optional
-    
-    weights = {
-         "common": {
-             "inclusive": ["genWeight","lumi","XS",
-                           "pileup",
-                           "sf_mu_id","sf_mu_iso",
-                           ],
-             "bycategory" : {
-             }
-         },
-         "bysample": {
-         }
-     }
-    )
+    weights_classes=common_weights,  # optional
+    weights={
+        "common": {
+            "inclusive": [
+                "genWeight",
+                "lumi",
+                "XS",
+                "pileup",
+                "sf_mu_id",
+                "sf_mu_iso",
+            ],
+            "bycategory": {},
+        },
+        "bysample": {},
+    },
+)
 ```
 
 In our case, we are applying the nominal scaling of Monte Carlo by ``lumi * XS / genWeight`` together with the pileup reweighting and the muon ID and isolation scale factors.
@@ -548,20 +561,16 @@ To store also the up and down systematic variations corresponding to a given wei
 ```python
 cfg = Configurator(
     # .....
-    variations = {
+    variations={
         "weights": {
             "common": {
-                "inclusive": [  "pileup",
-                                "sf_mu_id", "sf_mu_iso"
-                              ],
-                "bycategory" : {
-                }
+                "inclusive": ["pileup", "sf_mu_id", "sf_mu_iso"],
+                "bycategory": {},
             },
-        "bysample": {
-        }
+            "bysample": {},
         },
     },
-
+)
 ```
 
 In this case we will store the variations corresponding to the systematic variation of pileup and the muon ID and isolation scale factors.
@@ -583,20 +592,28 @@ Histogram configuration is described in details [here](./configuration.md#histog
 In order to create a user defined histogram add `Axis` as a list (1 element for 1D-hist, 2 elements for 2D-hist)
 
 ```python
-
 cfg = Configurator(
     # .....
-
-   variables : {
-
-           # 1D plots
-           "mll" : HistConf( [Axis(coll="ll", field="mass", bins=100, start=50, stop=150, label=r"$M_{\ell\ell}$ [GeV]")]
+    variables={
+        # 1D plots
+        "mll": HistConf(
+            [
+                Axis(
+                    coll="ll",
+                    field="mass",
+                    bins=100,
+                    start=50,
+                    stop=150,
+                    label=r"$M_{\ell\ell}$ [GeV]",
+                )
+            ]
+        ),
     },
-
-	# coll : collection/objects under events
-	# field: fields under collections
-	# bins, start, stop: # bins, axis-min, axis-max
-	# label: axis label name
+)
+# coll : collection/objects under events
+# field: fields under collections
+# bins, start, stop: # bins, axis-min, axis-max
+# label: axis label name
 ```
 
 The `collection` is the name used to access the fields of the `events` main dataset (the NanoAOD Events tree). The `field` specifies the specific
@@ -607,18 +624,16 @@ refer to the `Axis` [code](https://github.com/PocketCoffea/PocketCoffea/blob/mai
 - There are some predefined `hist` dictionaries ready to be built for the user:
 
 ```python
-
 cfg = Configurator(
     # .....
-
-   variables : {
-        **count_hist(name="nJets", coll="JetGood",bins=8, start=0, stop=8),
-	    # Muon kinematics
-	    **muon_hists(coll="MuonGood", pos=0),
-	    # Jet kinematics
+    variables={
+        **count_hist(name="nJets", coll="JetGood", bins=8, start=0, stop=8),
+        # Muon kinematics
+        **muon_hists(coll="MuonGood", pos=0),
+        # Jet kinematics
         **jet_hists(coll="JetGood", pos=0),
     },
-
+)
 ```
 
 
@@ -627,7 +642,7 @@ cfg = Configurator(
 Run the coffea processor to get ``.coffea`` output files. The ``coffea`` processor can be run locally or be scaled out
 to clusters:
 - ``iterative`` execution runs single thread locally and it useful for debugging
-- ``futures`` execute the processor in multiple threads locally and it can be usefull for fast processing of a small
+- ``futures`` execute the processor in multiple threads locally and it can be useful for fast processing of a small
   amount of file.
 - ``dask@lxplus`` uses the dask scheduler with lxplus the configuration to send out workers on HTCondor jobs.
 
@@ -636,7 +651,7 @@ contact with the developers and open a PR if you want to include your specific s
 
 
 :::{tip}
-Have a look at [`Running`](./running.md) for more details about the configuration of the different execturos.
+Have a look at [`Running`](./running.md) for more details about the configuration of the different executors.
 :::
 
 In this tutorial we **assume the use of lxplus**, but the example should work fine also on other sites with the
@@ -738,7 +753,7 @@ Plot histograms from coffea file
 optional arguments:
   -h, --help            show this help message and exit
   --input-dir INPUT_DIR
-                        Directory with cofea files and parameters
+                        Directory with coffea files and parameters
   --cfg CFG             YAML file with all the analysis parameters
   -op OVERWRITE_PARAMETERS [OVERWRITE_PARAMETERS ...], --overwrite-parameters OVERWRITE_PARAMETERS [OVERWRITE_PARAMETERS ...]
                         YAML file with plotting parameters to overwrite default parameters

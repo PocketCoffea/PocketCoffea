@@ -1,13 +1,12 @@
 import os
-import sys
-import json
-import argparse
 import click
 from rich import print
 
 from pocket_coffea.utils import dataset
 
-@click.command()
+CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
+
+@click.command(context_settings=CONTEXT_SETTINGS)
 @click.option(
     '--cfg',
     default=os.getcwd() + "/datasets/datasets_definitions.json",
@@ -47,7 +46,7 @@ from pocket_coffea.utils import dataset
 )
 @click.option("-l", "--local-prefix", type=str, default=None)
 @click.option(
-    "-ws",
+    "-as",
     "--allowlist-sites",
     multiple=True,
     help="List of sites in whitelist"
@@ -60,8 +59,22 @@ from pocket_coffea.utils import dataset
     help="List of sites in blacklist"
 )
 @click.option(
+    "-ps",
+    "--prioritylist-sites",
+    type=str,
+    multiple=True,
+    help="List of priorities to sort sites (requires sort: priority)"
+)
+@click.option(
     "-rs", "--regex-sites", type=str,
     help="example: -rs 'T[123]_(FR|IT|DE|BE|CH|UK)_\w+' to serve data from sites in Europe."
+)
+@click.option(
+    "-sort",
+    "--sort-replicas",
+    type=str,
+    default="geoip",
+    help="Sort replicas (default: geoip)."
 )
 @click.option(
     "-ir",
@@ -71,15 +84,30 @@ from pocket_coffea.utils import dataset
     help="Use the redirector path if no site is available after the specified whitelist, blacklist and regexes are applied for sites."
 )
 @click.option("-p", "--parallelize", type=int, default=4)
-
-def build_datasets(cfg, keys, download, overwrite, check, split_by_year, local_prefix,
-                   allowlist_sites, include_redirector, blocklist_sites, regex_sites, parallelize):
+def build_datasets(
+    cfg,
+    keys,
+    download,
+    overwrite,
+    check,
+    split_by_year,
+    local_prefix,
+    allowlist_sites,
+    include_redirector,
+    blocklist_sites,
+    prioritylist_sites,
+    regex_sites,
+    sort_replicas,
+    parallelize,
+):
     '''Build dataset fileset in json format'''
     # Check for comma separated values
     if len(allowlist_sites)>0 and "," in allowlist_sites[0]:
         allowlist_sites = allowlist_sites[0].split(",")
     if len(blocklist_sites)>0 and "," in blocklist_sites[0]:
         blocklist_sites = blocklist_sites[0].split(",")
+    if len(prioritylist_sites)>0 and "," in prioritylist_sites[0]:
+        prioritylist_sites = prioritylist_sites[0].split(",")
 
     print("Building datasets...")
     print("[green]Allowlist sites:[/]")
@@ -87,18 +115,21 @@ def build_datasets(cfg, keys, download, overwrite, check, split_by_year, local_p
     print("[red]Blocklist sites:[/]")
     print(blocklist_sites)
         
-    dataset.build_datasets(cfg=cfg,
-                           keys=keys,
-                           download=download,
-                           overwrite=overwrite,
-                           check=check,
-                           split_by_year=split_by_year,
-                           local_prefix=local_prefix,
-                           allowlist_sites=allowlist_sites,
-                           include_redirector=include_redirector,
-                           blocklist_sites=blocklist_sites,
-                           regex_sites=regex_sites,
-                           parallelize=parallelize)
+    dataset.build_datasets(
+        cfg=cfg,
+        keys=keys,
+        download=download,
+        overwrite=overwrite,
+        check=check,
+        split_by_year=split_by_year,
+        local_prefix=local_prefix,
+        allowlist_sites=allowlist_sites,
+        include_redirector=include_redirector,
+        blocklist_sites=blocklist_sites,
+        regex_sites=regex_sites,
+        sort_replicas=sort_replicas,
+        parallelize=parallelize,
+    )
 
 
 

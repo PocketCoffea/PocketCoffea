@@ -111,11 +111,11 @@ respectively).
 | Site | Supported executor | Executor string|
 |------|--------------------|----------------|
 |lxplus| dask               | dask@lxplus    |
-|swan| dask                 | dask@swan    |
+|swan| dask                 | dask@swan      |
 |T3_CH_PSI| dask            | dask@T3_CH_PSI |
-|DESY NAF | dask            | dask@DESY_NAF |
-|RWTH Aachen LX-Cluster | parsl, dask         | parsl@RWTH, dask@RWTH |
-|RWTH CLAIX | dask         | dask@CLAIX |
+|DESY NAF | parsl           | parsl@DESY     |
+|RWTH Aachen LX-Cluster | parsl, dask    | parsl@RWTH, dask@RWTH |
+|RWTH CLAIX | parsl, dask          | parsl@CLAIX, dask@CLAIX |
 |[Purdue Analysis Facility](https://analysis-facility.physics.purdue.edu)| dask | dask@purdue-af |
 |[INFN Analysis Facility](https://infn-cms-analysisfacility.readthedocs.io/)| dask | dask@infn-af |
 |Brown brux20 cluster | dask | dask@brux |
@@ -167,26 +167,27 @@ dask@lxplus:
 
 
 ### Executor options
-The dataset splitting (chunksize), the number of workers, and the other options, which may be executor-specific, must be
-configured by the user passing to `pocket-coffea run` a .yaml file containing options. These options are overwritten over the
-default options for the requested executor. 
+The dataset splitting (chunksize), the number of workers, memory and most other options
+can be re-configured by the user via custom `my_run_options.yaml` file, that is passed to
+`pocket-coffea run` command. These options are overwrite the default parameters of the
+requested executor.
 
-For example:
-```bash
+For example: `$> cat my_run_options.yaml`
 
-$> cat my_run_options.yaml
-
+```yaml
 scaleout: 400
 chunksize: 50000
 queue: "espresso"
 mem-per-worker: 6GB
-
-
+```
+then use `--custom-run-options my_run_options.yaml` to `run`:
+```bash
 $> pocket-coffea run  --cfg analysis_config.py -o output --executor dask@lxplus  --custom-run-options my_run_options.yaml
 ```
 
-The user can also modify on the fly some run options using arguments of the `pocket-coffea run` script. For example by limiting
-the number of files or number of chunks to analyse (for testing purposes)
+The user can also modify on the fly some run options using arguments to the `pocket-coffea
+run` script. For example, limiting the number of files or number of chunks to analyse (for
+testing purposes):
 
 ```bash
 $> pocket-coffea run  --cfg analysis_config.py -o output --executor dask@lxplus \
@@ -254,16 +255,13 @@ it before executing the dask worker jobs.
 :::
 
 Moreover the user can add a list of completely custom setup commands that are run inside a worker job before executing
-the analysis processor. Just specify them in the run options:
+the analysis processor. Just specify them in the run options user file `my_run_options.yaml`:
 
 ```yaml
-$> cat my_run_options.yaml
-
 custom-setup-commands:
   - echo $HOME
   - source /etc/profile.d/conda.sh
   - export CUSTOM_VARIABLE=1
-
 ```
 
 ## Dask scheduler on lxplus
@@ -321,29 +319,29 @@ The user factory must implement a class deriving from
 The factory returns an instance of a Executor that is passed to the coffea Runner. 
 
 ```python
-## custom executor defined in my_custom_executor.py by the user
+# custom executor defined in my_custom_executor.py by the user
 
-from pocket_coffea.executors.executors_base import ExecutorFactoryABD
+from pocket_coffea.executors.executors_base import ExecutorFactoryABC
 from .executors_base import IterativeExecutorFactory, FuturesExecutorFactory
 
 from coffea import processor as coffea_processor
 
-class ExecutorFactoryCustom(ExecutorFactorABC):
 
+class ExecutorFactoryCustom(ExecutorFactoryABC):
     def get(self):
         return coffea_processor.dask_executor(**self.customized_args())
 
     def setup(self):
-        '''This function is called by the base class constructor'''
+        """This function is called by the base class constructor"""
         # do all the needed setup
         self.start_custom_dask_cluster()
-        
+
     def start_custom_dask_cluster(self):
-        self.dask_cluster = .......... #custom configuration
+        self.dask_cluster = None  # custom configuration
 
     def customized_args(self):
-        '''This function customized the args that coffea uses to instantiate 
-        the executor class passed by the get() method'''
+        """This function customized the args that coffea uses to instantiate
+        the executor class passed by the get() method"""
         args = super().customized_args()
         args["custom-arg"] = "..."
         return args
@@ -358,9 +356,8 @@ def get_executor_factory(executor_name, **kwargs):
         return IterativeExecutorFactory(**kwargs)
     elif executor_name == "futures":
         return FuturesExecutorFactory(**kwargs)
-    elif  executor_name == "dask":
+    elif executor_name == "dask":
         return ExecutorFactoryCustom(**kwargs)
-
 ```
 
 The user's module must implement a `get_executor_factory(string, run_options)` method which returns the instantiated Executor. 
@@ -369,7 +366,7 @@ The module is then used like this:
 
 ```bash
 $> pocket-coffea run --cfg analysis_config.py -o output --executor dask  --executor-custom-setup my_custom_executor.py
---run-options my_run_options.py
+--run-options my_run_options.yaml
 ```
 
 

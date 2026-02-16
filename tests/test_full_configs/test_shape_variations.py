@@ -8,11 +8,13 @@ from pocket_coffea.executors import executors_base as executors_lib
 from coffea import processor
 from coffea.processor import Runner
 from coffea.util import load, save
-from utils import compare_outputs
 import numpy as np
 import awkward as ak
 import hist
 from coffea.nanoevents import NanoEventsFactory, NanoAODSchema
+from pocket_coffea.parameters import defaults
+from tests.utils import check_single_bin_shift
+
 
 @pytest.fixture
 def base_path() -> Path:
@@ -20,12 +22,10 @@ def base_path() -> Path:
     return Path(__file__).parent
 
 
-
-
-def test_shape_variations(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
+def test_shape_variations_JEC_run2(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_shape_variations" )
     outputdir = tmp_path_factory.mktemp("test_shape_variations")
-    config = load_config("config.py", save_config=True, outputdir=outputdir)
+    config = load_config("config_JEC_Run2.py", save_config=True, outputdir=outputdir)
     assert isinstance(config, Configurator)
 
     run_options = defaults.get_default_run_options()["general"]
@@ -35,7 +35,258 @@ def test_shape_variations(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_
     config.filter_dataset(run_options["limit-files"])
 
     executor_factory = executors_lib.get_executor_factory("iterative",
-                                                          run_options=run_options,                                                          outputdir=outputdir)
+                                                          run_options=run_options,outputdir=outputdir)
+
+    executor = executor_factory.get()
+
+    run = Runner(
+        executor=executor,
+        chunksize=run_options["chunksize"],
+        maxchunks=run_options["limit-chunks"],
+        schema=processor.NanoAODSchema,
+        format="root"
+    )
+    output = run(config.filesets, treename="Events",
+                 processor_instance=config.processor_instance)
+    save(output, outputdir / "output_all.coffea")
+    assert output is not None
+    
+    # Check the output
+    h = output["variables"]['nJetGood']['TTTo2L2Nu']['TTTo2L2Nu_2018']
+    assert "AK4PFchs_JES_TotalUp" in h.axes["variation"]
+    assert "AK4PFchs_JES_TotalDown" in h.axes["variation"]
+    assert "AK4PFchs_JERUp" in h.axes["variation"]
+    assert "AK4PFchs_JERDown" in h.axes["variation"]
+
+    # Check that the output is different from the nominal
+    H = output["variables"]['JetGood_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
+    assert not np.isclose(H[{"cat":"baseline", "variation":"nominal"}].values().sum()/ H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalUp"}].values().sum(),  1.)
+
+
+def test_shape_variations_JEC_run3(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
+    monkeypatch.chdir(base_path / "test_shape_variations" )
+    if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):
+        os.remove("jets_calibrator_JES_JER_Syst.pkl.gz")
+    outputdir = tmp_path_factory.mktemp("test_shape_variations")
+    config = load_config("config_JEC_Run3.py", save_config=True, outputdir=outputdir)
+    assert isinstance(config, Configurator)
+
+    run_options = defaults.get_default_run_options()["general"]
+    run_options["limit-files"] = 1
+    run_options["limit-chunks"] = 1
+    run_options["chunksize"] = 500
+    config.filter_dataset(run_options["limit-files"])
+
+    executor_factory = executors_lib.get_executor_factory("iterative",
+                                                          run_options=run_options,outputdir=outputdir)
+
+    executor = executor_factory.get()
+
+    run = Runner(
+        executor=executor,
+        chunksize=run_options["chunksize"],
+        maxchunks=run_options["limit-chunks"],
+        schema=processor.NanoAODSchema,
+        format="root"
+    )
+    output = run(config.filesets, treename="Events",
+                 processor_instance=config.processor_instance)
+    save(output, outputdir / "output_all.coffea")
+    assert output is not None
+    
+    # Check that the MET is different from the reference as it is explicitely not c
+    H = output["variables"]['MET_pt']['DATA_SingleEle']['DATA_EGamma_2023_EraD']
+    ref_MET = np.load("comparison_arrays/MET_pt_DATA_SingleMuon__clean__DATA_SingleMuon_2018_EraA_baseline_nominal.npy")
+    assert not np.allclose((H[{"cat":"baseline"}].values() - ref_MET), 0)
+
+
+def test_shape_variations_ele_SS_run3(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
+    monkeypatch.chdir(base_path / "test_shape_variations" )
+    if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):
+        os.remove("jets_calibrator_JES_JER_Syst.pkl.gz")
+    outputdir = tmp_path_factory.mktemp("test_shape_variations")
+    config = load_config("config_eleSS_Run3.py", save_config=True, outputdir=outputdir)
+    assert isinstance(config, Configurator)
+
+    run_options = defaults.get_default_run_options()["general"]
+    run_options["limit-files"] = 1
+    run_options["limit-chunks"] = 1
+    run_options["chunksize"] = 100
+    config.filter_dataset(run_options["limit-files"])
+
+    executor_factory = executors_lib.get_executor_factory("iterative",
+                                                          run_options=run_options,outputdir=outputdir)
+
+    executor = executor_factory.get()
+
+    run = Runner(
+        executor=executor,
+        chunksize=run_options["chunksize"],
+        maxchunks=run_options["limit-chunks"],
+        schema=processor.NanoAODSchema,
+        format="root"
+    )
+    output = run(config.filesets, treename="Events",
+                 processor_instance=config.processor_instance)
+    save(output, outputdir / "output_all.coffea")
+    assert output is not None
+    
+    # Check the output
+    for variation in output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"].keys():
+        pt_orig = output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"][variation]["ElectronGood_pt_original"]
+        pt = output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"][variation]["ElectronGood_pt"]
+        assert np.all(pt_orig != pt)
+
+
+def test_shape_variation_default_sequence(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
+    monkeypatch.chdir(base_path / "test_shape_variations" )
+    if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):
+        os.remove("jets_calibrator_JES_JER_Syst.pkl.gz")
+    outputdir = tmp_path_factory.mktemp("test_shape_variations")
+    config = load_config("config_allvars_JESall.py", save_config=True, outputdir=outputdir)
+    assert isinstance(config, Configurator)
+
+    run_options = defaults.get_default_run_options()["general"]
+    run_options["limit-files"] = 1
+    run_options["limit-chunks"] = 1
+    run_options["chunksize"] = 200
+    config.filter_dataset(run_options["limit-files"])
+
+    executor_factory = executors_lib.get_executor_factory("iterative",
+                                                          run_options=run_options,outputdir=outputdir)
+
+    executor = executor_factory.get()
+
+    run = Runner(
+        executor=executor,
+        chunksize=run_options["chunksize"],
+        maxchunks=run_options["limit-chunks"],
+        schema=processor.NanoAODSchema,
+        format="root"
+    )
+    output = run(config.filesets, treename="Events",
+                 processor_instance=config.processor_instance)
+    save(output, outputdir / "output_all.coffea")
+    
+  
+    assert output is not None
+    
+    # Check the output
+    params = config.parameters
+    h = output["variables"]['nJetGood']['TTTo2L2Nu__ele']['TTTo2L2Nu_2018']
+    for variation in params.jets_calibration.variations["AK4PFchs"]["2018"]:
+        assert f"AK4PFchs_{variation}Up" in h.axes["variation"]
+        assert f"AK4PFchs_{variation}Down" in h.axes["variation"]
+
+
+def test_shape_variation_default_sequence_comparison_with_legacy_run2(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
+    monkeypatch.chdir(base_path / "test_shape_variations" )
+    if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):
+        os.remove("jets_calibrator_JES_JER_Syst.pkl.gz")
+    outputdir = tmp_path_factory.mktemp("test_shape_variations")
+    config = load_config("config_allvars_Run2.py", save_config=True, outputdir=outputdir)
+    assert isinstance(config, Configurator)
+
+    run_options = defaults.get_default_run_options()["general"]
+    run_options["limit-files"] = 1
+    run_options["limit-chunks"] = 1
+    run_options["chunksize"] = 300
+    config.filter_dataset(run_options["limit-files"])
+
+    executor_factory = executors_lib.get_executor_factory("iterative",
+                                                          run_options=run_options,outputdir=outputdir)
+
+    executor = executor_factory.get()
+
+    run = Runner(
+        executor=executor,
+        chunksize=run_options["chunksize"],
+        maxchunks=run_options["limit-chunks"],
+        schema=processor.NanoAODSchema,
+        format="root"
+    )
+    output = run(config.filesets, treename="Events",
+                 processor_instance=config.processor_instance)
+    save(output, outputdir / "output_all.coffea")
+    
+  
+    assert output is not None
+    
+    params = config.parameters
+       # Check the output
+    h = output["variables"]['nJetGood']['TTTo2L2Nu']['TTTo2L2Nu_2018']
+
+    for variation in params.jets_calibration.variations["AK4PFchs"]["2018"]:
+        assert f"AK4PFchs_{variation}Up" in h.axes["variation"]
+        assert f"AK4PFchs_{variation}Down" in h.axes["variation"]
+
+    # Load the reference output
+    ref_output = load("comparison_arrays/output_run2.coffea")
+    # TODO: create new reference file with the variations inside
+    # Then expand test to check the columns of each variation
+    jet_pt_MC = ref_output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2018"]["baseline"]["Jet_pt"].value
+    jet_pt = output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2018"]["baseline"]["nominal"]["Jet_pt"].value
+    # larger relative difference allowed as we may compare slighlty different JEC versions
+    assert np.allclose(jet_pt, jet_pt_MC), "Jet pt values do not match with the reference output"
+    # Check MET in MC
+    met_pt_MC = ref_output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2018"]["baseline"]["MET_pt"].value
+    met_pt = output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2018"]["baseline"]["nominal"]["MET_pt"].value
+    assert np.allclose(met_pt, met_pt_MC), "MET pt values do not match with the reference output"
+
+    # Compare the histograms for JES and JER variations
+    ref_H = ref_output["variables"]['JetGood_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
+    H = output["variables"]['JetGood_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
+    ref_values_up = ref_H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalUp"}].values()
+    values_up = H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalUp"}].values()
+    if not np.allclose(ref_values_up, values_up):
+        assert check_single_bin_shift(ref_values_up, values_up), "JES Total Up variation should show up to a single bin shift pattern"
+    
+    ref_H = ref_output["variables"]['JetGood_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
+    H = output["variables"]['JetGood_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
+    ref_values_down = ref_H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalDown"}].values()
+    values_down = H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalDown"}].values()
+    if not np.allclose(ref_values_down, values_down):
+        assert check_single_bin_shift(ref_values_down, values_down), "JES Total Down variation should show up to a single bin shift pattern"
+    
+    ref_H = ref_output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
+    H = output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
+    ref_met_up = ref_H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalUp"}].values()
+    met_up = H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalUp"}].values()
+    if not np.allclose(ref_met_up, met_up):
+        assert check_single_bin_shift(ref_met_up, met_up), "MET JES Total Up variation should show up to a single bin shift pattern"
+
+    ref_H = ref_output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
+    H = output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
+    ref_met_down = ref_H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalDown"}].values()
+    met_down = H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalDown"}].values()
+    if not np.allclose(ref_met_down, met_down):
+        assert check_single_bin_shift(ref_met_down, met_down), "MET JES Total Down variation should show up to a single bin shift pattern"
+
+    # Check that the MET histograms only the jet_calibration variations
+    H = output["variables"]['MET_pt_2']['TTTo2L2Nu']['TTTo2L2Nu_2018']
+    assert H.axes["variation"].size == 3
+    assert H.axes["variation"].value(0) == "AK4PFchs_JES_TotalDown"
+    assert H.axes["variation"].value(1) == "AK4PFchs_JES_TotalUp"
+    assert H.axes["variation"].value(2) == "nominal"
+
+
+
+def test_shape_variation_default_sequence_comparison_with_legacy_run3(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
+    monkeypatch.chdir(base_path / "test_shape_variations")
+    if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):
+        os.remove("jets_calibrator_JES_JER_Syst.pkl.gz")
+    outputdir = tmp_path_factory.mktemp("test_shape_variations")
+    config = load_config("config_allvars_Run3.py", save_config=True, outputdir=outputdir)
+    assert isinstance(config, Configurator)
+
+    run_options = defaults.get_default_run_options()["general"]
+    run_options["limit-files"] = 1
+    run_options["limit-chunks"] = 1
+    run_options["chunksize"] = 300
+    config.filter_dataset(run_options["limit-files"])
+
+    executor_factory = executors_lib.get_executor_factory("iterative",
+                                                          run_options=run_options,outputdir=outputdir)
 
     executor = executor_factory.get()
 
@@ -51,16 +302,87 @@ def test_shape_variations(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_
     save(output, outputdir / "output_all.coffea")
     
     assert output is not None
-    
-    # Check the output
-    h = output["variables"]['nJetGood']['TTTo2L2Nu__ele']['TTTo2L2Nu_2018']
-    assert "JES_Total_AK4PFchsUp" in h.axes["variation"]
-    assert "JES_Total_AK4PFchsDown" in h.axes["variation"]
-    assert "JER_AK4PFchsUp" in h.axes["variation"]
-    assert "JER_AK4PFchsDown" in h.axes["variation"]
+    # Load the reference output
+    ref_output = load("comparison_arrays/output_run3.coffea")
 
-    # Now let's check the values by category
-    assert np.isclose(h[{ "variation": "JES_Total_AK4PFchsUp", "cat": "baseline"}].values(), h[{ "variation": "nominal", "cat": "baseline"}].values()).any()
-    assert np.isclose(h[{ "variation": "JER_AK4PFchsDown", "cat": "baseline"}].values(), 0.).all()
-    assert np.isclose(h[{ "variation": "JES_Total_AK4PFchsUp", "cat": "1btag"}].values(), h[{ "variation": "nominal", "cat": "1btag"}].values()).any()
-    assert np.isclose(h[{ "variation": "JER_AK4PFchsDown", "cat": "1btag"}].values(), h[{ "variation": "nominal", "cat": "1btag"}].values()).any()
+    jet_pt_MC = ref_output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2023_postBPix"]["baseline"]["Jet_pt"].value
+    jet_pt = output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2023_postBPix"]["baseline"]["nominal"]["Jet_pt"].value
+
+    # Some differences are expected as we may compare slightly different JEC versions
+    assert np.allclose(jet_pt, jet_pt_MC, atol=0.8), "Jet pt values do not match with the reference output"
+    # Check MET in MC
+    met_pt_MC = ref_output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2023_postBPix"]["baseline"]["PuppiMET_pt"].value
+    met_pt = output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2023_postBPix"]["baseline"]["nominal"]["PuppiMET_pt"].value
+    assert np.allclose(met_pt, met_pt_MC, atol=0.8), "MET pt values do not match with the reference output"
+
+    # Compare the histograms for JES and JER variations
+    ref_H = ref_output["variables"]['JetGood_pt']['TTTo2L2Nu']['TTTo2L2Nu_2023_postBPix']
+    H = output["variables"]['JetGood_pt']['TTTo2L2Nu']['TTTo2L2Nu_2023_postBPix']
+    ref_values_up = ref_H[{"cat":"baseline", "variation":"AK4PFPuppi_JES_TotalUp"}].values()
+    values_up = H[{"cat":"baseline", "variation":"AK4PFPuppi_JES_TotalUp"}].values()
+    if not np.allclose(ref_values_up, values_up):
+        assert check_single_bin_shift(ref_values_up, values_up), "JES Total Up variation should show up to a single bin shift pattern"
+    
+    ref_H = ref_output["variables"]['JetGood_pt']['TTTo2L2Nu']['TTTo2L2Nu_2023_postBPix']
+    H = output["variables"]['JetGood_pt']['TTTo2L2Nu']['TTTo2L2Nu_2023_postBPix']
+    ref_values_down = ref_H[{"cat":"baseline", "variation":"AK4PFPuppi_JES_TotalDown"}].values()
+    values_down = H[{"cat":"baseline", "variation":"AK4PFPuppi_JES_TotalDown"}].values()
+    if not np.allclose(ref_values_down, values_down):
+        assert check_single_bin_shift(ref_values_down, values_down), "JES Total Down variation should show up to a single bin shift pattern"
+    
+    ref_H = ref_output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2023_postBPix']
+    H = output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2023_postBPix']
+    ref_met_up = ref_H[{"cat":"baseline", "variation":"AK4PFPuppi_JES_TotalUp"}].values()
+    met_up = H[{"cat":"baseline", "variation":"AK4PFPuppi_JES_TotalUp"}].values()
+    if not np.allclose(ref_met_up, met_up):
+        assert check_single_bin_shift(ref_met_up, met_up), "MET JES Total Up variation should show up to a single bin shift pattern"
+
+    ref_H = ref_output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2023_postBPix']
+    H = output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2023_postBPix']
+    ref_met_down = ref_H[{"cat":"baseline", "variation":"AK4PFPuppi_JES_TotalDown"}].values()
+    met_down = H[{"cat":"baseline", "variation":"AK4PFPuppi_JES_TotalDown"}].values()
+    if not np.allclose(ref_met_down, met_down):
+        assert check_single_bin_shift(ref_met_down, met_down), "MET JES Total Down variation should show up to a single bin shift pattern"
+
+    jet_pt_MC = ref_output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"]["Jet_pt"].value
+    jet_pt = output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"]["nominal"]["Jet_pt"].value
+    assert np.allclose(jet_pt, jet_pt_MC, atol=1.5), "Jet pt values do not match with the reference output"
+    # Check MET in MC
+    met_pt_MC = ref_output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"]["PuppiMET_pt"].value
+    met_pt = output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"]["nominal"]["PuppiMET_pt"].value
+    assert np.allclose(met_pt, met_pt_MC, atol=1.5), "MET pt values do not match with the reference output"
+
+
+@pytest.mark.skip
+def test_shape_variation_JEC_run3_pt_regression(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
+    monkeypatch.chdir(base_path / "test_shape_variations" )
+    if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):
+        os.remove("jets_calibrator_JES_JER_Syst.pkl.gz")
+    outputdir = tmp_path_factory.mktemp("test_shape_variations")
+    config = load_config("config_JEC_ptregr.py", save_config=True, outputdir=outputdir)
+    assert isinstance(config, Configurator)
+
+    run_options = defaults.get_default_run_options()["general"]
+    run_options["limit-files"] = 1
+    run_options["limit-chunks"] = 1
+    run_options["chunksize"] = 200
+    config.filter_dataset(run_options["limit-files"])
+
+    executor_factory = executors_lib.get_executor_factory("iterative",
+                                                          run_options=run_options,outputdir=outputdir)
+
+    executor = executor_factory.get()
+
+    run = Runner(
+        executor=executor,
+        chunksize=run_options["chunksize"],
+        maxchunks=run_options["limit-chunks"],
+        schema=processor.NanoAODSchema,
+        format="root"
+    )
+    output = run(config.filesets, treename="Events",
+                 processor_instance=config.processor_instance)
+    save(output, outputdir / "output_all.coffea")
+
+    assert output is not None
+    

@@ -36,11 +36,20 @@ lumi:
       G: 3082.8
       tot: 26671.7
     "2023_preBPix": 
-      C: 17650 
-      tot: 17650
+      C: 17794        # See https://twiki.cern.ch/twiki/bin/viewauth/CMS/PdmVRun3Analysis#DATA_AN2
+      tot: 17794
     "2023_postBPix":
       D: 9451  
       tot: 9451
+    "2024":           # See https://twiki.cern.ch/twiki/bin/viewauth/CMS/PdmVRun3Analysis#DATA_AN1
+      C: 7240
+      D: 7960
+      E: 11320
+      F: 27760
+      G: 37770
+      H: 5440
+      I: 11470
+      tot: 108960
       
   goldenJSON:
     '2016_PreVFP': "${default_params_dir:}/datacert/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt"
@@ -51,3 +60,4 @@ lumi:
     '2022_postEE': "${default_params_dir:}/datacert/Cert_Collisions2022_355100_362760_Golden.json"
     '2023_preBPix': "${default_params_dir:}/datacert/Cert_Collisions2023_366442_370790_Golden.json"
     '2023_postBPix': "${default_params_dir:}/datacert/Cert_Collisions2023_366442_370790_Golden.json"
+    '2024': "${default_params_dir:}/datacert/Cert_Collisions2024_378981_386951_Golden.json"

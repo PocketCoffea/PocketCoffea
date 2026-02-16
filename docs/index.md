@@ -11,7 +11,9 @@ PocketCoffea defines a customizable structure to process NanoAOD events and defi
 is done thanks to a `BaseProcessor` class which defines a `workflow` of operations to go from NanoAOD to histograms.
 The user can customize the process from the configuration file or by redefining well-defined steps in the workflow.
 
-The framework handles cleanly the analysis's parameters and metadata, separing in a transparent way the definition of an
+The framework features a powerful **calibration system** that handles object corrections (JEC, electron energy scale, etc.) and systematic variations in a modular, configurable way. See the [Calibrators](./calibrators.md) documentation for details.
+
+The framework handles cleanly the analysis's parameters and metadata, separating in a transparent way the definition of an
 analysis phase space and metadata from CMS groups, and an analysis's run configuration. 
 
 :::{tip}
@@ -20,21 +22,24 @@ analysis phase space and metadata from CMS groups, and an analysis's run configu
 - Installation instructions available [here](./installation.md)
 - If you want a broader introduction to the components of PocketCoffea have a look at [Concepts](./concepts.md).
 - Looking for the configuration manual? [Configuration](./configuration.md)
+- **New**: Learn about object calibrations and systematic variations: [Calibrators](./calibrators.md)
 :::
 
 ```{toctree}
 :titlesonly:
 changelog.md
 installation.md
-running.md
-law_tasks.md
-analysis_example.md
-recipes.md
-plots.md
 concepts.md
+running.md
+analysis_example.md
 configuration.md
+calibrators.md
+plots.md
+statistical_analysis.md
 parameters.md
 datasets.md
+recipes.md
+law_tasks.md
 performance.md
 api.md
 ```

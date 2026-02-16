@@ -9,14 +9,16 @@ from yaml import Loader, Dumper
 import click
 import time
 from rich import print as rprint
+from rich.table import Table
+from rich.console import Console
 
 from coffea.util import save
 from coffea import processor
-from coffea.processor import Runner
 
 from pocket_coffea.utils.configurator import Configurator
 from pocket_coffea.utils.utils import load_config, path_import, adapt_chunksize
-from pocket_coffea.utils.logging import setup_logging
+from pocket_coffea.utils.logging import setup_logging, try_and_log_error
+from pocket_coffea.utils.run import get_runner
 from pocket_coffea.utils.time import wait_until
 from pocket_coffea.parameters import defaults as parameters_utils
 from pocket_coffea.executors import executors_base, executors_manual_jobs
@@ -67,11 +69,12 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         config = cloudpickle.load(open(cfg,"rb"))
         if not config.loaded:
             config.load()
-        config.save_config(outputdir) 
+        config.save_config(outputdir)
+        rprint("[italic]The configuration file is saved at {outputdir} [/]")
     else:
         raise sys.exit("Please provide a .py/.pkl configuration file")
 
-    rprint(config)
+    print(config)
     
     # Now loading the executor or from the set of predefined ones, or from the
     # user defined script
@@ -81,7 +84,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     else:
         executor_name = executor
         site = None
-    print("Running with executor:", executor_name, "at", site)
+    #print("Running with executor:", executor_name, "at", site)
 
     # Getting the default run_options
     run_options_defaults = parameters_utils.get_default_run_options()
@@ -135,9 +138,15 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         run_options["limit-chunks"] = limit_chunks if limit_chunks else 2
         config.filter_dataset(run_options["limit-files"])
 
-    # Print the run options
-    rprint("[bold]Run options:[/]")
-    rprint(run_options)
+    # Run option display
+    table = Table(title="Run Configuration")
+    table.add_column("Option", style="cyan")
+    table.add_column("Value", style="white")
+
+    for key, value in sorted(run_options.items()):
+        table.add_row(key, str(value))
+
+    Console().print(table)
     
     # The user can provide a custom executor factory module
     if executor_custom_setup:
@@ -157,7 +166,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         from pocket_coffea.executors import executors_T3_CH_PSI as executors_lib
     elif site == "purdue-af":
         from pocket_coffea.executors import executors_purdue_af as executors_lib
-    elif site == "DESY_NAF":
+    elif site == "DESY":
         from pocket_coffea.executors import executors_DESY_NAF as executors_lib
     elif site == "RWTH":
         from pocket_coffea.executors import executors_RWTH as executors_lib
@@ -234,14 +243,18 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         if adapted_chunksize != run_options["chunksize"]:
             logging.info(f"Reducing chunksize from {run_options['chunksize']} to {adapted_chunksize} for datasets")
 
-        run = Runner(
+        # Get the coffea Runner wrapped with error logging
+        run = get_runner(
             executor=executor,
             chunksize=run_options["chunksize"],
             maxchunks=run_options["limit-chunks"],
             skipbadfiles=run_options['skip-bad-files'],
             schema=processor.NanoAODSchema,
             format="root",
+            error_log_file=f"{outputdir}/error/run_all.err",
+            exit_on_error=True
         )
+
         output = run(filesets_to_run, treename="Events",
                      processor_instance=config.processor_instance)
         
@@ -267,11 +280,14 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
             # Adding the remaining datasets that were not grouped
             for dataset, files in filesets_to_group.items():
                 filesets_groups[dataset] = {dataset:files}
+
+            print("All datasets to process:", filesets_groups.keys())
         else:
             filesets_groups = {dataset:{dataset:files} for dataset, files in filesets_to_run.items()}
 
         # Running separately on each dataset
         for group_name, fileset_ in filesets_groups.items():
+            dataset_start_time = time.time()
             datasets = list(fileset_.keys())
             if len(datasets) == 1:
                 dataset = datasets[0]
@@ -288,25 +304,33 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
             if adapted_chunksize != run_options["chunksize"]:
                 logging.info(f"Reducing chunksize from {run_options['chunksize']} to {adapted_chunksize} for dataset(s) {group_name}")
 
-            run = Runner(
+            # Get the coffea Runner wrapped with error logging
+            run = get_runner(
                 executor=executor,
-                chunksize=adapted_chunksize,
+                chunksize=run_options["chunksize"],
                 maxchunks=run_options["limit-chunks"],
                 skipbadfiles=run_options['skip-bad-files'],
                 schema=processor.NanoAODSchema,
                 format="root",
+                error_log_file=f"{outputdir}/error/run_{group_name}.err",
+                exit_on_error=False # Continue to next dataset on error
             )
+
             output = run(fileset_, treename="Events",
                          processor_instance=config.processor_instance)
-            print(f"Saving output to {outfile.format(group_name)}")
-            save(output, outfile.format(group_name))
-            print_processing_stats(output, start_time, run_options["scaleout"])
+            if output is None:
+                logging.error(f"Processing of dataset {group_name} failed, moving to the next one")
+                continue
+            else:
+                print(f"Saving output to {outfile.format(group_name)}")
+                save(output, outfile.format(group_name))
+                print_processing_stats(output, dataset_start_time, run_options["scaleout"])
 
 
     # If the processor has skimmed NanoAOD, we export a dataset_definition file
     if config.save_skimmed_files and config.do_postprocessing:
         from pocket_coffea.utils.skim import save_skimed_dataset_definition
-        save_skimed_dataset_definition(output, f"{outputdir}/skimmed_dataset_definition.json")
+        save_skimed_dataset_definition(output, f"{outputdir}/skimmed_dataset_definition.json", check_initial_events=not test)
         
     # Closing the executor if needed
     executor_factory.close()

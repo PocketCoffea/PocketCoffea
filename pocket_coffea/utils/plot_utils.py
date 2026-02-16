@@ -80,7 +80,7 @@ class Style:
         self.has_colors_mc = "colors_mc" in style_cfg
         self.has_signal_samples = "signal_samples" in style_cfg
         self.has_order_mc = "order_mc" in style_cfg
-
+        self.has_custom_title = "cms_label" in style_cfg
         self.has_blind_hists = False
         if "blind_hists" in style_cfg:
             if (
@@ -204,7 +204,7 @@ class PlotManager:
                         del hs[sample]
                 vs[year] = hs
             self.hists_to_plot[variable] = vs
-
+        
         for variable, histoplot in self.hists_to_plot.items():
             for year, h_dict in histoplot.items():
                 if self.only_year and year not in self.only_year:
@@ -232,6 +232,8 @@ class PlotManager:
                     verbose=self.verbose,
                     cache=self.cache
                 )
+        del self.hists_to_plot
+
         if self.save:
             self.make_dirs()
             if self.index_file is not None:
@@ -311,7 +313,7 @@ class PlotManager:
                 pool.close()
         else:
             for shape in shape_names:
-                self.plot_comparison(shape, ratio=ratio, syst=syst, spliteras=spliteras, format=format)
+                self.plot_comparison(shape, ratio=ratio, format=format)
 
 
     def plot_systematic_shifts(self, shape, format="png", ratio=True):
@@ -468,7 +470,7 @@ class Shape:
         self.is_data_only = len(self.samples_mc) == 0
 
         if not self.is_data_only:
-            self.syst_manager = SystManager(self, self.style)
+            self.syst_manager = SystManager(self, self.style, verbose=self.verbose)
 
     @property
     def dense_axes(self):
@@ -506,6 +508,22 @@ class Shape:
                 ax = [ax for ax in h.axes if ax.name == axis_name][0]
                 if len(ax) == len(categorical_axes_dict[axis_name]):
                     categories_sorted[axis_name] = [ax.value(i) for i in range(len(ax))]
+
+        # If no sample has all the categories, we need to define a sorting
+        for axis_name in categorical_axes_dict.keys():
+            if axis_name not in categories_sorted:
+                ax_example = [ax for ax in h0.axes if ax.name == axis_name][0]
+                cats = list(categorical_axes_dict[axis_name])
+                if isinstance(ax_example, hist.axis.StrCategory):
+                    if "nominal" in cats:
+                        cats.remove("nominal")
+                        cats.sort()
+                        cats.insert(0, "nominal")
+                    else:
+                        cats.sort()
+                else:
+                    cats.sort()
+                categories_sorted[axis_name] = cats
 
         # Use the union of sets to define categorical_axes
         for i, (axis_name, categories) in enumerate(categorical_axes_dict.items()):
@@ -670,6 +688,8 @@ class Shape:
                 )
                 isMC = None
                 for dataset in datasets:
+                    if dataset not in self.datasets_metadata:
+                        raise Exception(f"Dataset `{dataset}` not found in datasets metadata!")
                     isMC_d = self.datasets_metadata[dataset]["isMC"] == "True"
                     if isMC is None:
                         isMC = isMC_d
@@ -993,20 +1013,28 @@ class Shape:
         else:
             self.fig, self.ax = plt.subplots(1, 1, **self.style.opts_figure["datamc"])
             axes = self.ax
-        if self.is_mc_only:
+        if self.style.has_custom_title:
             hep.cms.text(
-                "Work in Progress",
+                self.style.cms_label,
                 fontsize=self.style.fontsize,
                 loc=self.style.experiment_label_loc,
                 ax=self.ax,
             )
         else:
-            hep.cms.text(
-                "Work in Progress",
-                fontsize=self.style.fontsize,
-                loc=self.style.experiment_label_loc,
-                ax=self.ax,
-            )
+            if self.is_mc_only:
+                hep.cms.text(
+                    "Simulation Preliminary",
+                    fontsize=self.style.fontsize,
+                    loc=self.style.experiment_label_loc,
+                    ax=self.ax,
+                )
+            else:
+                hep.cms.text(
+                    "Preliminary",
+                    fontsize=self.style.fontsize,
+                    loc=self.style.experiment_label_loc,
+                    ax=self.ax,
+                )
         if self.toplabel:
             hep.cms.lumitext(
                 text=self.toplabel,
@@ -1428,6 +1456,7 @@ class Shape:
             self.format_figure(cat, ratio=ratio, ref=ref)
         else:
             self.format_figure(cat, ratio=False)
+            self.rax.remove()
 
 
     def plot_comparison_all(self, ratio=True, save=True, format='png'):
@@ -1519,9 +1548,10 @@ class Shape:
 class SystManager:
     '''This class handles the systematic uncertainties of 1D MC histograms.'''
 
-    def __init__(self, shape: Shape, style: Style) -> None:
+    def __init__(self, shape: Shape, style: Style, verbose: int = 1) -> None:
         self.shape = shape
         self.style = style
+        self.verbose = verbose
         assert all(
             [
                 (var == "nominal") | var.endswith(("Up", "Down"))
@@ -1545,10 +1575,10 @@ class SystManager:
     def update(self, cat, stacks):
         '''Updates the dictionary of systematic uncertainties with the new cached stacks.'''
         for syst_name in self.systematics:
-            self.syst_dict[cat][syst_name] = SystUnc(self.shape, stacks, syst_name)
+            self.syst_dict[cat][syst_name] = SystUnc(self.shape, stacks, syst_name, verbose=self.verbose)
 
     def total(self, cat):
-        return SystUnc(self.shape, name="total", syst_list=list(self.syst_dict[cat].values()))
+        return SystUnc(self.shape, name="total", syst_list=list(self.syst_dict[cat].values()), verbose=self.verbose)
 
     def mcstat(self, cat):
         return self.syst_dict[cat]["mcstat"]
@@ -1565,12 +1595,13 @@ class SystUnc:
     returning a `SystUnc` instance corresponding to their sum in quadrature.'''
 
     def __init__(
-            self, shape: Shape, stacks: dict = None, name: str = None, syst_list: list = None
+            self, shape: Shape, stacks: dict = None, name: str = None, syst_list: list = None, verbose: int = 1
     ) -> None:
         self.shape = shape
         self.style = shape.style
         self.name = name
         self.is_mcstat = self.name == "mcstat"
+        self.verbose = verbose
 
         # Initialize the arrays of the nominal yield and squared errors as 0
         self.nominal = 0.0
@@ -1607,7 +1638,7 @@ class SystUnc:
         '''Sum in quadrature of two systematic uncertainties.
         In case multiple objects are summed, the information on the systematic uncertainties that
         have been summed is stored in self.syst_list.'''
-        return SystUnc(self.shape, name=f"{self.name}_{other.name}", syst_list=[self, other])
+        return SystUnc(self.shape, name=f"{self.name}_{other.name}", syst_list=[self, other], verbose=self.verbose)
 
     @property
     def up(self):
@@ -1675,14 +1706,16 @@ class SystUnc:
         for h in stacks["mc"]:
             for variation in h.axes[0]:
                 h_var = h[{'variation': variation}].values()
-                # First, we check that the variation is not equal to the nominal
-                if not all(stacks["mc_nominal_sum"].values() == h_var):
+                h_nom = h[{'variation': 'nominal'}].values()
+                # First, we check that the variation is not equal to the nominal            
+                if not all(h_nom == h_var):
                     # Then, we check if the variation is empty
                     if all(h_var == np.zeros_like(h_var)):
-                        print(
-                            f"WARNING: Empty variation found for systematic {self.name} in histogram {self.shape.name}. "+
-                            "Please check if the input histograms are filled properly."
-                        )
+                        if self.verbose>=1:
+                            print(
+                                f"WARNING: Empty variation found for systematic {self.name} in histogram {self.shape.name}. "+
+                                "Please check if the input histograms are filled properly."
+                            )
 
     def _get_err2_from_syst(self):
         '''Method used in the constructor to instanstiate a SystUnc object from
@@ -1833,7 +1866,7 @@ class SystUnc:
                 loc="upper right",
             )
 
-    def plot(self, ratio=True, toplabel=None, log=False):
+    def plot(self, ratio=True, toplabel=None, log_x=False, log_y=False):
         """Plots the nominal, up and down systematic variations on the same plot."""
 
         # setup figure and corresponding axes

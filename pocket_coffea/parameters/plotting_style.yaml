@@ -110,6 +110,7 @@ plotting_style:
         "2022_postEE": "${pico_to_femto:${lumi.picobarns.2022_postEE.tot}}"
         "2023_preBPix": "${pico_to_femto:${lumi.picobarns.2023_preBPix.tot}}"
         "2023_postBPix": "${pico_to_femto:${lumi.picobarns.2023_postBPix.tot}}"
+        "2024": "${pico_to_femto:${lumi.picobarns.2024.tot}}"
 
     categorical_axes_data:
      year: years

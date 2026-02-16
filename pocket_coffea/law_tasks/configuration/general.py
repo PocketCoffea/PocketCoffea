@@ -11,10 +11,12 @@ class baseconfig(luigi.Config):
         description="Config file with parameters specific to the current run",
         default=os.path.join(os.getcwd(), "config.py"),
     )
-    # output_dir = luigi.Parameter(
-    #     description="Output directory for the coffea processor and plots",
-    #     default=os.path.join(os.getcwd(), "output"),
-    # )
+
+
+class transferconfig(luigi.Config):
+    """Config class for transfer to wlcg."""
+
+    transfer = luigi.BoolParameter(description="Transfer output to WLCG", default=False)
 
 
 class datasetconfig(luigi.Config):
@@ -52,20 +54,31 @@ class datasetconfig(luigi.Config):
         description="Prefix of the local path where the datasets are stored",
         default="",
     )
-    allowlist_sites = luigi.TupleParameter(
+    allowlist_sites = law.CSVParameter(
         description="List of sites to be whitelisted", default=()
     )
-    blocklist_sites = luigi.TupleParameter(
+    blocklist_sites = law.CSVParameter(
         description="List of sites to be blacklisted", default=()
     )
     regex_sites = luigi.Parameter(
         description="Regex string to be used to filter the sites", default=""
+    )
+    include_redirector = luigi.BoolParameter(
+        description="Include redirector in the site list", default=False
     )
     parallelize = luigi.IntParameter(
         description=(
             "Number of parallel processes to be used to fetch the datasets, default: 4"
         ),
         default=4,
+    )
+    sort_replicas = luigi.Parameter(
+        description="Sort replicas (default: 'geoip')",
+        default="geoip",
+    )
+    prioritylist_sites = law.CSVParameter(
+        description="List of priorities to sort sites (requires sort-replicas: priority)",
+        default=(),
     )
 
 
@@ -100,9 +113,7 @@ class datacardconfig(luigi.Config):
     shapes_name = luigi.Parameter(
         default="shapes.root", description="Name of the shapes file"
     )
-    datacard_dir = luigi.Parameter(
-        default="datacards", description="Output folder for datacards"
-    )
-    transfer = luigi.BoolParameter(
-        default=False, description="Transfer datacards to EOS"
-    )
+    stat_config = luigi.Parameter(description="Path to the stat config file")
+    variable = luigi.Parameter(description="Variable to produce datacard for")
+    category = luigi.Parameter(description="Category to produce datacard for")
+    years = law.CSVParameter(description="Years to produce datacard for")
