@@ -50,6 +50,7 @@ class JetsCalibrator(Calibrator):
                 
             # Check if the collection is enables in the parameters
             # print("Working on ", jet_type, jet_coll_name )
+            # print("Alias: ", jet_type_alias)
             if self.isMC:
                 if (self.jet_calib_param.apply_jec_MC[self.year][jet_type_alias] == False):
                     # If the collection is not enabled, we skip it
@@ -84,6 +85,7 @@ class JetsCalibrator(Calibrator):
 
             # register the collection as calibrated by this calibrator
             self.calibrated_collections.append(jet_coll_name)
+            
 
             corrected_jets = jet_correction_corrlib(
                 calib_params=self.jet_calib_param.jet_types[jet_type_alias][self._year],
