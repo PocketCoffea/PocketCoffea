@@ -187,3 +187,17 @@ dask@oscar:
   skip-bad-files: true
   retries: 3
   queue: "batch"
+
+dask@lpc:
+  scaleout: 10
+  cores-per-worker: 1
+  mem-per-worker: "2GB"
+  disk-per-worker: "2GB"
+  worker-image: /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-latest
+  death-timeout: "3600"
+  queue: "microcentury"
+  adaptive: false
+  performance-report: true
+  custom-setup-commands: null
+  conda-env: false
+  local-virtualenv: false
