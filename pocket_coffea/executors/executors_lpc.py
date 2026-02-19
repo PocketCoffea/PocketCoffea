@@ -16,7 +16,7 @@ from copy import deepcopy
 def get_worker_env(run_options,x509_path,exec_name="dask"):
     env_worker = [
         'export XRD_RUNFORKHANDLER=1',
-        'export MALLOC_TRIM_THRESHOLD_=0'        ,
+        'export MALLOC_TRIM_THRESHOLD_=0',
         ]
     if exec_name == "dask":
         env_worker.append('ulimit -u unlimited')
