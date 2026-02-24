@@ -1,6 +1,7 @@
 import os
 import sys
 import socket
+import glob
 from coffea import processor as coffea_processor
 from .executors_base import ExecutorFactoryABC
 from .executors_manual_jobs import ExecutorFactoryManualABC
@@ -22,7 +23,24 @@ def get_worker_env(run_options,x509_path,exec_name="dask"):
         env_worker.append('ulimit -u unlimited')
 
     if not run_options['ignore-grid-certificate']:
-        env_worker.append(f'export X509_USER_PROXY={x509_path}')
+        proxy_basename = os.path.basename(x509_path)
+        if exec_name == "dask":
+            # On LPC, workers run in apptainer/condor sandboxes where submit-node paths
+            # like /uscms/home/... are often not mounted. Keep any Condor-provided proxy
+            # path if valid, otherwise fall back to /tmp/x509up_u<uid>.
+            env_worker.append(
+                'if [ -z "$X509_USER_PROXY" ] || [ ! -f "$X509_USER_PROXY" ]; then '
+                'if [ -f "/tmp/x509up_u$(id -u)" ]; then export X509_USER_PROXY="/tmp/x509up_u$(id -u)"; fi; '
+                'fi'
+            )
+        else:
+            # Manual-condor jobs may ship the proxy file as a local input; try local basename first.
+            env_worker.append(
+                f'if [ -f "{proxy_basename}" ]; then export X509_USER_PROXY="$PWD/{proxy_basename}"; '
+                f'elif [ -f "{x509_path}" ]; then export X509_USER_PROXY="{x509_path}"; '
+                'elif [ -f "/tmp/x509up_u$(id -u)" ]; then export X509_USER_PROXY="/tmp/x509up_u$(id -u)"; '
+                'fi'
+            )
     
     # Adding list of custom setup commands from user defined run options
     if run_options.get("custom-setup-commands", None):
@@ -55,10 +73,103 @@ class DaskExecutorFactory(ExecutorFactoryABC):
     def __init__(self, run_options, outputdir, **kwargs):
         self.outputdir = outputdir
         super().__init__(run_options, **kwargs)
+
+    @staticmethod
+    def _normalize_memory(value, default):
+        if value is None:
+            return default
+        if isinstance(value, str):
+            mem = value.strip()
+            if not mem:
+                return default
+            upper = mem.upper()
+            if upper.endswith(("GB", "GIB", "MB", "MIB")):
+                return mem
+            return f"{mem}GB"
+        return f"{value}GB"
+
+    @staticmethod
+    def _normalize_int(value, default):
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return default
+
+    def _get_cluster_backends(self):
+        try:
+            from lpcjobqueue import LPCCondorCluster
+        except Exception as exc:
+            raise Exception(
+                "Executor dask@lpc requires lpcjobqueue and does not fallback to dask-jobqueue. "
+                "Install it in the active environment, e.g. "
+                "`python -m pip install -U git+https://github.com/PocketCoffea/lpcjobqueue.git@v0.5.0`. "
+                f"Import error: {exc}"
+            ) from exc
+        return [("lpcjobqueue.LPCCondorCluster", LPCCondorCluster)]
+
+    def _instantiate_cluster(self, cluster_cls, cluster_kwargs, job_extra_directives, worker_env, worker_python):
+        """
+        Different backends/versions use slightly different kwarg names.
+        Try a few compatible combinations before failing.
+        """
+        env_candidates = [
+            ("job_script_prologue", list(worker_env)),
+            ("env_extra", list(worker_env)),
+        ]
+        directives_candidates = [
+            ("job_extra_directives", dict(job_extra_directives)),
+            ("job_extra", dict(job_extra_directives)),
+        ]
+        python_candidates = [worker_python, None]
+
+        last_type_error = None
+        for python_value in python_candidates:
+            for directives_key, directives_value in directives_candidates:
+                for env_key, env_value in env_candidates:
+                    kwargs = dict(cluster_kwargs)
+                    kwargs[directives_key] = directives_value
+                    kwargs[env_key] = env_value
+                    if python_value is not None:
+                        kwargs["python"] = python_value
+                    try:
+                        return cluster_cls(**kwargs)
+                    except TypeError as exc:
+                        last_type_error = exc
+                        continue
+
+        if last_type_error is not None:
+            raise last_type_error
+        raise RuntimeError(f"Failed to initialize cluster class {cluster_cls.__name__}")
+
+    def _dump_condor_log_tails(self, log_directory, max_lines=40):
+        for pattern in ("*.err", "*.out", "*.log"):
+            for path in sorted(glob.glob(os.path.join(log_directory, pattern))):
+                try:
+                    with open(path, "r", encoding="utf-8", errors="replace") as handle:
+                        lines = handle.readlines()
+                except OSError:
+                    continue
+                print(f">> Tail of {path}:")
+                for line in lines[-max_lines:]:
+                    print(line.rstrip())
         
     def setup(self):
         ''' Start the DASK cluster here'''
         self.setup_proxyfile()
+
+        # HTCondor tooling relies on HOME/USER to write user config.
+        if 'HOME' not in os.environ:
+            os.environ['HOME'] = os.path.expanduser('~')
+        if 'USER' not in os.environ:
+            os.environ['USER'] = os.environ.get('LOGNAME', os.environ.get('USERNAME', 'unknown'))
+
+        # Ensure local condor config path exists before any submit attempt.
+        condor_dir = os.path.join(os.environ['HOME'], '.condor')
+        os.makedirs(condor_dir, mode=0o755, exist_ok=True)
+        user_config = os.path.join(condor_dir, "user_config")
+        if not os.path.exists(user_config):
+            open(user_config, "a").close()
+
         # Setup dask general options from parameters/dask_env.py
         import dask.config
         from distributed import Client
@@ -69,65 +180,150 @@ class DaskExecutorFactory(ExecutorFactoryABC):
         if "lpc" not in hostname.lower() and "fnal" not in hostname.lower():
             raise Exception("Trying to run with dask/lpc not at LPC! Please try different runner options")
 
-        # Ensure that dask-jobqueue is installed
-        try:
-            from dask_jobqueue import HTCondorCluster
-        except ModuleNotFoundError:
-            raise Exception(
-                "Executor dask@lpc requires dask-jobqueue: `pip install dask-jobqueue` or `conda install dask-jobqueue`."
-            )
+        backends = self._get_cluster_backends()
 
-        n_port = self.run_options.get("dask-scheduler-port", 8786)
-        print(">> Creating dask-lpc cluster transmitting on port:", n_port)
-        if not check_port(n_port):
-            raise RuntimeError(
-                f"Port '{n_port}' is already occupied on this node. Change the port or try a different machine."
-            )
+        # For lpcjobqueue we normally let the backend pick host/port defaults that are LPC-safe.
+        # Users can still override with --dask-scheduler-port / --dask-scheduler-host.
+        requested_port_raw = self.run_options.get("dask-scheduler-port", None)
+        requested_port = None
+        if requested_port_raw not in (None, "", "null", "None"):
+            requested_port = self._normalize_int(requested_port_raw, 8786)
+
+        if requested_port is not None:
+            n_port = requested_port
+            if not check_port(n_port):
+                print(f">> Port {n_port} is occupied, trying to find an available port...")
+                found_port = False
+                for port in range(requested_port, requested_port + 100):
+                    if check_port(port):
+                        n_port = port
+                        found_port = True
+                        print(f">> Using port {n_port} instead")
+                        break
+                if not found_port:
+                    for port in range(9000, 9100):
+                        if check_port(port):
+                            n_port = port
+                            found_port = True
+                            print(f">> Using port {n_port} instead")
+                            break
+                if not found_port:
+                    raise RuntimeError(
+                        f"Could not find an available port. Ports {requested_port}-{requested_port+100} and 9000-9100 are all occupied. "
+                        f"Please free up a port or specify a different one with 'dask-scheduler-port' in run_options."
+                    )
+            print(">> Creating dask-lpc cluster transmitting on port:", n_port)
+        else:
+            n_port = None
+            print(">> Creating dask-lpc cluster with backend-managed scheduler port")
         
-        # Creating an HTCondor Cluster for LPC
+        # Creating an HTCondor cluster for LPC
         log_folder = "condor_log"
-        os.makedirs(f"{self.outputdir}/{log_folder}", exist_ok=True)
+        requested_log_directory = self.run_options.get("dask-log-directory", None)
+        if requested_log_directory:
+            log_directory = os.path.abspath(requested_log_directory)
+        else:
+            # lpcjobqueue requires log_directory to be in a host path writable by schedd.
+            # Default to $HOME to avoid failing when outputdir is a container-only path (e.g. /srv/...).
+            output_tag = os.path.basename(os.path.abspath(self.outputdir.rstrip("/"))) or "run"
+            log_directory = os.path.join(
+                os.environ.get("HOME", "/tmp"),
+                "pocketcoffea_dask_logs",
+                output_tag,
+                log_folder,
+            )
+        os.makedirs(log_directory, exist_ok=True)
+        print(f">> Using log_directory: {log_directory}")
         
         # Prepare environment variables for workers
-        env_extra_list = get_worker_env(self.run_options, self.x509_path, "dask")
-        env_extra_dict = {}
-        for env_line in env_extra_list:
-            if env_line.startswith('export '):
-                # Parse export statements like "export VAR=value"
-                parts = env_line.replace('export ', '').split('=', 1)
-                if len(parts) == 2:
-                    env_extra_dict[parts[0].strip()] = parts[1].strip()
-        
-        self.dask_cluster = HTCondorCluster(
-                cores=self.run_options['cores-per-worker'],
-                memory=f"{self.run_options['mem-per-worker']}GB",
-                disk=f"{self.run_options.get('disk-per-worker', '1GB')}",
-                death_timeout=self.run_options.get("death-timeout", 60),
-                scheduler_options={"port": n_port, "host": socket.gethostname()},
-                log_directory = f"{self.outputdir}/{log_folder}",
-                job_extra={
-                    "log": f"{self.outputdir}/{log_folder}/dask_job_output.log",
-                    "output": f"{self.outputdir}/{log_folder}/dask_job_output.out",
-                    "error": f"{self.outputdir}/{log_folder}/dask_job_output.err",
-                    "should_transfer_files": "Yes",
-                    "when_to_transfer_output": "ON_EXIT",
-                    "+JobFlavour": f'"{self.run_options.get("queue", "workday")}"',
-                    "RequestCpus": str(self.run_options['cores-per-worker']),
-                    "RequestMemory": f"{self.run_options['mem-per-worker']}",
-                },
-                env_extra=env_extra_dict,
-            )
+        worker_env = get_worker_env(self.run_options, self.x509_path, "dask")
+        worker_python = self.run_options.get("worker-python", "python3")
+        scheduler_host = self.run_options.get("dask-scheduler-host", None)
+        cores_per_worker = self._normalize_int(self.run_options.get("cores-per-worker", 1), 1)
+        memory_str = self._normalize_memory(self.run_options.get("mem-per-worker", "2GB"), "2GB")
+        disk_str = self._normalize_memory(self.run_options.get("disk-per-worker", "2GB"), "2GB")
+        death_timeout = self._normalize_int(self.run_options.get("death-timeout", 3600), 3600)
+
+        job_extra_directives = {
+            "log": f"{log_directory}/dask_job_output.log",
+            "output": f"{log_directory}/dask_job_output.out",
+            "error": f"{log_directory}/dask_job_output.err",
+            "should_transfer_files": "Yes",
+            "when_to_transfer_output": "ON_EXIT",
+            "+JobFlavour": f'"{self.run_options.get("queue", "workday")}"',
+            "RequestCpus": str(cores_per_worker),
+            "RequestMemory": memory_str,
+        }
+        worker_image = self.run_options.get("worker-image", None)
+        if worker_image:
+            # LPC accepts +ApptainerImage; keep Singularity key for compatibility.
+            job_extra_directives["+ApptainerImage"] = f'"{worker_image}"'
+            job_extra_directives["MY.SingularityImage"] = f'"{worker_image}"'
+
+        user_extra_directives = self.run_options.get("dask-job-extra-directives")
+        if isinstance(user_extra_directives, dict):
+            job_extra_directives.update(user_extra_directives)
+
+        scheduler_options = {}
+        if n_port is not None:
+            scheduler_options["port"] = n_port
+        if scheduler_host:
+            scheduler_options["host"] = scheduler_host
+
+        cluster_kwargs = {
+            "cores": cores_per_worker,
+            "memory": memory_str,
+            "disk": disk_str,
+            "death_timeout": death_timeout,
+            "log_directory": log_directory,
+        }
+        if scheduler_options:
+            cluster_kwargs["scheduler_options"] = scheduler_options
+
+        self.dask_cluster = None
+        last_exception = None
+        for backend_name, cluster_cls in backends:
+            try:
+                self.dask_cluster = self._instantiate_cluster(
+                    cluster_cls=cluster_cls,
+                    cluster_kwargs=cluster_kwargs,
+                    job_extra_directives=job_extra_directives,
+                    worker_env=worker_env,
+                    worker_python=worker_python,
+                )
+                print(f">> Using {backend_name} backend")
+                break
+            except TypeError as exc:
+                last_exception = exc
+                continue
+
+        if self.dask_cluster is None:
+            if last_exception is not None:
+                raise RuntimeError(f"Failed to initialize LPC cluster: {last_exception}") from last_exception
+            raise RuntimeError("Failed to initialize LPC cluster backend.")
 
         # Cluster adaptive number of jobs only if requested
         print(">> Sending out jobs")
+        scaleout = self._normalize_int(self.run_options.get('scaleout', 1), 1)
         self.dask_cluster.adapt(minimum=1 if self.run_options.get("adaptive", False)
-                                else self.run_options['scaleout'],
-                      maximum=self.run_options['scaleout'])
+                                else scaleout,
+                      maximum=scaleout)
         
+        worker_start_timeout = self._normalize_int(
+            self.run_options.get("dask-worker-start-timeout", 600),
+            600,
+        )
         self.dask_client = Client(self.dask_cluster)
         print(">> Waiting for the first job to start...")
-        self.dask_client.wait_for_workers(1)
-        print(">> You can connect to the Dask viewer at http://localhost:8787")
+        try:
+            self.dask_client.wait_for_workers(1, timeout=worker_start_timeout)
+        except TimeoutError:
+            print(f">> Timeout waiting {worker_start_timeout}s for first worker.")
+            self._dump_condor_log_tails(log_directory)
+            raise
+
+        dashboard_link = getattr(self.dask_cluster, "dashboard_link", "http://localhost:8787")
+        print(f">> You can connect to the Dask viewer at {dashboard_link}")
 
         
     def get(self):
@@ -158,7 +354,7 @@ class ExecutorFactoryCondorLPC(ExecutorFactoryManualABC):
             "job_name": self.job_name,
             "job_dir": os.path.abspath(self.jobs_dir),
             "output_dir": os.path.abspath(self.outputdir),
-            "split_by_category": self.run_options["split-by-category"],
+            "split_by_category": self.run_options.get("split-by-category", False),
             "config_pkl_total": f"{os.path.abspath(self.outputdir)}/configurator.pkl",
             "jobs_list": {}
         }
@@ -221,7 +417,7 @@ class ExecutorFactoryCondorLPC(ExecutorFactoryManualABC):
 
         # Specify output filename to split-output script ->
         # This will save files such as output_CAT1.coffea, output_CAT2.coffea (remove "_all" from split outputs)...
-        if self.run_options["split-by-category"]:
+        if self.run_options.get("split-by-category", False):
             splitcommands = f'''
     cd {abs_output_path}
     split-output output_all.coffea -b category -o output.coffea
@@ -272,8 +468,10 @@ fi
 echo 'Done'
 """
         
-        if int(self.run_options["cores-per-worker"]) > 1:
-            script = script.replace("EXECUTOR", f"--executor futures --scalout {self.run_options['cores-per-worker']}")
+        cores_per_worker = self.run_options.get("cores-per-worker", 1)
+        chunksize = self.run_options.get("chunksize", 150000)
+        if int(cores_per_worker) > 1:
+            script = script.replace("EXECUTOR", f"--executor futures --scaleout {cores_per_worker}")
         else:
             script = script.replace("EXECUTOR", "--executor iterative")
             
@@ -281,15 +479,24 @@ echo 'Done'
             f.write(script)
 
         # Writing the jid file as the htcondor python submission does not work in the singularity
+        mem_per_worker = self.run_options.get('mem-per-worker', '2GB')
+        # Handle mem-per-worker if it's a string with GB or just a number
+        if isinstance(mem_per_worker, str) and 'GB' in mem_per_worker.upper():
+            mem_value = mem_per_worker
+        elif isinstance(mem_per_worker, str):
+            mem_value = f"{mem_per_worker}GB"
+        else:
+            mem_value = f"{mem_per_worker}GB"
+            
         sub = {
             'Executable': "job.sh",
             'Error': f"{abs_jobdir_path}/logs/job_$(ClusterId).$(ProcId).err",
             'Output': f"{abs_jobdir_path}/logs/job_$(ClusterId).$(ProcId).out",
             'Log': f"{abs_jobdir_path}/logs/job_$(ClusterId).log",
             '+JobFlavour': f'"{self.run_options.get("queue", "workday")}"',
-            'RequestCpus' : self.run_options['cores-per-worker'],
-            'RequestMemory' : f"{self.run_options['mem-per-worker']}",
-            'arguments': f"$(ProcId) config_job_$(ProcId).pkl {self.run_options['chunksize']}",
+            'RequestCpus' : str(cores_per_worker),
+            'RequestMemory' : mem_value,
+            'arguments': f"$(ProcId) config_job_$(ProcId).pkl {chunksize}",
             'should_transfer_files':'YES',
             'when_to_transfer_output' : 'ON_EXIT',
             'transfer_input_files' : f"{abs_jobdir_path}/config_job_$(ProcId).pkl,{self.x509_path},{abs_jobdir_path}/job.sh",
