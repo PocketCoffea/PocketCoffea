@@ -39,6 +39,34 @@ condor@lxplus:
   split-by-category: false
   eos-prefix: root://eosuser.cern.ch/
 
+dask@lpc:
+  scaleout: 10
+  cores-per-worker: 1
+  mem-per-worker: "2GB"
+  disk-per-worker: "2GB"
+  death-timeout: 3600
+  queue: "workday"
+  adaptive: false
+  custom-setup-commands: null
+  conda-env: false
+  local-virtualenv: false
+  dask-scheduler-port: null
+  dask-worker-start-timeout: 600
+  dask-log-directory: null
+  worker-python: "python3"
+
+condor@lpc:
+  cores-per-worker: 1
+  mem-per-worker: "2GB"
+  disk-per-worker: "2GB"
+  queue: "workday"
+  custom-setup-commands: null
+  conda-env: false
+  local-virtualenv: false
+  max-retries: 3
+  split-by-category: false
+  eos-prefix: root://cmseos.fnal.gov//eos/uscms
+
 
 dask@T3_CH_PSI:
   scaleout: 10
