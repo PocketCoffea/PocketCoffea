@@ -165,7 +165,8 @@ class PlotManager:
         verbose=1,
         save=True,
         index_file=None,
-        cache=True
+        cache=True,
+        split_by_dataset_samples=None
     ) -> None:
 
         self.shape_objects = {}
@@ -182,6 +183,7 @@ class PlotManager:
         self.toplabel = toplabel
         self.verbose=verbose
         self.cache = cache
+        self.split_by_dataset_samples = split_by_dataset_samples if split_by_dataset_samples else []
 
         # Reading the datasets_metadata to
         # build the correct shapes for each datataking year
@@ -230,7 +232,8 @@ class PlotManager:
                     toplabel=toplabel_to_use,
                     year=year,
                     verbose=self.verbose,
-                    cache=self.cache
+                    cache=self.cache,
+                    split_by_dataset_samples=self.split_by_dataset_samples
                 )
         del self.hists_to_plot
 
@@ -369,7 +372,8 @@ class Shape:
         density=False,
         year = None,
         verbose=1,
-        cache=True
+        cache=True,
+        split_by_dataset_samples=None
     ) -> None:
         self.h_dict = h_dict
         self.name = name
@@ -387,9 +391,11 @@ class Shape:
         self.verbose = verbose
         self.cache = cache
         self._stacksCache = defaultdict(dict)
+        self.split_by_dataset_samples = split_by_dataset_samples if split_by_dataset_samples else []
         assert (
             type(h_dict) in [dict, defaultdict]
         ), "The Shape object receives a dictionary of hist.Hist objects as argument."
+        self.split_samples_by_dataset()
         self.group_samples()
         self.is_mc_only = len(self.samples_data) == 0
         self.is_data_only = len(self.samples_mc) == 0
@@ -673,6 +679,46 @@ class Shape:
     def samples_mc(self):
         return list(filter(lambda d: self.sample_is_MC[d], self.samples))
 
+    def split_samples_by_dataset(self):
+        '''Splits specified samples by dataset, treating each dataset as a separate sample.
+        This method is called before group_samples() to allow datasets to be treated as samples
+        for the purposes of grouping, labeling, coloring, and filtering.'''
+        if not self.split_by_dataset_samples:
+            return
+        
+        h_dict_split = {}
+        
+        # Check for requested samples that were not found in self.h_dict
+        # Emit a warning so that typos or mismatches are visible to the user
+        missing_samples = set(self.split_by_dataset_samples) - set(self.h_dict.keys())
+        if missing_samples and self.verbose >= 1:
+            print(
+                f"{self.name}: WARNING: The following samples requested in 'split_by_dataset_samples' "
+                f"were not found and were ignored: {sorted(missing_samples)}"
+            )
+        
+        for sample, datasets in self.h_dict.items():
+            if sample in self.split_by_dataset_samples:
+                # Split this sample by dataset
+                if self.verbose >= 1:
+                    print(f"\t {self.name}: Splitting sample '{sample}' by dataset")
+                for dataset, hist_obj in datasets.items():
+                    # Create a new "sample" for each dataset
+                    # Store it as a single-dataset dict to maintain the structure
+                    h_dict_split[dataset] = {dataset: hist_obj}
+                    
+                    # Set the isMC flag for this new "sample"
+                    if dataset not in self.datasets_metadata:
+                        raise Exception(f"Dataset `{dataset}` not found in datasets metadata!")
+                    self.sample_is_MC[dataset] = self.datasets_metadata[dataset]["isMC"] == "True"
+            else:
+                # Keep this sample as-is (will be collapsed by group_samples)
+                h_dict_split[sample] = datasets
+        
+        # Assign the newly built dict directly; histograms are treated as immutable,
+        # so a shallow assignment is sufficient and avoids unnecessary copies.
+        self.h_dict = h_dict_split
+
     def group_samples(self):
         '''Groups samples according to the dictionary self.style.samples_map'''
         # # First of all check if collapse_datasets options is true,
@@ -711,16 +757,16 @@ class Shape:
             for s_to_group in samples_list:
                 if s_to_group not in self.h_dict.keys():
                     if self.verbose>=1:
-                        print(f"{self.name}: WARNING. Sample ",s_to_group," is not in the list of samples: ", list(self.h_dict.keys()), "Skipping it.")
+                        print(f"{self.name}: WARNING. Sample '{s_to_group}' is not in the list of samples: {list(self.h_dict.keys())}. Skipping it.")
                     cleaned_samples_list[sample_new].remove(s_to_group)
                     continue
                 if self.verbose>=1:
-                    print(f"\t {self.name}: Sample ",s_to_group," will be grouped into sample", sample_new)
+                    print(f"\t {self.name}: Sample '{s_to_group}' will be grouped into sample '{sample_new}'")
 
         for sample_new, samples_list in cleaned_samples_list.items():
             if len(samples_list)==0:
                 if self.verbose>=1:
-                    print("WARNING. The list of samples to group is empty!  Group name:", sample_new)
+                    print(f"WARNING. The list of samples to group is empty!  Group name: '{sample_new}'")
                 continue
 
             h_dict_grouped[sample_new] = self._stack_sum(
