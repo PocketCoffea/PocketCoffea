@@ -196,12 +196,17 @@ By default, the plotting script splits MC by sample, collapsing all datasets wit
 
 ### Usage
 
-```bash
-# Split QCD sample by dataset
-python -m pocket_coffea.scripts.plot.make_plots --by-dataset QCD
+The `--by-dataset` option accepts multiple samples either in a single flag or as repeated flags:
 
-# Split multiple samples by dataset
+```bash
+# Single flag with multiple samples
+python -m pocket_coffea.scripts.plot.make_plots --by-dataset QCD TTToSemiLeptonic
+
+# Or repeated flags (also supported)
 python -m pocket_coffea.scripts.plot.make_plots --by-dataset QCD --by-dataset TTToSemiLeptonic
+
+# Single sample
+python -m pocket_coffea.scripts.plot.make_plots --by-dataset QCD
 
 # Use with other parameters
 python -m pocket_coffea.scripts.plot.make_plots --by-dataset QCD --only-cat cat1 -v 2

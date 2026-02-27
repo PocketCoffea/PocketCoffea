@@ -15,6 +15,53 @@ from rich import print
 
 import concurrent.futures
 
+class MultiValueOption(click.Option):
+    """Custom Click option that accepts multiple values in a single occurrence or multiple occurrences.
+    
+    Supports both:
+    - --by-dataset QCD TTToSemiLeptonic
+    - --by-dataset QCD --by-dataset TTToSemiLeptonic
+    """
+    def __init__(self, *args, **kwargs):
+        self.save_other_options = kwargs.pop('save_other_options', True)
+        nargs = kwargs.pop('nargs', -1)
+        assert nargs == -1, 'nargs, if set, must be -1 not {}'.format(nargs)
+        super(MultiValueOption, self).__init__(*args, **kwargs)
+        self._previous_parser_process = None
+        self._eat_all_parser = None
+
+    def add_to_parser(self, parser, ctx):
+        def parser_process(value, state):
+            # Method to hook into the parser.process
+            done = False
+            value = [value]
+            if self.save_other_options:
+                # Grab everything up to the next option
+                while state.rargs and not done:
+                    for prefix in self._eat_all_parser.prefixes:
+                        if state.rargs[0].startswith(prefix):
+                            done = True
+                    if not done:
+                        value.append(state.rargs.pop(0))
+            else:
+                # Grab everything remaining
+                value += state.rargs
+                state.rargs[:] = []
+            value = tuple(value)
+
+            # Call the actual process
+            self._previous_parser_process(value, state)
+
+        retval = super(MultiValueOption, self).add_to_parser(parser, ctx)
+        for name in self.opts:
+            our_parser = parser._long_opt.get(name) or parser._short_opt.get(name)
+            if our_parser:
+                self._eat_all_parser = our_parser
+                self._previous_parser_process = our_parser.process
+                our_parser.process = parser_process
+                break
+        return retval
+
 @click.command()
 @click.option('-inp', '--input-dir', help='Directory with coffea files and parameters', type=str, default=os.getcwd(), required=False)
 @click.option('--cfg', help='YAML file with all the analysis parameters', required=False)
@@ -44,7 +91,7 @@ import concurrent.futures
 @click.option('--index-file', type=str, help='Path of the index file to be copied recursively in the plots directory and its subdirectories', required=False, default=None)
 @click.option('--no-cache', is_flag=True, help='Do not cache the histograms for faster plotting', required=False, default=False)
 @click.option('--split-by-category', is_flag=True, help='If split-by-category was used during running and merging', required=False, default=False)
-@click.option('--by-dataset', type=str, multiple=True, help='Split specified samples by dataset instead of collapsing them. Usage: --by-dataset SAMPLE1 --by-dataset SAMPLE2', required=False, default=None)
+@click.option('--by-dataset', cls=MultiValueOption, help='Split specified samples by dataset instead of collapsing them. Accepts multiple samples either as: --by-dataset SAMPLE1 SAMPLE2 or --by-dataset SAMPLE1 --by-dataset SAMPLE2', required=False, default=None)
 
 def make_plots(*args, **kwargs):
     return make_plots_core(*args, **kwargs)
@@ -54,6 +101,20 @@ def make_plots_core(input_dir, cfg, overwrite_parameters, outputdir, inputfiles,
                overwrite, log_x, log_y, density, verbose, format, systematics_shifts, no_ratio, no_systematics_ratio, compare, index_file, no_cache, split_by_category, by_dataset):
     '''Plot histograms produced by PocketCoffea processors'''
 
+    # Normalize by_dataset to a list (handles both tuple from single-flag and list from multiple flags)
+    if by_dataset is not None:
+        if isinstance(by_dataset, tuple):
+            # Flatten tuples from multiple occurrences of the option
+            flattened = []
+            for item in by_dataset:
+                if isinstance(item, tuple):
+                    flattened.extend(item)
+                else:
+                    flattened.append(item)
+            by_dataset = flattened
+        elif not isinstance(by_dataset, list):
+            by_dataset = [by_dataset]
+    
     if split_by_category: 
         if not inputfiles:
             all_files = glob.glob(f"{input_dir}/*merged_category*.coffea")

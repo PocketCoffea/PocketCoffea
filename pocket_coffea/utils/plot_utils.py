@@ -688,6 +688,15 @@ class Shape:
         
         h_dict_split = {}
         
+        # Check for requested samples that were not found in self.h_dict
+        # Emit a warning so that typos or mismatches are visible to the user
+        missing_samples = set(self.split_by_dataset_samples) - set(self.h_dict.keys())
+        if missing_samples and self.verbose >= 1:
+            print(
+                f"{self.name}: WARNING: The following samples requested in 'split_by_dataset_samples' "
+                f"were not found and were ignored: {sorted(missing_samples)}"
+            )
+        
         for sample, datasets in self.h_dict.items():
             if sample in self.split_by_dataset_samples:
                 # Split this sample by dataset
@@ -706,9 +715,9 @@ class Shape:
                 # Keep this sample as-is (will be collapsed by group_samples)
                 h_dict_split[sample] = datasets
         
-        # Use deepcopy to ensure we don't have references to the original h_dict
-        # This prevents potential issues when the original h_dict is modified later
-        self.h_dict = deepcopy(h_dict_split)
+        # Assign the newly built dict directly; histograms are treated as immutable,
+        # so a shallow assignment is sufficient and avoids unnecessary copies.
+        self.h_dict = h_dict_split
 
     def group_samples(self):
         '''Groups samples according to the dictionary self.style.samples_map'''
