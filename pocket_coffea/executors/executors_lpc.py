@@ -333,8 +333,8 @@ class DaskExecutorFactory(ExecutorFactoryABC):
         args = super().customized_args()
         # in the futures executor Nworkers == N scaleout
         args["client"] = self.dask_client
-        args["treereduction"] = self.run_options.get("tree-reduction", True)
-        args["retries"] = self.run_options.get("retries", 1)
+        args["treereduction"] = self.run_options["tree-reduction"]
+        args["retries"] = self.run_options["retries"]
         return args
 
     def close(self):
