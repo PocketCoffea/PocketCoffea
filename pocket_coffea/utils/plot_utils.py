@@ -509,6 +509,22 @@ class Shape:
                 if len(ax) == len(categorical_axes_dict[axis_name]):
                     categories_sorted[axis_name] = [ax.value(i) for i in range(len(ax))]
 
+        # If no sample has all the categories, we need to define a sorting
+        for axis_name in categorical_axes_dict.keys():
+            if axis_name not in categories_sorted:
+                ax_example = [ax for ax in h0.axes if ax.name == axis_name][0]
+                cats = list(categorical_axes_dict[axis_name])
+                if isinstance(ax_example, hist.axis.StrCategory):
+                    if "nominal" in cats:
+                        cats.remove("nominal")
+                        cats.sort()
+                        cats.insert(0, "nominal")
+                    else:
+                        cats.sort()
+                else:
+                    cats.sort()
+                categories_sorted[axis_name] = cats
+
         # Use the union of sets to define categorical_axes
         for i, (axis_name, categories) in enumerate(categorical_axes_dict.items()):
             for s, h in d.items():

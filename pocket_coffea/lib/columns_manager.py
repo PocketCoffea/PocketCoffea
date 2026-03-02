@@ -152,7 +152,8 @@ class ColumnsManager:
                         available_weights_variations += vars
                     for weight in get_weights_by_cat_var(available_weights_variations, weights_manager, category, variation).keys():
                         # Ask the WeightsManager the available variations
-                        out_by_cat[f"weight_{weight}"] = weights_manager.get_weight(category, modifier=weight)[mask]
+                        if weight != "nominal":
+                            out_by_cat[f"weight_variation_{weight}"] = weights_manager.get_weight(category, modifier=weight)[mask]
 
             for outarray in outarrays:
                 # Check if the cut is multidimensional
