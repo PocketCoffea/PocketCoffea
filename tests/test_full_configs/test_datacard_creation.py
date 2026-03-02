@@ -30,7 +30,7 @@ def run_pc_config_run3(base_path: Path, tmp_path_factory):
     if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):
         os.remove("jets_calibrator_JES_JER_Syst.pkl.gz")
     outputdir = tmp_path_factory.mktemp("test_datacard_creation_files")
-    config = load_config("config_allvars_Run3.py", save_config=True, outputdir=outputdir)
+    config = load_config("config_allvars_Run3_samefiles.py", save_config=True, outputdir=outputdir)
     assert isinstance(config, Configurator)
 
     run_options = defaults.get_default_run_options()["general"]
@@ -59,18 +59,41 @@ def run_pc_config_run3(base_path: Path, tmp_path_factory):
 
 def test_datacard_creation_single_year_run3(run_pc_config_run3):
     outputdir = run_pc_config_run3
-    build_datacard(f"{outputdir}", output=f"{outputdir}/datacards_single_year", single_year=True)
-    with open(f"{outputdir}/datacards_single_year/MET_pt/2btag_run3.txt") as output_datacard, open("comparison_arrays/datacards_single_year/MET_pt/2btag_run3.txt") as expected:
+    # Define signal, background, and data datasets
+    sig_bkg_dict = {
+            "signal": {
+                "TTTo2L2Nu": ["TTTo2L2Nu_2023_postBPix"],
+                },
+            "data": {
+                # This needs to have this name, and only be one category
+                "data_obs": ["DATA_EGamma_2023_EraD"]
+                },
+            "background": {
+                "backgroundSample": ["background2023BPix"]
+                }
+            }
+    build_datacard(f"{outputdir}", sig_bkg_dict, output=f"{outputdir}/datacards_single_year", single_year=True)
+    with open(f"{outputdir}/datacards_single_year/MET_pt/tt2l_run3_2023_postBPix.txt") as output_datacard, open("comparison_arrays/datacards_single_year/MET_pt/tt2l_run3_2023_postBPix.txt") as expected:
         out_read = output_datacard.read()
         exp_read = expected.read()
-    # assert out_read == exp_read
-    assert True
+    assert out_read == exp_read
 
 def test_datacard_creation_multi_year_run3(run_pc_config_run3):
     outputdir = run_pc_config_run3
-    build_datacard(f"{outputdir}", output=f"{outputdir}/datacards_multi_year", single_year=False)
-    with open(f"{outputdir}/datacards_multi_year/MET_pt/2btag_run3.txt") as output_datacard, open("comparison_arrays/datacards_multi_year/MET_pt/2btag_run3.txt") as expected:
+    sig_bkg_dict = {
+            "signal": {
+                "TTTo2L2Nu": ["TTTo2L2Nu_2023_postBPix", "TTTo2L2Nu_2022_postEE"],
+                },
+            "data": {
+                # This needs to have this name, and only be one category
+                "data_obs": ["DATA_EGamma_2023_EraD", "DATA_EGamma_2022_EraC"]
+                },
+            "background": {
+                "backgroundSample": ["background2022postEE", "background2023BPix"]
+                }
+            }
+    build_datacard(f"{outputdir}", sig_bkg_dict, output=f"{outputdir}/datacards_multi_year", single_year=False)
+    with open(f"{outputdir}/datacards_multi_year/MET_pt/tt2l_run3_2023_postBPix.txt") as output_datacard, open("comparison_arrays/datacards_multi_year/MET_pt/tt2l_run3_2023_postBPix.txt") as expected:
         out_read = output_datacard.read()
         exp_read = expected.read()
-    # assert out_read == exp_read
-    assert True
+    assert out_read == exp_read

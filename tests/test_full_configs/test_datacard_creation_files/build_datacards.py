@@ -117,25 +117,12 @@ def add_variation_axis(histogram):
     return new_hist
 
 
-def build_datacard(input_dir, output="./datacards", single_year=True):
+def build_datacard(input_dir, sig_bkg_dict, output="./datacards", single_year=True):
     if not os.path.exists(output):
         os.makedirs(output)
 
-    # Define signal, background, and data datasets
-    sig_bkg_dict = {
-            "signal": {
-                "TTTo2L2Nu": ["TTTo2L2Nu_2023_postBPix"],
-                },
-            "data": {
-                # This needs to have this name, and only be one category
-                "data_obs": ["DATA_EGamma_2023_EraD"]
-                },
-            "background": {
-                "backgroundSample": ["background"]
-                }
-            }
     # Define the new region name
-    region_name = "2btag"
+    region_name = "tt2l"
 
     # I want to use the coffea file with all outputs. Therefore, it should be merged beforehand.
     coffea_list = [file for file in os.listdir(input_dir) if file.endswith(".coffea")]
@@ -179,29 +166,34 @@ def build_datacard(input_dir, output="./datacards", single_year=True):
         mc_process.append(MCProcess(
                 name=name,
                 # All these ugly catings are to get a list with unique values.
-                samples=set([meta_dict[dataset]["sample"] for dataset in datasets]),
-                years=set([meta_dict[dataset]["year"] for dataset in datasets]),
+                samples=[meta_dict[dataset]["sample"] for dataset in datasets],
+                years=[meta_dict[dataset]["year"] for dataset in datasets],
                 is_signal=True,
                 ))
-    data_bg_process = []
+    bg_process = []
     for name, datasets in sig_bkg_dict["background"].items():
-        data_bg_process.append(MCProcess(
+        bg_process.append(MCProcess(
                 name=name,
-                samples=set([meta_dict[dataset]["sample"] for dataset in datasets]),
-                years=set([meta_dict[dataset]["year"] for dataset in datasets]),
+                samples=[meta_dict[dataset]["sample"] for dataset in datasets],
+                years=[meta_dict[dataset]["year"] for dataset in datasets],
                 is_signal=False,
                 ))
-    mc_processes = MCProcesses(mc_process + data_bg_process)
 
-    if len(sig_bkg_dict["data"].keys()) > 1:
-        raise Exception("Only one single data process is allowed with fixed name 'data_obs'")
+    mc_process = sorted(mc_process, key=lambda proc: proc.name)
+    bg_process = sorted(bg_process, key=lambda proc: proc.name)
+    mc_processes = MCProcesses(mc_process + bg_process)
+
+    # if len(sig_bkg_dict["data"].keys()) > 1:
+    #     raise Exception("Only one single data process is allowed with fixed name 'data_obs'")
+    data_process = []
     for name, datasets in sig_bkg_dict["data"].items():
-        data_process = DataProcess(
+        data_process.append(DataProcess(
                 name=name,
-                samples=set([meta_dict[dataset]["sample"] for dataset in datasets]),
-                years=set([meta_dict[dataset]["year"] for dataset in datasets]),
-                )
-    data_processes = DataProcesses([data_process])
+                samples=[meta_dict[dataset]["sample"] for dataset in datasets],
+                years=[meta_dict[dataset]["year"] for dataset in datasets],
+                ))
+    data_process = sorted(data_process, key=lambda proc: proc.name)
+    data_processes = DataProcesses(data_process)
 
     # -- Systematics --
     # common_systematics = [
@@ -228,10 +220,10 @@ def build_datacard(input_dir, output="./datacards", single_year=True):
                 raise ValueError(f"Variations list {variations} does not contain 'nominal'.")
             logger.info(f"Found variations: {variations}")
             for syst in variations:
-                systematics_list.append(SystematicUncertainty(name=syst, datacard_name=get_uncertainty_name(syst, meta_dict[datasets[0]]['year']), typ="shape", processes=list(sig_bkg_dict["signal"].keys()), years=[meta_dict[datasets[0]]["year"]], value=1.0))
-            systematics = Systematics(systematics_list)
+                systematics_list.append(SystematicUncertainty(name=syst, datacard_name=get_uncertainty_name(syst, meta_dict[datasets[0]]['year']), typ="shape", processes=list(sig_bkg_dict["signal"].keys()), years=[meta_dict[ds]["year"] for ds in datasets], value=1.0))
         for bkg_type, datasets in sig_bkg_dict["background"].items():
             # Iterate through the datasets in a particular background type (often a signle one)
+            breakpoint()
             variations_updown = list(sob_hist[meta_dict[datasets[0]]["sample"]][datasets[0]].axes['variation'])
             for var in variations_updown:
                 sliced = sob_hist[meta_dict[datasets[0]]["sample"]][datasets[0]][{"variation": var, "cat": region_name}]
@@ -244,7 +236,7 @@ def build_datacard(input_dir, output="./datacards", single_year=True):
                 raise ValueError(f"Variations list {variations} does not contain 'nominal'.")
             logger.info(f"Found variations: {variations}")
             for syst in variations:
-                systematics_list.append(SystematicUncertainty(name=syst, datacard_name=get_uncertainty_name(syst, meta_dict[datasets[0]]['year']), typ="shape", processes=list(sig_bkg_dict["background"].keys()), years=[meta_dict[datasets[0]]["year"]], value=1.0))
+                systematics_list.append(SystematicUncertainty(name=syst, datacard_name=get_uncertainty_name(syst, meta_dict[datasets[0]]['year']), typ="shape", processes=list(sig_bkg_dict["background"].keys()), years=[meta_dict[ds]["year"] for ds in datasets], value=1.0))
 
             # Adding some lnN systematics:
             lnN_systs = {"luminosity": 1.015, "alpha_s": 1.017}
@@ -282,11 +274,12 @@ def build_datacard(input_dir, output="./datacards", single_year=True):
                 cutflow=coffea_file["cutflow"],
                 systematics=systematics,
                 # This might have to change. Right now I am binding the year to the data year...
-                years=set([meta_dict[dataset]["year"] for dataset in sig_bkg_dict["data"]["data_obs"]]),
+                years=[meta_dict[dataset]["year"] for dataset in sig_bkg_dict["data"]["data_obs"]],
                 mc_processes=mc_processes,
                 mcstat=auto_mc_stats,
                 data_processes=data_processes,
                 category=region_name,
                 single_year=single_year,
                 )
-        datacard.dump(directory=f"{output}/{hist_cat}", card_name=f"{region_name}_{_label}.txt", shapes_name=f"shapes_{region_name}_{_label}.root")
+        year = meta_dict[sig_bkg_dict['data']['data_obs'][0]]['year']
+        datacard.dump(directory=f"{output}/{hist_cat}", card_name=f"{region_name}_{_label}_{year}.txt", shapes_name=f"shapes_{region_name}_{_label}_{year}.root")

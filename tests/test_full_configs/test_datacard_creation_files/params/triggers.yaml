@@ -14,15 +14,28 @@ HLT_triggers:
     SingleMuon:
         - IsoMu24
 
-  "2023_preBPix":
-    SingleEle: 
+  "2022_preEE":
+    SingleEle:
       - Ele30_WPTight_Gsf
-    SingleMuon: 
+    SingleMuon:
+      - IsoMu24
+
+
+  "2022_postEE":
+    SingleEle:
+      - Ele30_WPTight_Gsf
+    SingleMuon:
+      - IsoMu24
+
+  "2023_preBPix":
+    SingleEle:
+      - Ele30_WPTight_Gsf
+    SingleMuon:
       - IsoMu24
 
 
   "2023_postBPix":
-    SingleEle: 
+    SingleEle:
       - Ele30_WPTight_Gsf
-    SingleMuon: 
+    SingleMuon:
       - IsoMu24
