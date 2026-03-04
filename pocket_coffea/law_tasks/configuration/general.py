@@ -104,6 +104,9 @@ class runnerconfig(luigi.Config):
     process_separately = luigi.BoolParameter(
         description="Process each dataset separately", default=False
     )
+    skip_bad_files = luigi.BoolParameter(
+        description="Skip bad files during processing", default=None
+    )
 
 
 class datacardconfig(luigi.Config):
