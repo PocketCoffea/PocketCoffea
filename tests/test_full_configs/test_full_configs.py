@@ -465,3 +465,63 @@ def test_columns_export_parquet(base_path: Path, monkeypatch: pytest.MonkeyPatch
     assert "JetGood_pt" in dataset.fields
     assert ak.all(ak.num(dataset.JetGood_pt, axis=1) >= 4)
  
+
+def test_skimming_presel_any_variation(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
+    monkeypatch.chdir(base_path / "test_skimming" )
+    outputdir = tmp_path_factory.mktemp("test_skimming_presel_any")
+    outputdir_skim = tmp_path_factory.mktemp("skim_presel_any")
+    config = load_config("config_presel_any.py", save_config=True, outputdir=outputdir)
+    assert isinstance(config, Configurator)
+
+    assert config.save_skimmed_files != None
+    config.save_skimmed_files_folder = outputdir_skim.as_posix()
+    config.save_skimmed_files = outputdir_skim.as_posix()
+
+    run_options = defaults.get_default_run_options()["general"]
+    run_options["limit-files"] = 1
+    run_options["limit-chunks"] = 2
+    run_options["chunksize"] = 100
+    config.filter_dataset(run_options["limit-files"])
+
+    executor_factory = executors_lib.get_executor_factory("iterative",
+                                                          run_options=run_options,
+                                                          outputdir=outputdir)
+
+    executor = executor_factory.get()
+
+    run = Runner(
+        executor=executor,
+        chunksize=run_options["chunksize"],
+        maxchunks=run_options["limit-chunks"],
+        schema=processor.NanoAODSchema,
+        format="root"
+    )
+    output = run(config.filesets, treename="Events",
+                 processor_instance=config.processor_instance)
+    
+    assert output is not None
+    assert "skimmed_files" in output
+    assert "nskimmed_events" in output
+    
+    # Check that skimmed files were actually saved
+    for dataset, files in output["skimmed_files"].items():
+        for file in files:
+            assert Path(file).exists()
+
+    # Get dataset name, e.g. "TTTo2L2Nu_2018"
+    dataset_name = list(output["skimmed_files"].keys())[0]
+
+    # Verify that skim cutflow is populated 
+    assert output["cutflow"]["skim"][dataset_name] > 0
+    # Because skip_processing_after_skim is True, variables should be empty or nominal shouldn't be processed
+    assert len(output["variables"]) == 0
+
+    # Ensure the skim output holds the expected sum_genweights
+    for dataset, files in output["skimmed_files"].items():
+        if output["datasets_metadata"]["by_dataset"][dataset]["isMC"] == "True":
+            tot_sumw = 0.
+            for file in files:
+                ev = NanoEventsFactory.from_root(file, schemaclass=NanoAODSchema).events()
+                sumw = ak.sum(ev.genWeight * ev.skimRescaleGenWeight)
+                tot_sumw += sumw
+            assert np.isclose(tot_sumw, output["sum_genweights"][dataset])
