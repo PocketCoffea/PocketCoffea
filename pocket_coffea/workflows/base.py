@@ -762,7 +762,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self.export_skimmed_chunk()
             return self.output
 
-        # --- NEW SKIMMING LOGIC ---
+        # --- Systematic-aware skimming logic
         if self.cfg.save_skimmed_files and skim_mode == "presel_any_variation":
             self.process_extra_after_skim()
             self.initialize_calibrators()
@@ -793,14 +793,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 return self.output
 
             self.export_skimmed_chunk()
-            
-            # Optionally halt the chunk's computation after saving
-            if self.workflow_options.get("skip_processing_after_skim", True):
-                return self.output
-            
-            # We need to re-initialize for the actual processing
-            self.events = events_after_skim
-            self.initialize_calibrators()
+            return self.output
         # --------------------------
 
         #########################

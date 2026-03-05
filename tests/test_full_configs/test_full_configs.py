@@ -479,7 +479,7 @@ def test_skimming_presel_any_variation(base_path: Path, monkeypatch: pytest.Monk
 
     run_options = defaults.get_default_run_options()["general"]
     run_options["limit-files"] = 1
-    run_options["limit-chunks"] = 2
+    run_options["limit-chunks"] = 1
     run_options["chunksize"] = 100
     config.filter_dataset(run_options["limit-files"])
 

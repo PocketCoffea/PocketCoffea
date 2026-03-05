@@ -28,7 +28,7 @@ cfg = Configurator(
         },
     },
     workflow = BasicProcessor,
-    workflow_options = {"skim_mode": "presel_any_variation", "skip_processing_after_skim": True},
+    workflow_options = {"skim_mode": "presel_any_variation"},
     
     # We keep skim very loose
     skim = [get_nPVgood(1), eventFlags, get_HLTsel()],
