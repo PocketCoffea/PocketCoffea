@@ -36,11 +36,11 @@ lumi:
       G: 3082.8
       tot: 26671.7
     "2023_preBPix": 
-      C: 17794        # See https://twiki.cern.ch/twiki/bin/viewauth/CMS/PdmVRun3Analysis#DATA_AN2
-      tot: 17794
+      C: 17796        # See https://twiki.cern.ch/twiki/bin/viewauth/CMS/PdmVRun3Analysis#DATA_AN2
+      tot: 17796
     "2023_postBPix":
-      D: 9451  
-      tot: 9451
+      D: 94680  
+      tot: 94680
     "2024":           # See https://twiki.cern.ch/twiki/bin/viewauth/CMS/PdmVRun3Analysis#DATA_AN1
       C: 7260
       D: 7980
