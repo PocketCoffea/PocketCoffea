@@ -84,7 +84,7 @@ def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tag
     # For nanoV12 (i.e. 22/23), jet Id is also buggy, should therefore be rederived
     # in the following, if nano_version not explicitly specified in params, v9 is assumed for Run2UL, v12 for 22/23 and v15 for 2024
     jets["jetId_corrected"] = compute_jetId(events, jet_type, params, year)
-
+    nano_version = get_nano_version(events, params, year)
     # Mask for  jets not passing the preselection
     mask_presel = (
         (jets.pt > cuts["pt"])
@@ -101,7 +101,7 @@ def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tag
 
     if jet_type == "Jet":
         # Selection on PUid. Only available in Run2 UL, thus we need to determine which sample we run over;
-        if year in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
+        if year in ['2016_PreVFP', '2016_PostVFP','2017','2018'] and nano_version <= 9:
             mask_jetpuid = (jets.puId >= params.jet_scale_factors.jet_puId[year]["working_point"][cuts["puId"]["wp"]]) | (
                 jets.pt >= cuts["puId"]["maxpt"]
             )
@@ -448,6 +448,7 @@ def jet_correction_corrlib(
     jet_type,
     jet_coll_name,
     chunk_metadata,
+    nano_version,
     apply_jer=True,
     jec_syst=True,
 ):
@@ -493,7 +494,7 @@ def jet_correction_corrlib(
         jets_jagged["event_id"] = ak.ones_like(jets_jagged.pt) * events.event
     if ("run_nr" not in jets_jagged.fields):
         jets_jagged["run_nr"] = ak.ones_like(jets_jagged.pt) * events.run
-    if year in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
+    if year in ['2016_PreVFP', '2016_PostVFP','2017','2018'] and nano_version <= 9:
         rho = events.fixedGridRhoFastjetAll
     else:
         rho = events.Rho.fixedGridRhoFastjetAll
@@ -620,6 +621,7 @@ def msoftdrop_correction(
     subjet_type,
     jet_coll_name,
     chunk_metadata,
+    nano_version,
     jec_syst=True,
 ):
     """Apply softdrop mass correction to large-radius jets (FatJet) using correctionlib.
@@ -664,7 +666,7 @@ def msoftdrop_correction(
     jets_jagged["event_id"] = ak.ones_like(jets_jagged.pt) * events.event
     jets_jagged["run_nr"] = ak.ones_like(jets_jagged.pt) * events.run
 
-    if year in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
+    if year in ['2016_PreVFP', '2016_PostVFP','2017','2018'] and nano_version <= 9:
         rho = events.fixedGridRhoFastjetAll
     else:
         rho = events.Rho.fixedGridRhoFastjetAll
