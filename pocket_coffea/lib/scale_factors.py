@@ -98,8 +98,15 @@ def get_ele_sf(
         if key == 'reco':
             sfname = electronSF.JSONfiles[year]["reco"][pt_region]
         elif key == 'id':
-            sfname = electronSF["id"][params.object_preselection["Electron"]["id"]]
-        
+            if type(params.object_preselection["Electron"]["id"]) == str:
+                id_key = params.object_preselection["Electron"]["id"]
+            # for different SF ID naming between years, the key is taken from the object preselection file
+            elif hasattr(params.object_preselection["Electron"]["id"], "keys"):
+                if year not in params.object_preselection["Electron"]["id"]:
+                    raise Exception(f"Year {year} not found in the electron id preselection in parameters. Please check the object preselection file.")
+                id_key = params.object_preselection["Electron"]["id"][year]
+            sfname = electronSF["id"][id_key]
+
         if year in ["2023_preBPix", "2023_postBPix"]:
             sf = electron_correctionset[map_name].evaluate(
                 year_pog, "sf", sfname, eta.to_numpy(), pt.to_numpy(),  phi.to_numpy()
@@ -113,7 +120,7 @@ def get_ele_sf(
         else:
             pt = pt.to_numpy()
             eta = eta.to_numpy()
-            # All other eras do not need phi:    
+            # All other eras do not need phi:  
             sf = electron_correctionset[map_name].evaluate(
                 year_pog, "sf", sfname, eta, pt
             )
