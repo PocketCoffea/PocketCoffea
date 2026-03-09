@@ -9,8 +9,18 @@ from ..utils.utils import get_nano_version, replace_at_indices
 
 
 def add_jec_variables(jets, event_rho, isMC=True):
-    jets["pt_raw"] = (1 - jets.rawFactor) * jets.pt
-    jets["mass_raw"] = (1 - jets.rawFactor) * jets.mass
+    # Check if pt is defined, if not take the rawPt
+    if "pt" not in jets.fields:
+        jets["pt"] = jets.rawPt
+        jets["pt_raw"] = jets.rawPt
+        if "rawMass" in jets.fields:    
+            jets["mass_raw"] = jets.rawMass
+        else:
+            # NanoAODv12 does not have rawMass for corrT1METjet
+            jets["mass_raw"] = ak.zeros_like(jets.rawPt)
+    else:
+        jets["pt_raw"] = (1 - jets.rawFactor) * jets.pt
+        jets["mass_raw"] = (1 - jets.rawFactor) * jets.mass
     jets["event_rho"] = ak.broadcast_arrays(event_rho, jets.pt)[0]
     if isMC:
         try:
@@ -489,18 +499,19 @@ def jet_correction_corrlib(
     jets_jagged = events[jet_coll_name]
     counts = ak.num(jets_jagged)
 
-    if ("event_id" not in jets_jagged.fields) and (apply_jer or jer_syst):
-        jets_jagged["event_id"] = ak.ones_like(jets_jagged.pt) * events.event
-    if ("run_nr" not in jets_jagged.fields):
-        jets_jagged["run_nr"] = ak.ones_like(jets_jagged.pt) * events.run
     if year in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
         rho = events.fixedGridRhoFastjetAll
     else:
         rho = events.Rho.fixedGridRhoFastjetAll
+    # Add variables needed for JEC and JER corrections (e.g. pt_raw, mass_raw, pt_gen, event_rho)
     jets_jagged = add_jec_variables(jets_jagged, rho, isMC)
 
+    if ("event_id" not in jets_jagged.fields) and (apply_jer or jer_syst):
+        jets_jagged["event_id"] = ak.ones_like(jets_jagged.pt) * events.event
+    if ("run_nr" not in jets_jagged.fields):
+        jets_jagged["run_nr"] = ak.ones_like(jets_jagged.pt) * events.run
+    
     # flatten
-
     jets = ak.flatten(jets_jagged)
     # evaluate dictionary
     eval_dict = {
