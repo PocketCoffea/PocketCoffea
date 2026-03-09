@@ -133,7 +133,7 @@ class JetsCalibrator(Calibrator):
                 # If the jet type has variations, we add them to the list
                 # of variations available for this calibrator
                 for variation in self.jet_calib_param.variations[jet_type_alias][self.year]:
-                    variation_jet_type = jet_type
+                    variation_jet_type = jet_type_alias
                     # Check if the jet type is merged for variations
                     if (
                         "merge_collections_for_variations" in self.jet_calib_param
