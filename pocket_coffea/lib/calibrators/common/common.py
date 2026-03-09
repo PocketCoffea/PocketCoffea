@@ -517,7 +517,6 @@ class METCalibrator(Calibrator):
     def calibrate(self, events, orig_colls, variation, already_applied_calibrators=None):
         '''
         From `https://indico.cern.ch/event/1644923/contributions/6916115/attachments/3211593/5720863/260202_JMEGeneral_Type1METWithNano_Nurfikri.pdf'''
-    
         jets_calib = events[self.jet_collection]
         jet_jecL1L2L3 = 1./(1. - jets_calib["rawFactor"])
         jet_jecL1 = 1. # For PuppiJets
@@ -549,9 +548,6 @@ class METCalibrator(Calibrator):
         else:
             mask_corrT1METJet = corrT1METJet_pt_noMuL1L2L3 > 15
 
-        met_p2D_Type1Corr = vector.zip({"rho": events[self.rawMet_branch]["pt"], 
-                                        "phi": events[self.rawMet_branch]["phi"]})
-
         jet_p2D_noMuL1L2L3 = vector.zip({"rho": jet_pt_noMuL1L2L3[mask_jets], 
                                          "phi": jet_phi_noMuRaw[mask_jets]})
         jet_p2D_noMuL1 = vector.zip({"rho": jet_pt_noMuL1[mask_jets], 
@@ -571,7 +567,11 @@ class METCalibrator(Calibrator):
                 "y": ak.sum(jet_p2D_corrTerMET.y, axis=1),
             }
         )
-        met_p2D_Type1Corr = met_p2D_Type1Corr - jet_p2D_corrTerMET_sum
+        #load raw Met
+        met_final = vector.zip({"rho": events[self.rawMet_branch]["pt"], 
+                                        "phi": events[self.rawMet_branch]["phi"]})
+
+        met_final = met_final - jet_p2D_corrTerMET_sum
 
         # Do the same for the corrT1METJet part
         corrT1METJet_p2D_corrTerMET_sum = vector.zip(
@@ -580,10 +580,38 @@ class METCalibrator(Calibrator):
                 "y": ak.sum(corrT1METJet_p2D_corrTerMET.y, axis=1),
             }
         )
-        met_p2D_Type1Corr = met_p2D_Type1Corr - corrT1METJet_p2D_corrTerMET_sum
+        met_final = met_final - corrT1METJet_p2D_corrTerMET_sum
 
-        return {f"{self.met_branch}.pt" : met_p2D_Type1Corr.rho,
-                f"{self.met_branch}.phi" : met_p2D_Type1Corr.phi}
+        # Now include electron and muon corrections if they are in the original columns
+        # This means that they have been corrected.
+        if "Electron.pt" in orig_colls:
+            ele_p2D = vector.zip({"rho": orig_colls["Electron.pt"], 
+                                  "phi": events["Electron"]["phi"]})
+            ele_p2D_calib = vector.zip({"rho": events["Electron"]["pt"], 
+                                        "phi": events["Electron"]["phi"]})
+            ele_p2D_delta = ele_p2D_calib - ele_p2D
+            ele_p2D_delta_sum = vector.zip(
+                { "x": ak.sum(ele_p2D_delta.x, axis=1),
+                    "y": ak.sum(ele_p2D_delta.y, axis=1),
+                }
+            )
+            met_final = met_final - ele_p2D_delta_sum
+        
+        if "Muon.pt" in orig_colls:
+            mu_p2D = vector.zip({"rho": orig_colls["Muon.pt"], 
+                                  "phi": events["Muon"]["phi"]})
+            mu_p2D_calib = vector.zip({"rho": events["Muon"]["pt"], 
+                                        "phi": events["Muon"]["phi"]})
+            mu_p2D_delta = mu_p2D_calib - mu_p2D
+            mu_p2D_delta_sum = vector.zip(
+                { "x": ak.sum(mu_p2D_delta.x, axis=1),
+                  "y": ak.sum(mu_p2D_delta.y, axis=1),
+                }
+            )
+            met_final = met_final - mu_p2D_delta_sum
+
+        return {f"{self.met_branch}.pt" : met_final.rho,
+                f"{self.met_branch}.phi" : met_final.phi}
 
 
 
@@ -870,5 +898,5 @@ class MuonsCalibrator(Calibrator):
 
 #########################################
 default_calibrators_sequence = [
-    JetsCalibrator, METCalibrator, ElectronsScaleCalibrator, MuonsCalibrator,
+    JetsCalibrator, ElectronsScaleCalibrator, MuonsCalibrator, METCalibrator
 ]

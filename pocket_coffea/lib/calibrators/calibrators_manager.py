@@ -1,6 +1,7 @@
 from .calibrator import Calibrator
 from collections import defaultdict
 from typing import List
+import copy
 
 
 class CalibratorsManager():
@@ -120,7 +121,7 @@ class CalibratorsManager():
                     if col not in self.original_coll:     
                         try:
                             # If the collection is not in the original collection, we store it
-                            self.original_coll[col] = events[col]
+                            self.original_coll[col] = copy.copy(events[col])  # store soft link
                         except ValueError:
                             # This means that the column is not present in the events and it is created by the calibrator
                             # and it is not a problem
@@ -132,7 +133,7 @@ class CalibratorsManager():
                     collection, field = col.split(".")
                     if col not in self.original_coll:
                         try:
-                            self.original_coll[col] = events[collection, field]
+                            self.original_coll[col] = copy.copy(events[collection, field]) 
                         except ValueError:
                             # This means that the column is not present in the events and it is created by the calibrator
                             # and it is not a problem
