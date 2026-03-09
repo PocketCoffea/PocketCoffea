@@ -497,7 +497,7 @@ class JetsSoftdropMassCalibrator(Calibrator):
 class METCalibrator(Calibrator):
 
     name = "met_type1_calibration"
-    has_variations = False
+    has_variations = True
     isMC_only = False
  
     def __init__(self, params, metadata, do_variations=True, **kwargs):
@@ -510,6 +510,7 @@ class METCalibrator(Calibrator):
         self.corrT1METJet_branch = self.met_calib_cfg.CorrT1METJet_collection
         self.calibrated_collections = [f"{self.met_branch}.pt", f"{self.met_branch}.phi"]
         self.jet_collection = self.met_calib_cfg.Jet_collection
+        self._variations = ["unclust_EnUp", "unclust_EnDown"]
        
     def initialize(self, events):
         pass
@@ -569,7 +570,7 @@ class METCalibrator(Calibrator):
         )
         #load raw Met
         met_final = vector.zip({"rho": events[self.rawMet_branch]["pt"], 
-                                        "phi": events[self.rawMet_branch]["phi"]})
+                                "phi": events[self.rawMet_branch]["phi"]})
 
         met_final = met_final - jet_p2D_corrTerMET_sum
 
@@ -609,6 +610,20 @@ class METCalibrator(Calibrator):
                 }
             )
             met_final = met_final - mu_p2D_delta_sum
+
+        # Check for the unclustered energy variation 
+        # It is taken from the PuppiMET collection and reapplied
+        if variation in  ["unclust_EnUp", "unclust_EnDown"]:
+            direct = "Up" if variation=="unclust_EnUp" else "Down"
+            delta_met = vector.zip({
+                        "rho": events["PuppiMET"]["ptUnclustered"+direct],
+                        "phi": events["PuppiMET"]["phiUnclustered"+direct]
+                    }) - vector.zip({
+                        "rho": events["PuppiMET"]["pt"],
+                        "phi": events["PuppiMET"]["phi"]
+                    })
+            met_final = met_final + delta_met
+
 
         return {f"{self.met_branch}.pt" : met_final.rho,
                 f"{self.met_branch}.phi" : met_final.phi}
