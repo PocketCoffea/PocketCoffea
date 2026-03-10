@@ -324,7 +324,8 @@ jets_calibration:
   jet_types:
     AK4PFchs: "${default_jets_calibration.factory_config_clib.AK4PFchs}" 
     AK4PFPuppi: "${default_jets_calibration.factory_config_clib.AK4PFPuppi}" 
-    AK4CorrT1METJet: "${default_jets_calibration.factory_config_clib.AK4PFPuppi}" 
+    AK4CorrT1METJetchs: "${default_jets_calibration.factory_config_clib.AK4PFchs}" 
+    AK4CorrT1METJetPuppi: "${default_jets_calibration.factory_config_clib.AK4PFPuppi}" 
     # AK4PFPuppiPNetRegression: "${default_jets_calibration.factory_config_clib.AK4PFPuppiPNetRegression}" 
     # AK4PFPuppiPNetRegressionPlusNeutrino: "${default_jets_calibration.factory_config_clib.AK4PFPuppiPNetRegressionPlusNeutrino}" 
     AK8PFPuppi: "${default_jets_calibration.factory_config_clib.AK8PFPuppi}"
@@ -333,79 +334,107 @@ jets_calibration:
     2016_PreVFP:
       AK4PFchs: "Jet"
       AK8PFPuppi: "FatJet"
+      AK4CorrT1METJetchs: "CorrT1METJet"
     2016_PostVFP:
       AK4PFchs: "Jet"
       AK8PFPuppi: "FatJet"
+      AK4CorrT1METJetchs: "CorrT1METJet"
     "2017":
       AK4PFchs: "Jet"
       AK8PFPuppi: "FatJet"
+      AK4CorrT1METJetchs: "CorrT1METJet"
     "2018":
       AK4PFchs: "Jet"
       AK8PFPuppi: "FatJet"
+      AK4CorrT1METJetchs: "CorrT1METJet"
     2022_preEE:
       AK4PFPuppi: "Jet"
-      AK4CorrT1METJet: "CorrT1METJet"
+      AK4CorrT1METJetPuppi: "CorrT1METJet"
       #AK4PFPuppiPNetRegression: "Jet"
       #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
       AK8PFPuppi: "FatJet"
     2022_postEE:
       AK4PFPuppi: "Jet"
-      AK4CorrT1METJet: "CorrT1METJet"
+      AK4CorrT1METJetPuppi: "CorrT1METJet"
       #AK4PFPuppiPNetRegression: "Jet"
       #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
       AK8PFPuppi: "FatJet"
     2023_preBPix:
       AK4PFPuppi: "Jet"
-      AK4CorrT1METJet: "CorrT1METJet"
+      AK4CorrT1METJetPuppi: "CorrT1METJet"
       #AK4PFPuppiPNetRegression: "Jet"
       #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
       AK8PFPuppi: "FatJet"
     2023_postBPix:
       AK4PFPuppi: "Jet"
-      AK4CorrT1METJet: "CorrT1METJet"
+      AK4CorrT1METJetPuppi: "CorrT1METJet"
       #AK4PFPuppiPNetRegression: "Jet"
       #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
       AK8PFPuppi: "FatJet"
     "2024":
       AK4PFPuppi: "Jet"
-      AK4CorrT1METJet: "CorrT1METJet"
+      AK4CorrT1METJetPuppi: "CorrT1METJet"
       #AK4PFPuppiPNetRegression: "Jet"
       #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
       AK8PFPuppi: "FatJet"
      
   collection_name_alias:
+    2016_PreVFP:
+      AK4CorrT1METJetchs: AK4PFchs
+    2016_PostVFP:
+      AK4CorrT1METJetchs: AK4PFchs
+    "2017":
+      AK4CorrT1METJetchs: AK4PFchs
+    "2018":
+      AK4CorrT1METJetchs: AK4PFchs
     2022_preEE:
-      AK4CorrT1METJet: AK4PFPuppi
+      AK4CorrT1METJetPuppi: AK4PFPuppi
     2022_postEE:
-      AK4CorrT1METJet: AK4PFPuppi
+      AK4CorrT1METJetPuppi: AK4PFPuppi
     2023_preBPix:
-      AK4CorrT1METJet: AK4PFPuppi
+      AK4CorrT1METJetPuppi: AK4PFPuppi
     2023_postBPix:
-      AK4CorrT1METJet: AK4PFPuppi
+      AK4CorrT1METJetPuppi: AK4PFPuppi
     "2024":
-      AK4CorrT1METJet: AK4PFPuppi
+      AK4CorrT1METJetPuppi: AK4PFPuppi
 
   merge_collections_for_variations:
+    2016_PreVFP:
+      AK4PFchs: 
+        - AK4PFchs
+        - AK4CorrT1METJetchs
+    2016_PostVFP:
+      AK4PFchs:
+        - AK4PFchs
+        - AK4CorrT1METJetchs
+    "2017":
+      AK4PFchs: 
+        - AK4PFchs
+        - AK4CorrT1METJetchs
+    "2018":
+      AK4PFchs: 
+        - AK4PFchs  
+        - AK4CorrT1METJetchs
     2022_preEE:
       AK4PFPuppi: 
         - AK4PFPuppi
-        - AK4CorrT1METJet
+        - AK4CorrT1METJetPuppi
     2022_postEE:
       AK4PFPuppi: 
         - AK4PFPuppi
-        - AK4CorrT1METJet
+        - AK4CorrT1METJetPuppi
     2023_preBPix:
       AK4PFPuppi: 
         - AK4PFPuppi
-        - AK4CorrT1METJet
+        - AK4CorrT1METJetPuppi
     2023_postBPix:
       AK4PFPuppi: 
         - AK4PFPuppi
-        - AK4CorrT1METJet
+        - AK4CorrT1METJetPuppi
     "2024":
       AK4PFPuppi: 
         - AK4PFPuppi
-        - AK4CorrT1METJet
+        - AK4CorrT1METJetPuppi
 
   sort_by_pt:
     2016_PreVFP:
@@ -685,47 +714,64 @@ jets_calibration:
 
   rescale_MET_config:
     2016_PreVFP:
-      apply: True
+      apply_MC: True
+      apply_data: False
+      RawMET_collection: "RawMET"
       MET_collection: "MET"
+      CorrT1METJet_collection: "CorrT1METJet"
       Jet_collection: "Jet"
     2016_PostVFP:
-      apply: True
+      apply_MC: True
+      apply_data: False
+      RawMET_collection: "RawMET"
       MET_collection: "MET"
+      CorrT1METJet_collection: "CorrT1METJet"
       Jet_collection: "Jet"
     "2017":
-      apply: True
+      apply_MC: True
+      apply_data: False
+      RawMET_collection: "RawMET"
       MET_collection: "MET"
+      CorrT1METJet_collection: "CorrT1METJet"
       Jet_collection: "Jet"
     "2018": 
-      apply: True
+      apply_MC: True
+      apply_data: False
+      RawMET_collection: "RawMET"
       MET_collection: "MET"
+      CorrT1METJet_collection: "CorrT1METJet"
       Jet_collection: "Jet"
     2022_preEE:   
-      apply: True
+      apply_MC: True
+      apply_data: True
       RawMET_collection: "RawPuppiMET"
       MET_collection: "PuppiMET"
       CorrT1METJet_collection: "CorrT1METJet"
       Jet_collection: "Jet"
     2022_postEE:
-      apply: True
+      apply_MC: True
+      apply_data: True
       RawMET_collection: "RawPuppiMET"
       MET_collection: "PuppiMET"
       CorrT1METJet_collection: "CorrT1METJet"
       Jet_collection: "Jet"
     2023_preBPix:
-      apply: True
+      apply_MC: True
+      apply_data: True
       RawMET_collection: "RawPuppiMET"
       MET_collection: "PuppiMET"
       CorrT1METJet_collection: "CorrT1METJet"
       Jet_collection: "Jet"
     2023_postBPix:
-      apply: True
+      apply_MC: True
+      apply_data: True
       RawMET_collection: "RawPuppiMET"
       MET_collection: "PuppiMET"
       CorrT1METJet_collection: "CorrT1METJet"
       Jet_collection: "Jet"
     "2024":
-      apply: True
+      apply_MC: True
+      apply_data: True
       RawMET_collection: "RawPuppiMET"
       MET_collection: "PuppiMET"
       CorrT1METJet_collection: "CorrT1METJet"

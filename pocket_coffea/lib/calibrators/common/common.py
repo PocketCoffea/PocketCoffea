@@ -43,7 +43,9 @@ class JetsCalibrator(Calibrator):
         # Load the calibration of each jet type requested by the parameters
         for jet_type, jet_coll_name in self.jet_calib_param.collection[self.year].items():
             # Define the key name to get the corrections
-            if "collection_name_alias" in self.jet_calib_param and jet_type in self.jet_calib_param.collection_name_alias[self.year]:
+            if ( ("collection_name_alias" in self.jet_calib_param) and 
+                (self.year in self.jet_calib_param.collection_name_alias) and
+                (jet_type in self.jet_calib_param.collection_name_alias[self.year])):
                 jet_type_alias = self.jet_calib_param.collection_name_alias[self.year][jet_type]
             else:
                 jet_type_alias=jet_type
@@ -101,6 +103,7 @@ class JetsCalibrator(Calibrator):
                 apply_jer=self.jet_calib_param.apply_jer_MC[self.year][jet_type_alias] if self.isMC else False,
             )
             # update the rawFactor of the corrected jets
+            #print(f"Calibrating jet collection {jet_coll_name} with jet type {jet_type} and alias {jet_type_alias}. " + f"Year: {self._year}")
             self.jets_calibrated[jet_coll_name] = ak.with_field(
                 corrected_jets,
                 ak.where(
@@ -118,7 +121,9 @@ class JetsCalibrator(Calibrator):
         available_jet_variations = []
         for jet_type, jet_coll_name in self.jet_calib_param.collection[self.year].items():
             # Define the key name to get the corrections
-            if "collection_name_alias" in self.jet_calib_param and jet_type in self.jet_calib_param.collection_name_alias[self.year]:
+            if ((("collection_name_alias" in self.jet_calib_param) and 
+                (self.year in self.jet_calib_param.collection_name_alias)) and
+                (jet_type in self.jet_calib_param.collection_name_alias[self.year])):
                 jet_type_alias = self.jet_calib_param.collection_name_alias[self.year][jet_type]
             else:
                 jet_type_alias=jet_type
@@ -502,7 +507,10 @@ class METCalibrator(Calibrator):
         super().__init__(params, metadata, do_variations, **kwargs)
         jet_calib_param = self.params.jets_calibration
         self.met_calib_cfg = jet_calib_param.rescale_MET_config[self.year]
-        self.met_calib_active = self.met_calib_cfg.apply
+        if self.isMC:
+            self.met_calib_active = self.met_calib_cfg.apply_MC
+        else:
+            self.met_calib_active = self.met_calib_cfg.apply_data
         self.met_branch = self.met_calib_cfg.MET_collection
         self.rawMet_branch = self.met_calib_cfg.RawMET_collection
         self.corrT1METJet_branch = self.met_calib_cfg.CorrT1METJet_collection
@@ -516,70 +524,72 @@ class METCalibrator(Calibrator):
     def calibrate(self, events, orig_colls, variation, already_applied_calibrators=None):
         '''
         From `https://indico.cern.ch/event/1644923/contributions/6916115/attachments/3211593/5720863/260202_JMEGeneral_Type1METWithNano_Nurfikri.pdf'''
-        jets_calib = events[self.jet_collection]
-        jet_jecL1L2L3 = 1./(1. - jets_calib["rawFactor"])
-        jet_jecL1 = 1. # For PuppiJets
-        
-        corrT1METJet = events[self.corrT1METJet_branch]
-        corrT1METJet_jecL1L2L3 = 1./(1. - corrT1METJet["rawFactor"])
-
-        jet_pt_noMuRaw = jets_calib["pt"] * (1. - jets_calib["rawFactor"])*(1. - jets_calib["muonSubtrFactor"])
-        if "muonSubtrDeltaPhi" in jets_calib.fields:
-            jet_phi_noMuRaw = jets_calib["muonSubtrDeltaPhi"] + jets_calib["phi"]
-        else:
-            jet_phi_noMuRaw = jets_calib["phi"]
-        corrT1METJet_pt_noMuRaw = corrT1METJet["rawPt"] * (1. - corrT1METJet["muonSubtrFactor"])
-        if "muonSubtrDeltaPhi" in corrT1METJet.fields:
-            corrT1METJet_phi_noMuRaw = corrT1METJet["muonSubtrDeltaPhi"] + corrT1METJet["phi"]
-        else:
-            corrT1METJet_phi_noMuRaw = corrT1METJet["phi"]  
-        
-        jet_pt_noMuL1 = jet_pt_noMuRaw  * jet_jecL1
-        jet_pt_noMuL1L2L3 = jet_pt_noMuRaw * jet_jecL1L2L3 
-        corrT1METJet_pt_noMuL1 = corrT1METJet_pt_noMuRaw * jet_jecL1
-        corrT1METJet_pt_noMuL1L2L3 = corrT1METJet_pt_noMuRaw * corrT1METJet_jecL1L2L3
-        
-        mask_jets = (jet_pt_noMuL1L2L3>15) & \
-                    (jets_calib["chEmEF"] + jets_calib["neEmEF"] < 0.9) 
-        if "EmEF" in jets_calib.fields:
-            mask_corrT1METJet = (corrT1METJet_pt_noMuL1L2L3 > 15) & \
-                                (corrT1METJet["EmEF"] < 0.9)
-        else:
-            mask_corrT1METJet = corrT1METJet_pt_noMuL1L2L3 > 15
-
-        jet_p2D_noMuL1L2L3 = vector.zip({"rho": jet_pt_noMuL1L2L3[mask_jets], 
-                                         "phi": jet_phi_noMuRaw[mask_jets]})
-        jet_p2D_noMuL1 = vector.zip({"rho": jet_pt_noMuL1[mask_jets], 
-                                     "phi": jet_phi_noMuRaw[mask_jets]})
-        corrT1METJet_p2D_noMuL1L2L3 = vector.zip({"rho": corrT1METJet_pt_noMuL1L2L3[mask_corrT1METJet], 
-                                                  "phi": corrT1METJet_phi_noMuRaw[mask_corrT1METJet]})
-        corrT1METJet_p2D_noMuL1 = vector.zip({"rho": corrT1METJet_pt_noMuL1[mask_corrT1METJet], 
-                                              "phi": corrT1METJet_phi_noMuRaw[mask_corrT1METJet]})
-        # Deltas
-        jet_p2D_corrTerMET = jet_p2D_noMuL1L2L3 - jet_p2D_noMuL1
-        corrT1METJet_p2D_corrTerMET = corrT1METJet_p2D_noMuL1L2L3 - corrT1METJet_p2D_noMuL1
-
-        # Summing vectors in Cartesian coordinates
-        jet_p2D_corrTerMET_sum = vector.zip(
-            {
-                "x": ak.sum(jet_p2D_corrTerMET.x, axis=1),
-                "y": ak.sum(jet_p2D_corrTerMET.y, axis=1),
-            }
-        )
         #load raw Met
         met_final = vector.zip({"rho": events[self.rawMet_branch]["pt"], 
                                 "phi": events[self.rawMet_branch]["phi"]})
 
-        met_final = met_final - jet_p2D_corrTerMET_sum
+        # Check if the MET calibration is active 
+        if self.met_calib_active:
+            jets_calib = events[self.jet_collection]
+            jet_jecL1L2L3 = 1./(1. - jets_calib["rawFactor"])
+            jet_jecL1 = 1. # For PuppiJets
+            
+            corrT1METJet = events[self.corrT1METJet_branch]
+            corrT1METJet_jecL1L2L3 = 1./(1. - corrT1METJet["rawFactor"])
 
-        # Do the same for the corrT1METJet part
-        corrT1METJet_p2D_corrTerMET_sum = vector.zip(
-            {
-                "x": ak.sum(corrT1METJet_p2D_corrTerMET.x, axis=1),
-                "y": ak.sum(corrT1METJet_p2D_corrTerMET.y, axis=1),
-            }
-        )
-        met_final = met_final - corrT1METJet_p2D_corrTerMET_sum
+            jet_pt_noMuRaw = jets_calib["pt"] * (1. - jets_calib["rawFactor"])*(1. - jets_calib["muonSubtrFactor"])
+            if "muonSubtrDeltaPhi" in jets_calib.fields:
+                jet_phi_noMuRaw = jets_calib["muonSubtrDeltaPhi"] + jets_calib["phi"]
+            else:
+                jet_phi_noMuRaw = jets_calib["phi"]
+            corrT1METJet_pt_noMuRaw = corrT1METJet["rawPt"] * (1. - corrT1METJet["muonSubtrFactor"])
+            if "muonSubtrDeltaPhi" in corrT1METJet.fields:
+                corrT1METJet_phi_noMuRaw = corrT1METJet["muonSubtrDeltaPhi"] + corrT1METJet["phi"]
+            else:
+                corrT1METJet_phi_noMuRaw = corrT1METJet["phi"]  
+            
+            jet_pt_noMuL1 = jet_pt_noMuRaw  * jet_jecL1
+            jet_pt_noMuL1L2L3 = jet_pt_noMuRaw * jet_jecL1L2L3 
+            corrT1METJet_pt_noMuL1 = corrT1METJet_pt_noMuRaw * jet_jecL1
+            corrT1METJet_pt_noMuL1L2L3 = corrT1METJet_pt_noMuRaw * corrT1METJet_jecL1L2L3
+            
+            mask_jets = (jet_pt_noMuL1L2L3>15) & \
+                        (jets_calib["chEmEF"] + jets_calib["neEmEF"] < 0.9) 
+            if "EmEF" in jets_calib.fields:
+                mask_corrT1METJet = (corrT1METJet_pt_noMuL1L2L3 > 15) & \
+                                    (corrT1METJet["EmEF"] < 0.9)
+            else:
+                mask_corrT1METJet = corrT1METJet_pt_noMuL1L2L3 > 15
+
+            jet_p2D_noMuL1L2L3 = vector.zip({"rho": jet_pt_noMuL1L2L3[mask_jets], 
+                                            "phi": jet_phi_noMuRaw[mask_jets]})
+            jet_p2D_noMuL1 = vector.zip({"rho": jet_pt_noMuL1[mask_jets], 
+                                        "phi": jet_phi_noMuRaw[mask_jets]})
+            corrT1METJet_p2D_noMuL1L2L3 = vector.zip({"rho": corrT1METJet_pt_noMuL1L2L3[mask_corrT1METJet], 
+                                                    "phi": corrT1METJet_phi_noMuRaw[mask_corrT1METJet]})
+            corrT1METJet_p2D_noMuL1 = vector.zip({"rho": corrT1METJet_pt_noMuL1[mask_corrT1METJet], 
+                                                "phi": corrT1METJet_phi_noMuRaw[mask_corrT1METJet]})
+            # Deltas
+            jet_p2D_corrTerMET = jet_p2D_noMuL1L2L3 - jet_p2D_noMuL1
+            corrT1METJet_p2D_corrTerMET = corrT1METJet_p2D_noMuL1L2L3 - corrT1METJet_p2D_noMuL1
+
+            # Summing vectors in Cartesian coordinates
+            jet_p2D_corrTerMET_sum = vector.zip(
+                {
+                    "x": ak.sum(jet_p2D_corrTerMET.x, axis=1),
+                    "y": ak.sum(jet_p2D_corrTerMET.y, axis=1),
+                }
+            )
+            met_final = met_final - jet_p2D_corrTerMET_sum
+
+            # Do the same for the corrT1METJet part
+            corrT1METJet_p2D_corrTerMET_sum = vector.zip(
+                {
+                    "x": ak.sum(corrT1METJet_p2D_corrTerMET.x, axis=1),
+                    "y": ak.sum(corrT1METJet_p2D_corrTerMET.y, axis=1),
+                }
+            )
+            met_final = met_final - corrT1METJet_p2D_corrTerMET_sum
 
         # Now include electron and muon corrections if they are in the original columns
         # This means that they have been corrected.
@@ -614,11 +624,11 @@ class METCalibrator(Calibrator):
         if variation in  ["unclust_EnUp", "unclust_EnDown"]:
             direct = "Up" if variation=="unclust_EnUp" else "Down"
             delta_met = vector.zip({
-                        "rho": events["PuppiMET"]["ptUnclustered"+direct],
-                        "phi": events["PuppiMET"]["phiUnclustered"+direct]
+                        "rho": events[self.met_branch]["ptUnclustered"+direct],
+                        "phi": events[self.met_branch]["phiUnclustered"+direct]
                     }) - vector.zip({
-                        "rho": events["PuppiMET"]["pt"],
-                        "phi": events["PuppiMET"]["phi"]
+                        "rho": events[self.met_branch]["pt"],
+                        "phi": events[self.met_branch]["phi"]
                     })
             met_final = met_final + delta_met
 
