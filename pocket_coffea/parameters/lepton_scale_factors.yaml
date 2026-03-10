@@ -338,6 +338,7 @@ lepton_scale_factors:
             poly: "poly_params" 
 
     promptmva_jsons:
+    # Iso SF is "included" in the private SF
       '2022_preEE': 
         file: "${default_params_dir:}/custom_SFs/muon_promptMVA/2022/leptonSF_2022.json.gz"
       
@@ -353,5 +354,6 @@ lepton_scale_factors:
       '2024': 
         file: "${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,MUO,muon_Z.json.gz}"
         keys: 
+          - NUM_LoosePFIso_DEN_MediumID
           - NUM_MediumID_DEN_TrackerMuons
           - NUM_promptMVA_WP64ID_DEN_MediumID
