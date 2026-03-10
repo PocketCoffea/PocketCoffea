@@ -40,7 +40,6 @@ class JetsCalibrator(Calibrator):
         self.calibrated_collections = []
 
     def initialize(self, events):
-
         # Load the calibration of each jet type requested by the parameters
         for jet_type, jet_coll_name in self.jet_calib_param.collection[self.year].items():
             # Define the key name to get the corrections
@@ -329,7 +328,6 @@ class JetsCalibrator(Calibrator):
             out[jet_coll_name]["pt"] = self.jets_calibrated[jet_coll_name][f"pt_{variation_type}_up"]
             out[jet_coll_name]["mass"] = self.jets_calibrated[jet_coll_name][f"mass_{variation_type}_up"]
         elif direction == "down":
-            # print(type(out[jet_coll_name]["pt"]))
             out[jet_coll_name]["pt"] = self.jets_calibrated[jet_coll_name][f"pt_{variation_type}_down"]
             out[jet_coll_name]["mass"] = self.jets_calibrated[jet_coll_name][f"mass_{variation_type}_down"]
 

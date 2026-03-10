@@ -344,6 +344,7 @@ jets_calibration:
       AK8PFPuppi: "FatJet"
     2022_preEE:
       AK4PFPuppi: "Jet"
+      AK4CorrT1METJet: "CorrT1METJet"
       #AK4PFPuppiPNetRegression: "Jet"
       #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
       AK8PFPuppi: "FatJet"
@@ -383,7 +384,6 @@ jets_calibration:
       AK4CorrT1METJet: AK4PFPuppi
     "2024":
       AK4CorrT1METJet: AK4PFPuppi
-      
 
   merge_collections_for_variations:
     2022_preEE:
@@ -402,7 +402,10 @@ jets_calibration:
       AK4PFPuppi: 
         - AK4PFPuppi
         - AK4CorrT1METJet
-
+    "2024":
+      AK4PFPuppi: 
+        - AK4PFPuppi
+        - AK4CorrT1METJet
 
   sort_by_pt:
     2016_PreVFP:
