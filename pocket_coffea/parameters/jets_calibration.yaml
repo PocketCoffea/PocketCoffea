@@ -384,7 +384,26 @@ jets_calibration:
     "2024":
       AK4CorrT1METJet: AK4PFPuppi
       
-  
+
+  merge_collections_for_variations:
+    2022_preEE:
+      AK4PFPuppi: 
+        - AK4PFPuppi
+        - AK4CorrT1METJet
+    2022_postEE:
+      AK4PFPuppi: 
+        - AK4PFPuppi
+        - AK4CorrT1METJet
+    2023_preBPix:
+      AK4PFPuppi: 
+        - AK4PFPuppi
+        - AK4CorrT1METJet
+    2023_postBPix:
+      AK4PFPuppi: 
+        - AK4PFPuppi
+        - AK4CorrT1METJet
+
+
   sort_by_pt:
     2016_PreVFP:
       AK4PFchs: True
