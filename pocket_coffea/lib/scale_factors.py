@@ -98,7 +98,14 @@ def get_ele_sf(
         if key == 'reco':
             sfname = electronSF.JSONfiles[year]["reco"][pt_region]
         elif key == 'id':
-            sfname = electronSF["id"][params.object_preselection["Electron"]["id"]]
+            if type(params.object_preselection["Electron"]["id"]) == str:
+                id_key = params.object_preselection["Electron"]["id"]
+            elif hasattr(params.object_preselection["Electron"]["id"], "keys"):
+                # Handles OmegaConf DictConfig (year-dependent electron IDs)
+                if year not in params.object_preselection["Electron"]["id"]:
+                    raise Exception(f"Year {year} not found in the electron id preselection in parameters. Please check the object preselection file.")
+                id_key = params.object_preselection["Electron"]["id"][year]
+            sfname = electronSF["id"][id_key]
         
         if year in ["2023_preBPix", "2023_postBPix"]:
             sf = electron_correctionset[map_name].evaluate(
