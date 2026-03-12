@@ -125,7 +125,7 @@ class CalibratorsManager():
                         except ValueError:
                             # This means that the column is not present in the events and it is created by the calibrator
                             # and it is not a problem
-                            self.original_coll[col] = None
+                            pass
                     # replacing the value
                     events[col] = colls[col]
                 else:
@@ -137,7 +137,7 @@ class CalibratorsManager():
                         except ValueError:
                             # This means that the column is not present in the events and it is created by the calibrator
                             # and it is not a problem
-                            self.original_coll[col] = None
+                            pass
                     events[collection, field] = colls[col]
             # Keep track of the calibrators applied
             applied_calibrators.append(calibrator.name)
