@@ -9,9 +9,11 @@ from pocket_coffea.utils.network import check_port
 from pocket_coffea.parameters.dask_env import setup_dask
 from pocket_coffea.utils.configurator import Configurator
 from pocket_coffea.utils.rucio import get_xrootd_sites_map
+import pocket_coffea
 import cloudpickle
 import yaml
 from copy import deepcopy
+from rich.progress import Progress
 
 def get_worker_env(run_options,x509_path,exec_name="dask"):
     env_worker = [
@@ -45,7 +47,10 @@ def get_worker_env(run_options,x509_path,exec_name="dask"):
         if exec_name == "dask":
             env_worker.append(f"export PYTHONPATH={sys.prefix}/lib:$PYTHONPATH")
         elif exec_name == "condor":
-            pythonpath = sys.prefix.rsplit('/', 1)[0]
+            if os.getenv("PYTHONPATH"):
+                pythonpath = os.getenv("PYTHONPATH")
+            else:
+                pythonpath = "/".join(pocket_coffea.__file__.split("/")[:-2])
             env_worker.append(f"export PYTHONPATH={pythonpath}")
 
     return env_worker
@@ -150,19 +155,23 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
         # Disabling the postprocessing
         self.config.do_postprocessing = False
         # Splitting the filets creating a new configuration for each and pickling it
-        for i, split in enumerate(splits):
-            # We want to create an unloaded copy of the configurator, and setting the filtered
-            # fileset
-            partial_config = self.config.clone()
-            # take the config filr, set the fileset and save it.
-            partial_config.set_filesets_manually(split)
-            cloudpickle.dump(partial_config, open(f"{self.jobs_dir}/config_job_{i}.pkl", "wb"))
-            config_files.append(f"{self.jobs_dir}/config_job_{i}.pkl")
-            jobs_config["jobs_list"][f"job_{i}"] = {
-                "filesets": split,
-                "config_file": f"{self.jobs_dir}/config_job_{i}.pkl",
-                "output_file": f"{os.path.abspath(self.outputdir)}/output_job_{i}.coffea",
-            }
+        with Progress() as progress:
+            task1 = progress.add_task("[cyan]Preparing config pkls...", total=len(splits))
+            for i, split in enumerate(splits):
+                # We want to create an unloaded copy of the configurator, and setting the filtered
+                # fileset
+                partial_config = self.config.clone()
+                # take the config filr, set the fileset and save it.
+                partial_config.set_filesets_manually(split)
+                cloudpickle.dump(partial_config, open(f"{self.jobs_dir}/config_job_{i}.pkl", "wb"))
+                config_files.append(f"{self.jobs_dir}/config_job_{i}.pkl")
+                jobs_config["jobs_list"][f"job_{i}"] = {
+                    "filesets": split,
+                    "config_file": f"{self.jobs_dir}/config_job_{i}.pkl",
+                    "output_file": f"{os.path.abspath(self.outputdir)}/output_job_{i}.coffea",
+                }
+
+                progress.update(task1, advance=1)
             
         yaml.dump(jobs_config, open(f"{self.jobs_dir}/jobs_config.yaml", "w"))
         # save the configuration
@@ -178,7 +187,10 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
         env_extras_list=get_worker_env(self.run_options,self.x509_path,"condor")
         env_extras= "\n".join(env_extras_list)
 
-        pythonpath = sys.prefix.rsplit('/', 1)[0]
+        if os.getenv("PYTHONPATH"):
+            pythonpath = os.getenv("PYTHONPATH")
+        else:
+            pythonpath = "/".join(pocket_coffea.__file__.split("/")[:-2])        
 
         copy_command = "cp"
         eos_prefix = self.run_options["eos-prefix"]
@@ -290,11 +302,13 @@ echo 'Done'
                 f.write(f"{k} = {v}\n")
             f.write(f"queue {len(jobs_config)}\n")
         # Creating also single sub files for resubmission
+        print(f"Creating {len(jobs_config)} .sub files for individual job submission.")
         for i, _ in enumerate(jobs_config):
             with open(f"{self.jobs_dir}/job_{i}.sub", "w") as f:
                 for k,v in sub.items():
                     if isinstance(v, str):
                         v = v.replace("$(ProcId)", str(i))
+                        v = v.replace("$(ClusterId).log", f"$(ClusterId).{i}.log")
                     f.write(f"{k} = {v}\n")
                 f.write(f"queue\n")
             # Let's also create a .idle file to indicate the the job is in idle
