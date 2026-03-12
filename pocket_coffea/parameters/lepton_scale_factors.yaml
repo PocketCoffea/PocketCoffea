@@ -17,6 +17,8 @@ lepton_scale_factors:
       mvaFall17V2Iso_WP90: wp90iso
       mvaFall17V2noIso_WP80: wp80noiso
       mvaFall17V2noIso_WP90: wp90noiso
+      promptMVA: PromptMVA-Tight # NanoAOD v15
+      mvaTTH: PromptMVA-Tight # NanoAOD v12
 
     JSONfiles: 
       '2016_PreVFP':
