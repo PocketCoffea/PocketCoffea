@@ -49,7 +49,7 @@ cfg = Configurator(
     weights_classes = common_weights,
     
     # Enable JES shape variations so loop_over_variations runs them
-    calibrators = [ JetsCalibrator ],
+    #calibrators = [ JetsCalibrator ],
     variations = {
         "weights": {"common": {"inclusive": [], "bycategory": {}}, "bysample": {}},
         "shape": {"common": {"inclusive": ["jet_calibration"]}, "bysample": {}}
