@@ -86,9 +86,13 @@ def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tag
     jets["jetId_corrected"] = compute_jetId(events, jet_type, params, year)
 
     # Mask for  jets not passing the preselection
+    if "eta" not in cuts.keys():
+        eta_cond = (np.abs(jets.eta) > cuts["eta_min"]) & (np.abs(jets.eta) < cuts["eta_max"])
+    else:
+        eta_cond = (np.abs(jets.eta) < cuts["eta"])
     mask_presel = (
         (jets.pt > cuts["pt"])
-        & (np.abs(jets.eta) < cuts["eta"])
+        & eta_cond
         & (jets.jetId_corrected >= cuts["jetId"])
     )
     # Lepton cleaning
