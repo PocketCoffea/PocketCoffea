@@ -98,7 +98,14 @@ def get_ele_sf(
         if key == 'reco':
             sfname = electronSF.JSONfiles[year]["reco"][pt_region]
         elif key == 'id':
-            sfname = electronSF["id"][params.object_preselection["Electron"]["id"]]
+            if type(params.object_preselection["Electron"]["id"]) == str:
+                id_key = params.object_preselection["Electron"]["id"]
+            elif hasattr(params.object_preselection["Electron"]["id"], "keys"):
+                # Handles OmegaConf DictConfig (year-dependent electron IDs)
+                if year not in params.object_preselection["Electron"]["id"]:
+                    raise Exception(f"Year {year} not found in the electron id preselection in parameters. Please check the object preselection file.")
+                id_key = params.object_preselection["Electron"]["id"][year]
+            sfname = electronSF["id"][id_key]
         
         if year in ["2023_preBPix", "2023_postBPix"]:
             sf = electron_correctionset[map_name].evaluate(
@@ -313,6 +320,73 @@ def sf_mu(params, events, year, key=''):
         ak.num(mu_pt),
     )
     sf, sfup, sfdown = get_mu_sf(params, year, mu_pt_flat, mu_eta_flat, mu_counts, key)
+
+    # The SF arrays corresponding to all the muons are multiplied along the
+    # muon axis in order to obtain a per-event scale factor.
+    return ak.prod(sf, axis=1), ak.prod(sfup, axis=1), ak.prod(sfdown, axis=1)
+
+
+def sf_mu_promptmva(params, events, year, key=''):
+    '''
+    This function computes the per-muon promptMVA id SF and returns the corresponding per-event SF, obtained by multiplying the per-muon SF in each event.
+    Additionally, also the up and down variations of the SF are returned.
+    '''
+    coll = params.lepton_scale_factors.muon_sf.collection
+    mu_pt = events[coll].pt
+    mu_eta = events[coll].eta
+
+    # Since `correctionlib` does not support jagged arrays as an input, the pt and eta arrays are flattened.
+    mu_pt_flat, mu_eta_flat, mu_counts = (
+        ak.to_numpy(ak.flatten(mu_pt)),
+        ak.to_numpy(ak.flatten(mu_eta)),
+        ak.num(mu_pt),
+    )
+
+    # in 2022 and 2023 the promptMVA SFs are provided by the ttH multilepton team, 
+    # in 2024 they are provided by the central POG
+    if year in ["2022_preEE", "2022_postEE", "2023_preBPix", "2023_postBPix"]:
+        # The SFs provided by the ttH multilepton team 
+        muon_correctionset = correctionlib.CorrectionSet.from_file(
+        params.lepton_scale_factors.muon_sf.promptmva_jsons[year]['file'])
+        # Need to put max pt to 500 for these custom SF
+        sf = muon_correctionset["mu_allflavor"].evaluate(
+            np.abs(mu_eta_flat), 
+            np.clip(mu_pt_flat, 0. ,499.99), 
+            "", 
+            np.ones(mu_pt_flat.shape)*13)
+        sfup = muon_correctionset["mu_allflavor"].evaluate(
+            np.abs(mu_eta_flat), 
+            np.clip(mu_pt_flat, 0, 499.99), 
+            "_muup", 
+            np.ones(mu_pt_flat.shape)*13)
+        sfdown = muon_correctionset["mu_allflavor"].evaluate(
+            np.abs(mu_eta_flat), 
+            np.clip(mu_pt_flat, 0., 499.99), 
+            "_mudn", 
+            np.ones(mu_pt_flat.shape)*13)
+
+    elif year == "2024":
+        # The SFs provided by the central POG are split in tightID SF
+        # and num_promptMVA_denum_tightID SF --> we need to combine them
+        corr_params = params.lepton_scale_factors.muon_sf.promptmva_jsons[year]
+        muon_correctionset = correctionlib.CorrectionSet.from_file(corr_params['file'])
+        sfmaps = [muon_correctionset[key] for key in corr_params["keys"]]
+        sf, sfup, sfdown = [],[],[]
+        for sfmap in sfmaps:
+            sf.append(sfmap.evaluate(mu_eta_flat, mu_pt_flat, "nominal"))
+            sfup.append(sfmap.evaluate(mu_eta_flat, mu_pt_flat, "systup"))
+            sfdown.append(sfmap.evaluate(mu_eta_flat, mu_pt_flat, "systdown"))
+        sf = np.prod(sf, axis=0)
+        sfup = np.prod(sfup, axis=0)
+        sfdown = np.prod(sfdown, axis=0)
+
+    else:
+        raise Exception(f"Muon promptMVA SFs for year {year} are not implemented yet")
+    
+    # Unflatten 
+    sf = ak.unflatten(sf, mu_counts)
+    sfup = ak.unflatten(sfup, mu_counts)
+    sfdown = ak.unflatten(sfdown, mu_counts)
 
     # The SF arrays corresponding to all the muons are multiplied along the
     # muon axis in order to obtain a per-event scale factor.
