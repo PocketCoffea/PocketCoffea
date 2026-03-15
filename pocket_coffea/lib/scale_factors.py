@@ -168,6 +168,10 @@ def sf_ele_trigger(params, events, year):
     )
     corr_eval = electron_correctionset[map_name].evaluate
 
+    # Clip pt to the minimum allowed range for the trigger SF maps.
+    # The EGM-POG electron trigger SF maps (e.g. HLT_SF_Ele30) have a minimum pt bound of 25.0 GeV.
+    ele_pt_flat = np.clip(ele_pt_flat, 25.0, 9999.0)
+
     # get sf, sfup, sfdown per electron
     scale_factors = [
         ak.unflatten(
