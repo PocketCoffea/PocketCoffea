@@ -1,9 +1,17 @@
 import ctypes
 import numpy as np
+import os
+
+# Cache loaded libraries to avoid reloading
+_lib_cache = {}
 
 class RoccoR:
     def __init__(self, txt_file, so_path="./RoccoR.so"):
-        self._lib = ctypes.CDLL(so_path)
+        global _lib_cache
+        so_path = os.path.abspath(so_path)
+        if so_path not in _lib_cache:
+            _lib_cache[so_path] = ctypes.CDLL(so_path)
+        self._lib = _lib_cache[so_path]
         self._setup_signatures()
         self._rc = self._lib.RoccoR_new(txt_file.encode())
 
