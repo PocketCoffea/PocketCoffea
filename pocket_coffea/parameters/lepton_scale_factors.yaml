@@ -295,7 +295,23 @@ lepton_scale_factors:
           file: ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,MUO,muon_Z.json.gz}
       '2024':
           file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,MUO,muon_Z.json.gz}   
-          
+    rochester:
+      apply:
+        '2016_PreVFP':  True
+        '2016_PostVFP': True
+        '2017':         True
+        '2018':         True
+        '2022_preEE':   False
+        '2022_postEE':  False
+        '2023_preBPix': False
+        '2023_postBPix': False
+        '2024':         False
+      so_path: "/afs/cern.ch/user/p/piosifid/private/PocketCoffea/data/roccor/RoccoR.so"
+      txt_file:
+        '2016_PreVFP':  "/afs/cern.ch/user/p/piosifid/private/PocketCoffea/data/roccor/RoccoR2016aUL.txt"
+        '2016_PostVFP': "/afs/cern.ch/user/p/piosifid/private/PocketCoffea/data/roccor/RoccoR2016bUL.txt"
+        '2017':         "/afs/cern.ch/user/p/piosifid/private/PocketCoffea/data/roccor/RoccoR2017UL.txt"
+        '2018':         "/afs/cern.ch/user/p/piosifid/private/PocketCoffea/data/roccor/RoccoR2018UL.txt"      
     scale_and_resolution:
       apply: 
         '2016_PreVFP': False

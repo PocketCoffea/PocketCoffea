@@ -166,3 +166,4 @@ VHccPoCo/
 output*
 plots*
 .pkl.gz
+myenv/
