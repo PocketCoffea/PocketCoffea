@@ -344,6 +344,7 @@ def test_shape_variation_default_sequence_comparison_with_legacy_run3(base_path:
     if not np.allclose(ref_met_down, met_down):
         assert check_single_bin_shift(ref_met_down, met_down), "MET JES Total Down variation should show up to a single bin shift pattern"
 
+
     jet_pt_MC = ref_output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"]["Jet_pt"].value
     jet_pt = output["columns"]["DATA_SingleEle"]["DATA_EGamma_2023_EraD"]["baseline"]["nominal"]["Jet_pt"].value
     assert np.allclose(jet_pt, jet_pt_MC, atol=1.5), "Jet pt values do not match with the reference output"

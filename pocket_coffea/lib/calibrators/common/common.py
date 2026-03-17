@@ -506,7 +506,8 @@ class METCalibrator(Calibrator):
     def __init__(self, params, metadata, do_variations=True, **kwargs):
         super().__init__(params, metadata, do_variations, **kwargs)
         jet_calib_param = self.params.jets_calibration
-        self.met_calib_cfg = jet_calib_param.rescale_MET_config[self.year]
+        met_calib_param = self.params.met_calibration
+        self.met_calib_cfg = met_calib_param[self.year]
         if self.isMC:
             self.met_calib_active = self.met_calib_cfg.apply_MC
         else:

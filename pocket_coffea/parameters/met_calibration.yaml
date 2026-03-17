@@ -1,0 +1,64 @@
+  met_calibration:
+    2016_PreVFP:
+      apply_MC: True
+      apply_data: False
+      RawMET_collection: "RawMET"
+      MET_collection: "MET"
+      CorrT1METJet_collection: "CorrT1METJet"
+      Jet_collection: "Jet"
+    2016_PostVFP:
+      apply_MC: True
+      apply_data: False
+      RawMET_collection: "RawMET"
+      MET_collection: "MET"
+      CorrT1METJet_collection: "CorrT1METJet"
+      Jet_collection: "Jet"
+    "2017":
+      apply_MC: True
+      apply_data: False
+      RawMET_collection: "RawMET"
+      MET_collection: "MET"
+      CorrT1METJet_collection: "CorrT1METJet"
+      Jet_collection: "Jet"
+    "2018": 
+      apply_MC: True
+      apply_data: False
+      RawMET_collection: "RawMET"
+      MET_collection: "MET"
+      CorrT1METJet_collection: "CorrT1METJet"
+      Jet_collection: "Jet"
+    2022_preEE:   
+      apply_MC: True
+      apply_data: True
+      RawMET_collection: "RawPuppiMET"
+      MET_collection: "PuppiMET"
+      CorrT1METJet_collection: "CorrT1METJet"
+      Jet_collection: "Jet"
+    2022_postEE:
+      apply_MC: True
+      apply_data: True
+      RawMET_collection: "RawPuppiMET"
+      MET_collection: "PuppiMET"
+      CorrT1METJet_collection: "CorrT1METJet"
+      Jet_collection: "Jet"
+    2023_preBPix:
+      apply_MC: True
+      apply_data: True
+      RawMET_collection: "RawPuppiMET"
+      MET_collection: "PuppiMET"
+      CorrT1METJet_collection: "CorrT1METJet"
+      Jet_collection: "Jet"
+    2023_postBPix:
+      apply_MC: True
+      apply_data: True
+      RawMET_collection: "RawPuppiMET"
+      MET_collection: "PuppiMET"
+      CorrT1METJet_collection: "CorrT1METJet"
+      Jet_collection: "Jet"
+    "2024":
+      apply_MC: True
+      apply_data: True
+      RawMET_collection: "RawPuppiMET"
+      MET_collection: "PuppiMET"
+      CorrT1METJet_collection: "CorrT1METJet"
+      Jet_collection: "Jet"
