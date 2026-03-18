@@ -4,6 +4,7 @@ import awkward as ak
 import cachetools
 import copy
 from pocket_coffea.lib.calibrators.legacy.legacy_jet_correction import jet_correction
+from pocket_coffea.utils.utils import get_nano_version
 
 
 class JetsCalibrator(Calibrator):
@@ -75,10 +76,11 @@ class JetsCalibrator(Calibrator):
                     "year": self.metadata["year"],
                     "isMC": self.metadata["isMC"],
                     "era": self.metadata["era"] if "era" in self.metadata else None,
+                    "nano_version": get_nano_version(events, self.params, self.metadata["year"]),
                 },
                 cache=cache
             )
-            
+
             # Add to the list of the types calibrated
             self.jets_calibrated_types.append(jet_type)
 
@@ -215,6 +217,7 @@ class JetsPtRegressionCalibrator(JetsCalibrator):
                     "year": self.metadata["year"],
                     "isMC": self.metadata["isMC"],
                     "era": self.metadata["era"] if "era" in self.metadata else None,
+                    "nano_version": get_nano_version(events, self.params, self.metadata["year"]),
                 },
                 cache=cache
             )

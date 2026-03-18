@@ -8,6 +8,13 @@ from correctionlib.schemav2 import Correction, CorrectionSet
 from ..utils.utils import get_nano_version, replace_at_indices
 
 
+def get_rho(events, nano_version):
+    if nano_version >= 12:
+        return events.Rho.fixedGridRhoFastjetAll
+    else:
+        return events.fixedGridRhoFastjetAll
+
+
 def add_jec_variables(jets, event_rho, isMC=True):
     # Check if pt is defined, if not take the rawPt
     if "pt" not in jets.fields:
@@ -499,10 +506,8 @@ def jet_correction_corrlib(
     jets_jagged = events[jet_coll_name]
     counts = ak.num(jets_jagged)
 
-    if year in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
-        rho = events.fixedGridRhoFastjetAll
-    else:
-        rho = events.Rho.fixedGridRhoFastjetAll
+    nano_version = chunk_metadata.get("nano_version", 9)
+    rho = get_rho(events, nano_version)
     # Add variables needed for JEC and JER corrections (e.g. pt_raw, mass_raw, pt_gen, event_rho)
     jets_jagged = add_jec_variables(jets_jagged, rho, isMC)
 
@@ -675,11 +680,9 @@ def msoftdrop_correction(
     jets_jagged["event_id"] = ak.ones_like(jets_jagged.pt) * events.event
     jets_jagged["run_nr"] = ak.ones_like(jets_jagged.pt) * events.run
 
-    if year in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
-        rho = events.fixedGridRhoFastjetAll
-    else:
-        rho = events.Rho.fixedGridRhoFastjetAll
-    
+    nano_version = chunk_metadata.get("nano_version", 9)
+    rho = get_rho(events, nano_version)
+
     jets_jagged["rho"] = ak.ones_like(jets_jagged.pt) * rho
 
     # Early return if no jets in any event

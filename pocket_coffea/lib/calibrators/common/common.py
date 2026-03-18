@@ -10,7 +10,7 @@ from pocket_coffea.lib.leptons import (
     get_ele_scaled_etdependent, 
     get_ele_smeared_etdependent
     )
-from pocket_coffea.utils.utils import get_random_seed
+from pocket_coffea.utils.utils import get_random_seed, get_nano_version
 import copy
 from omegaconf import OmegaConf
 from pocket_coffea.lib.muon_scale_and_resolution import pt_scale, pt_resol, pt_scale_var, pt_resol_var
@@ -98,6 +98,7 @@ class JetsCalibrator(Calibrator):
                     "year": self._year,
                     "isMC": self.metadata["isMC"],
                     "era": self.metadata["era"] if "era" in self.metadata else None,
+                    "nano_version": get_nano_version(events, self.params, self._year),
                 },
                 jec_syst=self.do_variations,
                 apply_jer=self.jet_calib_param.apply_jer_MC[self.year][jet_type_alias] if self.isMC else False,
@@ -374,7 +375,7 @@ class JetsSoftdropMassCalibrator(Calibrator):
             # Calibrate only AK8 jets
             if jet_type in ["AK8PFPuppi"]:
                 # Define the subjet type for the correction of subjets
-                if self.year in ["2016_preVFP", "2016_postVFP", "2017", "2018"]:
+                if self.year.lower() in ["2016_prevfp", "2016_postvfp", "2017", "2018"]:
                     subjet_type = "AK4PFchs"
                 else:
                     subjet_type = "AK4PFPuppi"
@@ -408,6 +409,7 @@ class JetsSoftdropMassCalibrator(Calibrator):
                     "year": self._year,
                     "isMC": self.metadata["isMC"],
                     "era": self.metadata["era"] if "era" in self.metadata else None,
+                    "nano_version": get_nano_version(events, self.params, self._year),
                 },
                 jec_syst=self.do_variations
             )
@@ -424,7 +426,7 @@ class JetsSoftdropMassCalibrator(Calibrator):
         #for jet_type in self.jet_calib_param.collection[self.year].keys():
         #    if jet_type in ["AK8PFPuppi"]:
         #        # Define the subjet type for the correction of subjets
-        #        if self.year in ["2016_preVFP", "2016_postVFP", "2017", "2018"]:
+        #        if self.year.lower() in ["2016_prevfp", "2016_postvfp", "2017", "2018"]:
         #            subjet_type = "AK4PFchs"
         #        else:
         #            subjet_type = "AK4PFPuppi"
