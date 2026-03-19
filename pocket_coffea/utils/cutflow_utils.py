@@ -79,6 +79,7 @@ def aggregate_by_sample(data_dict: Dict, categories: List[str],
         Aggregated data with structure {sample[_year]: {category: count}}
     """
     sample_data = defaultdict(lambda: defaultdict(lambda: defaultdict(float)))
+    variation = 'nominal' # By default, get the nominal variation.
     
     for category in categories:
         if category not in data_dict:
@@ -103,12 +104,21 @@ def aggregate_by_sample(data_dict: Dict, categories: List[str],
                 era = year
             else:
                 era = 'all'
+            # The counts dict will be a dict for sumw and a float for cutflow, so we need to handle both cases
             if isinstance(counts, dict):
                 # This is for categories with subsamples
                 for subsample, count in counts.items():
-                    sample_data[era][subsample][category] += count
+                    if isinstance(count, dict):
+                        sample_data[era][subsample][category] += count[variation]
+                    else:
+                        raise NotImplementedError(
+                            f"""Unexpected count type {type(count)} for category '{category}' and subsample '{subsample}'.
+                            Your .coffea output data might be in an old format, or a new format has been implemented,
+                            which is incompatible with the current implementation of the cutflow plot.
+                            Please report this issue to the developers."""
+                        )
             else:
-                # This is for simple categories (initial, skim, presel)
+                # This is executed for cutflow counts which are floats, not dicts
                 sample_data[era][sample][category] += counts
 
     return sample_data

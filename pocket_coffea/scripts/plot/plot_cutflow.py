@@ -49,11 +49,7 @@ def plot_cutflow(input_file, output_dir, exclude_categories, only_samples, outpu
     # Print summary
     print("\nCutflow Summary:")
     print("=" * 50)
-    try:
-        print_cutflow_summary(output, exclude_categories_list, only_samples_list)
-    except Exception as e:
-        print(f"Error in summary: {e}")
-        sys.exit(1)
+    print_cutflow_summary(output, exclude_categories_list, only_samples_list)
     
     if summary_only:
         return
