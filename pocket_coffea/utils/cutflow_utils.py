@@ -110,7 +110,7 @@ def aggregate_by_sample(data_dict: Dict, categories: List[str],
                 for subsample, count in counts.items():
                     if isinstance(count, dict):
                         sample_data[era][subsample][category] += count[variation]
-                    else:
+                    elif not isinstance(count, (int, float)):
                         raise NotImplementedError(
                             f"""Unexpected count type {type(count)} for category '{category}' and subsample '{subsample}'.
                             Your .coffea output data might be in an old format, or a new format has been implemented,
@@ -310,22 +310,48 @@ def plot_sample_cutflow(sample: str, sample_data: Dict, year: str, categories: L
         
         # Ratio plot
         if include_ratio and ax_ratio is not None:
-            # Find initial category count for ratio calculation
-            initial_count = None
+            # Find reference category count for ratio calculation
+            # Priority: initial > inclusive > baseline > first category
+            reference_count = None
+            reference_name = None
+            
+            # Try 'initial' first
             for i, cat in enumerate(sample_categories):
                 if cat == 'initial':
-                    initial_count = sample_counts[i]
+                    reference_count = sample_counts[i]
+                    reference_name = 'initial'
                     break
             
-            if initial_count is not None and initial_count > 0:
-                ratios = [count / initial_count for count in sample_counts]
+            # If not found, try 'inclusive'
+            if reference_count is None:
+                for i, cat in enumerate(sample_categories):
+                    if cat == 'inclusive':
+                        reference_count = sample_counts[i]
+                        reference_name = 'inclusive'
+                        break
+            
+            # If not found, try 'baseline'
+            if reference_count is None:
+                for i, cat in enumerate(sample_categories):
+                    if cat == 'baseline':
+                        reference_count = sample_counts[i]
+                        reference_name = 'baseline'
+                        break
+            
+            # If still not found, use first category
+            if reference_count is None:
+                reference_count = sample_counts[0]
+                reference_name = sample_categories[0]
+            
+            if reference_count > 0:
+                ratios = [count / reference_count for count in sample_counts]
                 
                 # Create ratio bars
                 ratio_bars = ax_ratio.bar(x_pos, ratios, alpha=0.7, color=color)
                 
                 # Customize ratio plot with reduced fontsize and remove minor ticks
                 ax_ratio.set_xlabel('Category', fontsize=label_fontsize)
-                ax_ratio.set_ylabel('Ratio to Initial', fontsize=label_fontsize)
+                ax_ratio.set_ylabel(f'Ratio to {reference_name}', fontsize=label_fontsize)
                 ax_ratio.set_xticks(x_pos)
                 ax_ratio.set_xticklabels(sample_categories, rotation=45, ha='right', fontsize=tick_fontsize)
                 ax_ratio.tick_params(axis='y', labelsize=tick_fontsize)
@@ -340,11 +366,11 @@ def plot_sample_cutflow(sample: str, sample_data: Dict, year: str, categories: L
                                  f'{ratio:.3f}',
                                  ha='center', va='bottom', fontsize=8)
             else:
-                # If no initial category found, show message
-                ax_ratio.text(0.5, 0.5, 'No "initial" category found for ratio',
+                # If reference count is 0 or negative, show error
+                ax_ratio.text(0.5, 0.5, f'Reference category "{reference_name}" has count <= 0',
                              ha='center', va='center', transform=ax_ratio.transAxes, fontsize=label_fontsize)
                 ax_ratio.set_xlabel('Category', fontsize=label_fontsize)
-                ax_ratio.set_ylabel('Ratio to Initial', fontsize=label_fontsize)
+                ax_ratio.set_ylabel('Ratio', fontsize=label_fontsize)
                 ax_ratio.minorticks_off()
         
         return fig
