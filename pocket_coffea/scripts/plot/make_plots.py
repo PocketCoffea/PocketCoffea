@@ -76,11 +76,11 @@ def make_plots_core(input_dir, cfg, overwrite_parameters, outputdir, inputfiles,
     # Using the `input_dir` argument, read the default config and coffea files (if not set with argparse):
     if cfg==None:
         cfg = os.path.join(input_dir, "parameters_dump.yaml")
+        
     if not inputfiles:
         inputfiles = (os.path.join(input_dir, "output_merged.coffea"),)
     if outputdir==None:
         outputdir = os.path.join(input_dir, "plots")
-
     
 
     # Load yaml file with OmegaConf

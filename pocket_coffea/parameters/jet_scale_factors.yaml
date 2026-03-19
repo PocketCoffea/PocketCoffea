@@ -41,7 +41,8 @@ jet_scale_factors:
             # Preliminary version of shape btag sfs. 
             # Need to change to BTV/2024_Summer24/btagging.json.gz, as soon as UParTAK4_kinfit available in there,
             # currently only btag wps in BTV/2024_Summer24/btagging.json.gz
-            file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,BTV,btagging_preliminary.json.gz}
+            #file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,BTV,btagging_preliminary.json.gz}
+            file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,BTV,btagging.json.gz}
             name: "UParTAK4"
 
     ctagSF:

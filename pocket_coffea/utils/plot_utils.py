@@ -492,6 +492,8 @@ class Shape:
     def replace_missing_variations(self):
         '''Replaces the missing categories in the MC histograms with the nominal values.'''
         d = {s: v for s, v in self.h_dict.items() if s in self.samples_mc}
+        #print(d.keys())
+        
         h0 = self.h_dict[list(d.keys())[0]]
         # Define the categorical axes dict with the categorical axis name as key and the list of available categories as value
         categorical_axes_dict = {axis_name : set() for axis_name in [ax.name for ax in h0.axes if type(ax) in [hist.axis.StrCategory, hist.axis.IntCategory]]}
@@ -533,6 +535,8 @@ class Shape:
                 if categories_per_sample != categories:
                     if len(categorical_axes_dict) != 2:
                         raise NotImplementedError("The number of categorical axes is different from 2. This case is not implemented yet. Only the axes `cat` and `variation` are supported.")
+                    #if axis_name == "cat":
+                    #    continue
                     if not axis_name == "variation":
                         raise NotImplementedError(f"The axis `variation` is the only axis that could differ across samples. The axis `{axis_name}` is not supported.")
                     categories_missing = categories - categories_per_sample
@@ -577,6 +581,7 @@ class Shape:
         # Save the union of the categories for each axis across samples
         for axis_name in categorical_axes_dict.keys():
             for s, h in d.items():
+                #print(axis_name, s, h)
                 ax = [ax for ax in h.axes if ax.name == axis_name][0]
                 categorical_axes_dict[axis_name] |= {ax.value(i) for i in range(len(ax))}
 
@@ -596,6 +601,8 @@ class Shape:
                         raise NotImplementedError("The data histograms have different categories. This case is not implemented yet.")
                     if len(categorical_axes_dict) != 2:
                         raise NotImplementedError("The number of categorical axes is different from 2. This case is not implemented yet. Only the axes `cat` and `variation` are supported.")
+                    #if axis_name == "cat":
+                    #    continue
                     if not axis_name == "variation":
                         raise NotImplementedError(f"The axis `variation` is the only axis that could differ across samples. The axis `{axis_name}` is not supported.")
                     categories_missing = categories - categories_per_sample
@@ -609,11 +616,13 @@ class Shape:
 
     @property
     def categorical_axes_mc(self):
+        #print("This is MC")
         '''Returns the list of categorical axes of a MC histogram.'''
         return self._categorical_axes(is_mc=True)
 
     @property
     def categorical_axes_data(self):
+        #print("This is data")
         '''Returns the list of categorical axes of a data histogram.'''
         return self._categorical_axes(is_mc=False)
 
