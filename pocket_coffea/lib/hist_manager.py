@@ -6,6 +6,7 @@ from typing import List, Tuple
 from dataclasses import dataclass, field
 from copy import deepcopy
 import logging
+from .weights.weights_manager import get_weights_by_cat_var
 
 
 @dataclass
@@ -259,7 +260,7 @@ class HistManager:
             # Check if the histogram is active for the current sample
             # We only check for the parent sample, not for subsamples
             if hcfg.only_samples != None:
-                if sample not in cfg.only_samples:
+                if sample not in hcfg.only_samples:
                     continue
             elif hcfg.exclude_samples != None:
                 if sample in hcfg.exclude_samples:
@@ -300,16 +301,15 @@ class HistManager:
                         # expand wild card and Up/Down
                         only_variations = []
                         for var in hcfg_sub.only_variations:
-                            if var in self.wildcard_variations:
-                                only_variations += [
-                                    f"{self.wildcard_variations[var]}Up",
-                                    f"{self.wildcard_variations[var]}Down",
-                                ]
+                            # Check if it is a calibrator name wildcard
+                            # an empty string is returned if the calibrator is not found
+                            only_variations_calib = self.calibrators_manager.get_available_variations(var)
+                            if len(only_variations_calib)>0:
+                                only_variations += only_variations_calib
                             else:
-                                only_variations += [
-                                    f"{var}Up",
-                                    f"{var}Down",
-                                ]
+                                # Just use the one explicitely asked
+                                only_variations.append(var)
+
                         # filtering the variation list with the available ones
                         allvariat = set(
                             filter(lambda v: v in only_variations or v == "nominal", allvariat)
@@ -360,30 +360,6 @@ class HistManager:
     def get_histogram(self, subsample, name):
         return self.histograms[subsample].get(name, None)
 
-    def __prefetch_weights(self, category, shape_variation):
-        '''
-        Prefetch the weights for the category and the shape variation.
-        - When processing the nominal shape variation we prefetch all the weights variations
-        - When processing a shape variation we prefetch only the nominal weights
-        '''
-        weights = {}
-        if shape_variation == "nominal":
-            # This is not including the subsamples nominal+ variations
-            # which will be computed on the fly
-            for variation in self.available_weights_variations_bycat[category]:
-                if variation == "nominal":
-                    weights["nominal"] = self.weights_manager.get_weight(category)
-                else:
-                    # Check if the variation is available in this category
-                    weights[variation] = self.weights_manager.get_weight(
-                        category, modifier=variation
-                    )
-        else:
-            # Save only the nominal weights if a shape variation is being processed
-            weights["nominal"] = self.weights_manager.get_weight(category)
-
-        return weights
-
     def fill_histograms(
         self,
         events,
@@ -404,8 +380,7 @@ class HistManager:
         # Preloading weights BOTH FOR data and MC
         weights = {}
         for category in self.available_categories:
-            weights[category] = self.__prefetch_weights(category, shape_variation)
-            
+            weights[category] = get_weights_by_cat_var(self.available_weights_variations_bycat[category], self.weights_manager, category, shape_variation)
         # Cleaning the weights cache decorator between calls.
         self._weights_cache.clear()
         # Looping on the histograms to read the values only once

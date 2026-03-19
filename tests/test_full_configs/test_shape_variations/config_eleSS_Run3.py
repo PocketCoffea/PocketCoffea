@@ -8,7 +8,6 @@ from pocket_coffea.lib.categorization import StandardSelection, CartesianSelecti
 from pocket_coffea.lib.calibrators.common.common import ElectronsScaleCalibrator
 from pocket_coffea.lib.columns_manager import ColOut
 
-
 from workflow_shape_variations import BasicProcessor
 
 from custom_cut_functions import *
@@ -30,9 +29,6 @@ parameters = defaults.merge_parameters_from_files(default_parameters,
 
 #Creating custom weight
 from pocket_coffea.lib.weights.weights import WeightLambda
-import numpy as np
-
-
 
 cfg = Configurator(
     parameters = parameters,

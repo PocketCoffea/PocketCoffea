@@ -1,6 +1,7 @@
 from .calibrator import Calibrator
 from collections import defaultdict
 from typing import List
+import copy
 
 
 class CalibratorsManager():
@@ -30,6 +31,7 @@ class CalibratorsManager():
                  events,
                  params,
                  metadata=None,
+                 requested_calibrator_variations=None,
                  **kwargs
                  ):
         self.calibrator_list = calibrators_list
@@ -38,6 +40,7 @@ class CalibratorsManager():
         self.metadata = metadata
         self.available_variations = ["nominal"]
         self.available_variations_bycalibrator = defaultdict(list)
+        self.requested_calibrator_variations = requested_calibrator_variations
         self.original_coll = {}
 
         # Initialize all the calibrators
@@ -45,8 +48,14 @@ class CalibratorsManager():
             if calibrator.isMC_only and not metadata["isMC"]:
                 # do not run the calibrator on data if it is MC only
                 continue
-            
-            C = calibrator(params, metadata, **kwargs)
+
+            if requested_calibrator_variations is not None and calibrator.name not in requested_calibrator_variations:
+                # If the calibrator is not in the list of requested variations, we initialize it without variations
+                C = calibrator(params, metadata, do_variations=False, **kwargs)
+            else:
+                # If the calibrator is in the list of requested variations, we initialize it with variations
+                C = calibrator(params, metadata, do_variations=True, **kwargs)
+           
             C.initialize(events)
             self.calibrator_sequence.append(C)
             # storing the list of calibrator touching a collection in a dictionary
@@ -112,11 +121,11 @@ class CalibratorsManager():
                     if col not in self.original_coll:     
                         try:
                             # If the collection is not in the original collection, we store it
-                            self.original_coll[col] = events[col]
+                            self.original_coll[col] = copy.copy(events[col])  # store soft link
                         except ValueError:
                             # This means that the column is not present in the events and it is created by the calibrator
                             # and it is not a problem
-                            self.original_coll[col] = None
+                            pass
                     # replacing the value
                     events[col] = colls[col]
                 else:
@@ -124,11 +133,11 @@ class CalibratorsManager():
                     collection, field = col.split(".")
                     if col not in self.original_coll:
                         try:
-                            self.original_coll[col] = events[collection, field]
+                            self.original_coll[col] = copy.copy(events[collection, field]) 
                         except ValueError:
                             # This means that the column is not present in the events and it is created by the calibrator
                             # and it is not a problem
-                            self.original_coll[col] = None
+                            pass
                     events[collection, field] = colls[col]
             # Keep track of the calibrators applied
             applied_calibrators.append(calibrator.name)

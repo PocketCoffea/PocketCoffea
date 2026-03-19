@@ -1,0 +1,10 @@
+default_nano_version:
+  2016_PreVFP: 9
+  2016_PostVFP: 9
+  "2017": 9
+  "2018": 9
+  '2022_preEE': 12
+  '2022_postEE': 12
+  '2023_preBPix': 12
+  '2023_postBPix': 12
+  '2024': 15

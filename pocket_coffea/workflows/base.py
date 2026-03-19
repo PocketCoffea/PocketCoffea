@@ -17,9 +17,7 @@ from coffea.analysis_tools import PackedSelection
 from ..lib.weights.weights_manager import WeightsManager
 from ..lib.columns_manager import ColumnsManager
 from ..lib.hist_manager import HistManager
-from ..lib.jets import jet_correction, met_correction_after_jec, load_jet_factory
-from ..lib.leptons import get_ele_smeared, get_ele_scaled
-from ..lib.categorization import CartesianSelection
+from ..lib.jets import load_jet_factory
 from ..lib.calibrators.calibrators_manager import CalibratorsManager
 from ..utils.skim import uproot_writeable, copy_file
 from ..utils.utils import dump_ak_array
@@ -63,10 +61,13 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Weights configuration
         self.weights_config_allsamples = self.cfg.weights_config
         self.weights_classes = self.cfg.weights_classes
-
+        
         # Load the jet calibration factory once for all chunks
-        self.jmefactory = load_jet_factory(self.params)
-
+        if self.params.jets_calibration.get("legacy_txt_calibration", False):
+            self.jmefactory = load_jet_factory(self.params)
+        else:
+            self.jmefactory = None
+        
         # Custom axis for the histograms
         self.custom_axes = []
         self.custom_histogram_fields = {}
@@ -138,6 +139,24 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self._era = self.events.metadata["era"]
         # Loading metadata for subsamples
         self._hasSubsamples = self.cfg.has_subsamples[self._sample]
+        # Extract nano version
+        if "nano_version" in self.events.metadata:
+            self.nano_version = self.events.metadata["nano_version"]
+        else:
+            if self._isMC:
+                # Try to extract from the sample name
+                if "NanoAODv12" in self.events.metadata["filename"]:
+                    self.nano_version = 12
+                elif "NanoAODv15" in self.events.metadata["filename"]:
+                    self.nano_version = 15  
+                else:
+                    # For MC if it's not defined we take the default nano version
+                    self.nano_version = self.params.default_nano_version[self._year] 
+                              
+            else:
+                # For data if it's not defined we take the default nano version
+                self.nano_version = self.params.default_nano_version[self._year]
+
         # Store all metadata in a single dict for easier access
         self._metadata = {
             "year": self._year,
@@ -147,6 +166,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             "isMC": self._isMC,
             "isSkim": self._isSkim,
             "era": self._era,
+            "nano_version": self.nano_version,
         }
 
     def load_metadata_extra(self):
@@ -245,13 +265,11 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
         pass
 
-    def apply_preselections(self, variation):
+    def get_preselection_mask(self, variation):
         '''The function computes all the masks from the preselection cuts
-        and filter out the events to speed up the later computations.
+        and returns the boolean mask.
         N.B.: Preselection happens after the objects correction and cleaning.'''
-
-        # The preselection mask is applied after the objects have been corrected
-        self._preselection_masks = PackedSelection()
+        _preselection_masks = PackedSelection()
 
         for cut in self._preselections:
             # Apply the cut function and add it to the mask
@@ -262,14 +280,18 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 sample=self._sample,
                 isMC=self._isMC,
             )
-            self._preselection_masks.add(cut.id, mask)
+            _preselection_masks.add(cut.id, mask)
+        return _preselection_masks.all(*_preselection_masks.names)
+
+    def apply_preselections(self, variation):
+        '''The function computes all the masks from the preselection cuts
+        and filter out the events to speed up the later computations.
+        N.B.: Preselection happens after the objects correction and cleaning.'''
+
         # Now that the preselection mask is complete we can apply it to events
-        self.events = self.events[
-            self._preselection_masks.all(*self._preselection_masks.names)
-        ]
+        self.events = self.events[self.get_preselection_mask(variation)]
         self.nEvents_after_presel = self.nevents
-        if variation == "nominal":
-            self.output['cutflow']['presel'][self._dataset] = self.nEvents_after_presel
+        self.output['cutflow']['presel'].setdefault(self._dataset, {})[variation] = self.nEvents_after_presel
         self.has_events = self.nEvents_after_presel > 0
 
     def define_categories(self, variation):
@@ -375,23 +397,23 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             else:
                 mask_on_events = mask
 
-            self.output["cutflow"][category][self._dataset] = {self._sample: ak.sum(mask_on_events)}
+            self.output["cutflow"][category].setdefault(self._dataset, {}).setdefault(self._sample, {})[variation] = ak.sum(mask_on_events)
             if self._isMC:
                 w = self.weights_manager.get_weight(category)
-                self.output["sumw"][category][self._dataset] = {self._sample: ak.sum(w * mask_on_events)}
-                self.output["sumw2"][category][self._dataset] = {self._sample: ak.sum((w**2) * mask_on_events)}
+                self.output["sumw"][category].setdefault(self._dataset, {}).setdefault(self._sample, {})[variation] = ak.sum(w * mask_on_events)
+                self.output["sumw2"][category].setdefault(self._dataset, {}).setdefault(self._sample, {})[variation] = ak.sum((w**2) * mask_on_events)
 
             # If subsamples are defined we also save their metadata
             if self._hasSubsamples:
                 for subs, subsam_mask in self._subsamples[self._sample].get_masks():
                     # get the subsample specific weight
                     mask_withsub = mask_on_events & subsam_mask
-                    self.output["cutflow"][category][self._dataset][f"{self._sample}__{subs}"] = ak.sum(mask_withsub)
+                    self.output["cutflow"][category].setdefault(self._dataset, {}).setdefault(f"{self._sample}__{subs}", {})[variation] = ak.sum(mask_withsub)
                     if self._isMC:
                         w_tot = w * self.weights_manager.get_weight_only_subsample(subsample=f"{self._sample}__{subs}",
                                                                                    category=category)
-                        self.output["sumw"][category][self._dataset][f"{self._sample}__{subs}"] = ak.sum(w_tot * mask_withsub)
-                        self.output["sumw2"][category][self._dataset][f"{self._sample}__{subs}"] = ak.sum(((w_tot)**2) * mask_withsub)
+                        self.output["sumw"][category].setdefault(self._dataset, {}).setdefault(f"{self._sample}__{subs}", {})[variation] = ak.sum(w_tot * mask_withsub)
+                        self.output["sumw2"][category].setdefault(self._dataset, {}).setdefault(f"{self._sample}__{subs}", {})[variation] = ak.sum(((w_tot)**2) * mask_withsub)
 
 
     def define_custom_axes_extra(self):
@@ -487,7 +509,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
             if name in self._columns:
                 self.column_managers[subs] = ColumnsManager(
-                    self._columns[name], self._categories
+                    self._columns[name],
+                    self._categories,
+                    variations_config=self.cfg.variations_config[self._sample] if self._isMC else None,
                 )
 
     def define_column_accumulators_extra(self):
@@ -497,71 +521,74 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
 
     def fill_column_accumulators(self, variation):
-        if variation != "nominal":
-            return
-
+        """Fill columns for a given variation either on disk as `parquet` file or in the output `coffea` file. Different variations are stored as subfolders of categories."""
         if len(self.column_managers) == 0:
             return
 
         outcols = self.output["columns"]
-        # TODO Fill column accumulator for different variations
         if self._hasSubsamples:
             # call the filling for each
             for subs in self._subsamples[self._sample].keys():
-                if self.workflow_options!=None and self.workflow_options.get("dump_columns_as_arrays_per_chunk", None)!=None:
+                if self.workflow_options is not None and self.workflow_options.get("dump_columns_as_arrays_per_chunk", None) is not None:
                     # filling awkward arrays to be dumped per chunk
-                    if self.column_managers[subs].ncols == 0: break
+                    if self.column_managers[subs].ncols == 0:
+                        break
                     out_arrays = self.column_managers[subs].fill_ak_arrays(
                                                self.events,
                                                self._categories,
+                                               variation,
                                                subsample_mask=self._subsamples[self._sample].get_mask(subs),
                                                weights_manager=self.weights_manager
                                                )
-                    fname = (self.events.behavior["__events_factory__"]._partition_key.replace( "/", "_" )
+                    fname = (self.events.behavior["__events_factory__"]._partition_key.replace("/", "_")
                         + ".parquet")
                     for category, akarr in out_arrays.items():
                         # building the file name
-                        subdirs = [self._dataset, subs, category]
-                        dump_ak_array(akarr, fname, self.workflow_options["dump_columns_as_arrays_per_chunk"]+"/", subdirs)
-
+                        subdirs = [self._dataset, subs, category, variation]
+                        dump_ak_array(akarr, fname, self.workflow_options["dump_columns_as_arrays_per_chunk"] + "/", subdirs)
 
                 else:
                     # Filling columns to be accumulated for all the chunks
                     # Calling hist manager with a subsample mask
-                    if self.column_managers[subs].ncols == 0: break
-                    self.output["columns"][f"{self._sample}__{subs}"]= {
-                        self._dataset : self.column_managers[subs].fill_columns_accumulators(
+                    if self.column_managers[subs].ncols == 0:
+                        break
+                    outcols[f"{self._sample}__{subs}"] = {
+                        self._dataset: self.column_managers[subs].fill_columns_accumulators(
                                                    self.events,
                                                    self._categories,
+                                                   variation,
                                                    subsample_mask=self._subsamples[self._sample].get_mask(subs),
                                                    weights_manager=self.weights_manager
                                                    )
                     }
         else:
             # NO subsamples
-            if self.column_managers[self._sample].ncols == 0: return
-            if self.workflow_options!=None and self.workflow_options.get("dump_columns_as_arrays_per_chunk", None)!=None:
+            if self.column_managers[self._sample].ncols == 0:
+                return
+            if self.workflow_options is not None and self.workflow_options.get("dump_columns_as_arrays_per_chunk", None) is not None:
                 out_arrays = self.column_managers[self._sample].fill_ak_arrays(
                                                self.events,
                                                self._categories,
+                                               variation,
                                                subsample_mask=None,
                                                weights_manager=self.weights_manager
                                                )
                 # building the file name
-                fname = (self.events.behavior["__events_factory__"]._partition_key.replace( "/", "_" )
+                fname = (self.events.behavior["__events_factory__"]._partition_key.replace("/", "_")
                          + ".parquet")
                 for category, akarr in out_arrays.items():
-                    subdirs = [self._dataset, category]
-                    dump_ak_array(akarr, fname, self.workflow_options["dump_columns_as_arrays_per_chunk"]+"/", subdirs)
+                    subdirs = [self._dataset, category, variation]
+                    dump_ak_array(akarr, fname, self.workflow_options["dump_columns_as_arrays_per_chunk"] + "/", subdirs)
             else:
-                self.output["columns"][self._sample] = { self._dataset: self.column_managers[
+                outcols[self._sample] = {self._dataset: self.column_managers[
                     self._sample
                 ].fill_columns_accumulators(
                     self.events,
                     self._categories,
-                    subsample_mask = None,
+                    variation,
+                    subsample_mask=None,
                     weights_manager=self.weights_manager
-                ) }
+                )}
 
     def fill_column_accumulators_extra(self, variation):
         pass
@@ -572,6 +599,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
     def process_extra_after_skim(self):
         pass
 
+    def process_extra_after_calibrators(self, variation):
+        pass
+        
     def process_extra_before_presel(self, variation):
         pass
 
@@ -629,14 +659,25 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''Creates the calibator manager and initialize all the calibrators.
         This prepares also the list of avaialable shape variations for this chunk.
         That will be utilized by the HistManager to create the histograms variations axes.'''
-        self.calibrators_manager = CalibratorsManager(
-            self.cfg.calibrators,
-            self.events,
-            self.params,
-            self._metadata,
-            # Additional arg to pass the jmefactory to the jet calibrator --> hacky
-            jme_factory=self.jmefactory,
-        )
+
+        if self.params.jets_calibration.get("legacy_txt_calibration", False):
+            self.calibrators_manager = CalibratorsManager(
+                self.cfg.calibrators,
+                self.events,
+                self.params,
+                self._metadata,
+                requested_calibrator_variations=self.cfg.available_shape_variations[self._sample],
+                # Additional arg to pass the jmefactory to the jet calibrator --> hack until we remove it 
+                jme_factory=self.jmefactory,
+            )
+        else:
+            self.calibrators_manager = CalibratorsManager(
+                self.cfg.calibrators,
+                self.events,
+                self.params,
+                self._metadata,
+                requested_calibrator_variations=self.cfg.available_shape_variations[self._sample],
+            )
 
     def loop_over_variations(self):
         # Get the requested shape variations by calibrator
@@ -715,9 +756,45 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         if not self.has_events:
             return self.output
 
-        if self.cfg.save_skimmed_files:
+        skim_mode = self.workflow_options.get("skim_mode", "skim") if self.workflow_options else "skim"
+
+        if self.cfg.save_skimmed_files and skim_mode == "skim":
             self.export_skimmed_chunk()
             return self.output
+
+        # --- Systematic-aware skimming logic
+        if self.cfg.save_skimmed_files and skim_mode == "presel_any_variation":
+            self.process_extra_after_skim()
+            self.initialize_calibrators()
+
+            # Keep a reference to the uncalibrated events
+            events_after_skim = self.events
+            pass_any_variation = np.zeros(len(self.events), dtype=bool)
+
+            # Dry-run loop to accumulate the OR of preselection masks
+            for variation in self.loop_over_variations():
+                self.process_extra_after_calibrators(variation)
+                self.apply_object_preselection(variation)
+                self.count_objects(variation)
+                self.define_common_variables_before_presel(variation)
+                self.process_extra_before_presel(variation)
+                
+                # Get mask without filtering events
+                mask = self.get_preselection_mask(variation)
+                pass_any_variation = pass_any_variation | mask
+            
+            # Apply the combined OR mask to the original uncalibrated events
+            self.events = events_after_skim[pass_any_variation]
+            self.nEvents_after_skim = len(self.events)
+            self.output['cutflow']['skim'][self._dataset] = self.nEvents_after_skim
+            self.has_events = self.nEvents_after_skim > 0
+
+            if not self.has_events:
+                return self.output
+
+            self.export_skimmed_chunk()
+            return self.output
+        # --------------------------
 
         #########################
         # After the skimming we apply the object corrections and preselection
@@ -737,6 +814,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self.define_column_accumulators_extra()
 
         for variation in self.loop_over_variations():
+            # Custom code just after calibrations
+            self.process_extra_after_calibrators(variation)
             # Apply preselections
             self.apply_object_preselection(variation)
             self.count_objects(variation)
@@ -775,8 +854,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             self.fill_column_accumulators_extra(variation)
 
             # Count events
-            if variation == "nominal":
-                self.count_events(variation)
+            self.count_events(variation)
 
         self.stop_time = time.time()
         self.save_processing_metadata()
@@ -834,9 +912,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     rescale = False
                     
                 if rescale and dataset in sumgenw_dict:
-                    scaling = 1/sumgenw_dict[dataset]
+                    scaling = 1 / sumgenw_dict[dataset]
                     for sample in dataset_data.keys():
-                        dataset_data[sample] *= scaling
+                        dataset_data[sample]["nominal"] *= scaling
 
         # rescale sumw2
         for cat, catdata in output["sumw2"].items():
@@ -860,7 +938,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 if rescale and dataset in sumgenw_dict:
                     scaling = 1/sumgenw_dict[dataset]**2
                     for sample in dataset_data.keys():
-                        dataset_data[sample] *= scaling
+                        dataset_data[sample]["nominal"] *= scaling
 
 
     def postprocess(self, accumulator):

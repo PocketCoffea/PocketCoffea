@@ -73,7 +73,7 @@ hadd-skimmed-files="pocket_coffea.scripts.hadd_skimmed_files:hadd_skimmed_files"
 merge-outputs="pocket_coffea.scripts.merge_outputs:main"
 split-output="pocket_coffea.scripts.split_output:main"
 print-parameters="pocket_coffea.scripts.print_parameters:print_parameters"
-make-config="pocket_coffea.sripts.make_config:make_config"
+make-config="pocket_coffea.scripts.make_config:make_config"
 check-jobs="pocket_coffea.scripts.check_jobs:check_jobs"
 
 # [tool.flake8]
