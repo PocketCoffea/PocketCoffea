@@ -7,6 +7,7 @@ and samples.
 """
 
 import os
+import re
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
@@ -36,7 +37,7 @@ def get_luminosity_text(year: str) -> str:
     str
         Formatted luminosity text (e.g., "41.5 fb^{-1}")
     """
-    # Get plotting style defaults like in plot_utils.py line 28
+    # Get plotting style defaults
     plotting_style_defaults = get_default_parameters()["plotting_style"]
     
     # Extract luminosity values from plot_upper_label
@@ -46,7 +47,7 @@ def get_luminosity_text(year: str) -> str:
     if year in by_year:
         # The format is like "${pico_to_femto:${lumi.picobarns.2017.tot}}"
         # We need to extract the actual luminosity value
-        return f"$\mathcal{{L}}$ = {by_year[year]:.2f}/fb"
+        return f"$\mathcal{{L}}$ = {by_year[year]:.2f} fb$^{{-1}}$"
     elif year == 'all':
         return "13.6 TeV"
     else:
@@ -116,7 +117,7 @@ def aggregate_by_sample(data_dict: Dict, categories: List[str],
 def plot_sample_cutflow(sample: str, sample_data: Dict, year: str, categories: List[str],
                        plot_type: str, ylabel: str, output_dir: str,
                        figsize: Tuple[float, float] = (10, 6), 
-                       log_y: bool = False, format: str = 'png',
+                       log_y: bool = False, output_format: str = 'png',
                        with_ratio: bool = False, datasets_metadata: Optional[Dict] = None) -> List[str]:
     """
     Create cutflow plot(s) for a single sample.
@@ -139,7 +140,7 @@ def plot_sample_cutflow(sample: str, sample_data: Dict, year: str, categories: L
         Figure size (width, height)
     log_y : bool
         Use logarithmic y-axis
-    format : str
+    output_format : str
         Output format (png, pdf, etc.)
     with_ratio : bool
         Create plots with ratio to initial category
@@ -174,7 +175,7 @@ def plot_sample_cutflow(sample: str, sample_data: Dict, year: str, categories: L
             if (metadata.get('sample') == sample or 
                 dataset_name.startswith(sample) or 
                 sample in dataset_name):
-                is_mc = metadata.get('isMC', 'True') == 'True'
+                is_mc = metadata.get('isMC', True) in [True, 'True']
                 break
         # Additional check: if sample name contains 'DATA' it's likely data
         if 'DATA' in sample.upper():
@@ -239,7 +240,7 @@ def plot_sample_cutflow(sample: str, sample_data: Dict, year: str, categories: L
         if log_y:
             # Logarithmic scale: similar to plot_utils.py
             ymax = max(sample_counts) if sample_counts else 100
-            if ymax == 0:
+            if ymax <= 0:
                 ymax = 100
             exp = math.floor(math.log(ymax, 10))
             # Using similar logic as in plot_utils.py
@@ -289,7 +290,6 @@ def plot_sample_cutflow(sample: str, sample_data: Dict, year: str, categories: L
             if offset_text.get_text():
                 current_text = offset_text.get_text()
                 # Convert scientific notation format
-                import re
                 # Match patterns like "1e+06", "1e6", "×10^6" etc.
                 pattern = r'(?:1e[+]?|×10\^?)(\d+)'
                 match = re.search(pattern, current_text)
@@ -345,7 +345,7 @@ def plot_sample_cutflow(sample: str, sample_data: Dict, year: str, categories: L
     
     # Save plot without ratio
     clean_sample = sample.replace('/', '_').replace('__', '_')
-    filename = f"{plot_type.lower()}_{clean_sample}_{year}.{format}"
+    filename = f"{plot_type.lower()}_{clean_sample}_{year}.{output_format}"
     filepath = os.path.join(output_dir, filename)
     
     plt.savefig(filepath, dpi=300, bbox_inches='tight')
@@ -358,7 +358,7 @@ def plot_sample_cutflow(sample: str, sample_data: Dict, year: str, categories: L
         plt.tight_layout()
         
         # Save plot with ratio
-        filename_ratio = f"{plot_type.lower()}_with_ratio_{clean_sample}_{year}.{format}"
+        filename_ratio = f"{plot_type.lower()}_with_ratio_{clean_sample}_{year}.{output_format}"
         filepath_ratio = os.path.join(output_dir, filename_ratio)
         
         plt.savefig(filepath_ratio, dpi=300, bbox_inches='tight')
@@ -372,7 +372,7 @@ def plot_cutflow_from_output(output: Dict, output_dir: str,
                            exclude_categories: Optional[List[str]] = None,
                            only_samples: Optional[List[str]] = None,
                            figsize: Tuple[float, float] = (10, 6),
-                           log_y: bool = False, format: str = 'png') -> Dict[str, List[str]]:
+                           log_y: bool = False, output_format: str = 'png') -> Dict[str, List[str]]:
     """
     Create cutflow plots from PocketCoffea processor output.
     
@@ -390,7 +390,7 @@ def plot_cutflow_from_output(output: Dict, output_dir: str,
         Figure size (width, height)
     log_y : bool
         Use logarithmic y-axis
-    format : str
+    output_format : str
         Output format (png, pdf, etc.)
         
     Returns:
@@ -438,7 +438,7 @@ def plot_cutflow_from_output(output: Dict, output_dir: str,
                     filepaths = plot_sample_cutflow(
                         sample, sample_data, year, categories,
                         'Cutflow', 'Number of Events', output_dir,
-                        figsize, log_y, format, with_ratio=True, datasets_metadata=datasets_metadata
+                        figsize, log_y, output_format, with_ratio=True, datasets_metadata=datasets_metadata
                     )
                     saved_files['cutflow'].extend(filepaths)
                 except ValueError as e:
@@ -451,7 +451,7 @@ def plot_cutflow_from_output(output: Dict, output_dir: str,
                 filepaths = plot_sample_cutflow(
                     sample, sample_data, "all", categories,
                     'Cutflow', 'Number of Events', output_dir,
-                    figsize, log_y, format, with_ratio=True, datasets_metadata=datasets_metadata
+                    figsize, log_y, output_format, with_ratio=True, datasets_metadata=datasets_metadata
                 )
                 saved_files['cutflow'].extend(filepaths)
             except ValueError as e:
@@ -465,7 +465,7 @@ def plot_cutflow_from_output(output: Dict, output_dir: str,
                     filepaths = plot_sample_cutflow(
                         sample, sample_data, year, categories,
                         'Sum_of_Weights', 'Weighted Number of Events', output_dir,
-                        figsize, log_y, format, with_ratio=False, datasets_metadata=datasets_metadata
+                        figsize, log_y, output_format, with_ratio=False, datasets_metadata=datasets_metadata
                     )
                     saved_files['sumw'].extend(filepaths)
                 except ValueError as e:
@@ -478,7 +478,7 @@ def plot_cutflow_from_output(output: Dict, output_dir: str,
                 filepaths = plot_sample_cutflow(
                     sample, sample_data, "all", categories,
                     'Sum_of_Weights', 'Weighted Number of Events', output_dir,
-                    figsize, log_y, format, with_ratio=False, datasets_metadata=datasets_metadata
+                    figsize, log_y, output_format, with_ratio=False, datasets_metadata=datasets_metadata
                 )
                 saved_files['sumw'].extend(filepaths)
             except ValueError as e:

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import traceback
 import click
 from coffea.util import load
 from pocket_coffea.utils.cutflow_utils import plot_cutflow_from_output, print_cutflow_summary
@@ -10,11 +11,11 @@ from pocket_coffea.utils.cutflow_utils import plot_cutflow_from_output, print_cu
 @click.option('-o', '--output-dir', type=str, default='cutflow_plots', help='Output directory for plots')
 @click.option('--exclude-categories', type=str, multiple=True, help='Categories to exclude from plots')
 @click.option('--only-samples', type=str, multiple=True, help='Only plot these samples')
-@click.option('--format', type=str, default='png', help='Output format (png, pdf, etc.)')
+@click.option('--output-format', type=str, default='png', help='Output format (png, pdf, etc.)')
 @click.option('--log-y', is_flag=True, help='Use logarithmic y-axis')
 @click.option('--figsize', type=str, default='10,6', help='Figure size as "width,height"')
 @click.option('--summary-only', is_flag=True, help='Only print summary, do not create plots')
-def plot_cutflow(input_file, output_dir, exclude_categories, only_samples, format, log_y, figsize, summary_only):
+def plot_cutflow(input_file, output_dir, exclude_categories, only_samples, output_format, log_y, figsize, summary_only):
     """
     Plot cutflow histograms from PocketCoffea output files.
     
@@ -29,7 +30,7 @@ def plot_cutflow(input_file, output_dir, exclude_categories, only_samples, forma
     # Parse figure size
     try:
         figwidth, figheight = map(float, figsize.split(','))
-    except:
+    except ValueError:
         print("ERROR: Invalid figsize format. Use 'width,height' (e.g., '10,6')")
         sys.exit(1)
     
@@ -68,7 +69,7 @@ def plot_cutflow(input_file, output_dir, exclude_categories, only_samples, forma
             only_samples_list,
             (figwidth, figheight), 
             log_y, 
-            format
+            output_format
         )
         
         print(f"\n✓ Plotting completed!")
@@ -90,7 +91,6 @@ def plot_cutflow(input_file, output_dir, exclude_categories, only_samples, forma
 
     except Exception as e:
         print(f"ERROR: {e}")
-        import traceback
         traceback.print_exc()
         sys.exit(1)
 
