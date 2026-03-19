@@ -7,6 +7,7 @@ from pocket_coffea.lib.scale_factors import (
     sf_ele_id,
     sf_photon,
     sf_mu,
+    sf_mu_promptmva,
     sf_btag,
     sf_btag_calib,
     sf_ctag,
@@ -91,6 +92,13 @@ SF_mu_trigger = WeightLambda.wrap_func(
     name="sf_mu_trigger",
     function=lambda params, metadata, events, size, shape_variations:
         sf_mu(params, events, metadata["year"], 'trigger'),
+    has_variations=True
+    )
+
+SF_mu_promptMVA = WeightLambda.wrap_func(
+    name="sf_mu_promptMVA",
+    function=lambda params, metadata, events, size, shape_variations:
+        sf_mu_promptmva(params, events, metadata["year"], 'promptMVA'),
     has_variations=True
     )
 
@@ -323,6 +331,7 @@ common_weights = [
     SF_pho_id,
     SF_mu_id,
     SF_mu_iso,
+    SF_mu_promptMVA,
     SF_mu_trigger,
     SF_btag,
     SF_btag_calib,

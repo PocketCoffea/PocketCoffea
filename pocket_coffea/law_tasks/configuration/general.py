@@ -22,7 +22,7 @@ class transferconfig(luigi.Config):
 class datasetconfig(luigi.Config):
     """Paramters for dataset creation"""
 
-    dataset_definition = luigi.Parameter(
+    dataset_definition = law.CSVParameter(
         description="json file containing the datasets definitions (wildcard supported)",
         default=os.path.join(os.getcwd(), "datasets", "datasets_definitions.json"),
     )
@@ -103,6 +103,9 @@ class runnerconfig(luigi.Config):
     scaleout = luigi.IntParameter(description="Overwrite scaleout config", default=10)
     process_separately = luigi.BoolParameter(
         description="Process each dataset separately", default=False
+    )
+    skip_bad_files = luigi.BoolParameter(
+        description="Skip bad files during processing", default=None
     )
 
 

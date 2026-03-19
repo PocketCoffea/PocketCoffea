@@ -265,13 +265,11 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
         pass
 
-    def apply_preselections(self, variation):
+    def get_preselection_mask(self, variation):
         '''The function computes all the masks from the preselection cuts
-        and filter out the events to speed up the later computations.
+        and returns the boolean mask.
         N.B.: Preselection happens after the objects correction and cleaning.'''
-
-        # The preselection mask is applied after the objects have been corrected
-        self._preselection_masks = PackedSelection()
+        _preselection_masks = PackedSelection()
 
         for cut in self._preselections:
             # Apply the cut function and add it to the mask
@@ -282,11 +280,16 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 sample=self._sample,
                 isMC=self._isMC,
             )
-            self._preselection_masks.add(cut.id, mask)
+            _preselection_masks.add(cut.id, mask)
+        return _preselection_masks.all(*_preselection_masks.names)
+
+    def apply_preselections(self, variation):
+        '''The function computes all the masks from the preselection cuts
+        and filter out the events to speed up the later computations.
+        N.B.: Preselection happens after the objects correction and cleaning.'''
+
         # Now that the preselection mask is complete we can apply it to events
-        self.events = self.events[
-            self._preselection_masks.all(*self._preselection_masks.names)
-        ]
+        self.events = self.events[self.get_preselection_mask(variation)]
         self.nEvents_after_presel = self.nevents
         self.output['cutflow']['presel'].setdefault(self._dataset, {})[variation] = self.nEvents_after_presel
         self.has_events = self.nEvents_after_presel > 0
@@ -755,9 +758,45 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         if not self.has_events:
             return self.output
 
-        if self.cfg.save_skimmed_files:
+        skim_mode = self.workflow_options.get("skim_mode", "skim") if self.workflow_options else "skim"
+
+        if self.cfg.save_skimmed_files and skim_mode == "skim":
             self.export_skimmed_chunk()
             return self.output
+
+        # --- Systematic-aware skimming logic
+        if self.cfg.save_skimmed_files and skim_mode == "presel_any_variation":
+            self.process_extra_after_skim()
+            self.initialize_calibrators()
+
+            # Keep a reference to the uncalibrated events
+            events_after_skim = self.events
+            pass_any_variation = np.zeros(len(self.events), dtype=bool)
+
+            # Dry-run loop to accumulate the OR of preselection masks
+            for variation in self.loop_over_variations():
+                self.process_extra_after_calibrators(variation)
+                self.apply_object_preselection(variation)
+                self.count_objects(variation)
+                self.define_common_variables_before_presel(variation)
+                self.process_extra_before_presel(variation)
+                
+                # Get mask without filtering events
+                mask = self.get_preselection_mask(variation)
+                pass_any_variation = pass_any_variation | mask
+            
+            # Apply the combined OR mask to the original uncalibrated events
+            self.events = events_after_skim[pass_any_variation]
+            self.nEvents_after_skim = len(self.events)
+            self.output['cutflow']['skim'][self._dataset] = self.nEvents_after_skim
+            self.has_events = self.nEvents_after_skim > 0
+
+            if not self.has_events:
+                return self.output
+
+            self.export_skimmed_chunk()
+            return self.output
+        # --------------------------
 
         #########################
         # After the skimming we apply the object corrections and preselection

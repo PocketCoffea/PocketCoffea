@@ -71,6 +71,10 @@ class Runner(BaseTask):
             limit_chunks=self.limit_chunks,
         )
 
+        # overwrite skip-bad-files if specified on command line
+        if self.skip_bad_files is not None:
+            run_options["skip-bad-files"] = self.skip_bad_files
+
         executor = get_executor(self.executor, run_options, output.parent.path)
 
         process_datasets(

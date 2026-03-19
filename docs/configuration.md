@@ -405,7 +405,7 @@ Calibrator behavior is usually controlled through the `parameters` configuration
 
 - **jets_calibration**: Controls JEC/JER application and variations
 - **lepton_scale_factors**: Configures electron/muon scale factors and corrections
-- **rescale_MET_config**: MET correction configuration
+- **met_calibration**: MET correction configuration
 
 See the [Parameters](./parameters.md) page for detailed calibrator parameter configuration, the [Calibrators](./calibrators.md) page for implementation details, and the [Concepts](./concepts.md#object-calibration-and-systematic-variations) page for how calibrators integrate into the workflow.
 
