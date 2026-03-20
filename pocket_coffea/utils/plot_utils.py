@@ -1098,6 +1098,7 @@ class Shape:
             ymax = max(reference_shape)
             if not np.isnan(ymax):
                 if ymax==0: ymax=1
+                ymax = max(ymax, 0.5 * self.ax.get_ylim()[1])
                 self.ax.set_ylim((0, 2.0 * ymax))
         if self.log_x:
             self.ax.set_xscale("log")
