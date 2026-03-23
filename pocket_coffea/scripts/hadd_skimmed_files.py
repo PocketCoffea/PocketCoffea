@@ -9,12 +9,7 @@ import subprocess
 import json
 import click
 
-try:
-    import ROOT as R
-    root_available = True
-except ImportError:
-    print("ROOT is not available. Please make sure to have ROOT installed and configured properly to run this script.")
-    root_available = False
+
 
 def do_hadd(group, overwrite=False):
     try:
@@ -71,6 +66,13 @@ def hadd_skimmed_files(files_list,  outputdir, filter_samples,
     '''
     Regroup skimmed datasets by joining different files (like hadd for ROOT files) 
     '''
+    try:
+        import ROOT as R
+        root_available = True
+    except ImportError:
+        print("ROOT is not available. Please make sure to have ROOT installed and configured properly to run this script.")
+        root_available = False
+
     df = load(files_list)
     only_samples = None
     only_datasets = None
