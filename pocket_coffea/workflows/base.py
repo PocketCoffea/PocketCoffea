@@ -914,9 +914,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     rescale = False
 
                 if rescale and dataset in sumgenw_dict:
-                    ## print("sumgenw_dict:\n", sumgenw_dict)
                     scaling = 1 / sumgenw_dict[dataset]
-                    ## print("\t Scaling: ", scaling)
                     for sample in dataset_data.keys():
                         if "nominal" in dataset_data[sample].keys():
                             dataset_data[sample]["nominal"] *= scaling
@@ -945,7 +943,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
                 if rescale and dataset in sumgenw_dict:
                     scaling = 1/sumgenw_dict[dataset]**2
-                    # print("\t Scaling: ", scaling)
                     for sample in dataset_data.keys():
                         if "nominal" in dataset_data[sample].keys():
                             dataset_data[sample]["nominal"] *= scaling

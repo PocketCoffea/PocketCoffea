@@ -332,21 +332,6 @@ def get_dilepton(electrons, muons, transverse=False):
         leptons = ak.pad_none(ak.with_name(ak.concatenate([ muons[:, 0:2], electrons[:, 0:2]], axis=1), "PtEtaPhiMCandidate"), 2)
         
     nlep = ak.num(leptons[~ak.is_none(leptons, axis=1)])
-    """ 
-    print("len(nlep), nlep:", len(nlep), nlep)
-    print("leptons[:,0]", leptons[:,0].pt)
-    print("leptons[:,1]", leptons[:,1].pt)
-    print("len(l0, l1):", len(leptons[:,0]), len(leptons[:,1]) )
-
-    ind = 2
-    print(leptons[ind,0])
-    print(leptons[ind,1])
-
-    test0 = leptons[ind,0] + leptons[ind,1]
-    
-    st,fin = 2,-1
-    test1 = leptons[st:fin,0] + leptons[st:fin,1]
-    """
     
     ll = leptons[:,0] + leptons[:,1]
 
@@ -357,8 +342,6 @@ def get_dilepton(electrons, muons, transverse=False):
             fields[var]
         )
         
-    #print("dilep pt:", ll[:0].pt)
-    
     fields["deltaR"] = ak.where(
         (nlep == 2), leptons[:,0].delta_r(leptons[:,1]), -1)
     fields["deltaPhi"] = ak.where(
