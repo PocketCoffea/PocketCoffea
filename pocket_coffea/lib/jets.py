@@ -460,11 +460,7 @@ def jet_correction_corrlib(
     chunk_metadata,
     apply_jer=True,
     jec_syst=True,
-):
-    # print("Debug jet_correction_corrlib()")
-    # print("jet_type = ", jet_type)
-    # print("jet_coll_name = ", jet_coll_name)
-    
+):    
     isMC = chunk_metadata["isMC"]
     year = chunk_metadata["year"]
     era = chunk_metadata["era"]
