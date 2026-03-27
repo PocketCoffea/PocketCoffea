@@ -8,9 +8,11 @@ from functools import partial
 import subprocess
 import requests
 import parsl
+import uproot
 from parsl import python_app
 from parsl.config import Config
 from parsl.executors.threads import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor as TPE
 
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -160,6 +162,32 @@ class Sample:
         (it helps with xrootd access in coffea).
         '''
         for das_name in self.das_names:
+            if das_name.startswith("root://"):
+                # If it's a privately produced sample stored somewhere over xrootd
+
+                # First get the filelist with a simple ls
+                result = subprocess.run(['gfal-ls', das_name], capture_output=True, text=True).stdout.split()
+                result = [f"{das_name}/{i}" for i in result]
+                self.fileslist_concrete += result
+
+                # Then get the file sizes with xrdfs ls -l
+                # Commenting out since file sizes are not used and current implementation does not work on all sites
+                # xrootdredir = das_name.split("//")[0]+"//"+das_name.split("//")[1]
+                # dirpath = das_name.split("//")[-1]
+    
+                # flsize = subprocess.run(['xrdfs', xrootdredir, "ls", "-l", dirpath], capture_output=True, text=True).stdout.split()
+                # flsize = sum([int(i) for i in flsize[3::7]])              # This line does not work on all sites
+                # self.metadata["size"] += flsize
+
+                # Then get the event counts with uproot. This is unfortunately slow
+                print("Getting event counts over xrootd...")
+                with TPE(max_workers=20) as executor:
+                    events = list(executor.map(self.get_entries_uproot, result))
+
+                total_events = sum(events)
+                self.metadata["nevents"] += total_events 
+                continue
+
             proxy = get_proxy_path()
             if "dbs_instance" in self.metadata.keys():
                 link = f"https://cmsweb.cern.ch:8443/dbs/{self.metadata['dbs_instance']}/DBSReader/files?dataset={das_name}&detail=True"
@@ -248,6 +276,14 @@ class Sample:
             ff = prefix + f
             if not os.path.exists(ff):
                 print(f"Missing file: {ff}")
+
+    def get_entries_uproot(self,file_path):
+        """Queries a single file for the number of events."""
+        try:
+            return next(uproot.num_entries(f"{file_path}:Events"))[-1]
+        except Exception as e:
+            print(f"Error reading {file_path}: {e}")
+            return 0
 
     def __repr__(self):
         return f"name: {self.name}, sample: {self.metadata['sample']}, das_name: {self.metadata['das_names']}, year: {self.metadata['year']}"
