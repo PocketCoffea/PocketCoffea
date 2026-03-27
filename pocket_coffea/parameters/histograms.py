@@ -255,6 +255,30 @@ default_axis_settings = {
         "lim": (0, 1),
         'label': "AK4 RobustParT CvsB score",
     },
+    'jet_btagUParTAK4B': {
+        "field": "btagUParTAK4B",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 UParT b-tag score",
+    },
+    'jet_btagUParTAK4CvL': {
+        "field": "btagUParTAK4CvL",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 UParT CvsL score",
+    },
+    'jet_btagUParTAK4CvB': {
+        "field": "btagUParTAK4CvB",
+        "bins": 50,
+        "start": 0.0,
+        'stop': 1.0,
+        "lim": (0, 1),
+        'label': "AK4 UParT CvsB score",
+    },
     'fatjet_pt': {
         "field": "pt",
         "bins": 100,
@@ -552,7 +576,8 @@ taggers_fields = {
     "jet": [
         "btagDeepFlavB", "btagDeepFlavCvL", "btagDeepFlavCvB",
         "btagPNetB", "btagPNetCvL", "btagPNetCvB",
-        "btagRobustParTAK4B", "btagRobustParTAK4CvL", "btagRobustParTAK4CvB"
+        "btagRobustParTAK4B", "btagRobustParTAK4CvL", "btagRobustParTAK4CvB",
+        "btagUParTAK4B", "btagUParTAK4CvB", "btagUParTAK4CvL"
     ],
     "fatjet": [
         "btagDDBvLV2",
