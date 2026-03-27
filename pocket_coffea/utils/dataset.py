@@ -171,14 +171,13 @@ class Sample:
                 self.fileslist_concrete += result
 
                 # Then get the file sizes with xrdfs ls -l
-                xrootdredir = das_name.split("//")[0]+"//"+das_name.split("//")[1]
-                dirpath = das_name.split("//")[-1]
+                # Commenting out since file sizes are not used and current implementation does not work on all sites
+                # xrootdredir = das_name.split("//")[0]+"//"+das_name.split("//")[1]
+                # dirpath = das_name.split("//")[-1]
     
-                flsize = subprocess.run(['xrdfs', xrootdredir, "ls", "-l", dirpath], capture_output=True, text=True).stdout.split()
-                #print(flsize)
-                #print(flsize[3::5])
-                flsize = sum([int(i) for i in flsize[3::5]])
-                self.metadata["size"] += flsize
+                # flsize = subprocess.run(['xrdfs', xrootdredir, "ls", "-l", dirpath], capture_output=True, text=True).stdout.split()
+                # flsize = sum([int(i) for i in flsize[3::7]])              # This line does not work on all sites
+                # self.metadata["size"] += flsize
 
                 # Then get the event counts with uproot. This is unfortunately slow
                 print("Getting event counts over xrootd...")
