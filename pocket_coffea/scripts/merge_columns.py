@@ -1,10 +1,12 @@
-import click
-import os
 import multiprocessing
+import os
+
+import click
 import pyarrow.dataset as ds
 import pyarrow.parquet as pq
 from rich import print
 from rich.progress import track
+
 
 def merge_leaf_dir(input_dir, output_file, force):
     # Skip if output exists and not forcing
@@ -14,7 +16,8 @@ def merge_leaf_dir(input_dir, output_file, force):
 
     # List parquet files that are non-empty
     parquet_files = [
-        f for f in os.listdir(input_dir)
+        f
+        for f in os.listdir(input_dir)
         if f.endswith(".parquet") and os.stat(os.path.join(input_dir, f)).st_size > 0
     ]
 
@@ -22,10 +25,13 @@ def merge_leaf_dir(input_dir, output_file, force):
         print(f"[red][Skipped] No non-empty parquet files in {input_dir}[/]")
         return
 
-    dataset = ds.dataset([os.path.join(input_dir, f) for f in parquet_files], format="parquet")
+    dataset = ds.dataset(
+        [os.path.join(input_dir, f) for f in parquet_files], format="parquet"
+    )
     table = dataset.to_table()
     pq.write_table(table, output_file)
     # print(f"[green][Merged] {input_dir} -> {output_file}[/]")
+
 
 def find_leaf_dirs(root_input, root_output):
     """Return list of (leaf_dir, output_file) pairs."""
@@ -39,6 +45,7 @@ def find_leaf_dirs(root_input, root_output):
                 os.makedirs(os.path.dirname(output_file), exist_ok=True)
                 tasks.append((current_dir, output_file))
     return tasks
+
 
 def worker(task):
     """Wrapper for multiprocessing (task is a tuple: (input_dir, output_file, force))"""
@@ -73,7 +80,11 @@ def main(output_dir: str, jobs: int, force: bool):
 
     # Merge with progress bar
     with multiprocessing.Pool(processes=jobs) as pool:
-        for _ in track(pool.imap_unordered(worker, tasks), total=len(tasks), description="[cyan]Merging parquet leaves..."):
+        for _ in track(
+            pool.imap_unordered(worker, tasks),
+            total=len(tasks),
+            description="[cyan]Merging parquet leaves...",
+        ):
             pass
 
     print("[green][b]Done![/][/] ✅")
