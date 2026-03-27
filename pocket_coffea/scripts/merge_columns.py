@@ -1,5 +1,4 @@
-
-import argparse
+import click
 import os
 import multiprocessing
 import pyarrow.dataset as ds
@@ -45,23 +44,40 @@ def worker(task):
     """Wrapper for multiprocessing (task is a tuple: (input_dir, output_file, force))"""
     return merge_leaf_dir(task[0], task[1], task[2])
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Merge parquet leaves into single files")
-    parser.add_argument("-o", "--output-dir", required=True, help="Input directory containing parquet tree")
-    parser.add_argument("-j", "--jobs", type=int, default=None, help="Number of parallel jobs (default: all CPUs)")
-    parser.add_argument("-f", "--force", action="store_true", help="Overwrite existing output files")
-    args = parser.parse_args()
 
-    root_input = os.path.abspath(args.output_dir)
+@click.command()
+@click.argument(
+    "output_dir",
+    type=str,
+)
+@click.option(
+    "-j",
+    "--jobs",
+    help="Number of parallel jobs (default: all CPUs)",
+    type=int,
+)
+@click.option(
+    "-f",
+    "--force",
+    help="Overwrite existing output files",
+    is_flag=True,
+)
+def main(output_dir: str, jobs: int, force: bool):
+    """Merge chunks of exported columns."""
+    root_input = os.path.abspath(output_dir)
     root_output = root_input.rstrip(os.sep) + "_merged"
     os.makedirs(root_output, exist_ok=True)
 
     # Collect all leaf directories
-    tasks = [(inp, out, args.force) for inp, out in find_leaf_dirs(root_input, root_output)]
+    tasks = [(inp, out, force) for inp, out in find_leaf_dirs(root_input, root_output)]
 
     # Merge with progress bar
-    with multiprocessing.Pool(processes=args.jobs) as pool:
+    with multiprocessing.Pool(processes=jobs) as pool:
         for _ in track(pool.imap_unordered(worker, tasks), total=len(tasks), description="[cyan]Merging parquet leaves..."):
             pass
 
     print("[green][b]Done![/][/] ✅")
+
+
+if __name__ == "__main__":
+    main()
