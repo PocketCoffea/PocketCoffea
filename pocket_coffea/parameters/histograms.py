@@ -575,7 +575,7 @@ collection_fields = {
 taggers_fields = {
     "jet": [
         "btagDeepFlavB", "btagDeepFlavCvL", "btagDeepFlavCvB",
-        "btagPNetB", "btagPNetCvL", "btagPNetCvB"
+        "btagPNetB", "btagPNetCvL", "btagPNetCvB",
         #"btagRobustParTAK4B", "btagRobustParTAK4CvL", "btagRobustParTAK4CvB",
         "btagUParTAK4B", "btagUParTAK4CvB", "btagUParTAK4CvL"
     ],
