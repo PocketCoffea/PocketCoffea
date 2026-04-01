@@ -231,29 +231,29 @@ default_axis_settings = {
         "lim": (0, 1),
         'label': "AK4 PNet CvsB score",
     },
-    'jet_btagUParTAK4B': {
-        "field": "btagUParTAK4B",
+    'jet_btagRobustParTAK4B': {
+        "field": "btagRobustParTAK4B",
         "bins": 50,
         "start": 0.0,
         'stop': 1.0,
         "lim": (0, 1),
-        'label': "AK4 UParT b-tag score",
+        'label': "AK4 RobustParT b-tag score",
     },
-    'jet_btagUParTAK4CvL': {
-        "field": "btagUParTAK4CvL",
+    'jet_btagRobustParTAK4CvL': {
+        "field": "btagRobustParTAK4CvL",
         "bins": 50,
         "start": 0.0,
         'stop': 1.0,
         "lim": (0, 1),
-        'label': "AK4 UParT CvsL score",
+        'label': "AK4 RobustParT CvsL score",
     },
-    'jet_btagUParTAK4CvB': {
-        "field": "btagUParTAK4CvB",
+    'jet_btagRobustParTAK4CvB': {
+        "field": "btagRobustParTAK4CvB",
         "bins": 50,
         "start": 0.0,
         'stop': 1.0,
         "lim": (0, 1),
-        'label': "AK4 UParT CvsB score",
+        'label': "AK4 RobustParT CvsB score",
     },
     'jet_btagUParTAK4B': {
         "field": "btagUParTAK4B",
