@@ -577,7 +577,7 @@ taggers_fields = {
         "btagDeepFlavB", "btagDeepFlavCvL", "btagDeepFlavCvB",
         "btagPNetB", "btagPNetCvL", "btagPNetCvB",
         #"btagRobustParTAK4B", "btagRobustParTAK4CvL", "btagRobustParTAK4CvB",
-        "btagUParTAK4B", "btagUParTAK4CvB", "btagUParTAK4CvL"
+        #"btagUParTAK4B", "btagUParTAK4CvB", "btagUParTAK4CvL"
     ],
     "fatjet": [
         "btagDDBvLV2",
