@@ -135,5 +135,4 @@ def build_datasets(
 
 
 if __name__ == "__main__":
-    print("TEST")
     build_datasets()
