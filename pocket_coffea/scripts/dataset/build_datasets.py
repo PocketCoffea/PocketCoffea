@@ -126,6 +126,7 @@ def build_datasets(
         allowlist_sites=allowlist_sites,
         include_redirector=include_redirector,
         blocklist_sites=blocklist_sites,
+        prioritylist_sites=prioritylist_sites,
         regex_sites=regex_sites,
         sort_replicas=sort_replicas,
         parallelize=parallelize,
