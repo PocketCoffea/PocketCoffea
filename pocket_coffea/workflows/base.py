@@ -61,13 +61,13 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Weights configuration
         self.weights_config_allsamples = self.cfg.weights_config
         self.weights_classes = self.cfg.weights_classes
-        
+
         # Load the jet calibration factory once for all chunks
         if self.params.jets_calibration.get("legacy_txt_calibration", False):
             self.jmefactory = load_jet_factory(self.params)
         else:
             self.jmefactory = None
-        
+
         # Custom axis for the histograms
         self.custom_axes = []
         self.custom_histogram_fields = {}
@@ -148,11 +148,11 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 if "NanoAODv12" in self.events.metadata["filename"]:
                     self.nano_version = 12
                 elif "NanoAODv15" in self.events.metadata["filename"]:
-                    self.nano_version = 15  
+                    self.nano_version = 15
                 else:
                     # For MC if it's not defined we take the default nano version
-                    self.nano_version = self.params.default_nano_version[self._year] 
-                              
+                    self.nano_version = self.params.default_nano_version[self._year]
+
             else:
                 # For data if it's not defined we take the default nano version
                 self.nano_version = self.params.default_nano_version[self._year]
@@ -179,7 +179,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
     def skim_events(self):
         '''
         Function which applied the initial event skimming.
-        By default the skimming does not comprehend cuts. 
+        By default the skimming does not comprehend cuts.
 
         BE CAREFUL: the skimming is done before any object preselection and cleaning.
         Only collections and branches already present in the NanoAOD before any corrections
@@ -220,7 +220,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             else:
                 self.events["skimRescaleGenWeight"] =  np.ones(self.nEvents_after_skim) * self.output['sum_genweights'][self._dataset] / skimmed_sumw
             self.output['sum_genweights_skimmed'] = { self._dataset : skimmed_sumw }
-        
+
         filename = (
             "__".join(
                 [
@@ -364,12 +364,12 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 "isMC": self._isMC,
             }
         )
-    
+
     def compute_weights(self, variation):
         '''
         Function which computed the weights (called after preselection).
         The current shape variation is passed to be used for the weights
-        calculation. 
+        calculation.
         '''
         # Compute the weights
         self.weights_manager.compute(self.events,
@@ -601,7 +601,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
     def process_extra_after_calibrators(self, variation):
         pass
-        
+
     def process_extra_before_presel(self, variation):
         pass
 
@@ -611,7 +611,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
     def save_processing_metadata(self):
         # Filling the special histograms for processing metadata if they are present
         total_processing_time = self.stop_time - self.start_time # in seconds
-        add_axes = {"variation":"nominal"} if self._isMC else {}  
+        add_axes = {"variation":"nominal"} if self._isMC else {}
         if self._hasSubsamples:
             for subs in self._subsamples[self._sample].keys():
                 for k, n in zip(["initial", "skim","presel"],
@@ -624,7 +624,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                         )
                         self.output["processing_metadata"][f"events_per_chunk_{k}"][
                             f"{self._sample}__{subs}"][self._dataset] = hepc.hist_obj
-                        
+
                     if hepc := self.hists_manager.get_histogram(subs, f"throughput_per_chunk_{k}"):
                         hepc.hist_obj.fill(
                             cat=hepc.only_categories[0],
@@ -667,7 +667,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 self.params,
                 self._metadata,
                 requested_calibrator_variations=self.cfg.available_shape_variations[self._sample],
-                # Additional arg to pass the jmefactory to the jet calibrator --> hack until we remove it 
+                # Additional arg to pass the jmefactory to the jet calibrator --> hack until we remove it
                 jme_factory=self.jmefactory,
             )
         else:
@@ -684,16 +684,18 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         for variation, events_calibrated in self.calibrators_manager.calibration_loop(
             self.events,
             # Running only the shape variations activated in the configuration
-            # for the current sample. 
-            # The shape variations are defined by the calibrator name 
+            # for the current sample.
+            # The shape variations are defined by the calibrator name
             variations_for_calibrators=self.cfg.available_shape_variations[self._sample],
             debug=self.workflow_options.get("debug_calibrators", False),
         ):
             # We need to set the events to the calibrated ones
             # and call the function to apply the preselection
+            # print("workflow/base.py: processing the variation - ", variation)
+
             self.events = events_calibrated
             yield variation
-        
+
 
     def process(self, events: ak.Array):
         '''
@@ -741,7 +743,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 self.output['sum_genweights'][self._dataset] = ak.sum(self.events.skimRescaleGenWeight * self.events.genWeight)
             #FIXME: handle correctly the skim for the sum_signOf_genweights
             self.output['sum_signOf_genweights'][self._dataset] = ak.sum(np.sign(self.events.genWeight))
-                
+
         ########################
         # Then the first skimming happens.
         # Events that are for sure useless are removed.
@@ -884,7 +886,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                         sumgenw_dict = output["sum_genweights"]
                     else:
                         rescale = False
-                    
+
                     if rescale and dataset in sumgenw_dict:
                         scaling = 1/sumgenw_dict[dataset]
                         # it  means that's a MC sample
@@ -910,12 +912,16 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     sumgenw_dict = output["sum_genweights"]
                 else:
                     rescale = False
-                    
+
                 if rescale and dataset in sumgenw_dict:
                     scaling = 1 / sumgenw_dict[dataset]
                     for sample in dataset_data.keys():
-                        dataset_data[sample]["nominal"] *= scaling
-
+                        if "nominal" in dataset_data[sample].keys():
+                            dataset_data[sample]["nominal"] *= scaling
+                        else:
+                            print("Warning: there is no nominal hist for this sample: ", sample)
+                            print(cat, catdata)
+                            
         # rescale sumw2
         for cat, catdata in output["sumw2"].items():
             for dataset, dataset_data in catdata.items():
@@ -934,12 +940,12 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     sumgenw_dict = output["sum_genweights"]
                 else:
                     rescale = False
-                     
+
                 if rescale and dataset in sumgenw_dict:
                     scaling = 1/sumgenw_dict[dataset]**2
                     for sample in dataset_data.keys():
-                        dataset_data[sample]["nominal"] *= scaling
-
+                        if "nominal" in dataset_data[sample].keys():
+                            dataset_data[sample]["nominal"] *= scaling
 
     def postprocess(self, accumulator):
         '''
@@ -954,11 +960,11 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         To add additional customatizaion redefine the `postprocessing` function,
         but remember to include a super().postprocess() call.
         '''
-        
+
         if not self.cfg.do_postprocessing:
             return accumulator
 
-        
+
         # Saving dataset metadata directly in the output file reading from the config
         dmeta = accumulator["datasets_metadata"] = {
             "by_datataking_period": {},

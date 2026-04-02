@@ -180,7 +180,7 @@ class Sample:
                 # self.metadata["size"] += flsize
 
                 # Then get the event counts with uproot. This is unfortunately slow
-                print("Getting event counts over xrootd...")
+                # print("Getting event counts over xrootd...")
                 with TPE(max_workers=20) as executor:
                     events = list(executor.map(self.get_entries_uproot, result))
 

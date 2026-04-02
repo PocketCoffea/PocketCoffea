@@ -184,6 +184,7 @@ def get_dataset_files_replicas(
     client = client if client else get_rucio_client()
     outsites = []
     outfiles = []
+    # print("What is my location (according to Rucio):", detect_client_location())
     for filedata in client.list_replicas(
         [{"scope": scope, "name": dataset}],
         client_location=detect_client_location(),
@@ -285,6 +286,7 @@ def get_dataset_files_replicas(
             raise Exception(f"No SITE available for file: \n {filedata['name']}")
         else:
             # Sort by prioritylist if applicable
+            # print("Sorting by priority:", prioritylist_sites)
             if prioritylist_sites and sort.lower() == "priority":
                 for priority in prioritylist_sites[::-1]:
                     if priority in outsite:

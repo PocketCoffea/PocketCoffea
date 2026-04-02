@@ -51,6 +51,8 @@ class JetsCalibrator(Calibrator):
                 jet_type_alias=jet_type
                 
             # Check if the collection is enables in the parameters
+            # print("Working on ", jet_type, jet_coll_name )
+            # print("Alias: ", jet_type_alias)
             if self.isMC:
                 if (self.jet_calib_param.apply_jec_MC[self.year][jet_type_alias] == False):
                     # If the collection is not enabled, we skip it
@@ -64,7 +66,6 @@ class JetsCalibrator(Calibrator):
                 # If the collection is already calibrated with another jet_type, raise an error for misconfiguration
                 raise ValueError(f"Jet collection {jet_coll_name} is already calibrated with another jet type. " +
                                  f"Current jet type: {jet_type}. Previous jet types: {self.jets_calibrated[jet_coll_name]}")
-
             # Check if the pt regression is requested, if not skip it
             if ((self.isMC and self.jet_calib_param.apply_pt_regr_MC[self.year][jet_type_alias]) 
                     or
@@ -72,7 +73,8 @@ class JetsCalibrator(Calibrator):
                 # Get the regression parameters by collection if they are present
                 regression_params = OmegaConf.select(self.params,
                                                      "object_preselection." + jet_coll_name + ".regression")
-                
+
+                # print("Applying regression, using params:", regression_params)
                 # Apply the regression to the jets before the JEC
                 # I'm not 100% sure a softcopy is needed here, but the apply_regression method modifies the jets
                 # in place, so to be safe we make a copy. This is a soft copy, so the array data is not copied.

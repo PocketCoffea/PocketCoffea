@@ -114,6 +114,8 @@ def build_datasets(
     print(allowlist_sites)
     print("[red]Blocklist sites:[/]")
     print(blocklist_sites)
+    print("[blue]Priority sites:[/]")
+    print(prioritylist_sites)
         
     dataset.build_datasets(
         cfg=cfg,
