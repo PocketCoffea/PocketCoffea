@@ -1167,7 +1167,6 @@ class Shape:
         else:
             if not hasattr(self, "ax"):
                 self.define_figure(ratio=False)
-
         stacks["mc_nominal"].plot(
             ax=self.ax, color=colors_list, density=self.density, **self.style.opts_mc)
 

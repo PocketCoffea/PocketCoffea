@@ -324,14 +324,6 @@ default_jets_calibration:
         - JES_Total
         - JER
 
-      AK4PFPuppiPNetRegressionPlusNeutrino:
-        2022_preEE: "${default_jets_calibration.variations.total_variation.AK4PFPuppi.2022_preEE}"
-        2022_postEE: "${default_jets_calibration.variations.total_variation.AK4PFPuppi.2022_postEE}"
-        2023_preBPix: "${default_jets_calibration.variations.total_variation.AK4PFPuppi.2023_preBPix}"
-        2023_postBPix: "${default_jets_calibration.variations.total_variation.AK4PFPuppi.2023_postBPix}"
-        2024: "${default_jets_calibration.variations.total_variation.AK4PFPuppi.2024}"
-        
-
 #####################################################################################
 # Default jets calibration for the user used by the processor
 # The user can overwrite `jets_calibration` to get the desired factory.
@@ -469,28 +461,28 @@ jets_calibration:
     2022_preEE:
       AK4PFPuppi: True
       AK8PFPuppi: True
-      AK4PFPuppiPNetRegression: True
-      AK4PFPuppiPNetRegressionPlusNeutrino: True
+      #AK4PFPuppiPNetRegression: True
+      #AK4PFPuppiPNetRegressionPlusNeutrino: True
     2022_postEE:
       AK4PFPuppi: True
       AK8PFPuppi: True
-      AK4PFPuppiPNetRegression: True
-      AK4PFPuppiPNetRegressionPlusNeutrino: True
+      #AK4PFPuppiPNetRegression: True
+      #AK4PFPuppiPNetRegressionPlusNeutrino: True
     2023_preBPix:
       AK4PFPuppi: True
       AK8PFPuppi: True
-      AK4PFPuppiPNetRegression: True
-      AK4PFPuppiPNetRegressionPlusNeutrino: True
+      #AK4PFPuppiPNetRegression: True
+      #AK4PFPuppiPNetRegressionPlusNeutrino: True
     2023_postBPix:
       AK4PFPuppi: True
       AK8PFPuppi: True
-      AK4PFPuppiPNetRegression: True
-      AK4PFPuppiPNetRegressionPlusNeutrino: True
+      #AK4PFPuppiPNetRegression: True
+      #AK4PFPuppiPNetRegressionPlusNeutrino: True
     "2024":
       AK4PFPuppi: True
       AK8PFPuppi: True
-      AK4PFPuppiPNetRegression: True
-      AK4PFPuppiPNetRegressionPlusNeutrino: True
+      #AK4PFPuppiPNetRegression: True
+      #AK4PFPuppiPNetRegressionPlusNeutrino: True
 
   
   apply_jec_MC:  # this is needed to know which collection is corrected with which jet factory

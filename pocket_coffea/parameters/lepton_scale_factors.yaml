@@ -270,7 +270,7 @@ lepton_scale_factors:
           id: NUM_TightID_DEN_TrackerMuons
           iso: NUM_LoosePFIso_DEN_TightID
           trigger: NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight
-          
+      
       '2024':
           id: NUM_TightID_DEN_TrackerMuons
           iso: NUM_LoosePFIso_DEN_TightID
