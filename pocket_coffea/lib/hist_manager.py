@@ -427,6 +427,16 @@ class HistManager:
                             raise ValueError(
                                 f"Collection {ax.coll} not found in events!"
                             )
+
+                        if ax.field not in events[ax.coll].fields:
+                            ## ToDo. We need to enable skipping some hists, which may not be avialable.
+                            ## It could be that some versions of NanoAOD do not contain certain variables, for example, the various Jet Tagger scores
+                            ## At the moment, simply `continue` is not enough - it crashes elsewhere
+                            ## continue
+                            
+                            raise ValueError( f"Varible {ax.field} not found in {ax.coll} Collection!")
+                        
+                        
                         # General collections
                         if ax.pos == None:
                             data = events[ax.coll][ax.field]

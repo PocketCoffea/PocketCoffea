@@ -168,6 +168,10 @@ def sf_ele_trigger(params, events, year):
     )
     corr_eval = electron_correctionset[map_name].evaluate
 
+    # Clip pt to the minimum allowed range for the trigger SF maps.
+    # The EGM-POG electron trigger SF maps (e.g. HLT_SF_Ele30) have a minimum pt bound of 25.0 GeV.
+    ele_pt_flat = np.clip(ele_pt_flat, 25.0, 9999.0)
+
     # get sf, sfup, sfdown per electron
     scale_factors = [
         ak.unflatten(
@@ -319,6 +323,12 @@ def sf_mu(params, events, year, key=''):
         ak.flatten(mu_eta),
         ak.num(mu_pt),
     )
+
+    # Clip pt to the minimum allowed range for the trigger SF maps.
+    # The MUO-POG muon trigger SF maps (e.g. NUM_IsoMu24) have a minimum pt bound of 26.0 GeV.
+    if key == 'trigger':
+        mu_pt_flat = np.clip(mu_pt_flat, 26.0, 9999.0)
+
     sf, sfup, sfdown = get_mu_sf(params, year, mu_pt_flat, mu_eta_flat, mu_counts, key)
 
     # The SF arrays corresponding to all the muons are multiplied along the

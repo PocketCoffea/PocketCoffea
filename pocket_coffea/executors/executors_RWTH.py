@@ -79,8 +79,8 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
                         ),
                     )
                 ],
-            retries=self.run_options["retries"],
-	    run_dir="/tmp/"+getpass.getuser()+"/parsl_runinfo",
+            retries = self.run_options["retries"],
+	    run_dir = self.run_options.get("parsl-runinfo", "/tmp/"+getpass.getuser()+"/parsl_runinfo"),
             )
 
         self.condor_cluster = parsl.load(condor_htex)

@@ -460,7 +460,7 @@ def jet_correction_corrlib(
     chunk_metadata,
     apply_jer=True,
     jec_syst=True,
-):
+):    
     isMC = chunk_metadata["isMC"]
     year = chunk_metadata["year"]
     era = chunk_metadata["era"]
@@ -531,7 +531,8 @@ def jet_correction_corrlib(
         elif tag_jec in list(cset.keys()):
             sf = cset[tag_jec]
         else:
-            print(tag_jec, list(cset.keys()), list(cset.compound.keys()))
+            print("CONFIG ERROR")
+            print("Tag=",tag_jec, "\n cset keys:", list(cset.keys()), "\n compound keys:", list(cset.compound.keys()))
             raise Exception(f"[No JEC correction: {tag_jec} - Year: {year} - Era: {era} - Level: {level}")
         inputs = [eval_dict[input.name] for input in sf.inputs]
         sf_value = sf.evaluate(*inputs)
