@@ -87,7 +87,7 @@ def test_sf_ele_trigger(events, params):
         {"pt": 15, "eta": 2.4, "id": "mvaFall17V2Iso_WP80"}
     }
     events["ElectronGood"] = lepton_selection(events, "Electron", params)
-    sf = WeightWrapper.get_weight_class_from_name("sf_ele_trigger")(params, metadata={"year": "2018"})
+    sf = WeightWrapper.get_weight_class_from_name("sf_ele_trigger_test")(params, metadata={"year": "2018"})
 
     # by default we should get a missing file expection
     with pytest.raises(omegaconf.errors.MissingMandatoryValue):
