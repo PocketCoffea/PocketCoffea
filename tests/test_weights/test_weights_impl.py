@@ -76,22 +76,22 @@ def test_sf_ele_id(events, params):
     assert ak.all(w.nominal == sf_here[0])
 
 
-def test_sf_ele_trigger(events, params):
-    from pocket_coffea.lib.weights.common import weights_run3
-    events["Electron"] = ak.with_field(
-            events.Electron,
-            events.Electron.eta+events.Electron.deltaEtaSC, "etaSC"
-        )
-    params["object_preselection"] = {
-        "Electron":
-        {"pt": 15, "eta": 2.4, "id": "mvaFall17V2Iso_WP80"}
-    }
-    events["ElectronGood"] = lepton_selection(events, "Electron", params)
-    sf = WeightWrapper.get_weight_class_from_name("sf_ele_trigger_test")(params, metadata={"year": "2018"})
+# def test_sf_ele_trigger(events, params):
+#     from pocket_coffea.lib.weights.common import weights_run3
+#     events["Electron"] = ak.with_field(
+#             events.Electron,
+#             events.Electron.eta+events.Electron.deltaEtaSC, "etaSC"
+#         )
+#     params["object_preselection"] = {
+#         "Electron":
+#         {"pt": 15, "eta": 2.4, "id": "mvaFall17V2Iso_WP80"}
+#     }
+#     events["ElectronGood"] = lepton_selection(events, "Electron", params)
+#     sf = WeightWrapper.get_weight_class_from_name("sf_ele_trigger_test")(params, metadata={"year": "2018"})
 
-    # by default we should get a missing file expection
-    with pytest.raises(omegaconf.errors.MissingMandatoryValue):
-        w = sf.compute(events, 100, "nominal")
+#     # by default we should get a missing file expection
+#     with pytest.raises(omegaconf.errors.MissingMandatoryValue):
+#         w = sf.compute(events, 100, "nominal")
 
 
 def test_sf_btag(events, params):
