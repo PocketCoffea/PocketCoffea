@@ -142,7 +142,7 @@ All the collections defined in the `jets_calibration.collection` entry will be c
 :::
 
 ##### Collection Name Aliases
-To allow to use the same calibration settings on different ket collections, it is possible to define aliases for the collection names with the `collection_name_alias` key. For example, if you have a jet collection called `JetCustom` that you want to calibrate in the same way as you do for the `Jet` collection, which is mapped to the `AK4PFPuppi` jet type, your configuration would look like this:
+To allow to use the same calibration settings on different jet collections, it is possible to define aliases for the collection names with the `collection_name_alias` key. For example, if you have a jet collection called `JetCustom` that you want to calibrate in the same way as you do for the `Jet` collection, which is mapped to the `AK4PFPuppi` jet type, your configuration would look like this:
 
 ```yaml
 jets_calibration:

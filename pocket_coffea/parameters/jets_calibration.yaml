@@ -624,21 +624,25 @@ jets_calibration:
     2022_postEE: 
       AK4PFPuppi: False
       AK8PFPuppi: False
+      AK4CorrT1METJetPuppi: False
       AK4PFPuppiPNetRegression: True
       AK4PFPuppiPNetRegressionPlusNeutrino: True
     2023_preBPix: 
       AK4PFPuppi: False
       AK8PFPuppi: False
+      AK4CorrT1METJetPuppi: False
       AK4PFPuppiPNetRegression: True
       AK4PFPuppiPNetRegressionPlusNeutrino: True
     2023_postBPix: 
       AK4PFPuppi: False
       AK8PFPuppi: False
+      AK4CorrT1METJetPuppi: False
       AK4PFPuppiPNetRegression: True
       AK4PFPuppiPNetRegressionPlusNeutrino: True
     "2024": 
       AK4PFPuppi: False
       AK8PFPuppi: False
+      AK4CorrT1METJetPuppi: False
       AK4PFPuppiPNetRegression: True
       AK4PFPuppiPNetRegressionPlusNeutrino: True
 
@@ -658,26 +662,31 @@ jets_calibration:
     2022_preEE: 
       AK4PFPuppi: False
       AK8PFPuppi: False
+      AK4CorrT1METJetPuppi: False
       AK4PFPuppiPNetRegression: True
       AK4PFPuppiPNetRegressionPlusNeutrino: True
     2022_postEE: 
       AK4PFPuppi: False
       AK8PFPuppi: False
+      AK4CorrT1METJetPuppi: False
       AK4PFPuppiPNetRegression: True
       AK4PFPuppiPNetRegressionPlusNeutrino: True
     2023_preBPix: 
       AK4PFPuppi: False
       AK8PFPuppi: False
+      AK4CorrT1METJetPuppi: False
       AK4PFPuppiPNetRegression: True
       AK4PFPuppiPNetRegressionPlusNeutrino: True
     2023_postBPix: 
       AK4PFPuppi: False
       AK8PFPuppi: False
+      AK4CorrT1METJetPuppi: False
       AK4PFPuppiPNetRegression: True
       AK4PFPuppiPNetRegressionPlusNeutrino: True
     "2024": 
       AK4PFPuppi: False
       AK8PFPuppi: False
+      AK4CorrT1METJetPuppi: False
       AK4PFPuppiPNetRegression: True
       AK4PFPuppiPNetRegressionPlusNeutrino: True
 
