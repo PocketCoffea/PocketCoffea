@@ -48,24 +48,21 @@ default_jets_calibration:
       2022_preEE:
         json_path: ${cvmfs:Run3-22CDSep23-Summer22-NanoAODv12,JME,jet_jerc.json.gz}
         jec_mc: Summer22_22Sep2023_V3_MC
-        jec_data: Summer22_22Sep2023_RunCD_V3_DATA
+        jec_data: Summer22_22Sep2023_V3_DATA
         jer: Summer22_22Sep2023_JRV1_MC
         level: L1L2L3Res
       
       2022_postEE:
         json_path: ${cvmfs:Run3-22EFGSep23-Summer22EE-NanoAODv12,JME,jet_jerc.json.gz}
         jec_mc: Summer22EE_22Sep2023_V3_MC
-        jec_data:
-          E: Summer22EE_22Sep2023_RunE_V3_DATA
-          F: Summer22EE_22Sep2023_RunF_V3_DATA
-          G: Summer22EE_22Sep2023_RunG_V3_DATA
+        jec_data: Summer22EE_22Sep2023_V3_DATA
         jer: Summer22EE_22Sep2023_JRV1_MC
         level: L1L2L3Res
 
       2023_preBPix:
         json_path: ${cvmfs:Run3-23CSep23-Summer23-NanoAODv12,JME,jet_jerc.json.gz}
         jec_mc: Summer23Prompt23_V2_MC
-        jec_data: Summer23Prompt23_V2_DATA
+        jec_data: Summer23Prompt23_V3_DATA
         jer: Summer23Prompt23_RunCv1234_JRV1_MC
         level: L1L2L3Res
       
