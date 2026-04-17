@@ -50,6 +50,14 @@ lumi:
       H: 5490
       I: 11560
       tot: 109950
+    "2025":
+      B: 260
+      C: 21630
+      D: 25520
+      E: 14150
+      F: 26890
+      G: 22400
+      tot: 110840
       
   goldenJSON:
     '2016_PreVFP': "${default_params_dir:}/datacert/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt"
@@ -61,3 +69,4 @@ lumi:
     '2023_preBPix': "${default_params_dir:}/datacert/Cert_Collisions2023_366442_370790_Golden.json"
     '2023_postBPix': "${default_params_dir:}/datacert/Cert_Collisions2023_366442_370790_Golden.json"
     '2024': "${default_params_dir:}/datacert/Cert_Collisions2024_378981_386951_Golden.json"
+    '2025': "${default_params_dir:}/datacert/Cert_Collisions2025_391658_398903_Golden.json"
