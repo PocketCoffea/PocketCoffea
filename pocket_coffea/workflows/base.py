@@ -74,7 +74,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self.custom_histogram_fields = {}
 
         # Delayed evaluation of branches
-        self.delayed_branches = DelayedEvalBranchManager(self)
+        self.delayed_branches = DelayedEvalBranchManager()
 
         # Output format
         # Accumulators for the output

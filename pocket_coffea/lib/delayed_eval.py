@@ -8,8 +8,10 @@ class DelayedEvalBranchManager:
     computed only for events that pass final selections in any variation.
     Usage pattern:
       - Register branches with `register(name, compute_fn, default_value)`.
-        The `compute_fn(processor, ev_subset)` must return an array (numpy/ak)
-        of length len(ev_subset) with the branch values computed ON NOMINAL objects.
+                The `compute_fn(ev_subset)` must return a regular array (numpy/ak)
+                of shape `(len(ev_subset), ...)` with the branch values computed ON
+                NOMINAL objects. For grouped registrations, `default_value` can be a
+                scalar/array applied to all branches or a dict keyed by branch name.
       - On the first (nominal) variation, call `prepare_nominal_snapshot(events)` BEFORE
         preselections are applied.
       - For each variation after categories are defined, call
@@ -17,28 +19,78 @@ class DelayedEvalBranchManager:
         passing events and attach the cached values to current `events`.
     """
 
-    def __init__(self, processor):
-        self.processor = processor
+    def __init__(self):
         self.registered = {}  # name -> dict(compute_fn, default)
         self.prepared = False
 
-    def register(self, name, compute_fn, default_value: float = 1.0):
+    def _normalize_default_value(self, default_value):
+        return np.asarray(default_value)
+
+    def _normalize_multi_defaults(self, names, default_value):
+        if isinstance(default_value, dict):
+            missing = [nm for nm in names if nm not in default_value]
+            extra = sorted(set(default_value) - set(names))
+            if missing or extra:
+                raise ValueError(
+                    "Grouped delayed-eval defaults must match the registered names exactly. "
+                    f"Missing: {missing}, extra: {extra}"
+                )
+            return {nm: self._normalize_default_value(default_value[nm]) for nm in names}
+
+        normalized_default = self._normalize_default_value(default_value)
+        return {nm: normalized_default for nm in names}
+
+    def _make_default_filled_array(self, length, default_value):
+        default_arr = self._normalize_default_value(default_value)
+        out = np.empty((length,) + default_arr.shape, dtype=default_arr.dtype)
+        out[...] = default_arr
+        return out
+
+    def _coerce_output_array(self, values, branch_name, expected_length, expected_shape):
+        try:
+            values_np = ak.to_numpy(values)
+        except Exception as exc:
+            raise ValueError(
+                f"Delayed-eval branch '{branch_name}' must return a regular numpy/awkward array"
+            ) from exc
+
+        if values_np.ndim == 0:
+            raise ValueError(
+                f"Delayed-eval branch '{branch_name}' returned a scalar, expected leading event axis of length {expected_length}"
+            )
+
+        if values_np.shape[0] != expected_length:
+            raise ValueError(
+                f"Delayed-eval branch '{branch_name}' returned shape {values_np.shape}, expected first axis length {expected_length}"
+            )
+
+        if values_np.shape[1:] != expected_shape:
+            raise ValueError(
+                f"Delayed-eval branch '{branch_name}' returned trailing shape {values_np.shape[1:]}, expected {expected_shape} from its default value"
+            )
+
+        return values_np
+
+    def register(self, name, compute_fn, default_value=1.0):
         """Register a branch or a group of branches for delayed computation.
-        - Single: name is a str and compute_fn returns 1D array.
+        - Single: name is a str and compute_fn returns an array of shape (N, ...).
         - Group: name is a list/tuple of names and compute_fn returns a dict {name: array}.
+          For groups, default_value can be a scalar/array shared across all outputs or a
+          dict mapping branch name to its default scalar/array.
         """
         if isinstance(name, (list, tuple)):
+            names = list(name)
             key = tuple(name)
             self.registered[key] = {
                 "compute_fn": compute_fn,
-                "default": default_value,
                 "multi": True,
-                "names": list(name),
+                "names": names,
+                "defaults": self._normalize_multi_defaults(names, default_value),
             }
         else:
             self.registered[name] = {
                 "compute_fn": compute_fn,
-                "default": default_value,
+                "default": self._normalize_default_value(default_value),
                 "multi": False,
             }
 
@@ -63,14 +115,14 @@ class DelayedEvalBranchManager:
         for key, cfg in self.registered.items():
             if cfg.get("multi", False):
                 for nm in cfg["names"]:
-                    self.cache[nm] = np.full(n, cfg["default"], dtype=float)
+                    self.cache[nm] = self._make_default_filled_array(n, cfg["defaults"][nm])
             else:
-                self.cache[key] = np.full(n, cfg["default"], dtype=float)
+                self.cache[key] = self._make_default_filled_array(n, cfg["default"])
         self.prepared = True
 
     def union_final_categories_mask(self, events, categories):
         # Build union-of-final-category mask using the categories masks
-        union = events.event != events.event  # False
+        union = np.zeros(len(events), dtype=bool)
         for _, mask in categories.get_masks():
             if getattr(categories, "is_multidim", False) and getattr(mask, "ndim", 1) > 1:
                 mask_on_events = ak.any(mask, axis=1)
@@ -101,13 +153,23 @@ class DelayedEvalBranchManager:
                 ev_sub = self.nominal_events[nom_idxs_new]
                 for key, cfg in self.registered.items():
                     if cfg.get("multi", False):
-                        out = cfg["compute_fn"](self.processor, ev_sub)
+                        out = cfg["compute_fn"](ev_sub)
                         for nm in cfg["names"]:
-                            vals_np = ak.to_numpy(out[nm])
+                            vals_np = self._coerce_output_array(
+                                out[nm],
+                                nm,
+                                len(ev_sub),
+                                self.cache[nm].shape[1:],
+                            )
                             self.cache[nm][nom_idxs_new] = vals_np
                     else:
-                        vals = cfg["compute_fn"](self.processor, ev_sub)
-                        vals_np = ak.to_numpy(vals)
+                        vals = cfg["compute_fn"](ev_sub)
+                        vals_np = self._coerce_output_array(
+                            vals,
+                            key,
+                            len(ev_sub),
+                            self.cache[key].shape[1:],
+                        )
                         self.cache[key][nom_idxs_new] = vals_np
                 # Mark as computed
                 self.computed_nom_mask[nom_idxs_new] = True
@@ -119,10 +181,10 @@ class DelayedEvalBranchManager:
         for key, cfg in self.registered.items():
             if cfg.get("multi", False):
                 for nm in cfg["names"]:
-                    out = np.full(n_curr, cfg["default"], dtype=float)
+                    out = self._make_default_filled_array(n_curr, cfg["defaults"][nm])
                     out[valid] = self.cache[nm][idxs_curr[valid]]
                     events[nm] = ak.Array(out)
             else:
-                out = np.full(n_curr, cfg["default"], dtype=float)
+                out = self._make_default_filled_array(n_curr, cfg["default"])
                 out[valid] = self.cache[key][idxs_curr[valid]]
                 events[key] = ak.Array(out)

@@ -3,7 +3,6 @@ import awkward as ak
 from pocket_coffea.workflows.base import BaseProcessorABC
 from pocket_coffea.utils.configurator import Configurator
 from pocket_coffea.lib.objects import (
-    jet_correction,
     lepton_selection,
     jet_selection,
     btagging,
@@ -16,7 +15,7 @@ class BasicProcessor(BaseProcessorABC):
         super().__init__(cfg)
 
         
-        parity_fn = lambda processor, events: events.event % 2
+        parity_fn = lambda events: events.event % 2
 
         self.delayed_branches.register("parity", parity_fn, default_value=-1.0)
 

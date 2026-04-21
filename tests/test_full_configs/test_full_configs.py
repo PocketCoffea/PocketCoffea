@@ -14,6 +14,7 @@ import numpy as np
 import awkward as ak
 import hist
 from coffea.nanoevents import NanoEventsFactory, NanoAODSchema
+from pocket_coffea.lib.delayed_eval import DelayedEvalBranchManager
 
 from scipy.stats import binom
 
@@ -24,6 +25,15 @@ def base_path() -> Path:
 
 
 reference_commit = "3b6cf6c"
+
+
+class DummyCategories:
+    def __init__(self, masks):
+        self._masks = masks
+        self.is_multidim = False
+
+    def get_masks(self):
+        return self._masks
 
 def test_new_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_new_weights" )
@@ -73,6 +83,7 @@ def test_custom_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_pa
     run_options["limit-files"] = 1
     run_options["limit-chunks"] = 1
     run_options["chunksize"] = 500
+    run_options["ignore-grid-certificate"] = True
     config.filter_dataset(run_options["limit-files"])
 
     executor_factory = executors_lib.get_executor_factory("iterative",
@@ -139,6 +150,7 @@ def test_delayed_eval(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path
     run_options["limit-files"] = 1
     run_options["limit-chunks"] = 1
     run_options["chunksize"] = 500
+    run_options["ignore-grid-certificate"] = True
     config.filter_dataset(run_options["limit-files"])
 
     executor_factory = executors_lib.get_executor_factory("iterative",
@@ -183,6 +195,106 @@ def test_delayed_eval(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path
         for x in range(3):
             assert parityVarHistValuesUp[x] == nomHistValues[x]
             assert parityVarHistValuesDown[x] ==  nomHistValues[x]
+
+
+def test_delayed_eval_computes_once_per_nominal_event():
+    events = ak.Array({"event": np.arange(6, dtype=np.int64)})
+    manager = DelayedEvalBranchManager()
+
+    seen_subsets = []
+
+    def parity_fn(ev_subset):
+        seen_subsets.append(ak.to_list(ev_subset.event))
+        return ev_subset.event % 2
+
+    manager.register("parity", parity_fn, default_value=-1.0)
+    manager.prepare_nominal_snapshot(events)
+
+    nominal_like = events[[0, 1, 2, 4]]
+    nominal_categories = DummyCategories(
+        [("2jets_even", np.array([True, False, True, False], dtype=bool))]
+    )
+    manager.update_for_current_variation(nominal_like, nominal_categories)
+
+    assert ak.to_list(nominal_like.parity) == [0.0, -1.0, 0.0, -1.0]
+    assert seen_subsets == [[0, 2]]
+
+    shifted = events[[3, 1, 2, 4]]
+    shifted_categories = DummyCategories(
+        [("2jets_odd", np.array([True, True, False, False], dtype=bool))]
+    )
+    manager.update_for_current_variation(shifted, shifted_categories)
+
+    assert ak.to_list(shifted.parity) == [1.0, 1.0, 0.0, -1.0]
+    assert seen_subsets == [[0, 2], [1, 3]]
+
+
+def test_delayed_eval_does_not_require_event_field_for_masks():
+    events = ak.Array({"value": np.array([10, 11, 12, 13], dtype=np.int64)})
+    manager = DelayedEvalBranchManager()
+
+    def copy_value(ev_subset):
+        return ev_subset.value
+
+    manager.register("copied_value", copy_value, default_value=-1.0)
+    manager.prepare_nominal_snapshot(events)
+
+    varied = events[[0, 2, 3]]
+    categories = DummyCategories(
+        [("selected", np.array([False, True, True], dtype=bool))]
+    )
+    manager.update_for_current_variation(varied, categories)
+
+    assert ak.to_list(varied.copied_value) == [-1.0, 12.0, 13.0]
+
+
+def test_delayed_eval_supports_dense_multidimensional_outputs():
+    events = ak.Array({"seed": np.arange(5, dtype=np.float32)})
+    manager = DelayedEvalBranchManager()
+
+    seen_subsets = []
+
+    def vjet_like_outputs(ev_subset):
+        seed = ak.to_numpy(ev_subset.seed)
+        seen_subsets.append(seed.tolist())
+        up = np.stack([seed + idx for idx in range(11)], axis=1)
+        down = np.stack([seed - idx for idx in range(11)], axis=1)
+        return {
+            "nominal_weight": seed + 0.5,
+            "weight_up": up,
+            "weight_down": down,
+        }
+
+    default_matrix = np.full(11, -1.0, dtype=np.float32)
+    manager.register(
+        ["nominal_weight", "weight_up", "weight_down"],
+        vjet_like_outputs,
+        default_value={
+            "nominal_weight": -1.0,
+            "weight_up": default_matrix,
+            "weight_down": default_matrix,
+        },
+    )
+    manager.prepare_nominal_snapshot(events)
+
+    varied = events[[3, 1, 4]]
+    categories = DummyCategories(
+        [("selected", np.array([True, False, True], dtype=bool))]
+    )
+    manager.update_for_current_variation(varied, categories)
+
+    assert seen_subsets == [[3.0, 4.0]]
+    assert ak.to_list(varied.nominal_weight) == [3.5, -1.0, 4.5]
+    assert ak.to_list(varied.weight_up) == [
+        [3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0],
+        [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0],
+        [4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0],
+    ]
+    assert ak.to_list(varied.weight_down) == [
+        [3.0, 2.0, 1.0, 0.0, -1.0, -2.0, -3.0, -4.0, -5.0, -6.0, -7.0],
+        [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0],
+        [4.0, 3.0, 2.0, 1.0, 0.0, -1.0, -2.0, -3.0, -4.0, -5.0, -6.0],
+    ]
     
 
     
