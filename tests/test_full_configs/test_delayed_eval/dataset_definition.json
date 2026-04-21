@@ -1,0 +1,39 @@
+
+{
+   "DATASET_NAME": {
+      "sample": "SAMPLE_NAME",
+      "json_output": "JSON_OUTPUT",
+      "files": [
+         {
+             "das_names": ["DAS_NAME1", "DAS_NAME2", ...],
+             "xsec": 1,
+             "year": "YEAR",
+             "isMC": True   
+         },
+          {
+             "das_names": ["DAS_NAME3", "DAS_NAME4", ...],
+             "xsec": 1,
+             "year": "YEAR2",
+             "isMC": True   
+         }
+      ]
+   },
+     "DATASET_NAME_DATA": {
+      "sample": "SAMPLE_NAME",
+      "json_output": "JSON_OUTPUT",
+      "files": [
+         {
+             "das_names": ["DAS_NAME1", "DAS_NAME2", ...],
+             "year": "YEAR",
+             "isMC": False,
+             "era": "A"
+         },
+          {
+             "das_names": ["DAS_NAME3", "DAS_NAME4", ...],
+             "year": "YEAR2",
+             "isMC": False,
+             "era": "A"
+         }
+      ]
+   }
+}
