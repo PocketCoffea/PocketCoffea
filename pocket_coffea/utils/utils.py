@@ -7,7 +7,9 @@ import awkward
 import pathlib
 import shutil
 from .configurator import Configurator
-
+import hashlib
+from numba import njit
+import awkward as ak
 
 @contextmanager
 def add_to_path(p):
@@ -19,6 +21,14 @@ def add_to_path(p):
     finally:
         sys.path = old_path
 
+def get_random_seed(metadata, salt=""):
+    '''Generate a random seed based on the current file and entry range being processed.
+    This ensures that different files and different entry ranges will produce different seeds,
+    while the same file and entry range will always produce the same seed.
+    An optional salt can be provided to further differentiate the seed generation for different function.'''
+    key = f"{metadata['fileuuid']}-{metadata['entrystart']}-{metadata['entrystop']}-{salt}".encode("utf-8")
+    seed = int(hashlib.sha256(key).hexdigest()[:8], 16)
+    return seed
 
 # import a module from a path.
 # Solution from https://stackoverflow.com/questions/41861427/python-3-5-how-to-dynamically-import-a-module-given-the-full-file-path-in-the
@@ -98,9 +108,10 @@ def dump_ak_array(
         else os.path.join(location, os.path.join(merged_subdirs, fname))
     )
     awkward.to_parquet(akarr, local_file)
-    if xrootd:
+    if xrootd: # fix XRootD mkdir offen meet problem like: Exception: [ERROR] Server responded with an error: [3018] Unable to mkdir ...（your dir）..; File exists
         copyproc = XRootD.client.CopyProcess()
-        copyproc.add_job(local_file, destination, force=True)
+        #old: copyproc.add_job(local_file, destination, force=True)
+        copyproc.add_job(local_file, destination, mkdir=True, force=True) 
         copyproc.prepare()
         status, response = copyproc.run()
         if status.status != 0:
@@ -113,3 +124,77 @@ def dump_ak_array(
         assert os.path.isfile(destination)
     pathlib.Path(local_file).unlink()
 
+
+def get_nano_version(events, params, year):
+    '''Helper function to get the nano version from the events metadata or from the default parameters.'''
+    if "nano_version" in events.metadata:
+        nano_version = events.metadata["nano_version"]
+    else:
+        if events.metadata.get("isMC", False):
+            # Try to extract from the sample name
+            if "NanoAODv12" in events.metadata["filename"]:
+                nano_version = 12
+            elif "NanoAODv15" in events.metadata["filename"]:
+                nano_version = 15
+            else:
+                # For MC if it's not defined we take the default nano version
+                nano_version = params["default_nano_version"][year]
+        else:
+            # For data if it's not defined we take the default nano version
+            nano_version = params["default_nano_version"][year]
+
+    return nano_version
+
+
+@njit
+def replace_at_indices(a, indices, a_corrected, array_builder):
+    """
+    Replace elements of array `a` at positions specified by `indices` 
+    with values from `a_corrected`.
+    `indices` is a jagged array where each sub-array contains the indices
+    to be replaced for the corresponding sub-array in `a`.
+    `a_corrected` is a jagged array with the same shape as `indices`,
+    containing the new values to insert.
+    The shape of `a` is different from that of `indices` and `a_corrected`,
+    but they share the same outer dimension.
+    
+    Parameters:
+    -----------
+    a : array
+        Original array to be modified
+    indices : array
+        Indices where replacements should occur
+    a_corrected : array
+        Corrected values to insert (same shape as indices)
+    array_builder : ak.ArrayBuilder, optional
+        ArrayBuilder to use. If None, a new one is created.
+    
+    Returns:
+    --------
+    array : Modified copy of `a`
+    """
+    
+    # Create a new ArrayBuilder for each call to avoid accumulation
+    if array_builder is None:
+        raise ValueError("array_builder must be provided and cannot be None.")
+    
+    # Replace values at specified indices
+    for ievt, values in enumerate(a):
+        array_values = []
+        for i in range(len(values)):
+            if i in indices[ievt]:
+                # Find the position of i in indices[ievt]
+                idx_pos = -1
+                for j in range(len(indices[ievt])):
+                    if indices[ievt][j] == i:
+                        idx_pos = j
+                        break
+                array_values.append(a_corrected[ievt][idx_pos])
+            else:
+                array_values.append(values[i])
+        array_builder.begin_list()
+        for val in array_values:
+            array_builder.append(val)
+        array_builder.end_list()
+
+    return array_builder

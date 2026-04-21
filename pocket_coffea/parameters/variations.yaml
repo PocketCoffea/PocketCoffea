@@ -1,18 +1,18 @@
 systematic_variations:
   weight_variations:
-    sf_ele_trigger:
-      "2016_PreVFP": 
-         - stat
-         - pileup
-         - era
-         - ht
-      "2016_PostVFP": "${.2016_PreVFP}" #interpolation by OmegaConf --> taking the same dict
-      "2017": "${.2016_PreVFP}" 
-      "2018": "${.2016_PreVFP}"
-      "2022_preEE": "${.2016_PreVFP}"
-      "2022_postEE": "${.2016_PreVFP}"
-      "2023_preBPix": "${.2016_PreVFP}"
-      "2023_postBPix": "${.2016_PreVFP}"
+    # sf_ele_trigger:
+    #   "2016_PreVFP": 
+    #      - stat
+    #      - pileup
+    #      - era
+    #      - ht
+    #   "2016_PostVFP": "${.2016_PreVFP}" #interpolation by OmegaConf --> taking the same dict
+    #   "2017": "${.2016_PreVFP}" 
+    #   "2018": "${.2016_PreVFP}"
+    #   "2022_preEE": "${.2016_PreVFP}"
+    #   "2022_postEE": "${.2016_PreVFP}"
+    #   "2023_preBPix": "${.2016_PreVFP}"
+    #   "2023_postBPix": "${.2016_PreVFP}"
 
     sf_btag:
       '2016_PreVFP':
@@ -29,6 +29,8 @@ systematic_variations:
       '2018': "${.2016_PreVFP}"
       '2022_preEE': "${.2016_PreVFP}"
       '2022_postEE': "${.2016_PreVFP}"
+      '2023_preBPix': "${.2016_PreVFP}"
+      '2023_postBPix': "${.2016_PreVFP}"
 
     sf_ctag:
       '2016_PreVFP':

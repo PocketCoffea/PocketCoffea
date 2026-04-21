@@ -16,8 +16,7 @@ class BasicProcessor(BaseProcessorABC):
     def process_extra_after_skim(self):
         super().process_extra_after_skim()
         # Save the original MET pt 
-        jet_calib_params= self.params.jets_calibration
-        met_branch =  jet_calib_params.rescale_MET_config[self._year].MET_collection
+        met_branch =  self.params.met_calibration[self._year].MET_collection
         self.events[met_branch] = ak.with_field(
             self.events[met_branch], self.events[met_branch].pt, "pt_original"
         )

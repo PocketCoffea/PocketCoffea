@@ -23,5 +23,3 @@ object_preselection:
     btag:
       wp:
         M
-    regression:
-      do: True

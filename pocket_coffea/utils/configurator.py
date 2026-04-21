@@ -157,7 +157,13 @@ class Configurator:
         # Now loading and storing the metadata of the filtered filesets
         if len(self.filesets) == 0:
             print("File set is empty: please check you dataset definition...")
-            raise Exception("Wrong filesets configuration")
+            # Provide more detailed information about the filter configuration
+            error_msg = "Wrong filesets configuration: No datasets matched the filter criteria."
+            ds_filter = self.datasets_cfg.get("filter", None)
+            if ds_filter and ds_filter.get("samples"):
+                error_msg += f"\nRequested samples in filter: {ds_filter['samples']}"
+            error_msg += "\nPlease check for typos (e.g., missing commas in sample lists) and verify that the requested samples exist in the JSON files."
+            raise Exception(error_msg)
         else:
             for name, d in self.filesets.items():
                 m = d["metadata"]
@@ -284,11 +290,14 @@ class Configurator:
         self.load_columns_config(self.columns_cfg)
 
         self.perform_checks()
-
-        # Alway run the jet calibration builder
-        if not os.path.exists(self.parameters.jets_calibration.factory_file):
-            build_jets_calibrator.build(self.parameters.jets_calibration)
-
+        
+        # Check if the jet calibration is legacy or not, and build the
+        # calibrator factory file if not present
+        if self.parameters.jets_calibration.get("legacy_txt_calibration", False):
+            print("Using legacy txt jet calibration, factory building needed. Please switch to the new correctionlib calibration if possible.")
+            if not os.path.exists(self.parameters.jets_calibration.factory_file):
+                build_jets_calibrator.build(self.parameters.jets_calibration)
+            
         # Load the workflow as the last thing
         self.load_workflow()
 
