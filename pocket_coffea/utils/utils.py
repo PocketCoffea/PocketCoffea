@@ -21,6 +21,29 @@ def add_to_path(p):
     finally:
         sys.path = old_path
 
+
+def _clear_local_module_cache(module_dir):
+    """Remove top-level import names provided by a config directory.
+
+    Full-config tests load many config.py files from different directories, and those
+    configs often import sibling modules with generic names like ``workflow``.
+    Clearing the matching top-level names before executing a new config prevents a
+    previously imported sibling module from being reused via ``sys.modules``.
+    """
+
+    for entry in os.scandir(module_dir):
+        if entry.name == "__pycache__":
+            continue
+
+        if entry.is_file() and entry.name.endswith(".py"):
+            module_name = os.path.splitext(entry.name)[0]
+            if module_name != "__init__":
+                sys.modules.pop(module_name, None)
+            continue
+
+        if entry.is_dir() and os.path.isfile(os.path.join(entry.path, "__init__.py")):
+            sys.modules.pop(entry.name, None)
+
 def get_random_seed(metadata, salt=""):
     '''Generate a random seed based on the current file and entry range being processed.
     This ensures that different files and different entry ranges will produce different seeds,
@@ -35,7 +58,10 @@ def get_random_seed(metadata, salt=""):
 def path_import(absolute_path):
     if not os.path.exists(absolute_path):
         raise Exception(f"Module path {absolute_path} not found!")
-    with add_to_path(os.path.dirname(absolute_path)):
+    absolute_path = os.path.abspath(absolute_path)
+    module_dir = os.path.dirname(absolute_path)
+    with add_to_path(module_dir):
+        _clear_local_module_cache(module_dir)
         spec = importlib.util.spec_from_file_location(absolute_path, absolute_path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)

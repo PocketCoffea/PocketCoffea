@@ -1,3 +1,4 @@
+
 import pytest
 import os
 from pocket_coffea.utils.utils import load_config
@@ -13,6 +14,9 @@ import numpy as np
 import awkward as ak
 import hist
 from coffea.nanoevents import NanoEventsFactory, NanoAODSchema
+from pocket_coffea.lib.delayed_eval import DelayedEvalBranchManager
+
+from scipy.stats import binom
 
 @pytest.fixture
 def base_path() -> Path:
@@ -21,6 +25,15 @@ def base_path() -> Path:
 
 
 reference_commit = "3b6cf6c"
+
+
+class DummyCategories:
+    def __init__(self, masks):
+        self._masks = masks
+        self.is_multidim = False
+
+    def get_masks(self):
+        return self._masks
 
 def test_new_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_new_weights" )
@@ -70,6 +83,7 @@ def test_custom_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_pa
     run_options["limit-files"] = 1
     run_options["limit-chunks"] = 1
     run_options["chunksize"] = 500
+    run_options["ignore-grid-certificate"] = True
     config.filter_dataset(run_options["limit-files"])
 
     executor_factory = executors_lib.get_executor_factory("iterative",
@@ -109,6 +123,179 @@ def test_custom_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_pa
 
     compare_totalweight(output, ["nJetGood"])
 
+
+def test_delayed_eval(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
+    """
+    Test the delayed evaluation of branches.
+
+    This test defines a parity branch that is only computed for events ending up in histograms.
+    The branch is initialized to -1 for all events. It is then set to 0 for event events
+    and 1 to odd events. This test defines a region based off of the parity, calculated
+    at a different stage in the workflow. It then histograms the delayed parity branch
+    for each region and confirms that only the appropriate histogram bins are non-zero.
+
+    It also defines a systematic weight based on the parity branch. It then confirms that
+    the branch has been correctly defined at this stage.
+
+    In total, this test checks that the delayed branch is always calculated for passing
+    events and that it is calculated in time to define weights and fill histograms.
+
+    """
+    monkeypatch.chdir(base_path / "test_delayed_eval" )
+    outputdir = tmp_path_factory.mktemp("test_delayed_eval")
+    config = load_config("config.py", save_config=True, outputdir=outputdir)
+    assert isinstance(config, Configurator)
+
+    run_options = defaults.get_default_run_options()["general"]
+    run_options["limit-files"] = 1
+    run_options["limit-chunks"] = 1
+    run_options["chunksize"] = 500
+    run_options["ignore-grid-certificate"] = True
+    config.filter_dataset(run_options["limit-files"])
+
+    executor_factory = executors_lib.get_executor_factory("iterative",
+                                                          run_options=run_options,
+                                                          outputdir=outputdir)
+
+    executor = executor_factory.get()
+
+    run = Runner(
+        executor=executor,
+        chunksize=run_options["chunksize"],
+        maxchunks=run_options["limit-chunks"],
+        schema=processor.NanoAODSchema,
+        format="root"
+    )
+    output = run(config.filesets, treename="Events",
+                 processor_instance=config.processor_instance)
+    save(output, outputdir / "output_all.coffea")
+
+
+    assert output is not None
+
+
+    H = output["variables"]["Parity"]["TTTo2L2Nu"]["TTTo2L2Nu_2018"]
+    for cat in ["2jets_even", "2jets_odd"]:
+        for key in H.axes["variation"]:
+            histValues = H[{"cat":cat, "variation":key}].values()
+            print(cat, key, histValues)
+            assert histValues[0] == 0 # Parity should not stay -1 if the events pass
+            if("even" in cat):
+                assert histValues[1] > 0 # Parity should be 0 if the events pass the even_event cut
+                assert histValues[2] == 0
+            else:
+                assert histValues[1] == 0 # Parity should be 1 if the events pass the odd_event cut
+                assert histValues[2] > 0
+        nomHistValues = H[{"cat":cat, "variation":"nominal"}].values()
+        parityVarHistValuesUp = H[{"cat":cat, "variation":"parity_weightUp"}].values()
+        parityVarHistValuesDown = H[{"cat":cat, "variation":"parity_weightDown"}].values()
+        print("Nominal", nomHistValues)
+        print("Parity weight Up", parityVarHistValuesUp)
+        print("Parity weight Down", parityVarHistValuesDown)
+        for x in range(3):
+            assert parityVarHistValuesUp[x] == nomHistValues[x]
+            assert parityVarHistValuesDown[x] ==  nomHistValues[x]
+
+
+def test_delayed_eval_computes_once_per_nominal_event():
+    events = ak.Array({"event": np.arange(6, dtype=np.int64)})
+    manager = DelayedEvalBranchManager()
+
+    seen_subsets = []
+
+    def parity_fn(ev_subset):
+        seen_subsets.append(ak.to_list(ev_subset.event))
+        return ev_subset.event % 2
+
+    manager.register("parity", parity_fn, default_value=-1.0)
+    manager.prepare_nominal_snapshot(events)
+
+    nominal_like = events[[0, 1, 2, 4]]
+    nominal_categories = DummyCategories(
+        [("2jets_even", np.array([True, False, True, False], dtype=bool))]
+    )
+    manager.update_for_current_variation(nominal_like, nominal_categories)
+
+    assert ak.to_list(nominal_like.parity) == [0.0, -1.0, 0.0, -1.0]
+    assert seen_subsets == [[0, 2]]
+
+    shifted = events[[3, 1, 2, 4]]
+    shifted_categories = DummyCategories(
+        [("2jets_odd", np.array([True, True, False, False], dtype=bool))]
+    )
+    manager.update_for_current_variation(shifted, shifted_categories)
+
+    assert ak.to_list(shifted.parity) == [1.0, 1.0, 0.0, -1.0]
+    assert seen_subsets == [[0, 2], [1, 3]]
+
+
+def test_delayed_eval_does_not_require_event_field_for_masks():
+    events = ak.Array({"value": np.array([10, 11, 12, 13], dtype=np.int64)})
+    manager = DelayedEvalBranchManager()
+
+    def copy_value(ev_subset):
+        return ev_subset.value
+
+    manager.register("copied_value", copy_value, default_value=-1.0)
+    manager.prepare_nominal_snapshot(events)
+
+    varied = events[[0, 2, 3]]
+    categories = DummyCategories(
+        [("selected", np.array([False, True, True], dtype=bool))]
+    )
+    manager.update_for_current_variation(varied, categories)
+
+    assert ak.to_list(varied.copied_value) == [-1.0, 12.0, 13.0]
+
+
+def test_delayed_eval_supports_dense_multidimensional_outputs():
+    events = ak.Array({"seed": np.arange(5, dtype=np.float32)})
+    manager = DelayedEvalBranchManager()
+
+    seen_subsets = []
+
+    def vjet_like_outputs(ev_subset):
+        seed = ak.to_numpy(ev_subset.seed)
+        seen_subsets.append(seed.tolist())
+        up = np.stack([seed + idx for idx in range(11)], axis=1)
+        down = np.stack([seed - idx for idx in range(11)], axis=1)
+        return {
+            "nominal_weight": seed + 0.5,
+            "weight_up": up,
+            "weight_down": down,
+        }
+
+    default_matrix = np.full(11, -1.0, dtype=np.float32)
+    manager.register(
+        ["nominal_weight", "weight_up", "weight_down"],
+        vjet_like_outputs,
+        default_value={
+            "nominal_weight": -1.0,
+            "weight_up": default_matrix,
+            "weight_down": default_matrix,
+        },
+    )
+    manager.prepare_nominal_snapshot(events)
+
+    varied = events[[3, 1, 4]]
+    categories = DummyCategories(
+        [("selected", np.array([True, False, True], dtype=bool))]
+    )
+    manager.update_for_current_variation(varied, categories)
+
+    assert seen_subsets == [[3.0, 4.0]]
+    assert ak.to_list(varied.nominal_weight) == [3.5, -1.0, 4.5]
+    assert ak.to_list(varied.weight_up) == [
+        [3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0],
+        [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0],
+        [4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0],
+    ]
+    assert ak.to_list(varied.weight_down) == [
+        [3.0, 2.0, 1.0, 0.0, -1.0, -2.0, -3.0, -4.0, -5.0, -6.0, -7.0],
+        [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0],
+        [4.0, 3.0, 2.0, 1.0, 0.0, -1.0, -2.0, -3.0, -4.0, -5.0, -6.0],
+    ]
+    
 
     
 def test_custom_weights_on_data(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
@@ -284,7 +471,6 @@ def test_skimming(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_fac
 
     # Now we compare the total sumgenweight of this output with the previous one
     assert np.isclose(output["sum_genweights"]["TTTo2L2Nu_2018"], output2["sum_genweights"]["TTTo2L2Nu_2018"])
-
 
 ## Very difficult to test in the CDCI, disabled
 """
