@@ -63,6 +63,70 @@ def test_shape_variations_JEC_run2(base_path: Path, monkeypatch: pytest.MonkeyPa
     assert not np.isclose(H[{"cat":"baseline", "variation":"nominal"}].values().sum()/ H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalUp"}].values().sum(),  1.)
 
 
+def test_shape_variations_bysubsample(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
+    """
+    Regression test for subsample-specific shape variations.
+
+    Two subsamples (ele, ele2) have identical event selection cuts, but only ele
+    is configured with jet calibration shape variations.  The test verifies:
+
+    1. Axis isolation   — ele's histogram axis contains JES/JER variation labels;
+                          ele2's axis does not.
+    2. Nominal parity   — ele and ele2 produce identical nominal histograms (same cut).
+    3. Shape effect     — ele's JES_TotalUp histogram differs from its nominal,
+                          confirming the variation was actually filled.
+    """
+    monkeypatch.chdir(base_path / "test_shape_variations")
+    if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):
+        os.remove("jets_calibrator_JES_JER_Syst.pkl.gz")
+    outputdir = tmp_path_factory.mktemp("test_shape_variations_bysubsample")
+    config = load_config("config_shape_var_bysubsample.py", save_config=True, outputdir=outputdir)
+    assert isinstance(config, Configurator)
+
+    run_options = defaults.get_default_run_options()["general"]
+    run_options["limit-files"] = 1
+    run_options["limit-chunks"] = 1
+    run_options["chunksize"] = 500
+    config.filter_dataset(run_options["limit-files"])
+
+    executor_factory = executors_lib.get_executor_factory("iterative",
+                                                          run_options=run_options, outputdir=outputdir)
+    executor = executor_factory.get()
+    run = Runner(
+        executor=executor,
+        chunksize=run_options["chunksize"],
+        maxchunks=run_options["limit-chunks"],
+        schema=processor.NanoAODSchema,
+        format="root",
+    )
+    output = run(config.filesets, treename="Events",
+                 processor_instance=config.processor_instance)
+    save(output, outputdir / "output_all.coffea")
+    assert output is not None
+
+    h_ele  = output["variables"]["nJetGood"]["TTTo2L2Nu__ele"]["TTTo2L2Nu_2018"]
+    h_ele2 = output["variables"]["nJetGood"]["TTTo2L2Nu__ele2"]["TTTo2L2Nu_2018"]
+
+    # 1. Axis isolation: ele has JES/JER variations, ele2 does not.
+    assert "AK4PFchs_JES_TotalUp"   in h_ele.axes["variation"]
+    assert "AK4PFchs_JES_TotalDown" in h_ele.axes["variation"]
+    assert "AK4PFchs_JERUp"         in h_ele.axes["variation"]
+    assert "AK4PFchs_JERDown"       in h_ele.axes["variation"]
+    assert "AK4PFchs_JES_TotalUp"   not in h_ele2.axes["variation"]
+    assert "AK4PFchs_JERUp"         not in h_ele2.axes["variation"]
+
+    # 2. Nominal parity: identical cuts → identical nominal histograms.
+    nom_ele  = h_ele[{"cat": "baseline", "variation": "nominal"}].values().sum()
+    nom_ele2 = h_ele2[{"cat": "baseline", "variation": "nominal"}].values().sum()
+    assert np.isclose(nom_ele, nom_ele2)
+
+    # 3. Shape effect: JES_TotalUp must change the jet-pt distribution for ele.
+    H_ele = output["variables"]["JetGood_pt"]["TTTo2L2Nu__ele"]["TTTo2L2Nu_2018"]
+    nom  = H_ele[{"cat": "baseline", "variation": "nominal"}].values().sum()
+    jesu = H_ele[{"cat": "baseline", "variation": "AK4PFchs_JES_TotalUp"}].values().sum()
+    assert not np.isclose(nom / jesu, 1.0)
+
+
 def test_shape_variations_JEC_run3(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_shape_variations" )
     if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):
