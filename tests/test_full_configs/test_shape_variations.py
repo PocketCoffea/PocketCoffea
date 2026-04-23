@@ -190,14 +190,14 @@ def test_shape_variations_and_weights_bysubsample(base_path: Path, monkeypatch: 
     assert "AK4PFchs_JES_TotalUp"   in h_ele2.axes["variation"]
     assert "AK4PFchs_JES_TotalDown" in h_ele2.axes["variation"]
     # Subsample SFs only in ele.
-    assert "sf_custom_CUp"   in h_ele.axes["variation"]
-    assert "sf_custom_CDown" in h_ele.axes["variation"]
-    assert "sf_custom_DUp"   in h_ele.axes["variation"]
-    assert "sf_custom_DDown" in h_ele.axes["variation"]
-    assert "sf_custom_CUp"   not in h_ele2.axes["variation"]
-    assert "sf_custom_CDown" not in h_ele2.axes["variation"]
-    assert "sf_custom_DUp"   not in h_ele2.axes["variation"]
-    assert "sf_custom_DDown" not in h_ele2.axes["variation"]
+    assert "sf_sv_CUp"   in h_ele.axes["variation"]
+    assert "sf_sv_CDown" in h_ele.axes["variation"]
+    assert "sf_sv_DUp"   in h_ele.axes["variation"]
+    assert "sf_sv_DDown" in h_ele.axes["variation"]
+    assert "sf_sv_CUp"   not in h_ele2.axes["variation"]
+    assert "sf_sv_CDown" not in h_ele2.axes["variation"]
+    assert "sf_sv_DUp"   not in h_ele2.axes["variation"]
+    assert "sf_sv_DDown" not in h_ele2.axes["variation"]
 
     # 2. Nominal weight ratios.
     # ele has sf_custom_C (nominal=2) → ratio ele/ele2 = 2.0 in baseline.
@@ -213,16 +213,16 @@ def test_shape_variations_and_weights_bysubsample(base_path: Path, monkeypatch: 
         f"Expected ele/ele2 nominal ratio in 1btag = 6.0, got {nom_ele_1b / nom_ele2_1b}"
 
     # 3. Weight variation correctness.
-    # sf_custom_CUp (up=4): ele[sf_custom_CUp, baseline] / ele2[nominal, baseline] == 4.0
-    ele_CUp   = h_ele[{"cat": "baseline", "variation": "sf_custom_CUp"}].values().sum()
+    # sf_sv_CUp (up=4): ele[sf_sv_CUp, baseline] / ele2[nominal, baseline] == 4.0
+    ele_CUp   = h_ele[{"cat": "baseline", "variation": "sf_sv_CUp"}].values().sum()
     assert np.isclose(ele_CUp / nom_ele2_base, 4.0, rtol=1e-3), \
-        f"Expected ele[sf_custom_CUp]/ele2[nominal] in baseline = 4.0, got {ele_CUp / nom_ele2_base}"
+        f"Expected ele[sf_sv_CUp]/ele2[nominal] in baseline = 4.0, got {ele_CUp / nom_ele2_base}"
 
-    # sf_custom_DUp (up=5): ele[sf_custom_DUp, 1btag] / ele2[nominal, 1btag]
-    # == sf_custom_C_nom * sf_custom_D_up = 2 * 5 = 10.0
-    ele_DUp  = h_ele[{"cat": "1btag", "variation": "sf_custom_DUp"}].values().sum()
+    # sf_sv_DUp (up=5): ele[sf_sv_DUp, 1btag] / ele2[nominal, 1btag]
+    # == sf_sv_C_nom * sf_sv_D_up = 2 * 5 = 10.0
+    ele_DUp  = h_ele[{"cat": "1btag", "variation": "sf_sv_DUp"}].values().sum()
     assert np.isclose(ele_DUp / nom_ele2_1b, 10.0, rtol=1e-3), \
-        f"Expected ele[sf_custom_DUp]/ele2[nominal] in 1btag = 10.0, got {ele_DUp / nom_ele2_1b}"
+        f"Expected ele[sf_sv_DUp]/ele2[nominal] in 1btag = 10.0, got {ele_DUp / nom_ele2_1b}"
 
     # 4. Shape effect: JES must shift the jet-pt distribution.
     H_ele = output["variables"]["JetGood_pt"]["TTTo2L2Nu__ele"]["TTTo2L2Nu_2018"]
