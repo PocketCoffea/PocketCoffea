@@ -450,20 +450,37 @@ class WeightsManager:
 
 
 def get_weights_by_cat_var(available_weights_variations, weights_manager, category, variation):
-    """Get weights that are variated by category to save to histogram or column."""
+    """Get full-sample weights keyed by variation name for a given category."""
     weights = {}
     if variation == "nominal":
-        # This is not including the subsamples nominal+ variations
-        # which will be computed on the fly
         for variation in available_weights_variations:
             if variation == "nominal":
                 weights["nominal"] = weights_manager.get_weight(category)
             else:
-                # Check if the variation is available in this category
                 weights[variation] = weights_manager.get_weight(
                     category, modifier=variation
                 )
     else:
-        # Save only the nominal weights if a shape variation is being processed
+        # Shape variation pass: only nominal weights are needed
         weights["nominal"] = weights_manager.get_weight(category)
+    return weights
+
+
+def get_weights_by_cat_var_subsample(available_variations, weights_manager, subsample, category, shape_variation):
+    """Get subsample-specific weights keyed by variation name, mirroring get_weights_by_cat_var.
+
+    Only variations explicitly defined for this subsample are preloaded with their
+    varied values; all other variations fall back to the nominal subsample weight
+    via dict.get() at fill time.
+    """
+    weights = {}
+    if shape_variation == "nominal":
+        for variation in available_variations:
+            weights[variation] = weights_manager.get_weight_only_subsample(
+                subsample, category,
+                modifier=None if variation == "nominal" else variation,
+            )
+    else:
+        # Shape variation pass: only nominal subsample weight is needed
+        weights["nominal"] = weights_manager.get_weight_only_subsample(subsample, category)
     return weights
