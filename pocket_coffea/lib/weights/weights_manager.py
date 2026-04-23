@@ -439,7 +439,7 @@ class WeightsManager:
                                        self._weightsByCat_subsamples[subsample][category].weight())
                     
                 elif not mod_incl and mod_bycat:
-                    # Get the nominal by cat and modified inclusive
+                    # Get the nominal inclusive and modified bycat
                     overall_weight = ( self._weightsIncl_subsamples[subsample].weight() *
                                         self._weightsByCat_subsamples[subsample][category].weight(modifier=modifier))
                 else:

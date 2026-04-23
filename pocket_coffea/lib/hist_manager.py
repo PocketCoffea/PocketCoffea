@@ -242,7 +242,6 @@ class HistManager:
                 self.available_weights_variations += ["nominal"]
                 self.available_weights_variations_bycat[cat].append("nominal")
                 
-            
         # Reduce to set over all the categories
         self.available_weights_variations = set(self.available_weights_variations)
         self.available_shape_variations = set(self.available_shape_variations)
@@ -395,10 +394,13 @@ class HistManager:
                 continue  # TODO dedicated function for metadata histograms
 
             # Check if a shape variation is under processing and
-            # if the current histogram does not require that
+            # if the current histogram does not require that variation for any subsample
             if (
                 shape_variation != "nominal"
-                and shape_variation not in histo.hist_obj.axes["variation"]
+                and not any(
+                    shape_variation in self.histograms[sub][name].hist_obj.axes["variation"]
+                    for sub in self.subsamples
+                )
             ):
                 continue
 
@@ -435,7 +437,6 @@ class HistManager:
                             ## continue
                             
                             raise ValueError( f"Varible {ax.field} not found in {ax.coll} Collection!")
-                        
                         
                         # General collections
                         if ax.pos == None:
@@ -567,7 +568,7 @@ class HistManager:
                     if not histo.no_weights and self.isMC:
                         if shape_variation == "nominal":
                             # if we are working on nominal we fill all the weights variations
-                            for variation in histo.hist_obj.axes["variation"]:
+                            for variation in self.histograms[subsample][name].hist_obj.axes["variation"]:
                                 if variation in self.available_shape_variations:
                                     # We ignore other shape variations when
                                     # we are working on the nominal shape variation
@@ -636,12 +637,15 @@ class HistManager:
                                         f"Cannot fill histogram: {name}, {histo} {e}"
                                     )
                         else:
-                            # Check if this shape variation is requested for this category
-                            if shape_variation not in self.available_shape_variations_bycat[category]:
-                                # it means that the variation is in the axes only
-                                # because it is requested for another category.
-                                # We cannot fill just with the nominal, because we are running the shape
-                                # variation and the observable hist will be different, also if with nominal weights.
+                            # Check if this shape variation is requested for this category,
+                            # either as a full-sample variation or as a subsample-specific one.
+                            in_full_sample = shape_variation in self.available_shape_variations_bycat[category]
+                            in_subsample   = (self.has_subsamples and
+                                              shape_variation in self.available_shape_variations_bysubsample_bycat[subsample][category])
+                            if not in_full_sample and not in_subsample:
+                                # The variation is in the axis only because it is requested for another
+                                # category or another subsample. We cannot fill with nominal here because
+                                # the observable will differ under the shape variation.
                                 continue
                                 
                             # Working on shape variation! only nominal weights
