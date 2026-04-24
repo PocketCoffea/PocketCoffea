@@ -35,13 +35,13 @@ class JetsCalibrator(Calibrator):
         super().__init__(params, metadata, do_variations, **kwargs)
         self._year = metadata["year"]
         self.jet_calib_param = self.params.jets_calibration
-        self.nano_aod_version = get_nano_version(self,params,metadata["year"])
         self.jets_calibrated = {}
         self.jets_calibrated_types = []
         # It is filled dynamically in the initialize method
         self.calibrated_collections = []
 
-    def initialize(self, events):
+    def initialize(self, events):        
+        nano_aod_version = get_nano_version(events,self.params,self._year)
         # Load the calibration of each jet type requested by the parameters
         for jet_type, jet_coll_name in self.jet_calib_param.collection[self.year].items():
             # Define the key name to get the corrections
@@ -103,7 +103,7 @@ class JetsCalibrator(Calibrator):
                     "isMC": self.metadata["isMC"],
                     "era": self.metadata["era"] if "era" in self.metadata else None,
                 },
-                nano_version=self.nano_aod_version,
+                nano_version=nano_aod_version,
                 jec_syst=self.do_variations,
                 apply_jer=self.jet_calib_param.apply_jer_MC[self.year][jet_type_alias] if self.isMC else False,
             )
@@ -367,14 +367,13 @@ class JetsSoftdropMassCalibrator(Calibrator):
         super().__init__(params, metadata, do_variations, **kwargs)
         self._year = metadata["year"]
         self.jet_calib_param = self.params.jets_calibration
-        self.nano_aod_version = get_nano_version(self,params,metadata["year"])
         self.jets_calibrated = {}
         self.jets_calibrated_types = []
         # It is filled dynamically in the initialize method
         self.calibrated_collections = []
 
     def initialize(self, events):
-
+        nano_aod_version = get_nano_version(events,self.params,self._year)
         # Load the calibration of each jet type requested by the parameters
         for jet_type, jet_coll_name in self.jet_calib_param.collection[self.year].items():
             # Calibrate only AK8 jets
@@ -415,7 +414,7 @@ class JetsSoftdropMassCalibrator(Calibrator):
                     "isMC": self.metadata["isMC"],
                     "era": self.metadata["era"] if "era" in self.metadata else None,
                 },
-                nano_version=self.nano_aod_version,
+                nano_version=nano_aod_version,
                 jec_syst=self.do_variations
             )
             # Add to the list of the types calibrated
