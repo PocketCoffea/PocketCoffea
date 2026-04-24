@@ -3,7 +3,7 @@ notebooks/.ipynb_checkpoints
 .ipynb_checkpoints/
 plots/
 histograms/
-output/
+output*
 logs/
 profiling/
 *~
@@ -163,6 +163,3 @@ cython_debug/
 # User data (analysis configs outside pocket-coffea)
 AnalysisConfigs/
 VHccPoCo/
-output*
-plots*
-.pkl.gz

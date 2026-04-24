@@ -48,24 +48,21 @@ default_jets_calibration:
       2022_preEE:
         json_path: ${cvmfs:Run3-22CDSep23-Summer22-NanoAODv12,JME,jet_jerc.json.gz}
         jec_mc: Summer22_22Sep2023_V3_MC
-        jec_data: Summer22_22Sep2023_RunCD_V3_DATA
+        jec_data: Summer22_22Sep2023_V3_DATA
         jer: Summer22_22Sep2023_JRV1_MC
         level: L1L2L3Res
       
       2022_postEE:
         json_path: ${cvmfs:Run3-22EFGSep23-Summer22EE-NanoAODv12,JME,jet_jerc.json.gz}
         jec_mc: Summer22EE_22Sep2023_V3_MC
-        jec_data:
-          E: Summer22EE_22Sep2023_RunE_V3_DATA
-          F: Summer22EE_22Sep2023_RunF_V3_DATA
-          G: Summer22EE_22Sep2023_RunG_V3_DATA
+        jec_data: Summer22EE_22Sep2023_V3_DATA
         jer: Summer22EE_22Sep2023_JRV1_MC
         level: L1L2L3Res
 
       2023_preBPix:
         json_path: ${cvmfs:Run3-23CSep23-Summer23-NanoAODv12,JME,jet_jerc.json.gz}
-        jec_mc: Summer23Prompt23_V2_MC
-        jec_data: Summer23Prompt23_V2_DATA
+        jec_mc: Summer23Prompt23_V3_MC
+        jec_data: Summer23Prompt23_V3_DATA
         jer: Summer23Prompt23_RunCv1234_JRV1_MC
         level: L1L2L3Res
       
@@ -204,7 +201,6 @@ default_jets_calibration:
           - JES_Regrouped_RelativeBal
           - JES_Regrouped_RelativeSample_2018
           - JER
-      AK8PFPuppi: "${default_jets_calibration.variations.full_variations.AK4PFchs}"
       AK4PFPuppi:
         2022_preEE: 
           - JES_Regrouped_Absolute
@@ -271,7 +267,18 @@ default_jets_calibration:
           - JES_Regrouped_RelativeBal
           - JES_Regrouped_RelativeSample_2024
           - JER
+      AK8PFPuppi: 
+        2016_PreVFP: "${default_jets_calibration.variations.full_variations.AK4PFchs.2016_PreVFP}"
+        2016_PostVFP: "${default_jets_calibration.variations.full_variations.AK4PFchs.2016_PostVFP}"
+        "2017": "${default_jets_calibration.variations.full_variations.AK4PFchs.2017}"
+        "2018": "${default_jets_calibration.variations.full_variations.AK4PFchs.2018}"
+        2022_preEE: "${default_jets_calibration.variations.full_variations.AK4PFPuppi.2022_preEE}"
+        2022_postEE: "${default_jets_calibration.variations.full_variations.AK4PFPuppi.2022_postEE}"
+        2023_preBPix: "${default_jets_calibration.variations.full_variations.AK4PFPuppi.2023_preBPix}"
+        2023_postBPix: "${default_jets_calibration.variations.full_variations.AK4PFPuppi.2023_postBPix}"
+        "2024": "${default_jets_calibration.variations.full_variations.AK4PFPuppi.2024}"
       
+
     total_variation: 
       AK4PFchs:
         2016_PreVFP: 
@@ -323,6 +330,8 @@ jets_calibration:
   jet_types:
     AK4PFchs: "${default_jets_calibration.factory_config_clib.AK4PFchs}" 
     AK4PFPuppi: "${default_jets_calibration.factory_config_clib.AK4PFPuppi}" 
+    AK4CorrT1METJetchs: "${default_jets_calibration.factory_config_clib.AK4PFchs}" 
+    AK4CorrT1METJetPuppi: "${default_jets_calibration.factory_config_clib.AK4PFPuppi}" 
     # AK4PFPuppiPNetRegression: "${default_jets_calibration.factory_config_clib.AK4PFPuppiPNetRegression}" 
     # AK4PFPuppiPNetRegressionPlusNeutrino: "${default_jets_calibration.factory_config_clib.AK4PFPuppiPNetRegressionPlusNeutrino}" 
     AK8PFPuppi: "${default_jets_calibration.factory_config_clib.AK8PFPuppi}"
@@ -331,45 +340,108 @@ jets_calibration:
     2016_PreVFP:
       AK4PFchs: "Jet"
       AK8PFPuppi: "FatJet"
+      AK4CorrT1METJetchs: "CorrT1METJet"
     2016_PostVFP:
       AK4PFchs: "Jet"
       AK8PFPuppi: "FatJet"
+      AK4CorrT1METJetchs: "CorrT1METJet"
     "2017":
       AK4PFchs: "Jet"
       AK8PFPuppi: "FatJet"
+      AK4CorrT1METJetchs: "CorrT1METJet"
     "2018":
       AK4PFchs: "Jet"
       AK8PFPuppi: "FatJet"
+      AK4CorrT1METJetchs: "CorrT1METJet"
     2022_preEE:
       AK4PFPuppi: "Jet"
+      AK4CorrT1METJetPuppi: "CorrT1METJet"
       #AK4PFPuppiPNetRegression: "Jet"
       #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
       AK8PFPuppi: "FatJet"
-      
     2022_postEE:
       AK4PFPuppi: "Jet"
+      AK4CorrT1METJetPuppi: "CorrT1METJet"
       #AK4PFPuppiPNetRegression: "Jet"
       #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
       AK8PFPuppi: "FatJet"
-
     2023_preBPix:
       AK4PFPuppi: "Jet"
+      AK4CorrT1METJetPuppi: "CorrT1METJet"
       #AK4PFPuppiPNetRegression: "Jet"
       #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
       AK8PFPuppi: "FatJet"
-      
     2023_postBPix:
       AK4PFPuppi: "Jet"
+      AK4CorrT1METJetPuppi: "CorrT1METJet"
       #AK4PFPuppiPNetRegression: "Jet"
       #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
       AK8PFPuppi: "FatJet"
-
     "2024":
       AK4PFPuppi: "Jet"
+      AK4CorrT1METJetPuppi: "CorrT1METJet"
       #AK4PFPuppiPNetRegression: "Jet"
       #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
       AK8PFPuppi: "FatJet"
      
+  collection_name_alias:
+    2016_PreVFP:
+      AK4CorrT1METJetchs: AK4PFchs
+    2016_PostVFP:
+      AK4CorrT1METJetchs: AK4PFchs
+    "2017":
+      AK4CorrT1METJetchs: AK4PFchs
+    "2018":
+      AK4CorrT1METJetchs: AK4PFchs
+    2022_preEE:
+      AK4CorrT1METJetPuppi: AK4PFPuppi
+    2022_postEE:
+      AK4CorrT1METJetPuppi: AK4PFPuppi
+    2023_preBPix:
+      AK4CorrT1METJetPuppi: AK4PFPuppi
+    2023_postBPix:
+      AK4CorrT1METJetPuppi: AK4PFPuppi
+    "2024":
+      AK4CorrT1METJetPuppi: AK4PFPuppi
+
+  merge_collections_for_variations:
+    2016_PreVFP:
+      AK4PFchs: 
+        - AK4PFchs
+        - AK4CorrT1METJetchs
+    2016_PostVFP:
+      AK4PFchs:
+        - AK4PFchs
+        - AK4CorrT1METJetchs
+    "2017":
+      AK4PFchs: 
+        - AK4PFchs
+        - AK4CorrT1METJetchs
+    "2018":
+      AK4PFchs: 
+        - AK4PFchs  
+        - AK4CorrT1METJetchs
+    2022_preEE:
+      AK4PFPuppi: 
+        - AK4PFPuppi
+        - AK4CorrT1METJetPuppi
+    2022_postEE:
+      AK4PFPuppi: 
+        - AK4PFPuppi
+        - AK4CorrT1METJetPuppi
+    2023_preBPix:
+      AK4PFPuppi: 
+        - AK4PFPuppi
+        - AK4CorrT1METJetPuppi
+    2023_postBPix:
+      AK4PFPuppi: 
+        - AK4PFPuppi
+        - AK4CorrT1METJetPuppi
+    "2024":
+      AK4PFPuppi: 
+        - AK4PFPuppi
+        - AK4CorrT1METJetPuppi
+
   sort_by_pt:
     2016_PreVFP:
       AK4PFchs: True
@@ -646,47 +718,7 @@ jets_calibration:
     "2024": 
       AK8PFPuppi: True
 
-  rescale_MET_config:
-    2016_PreVFP:
-      apply: True
-      MET_collection: "MET"
-      Jet_collection: "Jet"
-    2016_PostVFP:
-      apply: True
-      MET_collection: "MET"
-      Jet_collection: "Jet"
-    "2017":
-      apply: True
-      MET_collection: "MET"
-      Jet_collection: "Jet"
-    "2018": 
-      apply: True
-      MET_collection: "MET"
-      Jet_collection: "Jet"
-    2022_preEE:   
-      apply: True
-      MET_collection: "PuppiMET"
-      Jet_collection: "Jet"
-    2022_postEE:
-      apply: True
-      MET_collection: "PuppiMET"
-      Jet_collection: "Jet"
-    2023_preBPix:
-      apply: True
-      MET_collection: "PuppiMET"
-      Jet_collection: "Jet"
-    2023_postBPix:
-      apply: True
-      MET_collection: "PuppiMET"
-      Jet_collection: "Jet"
-    "2024":
-      apply: True
-      MET_collection: "PuppiMET"
-      Jet_collection: "Jet"
 
-
-    
-  
   # By default only the total variations are included
   # The user can customize the wanted variations by changing the variations key in the user parameters.
   # the key default_jets_calibration.variations.full_variations contains the full setup of JET variations.

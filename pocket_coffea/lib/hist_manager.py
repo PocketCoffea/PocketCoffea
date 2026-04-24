@@ -6,7 +6,7 @@ from typing import List, Tuple
 from dataclasses import dataclass, field
 from copy import deepcopy
 import logging
-from .weights.weights_manager import get_weights_by_cat_var
+from .weights.weights_manager import get_weights_by_cat_var, get_weights_by_cat_var_subsample
 
 
 @dataclass
@@ -242,7 +242,6 @@ class HistManager:
                 self.available_weights_variations += ["nominal"]
                 self.available_weights_variations_bycat[cat].append("nominal")
                 
-            
         # Reduce to set over all the categories
         self.available_weights_variations = set(self.available_weights_variations)
         self.available_shape_variations = set(self.available_shape_variations)
@@ -377,10 +376,29 @@ class HistManager:
         events. The categories mask will be applied.
         '''
 
-        # Preloading weights BOTH FOR data and MC
+        # Preload full-sample weights for all categories (MC and data)
         weights = {}
         for category in self.available_categories:
-            weights[category] = get_weights_by_cat_var(self.available_weights_variations_bycat[category], self.weights_manager, category, shape_variation)
+            weights[category] = get_weights_by_cat_var(
+                self.available_weights_variations_bycat[category],
+                self.weights_manager, category, shape_variation,
+            )
+
+        # Preload subsample-specific weights (MC only — data has no subsample SFs).
+        # weights_sub[subsample][category][variation] holds the subsample weight for
+        # the variations explicitly defined for that subsample; all other variations
+        # fall back to the nominal subsample weight via dict.get() at fill time.
+        weights_sub = {}
+        if self.has_subsamples and self.isMC:
+            for subsample in self.subsamples:
+                weights_sub[subsample] = {}
+                for category in self.available_categories:
+                    avail = set(self.available_weights_variations_bysubsample_bycat[subsample][category]) | {"nominal"}
+                    weights_sub[subsample][category] = get_weights_by_cat_var_subsample(
+                        avail, self.weights_manager,
+                        self.sample + "__" + subsample, category, shape_variation,
+                    )
+
         # Cleaning the weights cache decorator between calls.
         self._weights_cache.clear()
         # Looping on the histograms to read the values only once
@@ -395,10 +413,13 @@ class HistManager:
                 continue  # TODO dedicated function for metadata histograms
 
             # Check if a shape variation is under processing and
-            # if the current histogram does not require that
+            # if the current histogram does not require that variation for any subsample
             if (
                 shape_variation != "nominal"
-                and shape_variation not in histo.hist_obj.axes["variation"]
+                and not any(
+                    shape_variation in self.histograms[sub][name].hist_obj.axes["variation"]
+                    for sub in self.subsamples
+                )
             ):
                 continue
 
@@ -427,6 +448,15 @@ class HistManager:
                             raise ValueError(
                                 f"Collection {ax.coll} not found in events!"
                             )
+
+                        if ax.field not in events[ax.coll].fields:
+                            ## ToDo. We need to enable skipping some hists, which may not be avialable.
+                            ## It could be that some versions of NanoAOD do not contain certain variables, for example, the various Jet Tagger scores
+                            ## At the moment, simply `continue` is not enough - it crashes elsewhere
+                            ## continue
+                            
+                            raise ValueError( f"Varible {ax.field} not found in {ax.coll} Collection!")
+                        
                         # General collections
                         if ax.pos == None:
                             data = events[ax.coll][ax.field]
@@ -557,10 +587,13 @@ class HistManager:
                     if not histo.no_weights and self.isMC:
                         if shape_variation == "nominal":
                             # if we are working on nominal we fill all the weights variations
-                            for variation in histo.hist_obj.axes["variation"]:
-                                if variation in self.available_shape_variations:
-                                    # We ignore other shape variations when
-                                    # we are working on the nominal shape variation
+                            for variation in self.histograms[subsample][name].hist_obj.axes["variation"]:
+                                if variation in self.available_shape_variations or (
+                                    self.has_subsamples and
+                                    variation in self.available_shape_variations_bysubsample[subsample]
+                                ):
+                                    # Skip shape variations (full-sample or subsample-specific)
+                                    # when processing the nominal shape pass.
                                     continue
                                 # Only weights variations, since we are working on nominal sample
                                 # Check if this variation exists for this category
@@ -575,20 +608,15 @@ class HistManager:
                                     # We get the weights for the current category
                                     weight_varied = weights[category][variation]
 
-                                # Check if there are weights by subsample
-                                if self.has_subsamples:
-                                    if variation == "nominal":
-                                        weight_sub = self.weights_manager.get_weight_only_subsample(
-                                            self.sample + "__" + subsample, category
-                                        )
-                                    else:
-                                        # If the variation is here only because it was requested for another category
-                                        # the weight manager will return the nominal subsample weight
-                                        weight_sub = self.weights_manager.get_weight_only_subsample(
-                                            self.sample + "__" + subsample, category, variation
-                                        )
-                                else:
-                                    weight_sub = 1.
+                                # Get subsample-specific weight: use preloaded varied value if
+                                # this variation is defined for the subsample, else fall back
+                                # to the preloaded nominal subsample weight.
+                                weight_sub = (
+                                    weights_sub[subsample][category].get(
+                                        variation, weights_sub[subsample][category]["nominal"]
+                                    )
+                                    if self.has_subsamples else 1.
+                                )
 
                                 # Broadcast and mask the weight (using the cached value if possible)
                                 weight_varied = self.mask_and_broadcast_weight(
@@ -626,24 +654,22 @@ class HistManager:
                                         f"Cannot fill histogram: {name}, {histo} {e}"
                                     )
                         else:
-                            # Check if this shape variation is requested for this category
-                            if shape_variation not in self.available_shape_variations_bycat[category]:
-                                # it means that the variation is in the axes only
-                                # because it is requested for another category.
-                                # We cannot fill just with the nominal, because we are running the shape
-                                # variation and the observable hist will be different, also if with nominal weights.
+                            # Check if this shape variation is requested for this category,
+                            # either as a full-sample variation or as a subsample-specific one.
+                            in_full_sample = shape_variation in self.available_shape_variations_bycat[category]
+                            in_subsample   = (self.has_subsamples and
+                                              shape_variation in self.available_shape_variations_bysubsample_bycat[subsample][category])
+                            if not in_full_sample and not in_subsample:
+                                # The variation is in the axis only because it is requested for another
+                                # category or another subsample. We cannot fill with nominal here because
+                                # the observable will differ under the shape variation.
                                 continue
                                 
                             # Working on shape variation! only nominal weights
                             # (also using the cache which is cleaned for each shape variation
                             # at the beginning of the function)
                             weight_nom = weights[category]["nominal"]
-                            if self.has_subsamples:
-                                weight_sub = self.weights_manager.get_weight_only_subsample(
-                                    self.sample + "__" + subsample, category
-                                )
-                            else:
-                                weight_sub = 1.
+                            weight_sub = weights_sub[subsample][category]["nominal"] if self.has_subsamples else 1.
                                 
                             weight_nom = self.mask_and_broadcast_weight(
                                 category,

@@ -236,7 +236,7 @@ def get_k(eta, var, cset, nested=False):
     return result
 
 
-def filter_boundaries(pt_corr, pt, nested, low_pt_threshold = 26, silent=False):
+def filter_boundaries(pt_corr, pt, nested, low_pt_threshold = 26, silent=True):
     if not nested:
         pt_corr = np.asarray(pt_corr)
         pt = np.asarray(pt)
@@ -252,7 +252,7 @@ def filter_boundaries(pt_corr, pt, nested, low_pt_threshold = 26, silent=False):
     if n_pt_outside > 0:
         if not silent:
             print(
-                f"There are {n_pt_outside} events with muon pt outside of [" + str(low_pt_threshold) + ",200] GeV. "
+                f"WARNING: There are {n_pt_outside} events with muon pt outside of [" + str(low_pt_threshold) + ",200] GeV. "
                 "Setting those entries to their initial value."
             )
         pt_corr = np.where(pt>200, pt, pt_corr)
@@ -269,7 +269,7 @@ def filter_boundaries(pt_corr, pt, nested, low_pt_threshold = 26, silent=False):
     if n_nan > 0:
         if not silent:
             print(
-                f"There are {n_nan} nan entries in the corrected pt. "
+                f"WARNING: There are {n_nan} nan entries in the corrected pt. "
                 "This might be due to the number of tracker layers hitting boundaries. "
                 "Setting those entries to their initial value."
             )

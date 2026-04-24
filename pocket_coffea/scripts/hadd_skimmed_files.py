@@ -9,12 +9,22 @@ import subprocess
 import json
 import click
 
+
+
 def do_hadd(group, overwrite=False):
     try:
         chain = R.TChain('Events')
         for inputfile in group[1]:
             chain.Add(inputfile)
-
+        # Create the output directory if it does not exist
+        output_dir = os.path.dirname(group[0])
+        os.makedirs(output_dir, exist_ok=True)
+        if os.path.exists(group[0]):
+            if overwrite:
+                print(f"Output file {group[0]} already exists, but overwrite is enabled. It will be overwritten.")
+            else:
+                print(f"Output file {group[0]} already exists. Skipping hadd for this group.")
+                return group[0], 0
         output_file = R.TFile.Open(group[0], "RECREATE")
         output_tree = chain.CloneTree(-1)  # Clone all entries
         output_tree.Write()
@@ -56,6 +66,13 @@ def hadd_skimmed_files(files_list,  outputdir, filter_samples,
     '''
     Regroup skimmed datasets by joining different files (like hadd for ROOT files) 
     '''
+    try:
+        import ROOT as R
+        root_available = True
+    except ImportError:
+        print("ROOT is not available. Please make sure to have ROOT installed and configured properly to run this script.")
+        root_available = False
+
     df = load(files_list)
     only_samples = None
     only_datasets = None
@@ -117,7 +134,7 @@ def hadd_skimmed_files(files_list,  outputdir, filter_samples,
     print("Samples:", groups_metadata.keys())
     json.dump(groups_metadata, open("hadd.json", "w"), indent=2)
 
-    if not dry:
+    if not dry and root_available:
         p = Pool(scaleout)
         
         results = p.map(partial(do_hadd, overwrite=overwrite), workload)
@@ -157,6 +174,9 @@ import ROOT as R
 def do_hadd(group):
     try:
         outputfile, inputfiles = group
+        # Create the output directory if it does not exist
+        output_dir = os.path.dirname(group[0])
+        os.makedirs(output_dir, exist_ok=True)
         print("Working on ", outputfile)
         chain = R.TChain('Events')
         for inputfile in inputfiles:
@@ -204,6 +224,9 @@ import ROOT as R
 def do_hadd(group):
     try:
         outputfile, inputfiles = group
+        # Create the output directory if it does not exist
+        output_dir = os.path.dirname(group[0])
+        os.makedirs(output_dir, exist_ok=True)
         print("Working on ", outputfile)
         chain = R.TChain('Events')
         for inputfile in inputfiles:
