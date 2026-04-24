@@ -15,7 +15,7 @@ parameters = defaults.merge_parameters_from_files(default_parameters,
                                                     f"{localdir}/params/object_preselection.yaml",
                                                     f"{localdir}/params/triggers.yaml",
                                                    update=True)
-from pocket_coffea.lib.calibrators.common.common import JetsCalibrator
+from pocket_coffea.lib.calibrators.common.common import default_calibrators_sequence
 
 cfg = Configurator(
     parameters = parameters,
@@ -47,9 +47,10 @@ cfg = Configurator(
         "bysample": {}
     },
     weights_classes = common_weights,
+    calibrators = default_calibrators_sequence,
     
     # Enable JES shape variations so loop_over_variations runs them
-    calibrators = [ JetsCalibrator ],
+    #calibrators = [ JetsCalibrator ],
     variations = {
         "weights": {"common": {"inclusive": [], "bycategory": {}}, "bysample": {}},
         "shape": {"common": {"inclusive": ["jet_calibration"]}, "bysample": {}}

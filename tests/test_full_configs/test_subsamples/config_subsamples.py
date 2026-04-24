@@ -38,7 +38,7 @@ parameters = defaults.merge_parameters_from_files(default_parameters,
 # Disable pt sorting
 
 parameters.jets_calibration.variations = {"AK4PFchs" : {"2018" : ["JES_Total"]}}
-parameters.jets_calibration.collection["2018"] = {"AK4PFchs": "Jet"}
+parameters.jets_calibration.collection["2018"] = {"AK4PFchs": "Jet", "AK4CorrT1METJetchs": "CorrT1METJet"}
 parameters.jets_calibration.sort_by_pt["2018"].AK4PFchs = False
 parameters.jets_calibration.apply_jer_MC["2018"].AK4PFchs = False
 

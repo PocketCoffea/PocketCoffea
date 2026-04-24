@@ -169,10 +169,24 @@ def test_subsamples_and_weights_splitbysubsamples(base_path: Path, monkeypatch: 
     h1 = output["variables"]["nJetGood"]["TTTo2L2Nu__ele"]["TTTo2L2Nu_2018"]
     h2 = output["variables"]["nJetGood"]["TTTo2L2Nu__ele2"]["TTTo2L2Nu_2018"]
 
+    # Axis isolation: sf_custom_C (inclusive) and sf_custom_D (bycategory B) are
+    # subsample-specific to ele. They must be present in ele's variation axis and
+    # absent from ele2's axis, which has no subsample-specific weights.
+    # This explicitly guards against the variation loop using the wrong subsample's
+    # axis (which would cause either a fill error or silently wrong histogram values).
+    assert "sf_custom_CUp"   in h1.axes["variation"]
+    assert "sf_custom_CDown" in h1.axes["variation"]
+    assert "sf_custom_DUp"   in h1.axes["variation"]
+    assert "sf_custom_DDown" in h1.axes["variation"]
+    assert "sf_custom_CUp"   not in h2.axes["variation"]
+    assert "sf_custom_CDown" not in h2.axes["variation"]
+    assert "sf_custom_DUp"   not in h2.axes["variation"]
+    assert "sf_custom_DDown" not in h2.axes["variation"]
+
     assert np.isclose(h1[{"cat":"A", "variation":"nominal"}].values().sum() / h2[{"cat":"A", "variation":"nominal"}].values().sum(), 2.)
     assert np.isclose(h1[{"cat":"B", "variation":"nominal"}].values().sum() / h2[{"cat":"B", "variation":"nominal"}].values().sum(), 6.)
     assert np.isclose(h1[{"cat":"B", "variation":"nominal"}].values().sum() / h1[{"cat":"A", "variation":"nominal"}].values().sum(), 3.)
-    
+
     # Checking variations
     # N.B: the variation is checked w.r.t the nominal of a category without the custom weight,
     # if not the factor include the nominal custom weight
