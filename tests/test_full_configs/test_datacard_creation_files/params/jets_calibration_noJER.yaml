@@ -1,0 +1,63 @@
+jets_calibration:
+  
+  apply_jer_MC:  # this is needed to know which collection is corrected with which jet factory
+    2016_PreVFP: 
+      AK4PFchs: False
+      AK8PFPuppi: False
+    2016_PostVFP: 
+      AK4PFchs: False
+      AK8PFPuppi: False
+    "2017": 
+      AK4PFchs: False
+      AK8PFPuppi: False
+    "2018": 
+      AK4PFchs: False
+      AK8PFPuppi: False
+    2022_preEE: 
+      AK4PFPuppi: False
+    2022_postEE: 
+      AK4PFPuppi: False
+    2023_preBPix: 
+      AK4PFPuppi: False
+    2023_postBPix: 
+      AK4PFPuppi: False
+    "2024": 
+      AK4PFPuppi: False
+
+  variations: 
+    AK4PFchs:
+      2016_PreVFP: 
+        - JES_Total
+      2016_PostVFP: 
+        - JES_Total
+      "2017": 
+        - JES_Total
+      "2018": 
+        - JES_Total
+    AK8PFPuppi: 
+      2016_PreVFP: 
+        - JES_Total
+      2016_PostVFP: 
+        - JES_Total
+      "2017": 
+        - JES_Total
+      "2018": 
+        - JES_Total
+
+    AK4PFPuppi:
+      2022_preEE:
+        - JES_Total
+        #- JER
+      2022_postEE:
+        - JES_Total
+        #- JER
+      2023_preBPix:
+        - JES_Total
+        #- JER
+      2023_postBPix:
+        - JES_Total
+        #- JER
+      "2024":
+        - JES_Total
+       # - JER
+      
