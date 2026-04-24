@@ -643,3 +643,67 @@ def test_muons_calibrator_explicit(events, params):
     assert ak.all(out["Muon.pt"] == s["down"])
     assert ak.all(out["Muon.pt_original"] == pt_raw)
     assert ak.all(out["Muon.energyErr"] == 0)
+
+def test_muons_rochester_calibrator(events, params):
+    """
+    Tests the MuonsRochesterCalibrator:
+    - enabled for Run 2 years, disabled for Run 3
+    - pt_original is stored and preserved
+    - nominal returns corrected pt (different from original)
+    - up/down variations are different from nominal
+    - no NaN or negative values
+    """
+    from pocket_coffea.lib.calibrators.legacy.legacy_calibrators import MuonsRochesterCalibrator
+
+    # ---- DISABLED for Run 3 ----
+    cal_run3 = MuonsRochesterCalibrator(
+        params=params,
+        metadata={"isMC": True, "year": "2022_preEE"},
+        do_variations=True
+    )
+    assert cal_run3.enabled == False
+    assert cal_run3._variations == []
+
+    # ---- ENABLED for Run 2 MC ----
+    cal = MuonsRochesterCalibrator(
+        params=params,
+        metadata={"isMC": True, "year": "2018"},
+        do_variations=True
+    )
+    assert cal.enabled == True
+    assert cal._variations == ["muon_roccorUp", "muon_roccorDown"]
+
+    # ---- INITIALIZE ----
+    cal.initialize(events)
+    assert hasattr(cal, "muons")
+    assert "pt_original" in cal.muons.fields
+
+    # ---- NOMINAL ----
+    out_nom = cal.calibrate(events, {}, variation="nominal")
+    assert "Muon.pt" in out_nom
+    assert "Muon.pt_original" in out_nom
+    assert not ak.any(np.isnan(ak.to_numpy(ak.flatten(out_nom["Muon.pt"]))))
+    assert ak.all(out_nom["Muon.pt"] > 0)
+    assert not ak.all(out_nom["Muon.pt"] == out_nom["Muon.pt_original"])
+
+    # ---- UP ----
+    out_up = cal.calibrate(events, {}, variation="muon_roccorUp")
+    assert ak.all(out_up["Muon.pt"] > 0)
+    assert not ak.all(out_up["Muon.pt"] == out_nom["Muon.pt"])
+
+    # ---- DOWN ----
+    out_down = cal.calibrate(events, {}, variation="muon_roccorDown")
+    assert ak.all(out_down["Muon.pt"] > 0)
+    assert not ak.all(out_down["Muon.pt"] == out_nom["Muon.pt"])
+
+    # ---- DATA ----
+    cal_data = MuonsRochesterCalibrator(
+        params=params,
+        metadata={"isMC": False, "year": "2018"},
+        do_variations=True
+    )
+    assert cal_data._variations == []
+    cal_data.initialize(events)
+    out_data = cal_data.calibrate(events, {}, variation="nominal")
+    assert ak.all(out_data["Muon.pt"] > 0)
+    assert not ak.all(out_data["Muon.pt"] == out_data["Muon.pt_original"])
