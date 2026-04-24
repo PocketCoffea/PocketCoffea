@@ -494,7 +494,7 @@ jets_calibration:
       AK8PFPuppi: True
     "2018": 
       AK4PFchs: True
-      AK8PFPuppi: True
+      AK8PFPuppi: False
     2022_preEE: 
       AK4PFPuppi: True
       AK4PFPuppiPNetRegression: True
@@ -533,7 +533,7 @@ jets_calibration:
       AK8PFPuppi: True
     "2018": 
       AK4PFchs: True
-      AK8PFPuppi: True
+      AK8PFPuppi: False
     2022_preEE: 
       AK4PFPuppi: True
       AK4PFPuppiPNetRegression: True
@@ -571,7 +571,7 @@ jets_calibration:
       AK4PFchs: False
       AK8PFPuppi: False
     "2018": 
-      AK4PFchs: False
+      AK4PFchs: True
       AK8PFPuppi: False
     2022_preEE: 
       AK4PFPuppi: True
