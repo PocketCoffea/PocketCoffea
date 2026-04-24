@@ -500,10 +500,6 @@ def jet_correction_corrlib(
     jets_jagged = events[jet_coll_name]
     counts = ak.num(jets_jagged)
 
-    if ("event_id" not in jets_jagged.fields) and (apply_jer or jer_syst):
-        jets_jagged["event_id"] = ak.ones_like(jets_jagged.pt) * events.event
-    if ("run_nr" not in jets_jagged.fields):
-        jets_jagged["run_nr"] = ak.ones_like(jets_jagged.pt) * events.run
     if year in ['2016_PreVFP', '2016_PostVFP','2017','2018'] and nano_version <= 9:
         rho = events.fixedGridRhoFastjetAll
     else:
