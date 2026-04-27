@@ -375,20 +375,20 @@ def sf_ele_promptmva(params, events, year, key=''):
     elif year == "2024":
         # The SFs provided by the central POG are split in tightID SF
         # and num_promptMVA_denum_tightID SF --> we need to combine them
-        corr_params = params.lepton_scale_factors.electron_SF.promptMVA_jsons[year]
+        corr_params = params.lepton_scale_factors.electron_sf.promptMVA_jsons[year]
         corrkey = corr_params.key
         electron_correctionset = correctionlib.CorrectionSet.from_file(corr_params['file'])
         sf, sfup, sfdown = [],[],[]
-        year_pog = params.lepton_scale_factors.electron_SF.era_mapping[year][key]
+        year_pog = params.lepton_scale_factors.electron_sf.era_mapping[year]
     
         sf = electron_correctionset[corrkey].evaluate(
-            year_pog, "sf", "PromptMVA-Tight", eta, pt
+            year_pog, "sf", "PromptMVA-Tight", ele_eta_flat, ele_pt_flat
         )
         sfup = electron_correctionset[corrkey].evaluate(
-            year_pog, "sfup", "PromptMVA-Tight", eta, pt
+            year_pog, "sfup", "PromptMVA-Tight", ele_eta_flat, ele_pt_flat  
         )
         sfdown = electron_correctionset[corrkey].evaluate(
-            year_pog, "sfdown", "PromptMVA-Tight", eta, pt
+            year_pog, "sfdown", "PromptMVA-Tight", ele_eta_flat, ele_pt_flat
         )
 
     else:
@@ -402,7 +402,8 @@ def sf_ele_promptmva(params, events, year, key=''):
     # The SF arrays corresponding to all the muons are multiplied along the
     # muon axis in order to obtain a per-event scale factor.
     return ak.prod(sf, axis=1), ak.prod(sfup, axis=1), ak.prod(sfdown, axis=1)
-    
+
+
 
 def sf_mu_promptmva(params, events, year, key=''):
     '''

@@ -76,8 +76,8 @@ SF_ele_id = WeightLambda.wrap_func(
     has_variations=True
     )
 
-sf_ele_promptmva = WeightLambda.wrap_func(
-    name="sf_ele_promptmva",
+SF_ele_promptMVA = WeightLambda.wrap_func(
+    name="sf_ele_promptMVA",
     function=lambda params, metadata, events, size, shape_variations:
         sf_ele_promptmva(params, events, metadata["year"]),
     has_variations=True
@@ -344,6 +344,7 @@ common_weights = [
     pileup,
     SF_ele_reco,
     SF_ele_id,
+    SF_ele_promptMVA,
     SF_ele_trigger,
     SF_pho_pxseed,
     SF_pho_id,
