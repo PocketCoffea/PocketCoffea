@@ -379,7 +379,7 @@ def sf_ele_promptmva(params, events, year, key=''):
         corrkey = corr_params.key
         electron_correctionset = correctionlib.CorrectionSet.from_file(corr_params['file'])
         sf, sfup, sfdown = [],[],[]
-        year_pog = params.lepton_scale_factors.electron_sf.era_mapping[year]
+        year_pog = params.lepton_scale_factors.electron_sf.era_mapping[year]["id"]
     
         sf = electron_correctionset[corrkey].evaluate(
             year_pog, "sf", "PromptMVA-Tight", ele_eta_flat, ele_pt_flat
@@ -398,7 +398,6 @@ def sf_ele_promptmva(params, events, year, key=''):
     sf = ak.unflatten(sf, ele_counts)
     sfup = ak.unflatten(sfup, ele_counts)
     sfdown = ak.unflatten(sfdown, ele_counts)
-    breakpoint()
     # The SF arrays corresponding to all the muons are multiplied along the
     # muon axis in order to obtain a per-event scale factor.
     return ak.prod(sf, axis=1), ak.prod(sfup, axis=1), ak.prod(sfdown, axis=1)
