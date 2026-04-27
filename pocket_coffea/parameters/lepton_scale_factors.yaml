@@ -107,6 +107,25 @@ lepton_scale_factors:
           pt_gt_20_lt_75: Reco20to75
           pt_gt_75: RecoAbove75
 
+    promptMVA_jsons:
+      # promptMVA NanoAODv15 training on NanoAODv12 MC, to be used for 2022 and 2023 reprocessing, since we are recomputing on the fly the promptMVA value for these years and we want to use the corresponding SF. 
+      '2022_preEE': 
+        file: "${default_params_dir:}/custom_SFs/electron_promptMVA/2022/leptonSF_2022.json.gz"
+      
+      '2022_postEE': 
+        file: "${default_params_dir:}/custom_SFs/electron_promptMVA/2022EE/leptonSF_2022EE.json.gz"
+
+      '2023_preBPix': 
+        file: "${default_params_dir:}/custom_SFs/electron_promptMVA/2023/leptonSF_2023.json.gz"
+
+      '2023_postBPix': 
+        file: "${default_params_dir:}/custom_SFs/electron_promptMVA/2023BPix/leptonSF_2023BPix.json.gz"
+      # In 2024 the promptMVA is taken from NanoAODv15 and the SF is provided centrally
+      '2024': 
+        file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,EGM,electron.json.gz}
+        key: Electron-ID-SF
+
+
     era_mapping:
       # this is needed because the correction set provided by EGM
       # have a fixed set of era labels, different from ours
@@ -355,7 +374,7 @@ lepton_scale_factors:
             cb: "cb_params"
             poly: "poly_params" 
 
-    promptmva_jsons:
+    promptMVA_jsons:
     # Iso SF is "included" in the private SF
       '2022_preEE': 
         file: "${default_params_dir:}/custom_SFs/muon_promptMVA/2022/leptonSF_2022.json.gz"

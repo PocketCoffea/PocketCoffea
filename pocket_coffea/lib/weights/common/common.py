@@ -5,6 +5,7 @@ import awkward as ak
 from pocket_coffea.lib.scale_factors import (
     sf_ele_reco,
     sf_ele_id,
+    sf_ele_promptmva,
     sf_photon,
     sf_ele_trigger,
     sf_mu,
@@ -72,6 +73,13 @@ SF_ele_id = WeightLambda.wrap_func(
     name="sf_ele_id",
     function=lambda params, metadata, events, size, shape_variations:
         sf_ele_id(params, events, metadata["year"]),
+    has_variations=True
+    )
+
+sf_ele_promptmva = WeightLambda.wrap_func(
+    name="sf_ele_promptmva",
+    function=lambda params, metadata, events, size, shape_variations:
+        sf_ele_promptmva(params, events, metadata["year"]),
     has_variations=True
     )
 
