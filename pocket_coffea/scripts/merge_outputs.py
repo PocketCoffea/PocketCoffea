@@ -19,47 +19,46 @@ mem_threshold = 0.5 # ~50% + memory needed to dump files, is the empirical thres
 
 def merge_group_reduction(output_files, N_reduction=5, cachedir="merge_cache", max_mem_gb=8, verbose=False):
     with Progress() as progress:
-        task1 = progress.add_task("[red]Merging...", total=len(output_files))
+        task1 = progress.add_task("[cyan]Merging...", total=len(output_files))
     
-        def reduce_in_groups(func, iterable, group_size):
+        def reduce_in_groups(iterable, group_size):
             result = None
-            if isinstance(iterable,list):
-                it = iter(iterable)
-            else:
-                it = iterable
-
-            while batch := list(islice(it, group_size)):
+            # Always work with the iterator directly, don't recreate it
+            while batch := list(islice(iterable, group_size)):
+                batchlen = len(batch)
                 if verbose:
                     filesize = sum([os.path.getsize(f) for f in batch])/1024**3
                     print(f"File size (on disk) to load: {filesize:.3f} GB")
                 loaded_batch = [load(f) for f in batch]
-                batch_acc = func(loaded_batch)
-                del loaded_batch
+                batch_acc = accumulate(loaded_batch)
+                del loaded_batch, batch
                 if result is None:
                     result = batch_acc
                 else:
-                    result = func([result, batch_acc])                                   
+                    result = accumulate([result, batch_acc])                                   
                 mem_usage = psutil.Process(os.getpid()).memory_info().rss / 1024**3
                 if verbose: 
                     print(f"Current memory usage: {mem_usage:.3f} GB ({mem_usage/max_mem_gb*100:.1f}%)")
                 del batch_acc
-                progress.update(task1, advance=len(batch))
+                progress.update(task1, advance=batchlen)
                 if mem_usage > max_mem_gb * mem_threshold:
                     # return the result so-far, and remaining iterator
-                    return result, it
-                
+                    return result, iterable
+
+            gc.collect()
             return result, None
 
-        itr = output_files
+        # Convert to iterator once at the beginning
+        itr = iter(list(output_files))
         counter = 0
         while itr:
-            result, itr = reduce_in_groups(accumulate, itr, N_reduction)
+            result, itr = reduce_in_groups(itr, N_reduction)
             if counter==0 and itr is None:
                 # Got full merge in one pass, no need to cache intermediate results
                 return result
             else:
                 # We are here because memory usage of "result" exceeded max_memory. Cache it on disk and start again.
-                os.system(f"mkdir -p {cachedir}")
+                os.makedirs(cachedir, exist_ok=True)
                 interm_output = f"{cachedir}/merge_{counter}.coffea"
                 print(f"[green]Dumping intermediate result to {interm_output} since memory utilization of merged object exceeded {mem_threshold*100:.0f}% of {max_mem_gb:.1f} GB.[/]")
                 save(result, interm_output)
@@ -74,18 +73,58 @@ def merge_group_reduction(output_files, N_reduction=5, cachedir="merge_cache", m
     print(f"[green][b]Since outputs were too large to fit in memory, I created {len(new_output_files)} fragmented output files.[/] These may be moved to and merged on a high-memory machine.[/]")
     exit()
 
-def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, N_reduction=5, max_mem_gb=None, cache_dir=None, verbose=False):
+def process_failed(mark_failed, statusfile, job_dir, job_name, message="missing"):
+    if mark_failed and statusfile:
+        statusfilesuff = statusfile.split('/')[-1]
+        os.system(f"mv {statusfile} {job_dir}/{job_name}.failed")
+        print(f"[yellow]Job {job_name} {message}: {statusfilesuff} -> {job_name}.failed[/]")
+    elif mark_failed:
+        os.system(f"touch {job_dir}/{job_name}.failed")
+        print(f"[yellow]Job {job_name} {message}: Created {job_name}.failed[/]")
+    else:
+        print(f"[red]Job {job_name} output is {message}[/]")
+
+def append_configs(c1, c2):
+    """
+    Merges config c2 into c1. Updates dicts, extends lists, 
+    and fills None values in c1 with values from c2.
+    """
+    for attr, v1 in vars(c1).items():
+        # Skip parameters as requested
+        if attr == 'parameters': continue
+        
+        v2 = getattr(c2, attr, None)
+        
+        if isinstance(v1, dict) and isinstance(v2, dict):
+            v1.update(v2)
+        elif isinstance(v1, list) and isinstance(v2, list):
+            v1.extend(v2)
+        elif v1 is None and v2 is not None:
+            setattr(c1, attr, v2)
+            
+    return c1
+
+def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, N_reduction=5, max_mem_gb=None, cache_dir=None, verbose=False, skip_check=False, mark_failed=False, configurator=None):
     '''Merge coffea output files'''
     if jobs_config is not None:
+        # check if the user provided the config file or the directory
+        if not os.path.isfile(jobs_config):
+            if os.path.isfile(f"{jobs_config}/jobs_config.yaml"):
+                jobs_config = f"{jobs_config}/jobs_config.yaml"
+            elif os.path.isfile(f"{jobs_config}/job/jobs_config.yaml"):
+                jobs_config = f"{jobs_config}/job/jobs_config.yaml"
+
         # read the job configuration file
         print(f"Reading job configuration file {jobs_config}")
         with open(jobs_config, 'r') as f:
             job_config = yaml.safe_load(f)
         if "split_by_category" in job_config:   # Ensure back compatibility
             split_by_category = job_config["split_by_category"]
-            print("Jobs were split by category, hence will merge per category.")
+            if split_by_category:
+                print("Jobs were split by category, hence will merge per category.")
         else:
             split_by_category = False
+        job_dir = f'{job_config["job_dir"]}'
 
     if outputfile is None:
         if jobs_config is None:
@@ -105,13 +144,14 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, N_reduc
         print("[b]If you still see OOM kills, set a lower max memory with -m.[/]")
                 
     # quite different behaviour in case of just files merging, or in case of merging jobs
-    if jobs_config is None:
-        if len(inputfiles) == 0:
-            print("[red]No input files provided[ nor job configuration file/]")
-            exit(1)
-   
+    ninput = len(inputfiles)
+    if ninput > 0:       
         print(f"[blue]Merging files into {outputfile}[/]")
-        print(sorted(inputfiles))
+        if ninput < 100:
+            print(sorted(inputfiles))
+        else:
+            print(f"Found {ninput} output files.")
+
         type_mismatches = []
         f0 = inputfiles[0]
         for f in inputfiles[1:]:
@@ -125,27 +165,67 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, N_reduc
             raise TypeError("Type mismatch found between the values of the input dictionaries. Please check the input files.")
         
         if cache_dir is None:
-            cache_dir = '/'.join(output_files[0].split("/")[:-1])+"/merge_cache"
-        total_out =  merge_group_reduction(inputfiles, N_reduction=N_reduction, cachedir=cache_dir, max_mem_gb=max_mem_gb, verbose=verbose)
+            cache_dir = '/'.join(outputfile.split("/")[:-1])+"/merge_cache"
+        total_out =  merge_group_reduction(inputfiles, N_reduction=N_reduction, cachedir=cache_dir, 
+                                           max_mem_gb=max_mem_gb, verbose=verbose)
+
+        if configurator is not None:
+            configurators = configurator.split(",")
+        else:
+            configurators = [os.path.dirname(f)+"/configurator.pkl" for f in inputfiles]
+            configurators = list(set(configurators))
+            configurators = [f for f in configurators if os.path.isfile(f)]
+            print(f"Auto-detected {len(configurators)} configurators:",configurators)
+
+        if len(configurators) > 0:
+            allconfigurators = None
+            for cf in configurators:
+                with open(cf, 'rb') as f:
+                    thisconfigurator = cloudpickle.load(f)
+                if allconfigurators is None:
+                    allconfigurators = thisconfigurator
+                else:
+                    allconfigurators = append_configs(allconfigurators,thisconfigurator)
+
+            print(f"Applying postprocessing...")
+            total_out = allconfigurators.processor_instance.postprocess(total_out)
+        else:
+            print("No configurators found, no postprocessing applied.")
+
         save(total_out, outputfile)
         print(f"[green]Output saved to {outputfile}")
 
     else:
+        if job_config is None:
+            print("[red]No input files provided nor job configuration file[/]")
+            exit(1)
         jobs_list = job_config['jobs_list']
         alldone = True
         output_files = []
         output_files_by_category = {}
+
         # First check that the jobs are done
+        nfailed = 0
         with Progress() as progress:
-            task_ = progress.add_task("[red]Checking output files form jobs...", total=len(list(jobs_list.keys())))
+            task_ = progress.add_task("[cyan]Checking output files from jobs...[/]", total=len(list(jobs_list.keys())))
             for job_name, job in jobs_list.items():
                 # Check output
+                statusfile = None
+                if mark_failed:                    
+                    statusfiles = [fl for fl in glob(f"{job_dir}/{job_name}.*") if not fl.endswith(".sub")]
+                    if len(statusfiles) > 1:
+                        print(f"[red]Multiple status files found for job {job_name}: {statusfiles}")
+                    elif len(statusfiles) == 0:
+                        print(f"[red]No status file found for job {job_name}!")
+                    else:
+                        statusfile = statusfiles[0]
                 if split_by_category:
                     # Listing all files with glob is slow   
                     this_job_outputs = glob(job['output_file'].replace("job_","*job_"))
-                    if len(this_job_outputs) == 0:
-                        print(f"[red]Job {job_name} output is missing[/]")
+                    if len(this_job_outputs) == 0:                        
                         alldone = False
+                        process_failed(mark_failed, statusfile, job_dir, job_name, message="missing")
+                        nfailed += 1
                     else:
                         output_files.extend(this_job_outputs)
                         for this_job_output in this_job_outputs:
@@ -155,15 +235,24 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, N_reduc
                             output_files_by_category[this_category].append(this_job_output)
                 else:
                     if not os.path.exists(job['output_file']):
-                        print(f"[red]Job {job_name} output is missing[/]")
                         alldone = False
-                    output_files.append(job['output_file'])
+                        process_failed(mark_failed, statusfile, job_dir, job_name, message="missing")
+                        nfailed += 1
+                    elif (size := os.path.getsize(job['output_file'])) < 10:                        
+                        alldone = False
+                        process_failed(mark_failed, statusfile, job_dir, job_name, message=f"corrupted (size is {size:.0f} bytes)")
+                        nfailed += 1
+                    else:
+                        output_files.append(job['output_file'])
                 progress.update(task_, advance=1)
 
-        if not alldone:
-            print(f"[red]Not all jobs are done yet[/]")
+        if not alldone and not skip_check:
+            print(f"[red]Not all jobs are done yet. {nfailed} jobs are incomplete. Use [i]--skip-check[/] to force merging.[/]")
             exit(1)
-        print(f"[green]All jobs are done[/]")
+        if alldone:
+            print(f"[green]All jobs are done[/]")
+        elif skip_check:
+            print(f"[yellow]All jobs are not done, but proceeding since --skip-check is True.[/]")
 
         noutput = len(output_files)
         if noutput < 100:
@@ -199,15 +288,15 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, N_reduc
             # Do larger files first, so that OOM kills happen early on rather than later
             this_output_files = sorted(this_output_files, key=os.path.getsize, reverse=True)
 
-            # Since it was jobs, there was no postprocessing
-            # we do it now after merging all the output
             print(f"Merging output...")
             if cache_dir is None:
                 cache_dir = os.path.join(job_config['output_dir'],"merge_cache")
             if suff:
                 cache_dir += f"_{suff}"
             total_output = merge_group_reduction(this_output_files, N_reduction=N_reduction, cachedir=cache_dir, max_mem_gb=max_mem_gb, verbose=verbose)
-                
+            
+            # Since it was jobs, there was no postprocessing
+            # we do it now after merging all the output
             # Apply postprocessing
             print(f"Applying postprocessing...")
             total_output = configurator.processor_instance.postprocess(total_output)
@@ -224,6 +313,7 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, N_reduc
             del total_output
 
         print(f"[green]Done![/]")
+        print(f"Now make plots with [yellow]make-plots -inp {job_config['output_dir']}[/]")
 
 @click.command()
 @click.argument(
@@ -247,6 +337,14 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, N_reduc
     help="Job configuration file",
 )
 @click.option(
+    "-cfg",
+    "--configurator",
+    required=False,
+    type=str,
+    default=None,
+    help="Configurator files, for postprocessing *.coffea input files",
+)
+@click.option(
     "-n",
     "--reduction",
     required=False,
@@ -262,7 +360,7 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, N_reduc
     help="Max memory (in GB) allotted to the accumulated result, after which it is dumped to disk. Use about one-fourth of available RAM, e.g. 8 for a 32GB RAM machine.",
 )
 @click.option(
-    "-c",
+    "-cd",
     "--cache_dir",
     required=False,
     type=str,
@@ -284,9 +382,22 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, N_reduc
     help="Overwrite output file if it exists",
 )
 
-def main(inputfiles, outputfile, jobs_config, force, reduction, max_mem_gb, cache_dir, verbose):
+@click.option(
+    "-s",
+    "--skip-check",
+    is_flag=True,
+    help="Skip checking if all jobs were complete",
+)
+
+@click.option(
+    "--mark-failed",
+    is_flag=True,
+    help="Mark condor@lxplus job status as failed",
+)
+
+def main(inputfiles, outputfile, jobs_config, force, reduction, max_mem_gb, cache_dir, verbose, skip_check, mark_failed, configurator):
     '''Merge coffea output files'''
-    merge_outputs(inputfiles, outputfile, jobs_config, force, reduction, max_mem_gb, cache_dir, verbose)
+    merge_outputs(inputfiles, outputfile, jobs_config, force, reduction, max_mem_gb, cache_dir, verbose, skip_check, mark_failed, configurator)
 
 if __name__ == "__main__":
     main()

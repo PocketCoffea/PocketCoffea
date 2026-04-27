@@ -1,6 +1,2 @@
 jets_calibration:
-    apply_jec_nominal:
-        "2018": False
-
-    rescale_MET:
-        "2018": True
+  variations: "${default_jets_calibration.variations.full_variations}"

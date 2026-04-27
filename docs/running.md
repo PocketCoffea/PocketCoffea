@@ -115,7 +115,7 @@ respectively).
 |T3_CH_PSI| dask            | dask@T3_CH_PSI |
 |DESY NAF | parsl           | parsl@DESY     |
 |RWTH Aachen LX-Cluster | parsl, dask    | parsl@RWTH, dask@RWTH |
-|RWTH CLAIX | dask          | dask@CLAIX |
+|RWTH CLAIX | parsl, dask          | parsl@CLAIX, dask@CLAIX |
 |[Purdue Analysis Facility](https://analysis-facility.physics.purdue.edu)| dask | dask@purdue-af |
 |[INFN Analysis Facility](https://infn-cms-analysisfacility.readthedocs.io/)| dask | dask@infn-af |
 |Brown brux20 cluster | dask | dask@brux |
@@ -319,29 +319,29 @@ The user factory must implement a class deriving from
 The factory returns an instance of a Executor that is passed to the coffea Runner. 
 
 ```python
-## custom executor defined in my_custom_executor.py by the user
+# custom executor defined in my_custom_executor.py by the user
 
-from pocket_coffea.executors.executors_base import ExecutorFactoryABD
+from pocket_coffea.executors.executors_base import ExecutorFactoryABC
 from .executors_base import IterativeExecutorFactory, FuturesExecutorFactory
 
 from coffea import processor as coffea_processor
 
-class ExecutorFactoryCustom(ExecutorFactorABC):
 
+class ExecutorFactoryCustom(ExecutorFactoryABC):
     def get(self):
         return coffea_processor.dask_executor(**self.customized_args())
 
     def setup(self):
-        '''This function is called by the base class constructor'''
+        """This function is called by the base class constructor"""
         # do all the needed setup
         self.start_custom_dask_cluster()
-        
+
     def start_custom_dask_cluster(self):
-        self.dask_cluster = .......... #custom configuration
+        self.dask_cluster = None  # custom configuration
 
     def customized_args(self):
-        '''This function customized the args that coffea uses to instantiate 
-        the executor class passed by the get() method'''
+        """This function customized the args that coffea uses to instantiate
+        the executor class passed by the get() method"""
         args = super().customized_args()
         args["custom-arg"] = "..."
         return args
@@ -356,9 +356,8 @@ def get_executor_factory(executor_name, **kwargs):
         return IterativeExecutorFactory(**kwargs)
     elif executor_name == "futures":
         return FuturesExecutorFactory(**kwargs)
-    elif  executor_name == "dask":
+    elif executor_name == "dask":
         return ExecutorFactoryCustom(**kwargs)
-
 ```
 
 The user's module must implement a `get_executor_factory(string, run_options)` method which returns the instantiated Executor. 

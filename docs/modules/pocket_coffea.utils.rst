@@ -36,6 +36,14 @@ pocket\_coffea.utils.configurator module
    :show-inheritance:
    :undoc-members:
 
+pocket\_coffea.utils.cutflow\_utils module
+------------------------------------------
+
+.. automodule:: pocket_coffea.utils.cutflow_utils
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 pocket\_coffea.utils.dataset module
 -----------------------------------
 

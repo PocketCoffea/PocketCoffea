@@ -44,14 +44,6 @@ pocket\_coffea.parameters.histograms module
    :show-inheritance:
    :undoc-members:
 
-pocket\_coffea.parameters.jec\_config module
---------------------------------------------
-
-.. automodule:: pocket_coffea.parameters.jec_config
-   :members:
-   :show-inheritance:
-   :undoc-members:
-
 pocket\_coffea.parameters.lumi module
 -------------------------------------
 

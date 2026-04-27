@@ -7,6 +7,7 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   pocket_coffea.lib.calibrators
    pocket_coffea.lib.weights
 
 Submodules
@@ -40,6 +41,14 @@ pocket\_coffea.lib.cut\_functions module
 ----------------------------------------
 
 .. automodule:: pocket_coffea.lib.cut_functions
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+pocket\_coffea.lib.delayed\_eval module
+---------------------------------------
+
+.. automodule:: pocket_coffea.lib.delayed_eval
    :members:
    :show-inheritance:
    :undoc-members:
@@ -80,6 +89,14 @@ pocket\_coffea.lib.leptons module
 ---------------------------------
 
 .. automodule:: pocket_coffea.lib.leptons
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+pocket\_coffea.lib.muon\_scale\_and\_resolution module
+------------------------------------------------------
+
+.. automodule:: pocket_coffea.lib.muon_scale_and_resolution
    :members:
    :show-inheritance:
    :undoc-members:

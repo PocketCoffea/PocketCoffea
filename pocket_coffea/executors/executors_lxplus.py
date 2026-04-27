@@ -9,9 +9,11 @@ from pocket_coffea.utils.network import check_port
 from pocket_coffea.parameters.dask_env import setup_dask
 from pocket_coffea.utils.configurator import Configurator
 from pocket_coffea.utils.rucio import get_xrootd_sites_map
+import pocket_coffea
 import cloudpickle
 import yaml
 from copy import deepcopy
+from rich.progress import Progress
 
 def get_worker_env(run_options,x509_path,exec_name="dask"):
     env_worker = [
@@ -45,7 +47,10 @@ def get_worker_env(run_options,x509_path,exec_name="dask"):
         if exec_name == "dask":
             env_worker.append(f"export PYTHONPATH={sys.prefix}/lib:$PYTHONPATH")
         elif exec_name == "condor":
-            pythonpath = sys.prefix.rsplit('/', 1)[0]
+            if os.getenv("PYTHONPATH"):
+                pythonpath = os.getenv("PYTHONPATH")
+            else:
+                pythonpath = "/".join(pocket_coffea.__file__.split("/")[:-2])
             env_worker.append(f"export PYTHONPATH={pythonpath}")
 
     return env_worker
@@ -69,11 +74,11 @@ class DaskExecutorFactory(ExecutorFactoryABC):
         if "lxplus" not in socket.gethostname():
                 raise Exception("Trying to run with dask/lxplus not at CERN! Please try different runner options")
 
-        print(">> Creating dask-lxplus cluster")
-        n_port = 8786  #hardcoded by dask-cluster
-        if not check_port(8786):
+        n_port = self.run_options.get("dask-scheduler-port", 8786)
+        print(">> Creating dask-lxplus cluster transmitting on port:", n_port)
+        if not check_port(n_port):
             raise RuntimeError(
-                "Port '8786' is already occupied on this node. Try another machine."
+                f"Port '{n_port}' is already occupied on this node. Change the port or try a different machine."
             )
         # Creating a CERN Cluster, special configuration for dask-on-lxplus
         log_folder = "condor_log"
@@ -150,19 +155,23 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
         # Disabling the postprocessing
         self.config.do_postprocessing = False
         # Splitting the filets creating a new configuration for each and pickling it
-        for i, split in enumerate(splits):
-            # We want to create an unloaded copy of the configurator, and setting the filtered
-            # fileset
-            partial_config = self.config.clone()
-            # take the config filr, set the fileset and save it.
-            partial_config.set_filesets_manually(split)
-            cloudpickle.dump(partial_config, open(f"{self.jobs_dir}/config_job_{i}.pkl", "wb"))
-            config_files.append(f"{self.jobs_dir}/config_job_{i}.pkl")
-            jobs_config["jobs_list"][f"job_{i}"] = {
-                "filesets": split,
-                "config_file": f"{self.jobs_dir}/config_job_{i}.pkl",
-                "output_file": f"{os.path.abspath(self.outputdir)}/output_job_{i}.coffea",
-            }
+        with Progress() as progress:
+            task1 = progress.add_task("[cyan]Preparing config pkls...", total=len(splits))
+            for i, split in enumerate(splits):
+                # We want to create an unloaded copy of the configurator, and setting the filtered
+                # fileset
+                partial_config = self.config.clone()
+                # take the config filr, set the fileset and save it.
+                partial_config.set_filesets_manually(split)
+                cloudpickle.dump(partial_config, open(f"{self.jobs_dir}/config_job_{i}.pkl", "wb"))
+                config_files.append(f"{self.jobs_dir}/config_job_{i}.pkl")
+                jobs_config["jobs_list"][f"job_{i}"] = {
+                    "filesets": split,
+                    "config_file": f"{self.jobs_dir}/config_job_{i}.pkl",
+                    "output_file": f"{os.path.abspath(self.outputdir)}/output_job_{i}.coffea",
+                }
+
+                progress.update(task1, advance=1)
             
         yaml.dump(jobs_config, open(f"{self.jobs_dir}/jobs_config.yaml", "w"))
         # save the configuration
@@ -178,50 +187,83 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
         env_extras_list=get_worker_env(self.run_options,self.x509_path,"condor")
         env_extras= "\n".join(env_extras_list)
 
-        pythonpath = sys.prefix.rsplit('/', 1)[0]
+        if os.getenv("PYTHONPATH"):
+            pythonpath = os.getenv("PYTHONPATH")
+        else:
+            pythonpath = "/".join(pocket_coffea.__file__.split("/")[:-2])        
+
+        copy_command = "cp"
+        eos_prefix = self.run_options["eos-prefix"]
+        if abs_output_path.startswith("/eos/"):
+            abs_output_path = eos_prefix + abs_output_path
+        if abs_output_path.startswith(eos_prefix):
+            copy_command = "xrdcp -f"
+
+        # Handle columns
+        columncommand = ""
+        if len(self.config.columns) > 0 and "dump_columns_as_arrays_per_chunk" in self.config.workflow_options:
+            column_out_dir = self.config.workflow_options["dump_columns_as_arrays_per_chunk"]
+            if not os.path.isabs(column_out_dir) and not column_out_dir.startswith(eos_prefix):
+                # If the config contains an absolute path, then the
+                # parquets are written directly to disk (e.g. eos.)
+                # This may be unstable, but not much to do at the executor level.
+                # Otherwise, check that the directory exists and then copy the directory to outputdir
+                columncommand = f'[ -d "{column_out_dir}" ] && run_with_retries "{copy_command} -r {column_out_dir} {abs_output_path}"'
+
         runnerpath = f"{pythonpath}/pocket_coffea/scripts/runner.py"
         if os.path.isfile(runnerpath):
             runnercmd = "python " + runnerpath
         else:
             runnercmd = "pocket-coffea run"
 
+        # Specify output filename to split-output script ->
+        # This will save files such as output_CAT1.coffea, output_CAT2.coffea (remove "_all" from split outputs)...
         if self.run_options["split-by-category"]:
-            splitcommands = '''
-    cd output
-    split-output output_all.coffea -b category
+            splitcommands = f'''
+    cd {abs_output_path}
+    split-output output_all.coffea -b category -o output.coffea
     rm output_all.coffea
     for f in *.coffea; do
-        cp "$f" "$3/${f%.coffea}_job_$1.coffea"
+        run_with_retries "{copy_command} $f {abs_output_path}/${{f%.coffea}}_job_$1.coffea"
     done
-    cd ..
 '''
         else:
-            splitcommands = "cp output/output_all.coffea $3/output_job_$1.coffea"
+            splitcommands = f'run_with_retries "{copy_command} output/output_all.coffea {abs_output_path}/output_job_$1.coffea"'
 
         script = f"""#!/bin/bash
 {env_extras}
 
 JOBDIR={abs_jobdir_path}
 
+run_with_retries() {{
+    local cmd="$*"
+    for i in {{1..10}}; do
+        eval "$cmd" && return 0
+        sleep 10
+    done
+    echo "$cmd failed after 10 attempts."
+    rm $JOBDIR/job_$1.running
+    touch $JOBDIR/job_$1.failed
+    exit 1
+}}
+
 rm -f $JOBDIR/job_$1.idle
 
 echo "Starting job $1"
 touch $JOBDIR/job_$1.running
 
-{runnercmd} --cfg $2 -o output EXECUTOR --chunksize $4
+{runnercmd} --cfg $2 -o output EXECUTOR --chunksize $3
 # Do things only if the job is successful
 if [ $? -eq 0 ]; then
     echo 'Job successful'
     {splitcommands}
-
-    rm $JOBDIR/job_$1.running
     touch $JOBDIR/job_$1.done
-else
     echo 'Job failed'
     rm $JOBDIR/job_$1.running
     touch $JOBDIR/job_$1.failed
 fi
-echo 'Done'"""
+echo 'Done'
+"""
         
         if int(self.run_options["cores-per-worker"]) > 1:
             script = script.replace("EXECUTOR", f"--executor futures --scalout {self.run_options['cores-per-worker']}")
@@ -242,7 +284,7 @@ echo 'Done'"""
             '+JobFlavour': f'"{self.run_options["queue"]}"',
             'RequestCpus' : self.run_options['cores-per-worker'],
             'RequestMemory' : f"{self.run_options['mem-per-worker']}",
-            'arguments': f"$(ProcId) config_job_$(ProcId).pkl {abs_output_path} {self.run_options['chunksize']}",
+            'arguments': f"$(ProcId) config_job_$(ProcId).pkl {self.run_options['chunksize']}",
             'should_transfer_files':'YES',
             'when_to_transfer_output' : 'ON_EXIT',
             'transfer_input_files' : f"{abs_jobdir_path}/config_job_$(ProcId).pkl,{self.x509_path},{abs_jobdir_path}/job.sh",
@@ -256,11 +298,13 @@ echo 'Done'"""
                 f.write(f"{k} = {v}\n")
             f.write(f"queue {len(jobs_config)}\n")
         # Creating also single sub files for resubmission
+        print(f"Creating {len(jobs_config)} .sub files for individual job submission.")
         for i, _ in enumerate(jobs_config):
             with open(f"{self.jobs_dir}/job_{i}.sub", "w") as f:
                 for k,v in sub.items():
                     if isinstance(v, str):
                         v = v.replace("$(ProcId)", str(i))
+                        v = v.replace("$(ClusterId).log", f"$(ClusterId).{i}.log")
                     f.write(f"{k} = {v}\n")
                 f.write(f"queue\n")
             # Let's also create a .idle file to indicate the the job is in idle
@@ -309,7 +353,7 @@ echo 'Done'"""
         # move processed logs to a backup directory
         if len(xrootdfailurefilelist) > 0:
             backupdir = f"{self.jobs_dir}/logs/processed"
-            os.system(f"mkdir -p {backupdir}")
+            os.makedirs(backupdir, exist_ok=True)
             os.system(f"mv {' '.join(xrootdfailurefilelist)} {backupdir}")
 
         sitemap = get_xrootd_sites_map()

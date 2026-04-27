@@ -74,7 +74,7 @@ cfg = Configurator(
     },
     # Passing a list of WeightWrapper objects
     weights_classes = common_weights,
-
+    calibrators= [ ] , # No calibrators are used in this configuration
     variations = {
         "weights": {
             "common": {
