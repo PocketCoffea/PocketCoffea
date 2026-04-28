@@ -27,7 +27,11 @@ class CreateDatasets(BaseTask):
         super().__init__(*args, **kwargs)
         # if wildcard in --datasets-definition parameter create a list
         # if not list only has one entry
-        self.datasets_definition_list = glob.glob(self.dataset_definition)
+        self.datasets_definition_list = [
+            file
+            for definition in self.dataset_definition
+            for file in glob.glob(definition)
+        ]
         if not self.datasets_definition_list:
             raise FileNotFoundError(
                 law.util.colored(

@@ -157,7 +157,13 @@ class Configurator:
         # Now loading and storing the metadata of the filtered filesets
         if len(self.filesets) == 0:
             print("File set is empty: please check you dataset definition...")
-            raise Exception("Wrong filesets configuration")
+            # Provide more detailed information about the filter configuration
+            error_msg = "Wrong filesets configuration: No datasets matched the filter criteria."
+            ds_filter = self.datasets_cfg.get("filter", None)
+            if ds_filter and ds_filter.get("samples"):
+                error_msg += f"\nRequested samples in filter: {ds_filter['samples']}"
+            error_msg += "\nPlease check for typos (e.g., missing commas in sample lists) and verify that the requested samples exist in the JSON files."
+            raise Exception(error_msg)
         else:
             for name, d in self.filesets.items():
                 m = d["metadata"]
@@ -269,9 +275,15 @@ class Configurator:
             # Weights variations
             for cat, vars in self.variations_config[sample]["weights"].items():
                 self.available_weights_variations[sample] += vars
-            # Shape variations
+            # Shape variations — full-sample and subsample-specific.
+            # The processor passes available_shape_variations to the calibration loop,
+            # so subsample-specific shape variations must be included here so their
+            # calibration passes are actually executed.
             for cat, vars in self.variations_config[sample]["shape"].items():
                 self.available_shape_variations[sample] += vars
+            for subsample_cfg in self.variations_config[sample]["by_subsample"].values():
+                for cat, vars in subsample_cfg["shape"].items():
+                    self.available_shape_variations[sample] += vars
             # make them unique
             self.available_weights_variations[sample] = list(
                 set(self.available_weights_variations[sample])

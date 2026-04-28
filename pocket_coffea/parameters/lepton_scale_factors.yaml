@@ -17,6 +17,8 @@ lepton_scale_factors:
       mvaFall17V2Iso_WP90: wp90iso
       mvaFall17V2noIso_WP80: wp80noiso
       mvaFall17V2noIso_WP90: wp90noiso
+      promptMVA: PromptMVA-Tight # NanoAOD v15
+      mvaTTH: PromptMVA-Tight # NanoAOD v12
 
     JSONfiles: 
       '2016_PreVFP':
@@ -97,11 +99,11 @@ lepton_scale_factors:
 
       "2024":
         files:
-          reco: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,EGM,electron_v1.json.gz,2025-08-15}
-          id:   ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,EGM,electronID_v1.json.gz,2025-08-15}
+          reco: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,EGM,electron.json.gz}
+          id:   ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,EGM,electron.json.gz}
         name: Electron-ID-SF
         reco:
-          #pt_lt_20: #"RecoBelow20" bin is still missing for the moment.
+          pt_lt_20: RecoBelow20
           pt_gt_20_lt_75: Reco20to75
           pt_gt_75: RecoAbove75
 
@@ -140,7 +142,7 @@ lepton_scale_factors:
         reco: "2023PromptD"
         trigger: "2023PromptD"
       "2024": 
-        id: "2024"
+        id: "2024Prompt"
         reco: "2024Prompt"
         #trigger: "2024Prompt"
 
@@ -292,4 +294,84 @@ lepton_scale_factors:
       '2023_postBPix':
           file: ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,MUO,muon_Z.json.gz}
       '2024':
-          file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,MUO,muon_Z.json.gz}    
+          file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,MUO,muon_Z.json.gz}   
+    rochester:
+      apply:
+        '2016_PreVFP':  True
+        '2016_PostVFP': True
+        '2017':         True
+        '2018':         True
+        '2022_preEE':   False
+        '2022_postEE':  False
+        '2023_preBPix': False
+        '2023_postBPix': False
+        '2024':         False
+      so_path: "${default_params_dir:}/roccor/RoccoR.so"
+      txt_file:
+        '2016_PreVFP':  "${default_params_dir:}/roccor/RoccoR2016aUL.txt"
+        '2016_PostVFP': "${default_params_dir:}/roccor/RoccoR2016bUL.txt"
+        '2017':         "${default_params_dir:}/roccor/RoccoR2017UL.txt"
+        '2018':         "${default_params_dir:}/roccor/RoccoR2018UL.txt"      
+    scale_and_resolution:
+      apply: 
+        '2016_PreVFP': False
+        '2016_PostVFP': False
+        '2017': False
+        '2018': False
+        '2022_preEE': True
+        '2022_postEE': True
+        '2023_preBPix': True
+        '2023_postBPix': True
+        '2024': True
+
+      correctionlib_config:
+        '2022_preEE':
+          file: ${cvmfs:Run3-22CDSep23-Summer22-NanoAODv12,MUO,muon_scalesmearing.json.gz}
+          correction_name:
+            cb: "cb_params"
+            poly: "poly_params"
+
+        '2022_postEE':
+          file: ${cvmfs:Run3-22EFGSep23-Summer22EE-NanoAODv12,MUO,muon_scalesmearing.json.gz}
+          correction_name:
+            cb: "cb_params"
+            poly: "poly_params"
+
+        '2023_preBPix':
+          file: ${cvmfs:Run3-23CSep23-Summer23-NanoAODv12,MUO,muon_scalesmearing.json.gz}
+          correction_name:
+            cb: "cb_params"
+            poly: "poly_params"
+
+        '2023_postBPix':
+          file: ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,MUO,muon_scalesmearing.json.gz}
+          correction_name:
+            cb: "cb_params"
+            poly: "poly_params"
+
+        '2024':
+          file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,MUO,muon_scalesmearing.json.gz}
+          correction_name:
+            cb: "cb_params"
+            poly: "poly_params" 
+
+    promptmva_jsons:
+    # Iso SF is "included" in the private SF
+      '2022_preEE': 
+        file: "${default_params_dir:}/custom_SFs/muon_promptMVA/2022/leptonSF_2022.json.gz"
+      
+      '2022_postEE': 
+        file: "${default_params_dir:}/custom_SFs/muon_promptMVA/2022EE/leptonSF_2022EE.json.gz"
+
+      '2023_preBPix': 
+        file: "${default_params_dir:}/custom_SFs/muon_promptMVA/2023/leptonSF_2023.json.gz"
+
+      '2023_postBPix': 
+        file: "${default_params_dir:}/custom_SFs/muon_promptMVA/2023BPix/leptonSF_2023BPix.json.gz"
+
+      '2024': 
+        file: "${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,MUO,muon_Z.json.gz}"
+        keys: 
+          - NUM_LoosePFIso_DEN_MediumID
+          - NUM_MediumID_DEN_TrackerMuons
+          - NUM_promptMVA_WP64ID_DEN_MediumID

@@ -97,7 +97,7 @@ cfg = Configurator(
         },
         "shape": {
             "common": {
-                "inclusive": [ "jet_calibration"],
+                "inclusive": [ "jet_calibration", "met_type1_calibration"],
             },
         }
     },

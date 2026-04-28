@@ -5,37 +5,41 @@ photon_scale_factors:
     collection: PhotonGood
     
     sf_name:
-      '2016_PreVFP':
-          id: UL-Photon-ID-SF
-          pxseed: UL-Photon-PixVeto-SF
+        '2016_PreVFP':
+            id: UL-Photon-ID-SF
+            pxseed: UL-Photon-PixVeto-SF
 
-      '2016_PostVFP':
-          id: UL-Photon-ID-SF
-          pxseed: UL-Photon-PixVeto-SF
+        '2016_PostVFP':
+            id: UL-Photon-ID-SF
+            pxseed: UL-Photon-PixVeto-SF
 
-      '2017':
-          id: UL-Photon-ID-SF
-          pxseed: UL-Photon-PixVeto-SF
+        '2017':
+            id: UL-Photon-ID-SF
+            pxseed: UL-Photon-PixVeto-SF
 
-      '2018':
-          id: UL-Photon-ID-SF
-          pxseed: UL-Photon-PixVeto-SF
+        '2018':
+            id: UL-Photon-ID-SF
+            pxseed: UL-Photon-PixVeto-SF
 
-      '2022_preEE':
-          id: UL-Photon-ID-SF
-          pxseed: UL-Photon-PixVeto-SF
-          
-      '2022_postEE':
-          id: UL-Photon-ID-SF
-          pxseed: UL-Photon-PixVeto-SF
+        '2022_preEE':
+            id: Photon-ID-SF
+            pxseed: Photon-PixVeto-SF
+            
+        '2022_postEE':
+            id: Photon-ID-SF
+            pxseed: Photon-PixVeto-SF
 
-      '2023_preBPix':
-          id: UL-Photon-ID-SF
-          pxseed: UL-Photon-PixVeto-SF
-          
-      '2023_postBPix':
-          id: UL-Photon-ID-SF
-          pxseed: UL-Photon-PixVeto-SF
+        '2023_preBPix':
+            id: Photon-ID-SF
+            pxseed: Photon-PixVeto-SF
+            
+        '2023_postBPix':
+            id: Photon-ID-SF
+            pxseed: Photon-PixVeto-SF
+
+        '2024':
+            id: Photon-ID-SF
+            pxseed: Photon-PixVeto-SF
 
     JSONfiles:
       '2016_PreVFP':
@@ -54,6 +58,8 @@ photon_scale_factors:
           file: ${cvmfs:Run3-23CSep23-Summer23-NanoAODv12,EGM,photon.json.gz}
       '2023_postBPix':
           file: ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,EGM,photon.json.gz}
+      '2024':
+          file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,EGM,photon.json.gz}
 
     era_mapping:
         "2016_PreVFP": "2016preVFP"
@@ -64,6 +70,7 @@ photon_scale_factors:
         "2022_postEE": "2022Re-recoE+PromptFG"
         "2023_preBPix": "2023PromptC"
         "2023_postBPix": "2023PromptD"
+        "2024": "2024Prompt"
     
 
 

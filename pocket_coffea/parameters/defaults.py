@@ -93,13 +93,14 @@ def get_default_parameters(group_tags: dict = None) -> OmegaConf:
 
     # Loading the cvmfs resolver
     setup_cvmfs_resolver(group_tags)
-
+    nano_version = OmegaConf.load(os.path.join(basedir, "nano_version.yaml"))
     pileup = OmegaConf.load(os.path.join(basedir, 'pileup.yaml'))
     event_flags = OmegaConf.load(os.path.join(basedir, 'event_flags.yaml'))
     lumi = OmegaConf.load(os.path.join(basedir, 'lumi.yaml'))
     #xsec = OmegaConf.load(os.path.join(basedir, 'xsec.yaml'))
     jet_calibration = OmegaConf.load(os.path.join(basedir, "jets_calibration.yaml"))
     jet_scale_factors = OmegaConf.load(os.path.join(basedir, 'jet_scale_factors.yaml'))
+    met_calibration = OmegaConf.load(os.path.join(basedir, "met_calibration.yaml"))
     btagging = OmegaConf.load(os.path.join(basedir, "btagging.yaml"))
     lepton_scale_factors = OmegaConf.load(
         os.path.join(basedir, 'lepton_scale_factors.yaml')
@@ -110,11 +111,13 @@ def get_default_parameters(group_tags: dict = None) -> OmegaConf:
     plotting_style = OmegaConf.load(os.path.join(basedir, 'plotting_style.yaml'))
 
     all = OmegaConf.merge(
+        nano_version,
         pileup,
         event_flags,
         lumi,
         jet_calibration,
         jet_scale_factors,
+        met_calibration,
         btagging,
         lepton_scale_factors,
         photon_sf,

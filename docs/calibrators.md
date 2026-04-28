@@ -27,9 +27,11 @@ All calibrators inherit from the abstract `Calibrator` class and must implement 
 ```python
 class YourCalibrator(Calibrator):
     name: str = "your_calibrator_name"  # Unique identifier
-    has_variations: bool = True         # Whether this calibrator provides variations
-    isMC_only: bool = False            # Whether to run only on MC
-    calibrated_collections: List[str] = ["Collection.field"]  # Collections this calibrator modifies
+    has_variations: bool = True  # Whether this calibrator provides variations
+    isMC_only: bool = False  # Whether to run only on MC
+    calibrated_collections: List[str] = [
+        "Collection.field"
+    ]  # Collections this calibrator modifies
 ```
 
 ### Required Methods
@@ -54,7 +56,13 @@ the current chunk of events. Both the **Up** and **Down** variations should be d
 Called for each systematic variation to apply corrections:
 
 ```python
-def calibrate(self, events, events_original_collections, variation, already_applied_calibrators=None):
+def calibrate(
+    self,
+    events,
+    events_original_collections,
+    variation,
+    already_applied_calibrators=None,
+):
     # Apply corrections based on the requested variation
     # Return dictionary: {"Collection.field": corrected_values}
     return {"Jet.pt": corrected_jet_pts}
@@ -95,23 +103,23 @@ from pocket_coffea.lib.calibrators.common import default_calibrators_sequence
 
 cfg = Configurator(
     # ... other configuration ...
-    
     # Use default calibrator sequence
-    calibrators = default_calibrators_sequence
-    
+    calibrators=default_calibrators_sequence,
     # Configure shape variations
-    variations = {
+    variations={
         "shape": {
             "common": {
                 "inclusive": ["jet_calibration"],  # Run jet variations for all samples
             },
             "bysample": {
                 "MC_Sample": {
-                    "inclusive": ["electron_scale_and_smearing"],  # Run electron variations for specific samples
+                    "inclusive": [
+                        "electron_scale_and_smearing"
+                    ],  # Run electron variations for specific samples
                 }
-            }
+            },
         }
-    }
+    },
 )
 ```
 
@@ -123,14 +131,10 @@ You can define your own calibrator sequence:
 from pocket_coffea.lib.calibrators.common import JetsCalibrator, METCalibrator
 from your_module import CustomCalibrator
 
-custom_sequence = [
-    JetsCalibrator,
-    METCalibrator, 
-    CustomCalibrator
-]
+custom_sequence = [JetsCalibrator, METCalibrator, CustomCalibrator]
 
 cfg = Configurator(
-    calibrators = custom_sequence,
+    calibrators=custom_sequence,
     # ... rest of configuration
 )
 ```
@@ -189,6 +193,7 @@ Here's a template for a custom calibrator:
 from pocket_coffea.lib.calibrators.calibrator import Calibrator
 import awkward as ak
 
+
 class MyCustomCalibrator(Calibrator):
     name = "my_custom_calibrator"
     has_variations = True
@@ -199,35 +204,34 @@ class MyCustomCalibrator(Calibrator):
         super().__init__(params, metadata, **kwargs)
         # Access configuration
         self.my_config = self.params.my_calibrator_config
-        
+
     def initialize(self, events):
         # Prepare correction factors
         self.scale_factor = self.calculate_scale_factor(events)
-        
+
         # Define available variations
         if self.isMC:
             self._variations = ["myUncertaintyUp", "myUncertaintyDown"]
         else:
             self._variations = []
-    
-    def calibrate(self, events, orig_colls, variation, already_applied_calibrators=None):
+
+    def calibrate(
+        self, events, orig_colls, variation, already_applied_calibrators=None
+    ):
         # Get the objects to calibrate
         objects = events["MyObject"]
-        
+
         # Apply nominal correction
         corrected_pt = objects.pt * self.scale_factor
         corrected_mass = objects.mass * self.scale_factor
-        
+
         # Apply systematic variations
         if variation == "myUncertaintyUp":
             corrected_pt = corrected_pt * 1.02
         elif variation == "myUncertaintyDown":
             corrected_pt = corrected_pt * 0.98
-            
-        return {
-            "MyObject.pt": corrected_pt,
-            "MyObject.mass": corrected_mass
-        }
+
+        return {"MyObject.pt": corrected_pt, "MyObject.mass": corrected_mass}
 ```
 
 ### Advanced Example with Dependencies
@@ -241,22 +245,28 @@ class AdvancedCalibrator(Calibrator):
     isMC_only = True
     calibrated_collections = ["DerivedQuantity"]
 
-    def calibrate(self, events, orig_colls, variation, already_applied_calibrators=None):
+    def calibrate(
+        self, events, orig_colls, variation, already_applied_calibrators=None
+    ):
         # Check dependencies
         if "jet_calibration" not in already_applied_calibrators:
-            raise ValueError("This calibrator requires jet_calibration to be applied first")
-        
+            raise ValueError(
+                "This calibrator requires jet_calibration to be applied first"
+            )
+
         # Use original jets if needed for some calculation
         if "Jet" in orig_colls:
             original_jets = orig_colls["Jet"]
-        
+
         # Use calibrated jets from events
         # Reading from "events" in practice is taking all the objects calibrated up to this point in the sequence.
         calibrated_jets = events["Jet"]
-        
+
         # Compute derived quantity
-        derived = self.compute_derived_quantity(original_jets, calibrated_jets, variation)
-        
+        derived = self.compute_derived_quantity(
+            original_jets, calibrated_jets, variation
+        )
+
         return {"DerivedQuantity": derived}
 ```
 
@@ -281,15 +291,15 @@ variations = {
     "shape": {
         "common": {
             "inclusive": [
-                "jet_calibration",           # All JEC/JER variations
-                "electron_scale_and_smearing" # All electron variations
+                "jet_calibration",  # All JEC/JER variations
+                "electron_scale_and_smearing",  # All electron variations
             ],
         },
         "bysample": {
             "TTbar": {
                 "inclusive": ["custom_calibrator"],  # Sample-specific variations
             }
-        }
+        },
     }
 }
 ```
@@ -323,7 +333,7 @@ def initialize_calibrators(self):
 def loop_over_variations(self):
     for variation, events_calibrated in self.calibrators_manager.calibration_loop(
         self.events,
-        variations_for_calibrators=self.cfg.available_shape_variations[self._sample]
+        variations_for_calibrators=self.cfg.available_shape_variations[self._sample],
     ):
         self.events = events_calibrated
         yield variation

@@ -230,6 +230,10 @@ class WeightsManager:
 
         _weightsCache.clear()
 
+    def get_available_weights(self):
+        """Return a list of the available weights of the WeightsManager."""
+        return self._available_weights
+
     def get_available_modifiers_byweight(self, weight:str):
         '''
         Return the available modifiers for the specific weight.
@@ -435,7 +439,7 @@ class WeightsManager:
                                        self._weightsByCat_subsamples[subsample][category].weight())
                     
                 elif not mod_incl and mod_bycat:
-                    # Get the nominal by cat and modified inclusive
+                    # Get the nominal inclusive and modified bycat
                     overall_weight = ( self._weightsIncl_subsamples[subsample].weight() *
                                         self._weightsByCat_subsamples[subsample][category].weight(modifier=modifier))
                 else:
@@ -443,3 +447,40 @@ class WeightsManager:
                     overall_weight = (self._weightsIncl_subsamples[subsample].weight() *
                                       self._weightsByCat_subsamples[subsample][category].weight())
         return overall_weight
+
+
+def get_weights_by_cat_var(available_weights_variations, weights_manager, category, variation):
+    """Get full-sample weights keyed by variation name for a given category."""
+    weights = {}
+    if variation == "nominal":
+        for variation in available_weights_variations:
+            if variation == "nominal":
+                weights["nominal"] = weights_manager.get_weight(category)
+            else:
+                weights[variation] = weights_manager.get_weight(
+                    category, modifier=variation
+                )
+    else:
+        # Shape variation pass: only nominal weights are needed
+        weights["nominal"] = weights_manager.get_weight(category)
+    return weights
+
+
+def get_weights_by_cat_var_subsample(available_variations, weights_manager, subsample, category, shape_variation):
+    """Get subsample-specific weights keyed by variation name, mirroring get_weights_by_cat_var.
+
+    Only variations explicitly defined for this subsample are preloaded with their
+    varied values; all other variations fall back to the nominal subsample weight
+    via dict.get() at fill time.
+    """
+    weights = {}
+    if shape_variation == "nominal":
+        for variation in available_variations:
+            weights[variation] = weights_manager.get_weight_only_subsample(
+                subsample, category,
+                modifier=None if variation == "nominal" else variation,
+            )
+    else:
+        # Shape variation pass: only nominal subsample weight is needed
+        weights["nominal"] = weights_manager.get_weight_only_subsample(subsample, category)
+    return weights
