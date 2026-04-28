@@ -187,3 +187,17 @@ dask@oscar:
   skip-bad-files: true
   retries: 3
   queue: "batch"
+
+dask@squadron:
+  scaleout: 10
+  cores-per-worker: 1
+  mem-per-worker: "4GB"
+  disk-per-worker: "2GB"
+  queue: "work"
+  qos: "light"
+  walltime: "6:00:00"
+  adaptive: false
+  performance-report: false
+  custom-setup-commands: null
+  conda-env: false
+  local-virtualenv: false
