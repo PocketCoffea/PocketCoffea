@@ -310,6 +310,39 @@ jets_calibration:
 Note that there are two versions of regression are available in PNet: with and without neutrinos used in the training.  
 In the example above, the default `jets` configuration is overwritten to assign the `Jet` collection to the `AK4PFPuppiPNetRegression` tag, and to activate the pt regression for data and MC for that tag. Note the line `AK4PFPuppi: null` -- it is needed to remove the association of the `AK4PFPuppi` to the `Jet`, which is default pocket-coffea setting.
 
+However, this is not all. We also need to apply JEC and JER on the regressed jets. Ideally, dedicated corrections should be applied to those, but these are not yet approved be JETMET group (time of writing: April 2026). Insted, one can apply the standard JEC/JER and the corresponding uncertainties. Foe these we need a few extra lines in the config:
+
+```yaml  
+jets_calibration: 
+  collection_name_alias:  # Alias for JEC/JER corrections and syst
+	2022_preEE:
+      AK4PFPuppiPNetRegression: "AK4PFPuppi"
+      AK4PFPuppiPNetRegressionPlusNeutrino: "AK4PFPuppi"
+
+  # This tells to use jet Factory of AK4PFPuppi jets for JEC/JER:
+  jet_types:
+    AK4PFPuppiPNetRegression: "${default_jets_calibration.factory_config_clib.AK4PFPuppi}"
+    AK4PFPuppiPNetRegressionPlusNeutrino: "${default_jets_calibration.factory_config_clib.AK4PFPuppi}"
+
+  # This will change the name of the variation Jets to `AK4Jet` (independent of which jets are enabled)
+  merge_collections_for_variations:
+    2022_preEE:
+      AK4Jet:
+        - AK4PFPuppi
+        - AK4PFPuppiPNetRegression
+        - AK4PFPuppiPNetRegressionPlusNeutrino
+
+  # Here we use Total variations, taken from AK4PFPuppi params:
+  variations:
+    total_variation:
+      AK4PFPuppiPNetRegression:
+        2022_preEE: "${default_jets_calibration.variations.total_variation.AK4PFPuppi.2022_preEE}"
+      AK4PFPuppiPNetRegressionPlusNeutrino:
+        2022_preEE: "${default_jets_calibration.variations.total_variation.AK4PFPuppi.2022_preEE}"
+
+```
+
+
 If the user needs to apply regression only to a subset of jets, then the best strategy is to define a copy of the Jet collection and calibrate that. 
 
 An example configuration for this:
