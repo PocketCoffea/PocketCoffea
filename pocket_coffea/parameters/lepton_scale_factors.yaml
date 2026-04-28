@@ -107,6 +107,29 @@ lepton_scale_factors:
           pt_gt_20_lt_75: Reco20to75
           pt_gt_75: RecoAbove75
 
+    promptMVA_jsons:
+      # promptMVA NanoAODv15 training on NanoAODv12 MC, to be used for 2022 and 2023 reprocessing, since we are recomputing on the fly the promptMVA value for these years and we want to use the corresponding SF. 
+      '2022_preEE': 
+        file: "${default_params_dir:}/custom_SFs/electron_promptMVA/2022/electron_mvaTTH_2022PreEE.json.gz"
+        model_weights: "${default_params_dir:}/custom_SFs/electron_promptMVA/Electron-mvaTTH.2022EE.weights_mvaISO.json"
+      
+      '2022_postEE': 
+        file: "${default_params_dir:}/custom_SFs/electron_promptMVA/2022EE/electron_mvaTTH_2022PostEE.json.gz"
+        model_weights: "${default_params_dir:}/custom_SFs/electron_promptMVA/Electron-mvaTTH.2022EE.weights_mvaISO.json"
+
+      '2023_preBPix': 
+        file: "${default_params_dir:}/custom_SFs/electron_promptMVA/2023/electron_mvaTTH_2023.json.gz"
+        model_weights: "${default_params_dir:}/custom_SFs/electron_promptMVA/Electron-mvaTTH.2022EE.weights_mvaISO.json"
+
+      '2023_postBPix': 
+        file: "${default_params_dir:}/custom_SFs/electron_promptMVA/2023BPix/electron_mvaTTH_2023BPix.json.gz"
+        model_weights: "${default_params_dir:}/custom_SFs/electron_promptMVA/Electron-mvaTTH.2022EE.weights_mvaISO.json"
+      # In 2024 the promptMVA is taken from NanoAODv15 and the SF is provided centrally
+      '2024': 
+        file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,EGM,electron.json.gz}
+        key: Electron-ID-SF
+
+
     era_mapping:
       # this is needed because the correction set provided by EGM
       # have a fixed set of era labels, different from ours
@@ -312,6 +335,7 @@ lepton_scale_factors:
         '2016_PostVFP': "${default_params_dir:}/roccor/RoccoR2016bUL.txt"
         '2017':         "${default_params_dir:}/roccor/RoccoR2017UL.txt"
         '2018':         "${default_params_dir:}/roccor/RoccoR2018UL.txt"      
+    
     scale_and_resolution:
       apply: 
         '2016_PreVFP': False
@@ -355,19 +379,23 @@ lepton_scale_factors:
             cb: "cb_params"
             poly: "poly_params" 
 
-    promptmva_jsons:
+    promptMVA_jsons:
     # Iso SF is "included" in the private SF
       '2022_preEE': 
-        file: "${default_params_dir:}/custom_SFs/muon_promptMVA/2022/leptonSF_2022.json.gz"
+        file: "${default_params_dir:}/custom_SFs/muon_promptMVA/2022/muon_mvaTTH_2022_SF.json.gz"
+        model_weights: "${default_params_dir:}/custom_SFs/muon_promptMVA/Muon-mvaTTH.2022EE.weights.json"
       
       '2022_postEE': 
-        file: "${default_params_dir:}/custom_SFs/muon_promptMVA/2022EE/leptonSF_2022EE.json.gz"
+        file: "${default_params_dir:}/custom_SFs/muon_promptMVA/2022EE/muon_mvaTTH_2022EE_SF.json.gz"
+        model_weights: "${default_params_dir:}/custom_SFs/muon_promptMVA/Muon-mvaTTH.2022EE.weights.json"
 
       '2023_preBPix': 
-        file: "${default_params_dir:}/custom_SFs/muon_promptMVA/2023/leptonSF_2023.json.gz"
+        file: "${default_params_dir:}/custom_SFs/muon_promptMVA/2023/muon_mvaTTH_2023_SF.json.gz"
+        model_weights: "${default_params_dir:}/custom_SFs/muon_promptMVA/Muon-mvaTTH.2022EE.weights.json"
 
       '2023_postBPix': 
-        file: "${default_params_dir:}/custom_SFs/muon_promptMVA/2023BPix/leptonSF_2023BPix.json.gz"
+        file: "${default_params_dir:}/custom_SFs/muon_promptMVA/2023BPix/muon_mvaTTH_2023BPix_SF.json.gz"
+        model_weights: "${default_params_dir:}/custom_SFs/muon_promptMVA/Muon-mvaTTH.2022EE.weights.json"
 
       '2024': 
         file: "${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,MUO,muon_Z.json.gz}"

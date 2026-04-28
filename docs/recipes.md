@@ -37,6 +37,181 @@ WIP
 ### Define a custom weights with custom variations
 WIP
 
+## promptMVA lepton selection and on-the-fly re-evaluation
+
+The promptMVA (`mvaTTH`) is a BDT-based lepton ID used in ttH analyses to suppress
+non-prompt leptons. For Run3 2022–2023 datasets produced with NanoAODv12/v13, the
+`mvaTTH` branch stored in NanoAOD was trained on a different data-taking period and
+must be **re-evaluated on the fly** before applying the working-point cut. For 2024
+datasets (NanoAODv15) the value is correct out of the box.
+
+PocketCoffea provides:
+- `ElectronMVAEvaluator` / `MuonMVAEvaluator` — XGBoost wrappers in
+  `pocket_coffea.lib.xgboost_evaluator` that reproduce the TMVA score in `[-1, 1]`.
+- `lepton_selection_promptMVA` — drop-in replacement for `lepton_selection` in
+  `pocket_coffea.lib.leptons` that applies the full preselection and optional MVA WP cut.
+- Pre-configured model weights and scale factors in
+  `pocket_coffea/parameters/lepton_scale_factors.yaml` under
+  `lepton_scale_factors.{electron,muon}_sf.promptMVA_jsons`.
+
+### Object preselection parameters
+
+The `lepton_selection_promptMVA` function requires several additional keys under
+`object_preselection` compared to the standard `lepton_selection`. Add these to your
+`params/object_preselection.yaml`:
+
+```yaml
+object_preselection:
+  Electron:
+    pt: 15.0
+    eta: 2.5
+    sip3d: 8.0          # 3D impact-parameter significance
+    lostHits: 1         # max number of lost tracker hits
+    dxy: 0.05           # |dxy| < dxy [cm]
+    dz: 0.1             # |dz| < dz [cm]
+    id:                 # NanoAOD field used as MVA score (per year)
+      "2022_preEE":    mvaTTH_redo
+      "2022_postEE":   mvaTTH_redo
+      "2023_preBPix":  mvaTTH_redo
+      "2023_postBPix": mvaTTH_redo
+      "2024":          mvaTTH           # read directly from NanoAOD in v15
+    mva_wp:             # MVA working-point threshold (per year)
+      "2022_preEE":    0.90
+      "2022_postEE":   0.90
+      "2023_preBPix":  0.90
+      "2023_postBPix": 0.90
+      "2024":          0.90
+    btag_cut:           # DeepFlavB score veto on the closest jet (per year)
+      2022_preEE: 0.3086
+      2022_postEE: 0.3196
+      2023_preBPix: 0.2431
+      2023_postBPix: 0.2435 
+      "2024": 999.
+
+  Muon:
+    pt: 10.0
+    eta: 2.4
+    iso: 0.4
+    sip3d: 8.0
+    dxy: 0.05
+    dz: 0.1
+    base_id: looseId    # NanoAOD field for baseline muon ID
+    id:
+      "2022_preEE":    mvaTTH_redo
+      "2022_postEE":   mvaTTH_redo
+      "2023_preBPix":  mvaTTH_redo
+      "2023_postBPix": mvaTTH_redo
+      "2024":          mvaTTH
+    mva_wp:
+      "2022_preEE":    0.64
+      "2022_postEE":   0.64
+      "2023_preBPix":  0.64
+      "2023_postBPix": 0.64
+      "2024":          0.64
+    btag_cut:
+      2022_preEE: 0.3086
+      2022_postEE: 0.3196
+      2023_preBPix: 0.2431
+      2023_postBPix: 0.2435 
+      "2024": 999.
+```
+
+### Workflow implementation
+
+In `apply_object_preselection`, first compute scores for 2022–2023 years and attach
+them as `mvaTTH_redo`, then call `lepton_selection_promptMVA` with `apply_mva_cut=True`:
+
+```python
+import awkward as ak
+from pocket_coffea.workflows.base import BaseProcessorABC
+from pocket_coffea.lib.objects import jet_selection, btagging
+from pocket_coffea.lib.leptons import lepton_selection_promptMVA
+from pocket_coffea.lib.xgboost_evaluator import ElectronMVAEvaluator, MuonMVAEvaluator
+
+REDO_MVA_YEARS = ["2022_preEE", "2022_postEE", "2023_preBPix", "2023_postBPix"]
+
+
+class MyProcessor(BaseProcessorABC):
+
+    def apply_object_preselection(self, variation):
+        # Re-evaluate promptMVA on the fly for 2022/2023 datasets
+        if self._year in REDO_MVA_YEARS:
+            ele_evaluator = ElectronMVAEvaluator(
+                self.params.lepton_scale_factors.electron_sf.promptMVA_jsons[self._year].model_weights
+            )
+            muon_evaluator = MuonMVAEvaluator(
+                self.params.lepton_scale_factors.muon_sf.promptMVA_jsons[self._year].model_weights
+            )
+
+            _, presel_ele_mask = lepton_selection_promptMVA(
+                self.events, "Electron", self.params, self._year, apply_mva_cut=False
+            )
+            self.events["Electron"] = ak.with_field(
+                self.events["Electron"],
+                ele_evaluator.evaluate(self.events["Electron"], self.events["Jet"], mask=presel_ele_mask),
+                "mvaTTH_redo",
+            )
+
+            _, presel_muon_mask = lepton_selection_promptMVA(
+                self.events, "Muon", self.params, self._year, apply_mva_cut=False
+            )
+            self.events["Muon"] = ak.with_field(
+                self.events["Muon"],
+                muon_evaluator.evaluate(self.events["Muon"], self.events["Jet"], mask=presel_muon_mask),
+                "mvaTTH_redo",
+            )
+
+        # Apply final selection using the (re-)computed MVA score
+        self.events["ElectronGood"], _ = lepton_selection_promptMVA(
+            self.events, "Electron", self.params, self._year,
+            apply_mva_cut=True,
+            mva_var=self.params.object_preselection.Electron.id[self._year],
+        )
+        self.events["MuonGood"], _ = lepton_selection_promptMVA(
+            self.events, "Muon", self.params, self._year,
+            apply_mva_cut=True,
+            mva_var=self.params.object_preselection.Muon.id[self._year],
+        )
+
+        leptons = ak.with_name(
+            ak.concatenate((self.events.MuonGood, self.events.ElectronGood), axis=1),
+            name="PtEtaPhiMCandidate",
+        )
+        self.events["LeptonGood"] = leptons[ak.argsort(leptons.pt, ascending=False)]
+        self.events["JetGood"], self.jetGoodMask = jet_selection(
+            self.events, "Jet", self.params, self._year, leptons_collection="LeptonGood"
+        )
+        self.events["BJetGood"] = btagging(
+            self.events["JetGood"],
+            self.params.btagging.working_point[self._year],
+            wp=self.params.object_preselection.Jet["btag"]["wp"],
+        )
+```
+
+### Scale factors
+
+The corresponding promptMVA lepton ID scale factors are provided as the
+`sf_ele_promptMVA` and `sf_mu_promptMVA` weight wrappers, already included in
+`common_weights`. Add them to the `weights` section of your configurator:
+
+```python
+weights = {
+    "common": {
+        "inclusive": [
+            "genWeight", "lumi", "XS",
+            "sf_ele_promptMVA",
+            "sf_mu_promptMVA",
+        ],
+    },
+}
+```
+
+:::{note}
+For 2022–2023 the scale factors are derived from the TTH multilepton team and stored
+under `pocket_coffea/parameters/custom_SFs/{electron,muon}_promptMVA/`. For 2024
+(NanoAODv15) central POG scale factors are used automatically.
+:::
+
 ## Apply corrections
 Here we describe how to apply certain corrections recommended by CMS POGs.
 
