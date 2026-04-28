@@ -310,14 +310,14 @@ jets_calibration:
       # AK4PFPuppiPNetRegression: "Jet"
 ```
 
-The jet type is just an internal labels used in the PocketCoffea configuration to link various pieces of the jets configuration together. 
+Here, the `AK4PFPuppi`, `AK8PFPuppi` and `AK4PFPuppiPNetRegression` are the jet types used as internal labels in the PocketCoffea configuration to link various pieces of the jets configuration together. The `Jet` and `FatJet` are the names of the branches in NanoAOD.
 
 :::{warning}
 All the collections defined in the `jets_calibration.collection` entry will be calibrated by the configured JetsCalibrator if included in the calibrators sequence. It is not allowed to match the same jet collection to multiple jet types: an error will be raised.
 :::
 
 ##### Collection Name Aliases
-To allow to use the same calibration settings on different ket collections, it is possible to define aliases for the collection names with the `collection_name_alias` key. For example, if you have a jet collection called `JetCustom` that you want to calibrate in the same way as you do for the `Jet` collection, which is mapped to the `AK4PFPuppi` jet type, your configuration would look like this:
+In order to use the same calibration settings on different jet collections, it is possible to define aliases for the collection names with the `collection_name_alias` key. For example, if you have a jet collection called `JetCustom` that you want to calibrate in the same way as you do for the `Jet` collection, which is mapped to the `AK4PFPuppi` jet type, your configuration would look like this:
 
 ```yaml
 jets_calibration:
@@ -335,24 +335,29 @@ In order to merge the variations of the `JetCustom` collection, you need to defi
 :::
 
 ##### Calibration Control Flags
-Enable/disable different correction types per jet type and period:
+
+Here is how one can enable/disable different correction types per jet type and period:
 
 ```yaml
-  apply_jec_MC:           # Apply JEC to MC
+# Apply JEC to MC
+  apply_jec_MC:
     2022_preEE:
       AK4PFPuppi: True
       AK4PFPuppiPNetRegression: True
 
-  apply_jer_MC:           # Apply JER to MC
+# Apply JER to MC
+  apply_jer_MC:
     2022_preEE:
       AK4PFPuppi: True
       AK4PFPuppiPNetRegression: True
-      
-  apply_jec_Data:         # Apply JEC to Data
+
+# Apply JEC to Data
+  apply_jec_Data:
     2022_preEE:
       AK4PFPuppi: True
       
-  apply_pt_regr_MC:       # Apply pT regression to MC
+# Apply pT regression to MC
+  apply_pt_regr_MC:
     2022_preEE:
       AK4PFPuppi: False
       AK4PFPuppiPNetRegression: True
@@ -367,7 +372,7 @@ Enable/disable different correction types per jet type and period:
 ```
 
 ##### Systematic Variations
-Different sets of systematic variations are available in the default parameter set. 
+Different sets of JEC systematic variations are available in the default parameter set. 
 
 ```yaml
 default_jets_calibration:
@@ -417,7 +422,8 @@ jets_calibration:
         - AK4PFPuppiCustom
 ```
 
-This will create variation with the name `AK4Jet_{variation}_[up|down]` that merges the variations from the specified jet types.
+This will create variation with the name `AK4Jet_{variation}_[up|down]` that merges the variations from the specified jet types.  
+ToDo: better describe how this merging is done. What if AK4PFPuppi and AK4PFPuppiCustom have different up_variation for example.
 
 #### MET Recalibration
 Configure MET corrections that propagate jet calibration changes:
@@ -441,7 +447,7 @@ from pocket_coffea.lib.calibrators.common import default_calibrators_sequence
 calibrators = default_calibrators_sequence
 ```
 
-For custom configurations, modify the `jets_calibration` section in your parameters:
+For custom configurations, modify the `jets_calibration` section in your parameters, for example:
 
 ```yaml
 jets_calibration:
@@ -456,38 +462,18 @@ jets_calibration:
 
 
 ### Jet energy regression
-Starting from Run3 datasetes the ParticleNet jet energy regression corrections are part of the `Jet` object in NanoAOD. But they are not applied by default. In PocketCoffea the regression can be turned On/Off via configuration by using the `JetPtRegressionCalibrator` in the calibration sequence and by activating the pt regression in the jets calibration configuration
+Starting from Run3 datasetes the ParticleNet jet energy regression corrections are part of the `Jet` object in NanoAOD. But they are not applied by default. In PocketCoffea the regression is implemented in `JetPtRegressionCalibrator` in the calibration sequence and can be turned On/Off via configuration parameters as show in the example below:
 
 ```yaml
 jets_calibration:
   collection:
     2022_preEE:
+	  AK4PFPuppi: null
       AK4PFPuppiPNetRegression: "Jet"
       #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
       
-    2022_postEE:
-      AK4PFPuppiPNetRegression: "Jet"
-      #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
-
-    2023_preBPix:
-      AK4PFPuppiPNetRegression: "Jet"
-      #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
-
-    2023_postBPix:
-      AK4PFPuppiPNetRegression: "Jet"
-      #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
-
   apply_pt_regr_MC:
 	2022_preEE:
-      AK4PFPuppiPNetRegression: True
-      #AK4PFPuppiPNetRegressionPlusNeutrino: True
-    2022_postEE: 
-      AK4PFPuppiPNetRegression: True
-      #AK4PFPuppiPNetRegressionPlusNeutrino: True
-    2023_preBPix: 
-      AK4PFPuppiPNetRegression: True
-      #AK4PFPuppiPNetRegressionPlusNeutrino: True
-    2023_postBPix: 
       AK4PFPuppiPNetRegression: True
       #AK4PFPuppiPNetRegressionPlusNeutrino: True
 
@@ -495,21 +481,44 @@ jets_calibration:
     2022_preEE: 
       AK4PFPuppiPNetRegression: True
       #AK4PFPuppiPNetRegressionPlusNeutrino: True
-    2022_postEE:
-      AK4PFPuppiPNetRegression: True
-      #AK4PFPuppiPNetRegressionPlusNeutrino: True
-    2023_preBPix: 
-      AK4PFPuppiPNetRegression: True
-      #AK4PFPuppiPNetRegressionPlusNeutrino: True
-    2023_postBPix: 
-      AK4PFPuppiPNetRegression: True
-      #AK4PFPuppiPNetRegressionPlusNeutrino: True
+```
+Note that there are two versions of regression are available in PNet: with and without neutrinos used in the training.  
+In the example above, the default `jets` configuration is overwritten to assign the `Jet` collection to the `AK4PFPuppiPNetRegression` tag, and to activate the pt regression for data and MC for that tag. Note the line `AK4PFPuppi: null` -- it is needed to remove the association of the `AK4PFPuppi` to the `Jet`, which is default pocket-coffea setting.
+
+However, this is not all. We also need to apply JEC and JER on the regressed jets. Ideally, dedicated corrections should be applied to those, but these are not yet approved be JETMET group (time of writing: April 2026). Insted, one can apply the standard JEC/JER and the corresponding uncertainties. Foe these we need a few extra lines in the config:
+
+```yaml  
+jets_calibration: 
+  collection_name_alias:  # Alias for JEC/JER corrections and syst
+	2022_preEE:
+      AK4PFPuppiPNetRegression: "AK4PFPuppi"
+      AK4PFPuppiPNetRegressionPlusNeutrino: "AK4PFPuppi"
+
+  # This tells to use jet Factory of AK4PFPuppi jets for JEC/JER:
+  jet_types:
+    AK4PFPuppiPNetRegression: "${default_jets_calibration.factory_config_clib.AK4PFPuppi}"
+    AK4PFPuppiPNetRegressionPlusNeutrino: "${default_jets_calibration.factory_config_clib.AK4PFPuppi}"
+
+  # This will change the name of the variation Jets to `AK4Jet` (independent of which jets are enabled)
+  merge_collections_for_variations:
+    2022_preEE:
+      AK4Jet:
+        - AK4PFPuppi
+        - AK4PFPuppiPNetRegression
+        - AK4PFPuppiPNetRegressionPlusNeutrino
+
+  # Here we use Total variations, taken from AK4PFPuppi params:
+  variations:
+    total_variation:
+      AK4PFPuppiPNetRegression:
+        2022_preEE: "${default_jets_calibration.variations.total_variation.AK4PFPuppi.2022_preEE}"
+      AK4PFPuppiPNetRegressionPlusNeutrino:
+        2022_preEE: "${default_jets_calibration.variations.total_variation.AK4PFPuppi.2022_preEE}"
+
 ```
 
-The default jets configuration is overwritten to assign the `Jet` collection to the `AK4PFPuppiPNetRegression` tag, and to activate the pt regression for data and MC for that tag. 
 
-
-If the user needs to apply regression only to a subset of Jets, then the best strategy is to define a copy of the Jet collection and calibrate that. 
+If the user needs to apply regression only to a subset of jets, then the best strategy is to define a copy of the Jet collection and calibrate that. 
 
 An example configuration for this:
 
@@ -520,18 +529,6 @@ jets_calibration:
       AK4PFPuppiPNetRegression: "JetPtReg"
       #AK4PFPuppiPNetRegressionPlusNeutrino: "JetPtReg"
       
-    2022_postEE:
-      AK4PFPuppiPNetRegression: "JetPtReg"
-      #AK4PFPuppiPNetRegressionPlusNeutrino: "JetPtReg"
-
-    2023_preBPix:
-      AK4PFPuppiPNetRegression: "JetPtReg"
-      #AK4PFPuppiPNetRegressionPlusNeutrino: "JetPtReg"
-
-    2023_postBPix:
-      AK4PFPuppiPNetRegression: "JetPtReg"
-      #AK4PFPuppiPNetRegressionPlusNeutrino: "JetPtReg"
-
 object_preselections:
     Jet:
         pt: 20
@@ -545,7 +542,7 @@ object_preselections:
             M
 ```
 
-This clone of the Jet collection needs to be defined in the `process_extra_after_skim` function of the user's workflow
+For this to work a clone of the `Jet` collection (called `JetPtReg`) needs to be defined in the `process_extra_after_skim` function of the user's workflow:
 
 ```python
 from pocket_coffea.workflows.base import BaseProcessorABC
@@ -560,6 +557,9 @@ class PtRegrProcessor(BaseProcessorABC):
         self.events["JetPtReg"] = ak.copy(self.events["Jet"])
         # self.events["JetPtRegPlusNeutrino"] = ak.copy(self.events["Jet"])
 ```
+
+Now it is up to the user to deal with two collections: `Jet` and `JetPtReg`.
+
 
 Further references:  
 * The analysis note: [AN-2022/094](https://cms.cern.ch/iCMS/jsp/db_notes/noteInfo.jsp?cmsnoteid=CMS%20AN-2022/094)
@@ -578,7 +578,7 @@ jets_calibration:
 
 ```
 
-The merging of the pT values can be done in the user's workflow, e.g. in the `apply_object_preselection` section:
+The merging of the two jet collections should be done in the user's workflow, e.g. in the `apply_object_preselection` section:
 
 ```python
 from pocket_coffea.workflows.base import BaseProcessorABC
@@ -594,10 +594,10 @@ class PtRegrProcessor(BaseProcessorABC):
         #self.events["JetPtRegPlusNeutrino"] = ak.copy(self.events["Jet"])
 
     def apply_object_preselection(self, variation):
-        # Use the regressed pt from PNet collection if available,
-        # otherwise use the JEC corrected pt collection
+        # Use the regressed jet from PNet collection if available,
+        # otherwise use the standard, JEC corrected collection.
         # This way we consider correctly all fields which change depending on
-        # the pt definition, namely the pt, mass and the associated systematic variations
+        # the pt definition, namely the pt, mass and the associated systematic variations:
         self.events["Jet"] = ak.where(
             self.events["JetPtReg"].pt > 0,
             self.events["JetPtReg"],
@@ -610,7 +610,7 @@ In order to merge the variations of the `Jet` and `JetPtReg` collections, you ne
 :::
 
 :::{warning}
-When merging the collections like this, make sure to set the `sort_by_pt` option to `False` for the jet typea in the jets calibration configuration, otherwise the jet ordering will be changed and the merging will fail.
+When merging the collections like this, make sure to set the `sort_by_pt` option to `False` for the jet type in the jets calibration configuration, otherwise the jet ordering will be changed and the merging will fail.
 :::
 
 
@@ -717,7 +717,7 @@ If your configuration contains a large number of categories, variables, and syst
 
 - The `merge-output` script dumps partial `.coffea` outputs whenever memory usage exceeds 50% of the available RAM on the machine. However, this means one still has to use a different large-memory machine to merge them into one `.coffea` file and/or read them all into memory during plotting. The fragmented `.coffea` dumps consume less space on disk and are fewer in number, so it is easier to `scp` them to other machines using this approach.
 
-- A more efficient solution is to split outputs into "category groups" (i.e. channels or regions of the analysis) and merge/process only one group of categories at one time. Since plots are typically made per channel, this lets one do everything without loading multiple caetegory-grouped files into the memory.
+- A more efficient solution is to split outputs into "category groups" (i.e. channels or regions of the analysis) and merge/process only one group of categories at one time. Since plots are typically made per channel, this lets one do everything without loading multiple category-grouped files into the memory.
 
 Currently, the second solution is implemented only for the `condor@lxplus` executor. It can be utilized as follows:
   * `runner`: Pass `--split-by-category` to `runner` (actually gets passed to the executor parameters). The output from each job is then further split to contain 8 categories per output file, so each job produces `n_groups = n_categories/8` output files. This is handled through the `split-output` command, which in turn calls `utils.filter_output.filter_output_by_category`.
