@@ -61,6 +61,7 @@ class Configurator:
         columns=None,
         workflow_options=None,
         save_skimmed_files=None,
+        skim_output_branches=None,
         do_postprocessing=True,
     ):
         '''
@@ -83,7 +84,11 @@ class Configurator:
         - columns: the dictionary of columns to be used in the analysis
         - workflow_options: the dictionary of options to be passed to the workflow
         - save_skimmed_files:  if !=None and str, it is used to save the skimmed files in the specified folder
-        - do_postprocessing: if False the postprocessing step is skipped      
+        - skim_output_branches: dict mapping top-level NanoAOD collection names to lists of
+              sub-field names to keep in the skimmed output (e.g. {"Jet": ["pt","eta","phi"],
+              "MET": None}). Use None as a value to keep all sub-fields of a collection.
+              If the parameter is None (default), all branches are written.
+        - do_postprocessing: if False the postprocessing step is skipped
         '''
 
         # Save the workflow object and its options
@@ -99,6 +104,7 @@ class Configurator:
         
         self.save_skimmed_files = save_skimmed_files != None
         self.save_skimmed_files_folder = save_skimmed_files
+        self.skim_output_branches = skim_output_branches
         self.do_postprocessing = do_postprocessing
         # Save
         # Load dataset

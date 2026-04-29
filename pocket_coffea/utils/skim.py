@@ -19,20 +19,31 @@ def is_rootcompat(a):
     return False
 
 
-def uproot_writeable(events):
-    """Restrict to columns that uproot can write compactly"""
+def uproot_writeable(events, branches=None):
+    """Restrict to columns that uproot can write compactly.
+
+    branches: dict mapping top-level collection names to lists of sub-field names
+              to keep, or None to keep all sub-fields of that collection.
+              If branches is None entirely, all collections are written.
+              Collections absent from the dict are dropped.
+    """
     out = {}
     for bname in events.fields:
+        if branches is not None and bname not in branches:
+            continue
         if events[bname].fields:
+            keep = branches[bname] if branches is not None else None
             out[bname] = ak.zip(
                 {
                     n: ak.packed(ak.without_parameters(events[bname][n]))
                     for n in events[bname].fields
                     if is_rootcompat(events[bname][n])
+                    and (keep is None or n in keep)
                 }
             )
         else:
-            out[bname] = ak.packed(ak.without_parameters(events[bname]))
+            if is_rootcompat(events[bname]):
+                out[bname] = ak.packed(ak.without_parameters(events[bname]))
     return out
 
 

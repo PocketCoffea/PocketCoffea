@@ -237,7 +237,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             + ".root"
         )
         with uproot.recreate(f"{filename}", compression=uproot.ZSTD(5)) as fout:
-            fout["Events"] = uproot_writeable(self.events)
+            fout["Events"] = uproot_writeable(self.events, branches=self.cfg.skim_output_branches)
         # copy the file
         copy_file(
             filename, "./", self.cfg.save_skimmed_files_folder, subdirs=[self._dataset]
