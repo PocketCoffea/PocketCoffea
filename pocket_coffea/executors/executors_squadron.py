@@ -71,7 +71,7 @@ class DaskExecutorFactory(ExecutorFactoryABC):
                 job_extra_directives=[
                     f"--qos={self.run_options['qos']}" if self.run_options.get('qos', None) else "light",
                 ],
-                local_directory=os.path.join("/scratch", os.environ["USER"], "slurm_localdir"),
+                local_directory=os.path.join("/home/export/$USER/scratch", os.environ["USER"], "slurm_localdir"),
                 log_directory=os.path.join(self.outputdir, "slurm_log"),
             )
         print(self.get_worker_env())
