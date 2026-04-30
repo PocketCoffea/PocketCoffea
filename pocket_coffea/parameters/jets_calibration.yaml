@@ -604,15 +604,19 @@ jets_calibration:
     2016_PreVFP: 
       AK4PFchs: False
       AK8PFPuppi: False
+      AK4CorrT1METJetchs: False
     2016_PostVFP: 
       AK4PFchs: False
       AK8PFPuppi: False
+      AK4CorrT1METJetchs: False
     "2017": 
       AK4PFchs: False
       AK8PFPuppi: False
+      AK4CorrT1METJetchs: False
     "2018": 
       AK4PFchs: False
       AK8PFPuppi: False
+      AK4CorrT1METJetchs: False
     2022_preEE: 
       AK4PFPuppi: False
       AK8PFPuppi: False
@@ -648,15 +652,19 @@ jets_calibration:
     2016_PreVFP: 
       AK4PFchs: False
       AK8PFPuppi: False
+      AK4CorrT1METJetchs: False
     2016_PostVFP: 
       AK4PFchs: False
       AK8PFPuppi: False
+      AK4CorrT1METJetchs: False
     "2017": 
       AK4PFchs: False
       AK8PFPuppi: False
+      AK4CorrT1METJetchs: False
     "2018": 
       AK4PFchs: False
       AK8PFPuppi: False
+      AK4CorrT1METJetchs: False
     2022_preEE: 
       AK4PFPuppi: False
       AK8PFPuppi: False

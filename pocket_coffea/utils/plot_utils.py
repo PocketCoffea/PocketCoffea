@@ -695,7 +695,7 @@ class Shape:
                         isMC = isMC_d
                         self.sample_is_MC[sample] = isMC
                     elif isMC != isMC_d:
-                        raise Exception("You are collapsing together data and MC histogram!")
+                        raise Exception(f"You are collapsing together data and MC histogram! \n \t Sample: {sample}, dataset: {dataset}")
 
         else:
             raise NotImplementedError("Plotting histograms without collapsing is still not implemented")
