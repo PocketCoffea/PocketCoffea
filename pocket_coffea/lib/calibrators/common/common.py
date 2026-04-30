@@ -14,6 +14,7 @@ from pocket_coffea.utils.utils import get_random_seed
 import copy
 from omegaconf import OmegaConf
 from pocket_coffea.lib.muon_scale_and_resolution import pt_scale, pt_resol, pt_scale_var, pt_resol_var
+from pocket_coffea.utils.utils import get_nano_version
 import correctionlib
 
 class JetsCalibrator(Calibrator):
@@ -39,7 +40,8 @@ class JetsCalibrator(Calibrator):
         # It is filled dynamically in the initialize method
         self.calibrated_collections = []
 
-    def initialize(self, events):
+    def initialize(self, events):        
+        nano_aod_version = get_nano_version(events,self.params,self._year)
         # Load the calibration of each jet type requested by the parameters
         for jet_type, jet_coll_name in self.jet_calib_param.collection[self.year].items():
             #print("Initializing:", jet_type, jet_coll_name)
@@ -106,6 +108,7 @@ class JetsCalibrator(Calibrator):
                     "isMC": self.metadata["isMC"],
                     "era": self.metadata["era"] if "era" in self.metadata else None,
                 },
+                nano_version=nano_aod_version,
                 jec_syst=self.do_variations,
                 apply_jer=self.jet_calib_param.apply_jer_MC[self.year][jet_type_alias] if self.isMC else False,
             )
@@ -382,7 +385,7 @@ class JetsSoftdropMassCalibrator(Calibrator):
         self.calibrated_collections = []
 
     def initialize(self, events):
-
+        nano_aod_version = get_nano_version(events,self.params,self._year)
         # Load the calibration of each jet type requested by the parameters
         for jet_type, jet_coll_name in self.jet_calib_param.collection[self.year].items():
             # Calibrate only AK8 jets
@@ -423,6 +426,7 @@ class JetsSoftdropMassCalibrator(Calibrator):
                     "isMC": self.metadata["isMC"],
                     "era": self.metadata["era"] if "era" in self.metadata else None,
                 },
+                nano_version=nano_aod_version,
                 jec_syst=self.do_variations
             )
             # Add to the list of the types calibrated
