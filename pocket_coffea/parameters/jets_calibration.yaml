@@ -616,6 +616,7 @@ jets_calibration:
     2022_preEE: 
       AK4PFPuppi: False
       AK8PFPuppi: False
+      AK4CorrT1METJetPuppi: False
       AK4PFPuppiPNetRegression: True
       AK4PFPuppiPNetRegressionPlusNeutrino: True
     2022_postEE: 
