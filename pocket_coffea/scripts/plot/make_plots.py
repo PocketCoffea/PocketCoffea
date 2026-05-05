@@ -7,8 +7,9 @@ from omegaconf import OmegaConf
 from coffea.util import load
 
 from pocket_coffea.utils.plot_utils import PlotManager
+from pocket_coffea.utils.condor import _build_make_plots_command_template, _submit_condor_jobs
 from pocket_coffea.parameters import defaults
-from coffea.processor import accumulate 
+from coffea.processor import accumulate
 import click
 import gc
 from rich import print
@@ -44,16 +45,29 @@ import concurrent.futures
 @click.option('--index-file', type=str, help='Path of the index file to be copied recursively in the plots directory and its subdirectories', required=False, default=None)
 @click.option('--no-cache', is_flag=True, help='Do not cache the histograms for faster plotting', required=False, default=False)
 @click.option('--split-by-category', is_flag=True, help='If split-by-category was used during running and merging', required=False, default=False)
+@click.option('--condor', is_flag=True, help='Submit one HTCondor job per histogram instead of plotting locally', required=False, default=False)
+@click.option('--mem-per-worker', type=str, default='4000MB', help='Memory requested per HTCondor worker (e.g. "4000MB", "8GB")', required=False)
+@click.option('--cores-per-worker', type=int, default=1, help='CPU cores requested per HTCondor worker', required=False)
+@click.option('--condor-queue', type=str, default='espresso', help='HTCondor +JobFlavour (espresso, microcentury, longlunch, workday, tomorrow, testmatch, nextweek)', required=False)
+@click.option('--jobs-dir', type=str, default=None, help='Directory where condor submit/log files are written (default: <outputdir>/condor_jobs)', required=False)
+@click.option('--dry-run', is_flag=True, help='Prepare condor submit files without submitting', required=False, default=False)
+@click.option('--local-virtualenv', is_flag=True, help='Prepend the current Python env (sys.prefix/bin) to PATH in condor jobs — use this with conda/micromamba envs', required=False, default=False)
+@click.option('--env-setup', type=str, multiple=True, default=None, help='Extra shell lines prepended to the condor job script (repeatable), e.g. --env-setup "source /cvmfs/..."', required=False)
 
 def make_plots(*args, **kwargs):
     return make_plots_core(*args, **kwargs)
 
 def make_plots_core(input_dir, cfg, overwrite_parameters, outputdir, inputfiles,
                workers, only_cat, only_year, only_syst, exclude_hist, only_hist, split_systematics, partial_unc_band, no_syst,
-               overwrite, log_x, log_y, density, verbose, format, systematics_shifts, no_ratio, no_systematics_ratio, compare, index_file, no_cache, split_by_category):
+               overwrite, log_x, log_y, density, verbose, format, systematics_shifts, no_ratio, no_systematics_ratio, compare, index_file, no_cache, split_by_category,
+               condor=False, mem_per_worker='4000MB', cores_per_worker=1, condor_queue='espresso', jobs_dir=None, dry_run=False,
+               local_virtualenv=False, env_setup=()):
     '''Plot histograms produced by PocketCoffea processors'''
 
-    if split_by_category: 
+    if split_by_category and condor:
+        sys.exit("[red]--condor cannot be combined with --split-by-category. Run the per-category passes locally, or filter to a single file with -i.[/]")
+
+    if split_by_category:
         if not inputfiles:
             all_files = glob.glob(f"{input_dir}/*merged_category*.coffea")
         else:
@@ -61,7 +75,7 @@ def make_plots_core(input_dir, cfg, overwrite_parameters, outputdir, inputfiles,
             for pattern in inputfiles:
                 matched_files = glob.glob(pattern)  # Expand wildcards
                 valid_files = [file for file in matched_files if os.path.isfile(file)]
-                all_files.extend(valid_files)        
+                all_files.extend(valid_files)
 
         print("[b]Since we are splitting by category, will handle only one file per pass.[/]")
         for ifl, file in enumerate(all_files):
@@ -136,6 +150,33 @@ def make_plots_core(input_dir, cfg, overwrite_parameters, outputdir, inputfiles,
         variables = [s for s in variables if s not in variables_to_exclude]
     if only_hist:
         variables = [s for s in variables if any([re.search(p, s) for p in only_hist])]
+
+    if condor:
+        _submit_condor_jobs(
+            variables=list(variables),
+            accumulator=accumulator,
+            outputdir=outputdir,
+            jobs_dir=jobs_dir,
+            mem_per_worker=mem_per_worker,
+            cores_per_worker=cores_per_worker,
+            condor_queue=condor_queue,
+            dry_run=dry_run,
+            local_virtualenv=local_virtualenv,
+            env_setup=env_setup,
+            cli_params=dict(
+                input_dir=input_dir, cfg=cfg, overwrite_parameters=overwrite_parameters,
+                outputdir=outputdir, inputfiles=inputfiles, workers=workers,
+                only_cat=only_cat, only_year=only_year, only_syst=only_syst,
+                exclude_hist=exclude_hist, split_systematics=split_systematics,
+                partial_unc_band=partial_unc_band, no_syst=no_syst, log_x=log_x,
+                log_y=log_y, density=density, verbose=verbose, format=format,
+                systematics_shifts=systematics_shifts, no_ratio=no_ratio,
+                no_systematics_ratio=no_systematics_ratio, compare=compare,
+                index_file=index_file, no_cache=no_cache,
+            ),
+        )
+        return
+
     hist_objs = { v : accumulator['variables'][v] for v in variables }
 
     plotter = PlotManager(
