@@ -60,6 +60,7 @@ include-package-data = true
 pocket_coffea = ["pocket_coffea/*.txt",
               "pocket_coffea/*.yaml",
               "pocket_coffea/*.json",
+              "pocket_coffea/*.json.gz",
               "pocket_coffea/*.txt.gz"]
 
 [project.scripts]
