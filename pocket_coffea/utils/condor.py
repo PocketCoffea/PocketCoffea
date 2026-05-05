@@ -80,6 +80,17 @@ def _submit_condor_jobs(variables, accumulator, outputdir, jobs_dir,
     if not variables:
         sys.exit("[red]No histograms left to plot after filtering — nothing to submit.[/]")
 
+    # Resolve all paths to absolute so condor workers (which run in a temp
+    # directory) write output to the correct locations.
+    if cli_params.get("inputfiles"):
+        cli_params["inputfiles"] = tuple(os.path.abspath(f) for f in cli_params["inputfiles"])
+    if cli_params.get("outputdir"):
+        cli_params["outputdir"] = os.path.abspath(cli_params["outputdir"])
+    if cli_params.get("input_dir"):
+        cli_params["input_dir"] = os.path.abspath(cli_params["input_dir"])
+    if cli_params.get("cfg"):
+        cli_params["cfg"] = os.path.abspath(cli_params["cfg"])
+
     abs_outputdir = os.path.abspath(outputdir)
     if jobs_dir is None:
         jobs_dir = os.path.join(abs_outputdir, "condor_jobs")
