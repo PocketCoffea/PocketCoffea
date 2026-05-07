@@ -165,7 +165,7 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, N_reduc
             raise TypeError("Type mismatch found between the values of the input dictionaries. Please check the input files.")
         
         if cache_dir is None:
-            cache_dir = '/'.join(outputfile.split("/")[:-1])+"/merge_cache"
+            cache_dir = os.path.join(os.path.dirname(os.path.abspath(outputfile)), "merge_cache")
         total_out =  merge_group_reduction(inputfiles, N_reduction=N_reduction, cachedir=cache_dir, 
                                            max_mem_gb=max_mem_gb, verbose=verbose)
 
@@ -290,7 +290,7 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, N_reduc
 
             print(f"Merging output...")
             if cache_dir is None:
-                cache_dir = os.path.join(job_config['output_dir'],"merge_cache")
+                cache_dir = os.path.join(os.path.abspath(job_config['output_dir']), "merge_cache")
             if suff:
                 cache_dir += f"_{suff}"
             total_output = merge_group_reduction(this_output_files, N_reduction=N_reduction, cachedir=cache_dir, max_mem_gb=max_mem_gb, verbose=verbose)
