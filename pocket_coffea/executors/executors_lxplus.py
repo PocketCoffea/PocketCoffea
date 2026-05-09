@@ -257,6 +257,7 @@ touch $JOBDIR/job_$1.running
 if [ $? -eq 0 ]; then
     echo 'Job successful'
     {splitcommands}
+    rm $JOBDIR/job_$1.running
     touch $JOBDIR/job_$1.done
 else
     echo 'Job failed'
