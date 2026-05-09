@@ -47,11 +47,19 @@ class JetsCalibrator(Calibrator):
             #print("Initializing:", jet_type, jet_coll_name)
             if jet_coll_name==None:
                 continue
-
+            
+            # Define the key name to get the jet corrections
+            if ( ("collection_name_alias" in self.jet_calib_param) and 
+                (self.year in self.jet_calib_param.collection_name_alias) and
+                (jet_type in self.jet_calib_param.collection_name_alias[self.year])):
+                jet_type_alias = self.jet_calib_param.collection_name_alias[self.year][jet_type]
+            else:
+                jet_type_alias=jet_type
+            
             # Check if the pt regression is requested. If so - aplly it and continue with JECs
-            if ((self.isMC and self.jet_calib_param.apply_pt_regr_MC[self.year][jet_type]) 
+            if ((self.isMC and self.jet_calib_param.apply_pt_regr_MC[self.year][jet_type_alias]) 
                     or
-               (not self.isMC and self.jet_calib_param.apply_pt_regr_Data[self.year][jet_type])):
+               (not self.isMC and self.jet_calib_param.apply_pt_regr_Data[self.year][jet_type_alias])):
                 # Get the regression parameters by collection if they are present
                 regression_params = OmegaConf.select(self.params,
                                                      "object_preselection." + jet_coll_name + ".regression")
@@ -67,13 +75,6 @@ class JetsCalibrator(Calibrator):
                 events[jet_coll_name] = jets_regressed
 
                 
-            # Define the key name to get the jet corrections
-            if ( ("collection_name_alias" in self.jet_calib_param) and 
-                (self.year in self.jet_calib_param.collection_name_alias) and
-                (jet_type in self.jet_calib_param.collection_name_alias[self.year])):
-                jet_type_alias = self.jet_calib_param.collection_name_alias[self.year][jet_type]
-            else:
-                jet_type_alias=jet_type
                 
             # Check if the collection is enables in the parameters
             # print("Working on ", jet_type, jet_coll_name )
