@@ -2,9 +2,9 @@ import os
 import sys
 import socket
 from coffea import processor as coffea_processor
-from pocket_coffea.executors.executors_base import ExecutorFactoryABC
-from pocket_coffea.executors.executors_manual_jobs import ExecutorFactoryManualABC
-from pocket_coffea.executors.executors_base import IterativeExecutorFactory, FuturesExecutorFactory
+from .executors_base import ExecutorFactoryABC
+from .executors_manual_jobs import ExecutorFactoryManualABC
+from .executors_base import IterativeExecutorFactory, FuturesExecutorFactory
 from pocket_coffea.utils.network import check_port
 from pocket_coffea.parameters.dask_env import setup_dask
 from pocket_coffea.utils.configurator import Configurator
