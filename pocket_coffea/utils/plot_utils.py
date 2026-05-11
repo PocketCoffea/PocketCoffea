@@ -391,9 +391,9 @@ class Shape:
             type(h_dict) in [dict, defaultdict]
         ), "The Shape object receives a dictionary of hist.Hist objects as argument."
         self.group_samples()
+        self.filter_samples()
         self.is_mc_only = len(self.samples_data) == 0
         self.is_data_only = len(self.samples_mc) == 0
-        self.filter_samples()
         self.rescale_samples()
         if not self.is_data_only:
             self.replace_missing_variations()
