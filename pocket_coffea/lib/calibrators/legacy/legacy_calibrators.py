@@ -4,7 +4,8 @@ import awkward as ak
 import cachetools
 import copy
 from pocket_coffea.lib.calibrators.legacy.legacy_jet_correction import jet_correction
-
+from pocket_coffea.lib.calibrators.legacy.roccor_wrapper import RoccoR as RoccoRWrapper
+from pocket_coffea.utils.utils import get_random_seed
 
 class JetsCalibrator(Calibrator):
     """
@@ -356,3 +357,95 @@ class JetsPtRegressionCalibrator(JetsCalibrator):
 
         return jets_regressed, reg_mask_unflatten
 
+class MuonsRochesterCalibrator(Calibrator):
+    """
+    Applies Rochester momentum corrections to muon pT for Run 2 UL samples.
+    Uses the official CMS RoccoR C++ code compiled as a shared library.
+    Data    → kScaleDT
+    MC      → kSpreadMC (gen-matched) or kSmearMC (no gen match)
+    """
+
+    name = "muons_rochester"
+    has_variations = True
+    isMC_only = False
+    calibrated_collections = ["Muon.pt", "Muon.pt_original"]
+
+    def __init__(self, params, metadata, do_variations=True, **kwargs):
+        super().__init__(params, metadata, do_variations, **kwargs)
+        self._year = metadata["year"]
+        self.isMC  = metadata["isMC"]
+        self.roccor_params = self.params.lepton_scale_factors.muon_sf.rochester
+
+        if not self.roccor_params.apply.get(self._year, False):
+            self.enabled = False
+            self._variations = []
+            self.calibrated_collections = []
+            return
+
+        self.enabled = True
+        print(f"[RochesterCalibrator] Loaded for year {self._year} from {self.roccor_params.txt_file[self._year]}")
+        self.rc = RoccoRWrapper(
+            txt_file=self.roccor_params.txt_file[self._year],
+            so_path=self.roccor_params.so_path,
+        )
+        self._variations = ["muon_roccorUp", "muon_roccorDown"] if self.isMC else []
+
+    def initialize(self, events):
+        if not self.enabled:
+            return
+
+        mu = events.Muon
+        self.muons = ak.with_field(mu, mu.pt, "pt_original")
+        counts  = ak.num(mu)
+        mu_flat = ak.flatten(mu)
+
+        charge = ak.to_numpy(mu_flat.charge).astype(np.int32)
+        pt     = ak.to_numpy(mu_flat.pt).astype(np.float64)
+        eta    = ak.to_numpy(mu_flat.eta).astype(np.float64)
+        phi    = ak.to_numpy(mu_flat.phi).astype(np.float64)
+
+        if self.isMC:
+            has_gen = ak.to_numpy(ak.flatten(mu.genPartIdx >= 0))
+            gen_pt  = ak.to_numpy(ak.flatten(
+                ak.where(mu.genPartIdx >= 0, mu.matched_gen.pt, ak.zeros_like(mu.pt))
+            )).astype(np.float64)
+            nl  = ak.to_numpy(mu_flat.nTrackerLayers).astype(np.int32)
+            try:
+                seed = get_random_seed(events.metadata, salt="RochesterCalibrator")
+            except KeyError:
+                seed = 12345  # fallback for testing
+            rng = np.random.default_rng(seed)
+            u = rng.uniform(0.0, 1.0, size=len(pt))
+
+            sf_nom  = np.where(has_gen,
+                self.rc.kSpreadMC(charge, pt, eta, phi, gen_pt, s=0, m=0),
+                self.rc.kSmearMC( charge, pt, eta, phi, nl, u,   s=0, m=0))
+            sf_up   = np.where(has_gen,
+                self.rc.kSpreadMC(charge, pt, eta, phi, gen_pt, s=1, m=0),
+                self.rc.kSmearMC( charge, pt, eta, phi, nl, u,   s=1, m=0))
+            sf_down = np.where(has_gen,
+                self.rc.kSpreadMC(charge, pt, eta, phi, gen_pt, s=1, m=1),
+                self.rc.kSmearMC( charge, pt, eta, phi, nl, u,   s=1, m=1))
+        else:
+            sf_nom  = self.rc.kScaleDT(charge, pt, eta, phi)
+            sf_up   = sf_nom
+            sf_down = sf_nom
+
+        self.pt_corr = {
+            "nominal": ak.unflatten(pt * sf_nom,  counts),
+            "up":      ak.unflatten(pt * sf_up,   counts),
+            "down":    ak.unflatten(pt * sf_down,  counts),
+        }
+
+    def calibrate(self, events, orig_colls, variation, already_applied_calibrators=None):
+        if not self.enabled:
+            return {}
+
+        pt_orig = self.muons["pt_original"]
+
+        if variation == "nominal" or variation not in self._variations:
+            return {"Muon.pt": self.pt_corr["nominal"], "Muon.pt_original": pt_orig}
+        if variation == "muon_roccorUp":
+            return {"Muon.pt": self.pt_corr["up"],      "Muon.pt_original": pt_orig}
+        if variation == "muon_roccorDown":
+            return {"Muon.pt": self.pt_corr["down"],    "Muon.pt_original": pt_orig}

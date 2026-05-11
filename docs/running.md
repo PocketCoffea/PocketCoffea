@@ -13,7 +13,7 @@ $> pocket-coffea
 /_/    \____/\___/_/|_|\___/\__/\____/\____/_/ /_/  \___/\__,_/
 
 
-Running PocketCoffea version 0.8.0
+Running PocketCoffea version 0.9.11
 - Documentation page:  https://pocketcoffea.readthedocs.io/
 - Repository:          https://github.com/PocketCoffea/PocketCoffea
 
@@ -89,6 +89,15 @@ Options:
   -q, --queue TEXT                Overwrite queue config
   -ll, --loglevel TEXT            Console logging level
   -ps, --process-separately       Process each dataset separately
+  --filter-years TEXT             Filter the data taking period of the
+                                  datasets to be processed (comma separated
+                                  list)
+  --filter-samples TEXT           Filter the samples to be processed (comma
+                                  separated list)
+  --filter-datasets TEXT          Filter the datasets to be processed (comma
+                                  separated list)
+  --resubmit-failed               Resubmit only failed jobs from previous run
+                                  (requires failed_jobs.json)
   --executor-custom-setup TEXT    Python module to be loaded as custom
                                   executor setup
   --help                          Show this message and exit.
@@ -196,6 +205,29 @@ $> pocket-coffea run  --cfg analysis_config.py -o output --executor dask@lxplus 
 ```
 
 
+### Filter datasets, samples, and years
+
+The fileset to process can be narrowed down on the command line without editing the configuration file, using the three `--filter-*` options. Each option accepts a comma-separated list of names:
+
+| Option | Filters on |
+|--------|-----------|
+| `--filter-years` | Data-taking period (e.g. `2016,2017`) |
+| `--filter-samples` | Sample name as defined in the configuration (e.g. `TTToSemiLeptonic,DATA_SingleMuon`) |
+| `--filter-datasets` | Individual dataset key in the fileset (e.g. `TTToSemiLeptonic_2018`) |
+
+The filters can be combined freely:
+
+```bash
+# Run only 2018 data and MC
+pocket-coffea run --cfg config.py -o output/ --filter-years 2018
+
+# Run only two specific samples across all years
+pocket-coffea run --cfg config.py -o output/ --filter-samples TTToSemiLeptonic,DATA_SingleMuon
+
+# Run a single dataset
+pocket-coffea run --cfg config.py -o output/ --filter-datasets TTToSemiLeptonic_2018
+```
+
 ### Process datasets separately and group samples
 By default, the `pocket-coffea run` command will run all the datasets together in one shot and a single output `output_all.coffea` is saved.
 In case one wants to save intermediate outputs, it is possible to run with the `--process-separately` option, where each dataset
@@ -236,6 +268,37 @@ the analysis processor sequentially for 7 times, saving 7 independent outputs: `
 `output_TTTo2L2Nu_SingleTop.coffea`, `output_VJets.coffea`, `output_VV_TTV.coffea` and `output_DATA.coffea`.
 For example, the output file `output_signal.coffea` file will contain the output obtained by processing the datasets of the samples `ttHTobb` and `ttHTobb_ttToSemiLep`,
 for all the data-taking years specified in the `datasets["filter"]["year"]` dictionary in the constructor of the Configurator.
+
+### Resubmit failed jobs
+
+When running with `--process-separately`, any dataset or group that fails during processing is automatically tracked. After the run completes, the names of all failed datasets/groups are saved to `failed_jobs.json` inside the output directory:
+
+```json
+["dataset_A", "group_XYZ"]
+```
+
+A warning is printed at the end of the run to indicate how many jobs failed:
+
+```
+WARNING: 2 job(s) failed. Failed jobs saved to output/failed_jobs.json
+```
+
+To resubmit only the failed jobs without re-running the successful ones, use the `--resubmit-failed` flag together with `--process-separately`:
+
+```bash
+# Initial run — failed jobs are automatically saved to output/failed_jobs.json
+pocket-coffea run --cfg config.py -o output/ --process-separately
+
+# Resubmit only the failed jobs
+pocket-coffea run --cfg config.py -o output/ --process-separately --resubmit-failed
+# INFO: Resubmitting 2 failed jobs: ['dataset_A', 'group_XYZ']
+```
+
+The `--resubmit-failed` flag reads `failed_jobs.json` from the output directory and restricts the fileset to only the listed datasets/groups, leaving the outputs of previously successful jobs untouched.
+
+:::{note}
+`--resubmit-failed` requires `--process-separately` to be set as well.
+:::
 
 ### Customize the executor software environment
 The software environment where the executor runs the analysis is defined by the python environment where the analysis is

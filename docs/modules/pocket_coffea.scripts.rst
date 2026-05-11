@@ -53,10 +53,26 @@ pocket\_coffea.scripts.make\_config module
    :show-inheritance:
    :undoc-members:
 
+pocket\_coffea.scripts.merge\_columns module
+--------------------------------------------
+
+.. automodule:: pocket_coffea.scripts.merge_columns
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 pocket\_coffea.scripts.merge\_outputs module
 --------------------------------------------
 
 .. automodule:: pocket_coffea.scripts.merge_outputs
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+pocket\_coffea.scripts.pileup\_corrlib module
+---------------------------------------------
+
+.. automodule:: pocket_coffea.scripts.pileup_corrlib
    :members:
    :show-inheritance:
    :undoc-members:

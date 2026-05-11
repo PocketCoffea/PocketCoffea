@@ -75,11 +75,10 @@ class DaskExecutorFactory(ExecutorFactoryABC):
                 raise Exception("Trying to run with dask/lxplus not at CERN! Please try different runner options")
 
         n_port = self.run_options.get("dask-scheduler-port", 8786)
+        while not check_port(n_port):
+            print(f">> Port {n_port} is already occupied, trying port {n_port + 1}...")
+            n_port += 1
         print(">> Creating dask-lxplus cluster transmitting on port:", n_port)
-        if not check_port(n_port):
-            raise RuntimeError(
-                f"Port '{n_port}' is already occupied on this node. Change the port or try a different machine."
-            )
         # Creating a CERN Cluster, special configuration for dask-on-lxplus
         log_folder = "condor_log"
         self.dask_cluster = CernCluster(
@@ -257,8 +256,6 @@ touch $JOBDIR/job_$1.running
 if [ $? -eq 0 ]; then
     echo 'Job successful'
     {splitcommands}
-    {columncommand}
-
     rm $JOBDIR/job_$1.running
     touch $JOBDIR/job_$1.done
 else
