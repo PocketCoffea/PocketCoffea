@@ -167,8 +167,8 @@ lepton_scale_factors:
       "2024": 
         id: "2024Prompt"
         reco: "2024Prompt"
-        #trigger: "2024Prompt"
-
+        trigger: "2024Prompt"
+        
 
     # The scale and smearing configuration is expected to have this structure
     scale_and_smearing:      
@@ -231,7 +231,6 @@ lepton_scale_factors:
         name: ???
         file: ???
       2022_preEE:
-        2022_preEE:
         name: Electron-HLT-SF
         file: ${cvmfs:Run3-22CDSep23-Summer22-NanoAODv12,EGM,electronHlt.json.gz}
         path: HLT_SF_Ele30_MVAiso80ID
@@ -247,6 +246,10 @@ lepton_scale_factors:
         name: Electron-HLT-SF
         file: ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,EGM,electronHlt.json.gz}
         path: HLT_SF_Ele30_MVAiso80ID
+      '2024':
+        name: Electron-HLT-SF
+        file: ???
+        path: ???
 
   ##################################################################################################  
   muon_sf:
