@@ -468,12 +468,12 @@ Starting from Run3 datasetes the ParticleNet jet energy regression corrections a
 jets_calibration:
   collection:
     2022_preEE:
-	  AK4PFPuppi: null
+      AK4PFPuppi: null
       AK4PFPuppiPNetRegression: "Jet"
       #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
       
   apply_pt_regr_MC:
-	2022_preEE:
+    2022_preEE:
       AK4PFPuppiPNetRegression: True
       #AK4PFPuppiPNetRegressionPlusNeutrino: True
 
@@ -490,7 +490,7 @@ However, this is not all. We also need to apply JEC and JER on the regressed jet
 ```yaml  
 jets_calibration: 
   collection_name_alias:  # Alias for JEC/JER corrections and syst
-	2022_preEE:
+    2022_preEE:
       AK4PFPuppiPNetRegression: "AK4PFPuppi"
       AK4PFPuppiPNetRegressionPlusNeutrino: "AK4PFPuppi"
 

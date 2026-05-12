@@ -239,13 +239,16 @@ def compute_jetId(events, jet_type, params, year):
             "multiplicity": jets.chMultiplicity + jets.neMultiplicity
         }
 
+            
         ## Default tight for NanoAOD version 13 and above
         jet_algo_mapping = params.jets_calibration.collection[year]
         jet_algo = next((k for k, v in jet_algo_mapping.items() if v == jet_type), None)
         if jet_algo==None:
             raise Exception(f"No mapping jet_type ({jet_type}) -> jet_algo (e.g. AK4PFPuppi) defined for year {year}")
+        if 'AK4PFPuppiPNetRegression' in jet_algo:
+            jet_algo='AK4PFPuppi'
         jet_algo = jet_algo.replace("PF", "").upper()
-    
+
         if jet_algo+"_Tight" not in list(cset.keys()):
             raise Exception(f"No correction for jet collection {jet_algo} defined in correctionlib file {jsonFile}")
         idTight = cset[jet_algo+"_Tight"]
