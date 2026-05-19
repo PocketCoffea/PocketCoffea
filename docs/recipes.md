@@ -495,7 +495,7 @@ jets_calibration:
 
   # Path to JERCS at CERN EOS:
   path_to_JERC_PNetReg: '/eos/cms/store/group/phys_jetmet/ExpJEC/json_files_Reg/'
-  # If running outside CERN without access to EOS - copy the files to your cluster and use the appropriate the path.
+  # If running outside CERN without access to EOS: copy the files to your cluster and use the corresponding  path.
 
   jet_types:
     AK4PFPuppiPNetRegression:
