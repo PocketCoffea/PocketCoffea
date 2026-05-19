@@ -8,15 +8,15 @@ Page under construction! Come back for more common analysis steps recipes.
 ## Define a new cut function
 
 ## Skimming events
-Skimming NanoAOD events and save the reduced files on disk can speedup a lot the processing of the analysis. The recommended executor for the skimming process is the direct condor-job executor, which splits the workload in condor jobs without using the dask scheduler. This makes the resubmission of failed skim jobs easier. 
+Skimming NanoAOD events and save the reduced files on disk can speedup a lot the processing of the analysis. The recommended executor for the skimming process is the direct condor-job executor, which splits the workload in condor jobs without using the dask scheduler. This makes the resubmission of failed skim jobs easier.
 
 Follow these instructions to skim the files on EOS:
 1. Add the `save_skimmed_files` argument to the configurator with a suitable folder name: e.g. `  save_skimmed_files = "root://eoscms.cern.ch//eos/cms/store/group/phys_higgs/ttHbb/Run3_semileptonic_skim/"`
-    
-2. It is recommended to run the processing on HTCondor at CERN using the new direct condor executor. That will send out standard jobs instead of using dask. Please make sure your dataset list is up-to-date before sending the jobs. 
+
+2. It is recommended to run the processing on HTCondor at CERN using the new direct condor executor. That will send out standard jobs instead of using dask. Please make sure your dataset list is up-to-date before sending the jobs.
    ```pocket-coffea run --cfg config_skim.py  -o output_skim_config -e condor@lxplus --scaleout NUMBEROFJOBS --chunksize 200000 --job-dir jobs --job-name skim --queue workday --dry-run``` . Use the `--dry-run` option to check the job splitting configuration and remove it when you are happy to submit the jobs.
 
-3. Check the status of the jobs with `pocket-coffea check-jobs -j jobs-dir/skim`.  Optionally activate the automatic resubmitting option to resubmit failed jobs. 
+3. Check the status of the jobs with `pocket-coffea check-jobs -j jobs-dir/skim`.  Optionally activate the automatic resubmitting option to resubmit failed jobs.
 
 4. Once done, we usually do an hadd to sum all the small files produced by each saved chunk. An utility script to compute the groups and correctly hadd them is available `pocket-coffea hadd-skimmed-files -fl ../output_total.coffea -o root://eoscms.cern.ch//eos/cms/store/group/phys_higgs/ttHbb/Run3_dileptonic_skim_hadd -e 400000 --dry  -s 6 `
    this script creates some files to be able to send out jobs that runs the hadd for each group of files.
@@ -85,7 +85,7 @@ object_preselection:
       2022_preEE: 0.3086
       2022_postEE: 0.3196
       2023_preBPix: 0.2431
-      2023_postBPix: 0.2435 
+      2023_postBPix: 0.2435
       "2024": 999.
 
   Muon:
@@ -112,7 +112,7 @@ object_preselection:
       2022_preEE: 0.3086
       2022_postEE: 0.3196
       2023_preBPix: 0.2431
-      2023_postBPix: 0.2435 
+      2023_postBPix: 0.2435
       "2024": 999.
 ```
 
@@ -221,7 +221,7 @@ From a purely physical point of view, the distribution of the $\phi$-component o
 ```
 from pocket_coffea.lib.jets import met_xy_correction
 met_pt_corr, met_phi_corr = met_xy_correction(self.params, self.events, self._year, self._era)
-```  
+```
 Note, that this shift also alters the $p_\mathrm{T}$ component! Also, the corrections are only implemented for Run2 UL (thus far).
 
 ### Jet calibration configuration
@@ -285,7 +285,7 @@ default_jets_calibration:
         jec_data: Summer22_22Sep2023_RunCD_V3_DATA
         jer: Summer22_22Sep2023_JRV1_MC
         level: L1L2L3Res
-      
+
       2022_postEE:
         json_path: ${cvmfs:Run3-22EFGSep23-Summer22EE-NanoAODv12,JME,jet_jerc.json.gz}
         jec_mc: Summer22EE_22Sep2023_V3_MC
@@ -355,7 +355,7 @@ Here is how one can enable/disable different correction types per jet type and p
   apply_jec_Data:
     2022_preEE:
       AK4PFPuppi: True
-      
+
 # Apply pT regression to MC
   apply_pt_regr_MC:
     2022_preEE:
@@ -368,11 +368,11 @@ Here is how one can enable/disable different correction types per jet type and p
       AK8PFPuppi: True
     2016_PostVFP:
       AK4PFchs: True
-      AK8PFPuppi: True  
+      AK8PFPuppi: True
 ```
 
 ##### Systematic Variations
-Different sets of JEC systematic variations are available in the default parameter set. 
+Different sets of JEC systematic variations are available in the default parameter set.
 
 ```yaml
 default_jets_calibration:
@@ -390,7 +390,7 @@ default_jets_calibration:
           - JER
 ```
 
-The set of variations to be used has to be setup in the `jets_calibration.variation` key. For example: 
+The set of variations to be used has to be setup in the `jets_calibration.variation` key. For example:
 
 ```yaml
 jets_calibration:
@@ -416,13 +416,13 @@ By default, each systematic variation produces a separate collection of calibrat
 jets_calibration:
   merge_collections_for_variations:
     2022_preEE:
-      AK4Jet: 
+      AK4Jet:
         - AK4PFPuppi
         - AK4PFPuppiPNetRegression
         - AK4PFPuppiCustom
 ```
 
-This will create variation with the name `AK4Jet_{variation}_[up|down]` that merges the variations from the specified jet types.  
+This will create variation with the name `AK4Jet_{variation}_[up|down]` that merges the variations from the specified jet types.
 ToDo: better describe how this merging is done. What if AK4PFPuppi and AK4PFPuppiCustom have different up_variation for example.
 
 #### MET Recalibration
@@ -453,7 +453,7 @@ For custom configurations, modify the `jets_calibration` section in your paramet
 jets_calibration:
   # Use a different variation set
   variations: "${default_jets_calibration.variations.full_variations}"
-  
+
   # Enable specific jet types
   collection:
     2022_preEE:
@@ -471,54 +471,46 @@ jets_calibration:
       AK4PFPuppi: null
       AK4PFPuppiPNetRegression: "Jet"
       #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
-      
+
   apply_pt_regr_MC:
     2022_preEE:
       AK4PFPuppiPNetRegression: True
       #AK4PFPuppiPNetRegressionPlusNeutrino: True
 
   apply_pt_regr_Data:
-    2022_preEE: 
+    2022_preEE:
       AK4PFPuppiPNetRegression: True
       #AK4PFPuppiPNetRegressionPlusNeutrino: True
 ```
-Note that there are two versions of regression are available in PNet: with and without neutrinos used in the training.  
+Note that there are two versions of regression are available in PNet: with and without neutrinos used in the training.
 In the example above, the default `jets` configuration is overwritten to assign the `Jet` collection to the `AK4PFPuppiPNetRegression` tag, and to activate the pt regression for data and MC for that tag. Note the line `AK4PFPuppi: null` -- it is needed to remove the association of the `AK4PFPuppi` to the `Jet`, which is default pocket-coffea setting.
 
-However, this is not all. We also need to apply JEC and JER on the regressed jets. Ideally, dedicated corrections should be applied to those, but these are not yet approved be JETMET group (time of writing: April 2026). Insted, one can apply the standard JEC/JER and the corresponding uncertainties. Foe these we need a few extra lines in the config:
+However, this is not all. We also need to apply JEC and JER on the regressed jets. The dedicated corrections, derived for PNet regressed jets, have been recently releasesd by JME, see [https://cms-jerc.web.cern.ch/ExpJEC/](https://cms-jerc.web.cern.ch/ExpJEC/) (as of 19 May 2026). The corrections are located at CERN EOS (not CVMFS!). One has to specify a path to them and set the tags, like so for *2022_preEE*:  
 
-```yaml  
-jets_calibration: 
-  collection_name_alias:  # Alias for JEC/JER corrections and syst
-    2022_preEE:
-      AK4PFPuppiPNetRegression: "AK4PFPuppi"
-      AK4PFPuppiPNetRegressionPlusNeutrino: "AK4PFPuppi"
+```yaml
+jets_calibration:
+  ...
+  #set up collection, apply_pt_regr_MC and apply_pt_regr_Data
+  ...
 
-  # This tells to use jet Factory of AK4PFPuppi jets for JEC/JER:
+  # Path to JERCS at CERN EOS:
+  path_to_JERC_PNetReg: '/eos/cms/store/group/phys_jetmet/ExpJEC/json_files_Reg/'
+  # If running outside CERN without access to EOS - copy the files to your cluster and use the appropriate the path.
+
   jet_types:
-    AK4PFPuppiPNetRegression: "${default_jets_calibration.factory_config_clib.AK4PFPuppi}"
-    AK4PFPuppiPNetRegressionPlusNeutrino: "${default_jets_calibration.factory_config_clib.AK4PFPuppi}"
+    AK4PFPuppiPNetRegression:
+      2022_preEE:
+        json_path: "${jets_calibration.path_to_JERC_PNetReg}/Run3Summer22_22Sep2023/regJet_jerc.json.gz"
+	    jec_mc: Summer22_22Sep2023_V4_MC
+	    jec_data: Summer22_22Sep2023_V4_DATA
+	    jer: Summer22_22Sep2023_JRV1_MC
+        level: L1L2L3Res
+```  
 
-  # This will change the name of the variation Jets to `AK4Jet` (independent of which jets are enabled)
-  merge_collections_for_variations:
-    2022_preEE:
-      AK4Jet:
-        - AK4PFPuppi
-        - AK4PFPuppiPNetRegression
-        - AK4PFPuppiPNetRegressionPlusNeutrino
-
-  # Here we use Total variations, taken from AK4PFPuppi params:
-  variations:
-    total_variation:
-      AK4PFPuppiPNetRegression:
-        2022_preEE: "${default_jets_calibration.variations.total_variation.AK4PFPuppi.2022_preEE}"
-      AK4PFPuppiPNetRegressionPlusNeutrino:
-        2022_preEE: "${default_jets_calibration.variations.total_variation.AK4PFPuppi.2022_preEE}"
-
-```
+An example of a full config can be found [here](https://gitlab.cern.ch/cms-analysis/hig/vhcc-run3/VHccPoCo/-/blob/main/params/jet_regression.yaml?ref_type=heads).
 
 
-If the user needs to apply regression only to a subset of jets, then the best strategy is to define a copy of the Jet collection and calibrate that. 
+If the user needs to apply regression only to a subset of jets, then the best strategy is to define a copy of the Jet collection and calibrate that.
 
 An example configuration for this:
 
@@ -528,7 +520,7 @@ jets_calibration:
     2022_preEE:
       AK4PFPuppiPNetRegression: "JetPtReg"
       #AK4PFPuppiPNetRegressionPlusNeutrino: "JetPtReg"
-      
+
 object_preselections:
     Jet:
         pt: 20
@@ -556,13 +548,13 @@ class PtRegrProcessor(BaseProcessorABC):
         # Create extra Jet collections for testing
         self.events["JetPtReg"] = ak.copy(self.events["Jet"])
         # self.events["JetPtRegPlusNeutrino"] = ak.copy(self.events["Jet"])
-```
+```  
 
-Now it is up to the user to deal with two collections: `Jet` and `JetPtReg`.
+Now it is up to the user to deal with two collections in their workflow: `Jet` and `JetPtReg`.
+  
 
-
-Further references:  
-* The analysis note: [AN-2022/094](https://cms.cern.ch/iCMS/jsp/db_notes/noteInfo.jsp?cmsnoteid=CMS%20AN-2022/094)
+Further references:
+*  The analysis note: [AN-2022/094](https://cms.cern.ch/iCMS/jsp/db_notes/noteInfo.jsp?cmsnoteid=CMS%20AN-2022/094)
 * Measuring response in Z+b events: [presentation](https://indico.cern.ch/event/1451196/contributions/6181213/attachments/2949253/5183620/cooperstein_HH4b_oct162024.pdf)
 
 #### Merge regressed and standard jet pT
