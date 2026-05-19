@@ -13,8 +13,8 @@ Skimming NanoAOD events and save the reduced files on disk can speedup a lot the
 Follow these instructions to skim the files on EOS:
 1. Add the `save_skimmed_files` argument to the configurator with a suitable folder name: e.g. `  save_skimmed_files = "root://eoscms.cern.ch//eos/cms/store/group/phys_higgs/ttHbb/Run3_semileptonic_skim/"`
 
-2. It is recommended to run the processing on HTCondor at CERN using the new direct condor executor. That will send out standard jobs instead of using dask. Please make sure your dataset list is up-to-date before sending the jobs.
-   ```pocket-coffea run --cfg config_skim.py  -o output_skim_config -e condor@lxplus --scaleout NUMBEROFJOBS --chunksize 200000 --job-dir jobs --job-name skim --queue workday --dry-run``` . Use the `--dry-run` option to check the job splitting configuration and remove it when you are happy to submit the jobs. 
+2. It is recommended to run the processing on HTCondor at CERN using the new direct condor executor. That will send out standard jobs instead of using dask. Please make sure your dataset list is up-to-date before sending the jobs. 
+   ```pocket-coffea run --cfg config_skim.py  -o output_skim_config -e condor@lxplus --scaleout NUMBEROFJOBS --chunksize 200000 --job-dir jobs --job-name skim --queue workday --dry-run``` . Use the `--dry-run` option to check the job splitting configuration and remove it when you are happy to submit the jobs.
 
 3. Check the status of the jobs with `pocket-coffea check-jobs -j jobs-dir/skim`.  Optionally activate the automatic resubmitting option to resubmit failed jobs. 
 
@@ -221,7 +221,7 @@ From a purely physical point of view, the distribution of the $\phi$-component o
 ```
 from pocket_coffea.lib.jets import met_xy_correction
 met_pt_corr, met_phi_corr = met_xy_correction(self.params, self.events, self._year, self._era)
-``` 
+```  
 Note, that this shift also alters the $p_\mathrm{T}$ component! Also, the corrections are only implemented for Run2 UL (thus far).
 
 ### Jet calibration configuration
@@ -422,7 +422,7 @@ jets_calibration:
         - AK4PFPuppiCustom
 ```
 
-This will create variation with the name `AK4Jet_{variation}_[up|down]` that merges the variations from the specified jet types. 
+This will create variation with the name `AK4Jet_{variation}_[up|down]` that merges the variations from the specified jet types.  
 ToDo: better describe how this merging is done. What if AK4PFPuppi and AK4PFPuppiCustom have different up_variation for example.
 
 #### MET Recalibration
@@ -482,7 +482,7 @@ jets_calibration:
       AK4PFPuppiPNetRegression: True
       #AK4PFPuppiPNetRegressionPlusNeutrino: True
 ```
-Note that there are two versions of regression are available in PNet: with and without neutrinos used in the training. 
+Note that there are two versions of regression are available in PNet: with and without neutrinos used in the training.  
 In the example above, the default `jets` configuration is overwritten to assign the `Jet` collection to the `AK4PFPuppiPNetRegression` tag, and to activate the pt regression for data and MC for that tag. Note the line `AK4PFPuppi: null` -- it is needed to remove the association of the `AK4PFPuppi` to the `Jet`, which is default pocket-coffea setting.
 
 However, this is not all. We also need to apply JEC and JER on the regressed jets. The dedicated corrections, derived for PNet regressed jets, have been recently releasesd by JME, see [https://cms-jerc.web.cern.ch/ExpJEC/](https://cms-jerc.web.cern.ch/ExpJEC/) (as of 19 May 2026). The corrections are located at CERN EOS (not CVMFS!). One has to specify a path to them and set the tags, like so for *2022_preEE*:  
@@ -553,7 +553,7 @@ class PtRegrProcessor(BaseProcessorABC):
 Now it is up to the user to deal with two collections in their workflow: `Jet` and `JetPtReg`.
   
 
-Further references: 
+Further references:  
 * The analysis note: [AN-2022/094](https://cms.cern.ch/iCMS/jsp/db_notes/noteInfo.jsp?cmsnoteid=CMS%20AN-2022/094)
 * Measuring response in Z+b events: [presentation](https://indico.cern.ch/event/1451196/contributions/6181213/attachments/2949253/5183620/cooperstein_HH4b_oct162024.pdf)
 
