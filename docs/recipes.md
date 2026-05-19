@@ -505,6 +505,12 @@ jets_calibration:
 	    jec_data: Summer22_22Sep2023_V4_DATA
 	    jer: Summer22_22Sep2023_JRV1_MC
         level: L1L2L3Res
+
+  variations:
+    AK4PFPuppiPNetRegression:
+      2022_preEE:
+        - JES_Total
+        - JER
 ```  
 
 An example of a full config can be found [here](https://gitlab.cern.ch/cms-analysis/hig/vhcc-run3/VHccPoCo/-/blob/main/params/jet_regression.yaml?ref_type=heads).
@@ -556,6 +562,7 @@ Now it is up to the user to deal with two collections in their workflow: `Jet` a
 Further references:  
 * The analysis note: [AN-2022/094](https://cms.cern.ch/iCMS/jsp/db_notes/noteInfo.jsp?cmsnoteid=CMS%20AN-2022/094)
 * Measuring response in Z+b events: [presentation](https://indico.cern.ch/event/1451196/contributions/6181213/attachments/2949253/5183620/cooperstein_HH4b_oct162024.pdf)
+* JME page with *experimental* JECs: [https://cms-jerc.web.cern.ch/ExpJEC/](https://cms-jerc.web.cern.ch/ExpJEC/)
 
 #### Merge regressed and standard jet pT
 In some cases, e.g. PNet regression in NanoAODv12, the regression can be applied only to a subset of jets (e.g. cutting on pT and eta of the jet). In this case, one may want to merge the regressed pT values with the standard pT values for jets failing the regression criteria. In order to do this, your configuration would look like this:
