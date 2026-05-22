@@ -267,7 +267,7 @@ echo 'Done'
 """
         
         if int(self.run_options["cores-per-worker"]) > 1:
-            script = script.replace("EXECUTOR", f"--executor futures --scalout {self.run_options['cores-per-worker']}")
+            script = script.replace("EXECUTOR", f"--executor futures --scaleout {self.run_options['cores-per-worker']}")
         else:
             script = script.replace("EXECUTOR", "--executor iterative")
             
