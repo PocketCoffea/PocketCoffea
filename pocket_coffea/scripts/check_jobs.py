@@ -93,8 +93,12 @@ def create_layout(with_progress=False):
         Layout(name="right", ratio=1),
     )
     if with_progress:
+        # Fixed-height summary panel so it doesn't grow at the expense of the
+        # per-group table; 9 rows covers the Panel border + Table title +
+        # header row + data row + a bit of padding. Bumped from 7 to fit
+        # everything without cropping the bottom of the table.
         layout["left"].split_column(
-            Layout(name="summary", size=7),
+            Layout(name="summary", size=9),
             Layout(name="progress"),
         )
     return layout
