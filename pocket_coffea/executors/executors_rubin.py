@@ -12,6 +12,8 @@ import dask.config
 from dask_jobqueue import HTCondorCluster
 
 from pocket_coffea.utils.configurator import Configurator
+from pocket_coffea.utils.rucio import get_xrootd_sites_map
+from pocket_coffea.utils.site_rewrite import rewrite_fileset_blocklist
 import cloudpickle
 import yaml
         
@@ -228,6 +230,25 @@ echo 'Done'"""
             if not j.startswith("job_"):
                 jobs_to_redo.append(f"job_{j}")
         print(f"Recreating jobs: {jobs_to_redo}")
+
+        # Parse blocklist-sites: accept comma-separated string or list
+        blocklist_raw = self.run_options.get("blocklist-sites", None) or []
+        if isinstance(blocklist_raw, str):
+            blocklist_sites = {s for s in blocklist_raw.split(",") if s}
+        else:
+            blocklist_sites = set(blocklist_raw)
+        sitemap = get_xrootd_sites_map() if blocklist_sites else None
+        if blocklist_sites:
+            print(f"Blocklisting sites at recreate time: {sorted(blocklist_sites)}")
+
+        rucio_client = None
+        if blocklist_sites:
+            try:
+                from pocket_coffea.utils.rucio import get_rucio_client
+                rucio_client = get_rucio_client()
+            except Exception as e:
+                print(f"WARNING: could not open a rucio client ({e}); replica lookups will fail.")
+
         # Check if the job is in the list of jobs to recreate
         for job in jobs_to_redo:
             if job not in jobs_config["jobs_list"]:
@@ -237,8 +258,12 @@ echo 'Done'"""
             # This is usually done to change a file location
             # Load the configurator
             config = cloudpickle.load(open(f"{self.jobs_dir}/config_{job}.pkl", "rb"))
-            # Modify the fileset
-            config.set_filesets_manually(jobs_config["jobs_list"][job]["filesets"])
+            # Modify the fileset (optionally rewriting blocklisted sites)
+            fileset = jobs_config["jobs_list"][job]["filesets"]
+            if blocklist_sites:
+                fileset = rewrite_fileset_blocklist(fileset, sitemap, blocklist_sites,
+                                                    rucio_client=rucio_client)
+            config.set_filesets_manually(fileset)
             # Save the configurator
             cloudpickle.dump(config, open(f"{self.jobs_dir}/config_{job}.pkl", "wb"))
             # Resubmit the job
