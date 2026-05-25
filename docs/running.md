@@ -431,12 +431,13 @@ A few caveats worth knowing about:
   contain files from more than one sample, the run aborts with a clear
   *"multiple samples"* error pointing at the offending job — the resolver
   refuses to silently pick one chunksize over another.
-- **Batch submission is kept when possible.** With a scalar `chunksize`, or
-  with a dict that happens to resolve to the same value for every job, the
-  executor keeps using a single `condor_submit jobs_all.sub` call (fastest
-  path). As soon as the resolved values differ across jobs, it switches to
-  submitting each `job_{i}.sub` individually — that's the only way HTCondor
-  can carry a per-job `arguments` line.
+- **Batch submission is always preserved.** The per-job chunksize is fed
+  into HTCondor with the inline `queue chunksize from ( ... )` form — one
+  chunksize per line, embedded directly in `jobs_all.sub` — so a single
+  `condor_submit jobs_all.sub` call submits everything regardless of whether
+  the resolved values are uniform or vary across jobs. The per-job `.sub`
+  files are still written and individually carry the right chunksize, so
+  `--recreate-jobs` of an individual job works without any special handling.
 - **Unknown dict keys produce a warning** listing the samples actually
   present in the current fileset, so typos surface immediately.
 

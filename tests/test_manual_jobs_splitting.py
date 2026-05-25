@@ -5,10 +5,29 @@ Exercises the two static helpers `_split_uniform` and `_split_per_sample` of
 directly so the test does not need an HTCondor environment or a grid proxy.
 """
 from collections import OrderedDict
+from collections.abc import Mapping
 
 import pytest
 
 from pocket_coffea.executors.executors_manual_jobs import ExecutorFactoryManualABC
+
+
+class _NonDictMapping(Mapping):
+    """A Mapping that is NOT a dict subclass — stands in for OmegaConf's
+    DictConfig so we can exercise the dict-vs-Mapping isinstance check
+    without needing omegaconf in the test environment."""
+
+    def __init__(self, data):
+        self._data = dict(data)
+
+    def __getitem__(self, key):
+        return self._data[key]
+
+    def __iter__(self):
+        return iter(self._data)
+
+    def __len__(self):
+        return len(self._data)
 
 
 def _make_fileset(sample, nevents, files):
@@ -171,3 +190,38 @@ def test_chunksize_validate_keys_warns_on_unknown(capsys):
     captured = capsys.readouterr().out
     assert "Typo" in captured
     assert "WARNING" in captured
+
+
+# ----- regression: OmegaConf DictConfig-like Mapping must be accepted -----
+
+def test_chunksize_resolver_accepts_non_dict_mapping():
+    """OmegaConf's DictConfig (delivered by --custom-run-options YAML) is a
+    Mapping but not a dict; the resolver must accept any Mapping."""
+    cfg = _NonDictMapping({"TT": 50_000, "default": 150_000})
+    assert ExecutorFactoryManualABC._resolve_chunksize_for_job(
+        cfg, _make_single_sample_job("TT")
+    ) == 50_000
+    assert ExecutorFactoryManualABC._resolve_chunksize_for_job(
+        cfg, _make_single_sample_job("Other")
+    ) == 150_000
+
+
+def test_per_sample_split_accepts_non_dict_mapping():
+    """Same regression for max-events-per-job: _split_per_sample must accept
+    any Mapping, not only plain dict."""
+    filesets = _make_filesets([
+        ("TT_2018", "TT", 1_000_000, [f"tt_{i}.root" for i in range(10)]),
+    ])
+    limits = _NonDictMapping({"TT": 200_000, "default": 500_000})
+
+    jobs, _ = ExecutorFactoryManualABC._split_per_sample(filesets, limits)
+    assert len(jobs) == 5
+    assert all(len(j["TT_2018"]["files"]) == 2 for j in jobs)
+
+
+def test_validate_chunksize_keys_accepts_non_dict_mapping(capsys):
+    filesets = _make_filesets([("TT_2018", "TT", 10, ["f.root"])])
+    cfg = _NonDictMapping({"TT": 50_000, "Typo": 99_999, "default": 150_000})
+    ExecutorFactoryManualABC._validate_chunksize_keys(cfg, filesets)
+    captured = capsys.readouterr().out
+    assert "Typo" in captured

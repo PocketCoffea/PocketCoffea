@@ -1,5 +1,6 @@
 import os
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from coffea import processor as coffea_processor
 from pocket_coffea.utils.network import get_proxy_path
 from rich import print
@@ -97,7 +98,8 @@ class ExecutorFactoryManualABC(ABC):
         tot_n_events = sum([int(fileset["metadata"]["nevents"]) for fileset in filesets.values()])
         max_events_per_job = self.run_options.get("max-events-per-job", None)
 
-        if isinstance(max_events_per_job, dict):
+        # Accept both plain dict and OmegaConf DictConfig (from --custom-run-options YAML).
+        if isinstance(max_events_per_job, Mapping):
             jobs, nfiles_jobs = self._split_per_sample(filesets, max_events_per_job)
         else:
             if max_events_per_job is not None:
@@ -224,7 +226,7 @@ class ExecutorFactoryManualABC(ABC):
     def _validate_chunksize_keys(chunksize_cfg, filesets):
         '''If `chunksize_cfg` is a dict, warn about keys that do not match any sample
         actually present in `filesets`. No-op for the scalar form.'''
-        if not isinstance(chunksize_cfg, dict):
+        if not isinstance(chunksize_cfg, Mapping):
             return
         samples_present = {fs["metadata"]["sample"] for fs in filesets.values()}
         unknown = {k for k in chunksize_cfg if k != "default"} - samples_present
@@ -245,7 +247,8 @@ class ExecutorFactoryManualABC(ABC):
         choice of chunksize is unambiguous). Pair the dict form of chunksize
         with the dict form of `max-events-per-job`, which already isolates one
         sample per job.'''
-        if not isinstance(chunksize_cfg, dict):
+        # Accept both plain dict and OmegaConf DictConfig (from --custom-run-options YAML).
+        if not isinstance(chunksize_cfg, Mapping):
             return int(chunksize_cfg)
         samples = {ds["metadata"]["sample"] for ds in job_split.values()}
         if len(samples) != 1:
