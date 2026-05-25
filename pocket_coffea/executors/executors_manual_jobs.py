@@ -72,6 +72,9 @@ class ExecutorFactoryManualABC(ABC):
             self.recreate_jobs(jobs_to_recreate)
         else:
             splits = self.prepare_splitting(filesets)
+            # Save the per-job splits so submit_jobs can resolve per-job options
+            # (per-sample chunksize, etc.) without re-reading jobs_config.yaml.
+            self._splits = splits
             job_configs = self.prepare_jobs(splits)
             self.submit_jobs(job_configs)
 
@@ -217,13 +220,56 @@ class ExecutorFactoryManualABC(ABC):
         table.add_row(f"{len(jobs)}", "Total", str(tot_files), f"{tot_n_events:_}")
         print(table)
 
+    @staticmethod
+    def _validate_chunksize_keys(chunksize_cfg, filesets):
+        '''If `chunksize_cfg` is a dict, warn about keys that do not match any sample
+        actually present in `filesets`. No-op for the scalar form.'''
+        if not isinstance(chunksize_cfg, dict):
+            return
+        samples_present = {fs["metadata"]["sample"] for fs in filesets.values()}
+        unknown = {k for k in chunksize_cfg if k != "default"} - samples_present
+        if unknown:
+            print(f"[chunksize] WARNING: dict keys {sorted(unknown)} do not match any sample in the "
+                  f"current fileset. Samples present: {sorted(samples_present)}. These keys will be ignored.")
+
+    @staticmethod
+    def _resolve_chunksize_for_job(chunksize_cfg, job_split):
+        '''Resolve the chunksize for a single condor job.
+
+        `chunksize_cfg` is either an int (legacy uniform behaviour) or a dict
+        `{sample: int, ...}` with an optional ``default`` fallback. `job_split` is
+        a single entry from `prepare_splitting`'s return value, i.e. a dict
+        ``{dataset_name: {"files": [...], "metadata": {...}}}``.
+
+        In dict mode the job is required to cover exactly one sample (so the
+        choice of chunksize is unambiguous). Pair the dict form of chunksize
+        with the dict form of `max-events-per-job`, which already isolates one
+        sample per job.'''
+        if not isinstance(chunksize_cfg, dict):
+            return int(chunksize_cfg)
+        samples = {ds["metadata"]["sample"] for ds in job_split.values()}
+        if len(samples) != 1:
+            raise Exception(
+                f"chunksize is a per-sample dict but a job covers multiple samples {sorted(samples)}. "
+                f"Use a per-sample max-events-per-job dict so each job contains exactly one sample, "
+                f"or revert chunksize to a scalar value."
+            )
+        sample = next(iter(samples))
+        value = chunksize_cfg.get(sample, chunksize_cfg.get("default"))
+        if value is None:
+            raise Exception(
+                f"chunksize dict has no entry for sample {sample!r} and no 'default' fallback. "
+                f"Provide one or the other."
+            )
+        return int(value)
+
     @abstractmethod
     def prepare_jobs(self, splits):
         pass
 
     @abstractmethod
     def submit_jobs(self, jobs):
-        pass            
+        pass
 
     @abstractmethod
     def recreate_jobs(self, jobs):

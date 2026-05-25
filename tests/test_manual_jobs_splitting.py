@@ -122,3 +122,52 @@ def test_uniform_mode_unchanged():
     assert len(jobs) == 3
     # The middle job is allowed to straddle dataset A and B.
     assert any(len(j) == 2 for j in jobs), "expected at least one job mixing both datasets in uniform mode"
+
+
+# ----------------------- per-sample chunksize resolver -----------------------
+
+def _make_single_sample_job(sample):
+    """A 'split' (one job entry) covering one dataset of `sample`."""
+    return {f"{sample}_ds": {"files": ["f.root"], "metadata": {"sample": sample, "nevents": "10"}}}
+
+
+def test_chunksize_scalar_passthrough():
+    assert ExecutorFactoryManualABC._resolve_chunksize_for_job(150_000, _make_single_sample_job("TT")) == 150_000
+    # string from CLI pass-through is coerced to int
+    assert ExecutorFactoryManualABC._resolve_chunksize_for_job("80000", _make_single_sample_job("TT")) == 80_000
+
+
+def test_chunksize_dict_picks_per_sample():
+    cfg = {"TT": 50_000, "ttH": 80_000, "default": 150_000}
+    assert ExecutorFactoryManualABC._resolve_chunksize_for_job(cfg, _make_single_sample_job("TT")) == 50_000
+    assert ExecutorFactoryManualABC._resolve_chunksize_for_job(cfg, _make_single_sample_job("ttH")) == 80_000
+
+
+def test_chunksize_dict_falls_back_to_default():
+    cfg = {"TT": 50_000, "default": 150_000}
+    assert ExecutorFactoryManualABC._resolve_chunksize_for_job(cfg, _make_single_sample_job("Other")) == 150_000
+
+
+def test_chunksize_dict_missing_sample_no_default_raises():
+    cfg = {"TT": 50_000}
+    with pytest.raises(Exception, match="no 'default' fallback"):
+        ExecutorFactoryManualABC._resolve_chunksize_for_job(cfg, _make_single_sample_job("ttH"))
+
+
+def test_chunksize_dict_rejects_mixed_sample_job():
+    cfg = {"TT": 50_000, "ttH": 80_000, "default": 150_000}
+    mixed_split = {
+        "TT_2018": {"files": ["t.root"], "metadata": {"sample": "TT", "nevents": "10"}},
+        "ttH_2018": {"files": ["h.root"], "metadata": {"sample": "ttH", "nevents": "10"}},
+    }
+    with pytest.raises(Exception, match="multiple samples"):
+        ExecutorFactoryManualABC._resolve_chunksize_for_job(cfg, mixed_split)
+
+
+def test_chunksize_validate_keys_warns_on_unknown(capsys):
+    filesets = _make_filesets([("TT_2018", "TT", 10, ["f.root"])])
+    cfg = {"TT": 50_000, "Typo": 99_999, "default": 150_000}
+    ExecutorFactoryManualABC._validate_chunksize_keys(cfg, filesets)
+    captured = capsys.readouterr().out
+    assert "Typo" in captured
+    assert "WARNING" in captured

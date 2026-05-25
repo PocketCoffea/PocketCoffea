@@ -279,6 +279,18 @@ echo 'Done'
         with open(f"{self.jobs_dir}/job.sh", "w") as f:
             f.write(script)
 
+        # Resolve per-job chunksize. Accepts a scalar (legacy) or a per-sample dict.
+        # See ExecutorFactoryManualABC._resolve_chunksize_for_job.
+        chunksize_cfg = self.run_options['chunksize']
+        self._validate_chunksize_keys(chunksize_cfg, self.filesets)
+        per_job_chunksize = [self._resolve_chunksize_for_job(chunksize_cfg, split)
+                             for split in self._splits]
+        uniform_chunksize = len(set(per_job_chunksize)) <= 1
+        if not uniform_chunksize:
+            print(f"[chunksize] Per-job chunksize varies (min={min(per_job_chunksize)}, "
+                  f"max={max(per_job_chunksize)}); jobs will be submitted individually "
+                  f"instead of via jobs_all.sub.")
+
         # Writing the jid file as the htcondor python submission does not work in the singularity
         sub = {
             'Executable': "job.sh",
@@ -290,7 +302,7 @@ echo 'Done'
             '+JobFlavour': f'"{self.run_options["queue"]}"',
             'RequestCpus' : self.run_options['cores-per-worker'],
             'RequestMemory' : f"{self.run_options['mem-per-worker']}",
-            'arguments': f"$(ProcId) config_job_$(ProcId).pkl {self.run_options['chunksize']}",
+            'arguments': f"$(ProcId) config_job_$(ProcId).pkl __CHUNKSIZE__",
             'should_transfer_files':'YES',
             'when_to_transfer_output' : 'ON_EXIT',
             'transfer_input_files' : f"{abs_jobdir_path}/config_job_$(ProcId).pkl,{self.x509_path},{abs_jobdir_path}/job.sh",
@@ -299,11 +311,15 @@ echo 'Done'
             'requirements' : 'Machine =!= LastRemoteHost'
         }
 
-        with open(f"{self.jobs_dir}/jobs_all.sub", "w") as f:
-            for k,v in sub.items():
-                f.write(f"{k} = {v}\n")
-            f.write(f"queue {len(jobs_config)}\n")
-        # Creating also single sub files for resubmission
+        if uniform_chunksize:
+            shared_chunksize = per_job_chunksize[0]
+            with open(f"{self.jobs_dir}/jobs_all.sub", "w") as f:
+                for k, v in sub.items():
+                    if isinstance(v, str):
+                        v = v.replace("__CHUNKSIZE__", str(shared_chunksize))
+                    f.write(f"{k} = {v}\n")
+                f.write(f"queue {len(jobs_config)}\n")
+        # Creating also single sub files for resubmission (always)
         print(f"Creating {len(jobs_config)} .sub files for individual job submission.")
         for i, _ in enumerate(jobs_config):
             with open(f"{self.jobs_dir}/job_{i}.sub", "w") as f:
@@ -311,6 +327,7 @@ echo 'Done'
                     if isinstance(v, str):
                         v = v.replace("$(ProcId)", str(i))
                         v = v.replace("$(ClusterId).log", f"$(ClusterId).{i}.log")
+                        v = v.replace("__CHUNKSIZE__", str(per_job_chunksize[i]))
                     f.write(f"{k} = {v}\n")
                 f.write(f"queue\n")
             # Let's also create a .idle file to indicate the the job is in idle
@@ -321,9 +338,13 @@ echo 'Done'
         if dry_run:
             print(f"Dry run, not submitting jobs. You can find all files: {abs_jobdir_path}")
             return
-        else:
+        elif uniform_chunksize:
             print("Submitting jobs")
             os.system(f"cd {abs_jobdir_path} && condor_submit jobs_all.sub")
+        else:
+            print(f"Submitting {len(jobs_config)} jobs individually (per-sample chunksize)")
+            for i, _ in enumerate(jobs_config):
+                os.system(f"cd {abs_jobdir_path} && condor_submit job_{i}.sub")
 
 
     def recreate_jobs(self, jobs_to_recreate):

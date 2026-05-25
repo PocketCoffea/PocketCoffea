@@ -404,6 +404,45 @@ fall back to `default`; if `default` is also missing the run aborts with a clear
 error pointing at the offending sample. Keys that don't match any sample in the
 current fileset are reported as a warning, so typos surface quickly.
 
+##### Per-sample `chunksize`
+
+`chunksize` (the in-job Coffea chunk size) accepts the **same dict form** as
+`max-events-per-job`:
+
+```yaml
+chunksize:
+  default: 150_000              # fallback for samples not listed
+  TTToSemiLeptonic: 50_000      # heavier events, smaller in-job chunks
+  ttHTobb: 80_000
+  DATA_SingleMuon: 300_000      # cheap branches, larger chunks fine
+```
+
+Each condor job's `.sub` file is then written with **its own** chunksize value
+spliced into the `arguments` line, so the inner `pocket-coffea run --chunksize ...`
+call inside the job picks up the per-sample budget. The CLI flag
+`--chunksize <int>` still works as a global override; it stays an int-only
+parameter (dict form is YAML-only).
+
+A few caveats worth knowing about:
+
+- **Pair this with the per-sample `max-events-per-job` dict.** That mode
+  already isolates one sample per job, which is exactly what the chunksize
+  resolver requires. If you keep uniform splitting and a job happens to
+  contain files from more than one sample, the run aborts with a clear
+  *"multiple samples"* error pointing at the offending job — the resolver
+  refuses to silently pick one chunksize over another.
+- **Batch submission is kept when possible.** With a scalar `chunksize`, or
+  with a dict that happens to resolve to the same value for every job, the
+  executor keeps using a single `condor_submit jobs_all.sub` call (fastest
+  path). As soon as the resolved values differ across jobs, it switches to
+  submitting each `job_{i}.sub` individually — that's the only way HTCondor
+  can carry a per-job `arguments` line.
+- **Unknown dict keys produce a warning** listing the samples actually
+  present in the current fileset, so typos surface immediately.
+
+This is currently implemented for the manual-job executors (`condor@lxplus`,
+`condor@rubin`) only.
+
 #### Tips
 
 - Use `dry-run: true` to inspect the generated `jobs_dir/` tree and the submit files
