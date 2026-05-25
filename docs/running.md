@@ -547,6 +547,7 @@ called `job`, the tool descends into it automatically.
 | `-m, --max-resubmit` | `4` | Give up on a job after this many resubmissions. |
 | `-b, --blacklist-threshold` | `3` | After this many XRootD failures coming from the same site, that site is added to a local blacklist for the rest of the session. |
 | `-q, --queue-shift` | `1` | When HTCondor aborts a job with `SYSTEM_PERIODIC_REMOVE` (max time exceeded), bump its `+JobFlavour` by this many steps along `espresso → microcentury → longlunch → workday → tomorrow → testmatch → nextweek` before resubmitting. |
+| `--by sample\|dataset\|none` | `sample` | Show a per-group progress table below the summary, with a stacked coloured bar (green=done, magenta=running, blue=idle, red=failed) and a `% Done` column sorted from slowest to fastest sample. Requires `jobs_config.yaml` in the jobs folder (written by the manual-job executors); pass `none` to disable. If the YAML is missing the tool silently falls back to the legacy single-table layout. |
 
 #### What `--resubmit` actually does
 
