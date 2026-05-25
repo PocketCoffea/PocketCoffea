@@ -54,7 +54,15 @@ The first step in the processing reduces the number of events on which we need t
     Only the events passing the skimming mask are further processed down the chain.
     
 * **Exporting skimmed files**
-    Skimmed NanoAODs can be exported at this stage: check the Configurations page for details. 
+    Skimmed NanoAODs can be exported at this stage. Two modes are available, controlled by
+    `workflow_options["skim_mode"]`:
+    - `"skim"` (default): events passing the explicit skim cuts are written out, untouched by any object correction.
+      The rest of the processor (categorization, weights, histograms) is skipped on this run.
+    - `"presel_any_variation"`: the full calibration loop is evaluated in *dry-run* mode just to compute the
+      preselection mask per variation; the OR of those masks is then applied to the uncalibrated events before they
+      are written. Use this when you want a single skim to already encode the analysis preselection in a way that
+      survives every shape systematic. See [Configuration → Save skimmed NanoAOD](./configuration.md#save-skimmed-nanoaod)
+      for the detailed mechanics, gen-weight rescaling, and downstream `isSkim` metadata.
 
 ### Object calibration and systematic variations
 
