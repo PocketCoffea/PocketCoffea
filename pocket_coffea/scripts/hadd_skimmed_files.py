@@ -156,6 +156,13 @@ def hadd_skimmed_files(files_list,  outputdir, filter_samples,
         metadata["skim_efficiency"] = str(skim_efficiency)
         if metadata["isMC"] in ["True", "true", True]:
             metadata["skim_rescale_genweights"] = str(df["sum_genweights"][s] / df["sum_genweights_skimmed"][s]) # Compute the rescale factor for the genweights as the inverse of the skim genweighed efficiency
+            # Carry the authoritative pre-skim totals into the hadd dataset metadata as
+            # well — so a hadded skim is also self-recovering w.r.t. zero-event input
+            # chunks (see save_skimed_dataset_definition / BaseProcessorABC.postprocess).
+            if s in df.get("sum_genweights", {}):
+                metadata["sum_genweights"] = float(df["sum_genweights"][s])
+            if s in df.get("sum_signOf_genweights", {}):
+                metadata["sum_signOf_genweights"] = float(df["sum_signOf_genweights"][s])
         metadata["isSkim"] = "True"
         dataset_definition[s] = {"metadata": metadata, "files": list(d['files'].keys())}
 
