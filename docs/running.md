@@ -536,6 +536,44 @@ are passed, `--use-redirector` wins and a warning is printed (since the blocklis
 becomes meaningless once everything is going through the global redirector). Files
 whose URLs don't carry a recognisable `/store/...` LFN are left untouched.
 
+#### Forwarding Coffea-Runner options to the inner job
+
+By default the inner `pocket-coffea run` that runs **inside each condor job**
+re-derives its `run_options` from the YAML defaults only — your outer
+`--custom-run-options` YAML is consumed by the submitter but is *not* shipped
+to the worker. To bridge that gap, the manual-job executor now writes
+`jobs_dir/inner_run_options.yaml` at submit (and `--recreate-jobs`) time, ships
+it via `transfer_input_files`, and the wrapper passes
+`--custom-run-options inner_run_options.yaml` to the inner call.
+
+The YAML is whitelist-filtered to a small set of *Coffea-Runner-side* keys —
+the ones the inner `Runner` actually consumes:
+
+- `skip-bad-files`
+- `tree-reduction`
+
+Outer-only keys (`cores-per-worker`, `mem-per-worker`, `worker-image`, `queue`,
+`scaleout`, `max-events-per-job`, ...) are intentionally **not** propagated:
+they describe how the outer HTCondor jobs are sized and scheduled, and have no
+meaning inside the worker.
+
+The two most useful CLI flags that hit this channel today:
+
+```bash
+# Make every chunk-level read-error survivable, both on the submitter and inside the job
+pocket-coffea run --cfg config.py -o output/ --executor condor@lxplus --skip-bad-files
+
+# Same thing applied retroactively to an existing jobs_dir
+pocket-coffea run --cfg config.py -o output/ --executor condor@lxplus \
+    --recreate-jobs auto --skip-bad-files
+```
+
+In the recreate-jobs flow, `inner_run_options.yaml` is **rewritten** from the
+outer `run_options`, and `job.sh` plus each resubmitted `.sub` are
+idempotently patched to reference it. An existing jobs_dir produced before
+this feature shipped therefore picks it up on the first `--recreate-jobs`
+call without a fresh submission.
+
 ### Monitor and auto-resubmit jobs with `check-jobs`
 
 `pocket-coffea check-jobs` is a live monitoring tool for the manual-job executors.

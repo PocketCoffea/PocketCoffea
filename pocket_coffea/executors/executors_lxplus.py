@@ -3,7 +3,13 @@ import sys
 import socket
 from coffea import processor as coffea_processor
 from .executors_base import ExecutorFactoryABC
-from .executors_manual_jobs import ExecutorFactoryManualABC
+from .executors_manual_jobs import (
+    ExecutorFactoryManualABC,
+    INNER_RUN_OPTIONS_FILENAME,
+    ensure_job_sh_forwards_inner_yaml,
+    ensure_sub_transfers_inner_yaml,
+    write_inner_run_options,
+)
 from .executors_base import IterativeExecutorFactory, FuturesExecutorFactory
 from pocket_coffea.utils.network import check_port
 from pocket_coffea.parameters.dask_env import setup_dask
@@ -13,6 +19,7 @@ from pocket_coffea.utils.site_rewrite import (
     GLOBAL_XROOTD_REDIRECTOR,
     find_other_file,
     rewrite_fileset_blocklist,
+    rewrite_fileset_to_redirector,
 )
 import pocket_coffea
 import cloudpickle
@@ -220,6 +227,14 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
         else:
             runnercmd = "pocket-coffea run"
 
+        # Persist the inner-relevant run-option overrides (e.g. skip-bad-files)
+        # so the *inner* pocket-coffea call running on the worker can honour
+        # them via --custom-run-options. The YAML is whitelisted to keep
+        # outer-only keys (worker-image, queue, cores-per-worker, ...) from
+        # leaking through.
+        inner_yaml_path = write_inner_run_options(self.jobs_dir, self.run_options)
+        inner_yaml_basename = os.path.basename(inner_yaml_path)
+
         # Specify output filename to split-output script ->
         # This will save files such as output_CAT1.coffea, output_CAT2.coffea (remove "_all" from split outputs)...
         if self.run_options["split-by-category"]:
@@ -256,7 +271,7 @@ rm -f $JOBDIR/job_$1.idle
 echo "Starting job $1"
 touch $JOBDIR/job_$1.running
 
-{runnercmd} --cfg $2 -o output EXECUTOR --chunksize $3
+{runnercmd} --cfg $2 -o output EXECUTOR --chunksize $3 --custom-run-options {inner_yaml_basename}
 # Do things only if the job is successful
 if [ $? -eq 0 ]; then
     echo 'Job successful'
@@ -304,7 +319,7 @@ echo 'Done'
             'arguments': f"$(ProcId) config_job_$(ProcId).pkl $(chunksize)",
             'should_transfer_files':'YES',
             'when_to_transfer_output' : 'ON_EXIT',
-            'transfer_input_files' : f"{abs_jobdir_path}/config_job_$(ProcId).pkl,{self.x509_path},{abs_jobdir_path}/job.sh",
+            'transfer_input_files' : f"{abs_jobdir_path}/config_job_$(ProcId).pkl,{self.x509_path},{abs_jobdir_path}/job.sh,{abs_jobdir_path}/{inner_yaml_basename}",
             'on_exit_remove': '(ExitBySignal == False) && (ExitCode == 0)',
             'max_retries' : self.run_options["retries"],
             'requirements' : 'Machine =!= LastRemoteHost'
@@ -354,6 +369,16 @@ echo 'Done'
         with open(f"{self.jobs_dir}/jobs_config.yaml") as f:
             jobs_config = yaml.safe_load(f)
 
+        # (Re)materialise the inner run-options YAML so any --skip-bad-files /
+        # --custom-run-options-style overrides from this outer call reach the
+        # resubmitted jobs. Also idempotently patch the wrapper script so an
+        # existing jobs_dir (pre-feature) starts forwarding the YAML.
+        abs_jobdir_path = os.path.abspath(self.jobs_dir)
+        write_inner_run_options(self.jobs_dir, self.run_options)
+        if ensure_job_sh_forwards_inner_yaml(f"{self.jobs_dir}/job.sh"):
+            print(f"[recreate-jobs] Patched {self.jobs_dir}/job.sh to forward "
+                  f"{INNER_RUN_OPTIONS_FILENAME} to the inner pocket-coffea run.")
+
         if jobs_to_recreate == "auto":
             failedjobs = [f.replace(".failed","") for f in os.listdir(self.jobs_dir) if f.endswith(".failed")]
             runningjobs = [f.replace(".running","") for f in os.listdir(self.jobs_dir) if f.endswith(".running")]
@@ -393,9 +418,21 @@ echo 'Done'
         if blocklist_sites:
             print(f"Blocklisting sites at recreate time: {sorted(blocklist_sites)}")
 
-        # Open a single rucio client up front so it is reused for every replica lookup
+        # --use-redirector takes precedence over the per-site blocklist rewrite —
+        # it's a "no Rucio, just put everything on the global xrootd redirector"
+        # one-shot. When both are set we honour the redirector and warn.
+        use_redirector = bool(self.run_options.get("use-redirector", False))
+        if use_redirector:
+            print(f"[recreate-jobs] --use-redirector: rewriting every file to "
+                  f"{GLOBAL_XROOTD_REDIRECTOR} without per-site Rucio lookups.")
+            if blocklist_sites:
+                print("[recreate-jobs] WARNING: --blocklist-sites is set but --use-redirector "
+                      "overrides it (no per-site Rucio resolution happens).")
+
+        # Open a single rucio client up front so it is reused for every replica
+        # lookup. Not needed when --use-redirector is set: that mode skips Rucio.
         rucio_client = None
-        if xrootdfailurejoblist or blocklist_sites:
+        if (xrootdfailurejoblist or blocklist_sites) and not use_redirector:
             try:
                 from pocket_coffea.utils.rucio import get_rucio_client
                 rucio_client = get_rucio_client()
@@ -420,29 +457,39 @@ echo 'Done'
             new_fileset = deepcopy(current_fileset)
             modified = False
 
-            # XRootD-error reactive rewrite (per-file alternative site)
-            if job in xrootdfailurejoblist:
-                print(f"Replacing input files in {job} since it failed due to an XRootD error.")
-                for sample, dct in new_fileset.items():
-                    newfllist = []
-                    for fl in dct['files']:
-                        newfl = find_other_file(fl, sitemap, blocklist=blocklist_sites,
-                                                rucio_client=rucio_client)
-                        newfllist.append(newfl)
-                    dct['files'] = newfllist
+            if use_redirector:
+                # One-shot: every file in this job is pointed at the global
+                # xrootd redirector. No Rucio lookup, no per-site logic.
+                new_fileset = rewrite_fileset_to_redirector(new_fileset)
                 modified = True
+            else:
+                # XRootD-error reactive rewrite (per-file alternative site)
+                if job in xrootdfailurejoblist:
+                    print(f"Replacing input files in {job} since it failed due to an XRootD error.")
+                    for sample, dct in new_fileset.items():
+                        newfllist = []
+                        for fl in dct['files']:
+                            newfl = find_other_file(fl, sitemap, blocklist=blocklist_sites,
+                                                    rucio_client=rucio_client)
+                            newfllist.append(newfl)
+                        dct['files'] = newfllist
+                    modified = True
 
-            # Blocklist-driven rewrite: applied to every job, composes with the above
-            if blocklist_sites:
-                new_fileset = rewrite_fileset_blocklist(new_fileset, sitemap, blocklist_sites,
-                                                        rucio_client=rucio_client)
-                modified = True
+                # Blocklist-driven rewrite: applied to every job, composes with the above
+                if blocklist_sites:
+                    new_fileset = rewrite_fileset_blocklist(new_fileset, sitemap, blocklist_sites,
+                                                            rucio_client=rucio_client)
+                    modified = True
 
             if modified:
                 # Update files in the configurator
                 config = cloudpickle.load(open(f"{self.jobs_dir}/config_{job}.pkl", "rb"))
                 config.set_filesets_manually(new_fileset)
                 cloudpickle.dump(config, open(f"{self.jobs_dir}/config_{job}.pkl", "wb"))
+
+            # Idempotently make sure this job's .sub ships the inner-run-options
+            # YAML so the wrapper can pass it to the inner pocket-coffea run.
+            ensure_sub_transfers_inner_yaml(f"{self.jobs_dir}/{job}.sub", abs_jobdir_path)
 
             # Optional explicit queue rewrite from --recreate-queue (runs before the
             # implicit timeout-bump so the explicit value wins if both apply)
