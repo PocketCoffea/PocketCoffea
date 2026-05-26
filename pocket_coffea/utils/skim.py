@@ -130,7 +130,19 @@ def apply_skim_sumgenweights_override(accumulator, filesets):
     return overridden
 
 
-def save_skimed_dataset_definition(processing_out, fileout, check_initial_events=True):
+def save_skimed_dataset_definition(processing_out, fileout, check_initial_events=True,
+                                   skip_initial_events_check_datasets=None):
+    '''Build the skimmed dataset JSON from a (merged) processing output.
+
+    By default the number of initial events in the dataset metadata must match
+    the ``cutflow["initial"]`` count for every dataset, otherwise an exception
+    is raised (some input chunk was lost). ``skip_initial_events_check_datasets``
+    is a list of dataset names for which this mismatch is tolerated: a warning is
+    printed instead of raising, which is useful when a corrupted input file had
+    to be skipped on purpose. ``check_initial_events=False`` disables the check
+    entirely for all datasets.
+    '''
+    skip_initial_events_check_datasets = set(skip_initial_events_check_datasets or [])
     datasets_info = {}
     datasets_metadata = processing_out["datasets_metadata"]["by_dataset"]
     # Pre-skim totals computed in BaseProcessorABC.process() *before* the skim mask, so
@@ -145,9 +157,12 @@ def save_skimed_dataset_definition(processing_out, fileout, check_initial_events
         # We first check that the total number of initial events
         # corresponds to the initial number of the events in the metadata
         # to check if we are not missing any event
-        if check_initial_events and  int(datasets_metadata[key]["nevents"]) != processing_out["cutflow"]["initial"][key]:
-            print(f"ERROR: The number of initial events in the metadata is different from the number of initial events in the cutflow for dataset {key}")
-            raise Exception("Inconsistent number of initial events in the output of the skimming processing")
+        if check_initial_events and int(datasets_metadata[key]["nevents"]) != processing_out["cutflow"]["initial"][key]:
+            if key in skip_initial_events_check_datasets:
+                print(f"WARNING: The number of initial events in the metadata ({datasets_metadata[key]['nevents']}) is different from the number of initial events in the cutflow ({processing_out['cutflow']['initial'][key]}) for dataset {key}, but the check was explicitly skipped for it.")
+            else:
+                print(f"ERROR: The number of initial events in the metadata is different from the number of initial events in the cutflow for dataset {key}")
+                raise Exception("Inconsistent number of initial events in the output of the skimming processing")
 
         # Count the remaining events
         datasets_info[key] =  {

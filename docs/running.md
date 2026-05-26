@@ -518,6 +518,24 @@ useful for site-specific queues but easy to typo. The explicit `--recreate-queue
 overrides the implicit one-step bump that `--recreate-jobs auto` would otherwise apply
 to jobs found in the `.running` state.
 
+#### Route every file through the global xrootd redirector
+
+When many sites are flaky and you don't want to spend time on per-file Rucio lookups,
+use `--use-redirector` to rewrite **every** file in the resubmitted jobs to use the
+global xrootd redirector (`root://xrootd-cms.infn.it//`), letting xrootd figure out
+routing on the fly:
+
+```bash
+pocket-coffea run --cfg config.py -o output/ --executor condor \
+    --recreate-jobs auto --use-redirector
+```
+
+This is the fastest recovery path: no Rucio client opened, no DAS query, no
+per-sample dependency. It also takes precedence over `--blocklist-sites` — if both
+are passed, `--use-redirector` wins and a warning is printed (since the blocklist
+becomes meaningless once everything is going through the global redirector). Files
+whose URLs don't carry a recognisable `/store/...` LFN are left untouched.
+
 ### Monitor and auto-resubmit jobs with `check-jobs`
 
 `pocket-coffea check-jobs` is a live monitoring tool for the manual-job executors.
@@ -591,6 +609,40 @@ functionality but are aimed at different workflows: `check-jobs` is a long-runni
 one-shot, manual operation you trigger after looking at the state of `jobs_dir/`.
 Pick one or the other for a given run — running both at the same time will produce
 duplicate `condor_submit` calls.
+:::
+
+### Merging skim outputs with a skipped input file
+
+When you merge the per-job outputs of a **skimming** workflow with
+`merge-outputs`, PocketCoffea writes a new `skimmed_dataset_definition.json` and
+checks, for every dataset, that the number of initial events in the dataset
+metadata matches the `cutflow["initial"]` count. A mismatch normally aborts the
+merge:
+
+```
+ERROR: The number of initial events in the metadata is different from the number of initial events in the cutflow for dataset TTW_2022_postEE
+Exception: Inconsistent number of initial events in the output of the skimming processing
+```
+
+This is the expected behaviour: it catches input chunks that were silently lost.
+But if you **intentionally** skipped a corrupted input file during processing,
+the mismatch is legitimate for that one dataset. Use
+`--skip-initial-events-check <dataset>` to downgrade the error to a warning for
+the named dataset(s) only — every other dataset still aborts on a mismatch:
+
+```bash
+# Tolerate the mismatch for one dataset (repeat the flag for more)
+merge-outputs -jc /path/to/output/job \
+    --skip-initial-events-check TTW_2022_postEE
+```
+
+The flag is repeatable (`--skip-initial-events-check A --skip-initial-events-check B`).
+
+:::{note}
+The skimmed dataset's `nevents` and `skim_efficiency` for the affected sample
+will be computed from the events that were actually processed, so its
+cross-section normalisation will be slightly off by the contribution of the
+dropped file. Only use this when that residual mismatch is acceptable.
 :::
 
 ### Customize the executor software environment
