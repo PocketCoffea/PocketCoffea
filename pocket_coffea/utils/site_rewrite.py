@@ -136,6 +136,39 @@ def find_other_file(filepath, sitemap, blocklist=None,
     return new_url
 
 
+def rewrite_fileset_to_redirector(fileset, redirector=GLOBAL_XROOTD_REDIRECTOR):
+    '''Return a deepcopy of `fileset` with every file URL rewritten so the
+    redirector prefix is replaced by `redirector + LFN`.
+
+    No Rucio lookup is performed — every file is unconditionally pointed
+    at the redirector. Files that don't carry a recognisable `/store/...`
+    LFN are left untouched (with a warning). Order of datasets and of
+    files within each dataset is preserved.'''
+    new_fileset = deepcopy(fileset)
+    for sample, dct in new_fileset.items():
+        n_rewritten = 0
+        n_unchanged = 0
+        newfllist = []
+        for fl in dct['files']:
+            rootpref, file = _split_lfn(fl)
+            if rootpref is None:
+                print(f"WARNING: cannot extract LFN from {fl}; leaving unchanged.")
+                newfllist.append(fl)
+                n_unchanged += 1
+                continue
+            new_url = redirector + file.lstrip("/")
+            if new_url != fl:
+                n_rewritten += 1
+            else:
+                n_unchanged += 1
+            newfllist.append(new_url)
+        dct['files'] = newfllist
+        if n_rewritten:
+            print(f"[redirector] {sample}: rewrote {n_rewritten}/{n_rewritten + n_unchanged} files "
+                  f"to {redirector}")
+    return new_fileset
+
+
 def rewrite_fileset_blocklist(fileset, sitemap, blocklist,
                               fallback_redirector=GLOBAL_XROOTD_REDIRECTOR,
                               rucio_client=None):

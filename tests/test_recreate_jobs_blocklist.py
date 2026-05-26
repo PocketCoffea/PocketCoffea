@@ -111,3 +111,52 @@ def test_empty_blocklist_is_noop(das_sites):
     out = ex.rewrite_fileset_blocklist(fileset, SITEMAP, blocklist=set())
 
     assert out is fileset or out["sampleA"]["files"] == [f]
+
+
+# ----------------------- rewrite_fileset_to_redirector -----------------------
+
+def test_redirector_rewrites_all_files_no_rucio(das_sites):
+    """rewrite_fileset_to_redirector must NOT call _query_replicas: it just
+    swaps the redirector prefix on every file. Empty das_sites table proves
+    no lookup happens (otherwise files at non-mapped sites would error)."""
+    f1 = SITEA_PREFIX + "/store/data/a.root"
+    f2 = SITEB_PREFIX + "/store/data/b.root"
+    fileset = _fileset([("sampleA", [f1, f2])])
+
+    out = ex.rewrite_fileset_to_redirector(fileset)
+
+    assert out["sampleA"]["files"] == [
+        ex.GLOBAL_XROOTD_REDIRECTOR + "store/data/a.root",
+        ex.GLOBAL_XROOTD_REDIRECTOR + "store/data/b.root",
+    ]
+
+
+def test_redirector_accepts_custom_url():
+    custom = "root://my-redirector.example//"
+    f = SITEA_PREFIX + "/store/data/foo.root"
+    out = ex.rewrite_fileset_to_redirector(_fileset([("s", [f])]), redirector=custom)
+    assert out["s"]["files"] == [custom + "store/data/foo.root"]
+
+
+def test_redirector_preserves_order_across_datasets():
+    f1 = SITEA_PREFIX + "/store/data/a.root"
+    f2 = SITEB_PREFIX + "/store/data/b.root"
+    f3 = SITEA_PREFIX + "/store/data/c.root"
+    fileset = _fileset([("A", [f1, f2]), ("B", [f3])])
+
+    out = ex.rewrite_fileset_to_redirector(fileset)
+
+    assert list(out.keys()) == ["A", "B"]
+    assert out["A"]["files"] == [
+        ex.GLOBAL_XROOTD_REDIRECTOR + "store/data/a.root",
+        ex.GLOBAL_XROOTD_REDIRECTOR + "store/data/b.root",
+    ]
+    assert out["B"]["files"] == [ex.GLOBAL_XROOTD_REDIRECTOR + "store/data/c.root"]
+
+
+def test_redirector_leaves_non_lfn_urls_unchanged():
+    """Files without a /store/ segment can't be safely rewritten — leave them."""
+    weird = "file:///local/path/foo.root"
+    fileset = _fileset([("s", [weird])])
+    out = ex.rewrite_fileset_to_redirector(fileset)
+    assert out["s"]["files"] == [weird]

@@ -19,7 +19,7 @@ from ..lib.columns_manager import ColumnsManager
 from ..lib.hist_manager import HistManager
 from ..lib.jets import load_jet_factory
 from ..lib.calibrators.calibrators_manager import CalibratorsManager
-from ..utils.skim import uproot_writeable, copy_file
+from ..utils.skim import uproot_writeable, copy_file, apply_skim_sumgenweights_override
 from ..utils.utils import dump_ak_array
 from ..lib.delayed_eval import DelayedEvalBranchManager
 
@@ -1054,6 +1054,17 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     dmeta["by_datataking_period"][year][f"{sample}__{subsam}"].add(dataset)
             else:
                 dmeta["by_datataking_period"][year][sample].add(dataset)
+
+        # For skim-derived datasets, replace the per-chunk-reconstructed sum_genweights
+        # with the authoritative pre-skim totals carried in the dataset metadata.
+        # This is necessary to recover sum_genweight from input chunks that produced
+        # zero surviving events (no ROOT file → no per-chunk reconstruction).
+        overridden = apply_skim_sumgenweights_override(accumulator, self.cfg.filesets)
+        if overridden:
+            logging.info(
+                f"[skim] Restored authoritative pre-skim sum_genweights from dataset metadata "
+                f"for {len(overridden)} skim dataset(s): {overridden}"
+            )
 
         # Rescale the histograms and sumw using the sum of the genweights
         if not self.workflow_options.get("donotscale_sumgenweights", False):

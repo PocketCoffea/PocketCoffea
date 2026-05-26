@@ -603,6 +603,41 @@ For chunks that produced zero events the rescale factor is set to 0 (see `export
 chunks contribute 0 to `sum_genweights_skimmed` but are still listed in `skimmed_files` and tracked by the rest of the
 machinery.
 
+##### Recovering `sum_genweight` for zero-event chunks
+
+There is one subtle failure mode of the per-event `skimRescaleGenWeight` mechanism: if an input NanoAOD chunk has
+**zero events surviving the skim**, no ROOT file is written for that chunk, so the downstream per-chunk reconstruction
+`sum(skimRescaleGenWeight * genWeight)` cannot recover its `sum_genweight` contribution. The original total would be
+silently under-counted whenever the skim is tight enough that some input chunks vanish entirely.
+
+To avoid this, `save_skimed_dataset_definition` writes the **authoritative pre-skim dataset-level totals** into the new
+dataset JSON's `metadata`:
+
+```json
+"metadata": {
+    ...,
+    "isSkim": "True",
+    "sum_genweights": 1.2345e+08,
+    "sum_signOf_genweights": 9.87e+06
+}
+```
+
+These values come straight from the skim job's `.coffea` accumulator, where they are computed **before** the skim mask
+is applied (`BaseProcessorABC.process`); they therefore include every input chunk regardless of survival. The hadded
+dataset definition produced by `pocket-coffea hadd-skimmed-files` carries the same fields, so a hadded skim is also
+self-recovering.
+
+At downstream postprocess time `BaseProcessorABC.postprocess` calls
+`pocket_coffea.utils.skim.apply_skim_sumgenweights_override` which, for every `isSkim` dataset whose metadata carries
+these fields, **replaces** the per-chunk-reconstructed `accumulator["sum_genweights"]` /
+`accumulator["sum_signOf_genweights"]` entries with the authoritative values before `rescale_sumgenweights` runs. The
+override is logged at INFO so the recovery is visible. Older skim outputs that lack the new metadata fields keep using
+the per-chunk reconstruction unchanged.
+
+A useful side effect: running downstream with `--limit-files` against an `isSkim` dataset now normalises histograms to
+the **original** sum_genweight rather than to whatever subset of files happened to be processed — which is the
+physically correct behaviour for cross-section normalisation.
+
 #### Practical tips
 
 - **Run the skim on `condor@lxplus`.** Each condor job produces its own slice of skimmed files; failed jobs can be

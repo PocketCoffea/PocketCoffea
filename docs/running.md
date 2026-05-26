@@ -431,12 +431,13 @@ A few caveats worth knowing about:
   contain files from more than one sample, the run aborts with a clear
   *"multiple samples"* error pointing at the offending job — the resolver
   refuses to silently pick one chunksize over another.
-- **Batch submission is kept when possible.** With a scalar `chunksize`, or
-  with a dict that happens to resolve to the same value for every job, the
-  executor keeps using a single `condor_submit jobs_all.sub` call (fastest
-  path). As soon as the resolved values differ across jobs, it switches to
-  submitting each `job_{i}.sub` individually — that's the only way HTCondor
-  can carry a per-job `arguments` line.
+- **Batch submission is always preserved.** The per-job chunksize is fed
+  into HTCondor with the inline `queue chunksize from ( ... )` form — one
+  chunksize per line, embedded directly in `jobs_all.sub` — so a single
+  `condor_submit jobs_all.sub` call submits everything regardless of whether
+  the resolved values are uniform or vary across jobs. The per-job `.sub`
+  files are still written and individually carry the right chunksize, so
+  `--recreate-jobs` of an individual job works without any special handling.
 - **Unknown dict keys produce a warning** listing the samples actually
   present in the current fileset, so typos surface immediately.
 
@@ -517,6 +518,62 @@ useful for site-specific queues but easy to typo. The explicit `--recreate-queue
 overrides the implicit one-step bump that `--recreate-jobs auto` would otherwise apply
 to jobs found in the `.running` state.
 
+#### Route every file through the global xrootd redirector
+
+When many sites are flaky and you don't want to spend time on per-file Rucio lookups,
+use `--use-redirector` to rewrite **every** file in the resubmitted jobs to use the
+global xrootd redirector (`root://xrootd-cms.infn.it//`), letting xrootd figure out
+routing on the fly:
+
+```bash
+pocket-coffea run --cfg config.py -o output/ --executor condor \
+    --recreate-jobs auto --use-redirector
+```
+
+This is the fastest recovery path: no Rucio client opened, no DAS query, no
+per-sample dependency. It also takes precedence over `--blocklist-sites` — if both
+are passed, `--use-redirector` wins and a warning is printed (since the blocklist
+becomes meaningless once everything is going through the global redirector). Files
+whose URLs don't carry a recognisable `/store/...` LFN are left untouched.
+
+#### Forwarding Coffea-Runner options to the inner job
+
+By default the inner `pocket-coffea run` that runs **inside each condor job**
+re-derives its `run_options` from the YAML defaults only — your outer
+`--custom-run-options` YAML is consumed by the submitter but is *not* shipped
+to the worker. To bridge that gap, the manual-job executor now writes
+`jobs_dir/inner_run_options.yaml` at submit (and `--recreate-jobs`) time, ships
+it via `transfer_input_files`, and the wrapper passes
+`--custom-run-options inner_run_options.yaml` to the inner call.
+
+The YAML is whitelist-filtered to a small set of *Coffea-Runner-side* keys —
+the ones the inner `Runner` actually consumes:
+
+- `skip-bad-files`
+- `tree-reduction`
+
+Outer-only keys (`cores-per-worker`, `mem-per-worker`, `worker-image`, `queue`,
+`scaleout`, `max-events-per-job`, ...) are intentionally **not** propagated:
+they describe how the outer HTCondor jobs are sized and scheduled, and have no
+meaning inside the worker.
+
+The two most useful CLI flags that hit this channel today:
+
+```bash
+# Make every chunk-level read-error survivable, both on the submitter and inside the job
+pocket-coffea run --cfg config.py -o output/ --executor condor@lxplus --skip-bad-files
+
+# Same thing applied retroactively to an existing jobs_dir
+pocket-coffea run --cfg config.py -o output/ --executor condor@lxplus \
+    --recreate-jobs auto --skip-bad-files
+```
+
+In the recreate-jobs flow, `inner_run_options.yaml` is **rewritten** from the
+outer `run_options`, and `job.sh` plus each resubmitted `.sub` are
+idempotently patched to reference it. An existing jobs_dir produced before
+this feature shipped therefore picks it up on the first `--recreate-jobs`
+call without a fresh submission.
+
 ### Monitor and auto-resubmit jobs with `check-jobs`
 
 `pocket-coffea check-jobs` is a live monitoring tool for the manual-job executors.
@@ -546,6 +603,7 @@ called `job`, the tool descends into it automatically.
 | `-m, --max-resubmit` | `4` | Give up on a job after this many resubmissions. |
 | `-b, --blacklist-threshold` | `3` | After this many XRootD failures coming from the same site, that site is added to a local blacklist for the rest of the session. |
 | `-q, --queue-shift` | `1` | When HTCondor aborts a job with `SYSTEM_PERIODIC_REMOVE` (max time exceeded), bump its `+JobFlavour` by this many steps along `espresso → microcentury → longlunch → workday → tomorrow → testmatch → nextweek` before resubmitting. |
+| `--by sample\|dataset\|none` | `sample` | Show a per-group progress table below the summary, with a stacked coloured bar (green=done, magenta=running, blue=idle, red=failed) and a `% Done` column sorted from slowest to fastest sample. Requires `jobs_config.yaml` in the jobs folder (written by the manual-job executors); pass `none` to disable. If the YAML is missing the tool silently falls back to the legacy single-table layout. |
 
 #### What `--resubmit` actually does
 
@@ -589,6 +647,40 @@ functionality but are aimed at different workflows: `check-jobs` is a long-runni
 one-shot, manual operation you trigger after looking at the state of `jobs_dir/`.
 Pick one or the other for a given run — running both at the same time will produce
 duplicate `condor_submit` calls.
+:::
+
+### Merging skim outputs with a skipped input file
+
+When you merge the per-job outputs of a **skimming** workflow with
+`merge-outputs`, PocketCoffea writes a new `skimmed_dataset_definition.json` and
+checks, for every dataset, that the number of initial events in the dataset
+metadata matches the `cutflow["initial"]` count. A mismatch normally aborts the
+merge:
+
+```
+ERROR: The number of initial events in the metadata is different from the number of initial events in the cutflow for dataset TTW_2022_postEE
+Exception: Inconsistent number of initial events in the output of the skimming processing
+```
+
+This is the expected behaviour: it catches input chunks that were silently lost.
+But if you **intentionally** skipped a corrupted input file during processing,
+the mismatch is legitimate for that one dataset. Use
+`--skip-initial-events-check <dataset>` to downgrade the error to a warning for
+the named dataset(s) only — every other dataset still aborts on a mismatch:
+
+```bash
+# Tolerate the mismatch for one dataset (repeat the flag for more)
+merge-outputs -jc /path/to/output/job \
+    --skip-initial-events-check TTW_2022_postEE
+```
+
+The flag is repeatable (`--skip-initial-events-check A --skip-initial-events-check B`).
+
+:::{note}
+The skimmed dataset's `nevents` and `skim_efficiency` for the affected sample
+will be computed from the events that were actually processed, so its
+cross-section normalisation will be slightly off by the contribution of the
+dropped file. Only use this when that residual mismatch is acceptable.
 :::
 
 ### Customize the executor software environment

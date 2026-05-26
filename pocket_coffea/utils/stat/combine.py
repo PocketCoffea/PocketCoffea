@@ -282,12 +282,15 @@ class Datacard:
 
     def _check_histograms(self) -> None:
         """Check if histograms are available for all processes and systematics."""
-        available_variations = []
-        for systematic in self.systematics.get_systematics_by_type("shape"):
-            for shift in ("Up", "Down"):
-                available_variations.append(f"{systematic}{shift}")
+        shape_systematics = self.systematics.get_systematics_by_type("shape").values()
 
         for process in self.mc_processes.values():
+            available_variations = []
+            if not process.is_data:
+                for systematic in shape_systematics:
+                    coffea_name = systematic.get_coffea_name(process.name)
+                    for shift in ("Up", "Down"):
+                        available_variations.append(f"{coffea_name}{shift}")
             for sample in process.samples:
                 if sample not in self.histograms:
                     raise ValueError(f"Missing histogram for sample {sample}")
@@ -434,19 +437,19 @@ class Datacard:
                                 "shape"
                             ).items():
                                 for shift in ("Up", "Down"):
-                                    variation = f"{syst_name}{shift}"
+                                    source_variation = f"{systematic.get_coffea_name(process.name)}{shift}"
                                     variation_index = new_histogram.axes[
                                         "variation"
                                     ].index(f"{systematic.datacard_name}{shift}")
-                                    if variation in histogram.axes["variation"]:
+                                    if source_variation in histogram.axes["variation"]:
                                         new_histogram_view[
                                             process_index, variation_index, :
                                         ] += histogram[
-                                            self.category, variation, :
+                                            self.category, source_variation, :
                                         ].view()
                                     else:
                                         print(
-                                            f"Setting `{variation}` variation to nominal variation for sample {sample}."
+                                            f"Setting `{source_variation}` variation to nominal variation for sample {sample}."
                                         )
                                         new_histogram_view[
                                             process_index, variation_index, :
