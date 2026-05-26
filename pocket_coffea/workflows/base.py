@@ -683,6 +683,49 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 requested_calibrator_variations=self.cfg.available_shape_variations[self._sample],
             )
 
+    def _announce_skim_mode(self, skim_mode):
+        '''One-time-per-dataset banner describing the skim mode in effect.
+
+        Logged at INFO so it shows up in normal `runner` output without
+        flooding the log per chunk. Unknown `skim_mode` values are flagged
+        as a WARNING so configuration typos surface immediately.
+        '''
+        if not hasattr(self, "_skim_announced"):
+            self._skim_announced = set()
+        key = (self._dataset, skim_mode, bool(self.cfg.save_skimmed_files))
+        if key in self._skim_announced:
+            return
+        self._skim_announced.add(key)
+
+        if self.cfg.save_skimmed_files:
+            if skim_mode == "skim":
+                logging.info(
+                    f"[skim] {self._dataset}: skim_mode='skim', save_skimmed_files={self.cfg.save_skimmed_files!r}. "
+                    f"Will export events passing the explicit skim cuts on raw NanoAOD; "
+                    f"calibration and preselection are NOT applied before writing. Further processing is skipped."
+                )
+            elif skim_mode == "presel_any_variation":
+                logging.info(
+                    f"[skim] {self._dataset}: skim_mode='presel_any_variation', "
+                    f"save_skimmed_files={self.cfg.save_skimmed_files!r}. "
+                    f"Running the calibration loop in dry-run mode to OR-combine preselection masks across "
+                    f"all active variations; the uncalibrated events surviving the combined mask will be written. "
+                    f"Further processing is skipped."
+                )
+            else:
+                logging.warning(
+                    f"[skim] {self._dataset}: unknown skim_mode={skim_mode!r} "
+                    f"(expected 'skim' or 'presel_any_variation'). Falling through to normal processing — "
+                    f"NO skim ROOT files will be written."
+                )
+        elif skim_mode != "skim":
+            # save_skimmed_files is off but skim_mode is non-default -> almost certainly a mistake
+            logging.warning(
+                f"[skim] {self._dataset}: workflow_options['skim_mode']={skim_mode!r} is set but "
+                f"save_skimmed_files is not configured. skim_mode has no effect without save_skimmed_files; "
+                f"running the normal analysis pipeline."
+            )
+
     def loop_over_variations(self):
         # Get the requested shape variations by calibrator
         for variation, events_calibrated in self.calibrators_manager.calibration_loop(
@@ -763,8 +806,13 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             return self.output
 
         skim_mode = self.workflow_options.get("skim_mode", "skim") if self.workflow_options else "skim"
+        self._announce_skim_mode(skim_mode)
 
         if self.cfg.save_skimmed_files and skim_mode == "skim":
+            logging.info(
+                f"[skim] {self._dataset}: mode='skim' — exporting {self.nEvents_after_skim} events "
+                f"(skim cuts on raw NanoAOD, no calibration / no preselection)."
+            )
             self.export_skimmed_chunk()
             return self.output
 
@@ -778,22 +826,30 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             pass_any_variation = np.zeros(len(self.events), dtype=bool)
 
             # Dry-run loop to accumulate the OR of preselection masks
+            n_variations = 0
             for variation in self.loop_over_variations():
+                n_variations += 1
                 self.process_extra_after_calibrators(variation)
                 self.apply_object_preselection(variation)
                 self.count_objects(variation)
                 self.define_common_variables_before_presel(variation)
                 self.process_extra_before_presel(variation)
-                
+
                 # Get mask without filtering events
                 mask = self.get_preselection_mask(variation)
                 pass_any_variation = pass_any_variation | mask
-            
+
             # Apply the combined OR mask to the original uncalibrated events
             self.events = events_after_skim[pass_any_variation]
             self.nEvents_after_skim = len(self.events)
             self.output['cutflow']['skim'][self._dataset] = self.nEvents_after_skim
             self.has_events = self.nEvents_after_skim > 0
+
+            logging.info(
+                f"[skim] {self._dataset}: mode='presel_any_variation' — kept "
+                f"{self.nEvents_after_skim}/{len(events_after_skim)} events "
+                f"after OR of preselection across {n_variations} calibration variation(s)."
+            )
 
             if not self.has_events:
                 return self.output

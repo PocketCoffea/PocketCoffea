@@ -27,7 +27,8 @@ import time
 import re
 import cloudpickle
 from copy import deepcopy
-from pocket_coffea.utils.rucio import get_xrootd_sites_map
+from pocket_coffea.utils.rucio import get_xrootd_sites_map, get_rucio_client
+from pocket_coffea.utils.site_rewrite import _query_replicas
 from collections import Counter
 
 queues = [
@@ -96,16 +97,15 @@ def check_jobs_logs(jobs_folder):
     failed_jobs = [ a.split("/")[-1][:-7] for a in glob.glob(f"{jobs_folder}/job_*.failed")]
     return idle_jobs, running_jobs, done_jobs, failed_jobs
 
-def find_other_file(filepath,sitemap,xrootdfaillist=[],blacklist_sites=[]):
+def find_other_file(filepath, sitemap, xrootdfaillist=[], blacklist_sites=[], rucio_client=None):
     if filepath.startswith("root:/"):
         rootpref = filepath.split("/store/")[0]
         file = "/store/"+filepath.split("/store/")[1]
     else:
         rootpref = None
         file = filepath
-    
-    command = f'/cvmfs/cms.cern.ch/common/dasgoclient -query="site file={file}"' 
-    sites = os.popen(command,'r').read().split()
+
+    sites = _query_replicas(file, client=rucio_client)
     for site in sites:
         if site not in sitemap:
             continue
@@ -120,8 +120,8 @@ def find_other_file(filepath,sitemap,xrootdfaillist=[],blacklist_sites=[]):
             if rootpref in sitepath or sitepath in rootpref:
                 continue
         return sitepath+file
-                        
-    return filepath  
+
+    return filepath
 
 def update_blacklist(xrootdfaillist,blacklist_threshold):
     sitepathlist = [i.split("/store/")[0] for i in xrootdfaillist]
@@ -176,6 +176,11 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
 
     if resubmit:
         sitemap = get_xrootd_sites_map()
+        try:
+            rucio_client = get_rucio_client()
+        except Exception as e:
+            print(f"WARNING: could not open a rucio client ({e}); replica lookups will fail.")
+            rucio_client = None
         xrootdfailfile = f"{jobs_folder}/xrootdfaillist.txt"
         if os.path.isfile(xrootdfailfile):
             with open(xrootdfailfile,"r") as f:
@@ -271,7 +276,7 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                                         fllist = dct['files']
                                         if xrootdfile in fllist:
                                             flidx = fllist.index(xrootdfile)
-                                            newfl = find_other_file(xrootdfile,sitemap,xrootdfaillist,blacklist_sites)
+                                            newfl = find_other_file(xrootdfile,sitemap,xrootdfaillist,blacklist_sites,rucio_client=rucio_client)
                                             if newfl != xrootdfile:
                                                 new_fileset[sample]['files'][flidx] = newfl
                                                 config.set_filesets_manually(new_fileset)
@@ -293,7 +298,7 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                                             for flname in fllist:
                                                 thissite = flname.split("/store/")[0]
                                                 if thissite in blacklist_sites:
-                                                    newfl = find_other_file(flname,sitemap,xrootdfaillist,blacklist_sites)
+                                                    newfl = find_other_file(flname,sitemap,xrootdfaillist,blacklist_sites,rucio_client=rucio_client)
                                                     newfllist.append(newfl)
                                                     if newfl != flname:
                                                         flcounter += 1

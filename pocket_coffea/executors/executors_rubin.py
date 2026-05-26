@@ -12,6 +12,8 @@ import dask.config
 from dask_jobqueue import HTCondorCluster
 
 from pocket_coffea.utils.configurator import Configurator
+from pocket_coffea.utils.rucio import get_xrootd_sites_map
+from pocket_coffea.utils.site_rewrite import rewrite_fileset_blocklist
 import cloudpickle
 import yaml
         
@@ -178,7 +180,7 @@ echo 'Done'"""
             '+MaxRuntime' : self.run_options['max-run-time'],
             'RequestCpus' : self.run_options['cores-per-worker'],
             'RequestMemory' : f"{self.run_options['mem-per-worker']}",
-            'arguments': f"$(ProcId) config_job_$(ProcId).pkl {abs_output_path} {self.run_options['chunksize']}",
+            'arguments': f"$(ProcId) config_job_$(ProcId).pkl {abs_output_path} __CHUNKSIZE__",
             'should_transfer_files':'YES',
             'when_to_transfer_output' : 'ON_EXIT',
             'transfer_input_files' : f"{abs_jobdir_path}/config_job_$(ProcId).pkl,{self.x509_path},{abs_jobdir_path}/job.sh",
@@ -187,19 +189,34 @@ echo 'Done'"""
             'requirements' : 'Machine =!= LastRemoteHost',
             'notify_user': self.run_options['notify-user'],
             'notification': 'always'
-            
+
         }
 
-        with open(f"{self.jobs_dir}/jobs_all.sub", "w") as f:
-            for k,v in sub.items():
-                f.write(f"{k} = {v}\n")
-            f.write(f"queue {len(jobs_config)}\n")
-        # Creating also single sub files for resubmission
+        # Resolve per-job chunksize: accepts a scalar or per-sample dict.
+        chunksize_cfg = self.run_options['chunksize']
+        self._validate_chunksize_keys(chunksize_cfg, self.filesets)
+        per_job_chunksize = [self._resolve_chunksize_for_job(chunksize_cfg, split)
+                             for split in self._splits]
+        uniform_chunksize = len(set(per_job_chunksize)) <= 1
+        if not uniform_chunksize:
+            print(f"[chunksize] Per-job chunksize varies (min={min(per_job_chunksize)}, "
+                  f"max={max(per_job_chunksize)}); jobs will be submitted individually.")
+
+        if uniform_chunksize:
+            shared_chunksize = per_job_chunksize[0]
+            with open(f"{self.jobs_dir}/jobs_all.sub", "w") as f:
+                for k, v in sub.items():
+                    if isinstance(v, str):
+                        v = v.replace("__CHUNKSIZE__", str(shared_chunksize))
+                    f.write(f"{k} = {v}\n")
+                f.write(f"queue {len(jobs_config)}\n")
+        # Creating also single sub files for resubmission (always)
         for i, _ in enumerate(jobs_config):
             with open(f"{self.jobs_dir}/job_{i}.sub", "w") as f:
                 for k,v in sub.items():
                     if isinstance(v, str):
                         v = v.replace("$(ProcId)", str(i))
+                        v = v.replace("__CHUNKSIZE__", str(per_job_chunksize[i]))
                     f.write(f"{k} = {v}\n")
                 f.write(f"queue\n")
             # Let's also create a .idle file to indicate the the job is in idle
@@ -210,9 +227,13 @@ echo 'Done'"""
         if dry_run:
             print(f"Dry run, not submitting jobs. You can find all files: {abs_jobdir_path}")
             return
-        else:
+        elif uniform_chunksize:
             print("Submitting jobs")
             os.system(f"cd {abs_jobdir_path} && condor_submit jobs_all.sub")
+        else:
+            print(f"Submitting {len(jobs_config)} jobs individually (per-sample chunksize)")
+            for i, _ in enumerate(jobs_config):
+                os.system(f"cd {abs_jobdir_path} && condor_submit job_{i}.sub")
 
 
     def recreate_jobs(self, jobs_to_recreate):
@@ -228,6 +249,25 @@ echo 'Done'"""
             if not j.startswith("job_"):
                 jobs_to_redo.append(f"job_{j}")
         print(f"Recreating jobs: {jobs_to_redo}")
+
+        # Parse blocklist-sites: accept comma-separated string or list
+        blocklist_raw = self.run_options.get("blocklist-sites", None) or []
+        if isinstance(blocklist_raw, str):
+            blocklist_sites = {s for s in blocklist_raw.split(",") if s}
+        else:
+            blocklist_sites = set(blocklist_raw)
+        sitemap = get_xrootd_sites_map() if blocklist_sites else None
+        if blocklist_sites:
+            print(f"Blocklisting sites at recreate time: {sorted(blocklist_sites)}")
+
+        rucio_client = None
+        if blocklist_sites:
+            try:
+                from pocket_coffea.utils.rucio import get_rucio_client
+                rucio_client = get_rucio_client()
+            except Exception as e:
+                print(f"WARNING: could not open a rucio client ({e}); replica lookups will fail.")
+
         # Check if the job is in the list of jobs to recreate
         for job in jobs_to_redo:
             if job not in jobs_config["jobs_list"]:
@@ -237,8 +277,12 @@ echo 'Done'"""
             # This is usually done to change a file location
             # Load the configurator
             config = cloudpickle.load(open(f"{self.jobs_dir}/config_{job}.pkl", "rb"))
-            # Modify the fileset
-            config.set_filesets_manually(jobs_config["jobs_list"][job]["filesets"])
+            # Modify the fileset (optionally rewriting blocklisted sites)
+            fileset = jobs_config["jobs_list"][job]["filesets"]
+            if blocklist_sites:
+                fileset = rewrite_fileset_blocklist(fileset, sitemap, blocklist_sites,
+                                                    rucio_client=rucio_client)
+            config.set_filesets_manually(fileset)
             # Save the configurator
             cloudpickle.dump(config, open(f"{self.jobs_dir}/config_{job}.pkl", "wb"))
             # Resubmit the job
