@@ -1794,7 +1794,7 @@ class SystUnc:
             )
             axes = self.ax
         hep.cms.text(
-            "Simulation Preliminary",
+            "Work in Progress",
             fontsize=self.style.fontsize,
             loc=self.style.experiment_label_loc,
             ax=self.ax,
