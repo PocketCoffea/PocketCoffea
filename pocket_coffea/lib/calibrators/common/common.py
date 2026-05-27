@@ -14,6 +14,7 @@ from pocket_coffea.utils.utils import get_random_seed
 import copy
 from omegaconf import OmegaConf
 from pocket_coffea.lib.muon_scale_and_resolution import pt_scale, pt_resol, pt_scale_var, pt_resol_var
+from pocket_coffea.utils.utils import get_nano_version
 import correctionlib
 
 class JetsCalibrator(Calibrator):
@@ -39,34 +40,23 @@ class JetsCalibrator(Calibrator):
         # It is filled dynamically in the initialize method
         self.calibrated_collections = []
 
-    def initialize(self, events):
+    def initialize(self, events):        
+        nano_aod_version = get_nano_version(events,self.params,self._year)
         # Load the calibration of each jet type requested by the parameters
         for jet_type, jet_coll_name in self.jet_calib_param.collection[self.year].items():
-            # Define the key name to get the corrections
+            #print("Initializing:", jet_type, jet_coll_name)
+            if jet_coll_name==None:
+                continue
+            
+            # Define the key name to get the jet corrections
             if ( ("collection_name_alias" in self.jet_calib_param) and 
                 (self.year in self.jet_calib_param.collection_name_alias) and
                 (jet_type in self.jet_calib_param.collection_name_alias[self.year])):
                 jet_type_alias = self.jet_calib_param.collection_name_alias[self.year][jet_type]
             else:
                 jet_type_alias=jet_type
-                
-            # Check if the collection is enables in the parameters
-            # print("Working on ", jet_type, jet_coll_name )
-            # print("Alias: ", jet_type_alias)
-            if self.isMC:
-                if (self.jet_calib_param.apply_jec_MC[self.year][jet_type_alias] == False):
-                    # If the collection is not enabled, we skip it
-                    continue
-            else:
-                if self.jet_calib_param.apply_jec_Data[self.year][jet_type_alias] == False:
-                    # If the collection is not enabled, we skip it
-                    continue
-
-            if jet_coll_name in self.jets_calibrated:
-                # If the collection is already calibrated with another jet_type, raise an error for misconfiguration
-                raise ValueError(f"Jet collection {jet_coll_name} is already calibrated with another jet type. " +
-                                 f"Current jet type: {jet_type}. Previous jet types: {self.jets_calibrated[jet_coll_name]}")
-            # Check if the pt regression is requested, if not skip it
+            
+            # Check if the pt regression is requested. If so - aplly it and continue with JECs
             if ((self.isMC and self.jet_calib_param.apply_pt_regr_MC[self.year][jet_type_alias]) 
                     or
                (not self.isMC and self.jet_calib_param.apply_pt_regr_Data[self.year][jet_type_alias])):
@@ -84,6 +74,24 @@ class JetsCalibrator(Calibrator):
                 # replacing the collecation in place, so that the JEC is applied to the regressed jets
                 events[jet_coll_name] = jets_regressed
 
+                
+                
+            # Check if the collection is enables in the parameters
+            # print("Working on ", jet_type, jet_coll_name )
+            # print("Alias: ", jet_type_alias)
+            if self.isMC:
+                if (self.jet_calib_param.apply_jec_MC[self.year][jet_type_alias] == False):
+                    # If the collection is not enabled, we skip it
+                    continue
+            else:
+                if self.jet_calib_param.apply_jec_Data[self.year][jet_type_alias] == False:
+                    # If the collection is not enabled, we skip it
+                    continue
+
+            if jet_coll_name in self.jets_calibrated:
+                # If the collection is already calibrated with another jet_type, raise an error for misconfiguration
+                raise ValueError(f"Jet collection {jet_coll_name} is already calibrated with another jet type. " +
+                                 f"Current jet type: {jet_type}. Previous jet types: {self.jets_calibrated[jet_coll_name]}")
 
             # register the collection as calibrated by this calibrator
             self.calibrated_collections.append(jet_coll_name)
@@ -101,6 +109,7 @@ class JetsCalibrator(Calibrator):
                     "isMC": self.metadata["isMC"],
                     "era": self.metadata["era"] if "era" in self.metadata else None,
                 },
+                nano_version=nano_aod_version,
                 jec_syst=self.do_variations,
                 apply_jer=self.jet_calib_param.apply_jer_MC[self.year][jet_type_alias] if self.isMC else False,
             )
@@ -122,6 +131,9 @@ class JetsCalibrator(Calibrator):
         # For this we just read from the parameters
         available_jet_variations = []
         for jet_type, jet_coll_name in self.jet_calib_param.collection[self.year].items():
+            if jet_coll_name==None:
+                continue
+
             # Define the key name to get the corrections
             if ((("collection_name_alias" in self.jet_calib_param) and 
                 (self.year in self.jet_calib_param.collection_name_alias)) and
@@ -274,12 +286,15 @@ class JetsCalibrator(Calibrator):
         # We just need to apply the corrections to the events
         out = {}
         for jet_coll_name, jets in self.jets_calibrated.items():
+            if jet_coll_name==None:
+                continue
+            
             # Creating a soft copy of the jets to avoid modifying the original one
             # stored in the calibrator when replacing the pt correctly.
             # In practice this is not using more memory, it is just making sure that changes of
             # pointers in the out dict do not affect the calibrator internal state.
             # N.B: we don't just replace the pt and mass in the jets from events
-            # because we want to use the collection initialized in the calibrator. 
+            # because we want to use the collection initialized in the calibrator.
             out[jet_coll_name] = copy.copy(jets)
             
         if variation == "nominal" or variation not in self._variations:
@@ -327,7 +342,8 @@ class JetsCalibrator(Calibrator):
         
         # get the jet collection name from the parameters
         jet_coll_name = self.jet_calib_param.collection[self.year][jet_type]
-        
+        if jet_coll_name==None:
+            return
         if jet_coll_name not in self.jets_calibrated:
             raise ValueError(f"Jet collection {jet_coll_name} not found in the calibrated jets.")
         # Apply the variation to the jets
@@ -370,7 +386,7 @@ class JetsSoftdropMassCalibrator(Calibrator):
         self.calibrated_collections = []
 
     def initialize(self, events):
-
+        nano_aod_version = get_nano_version(events,self.params,self._year)
         # Load the calibration of each jet type requested by the parameters
         for jet_type, jet_coll_name in self.jet_calib_param.collection[self.year].items():
             # Calibrate only AK8 jets
@@ -411,6 +427,7 @@ class JetsSoftdropMassCalibrator(Calibrator):
                     "isMC": self.metadata["isMC"],
                     "era": self.metadata["era"] if "era" in self.metadata else None,
                 },
+                nano_version=nano_aod_version,
                 jec_syst=self.do_variations
             )
             # Add to the list of the types calibrated
@@ -533,10 +550,11 @@ class METCalibrator(Calibrator):
 
         # Check if the MET calibration is active 
         if self.met_calib_active:
+            # print("Calibrating METs using jet collection:", self.jet_collection)
             jets_calib = events[self.jet_collection]
             jet_jecL1L2L3 = 1./(1. - jets_calib["rawFactor"])
             jet_jecL1 = 1. # For PuppiJets
-            
+
             corrT1METJet = events[self.corrT1METJet_branch]
             corrT1METJet_jecL1L2L3 = 1./(1. - corrT1METJet["rawFactor"])
 

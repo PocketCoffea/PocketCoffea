@@ -374,6 +374,64 @@ def test_cartesian_categorization(base_path: Path, monkeypatch: pytest.MonkeyPat
     compare_totalweight(output, ["nJetGood"])
 
 
+def test_promptmva_eval(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
+    """
+    Test the on-the-fly promptMVA re-evaluation for Run3 (2023_postBPix) datasets.
+
+    Verifies that:
+    - ElectronMVAEvaluator / MuonMVAEvaluator load and run without error.
+    - The re-computed 'mvaTTH_redo' field is attached to both lepton collections.
+    - All selected leptons exported via ColOut have scores within TMVA range [-1, 1]
+      and above their respective MVA working-point thresholds.
+    """
+    monkeypatch.chdir(base_path / "test_promptmva")
+    outputdir = tmp_path_factory.mktemp("test_promptmva")
+    config = load_config("config.py", save_config=True, outputdir=outputdir)
+    assert isinstance(config, Configurator)
+
+    run_options = defaults.get_default_run_options()["general"]
+    run_options["limit-files"] = 1
+    run_options["limit-chunks"] = 1
+    run_options["chunksize"] = 200
+    run_options["ignore-grid-certificate"] = True
+    config.filter_dataset(run_options["limit-files"])
+
+    executor_factory = executors_lib.get_executor_factory(
+        "iterative", run_options=run_options, outputdir=outputdir
+    )
+    executor = executor_factory.get()
+
+    run = Runner(
+        executor=executor,
+        chunksize=run_options["chunksize"],
+        maxchunks=run_options["limit-chunks"],
+        schema=processor.NanoAODSchema,
+        format="root",
+    )
+    output = run(
+        config.filesets, treename="Events", processor_instance=config.processor_instance
+    )
+    save(output, outputdir / "output_all.coffea")
+
+    assert output is not None
+
+    cols = output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2023_postBPix"]["baseline"]["nominal"]
+
+    # All exported ElectronGood mvaTTH_redo scores must be in TMVA range and above WP
+    ele_scores = cols["ElectronGood_mvaTTH_redo"].value
+    if len(ele_scores) > 0:
+        assert np.all(ele_scores >= -1.0)
+        assert np.all(ele_scores <= 1.0)
+        assert np.all(ele_scores >= 0.90)  # mva_wp for 2023_postBPix electrons
+
+    # All exported MuonGood mvaTTH_redo scores must be in TMVA range and above WP
+    mu_scores = cols["MuonGood_mvaTTH_redo"].value
+    if len(mu_scores) > 0:
+        assert np.all(mu_scores >= -1.0)
+        assert np.all(mu_scores <= 1.0)
+        assert np.all(mu_scores >= 0.64)  # mva_wp for 2023_postBPix muons
+
+
 ## ------------------------------------------------------------------------------------
 
 def test_skimming(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):

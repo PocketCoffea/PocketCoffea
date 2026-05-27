@@ -12,7 +12,7 @@ Skimming NanoAOD events and save the reduced files on disk can speedup a lot the
 
 Follow these instructions to skim the files on EOS:
 1. Add the `save_skimmed_files` argument to the configurator with a suitable folder name: e.g. `  save_skimmed_files = "root://eoscms.cern.ch//eos/cms/store/group/phys_higgs/ttHbb/Run3_semileptonic_skim/"`
-    
+
 2. It is recommended to run the processing on HTCondor at CERN using the new direct condor executor. That will send out standard jobs instead of using dask. Please make sure your dataset list is up-to-date before sending the jobs. 
    ```pocket-coffea run --cfg config_skim.py  -o output_skim_config -e condor@lxplus --scaleout NUMBEROFJOBS --chunksize 200000 --job-dir jobs --job-name skim --queue workday --dry-run``` . Use the `--dry-run` option to check the job splitting configuration and remove it when you are happy to submit the jobs.
 
@@ -36,6 +36,181 @@ WIP
 
 ### Define a custom weights with custom variations
 WIP
+
+## promptMVA lepton selection and on-the-fly re-evaluation
+
+The promptMVA (`mvaTTH`) is a BDT-based lepton ID used in ttH analyses to suppress
+non-prompt leptons. For Run3 2022–2023 datasets produced with NanoAODv12/v13, the
+`mvaTTH` branch stored in NanoAOD was trained on a different data-taking period and
+must be **re-evaluated on the fly** before applying the working-point cut. For 2024
+datasets (NanoAODv15) the value is correct out of the box.
+
+PocketCoffea provides:
+- `ElectronMVAEvaluator` / `MuonMVAEvaluator` — XGBoost wrappers in
+  `pocket_coffea.lib.xgboost_evaluator` that reproduce the TMVA score in `[-1, 1]`.
+- `lepton_selection_promptMVA` — drop-in replacement for `lepton_selection` in
+  `pocket_coffea.lib.leptons` that applies the full preselection and optional MVA WP cut.
+- Pre-configured model weights and scale factors in
+  `pocket_coffea/parameters/lepton_scale_factors.yaml` under
+  `lepton_scale_factors.{electron,muon}_sf.promptMVA_jsons`.
+
+### Object preselection parameters
+
+The `lepton_selection_promptMVA` function requires several additional keys under
+`object_preselection` compared to the standard `lepton_selection`. Add these to your
+`params/object_preselection.yaml`:
+
+```yaml
+object_preselection:
+  Electron:
+    pt: 15.0
+    eta: 2.5
+    sip3d: 8.0          # 3D impact-parameter significance
+    lostHits: 1         # max number of lost tracker hits
+    dxy: 0.05           # |dxy| < dxy [cm]
+    dz: 0.1             # |dz| < dz [cm]
+    id:                 # NanoAOD field used as MVA score (per year)
+      "2022_preEE":    mvaTTH_redo
+      "2022_postEE":   mvaTTH_redo
+      "2023_preBPix":  mvaTTH_redo
+      "2023_postBPix": mvaTTH_redo
+      "2024":          mvaTTH           # read directly from NanoAOD in v15
+    mva_wp:             # MVA working-point threshold (per year)
+      "2022_preEE":    0.90
+      "2022_postEE":   0.90
+      "2023_preBPix":  0.90
+      "2023_postBPix": 0.90
+      "2024":          0.90
+    btag_cut:           # DeepFlavB score veto on the closest jet (per year)
+      2022_preEE: 0.3086
+      2022_postEE: 0.3196
+      2023_preBPix: 0.2431
+      2023_postBPix: 0.2435
+      "2024": 999.
+
+  Muon:
+    pt: 10.0
+    eta: 2.4
+    iso: 0.4
+    sip3d: 8.0
+    dxy: 0.05
+    dz: 0.1
+    base_id: looseId    # NanoAOD field for baseline muon ID
+    id:
+      "2022_preEE":    mvaTTH_redo
+      "2022_postEE":   mvaTTH_redo
+      "2023_preBPix":  mvaTTH_redo
+      "2023_postBPix": mvaTTH_redo
+      "2024":          mvaTTH
+    mva_wp:
+      "2022_preEE":    0.64
+      "2022_postEE":   0.64
+      "2023_preBPix":  0.64
+      "2023_postBPix": 0.64
+      "2024":          0.64
+    btag_cut:
+      2022_preEE: 0.3086
+      2022_postEE: 0.3196
+      2023_preBPix: 0.2431
+      2023_postBPix: 0.2435
+      "2024": 999.
+```
+
+### Workflow implementation
+
+In `apply_object_preselection`, first compute scores for 2022–2023 years and attach
+them as `mvaTTH_redo`, then call `lepton_selection_promptMVA` with `apply_mva_cut=True`:
+
+```python
+import awkward as ak
+from pocket_coffea.workflows.base import BaseProcessorABC
+from pocket_coffea.lib.objects import jet_selection, btagging
+from pocket_coffea.lib.leptons import lepton_selection_promptMVA
+from pocket_coffea.lib.xgboost_evaluator import ElectronMVAEvaluator, MuonMVAEvaluator
+
+REDO_MVA_YEARS = ["2022_preEE", "2022_postEE", "2023_preBPix", "2023_postBPix"]
+
+
+class MyProcessor(BaseProcessorABC):
+
+    def apply_object_preselection(self, variation):
+        # Re-evaluate promptMVA on the fly for 2022/2023 datasets
+        if self._year in REDO_MVA_YEARS:
+            ele_evaluator = ElectronMVAEvaluator(
+                self.params.lepton_scale_factors.electron_sf.promptMVA_jsons[self._year].model_weights
+            )
+            muon_evaluator = MuonMVAEvaluator(
+                self.params.lepton_scale_factors.muon_sf.promptMVA_jsons[self._year].model_weights
+            )
+
+            _, presel_ele_mask = lepton_selection_promptMVA(
+                self.events, "Electron", self.params, self._year, apply_mva_cut=False
+            )
+            self.events["Electron"] = ak.with_field(
+                self.events["Electron"],
+                ele_evaluator.evaluate(self.events["Electron"], self.events["Jet"], mask=presel_ele_mask),
+                "mvaTTH_redo",
+            )
+
+            _, presel_muon_mask = lepton_selection_promptMVA(
+                self.events, "Muon", self.params, self._year, apply_mva_cut=False
+            )
+            self.events["Muon"] = ak.with_field(
+                self.events["Muon"],
+                muon_evaluator.evaluate(self.events["Muon"], self.events["Jet"], mask=presel_muon_mask),
+                "mvaTTH_redo",
+            )
+
+        # Apply final selection using the (re-)computed MVA score
+        self.events["ElectronGood"], _ = lepton_selection_promptMVA(
+            self.events, "Electron", self.params, self._year,
+            apply_mva_cut=True,
+            mva_var=self.params.object_preselection.Electron.id[self._year],
+        )
+        self.events["MuonGood"], _ = lepton_selection_promptMVA(
+            self.events, "Muon", self.params, self._year,
+            apply_mva_cut=True,
+            mva_var=self.params.object_preselection.Muon.id[self._year],
+        )
+
+        leptons = ak.with_name(
+            ak.concatenate((self.events.MuonGood, self.events.ElectronGood), axis=1),
+            name="PtEtaPhiMCandidate",
+        )
+        self.events["LeptonGood"] = leptons[ak.argsort(leptons.pt, ascending=False)]
+        self.events["JetGood"], self.jetGoodMask = jet_selection(
+            self.events, "Jet", self.params, self._year, leptons_collection="LeptonGood"
+        )
+        self.events["BJetGood"] = btagging(
+            self.events["JetGood"],
+            self.params.btagging.working_point[self._year],
+            wp=self.params.object_preselection.Jet["btag"]["wp"],
+        )
+```
+
+### Scale factors
+
+The corresponding promptMVA lepton ID scale factors are provided as the
+`sf_ele_promptMVA` and `sf_mu_promptMVA` weight wrappers, already included in
+`common_weights`. Add them to the `weights` section of your configurator:
+
+```python
+weights = {
+    "common": {
+        "inclusive": [
+            "genWeight", "lumi", "XS",
+            "sf_ele_promptMVA",
+            "sf_mu_promptMVA",
+        ],
+    },
+}
+```
+
+:::{note}
+For 2022–2023 the scale factors are derived from the TTH multilepton team and stored
+under `pocket_coffea/parameters/custom_SFs/{electron,muon}_promptMVA/`. For 2024
+(NanoAODv15) central POG scale factors are used automatically.
+:::
 
 ## Apply corrections
 Here we describe how to apply certain corrections recommended by CMS POGs.
@@ -110,7 +285,7 @@ default_jets_calibration:
         jec_data: Summer22_22Sep2023_RunCD_V3_DATA
         jer: Summer22_22Sep2023_JRV1_MC
         level: L1L2L3Res
-      
+
       2022_postEE:
         json_path: ${cvmfs:Run3-22EFGSep23-Summer22EE-NanoAODv12,JME,jet_jerc.json.gz}
         jec_mc: Summer22EE_22Sep2023_V3_MC
@@ -135,14 +310,14 @@ jets_calibration:
       # AK4PFPuppiPNetRegression: "Jet"
 ```
 
-The jet type is just an internal labels used in the PocketCoffea configuration to link various pieces of the jets configuration together. 
+Here, the `AK4PFPuppi`, `AK8PFPuppi` and `AK4PFPuppiPNetRegression` are the jet types used as internal labels in the PocketCoffea configuration to link various pieces of the jets configuration together. The `Jet` and `FatJet` are the names of the branches in NanoAOD.
 
 :::{warning}
 All the collections defined in the `jets_calibration.collection` entry will be calibrated by the configured JetsCalibrator if included in the calibrators sequence. It is not allowed to match the same jet collection to multiple jet types: an error will be raised.
 :::
 
 ##### Collection Name Aliases
-To allow to use the same calibration settings on different ket collections, it is possible to define aliases for the collection names with the `collection_name_alias` key. For example, if you have a jet collection called `JetCustom` that you want to calibrate in the same way as you do for the `Jet` collection, which is mapped to the `AK4PFPuppi` jet type, your configuration would look like this:
+In order to use the same calibration settings on different jet collections, it is possible to define aliases for the collection names with the `collection_name_alias` key. For example, if you have a jet collection called `JetCustom` that you want to calibrate in the same way as you do for the `Jet` collection, which is mapped to the `AK4PFPuppi` jet type, your configuration would look like this:
 
 ```yaml
 jets_calibration:
@@ -160,24 +335,29 @@ In order to merge the variations of the `JetCustom` collection, you need to defi
 :::
 
 ##### Calibration Control Flags
-Enable/disable different correction types per jet type and period:
+
+Here is how one can enable/disable different correction types per jet type and period:
 
 ```yaml
-  apply_jec_MC:           # Apply JEC to MC
+# Apply JEC to MC
+  apply_jec_MC:
     2022_preEE:
       AK4PFPuppi: True
       AK4PFPuppiPNetRegression: True
 
-  apply_jer_MC:           # Apply JER to MC
+# Apply JER to MC
+  apply_jer_MC:
     2022_preEE:
       AK4PFPuppi: True
       AK4PFPuppiPNetRegression: True
-      
-  apply_jec_Data:         # Apply JEC to Data
+
+# Apply JEC to Data
+  apply_jec_Data:
     2022_preEE:
       AK4PFPuppi: True
-      
-  apply_pt_regr_MC:       # Apply pT regression to MC
+
+# Apply pT regression to MC
+  apply_pt_regr_MC:
     2022_preEE:
       AK4PFPuppi: False
       AK4PFPuppiPNetRegression: True
@@ -188,11 +368,11 @@ Enable/disable different correction types per jet type and period:
       AK8PFPuppi: True
     2016_PostVFP:
       AK4PFchs: True
-      AK8PFPuppi: True  
+      AK8PFPuppi: True
 ```
 
 ##### Systematic Variations
-Different sets of systematic variations are available in the default parameter set. 
+Different sets of JEC systematic variations are available in the default parameter set. 
 
 ```yaml
 default_jets_calibration:
@@ -236,13 +416,14 @@ By default, each systematic variation produces a separate collection of calibrat
 jets_calibration:
   merge_collections_for_variations:
     2022_preEE:
-      AK4Jet: 
+      AK4Jet:
         - AK4PFPuppi
         - AK4PFPuppiPNetRegression
         - AK4PFPuppiCustom
 ```
 
-This will create variation with the name `AK4Jet_{variation}_[up|down]` that merges the variations from the specified jet types.
+This will create variation with the name `AK4Jet_{variation}_[up|down]` that merges the variations from the specified jet types.  
+ToDo: better describe how this merging is done. What if AK4PFPuppi and AK4PFPuppiCustom have different up_variation for example.
 
 #### MET Recalibration
 Configure MET corrections that propagate jet calibration changes:
@@ -266,13 +447,13 @@ from pocket_coffea.lib.calibrators.common import default_calibrators_sequence
 calibrators = default_calibrators_sequence
 ```
 
-For custom configurations, modify the `jets_calibration` section in your parameters:
+For custom configurations, modify the `jets_calibration` section in your parameters, for example:
 
 ```yaml
 jets_calibration:
   # Use a different variation set
   variations: "${default_jets_calibration.variations.full_variations}"
-  
+
   # Enable specific jet types
   collection:
     2022_preEE:
@@ -281,60 +462,61 @@ jets_calibration:
 
 
 ### Jet energy regression
-Starting from Run3 datasetes the ParticleNet jet energy regression corrections are part of the `Jet` object in NanoAOD. But they are not applied by default. In PocketCoffea the regression can be turned On/Off via configuration by using the `JetPtRegressionCalibrator` in the calibration sequence and by activating the pt regression in the jets calibration configuration
+Starting from Run3 datasetes the ParticleNet jet energy regression corrections are part of the `Jet` object in NanoAOD. But they are not applied by default. In PocketCoffea the regression is implemented in `JetPtRegressionCalibrator` in the calibration sequence and can be turned On/Off via configuration parameters as show in the example below:
 
 ```yaml
 jets_calibration:
   collection:
     2022_preEE:
-      AK4PFPuppiPNetRegression: "Jet"
-      #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
-      
-    2022_postEE:
-      AK4PFPuppiPNetRegression: "Jet"
-      #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
-
-    2023_preBPix:
-      AK4PFPuppiPNetRegression: "Jet"
-      #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
-
-    2023_postBPix:
+      AK4PFPuppi: null
       AK4PFPuppiPNetRegression: "Jet"
       #AK4PFPuppiPNetRegressionPlusNeutrino: "Jet"
 
   apply_pt_regr_MC:
-	2022_preEE:
-      AK4PFPuppiPNetRegression: True
-      #AK4PFPuppiPNetRegressionPlusNeutrino: True
-    2022_postEE: 
-      AK4PFPuppiPNetRegression: True
-      #AK4PFPuppiPNetRegressionPlusNeutrino: True
-    2023_preBPix: 
-      AK4PFPuppiPNetRegression: True
-      #AK4PFPuppiPNetRegressionPlusNeutrino: True
-    2023_postBPix: 
+    2022_preEE:
       AK4PFPuppiPNetRegression: True
       #AK4PFPuppiPNetRegressionPlusNeutrino: True
 
   apply_pt_regr_Data:
-    2022_preEE: 
-      AK4PFPuppiPNetRegression: True
-      #AK4PFPuppiPNetRegressionPlusNeutrino: True
-    2022_postEE:
-      AK4PFPuppiPNetRegression: True
-      #AK4PFPuppiPNetRegressionPlusNeutrino: True
-    2023_preBPix: 
-      AK4PFPuppiPNetRegression: True
-      #AK4PFPuppiPNetRegressionPlusNeutrino: True
-    2023_postBPix: 
+    2022_preEE:
       AK4PFPuppiPNetRegression: True
       #AK4PFPuppiPNetRegressionPlusNeutrino: True
 ```
+Note that there are two versions of regression are available in PNet: with and without neutrinos used in the training.  
+In the example above, the default `jets` configuration is overwritten to assign the `Jet` collection to the `AK4PFPuppiPNetRegression` tag, and to activate the pt regression for data and MC for that tag. Note the line `AK4PFPuppi: null` -- it is needed to remove the association of the `AK4PFPuppi` to the `Jet`, which is default pocket-coffea setting.
 
-The default jets configuration is overwritten to assign the `Jet` collection to the `AK4PFPuppiPNetRegression` tag, and to activate the pt regression for data and MC for that tag. 
+However, this is not all. We also need to apply JEC and JER on the regressed jets. The dedicated corrections, derived for PNet regressed jets, have been recently releasesd by JME, see [https://cms-jerc.web.cern.ch/ExpJEC/](https://cms-jerc.web.cern.ch/ExpJEC/) (as of 19 May 2026). The corrections are located at CERN EOS (not CVMFS!). One has to specify a path to them and set the tags, like so for *2022_preEE*:  
+
+```yaml
+jets_calibration:
+  ...
+  # set up collection, apply_pt_regr_MC and apply_pt_regr_Data fields
+  ...
+
+  # Path to JERCS at CERN EOS:
+  path_to_JERC_PNetReg: '/eos/cms/store/group/phys_jetmet/ExpJEC/json_files_Reg/'
+  # If running outside CERN without access to EOS: copy the files to your cluster and use the corresponding  path.
+
+  jet_types:
+    AK4PFPuppiPNetRegression:
+      2022_preEE:
+        json_path: "${jets_calibration.path_to_JERC_PNetReg}/Run3Summer22_22Sep2023/regJet_jerc.json.gz"
+	    jec_mc: Summer22_22Sep2023_V4_MC
+	    jec_data: Summer22_22Sep2023_V4_DATA
+	    jer: Summer22_22Sep2023_JRV1_MC
+        level: L1L2L3Res
+
+  variations:
+    AK4PFPuppiPNetRegression:
+      2022_preEE:
+        - JES_Total
+        - JER
+```  
+
+An example of a full config can be found [here](https://gitlab.cern.ch/cms-analysis/hig/vhcc-run3/VHccPoCo/-/blob/main/params/jet_regression.yaml?ref_type=heads).
 
 
-If the user needs to apply regression only to a subset of Jets, then the best strategy is to define a copy of the Jet collection and calibrate that. 
+If the user needs to apply regression only to a subset of jets, then the best strategy is to define a copy of the Jet collection and calibrate that. 
 
 An example configuration for this:
 
@@ -342,18 +524,6 @@ An example configuration for this:
 jets_calibration:
   collection:
     2022_preEE:
-      AK4PFPuppiPNetRegression: "JetPtReg"
-      #AK4PFPuppiPNetRegressionPlusNeutrino: "JetPtReg"
-      
-    2022_postEE:
-      AK4PFPuppiPNetRegression: "JetPtReg"
-      #AK4PFPuppiPNetRegressionPlusNeutrino: "JetPtReg"
-
-    2023_preBPix:
-      AK4PFPuppiPNetRegression: "JetPtReg"
-      #AK4PFPuppiPNetRegressionPlusNeutrino: "JetPtReg"
-
-    2023_postBPix:
       AK4PFPuppiPNetRegression: "JetPtReg"
       #AK4PFPuppiPNetRegressionPlusNeutrino: "JetPtReg"
 
@@ -370,7 +540,7 @@ object_preselections:
             M
 ```
 
-This clone of the Jet collection needs to be defined in the `process_extra_after_skim` function of the user's workflow
+For this to work a clone of the `Jet` collection (called `JetPtReg`) needs to be defined in the `process_extra_after_skim` function of the user's workflow:
 
 ```python
 from pocket_coffea.workflows.base import BaseProcessorABC
@@ -384,11 +554,15 @@ class PtRegrProcessor(BaseProcessorABC):
         # Create extra Jet collections for testing
         self.events["JetPtReg"] = ak.copy(self.events["Jet"])
         # self.events["JetPtRegPlusNeutrino"] = ak.copy(self.events["Jet"])
-```
+```  
+
+Now it is up to the user to deal with two collections in their workflow: `Jet` and `JetPtReg`.
+  
 
 Further references:  
 * The analysis note: [AN-2022/094](https://cms.cern.ch/iCMS/jsp/db_notes/noteInfo.jsp?cmsnoteid=CMS%20AN-2022/094)
 * Measuring response in Z+b events: [presentation](https://indico.cern.ch/event/1451196/contributions/6181213/attachments/2949253/5183620/cooperstein_HH4b_oct162024.pdf)
+* JME page with *experimental* JECs: [https://cms-jerc.web.cern.ch/ExpJEC/](https://cms-jerc.web.cern.ch/ExpJEC/)
 
 #### Merge regressed and standard jet pT
 In some cases, e.g. PNet regression in NanoAODv12, the regression can be applied only to a subset of jets (e.g. cutting on pT and eta of the jet). In this case, one may want to merge the regressed pT values with the standard pT values for jets failing the regression criteria. In order to do this, your configuration would look like this:
@@ -403,7 +577,7 @@ jets_calibration:
 
 ```
 
-The merging of the pT values can be done in the user's workflow, e.g. in the `apply_object_preselection` section:
+The merging of the two jet collections should be done in the user's workflow, e.g. in the `apply_object_preselection` section:
 
 ```python
 from pocket_coffea.workflows.base import BaseProcessorABC
@@ -419,10 +593,10 @@ class PtRegrProcessor(BaseProcessorABC):
         #self.events["JetPtRegPlusNeutrino"] = ak.copy(self.events["Jet"])
 
     def apply_object_preselection(self, variation):
-        # Use the regressed pt from PNet collection if available,
-        # otherwise use the JEC corrected pt collection
+        # Use the regressed jet from PNet collection if available,
+        # otherwise use the standard, JEC corrected collection.
         # This way we consider correctly all fields which change depending on
-        # the pt definition, namely the pt, mass and the associated systematic variations
+        # the pt definition, namely the pt, mass and the associated systematic variations:
         self.events["Jet"] = ak.where(
             self.events["JetPtReg"].pt > 0,
             self.events["JetPtReg"],
@@ -435,7 +609,7 @@ In order to merge the variations of the `Jet` and `JetPtReg` collections, you ne
 :::
 
 :::{warning}
-When merging the collections like this, make sure to set the `sort_by_pt` option to `False` for the jet typea in the jets calibration configuration, otherwise the jet ordering will be changed and the merging will fail.
+When merging the collections like this, make sure to set the `sort_by_pt` option to `False` for the jet type in the jets calibration configuration, otherwise the jet ordering will be changed and the merging will fail.
 :::
 
 
@@ -446,7 +620,6 @@ This example shows running on CERN lxplus and assumes a prior understanding of h
 At the time of writing, `onnxruntime` is not installed in the singularity container, which means that you will need to run with a custom environment. Instructions for this are given in [Running the analysis](./running.md)
 
 The following code is a custom executor which is meant to be filled in with details such as the path to the `model.onnx` file and options used in the `InferenceSession`.
-
 ```python
 from pocket_coffea.executors.executors_lxplus import DaskExecutorFactory
 from dask.distributed import WorkerPlugin, Worker, Client
@@ -543,7 +716,7 @@ If your configuration contains a large number of categories, variables, and syst
 
 - The `merge-output` script dumps partial `.coffea` outputs whenever memory usage exceeds 50% of the available RAM on the machine. However, this means one still has to use a different large-memory machine to merge them into one `.coffea` file and/or read them all into memory during plotting. The fragmented `.coffea` dumps consume less space on disk and are fewer in number, so it is easier to `scp` them to other machines using this approach.
 
-- A more efficient solution is to split outputs into "category groups" (i.e. channels or regions of the analysis) and merge/process only one group of categories at one time. Since plots are typically made per channel, this lets one do everything without loading multiple caetegory-grouped files into the memory.
+- A more efficient solution is to split outputs into "category groups" (i.e. channels or regions of the analysis) and merge/process only one group of categories at one time. Since plots are typically made per channel, this lets one do everything without loading multiple category-grouped files into the memory.
 
 Currently, the second solution is implemented only for the `condor@lxplus` executor. It can be utilized as follows:
   * `runner`: Pass `--split-by-category` to `runner` (actually gets passed to the executor parameters). The output from each job is then further split to contain 8 categories per output file, so each job produces `n_groups = n_categories/8` output files. This is handled through the `split-output` command, which in turn calls `utils.filter_output.filter_output_by_category`.

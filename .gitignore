@@ -163,3 +163,7 @@ cython_debug/
 # User data (analysis configs outside pocket-coffea)
 AnalysisConfigs/
 VHccPoCo/
+output*
+plots*
+.pkl.gz
+myenv/

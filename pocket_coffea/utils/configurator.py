@@ -275,9 +275,15 @@ class Configurator:
             # Weights variations
             for cat, vars in self.variations_config[sample]["weights"].items():
                 self.available_weights_variations[sample] += vars
-            # Shape variations
+            # Shape variations — full-sample and subsample-specific.
+            # The processor passes available_shape_variations to the calibration loop,
+            # so subsample-specific shape variations must be included here so their
+            # calibration passes are actually executed.
             for cat, vars in self.variations_config[sample]["shape"].items():
                 self.available_shape_variations[sample] += vars
+            for subsample_cfg in self.variations_config[sample]["by_subsample"].values():
+                for cat, vars in subsample_cfg["shape"].items():
+                    self.available_shape_variations[sample] += vars
             # make them unique
             self.available_weights_variations[sample] = list(
                 set(self.available_weights_variations[sample])
