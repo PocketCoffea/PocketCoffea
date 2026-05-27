@@ -43,11 +43,33 @@ from pocket_coffea.utils.benchmarking import print_processing_stats
 @click.option("--filter-samples", type=str, help="Filter the samples to be processed (comma separated list)")
 @click.option("--filter-datasets", type=str, help="Filter the datasets to be processed (comma separated list)")
 @click.option("--resubmit-failed", is_flag=True, help="Resubmit only failed jobs from previous run (requires failed_jobs.json)", default=False)
+@click.option("--blocklist-sites", type=str, default=None,
+              help="Comma-separated CMS site names to avoid when using --recreate-jobs on a manual-jobs executor. "
+                   "Files currently served by a blocklisted site are rewritten via DAS lookup, falling back to the "
+                   "global xrootd redirector if no alternative is available.")
+@click.option("--recreate-queue", type=str, default=None,
+              help="When used together with --recreate-jobs on a manual-jobs executor, "
+                   "rewrite each resubmitted job's +JobFlavour to this HTCondor queue "
+                   "(e.g. espresso, microcentury, longlunch, workday, tomorrow, testmatch, nextweek). "
+                   "Overrides the implicit timeout-bump for running jobs.")
+@click.option("--use-redirector", is_flag=True, default=False,
+              help="When used together with --recreate-jobs on a manual-jobs executor, "
+                   "rewrite every file in every resubmitted job to use the global xrootd "
+                   "redirector (root://xrootd-cms.infn.it//), skipping per-site Rucio lookups. "
+                   "Useful when many sites are flaky and you want xrootd to figure out routing.")
+@click.option("--skip-bad-files", is_flag=True, default=False,
+              help="Tell Coffea's Runner to skip files that fail to open (xrootd timeout, "
+                   "missing file, corrupted ROOT header) instead of aborting the run. "
+                   "Works for every executor; for manual-jobs executors (`condor@*`) it is "
+                   "shipped to the inner job via inner_run_options.yaml. Combined with "
+                   "--recreate-jobs, also idempotently patches an existing jobs_dir so the "
+                   "flag is honoured by the inner pocket-coffea call.")
 
 def run(cfg,  custom_run_options, outputdir, test, limit_files,
            limit_chunks, executor, scaleout, chunksize,
            queue, loglevel, process_separately, executor_custom_setup,
-           filter_years, filter_samples, filter_datasets, resubmit_failed):
+           filter_years, filter_samples, filter_datasets, resubmit_failed,
+           blocklist_sites, recreate_queue, use_redirector, skip_bad_files):
     '''Run an analysis on NanoAOD files using PocketCoffea processors'''
     # Setting up the output dir
     os.makedirs(outputdir, exist_ok=True)
@@ -119,6 +141,18 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
 
     if queue!=None:
         run_options["queue"] = queue
+
+    if blocklist_sites is not None:
+        run_options["blocklist-sites"] = blocklist_sites
+
+    if recreate_queue is not None:
+        run_options["recreate-queue"] = recreate_queue
+
+    if use_redirector:
+        run_options["use-redirector"] = True
+
+    if skip_bad_files:
+        run_options["skip-bad-files"] = True
 
     #Parsing additional runoptions from command line in the format --option=value, or --option. 
     ctx = click.get_current_context()

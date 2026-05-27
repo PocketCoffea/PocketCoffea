@@ -3,12 +3,24 @@ import sys
 import socket
 from coffea import processor as coffea_processor
 from .executors_base import ExecutorFactoryABC
-from .executors_manual_jobs import ExecutorFactoryManualABC
+from .executors_manual_jobs import (
+    ExecutorFactoryManualABC,
+    INNER_RUN_OPTIONS_FILENAME,
+    ensure_job_sh_forwards_inner_yaml,
+    ensure_sub_transfers_inner_yaml,
+    write_inner_run_options,
+)
 from .executors_base import IterativeExecutorFactory, FuturesExecutorFactory
 from pocket_coffea.utils.network import check_port
 from pocket_coffea.parameters.dask_env import setup_dask
 from pocket_coffea.utils.configurator import Configurator
 from pocket_coffea.utils.rucio import get_xrootd_sites_map
+from pocket_coffea.utils.site_rewrite import (
+    GLOBAL_XROOTD_REDIRECTOR,
+    find_other_file,
+    rewrite_fileset_blocklist,
+    rewrite_fileset_to_redirector,
+)
 import pocket_coffea
 import cloudpickle
 import yaml
@@ -215,6 +227,14 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
         else:
             runnercmd = "pocket-coffea run"
 
+        # Persist the inner-relevant run-option overrides (e.g. skip-bad-files)
+        # so the *inner* pocket-coffea call running on the worker can honour
+        # them via --custom-run-options. The YAML is whitelisted to keep
+        # outer-only keys (worker-image, queue, cores-per-worker, ...) from
+        # leaking through.
+        inner_yaml_path = write_inner_run_options(self.jobs_dir, self.run_options)
+        inner_yaml_basename = os.path.basename(inner_yaml_path)
+
         # Specify output filename to split-output script ->
         # This will save files such as output_CAT1.coffea, output_CAT2.coffea (remove "_all" from split outputs)...
         if self.run_options["split-by-category"]:
@@ -251,7 +271,7 @@ rm -f $JOBDIR/job_$1.idle
 echo "Starting job $1"
 touch $JOBDIR/job_$1.running
 
-{runnercmd} --cfg $2 -o output EXECUTOR --chunksize $3
+{runnercmd} --cfg $2 -o output EXECUTOR --chunksize $3 --custom-run-options {inner_yaml_basename}
 # Do things only if the job is successful
 if [ $? -eq 0 ]; then
     echo 'Job successful'
@@ -267,12 +287,23 @@ echo 'Done'
 """
         
         if int(self.run_options["cores-per-worker"]) > 1:
-            script = script.replace("EXECUTOR", f"--executor futures --scalout {self.run_options['cores-per-worker']}")
+            script = script.replace("EXECUTOR", f"--executor futures --scaleout {self.run_options['cores-per-worker']}")
         else:
             script = script.replace("EXECUTOR", "--executor iterative")
             
         with open(f"{self.jobs_dir}/job.sh", "w") as f:
             f.write(script)
+
+        # Resolve per-job chunksize. Accepts a scalar (legacy) or a per-sample dict.
+        # See ExecutorFactoryManualABC._resolve_chunksize_for_job.
+        chunksize_cfg = self.run_options['chunksize']
+        self._validate_chunksize_keys(chunksize_cfg, self.filesets)
+        per_job_chunksize = [self._resolve_chunksize_for_job(chunksize_cfg, split)
+                             for split in self._splits]
+        if len(set(per_job_chunksize)) > 1:
+            print(f"[chunksize] Per-job chunksize varies (min={min(per_job_chunksize)}, "
+                  f"max={max(per_job_chunksize)}); HTCondor `queue chunksize from arglist.txt` "
+                  f"will inject the right value per job.")
 
         # Writing the jid file as the htcondor python submission does not work in the singularity
         sub = {
@@ -285,20 +316,28 @@ echo 'Done'
             '+JobFlavour': f'"{self.run_options["queue"]}"',
             'RequestCpus' : self.run_options['cores-per-worker'],
             'RequestMemory' : f"{self.run_options['mem-per-worker']}",
-            'arguments': f"$(ProcId) config_job_$(ProcId).pkl {self.run_options['chunksize']}",
+            'arguments': f"$(ProcId) config_job_$(ProcId).pkl $(chunksize)",
             'should_transfer_files':'YES',
             'when_to_transfer_output' : 'ON_EXIT',
-            'transfer_input_files' : f"{abs_jobdir_path}/config_job_$(ProcId).pkl,{self.x509_path},{abs_jobdir_path}/job.sh",
+            'transfer_input_files' : f"{abs_jobdir_path}/config_job_$(ProcId).pkl,{self.x509_path},{abs_jobdir_path}/job.sh,{abs_jobdir_path}/{inner_yaml_basename}",
             'on_exit_remove': '(ExitBySignal == False) && (ExitCode == 0)',
             'max_retries' : self.run_options["retries"],
             'requirements' : 'Machine =!= LastRemoteHost'
         }
 
+        # HTCondor inline `queue <var> from ( ... )` form: one job per item, with
+        # the per-job value made available as $(chunksize) in the arguments line.
+        # Single condor_submit jobs_all.sub submits everything; the items are
+        # embedded directly in the sub file (no separate arglist file to manage).
         with open(f"{self.jobs_dir}/jobs_all.sub", "w") as f:
-            for k,v in sub.items():
+            for k, v in sub.items():
                 f.write(f"{k} = {v}\n")
-            f.write(f"queue {len(jobs_config)}\n")
-        # Creating also single sub files for resubmission
+            f.write("queue chunksize from (\n")
+            for cs in per_job_chunksize:
+                f.write(f"  {cs}\n")
+            f.write(")\n")
+        # Creating also single sub files for resubmission. These hard-code their
+        # own chunksize since they will be submitted with plain `queue`.
         print(f"Creating {len(jobs_config)} .sub files for individual job submission.")
         for i, _ in enumerate(jobs_config):
             with open(f"{self.jobs_dir}/job_{i}.sub", "w") as f:
@@ -306,6 +345,7 @@ echo 'Done'
                     if isinstance(v, str):
                         v = v.replace("$(ProcId)", str(i))
                         v = v.replace("$(ClusterId).log", f"$(ClusterId).{i}.log")
+                        v = v.replace("$(chunksize)", str(per_job_chunksize[i]))
                     f.write(f"{k} = {v}\n")
                 f.write(f"queue\n")
             # Let's also create a .idle file to indicate the the job is in idle
@@ -328,6 +368,16 @@ echo 'Done'
             exit(1)
         with open(f"{self.jobs_dir}/jobs_config.yaml") as f:
             jobs_config = yaml.safe_load(f)
+
+        # (Re)materialise the inner run-options YAML so any --skip-bad-files /
+        # --custom-run-options-style overrides from this outer call reach the
+        # resubmitted jobs. Also idempotently patch the wrapper script so an
+        # existing jobs_dir (pre-feature) starts forwarding the YAML.
+        abs_jobdir_path = os.path.abspath(self.jobs_dir)
+        write_inner_run_options(self.jobs_dir, self.run_options)
+        if ensure_job_sh_forwards_inner_yaml(f"{self.jobs_dir}/job.sh"):
+            print(f"[recreate-jobs] Patched {self.jobs_dir}/job.sh to forward "
+                  f"{INNER_RUN_OPTIONS_FILENAME} to the inner pocket-coffea run.")
 
         if jobs_to_recreate == "auto":
             failedjobs = [f.replace(".failed","") for f in os.listdir(self.jobs_dir) if f.endswith(".failed")]
@@ -358,32 +408,95 @@ echo 'Done'
             os.system(f"mv {' '.join(xrootdfailurefilelist)} {backupdir}")
 
         sitemap = get_xrootd_sites_map()
-        
+
+        # Parse blocklist-sites: accept comma-separated string or list, mirroring build_datasets
+        blocklist_raw = self.run_options.get("blocklist-sites", None) or []
+        if isinstance(blocklist_raw, str):
+            blocklist_sites = {s for s in blocklist_raw.split(",") if s}
+        else:
+            blocklist_sites = set(blocklist_raw)
+        if blocklist_sites:
+            print(f"Blocklisting sites at recreate time: {sorted(blocklist_sites)}")
+
+        # --use-redirector takes precedence over the per-site blocklist rewrite —
+        # it's a "no Rucio, just put everything on the global xrootd redirector"
+        # one-shot. When both are set we honour the redirector and warn.
+        use_redirector = bool(self.run_options.get("use-redirector", False))
+        if use_redirector:
+            print(f"[recreate-jobs] --use-redirector: rewriting every file to "
+                  f"{GLOBAL_XROOTD_REDIRECTOR} without per-site Rucio lookups.")
+            if blocklist_sites:
+                print("[recreate-jobs] WARNING: --blocklist-sites is set but --use-redirector "
+                      "overrides it (no per-site Rucio resolution happens).")
+
+        # Open a single rucio client up front so it is reused for every replica
+        # lookup. Not needed when --use-redirector is set: that mode skips Rucio.
+        rucio_client = None
+        if (xrootdfailurejoblist or blocklist_sites) and not use_redirector:
+            try:
+                from pocket_coffea.utils.rucio import get_rucio_client
+                rucio_client = get_rucio_client()
+            except Exception as e:
+                print(f"WARNING: could not open a rucio client ({e}); replica lookups will fail.")
+
+        # Optional queue rewrite: if --recreate-queue is set, every resubmitted
+        # .sub file is rewritten to use that HTCondor +JobFlavour. Validate up front.
+        recreate_queue = self.run_options.get("recreate-queue", None)
+        if recreate_queue is not None and recreate_queue not in queues:
+            print(f"WARNING: recreate-queue={recreate_queue!r} is not in the known "
+                  f"HTCondor queue list {queues}. Proceeding anyway — your value will "
+                  f"be written verbatim into the .sub file.")
+
         for job in jobs_to_redo:
             # Check if the job is in the list of jobs to recreate
             if job not in jobs_config["jobs_list"]:
                 print(f"Job {job} not found in the list of jobs")
                 continue
 
-            # If the job failed due to XRootD error, find an alternative site
-            if job in xrootdfailurejoblist:
-                print(f"Replacing input files in {job} since it failed due to an XRootD error.")
-                current_fileset = jobs_config["jobs_list"][job]["filesets"]
-                new_fileset = deepcopy(current_fileset)
-                for sample, dct in new_fileset.items():
-                    newfllist = []
-                    for fl in dct['files']:
-                        newfl = find_other_file(fl,sitemap)
-                        newfllist.append(newfl)
-                    new_fileset[sample]['files'] = newfllist
-                
+            current_fileset = jobs_config["jobs_list"][job]["filesets"]
+            new_fileset = deepcopy(current_fileset)
+            modified = False
+
+            if use_redirector:
+                # One-shot: every file in this job is pointed at the global
+                # xrootd redirector. No Rucio lookup, no per-site logic.
+                new_fileset = rewrite_fileset_to_redirector(new_fileset)
+                modified = True
+            else:
+                # XRootD-error reactive rewrite (per-file alternative site)
+                if job in xrootdfailurejoblist:
+                    print(f"Replacing input files in {job} since it failed due to an XRootD error.")
+                    for sample, dct in new_fileset.items():
+                        newfllist = []
+                        for fl in dct['files']:
+                            newfl = find_other_file(fl, sitemap, blocklist=blocklist_sites,
+                                                    rucio_client=rucio_client)
+                            newfllist.append(newfl)
+                        dct['files'] = newfllist
+                    modified = True
+
+                # Blocklist-driven rewrite: applied to every job, composes with the above
+                if blocklist_sites:
+                    new_fileset = rewrite_fileset_blocklist(new_fileset, sitemap, blocklist_sites,
+                                                            rucio_client=rucio_client)
+                    modified = True
+
+            if modified:
                 # Update files in the configurator
                 config = cloudpickle.load(open(f"{self.jobs_dir}/config_{job}.pkl", "rb"))
                 config.set_filesets_manually(new_fileset)
                 cloudpickle.dump(config, open(f"{self.jobs_dir}/config_{job}.pkl", "wb"))
 
+            # Idempotently make sure this job's .sub ships the inner-run-options
+            # YAML so the wrapper can pass it to the inner pocket-coffea run.
+            ensure_sub_transfers_inner_yaml(f"{self.jobs_dir}/{job}.sub", abs_jobdir_path)
+
+            # Optional explicit queue rewrite from --recreate-queue (runs before the
+            # implicit timeout-bump so the explicit value wins if both apply)
+            if recreate_queue is not None:
+                set_queue(f"{self.jobs_dir}/{job}.sub", job, recreate_queue)
             # If the job failed due to timeout, increase the timelimit
-            if job in runningjobs:
+            elif job in runningjobs:
                 update_queue(f"{self.jobs_dir}/{job}.sub",job)
 
             # Resubmit the job
@@ -399,34 +512,13 @@ echo 'Done'
                 os.system(f"cd {self.jobs_dir} && condor_submit {job}.sub")
                 print(f"Resubmitted {job}")
 
-def find_other_file(filepath,sitemap):
-    if filepath.startswith("root:/"):
-        rootpref = filepath.split("/store/")[0]
-        file = "/store/"+filepath.split("/store/")[1]
-    else:
-        rootpref = None
-        file = filepath
-    
-    command = f'dasgoclient -query="site file={file}"'    
-    sites = os.popen(command,'r').read().split()
-    for site in sites:
-        if site not in sitemap:
-            continue
-        sitepath = sitemap[site]
-        if not isinstance(sitepath,str):
-            continue
-        if rootpref:
-            if rootpref in sitepath or sitepath in rootpref:
-                continue
-        return sitepath+file
-                        
-    print(f"WARNING: No alternative site found for {filepath}. Redoing with the same file!")
-    return filepath    
+# find_other_file, rewrite_fileset_blocklist, and GLOBAL_XROOTD_REDIRECTOR are imported above
+# from pocket_coffea.utils.site_rewrite (kept dependency-free for unit testing).
 
 def update_queue(subfile,job):
     with open(subfile, 'r') as fl:
         lines = fl.readlines()
-    
+
     with open(subfile, 'w') as fl:
         for ln in lines:
             if ln.startswith("+JobFlavour"):
@@ -441,6 +533,24 @@ def update_queue(subfile,job):
                 fl.write(f'+JobFlavour = "{newq}"\n')
             else:
                 fl.write(ln)
+
+
+def set_queue(subfile, job, new_queue):
+    """Rewrite the +JobFlavour line of `subfile` to `new_queue` (no-op if already set)."""
+    with open(subfile, 'r') as fl:
+        lines = fl.readlines()
+    changed = False
+    with open(subfile, 'w') as fl:
+        for ln in lines:
+            if ln.startswith("+JobFlavour"):
+                old = ln.split('"')[-2]
+                if old != new_queue:
+                    print(f"[queue] {job}: {old} -> {new_queue}")
+                    changed = True
+                fl.write(f'+JobFlavour = "{new_queue}"\n')
+            else:
+                fl.write(ln)
+    return changed
 
 queues = [
     "espresso",
