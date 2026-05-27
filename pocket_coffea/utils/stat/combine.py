@@ -1,6 +1,7 @@
 """Datacard Class and Utilities for CMS Combine Tool"""
 
 import os
+import warnings
 from functools import cached_property
 
 import hist
@@ -689,9 +690,9 @@ class Datacard:
         with uproot.recreate(shapes_file) as root_file:
             if self.has_data:
                 for shape, histogram in shape_histograms_data.items():
-                    root_file[shape] = histogram
+                    root_file[shape] = _clip_negative_bins(histogram, shape)
             for shape, histogram in shape_histograms.items():
-                root_file[shape] = histogram
+                root_file[shape] = _clip_negative_bins(histogram, shape)
 
     def __repr__(self) -> str:
         """Return a string representation of the Datacard."""
@@ -761,6 +762,32 @@ class Datacard:
             f"{indent}mcstat={self.mcstat_config if self.mcstat else 'mcstat=False'}\n"
             ")"
         )
+
+
+def _clip_negative_bins(histogram: hist.Hist, shape_name: str) -> hist.Hist:
+    """Clip negative bin values (and their variances) to zero before writing to ROOT.
+
+    Combine cannot handle negative bin contents in shape templates. When any are
+    found, set them to zero and emit a warning identifying the affected shape.
+    """
+    view = histogram.view()
+    values = view["value"]
+    negative_mask = values < 0
+    if not np.any(negative_mask):
+        return histogram
+
+    n_neg = int(negative_mask.sum())
+    min_val = float(values[negative_mask].min())
+    warnings.warn(
+        f"Shape '{shape_name}' has {n_neg} bin(s) with negative content "
+        f"(min={min_val:.4g}); clipping to 0 before writing to ROOT.",
+        stacklevel=2,
+    )
+    clipped = histogram.copy()
+    clipped_view = clipped.view()
+    clipped_view["value"][negative_mask] = 0.0
+    clipped_view["variance"][negative_mask] = 0.0
+    return clipped
 
 
 def combine_datacards(
