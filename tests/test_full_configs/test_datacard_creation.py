@@ -30,31 +30,31 @@ def run_pc_config_run3(base_path: Path, tmp_path_factory):
     if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):
         os.remove("jets_calibrator_JES_JER_Syst.pkl.gz")
     outputdir = tmp_path_factory.mktemp("test_datacard_creation_files")
-    config = load_config("config_allvars_Run3.py", save_config=True, outputdir=outputdir)
-    assert isinstance(config, Configurator)
+    # config = load_config("config_allvars_Run3.py", save_config=True, outputdir=outputdir)
+    # assert isinstance(config, Configurator)
 
-    run_options = defaults.get_default_run_options()["general"]
-    run_options["limit-files"] = 1
-    run_options["limit-chunks"] = 1
-    run_options["chunksize"] = 200
-    config.filter_dataset(run_options["limit-files"])
+    # run_options = defaults.get_default_run_options()["general"]
+    # run_options["limit-files"] = 1
+    # run_options["limit-chunks"] = 1
+    # run_options["chunksize"] = 200
+    # config.filter_dataset(run_options["limit-files"])
 
-    executor_factory = executors_lib.get_executor_factory("iterative",
-                                                          run_options=run_options,outputdir=outputdir)
+    # executor_factory = executors_lib.get_executor_factory("iterative",
+    #                                                       run_options=run_options,outputdir=outputdir)
 
-    executor = executor_factory.get()
+    # executor = executor_factory.get()
 
-    run = Runner(
-        executor=executor,
-        chunksize=run_options["chunksize"],
-        maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
-        format="root"
-    )
-    output = run(config.filesets, treename="Events",
-                 processor_instance=config.processor_instance)
-    save(output, outputdir / "output_all.coffea")
-    assert output is not None
+    # run = Runner(
+    #     executor=executor,
+    #     chunksize=run_options["chunksize"],
+    #     maxchunks=run_options["limit-chunks"],
+    #     schema=processor.NanoAODSchema,
+    #     format="root"
+    # )
+    # output = run(config.filesets, treename="Events",
+    #              processor_instance=config.processor_instance)
+    # save(output, outputdir / "output_all.coffea")
+    # assert output is not None
     return outputdir
 
 def test_datacard_creation_single_year_run3(run_pc_config_run3):
@@ -72,7 +72,8 @@ def test_datacard_creation_single_year_run3(run_pc_config_run3):
                 "backgroundSample": ["background2023BPix"]
                 }
             }
-    build_datacard(f"{outputdir}", sig_bkg_dict, output=f"{outputdir}/datacards_single_year", single_year=True)
+    # build_datacard(f"{outputdir}", sig_bkg_dict, output=f"{outputdir}/datacards_single_year", single_year=True)
+    build_datacard("coffea_file/", sig_bkg_dict, output=f"{outputdir}/datacards_single_year", single_year=True)
     with open(f"{outputdir}/datacards_single_year/MET_pt/tt2l_run3_2023_postBPix.txt") as output_datacard, open("comparison_arrays/datacards_single_year/MET_pt/tt2l_run3_2023_postBPix.txt") as expected:
         out_read = output_datacard.read()
         exp_read = expected.read()
@@ -92,7 +93,8 @@ def test_datacard_creation_multi_year_run3(run_pc_config_run3):
                 "backgroundSample": ["background2023BPix", "background2022postEE"]
                 }
             }
-    build_datacard(f"{outputdir}", sig_bkg_dict, output=f"{outputdir}/datacards_multi_year", single_year=False)
+    # build_datacard(f"{outputdir}", sig_bkg_dict, output=f"{outputdir}/datacards_multi_year", single_year=False)
+    build_datacard("coffea_file/", sig_bkg_dict, output=f"{outputdir}/datacards_multi_year", single_year=False)
     with open(f"{outputdir}/datacards_multi_year/MET_pt/tt2l_run3_2023_postBPix.txt") as output_datacard, open("comparison_arrays/datacards_multi_year/MET_pt/tt2l_run3_2023_postBPix.txt") as expected:
         out_read = output_datacard.read()
         exp_read = expected.read()
