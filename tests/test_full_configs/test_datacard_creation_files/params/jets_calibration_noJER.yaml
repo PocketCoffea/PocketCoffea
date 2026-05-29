@@ -24,6 +24,24 @@ jets_calibration:
     "2024": 
       AK4PFPuppi: False
 
+  rescale_MET_config:
+    2022_preEE:
+      apply: True
+      MET_collection: "PuppiMET"
+      Jet_collection: "Jet"
+    2022_postEE:
+      apply: True
+      MET_collection: "PuppiMET"
+      Jet_collection: "Jet"
+    2023_preBPix:
+      apply: True
+      MET_collection: "PuppiMET"
+      Jet_collection: "Jet"
+    2023_postBPix:
+      apply: True
+      MET_collection: "PuppiMET"
+      Jet_collection: "Jet"
+
   variations: 
     AK4PFchs:
       2016_PreVFP: 

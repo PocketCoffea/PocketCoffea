@@ -223,7 +223,6 @@ def build_datacard(input_dir, sig_bkg_dict, output="./datacards", single_year=Tr
                 systematics_list.append(SystematicUncertainty(name=syst, datacard_name=get_uncertainty_name(syst, meta_dict[datasets[0]]['year']), typ="shape", processes=list(sig_bkg_dict["signal"].keys()), years=[meta_dict[ds]["year"] for ds in datasets], value=1.0))
         for bkg_type, datasets in sig_bkg_dict["background"].items():
             # Iterate through the datasets in a particular background type (often a signle one)
-            breakpoint()
             variations_updown = list(sob_hist[meta_dict[datasets[0]]["sample"]][datasets[0]].axes['variation'])
             for var in variations_updown:
                 sliced = sob_hist[meta_dict[datasets[0]]["sample"]][datasets[0]][{"variation": var, "cat": region_name}]

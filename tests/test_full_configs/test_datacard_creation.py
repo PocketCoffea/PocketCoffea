@@ -30,7 +30,7 @@ def run_pc_config_run3(base_path: Path, tmp_path_factory):
     if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):
         os.remove("jets_calibrator_JES_JER_Syst.pkl.gz")
     outputdir = tmp_path_factory.mktemp("test_datacard_creation_files")
-    config = load_config("config_allvars_Run3_samefiles.py", save_config=True, outputdir=outputdir)
+    config = load_config("config_allvars_Run3.py", save_config=True, outputdir=outputdir)
     assert isinstance(config, Configurator)
 
     run_options = defaults.get_default_run_options()["general"]
@@ -89,7 +89,7 @@ def test_datacard_creation_multi_year_run3(run_pc_config_run3):
                 "data_obs": ["DATA_EGamma_2023_EraD", "DATA_EGamma_2022_EraC"]
                 },
             "background": {
-                "backgroundSample": ["background2022postEE", "background2023BPix"]
+                "backgroundSample": ["background2023BPix", "background2022postEE"]
                 }
             }
     build_datacard(f"{outputdir}", sig_bkg_dict, output=f"{outputdir}/datacards_multi_year", single_year=False)
