@@ -104,7 +104,7 @@ def append_configs(c1, c2):
             
     return c1
 
-def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, N_reduction=5, max_mem_gb=None, cache_dir=None, verbose=False, skip_check=False, mark_failed=False, configurator=None):
+def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, N_reduction=5, max_mem_gb=None, cache_dir=None, verbose=False, skip_check=False, mark_failed=False, configurator=None, skip_initial_events_check_datasets=None):
     '''Merge coffea output files'''
     if jobs_config is not None:
         # check if the user provided the config file or the directory
@@ -165,7 +165,7 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, N_reduc
             raise TypeError("Type mismatch found between the values of the input dictionaries. Please check the input files.")
         
         if cache_dir is None:
-            cache_dir = '/'.join(outputfile.split("/")[:-1])+"/merge_cache"
+            cache_dir = os.path.join(os.path.dirname(os.path.abspath(outputfile)), "merge_cache")
         total_out =  merge_group_reduction(inputfiles, N_reduction=N_reduction, cachedir=cache_dir, 
                                            max_mem_gb=max_mem_gb, verbose=verbose)
 
@@ -290,7 +290,7 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, N_reduc
 
             print(f"Merging output...")
             if cache_dir is None:
-                cache_dir = os.path.join(job_config['output_dir'],"merge_cache")
+                cache_dir = os.path.join(os.path.abspath(job_config['output_dir']), "merge_cache")
             if suff:
                 cache_dir += f"_{suff}"
             total_output = merge_group_reduction(this_output_files, N_reduction=N_reduction, cachedir=cache_dir, max_mem_gb=max_mem_gb, verbose=verbose)
@@ -304,7 +304,8 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, N_reduc
             # In case of skimming jobs save the dataset definition (like in runner)
             if configurator.save_skimmed_files:
                 print(f"[blue]Saving skimmed dataset definition[/]")
-                save_skimed_dataset_definition(total_output, f"{job_config['output_dir']}/skimmed_dataset_definition.json")
+                save_skimed_dataset_definition(total_output, f"{job_config['output_dir']}/skimmed_dataset_definition.json",
+                                               skip_initial_events_check_datasets=skip_initial_events_check_datasets)
 
             # Save the output            
             print(f"[green]Saving output to {thisoutputfile}...[/]")
@@ -395,9 +396,18 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, N_reduc
     help="Mark condor@lxplus job status as failed",
 )
 
-def main(inputfiles, outputfile, jobs_config, force, reduction, max_mem_gb, cache_dir, verbose, skip_check, mark_failed, configurator):
+@click.option(
+    "--skip-initial-events-check",
+    "skip_initial_events_check_datasets",
+    multiple=True,
+    help="Dataset name(s) for which a mismatch between the initial events in the "
+         "metadata and the cutflow is tolerated (warning instead of error). Useful "
+         "when a corrupted input file had to be skipped. Repeatable.",
+)
+
+def main(inputfiles, outputfile, jobs_config, force, reduction, max_mem_gb, cache_dir, verbose, skip_check, mark_failed, configurator, skip_initial_events_check_datasets):
     '''Merge coffea output files'''
-    merge_outputs(inputfiles, outputfile, jobs_config, force, reduction, max_mem_gb, cache_dir, verbose, skip_check, mark_failed, configurator)
+    merge_outputs(inputfiles, outputfile, jobs_config, force, reduction, max_mem_gb, cache_dir, verbose, skip_check, mark_failed, configurator, list(skip_initial_events_check_datasets))
 
 if __name__ == "__main__":
     main()

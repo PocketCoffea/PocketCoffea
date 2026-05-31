@@ -391,9 +391,9 @@ class Shape:
             type(h_dict) in [dict, defaultdict]
         ), "The Shape object receives a dictionary of hist.Hist objects as argument."
         self.group_samples()
+        self.filter_samples()
         self.is_mc_only = len(self.samples_data) == 0
         self.is_data_only = len(self.samples_mc) == 0
-        self.filter_samples()
         self.rescale_samples()
         if not self.is_data_only:
             self.replace_missing_variations()
@@ -695,7 +695,7 @@ class Shape:
                         isMC = isMC_d
                         self.sample_is_MC[sample] = isMC
                     elif isMC != isMC_d:
-                        raise Exception("You are collapsing together data and MC histogram!")
+                        raise Exception(f"You are collapsing together data and MC histogram! \n \t Sample: {sample}, dataset: {dataset}")
 
         else:
             raise NotImplementedError("Plotting histograms without collapsing is still not implemented")

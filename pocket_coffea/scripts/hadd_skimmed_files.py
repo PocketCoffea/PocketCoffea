@@ -11,6 +11,112 @@ import click
 
 
 
+def _strip_xrootd_prefix(path):
+    """Strip a ``root://host/`` prefix so ``os.path.exists`` can probe the
+    FUSE-mounted path (typical lxplus / worker-node EOS layout). If the
+    path does not start with ``root://``, it is returned unchanged.
+    """
+    if path.startswith("root://"):
+        rest = path[len("root://"):]
+        slash = rest.find("/")
+        if slash != -1:
+            # canonical form is root://host//abs/path → "/abs/path"
+            return rest[slash + 1:]
+    return path
+
+
+def _check_output_file(item):
+    """Validate one hadded output file.
+
+    item = (outfile, expected_nevents, existence_only).
+    Returns (outfile, status, message, observed_nevents) where status is one
+    of "ok" | "missing" | "unreadable" | "wrong_nevents". observed_nevents
+    is the entry count read from the file (or None if it could not be read
+    or existence_only is set).
+    """
+    outfile, expected, existence_only = item
+    local_path = _strip_xrootd_prefix(outfile)
+    if not os.path.exists(local_path):
+        return outfile, "missing", f"file does not exist ({local_path})", None
+    if existence_only:
+        return outfile, "ok", "exists", None
+    try:
+        import ROOT as R
+        R.gErrorIgnoreLevel = R.kError
+        f = R.TFile.Open(outfile, "READ")
+        if not f or f.IsZombie():
+            if f:
+                f.Close()
+            return outfile, "unreadable", "TFile.Open failed / zombie", None
+        tree = f.Get("Events")
+        if not tree:
+            f.Close()
+            return outfile, "unreadable", "no Events tree", None
+        nentries = int(tree.GetEntries())
+        f.Close()
+        if expected is not None and nentries != expected:
+            return (
+                outfile,
+                "wrong_nevents",
+                f"expected {expected} entries, got {nentries}",
+                nentries,
+            )
+        return outfile, "ok", f"{nentries} entries", nentries
+    except Exception as e:
+        return outfile, "unreadable", f"exception: {e}", None
+
+
+_DO_HADD_JOB_SPLITBYFILE_TEMPLATE = """#!/bin/python3
+import os
+import sys
+import json
+from multiprocessing import Pool
+import subprocess
+import ROOT as R
+
+def do_hadd(group):
+    try:
+        outputfile, inputfiles = group
+        print("Working on ", outputfile)
+        chain = R.TChain('Events')
+        for inputfile in inputfiles:
+            chain.Add(inputfile)
+
+        output_file = R.TFile.Open(outputfile, "RECREATE")
+        output_tree = chain.CloneTree(-1)  # Clone all entries
+        output_tree.Write()
+        output_file.Close()
+        del chain
+        del output_tree
+        del output_file
+    except Exception as e:
+        print(e)
+        return outputfile
+
+json_file = sys.argv[3] if len(sys.argv) > 3 else "hadd.json"
+config = json.load(open(json_file))
+files = config[sys.argv[1]]["files"][sys.argv[2]]
+
+failed = []
+out = do_hadd((sys.argv[2], files))
+if out:
+    failed.append(out)
+
+print("DONE!")
+print("Failed files: ", failed)
+if len(failed):
+    sys.exit(1)
+"""
+
+
+def _write_do_hadd_job_splitbyfile_script(path="do_hadd_job_splitbyfile.py"):
+    """Write the per-file hadd wrapper. Accepts an optional 3rd argv giving
+    the JSON config path (defaults to hadd.json) so a single wrapper script
+    can drive both the original and resubmission .sub files."""
+    with open(path, "w") as f:
+        f.write(_DO_HADD_JOB_SPLITBYFILE_TEMPLATE)
+
+
 def do_hadd(group, overwrite=False):
     try:
         chain = R.TChain('Events')
@@ -61,8 +167,19 @@ def do_hadd(group, overwrite=False):
 )
 @click.option("--overwrite", is_flag=True, help="Overwrite files")
 @click.option("--dry", is_flag=True, help="Do not execute hadd, save metadata")
+@click.option(
+    "--check",
+    is_flag=True,
+    help=(
+        "Do not run hadd. Instead, validate that every expected output file "
+        "exists, opens as ROOT, contains an Events tree, and has the expected "
+        "number of entries. Writes hadd_failed.json (same shape as hadd.json, "
+        "containing only the failing groups), hadd_failed.txt (one line per "
+        "failure) and hadd_failed_splitbyfile.sub for resubmission."
+    ),
+)
 def hadd_skimmed_files(files_list,  outputdir, filter_samples,
-                       filter_datasets, files, events, scaleout, overwrite, dry):
+                       filter_datasets, files, events, scaleout, overwrite, dry, check):
     '''
     Regroup skimmed datasets by joining different files (like hadd for ROOT files) 
     '''
@@ -115,11 +232,12 @@ def hadd_skimmed_files(files_list,  outputdir, filter_samples,
                 outfile = f"{outputdir}/{dataset}/{dataset}_{ngroup}.root"
                 workload.append((outfile, group[:]))
                 groups_metadata[dataset]["files"][outfile] = group[:]
+                groups_metadata[dataset]["nevents_per_outfile"][outfile] = nevents_tot
                 group.clear()
                 ngroup += 1
                 nfiles = 0
                 nevents_tot = 0
-            
+
             group.append(file)
             nfiles += 1
             nevents_tot += nevents
@@ -129,10 +247,130 @@ def hadd_skimmed_files(files_list,  outputdir, filter_samples,
             outfile = f"{outputdir}/{dataset}/{dataset}_{ngroup}.root"
             workload.append((outfile, group[:]))
             groups_metadata[dataset]["files"][outfile] = group[:]
+            groups_metadata[dataset]["nevents_per_outfile"][outfile] = nevents_tot
 
     print(f"We will hadd {len(workload)} groups of files.")
     print("Samples:", groups_metadata.keys())
     json.dump(groups_metadata, open("hadd.json", "w"), indent=2)
+
+    if check:
+        existence_only = not root_available
+        if existence_only:
+            print(
+                "ROOT is not available — falling back to existence-only check "
+                "(no Events tree / entry-count validation)."
+            )
+
+        check_items = []
+        for dataset, conf in groups_metadata.items():
+            for outfile in conf["files"].keys():
+                expected = conf["nevents_per_outfile"].get(outfile)
+                check_items.append((outfile, expected, existence_only))
+
+        mode = "existence" if existence_only else "existence + ROOT + entries"
+        print(f"\nValidating {len(check_items)} hadded output files ({mode}) ...")
+        if scaleout and scaleout > 1:
+            with Pool(scaleout) as p:
+                results = p.map(_check_output_file, check_items)
+        else:
+            results = [_check_output_file(it) for it in check_items]
+
+        # Group results by status
+        by_status = defaultdict(list)
+        outfile_to_dataset = {}
+        for dataset, conf in groups_metadata.items():
+            for outfile in conf["files"].keys():
+                outfile_to_dataset[outfile] = dataset
+        for outfile, status, msg, observed in results:
+            by_status[status].append((outfile, msg, observed))
+
+        n_ok = len(by_status.get("ok", []))
+        n_missing = len(by_status.get("missing", []))
+        n_unreadable = len(by_status.get("unreadable", []))
+        n_wrong = len(by_status.get("wrong_nevents", []))
+        n_failed = n_missing + n_unreadable + n_wrong
+
+        print("\n=== Hadd output check summary ===")
+        print(f"  OK:           {n_ok}")
+        print(f"  Missing:      {n_missing}")
+        print(f"  Unreadable:   {n_unreadable}")
+        print(f"  Wrong events: {n_wrong}")
+        print(f"  Total failed: {n_failed} / {len(check_items)}")
+
+        if n_failed == 0:
+            print("\nAll output files are present and look healthy.")
+            return
+
+        # Detailed listing of failures
+        for status in ("missing", "unreadable", "wrong_nevents"):
+            entries = by_status.get(status, [])
+            if not entries:
+                continue
+            print(f"\n--- {status} ({len(entries)}) ---")
+            for outfile, msg, _observed in entries:
+                print(f"  [{outfile_to_dataset.get(outfile, '?')}] {outfile}  ({msg})")
+
+        # Write hadd_failed.json in the same shape as hadd.json containing
+        # only the failing groups. The accompanying hadd_failed_splitbyfile.sub
+        # passes hadd_failed.json explicitly as the 3rd argument of
+        # do_hadd_job_splitbyfile.py so the original hadd.json is untouched.
+        failed_by_dataset = defaultdict(lambda: defaultdict(dict))
+        for status in ("missing", "unreadable", "wrong_nevents"):
+            for outfile, _msg, _obs in by_status.get(status, []):
+                dataset = outfile_to_dataset[outfile]
+                inputs = groups_metadata[dataset]["files"][outfile]
+                failed_by_dataset[dataset]["files"][outfile] = inputs
+                failed_by_dataset[dataset]["nevents_per_outfile"][outfile] = (
+                    groups_metadata[dataset]["nevents_per_outfile"][outfile]
+                )
+
+        json.dump(failed_by_dataset, open("hadd_failed.json", "w"), indent=2)
+        with open("hadd_failed.txt", "w") as fh:
+            for status in ("missing", "unreadable", "wrong_nevents"):
+                for outfile, msg, _obs in by_status.get(status, []):
+                    dataset = outfile_to_dataset[outfile]
+                    fh.write(f"{status}\t{dataset}\t{outfile}\t{msg}\n")
+
+        # (Re)write the per-file wrapper next to the resubmit sub so that any
+        # stale copy on disk (e.g. from a hadd run that predates the
+        # 3rd-argv json-file support) is replaced. Without this, the wrapper
+        # would silently fall back to reading "hadd.json" and the resubmit
+        # would not see the failures listed in hadd_failed.json.
+        _write_do_hadd_job_splitbyfile_script("do_hadd_job_splitbyfile.py")
+
+        abs_local_path = os.path.abspath(".")
+        os.makedirs(f"{abs_local_path}/condor", exist_ok=True)
+        resubmit_sub = {
+            "Executable": "do_hadd_job_splitbyfile.py",
+            "Universe": "vanilla",
+            "Error": f"{abs_local_path}/condor/hadd_resubmit_$(ClusterId).$(ProcId).err",
+            "Output": f"{abs_local_path}/condor/hadd_resubmit_$(ClusterId).$(ProcId).out",
+            "Log": f"{abs_local_path}/condor/hadd_resubmit_$(ClusterId).$(ProcId).log",
+            'MY.SendCredential': True,
+            '+JobFlavour': f'"espresso"',
+            'arguments': "$(dataset) $(group) hadd_failed.json",
+            'should_transfer_files': 'YES',
+            'when_to_transfer_output': 'ON_EXIT',
+            'transfer_input_files': (
+                f"{abs_local_path}/do_hadd_job_splitbyfile.py, "
+                f"{abs_local_path}/hadd_failed.json"
+            ),
+        }
+        with open("hadd_failed_splitbyfile.sub", "w") as fh:
+            for k, v in resubmit_sub.items():
+                fh.write(f"{k} = {v}\n")
+            fh.write("queue dataset, group from (\n")
+            for dataset, conf in failed_by_dataset.items():
+                for group in conf["files"].keys():
+                    fh.write(f"{dataset} {group}\n")
+            fh.write(")\n")
+
+        print(
+            f"\nWrote hadd_failed.json ({n_failed} groups), "
+            "hadd_failed.txt and hadd_failed_splitbyfile.sub. "
+            "Submit with: condor_submit hadd_failed_splitbyfile.sub"
+        )
+        return
 
     if not dry and root_available:
         p = Pool(scaleout)
@@ -156,6 +394,13 @@ def hadd_skimmed_files(files_list,  outputdir, filter_samples,
         metadata["skim_efficiency"] = str(skim_efficiency)
         if metadata["isMC"] in ["True", "true", True]:
             metadata["skim_rescale_genweights"] = str(df["sum_genweights"][s] / df["sum_genweights_skimmed"][s]) # Compute the rescale factor for the genweights as the inverse of the skim genweighed efficiency
+            # Carry the authoritative pre-skim totals into the hadd dataset metadata as
+            # well — so a hadded skim is also self-recovering w.r.t. zero-event input
+            # chunks (see save_skimed_dataset_definition / BaseProcessorABC.postprocess).
+            if s in df.get("sum_genweights", {}):
+                metadata["sum_genweights"] = float(df["sum_genweights"][s])
+            if s in df.get("sum_signOf_genweights", {}):
+                metadata["sum_signOf_genweights"] = float(df["sum_signOf_genweights"][s])
         metadata["isSkim"] = "True"
         dataset_definition[s] = {"metadata": metadata, "files": list(d['files'].keys())}
 
@@ -257,46 +502,7 @@ print("Failed files: ", failed)
 if len(failed):
     sys.exit(1)""")
         
-    with open("do_hadd_job_splitbyfile.py", "w") as f:
-        f.write(f"""#!/bin/python3
-import os
-import sys
-import json
-from multiprocessing import Pool
-import subprocess
-import ROOT as R
-
-def do_hadd(group):
-    try:
-        outputfile, inputfiles = group
-        print("Working on ", outputfile)
-        chain = R.TChain('Events')
-        for inputfile in inputfiles:
-            chain.Add(inputfile)
-
-        output_file = R.TFile.Open(outputfile, "RECREATE")
-        output_tree = chain.CloneTree(-1)  # Clone all entries
-        output_tree.Write()
-        output_file.Close()
-        del chain
-        del output_tree
-        del output_file
-    except Exception as e:
-        print(e)
-        return outputfile
-
-config = json.load(open("hadd.json"))
-files = config[sys.argv[1]]["files"][sys.argv[2]]
-
-failed = []
-out = do_hadd((sys.argv[2], files))
-if out:
-    failed.append(out)
-        
-print("DONE!")
-print("Failed files: ", failed)
-if len(failed):
-    sys.exit(1)""")
+    _write_do_hadd_job_splitbyfile_script("do_hadd_job_splitbyfile.py")
 
 
     abs_local_path = os.path.abspath(".")
@@ -306,7 +512,7 @@ if len(failed):
         "Universe": "vanilla",
         "Error": f"{abs_local_path}/condor/hadd_job_$(ClusterId).$(ProcId).err",
         "Output": f"{abs_local_path}/condor/hadd_job_$(ClusterId).$(ProcId).out",
-        "Log": f"{abs_local_path}/condor/hadd_job_$(ClusterId).$(ProcId).log",
+        "Log": f"{abs_local_path}/condor/hadd_job_$(ClusterId).log",
         'MY.SendCredential': True,
         '+JobFlavour': f'"espresso"',
         'arguments': "$(dataset)",
@@ -330,7 +536,7 @@ if len(failed):
         "Universe": "vanilla",
         "Error": f"{abs_local_path}/condor/hadd_job_$(ClusterId).$(ProcId).err",
         "Output": f"{abs_local_path}/condor/hadd_job_$(ClusterId).$(ProcId).out",
-        "Log": f"{abs_local_path}/condor/hadd_job_$(ClusterId).$(ProcId).log",
+        "Log": f"{abs_local_path}/condor/hadd_job_$(ClusterId).log",
         'MY.SendCredential': True,
         '+JobFlavour': f'"espresso"',
         'arguments': "$(dataset) $(group)",

@@ -41,7 +41,7 @@ plot-cutflow \
     --only-samples TTToSemiLeptonic DYJetsToLL \
     --log-y \
     --figsize 12,8 \
-    --format pdf \
+    --output-format pdf \
     --summary-only
 ```
 
@@ -61,7 +61,7 @@ python pocket_coffea/scripts/plot/plot_cutflow.py \
     --only-samples TTToSemiLeptonic DYJetsToLL \
     --log-y \
     --figsize 12,8 \
-    --format pdf
+    --output-format pdf
 ```
 
 ## Using as a Python Module
@@ -84,7 +84,7 @@ saved_files = plot_cutflow_from_output(
     only_samples=['TTToSemiLeptonic', 'DYJetsToLL'],
     figsize=(12, 8),
     log_y=True,
-    format='pdf'
+    output_format='pdf'
 )
 
 print(f"Created {len(saved_files['cutflow'])} cutflow plots (includes ratio versions)")
@@ -162,7 +162,7 @@ The scripts create:
 - `--only-samples`: Only create plots for specified samples
 - `--log-y`: Use logarithmic y-axis scale
 - `--figsize`: Figure size as 'width,height' (default: '10,6')
-- `--format`: Output format (png, pdf, svg, etc.)
+- `--output-format`: Output format (png, pdf, svg, etc.)
 - `--summary-only`: Only print summary information without creating plots
 
 
@@ -187,7 +187,7 @@ The scripts create:
        --exclude-categories initial skim \
        --log-y \
        --figsize 12,8 \
-       --format pdf
+       --output-format pdf
    ```
 
 ### Advanced Usage Examples
@@ -224,7 +224,7 @@ for year, samples in cutflow_by_sample.items():
             output_dir='custom_plots',
             figsize=(12, 8),
             log_y=True,
-            format='pdf',
+            output_format='pdf',
             with_ratio=True  # Include ratio panel
         )
 ```
