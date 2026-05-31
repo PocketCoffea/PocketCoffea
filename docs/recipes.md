@@ -176,10 +176,27 @@ Follow these instructions to skim the files on EOS:
 
 3. Check the status of the jobs with `pocket-coffea check-jobs -j jobs-dir/skim`.  Optionally activate the automatic resubmitting option to resubmit failed jobs. 
 
-4. Once done, we usually do an hadd to sum all the small files produced by each saved chunk. An utility script to compute the groups and correctly hadd them is available `pocket-coffea hadd-skimmed-files -fl ../output_total.coffea -o root://eoscms.cern.ch//eos/cms/store/group/phys_higgs/ttHbb/Run3_dileptonic_skim_hadd -e 400000 --dry  -s 6 `
-   this script creates some files to be able to send out jobs that runs the hadd for each group of files.
+4. Merge the per-job `.coffea` outputs into a single file with `merge-outputs`:
+   ```
+   merge-outputs output_skim_config/output_job_*.coffea -o output_total.coffea
+   ```
+   This step is **mandatory**, not optional: each skim job writes a `.coffea` file
+   carrying the cutflow and, crucially, the `sum_genweights` of the chunks it processed.
+   Merging accumulates these correctly across all jobs — including the chunks that skimmed
+   **0 events** (an event-less chunk still contributes to the generator-weight sum used for
+   the cross-section normalization downstream). The skimmed ROOT files alone do not carry
+   this information, so without the merge the normalization of the skimmed dataset would be
+   wrong. The resulting `output_total.coffea` is the input to the next step.
+   :::{warning}
+   Merge the **raw** `output_job_*.coffea` files in a single `merge-outputs` call. Re-merging
+   an already-merged file double-rescales the histograms (the `sum_genweights` is not reset
+   between passes), so never feed a merged output back into `merge-outputs`.
+   :::
 
-5. From all this process you will get out at the end an updated `dataset_definition_file.json` to be used in your analysis config.
+5. Once done, we usually do an hadd to sum all the small files produced by each saved chunk. An utility script to compute the groups and correctly hadd them is available `pocket-coffea hadd-skimmed-files -fl ../output_total.coffea -o root://eoscms.cern.ch//eos/cms/store/group/phys_higgs/ttHbb/Run3_dileptonic_skim_hadd -e 400000 --dry  -s 6 `
+   this script creates some files to be able to send out jobs that runs the hadd for each group of files. Note that it reads the merged `output_total.coffea` produced in the previous step, so the per-chunk event counts and `sum_genweights` are taken from there.
+
+6. From all this process you will get out at the end an updated `dataset_definition_file.json` to be used in your analysis config.
 
 ### Minimal skimming configuration
 
@@ -203,7 +220,11 @@ cfg = Configurator(
 
 Each processed chunk produces one ROOT file under `save_skimmed_files`. The generator
 weight sum is rescaled (`skimRescaleGenWeight`) so cross sections still match once the
-skimmed files are used as inputs downstream.
+skimmed files are used as inputs downstream. In addition each job writes a `.coffea`
+output holding the cutflow and the `sum_genweights` of every chunk it processed (including
+chunks that skimmed 0 events); these must be combined with `merge-outputs` — see step 4 of
+the [workflow above](#skimming-events) — to get the correct normalization of the skimmed
+dataset.
 
 ### Skim modes
 
