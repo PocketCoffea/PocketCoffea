@@ -5,7 +5,165 @@ Page under construction! Come back for more common analysis steps recipes.
 
 ## HLT trigger selection
 
+HLT triggers are applied as a **skim cut**, before any object correction. The list of
+triggers is declared once in the parameters under the `HLT_triggers` key, organized by
+data-taking period and *primary dataset*:
+
+```yaml
+HLT_triggers:
+  "2018":
+    SingleEle:
+        - Ele32_WPTight_Gsf
+        - Ele28_eta2p1_WPTight_Gsf_HT150
+    SingleMuon:
+        - IsoMu24
+```
+
+The selection itself is built with the `get_HLTsel` factory from
+`pocket_coffea.lib.cut_functions` and added to the `skim` list of the `Configurator`:
+
+```python
+from pocket_coffea.lib.cut_functions import get_HLTsel
+
+skim = [
+    get_nPVgood(1), eventFlags, goldenJson,
+    get_HLTsel(),                                          # OR of all primary datasets
+],
+```
+
+Behavior of `get_HLTsel(primaryDatasets=None, invert=False)`:
+
+- **MC**: the OR of all triggers in the configuration is applied.
+- **Data**: only the triggers of the primary dataset matching the sample are applied.
+- `primaryDatasets=[...]`: restrict to the given primary datasets, **both for Data and
+  MC, overriding the automatic behavior**. This is the way to remove the primary-dataset
+  overlap in data:
+
+  ```python
+  skim = [get_HLTsel(primaryDatasets=["SingleMuon", "SingleEle"])]
+  ```
+
+- `invert=True`: keep events *failing* the selection. Useful for cross-cleaning one
+  primary dataset against another (see [Primary dataset cross-cleaning](#primary-dataset-cross-cleaning)).
+
+To apply a fixed list of trigger paths irrespective of the parameters file, use
+`get_HLTsel_custom(["HLT_IsoMu24", ...])`.
+
+:::{warning}
+Trigger cuts read raw NanoAOD branches and therefore belong in `skim`, never in
+`preselections` — object corrections happen *after* the skim, inside the calibration loop.
+:::
+
 ## Define a new cut function
+
+A selection is a `Cut` object (`pocket_coffea.lib.cut_definition.Cut`) wrapping a function
+with the signature `function(events, params, year, sample, **kwargs)` that returns a
+boolean awkward array (one entry per event). The `params` dictionary is attached to the
+`Cut` and passed through at evaluation time, so the same function can be reused with
+different thresholds.
+
+```python
+import awkward as ak
+from pocket_coffea.lib.cut_definition import Cut
+
+def min_jet_function(events, params, year, sample, **kwargs):
+    mask = ak.num(events.JetGood) >= params["njet"]
+    return mask
+
+min_2jets = Cut(
+    name="min_2jets",
+    params={"njet": 2},
+    function=min_jet_function,
+)
+```
+
+For simple, one-off selections an inline `lambda` is enough:
+
+```python
+even_event = Cut(
+    name="even_event",
+    function=lambda events, params, **kwargs: events.event % 2 == 0,
+    params={},
+)
+```
+
+### Parametrized factory cuts
+
+The recommended pattern for reusable cuts is a *factory* that returns a configured `Cut`,
+so the threshold becomes part of the cut name (and therefore of the output keys). Several
+ready-made factories live in `pocket_coffea.lib.cut_functions`:
+
+```python
+from pocket_coffea.lib.cut_functions import get_nObj_min, get_nObj_eq, get_nObj_less
+
+get_nObj_min(4, minpt=30., coll="JetGood")   # >= 4 jets with pt > 30
+get_nObj_eq(2, coll="BJetGood")              # exactly 2 b-jets
+get_nObj_less(3, coll="MuonGood")            # < 3 muons
+```
+
+Your own factories follow the same shape:
+
+```python
+def get_min_jets(njet, name=None):
+    if name is None:
+        name = f"min_{njet}_jets"
+    return Cut(name=name, params={"njet": njet}, function=min_jet_function)
+```
+
+:::{note}
+If your cut needs a variable that is not in NanoAOD, compute it in
+`define_common_variables_before_presel` in the workflow so it is available when the
+preselection runs.
+:::
+
+## Categories: standard and Cartesian selections
+
+Categories are the orthogonal regions in which histograms, columns and weights are filled.
+The simplest form is a dictionary mapping a category name to a list of `Cut`s (ANDed
+together):
+
+```python
+from pocket_coffea.parameters.cuts import passthrough
+
+categories = {
+    "baseline": [passthrough],
+    "1btag":    [get_nObj_min(1, coll="BJetGood")],
+    "2btag":    [get_nObj_min(2, coll="BJetGood")],
+}
+```
+
+When you need the full product of several independent cut sets (e.g. jet multiplicity ×
+b-jet multiplicity), use `CartesianSelection` with one `MultiCut` per axis. It avoids
+spelling out every combination by hand:
+
+```python
+from pocket_coffea.lib.categorization import CartesianSelection, MultiCut
+
+categories = CartesianSelection(
+    multicuts = [
+        MultiCut(name="Njets",
+                 cuts=[get_nObj_eq(1, 30., "JetGood"),
+                       get_nObj_eq(2, 30., "JetGood"),
+                       get_nObj_min(3, 30., "JetGood")],
+                 cuts_names=["1j", "2j", "3j"]),
+        MultiCut(name="Nbjet",
+                 cuts=[get_nObj_eq(0, 15., "BJetGood"),
+                       get_nObj_eq(1, 15., "BJetGood"),
+                       get_nObj_min(2, coll="BJetGood")],
+                 cuts_names=["0b", "1b", "2b"]),
+    ],
+    # categories that are NOT part of the cartesian product
+    common_cats = {
+        "inclusive":   [passthrough],
+        "4jets_40pt" : [get_nObj_min(4, 40., "JetGood")],
+    }
+)
+```
+
+This produces the cross-product categories `1j_0b`, `1j_1b`, …, `3j_2b` (the names are the
+`cuts_names` joined with `_`), plus the `common_cats` entries `inclusive` and `4jets_40pt`.
+`CartesianSelection` is far more memory-efficient than declaring every combination as a
+`StandardSelection`, because the per-axis masks are computed once and combined on the fly.
 
 ## Skimming events
 Skimming NanoAOD events and save the reduced files on disk can speedup a lot the processing of the analysis. The recommended executor for the skimming process is the direct condor-job executor, which splits the workload in condor jobs without using the dask scheduler. This makes the resubmission of failed skim jobs easier. 
@@ -23,19 +181,335 @@ Follow these instructions to skim the files on EOS:
 
 5. From all this process you will get out at the end an updated `dataset_definition_file.json` to be used in your analysis config.
 
-## Subsamples
-WIP
+### Minimal skimming configuration
 
+Skimming is enabled simply by setting `save_skimmed_files` on the `Configurator` to an
+output folder (local path or `root://…` EOS URL). The skim cuts in the `skim` list define
+which events are written; everything downstream (preselections, categories, …) is still
+declared but is only used if you keep processing after the skim:
+
+```python
+cfg = Configurator(
+    ...
+    skim = [
+        get_nPVgood(1), eventFlags, goldenJson,
+        get_HLTsel(),
+        get_nObj_min(2, minpt=20., coll="Jet"),   # at least 2 raw jets
+    ],
+    save_skimmed_files = "./skim/",
+    ...
+)
+```
+
+Each processed chunk produces one ROOT file under `save_skimmed_files`. The generator
+weight sum is rescaled (`skimRescaleGenWeight`) so cross sections still match once the
+skimmed files are used as inputs downstream.
+
+### Skim modes
+
+When `save_skimmed_files` is set, **which events get written** is governed by the
+`skim_mode` entry of `workflow_options`. Two modes are available; both *short-circuit* the
+processing — once the skimmed chunk is exported the processor returns immediately and does
+**not** fill histograms or columns.
+
+| `skim_mode` | events written | calibration / preselection run? |
+|---|---|---|
+| `"skim"` *(default)* | events passing the `skim` cuts | no — cuts evaluated on raw NanoAOD only |
+| `"presel_any_variation"` | events passing the `preselections` in **at least one** calibration variation | yes — but only to build the selection mask |
+
+#### `skim_mode: "skim"` (default)
+
+This is the standard skim: the cuts in the `skim` list are evaluated on the **raw NanoAOD**
+(before any object correction) and every event that passes is exported. No calibrators and
+no preselections are run, so the skim is fast and depends only on uncorrected quantities.
+This is the mode used by the [minimal configuration above](#minimal-skimming-configuration)
+— you do not need to set `skim_mode` explicitly.
+
+Use it when your skim selection can be expressed purely on raw branches (trigger bits,
+golden JSON, event flags, raw-jet/lepton multiplicities, …). It is the right choice for the
+first-pass reduction of a large dataset.
+
+#### `skim_mode: "presel_any_variation"`
+
+In this mode the skim is **systematic-aware**: an event is kept if it passes the
+`preselections` in *any* active calibration variation. For example an event that fails the
+nominal jet selection but enters it after a JES Up shift is still written, so the skimmed
+files remain valid inputs for a later systematics analysis.
+
+```python
+cfg = Configurator(
+    ...
+    workflow_options = {"skim_mode": "presel_any_variation"},
+
+    skim = [get_nPVgood(1), eventFlags, get_HLTsel()],   # loose, on raw NanoAOD
+    save_skimmed_files = "./skim_presel_any/",
+
+    preselections = [get_nObj_min(5, minpt=30., coll="JetGood")],  # tighter, on calibrated objects
+
+    calibrators = default_calibrators_sequence,
+    variations = {
+        "weights": {"common": {"inclusive": [], "bycategory": {}}, "bysample": {}},
+        "shape":   {"common": {"inclusive": ["jet_calibration"]}, "bysample": {}},
+    },
+    ...
+)
+```
+
+Internally the processor first applies the `skim` cuts, then runs the calibration loop as a
+*dry run*: for every variation it applies the object preselection and computes the
+preselection mask **without filtering events**, accumulating the logical OR of all the
+per-variation masks. The combined mask is finally applied to the (uncalibrated) post-skim
+events, which are then exported. The set of variations considered is exactly the one
+declared in `variations["shape"]` together with the nominal pass.
+
+Use this mode when the events you ultimately want are defined by a selection on
+**calibrated** objects (jets after JEC/JER, etc.) and you must not lose events that only
+enter the selection under a systematic shift.
+
+:::{warning}
+`skim_mode` only has an effect when `save_skimmed_files` is configured. Setting it without
+`save_skimmed_files` triggers a warning and is ignored — the processor then runs the normal
+analysis (calibration, preselection, histograms) rather than skimming.
+:::
+
+### hadd the skimmed files
+
+The skim produces many small per-chunk files. `hadd-skimmed-files` computes sensible
+groups and writes out the jobs to merge them:
+
+```bash
+pocket-coffea hadd-skimmed-files -fl output_total.coffea \
+    -o root://eoscms.cern.ch//eos/cms/store/group/.../skim_hadd \
+    -e 400000 -s 6 --dry
+```
+
+After the hadd jobs have run, validate the result with `--check`. This does *not* run hadd
+again — it rebuilds the expected workload and verifies, for each output file, that it
+exists, opens, has an `Events` tree, and that `GetEntries()` matches the expected sum of
+`nskimmed_events`. Any failures are written to `hadd_failed.json` / `.txt` together with a
+resubmission `.sub` file:
+
+```bash
+pocket-coffea hadd-skimmed-files -fl output_total.coffea \
+    -o root://eoscms.cern.ch//eos/cms/store/group/.../skim_hadd --check
+```
+
+## Subsamples
+
+A *subsample* splits one declared sample into several mutually-defined sub-categories at
+the dataset level, each selected by a list of `Cut`s. Subsamples are declared in the
+`datasets` block and produce independent output keys named `<sample>__<subsample>`:
+
+```python
+datasets = {
+    "jsons": ['datasets/datasets_cern.json'],
+    "filter": {
+        "samples": ['TTTo2L2Nu', "DATA_SingleMuon"],
+        "year": ['2018'],
+    },
+    "subsamples": {
+        "TTTo2L2Nu": {
+            "ele": [get_nObj_min(1, coll="ElectronGood"), get_nObj_eq(0, coll="MuonGood")],
+            "mu":  [get_nObj_eq(0, coll="ElectronGood"), get_nObj_min(1, coll="MuonGood")],
+        }
+    }
+}
+```
+
+This yields `TTTo2L2Nu__ele` and `TTTo2L2Nu__mu` in the output. Subsamples need **not** be
+orthogonal or exhaustive — an event can fall into several subsamples (it is duplicated) or
+into none (it is dropped). Subsample-specific weights and variations are addressed by the
+full `<sample>__<subsample>` key in the `bysample` block:
+
+```python
+weights = {
+    "common": {"inclusive": ["genWeight", "lumi", "XS", "pileup"]},
+    "bysample": {
+        "TTTo2L2Nu__ele": {
+            "inclusive": ["sf_custom_C"],
+            "bycategory": {"B": ["sf_custom_D"]},
+        }
+    }
+}
+```
 
 ### Primary dataset cross-cleaning
-WIP
 
+In data the same physics event can be stored in more than one primary dataset (PD). A
+di-leptonic event, for instance, may fire both a single-electron and a single-muon
+trigger, and would then be present in **both** the `EGamma` and `SingleMuon` PDs. If you
+simply OR all triggers on each PD you will count such events twice. Cross-cleaning removes
+the overlap by assigning each event to exactly one PD.
+
+The strategy is an ordered priority among the primary datasets: the first PD keeps every
+event that fires *its own* triggers; each subsequent PD keeps events that fire its own
+triggers **and** do *not* fire the triggers of any higher-priority PD. The veto is built
+with `get_HLTsel(primaryDatasets=[...], invert=True)`.
+
+This is done at the **subsample** level, one subsample per PD, so that the trigger logic is
+isolated per data sample. A common idiom is to give the
+single subsample the **same name as the sample**, so the cleaned output keeps a clean,
+self-describing name:
+
+```python
+datasets = {
+    "filter": {
+        "samples": ["DATA_EGamma", "DATA_SingleMuon", ...],
+        "year": ['2022_preEE', '2022_postEE', '2023_preBPix', '2023_postBPix', '2024'],
+    },
+    "subsamples": {
+        # Priority 1: EGamma keeps all events firing the SingleEle triggers
+        "DATA_EGamma": {
+            "DATA_EGamma": [get_HLTsel(primaryDatasets=["SingleEle"])],
+        },
+        # Priority 2: SingleMuon keeps events firing SingleMuon triggers
+        #             but NOT the (higher-priority) SingleEle triggers
+        "DATA_SingleMuon": {
+            "DATA_SingleMuon": [
+                get_HLTsel(primaryDatasets=["SingleMuon"]),
+                get_HLTsel(primaryDatasets=["SingleEle"], invert=True),
+            ],
+        },
+    },
+}
+```
+
+With this ordering:
+
+- an event firing only SingleEle triggers → kept by `DATA_EGamma` only;
+- an event firing only SingleMuon triggers → kept by `DATA_SingleMuon` only;
+- an event firing **both** → kept by `DATA_EGamma` (priority 1) and explicitly vetoed in
+  `DATA_SingleMuon` by the inverted SingleEle selection.
+
+so every data event is counted exactly once.
+
+:::{note}
+The cross-cleaning cuts go in the **subsample** definitions, not in the `skim`. The skim
+typically applies the inclusive OR of all the primary-dataset triggers so that no useful
+event is dropped before the cleaning step:
+
+```python
+skim = [
+    get_nPVgood(1), eventFlags, goldenJson,
+    ...
+    get_HLTsel(["SingleEle", "SingleMuon"]),   # inclusive OR; cleaning happens per-subsample
+]
+```
+:::
+
+:::{warning}
+Apply the cross-cleaning only to **data**. The MC samples should keep the inclusive
+trigger OR (the default `get_HLTsel()` behavior), because there is no double-counting to
+remove in simulation — each MC event exists only once regardless of which triggers it fires.
+:::
+
+The same mechanism extends to more than two primary datasets: order them by priority and,
+for the `i`-th PD, add one inverted `get_HLTsel` per higher-priority PD (or a single
+inverted selection listing all the higher-priority primary datasets).
 
 ## Define a custom weight
-WIP
 
-### Define a custom weights with custom variations
-WIP
+Custom event weights are created with `WeightLambda.wrap_func`, then registered by passing
+them in the `weights_classes` list (concatenated with the built-in `common_weights`).
+The wrapped function has the signature
+`function(params, metadata, events, size, shape_variations)` and must return an array of
+length `size`.
+
+A constant or nominal-only weight sets `has_variations=False` and returns a single array:
+
+```python
+import numpy as np
+from pocket_coffea.lib.weights.weights import WeightLambda
+from pocket_coffea.lib.weights.common import common_weights
+
+my_custom_weight = WeightLambda.wrap_func(
+    name="my_custom_weight",
+    function=lambda params, metadata, events, size, shape_variations: np.ones(size) * 2.0,
+    has_variations=False,
+)
+```
+
+Once defined, register the wrapper and reference it by name in the `weights` block. Weights
+can be applied to all samples (`common`) or to specific ones (`bysample`), and either
+inclusively or only in specific categories (`bycategory`):
+
+```python
+cfg = Configurator(
+    ...
+    weights = {
+        "common": {
+            "inclusive": ["genWeight", "lumi", "XS", "pileup"],
+            "bycategory": {"2jets_B": ["my_custom_weight"]},
+        },
+        "bysample": {
+            "TTTo2L2Nu": {"bycategory": {"2jets_D": ["sf_btag"]}},
+        },
+    },
+    weights_classes = common_weights + [my_custom_weight],
+    ...
+)
+```
+
+### Define a custom weight with custom variations
+
+To attach **a single Up/Down systematic** to a weight, set `has_variations=True` and return
+the triple `(nominal, up, down)`:
+
+```python
+my_custom_weight_var = WeightLambda.wrap_func(
+    name="my_custom_weight_withvar",
+    function=lambda params, metadata, events, size, shape_variations: (
+        np.ones(size) * 2.0,   # nominal
+        np.ones(size) * 3.0,   # up
+        np.ones(size) * 0.5,   # down
+    ),
+    has_variations=True,
+)
+```
+
+For **several named variations** on the same weight, declare them in `variations=[...]` and
+return `(nominal, [names], [ups], [downs])`:
+
+```python
+my_custom_weight_multivar = WeightLambda.wrap_func(
+    name="my_custom_weight_multivar",
+    function=lambda params, metadata, events, size, shape_variations: (
+        np.ones(size) * 2.0,                          # nominal
+        ["stat", "syst"],                             # variation names
+        [np.ones(size) * 3.0, np.ones(size) * 4.0],   # up for each
+        [np.ones(size) * 0.5, np.ones(size) * 0.25],  # down for each
+    ),
+    has_variations=True,
+    variations=["stat", "syst"],
+)
+```
+
+A weight only produces systematic templates if it is *also* listed in the `variations`
+block of the `Configurator`. The structure mirrors the `weights` block, so a variation can
+be enabled for all samples or only for some, inclusively or per-category:
+
+```python
+variations = {
+    "weights": {
+        "common": {
+            "inclusive": ["pileup", "sf_ele_id", "sf_ele_reco"],
+            "bycategory": {"1btag": ["sf_btag"]},
+        },
+        "bysample": {
+            "TTTo2L2Nu": {"bycategory": {"2jets_D": ["my_custom_weight_multivar"]}},
+        },
+    },
+}
+```
+
+The resulting histogram `variation` axis will contain one `<name>Up`/`<name>Down` pair per
+declared variation (e.g. `my_custom_weight_multivar_statUp`, `..._systDown`).
+
+:::{note}
+Weights can also be applied to **data** (e.g. data-driven correction factors): list them in
+the `weights` block exactly as for MC. See
+`tests/test_full_configs/test_custom_weights/config_weights_data.py`.
+:::
 
 ## promptMVA lepton selection and on-the-fly re-evaluation
 
@@ -211,6 +685,57 @@ For 2022–2023 the scale factors are derived from the TTH multilepton team and 
 under `pocket_coffea/parameters/custom_SFs/{electron,muon}_promptMVA/`. For 2024
 (NanoAODv15) central POG scale factors are used automatically.
 :::
+
+## Systematic shape variations
+
+Shape (a.k.a. "up/down template") systematics come from object calibrations — JEC/JER,
+MET, electron scale & smearing, etc. They are enabled by listing the relevant *calibrator*
+in the `shape` block of `variations`, while the calibrators themselves are activated
+through the `calibrators` argument of the `Configurator`:
+
+```python
+from pocket_coffea.lib.calibrators.common.common import default_calibrators_sequence
+
+cfg = Configurator(
+    ...
+    calibrators = default_calibrators_sequence,   # JetsCalibrator, METCalibrator, ElectronsScaleCalibrator, ...
+    variations = {
+        "weights": {"common": {"inclusive": [...]}},
+        "shape":   {"common": {"inclusive": ["jet_calibration"]}},
+    },
+    ...
+)
+```
+
+During processing the calibration loop re-runs the full per-event selection once per
+variation, so each shape systematic produces its own entry on the histogram `variation`
+axis. For the jet calibration the axis labels are built as `<jet_type>_<variation>Up/Down`,
+e.g. `AK4PFchs_JES_TotalUp`, `AK4PFchs_JERDown` for Run2, or `AK4PFPuppi_JES_TotalUp` for
+Run3. Which individual JES/JER sources are produced is controlled by the
+`jets_calibration.variations` parameter (see
+[Systematic Variations](#systematic-variations) under Jet calibration).
+
+### Subsample-specific shape variations
+
+Shape variations declared as `common` apply to every (sub)sample. To restrict an
+*additional* shape variation to a single subsample, address it by its `<sample>__<subsample>`
+key in the `bysample` block, exactly as for weights. A subsample that is not listed gets
+only the common variations, so its `variation` axis will not contain the subsample-specific
+labels. Two subsamples with identical selection cuts will produce identical nominal
+histograms, while only the configured one carries the extra variation templates (see
+`tests/test_full_configs/test_shape_variations/config_shape_var_bysubsample.py`).
+
+When shape and weight variations are both active, the weights applied during a shape pass
+are the **nominal** subsample weights — so a subsample-specific normalization factor
+multiplies both the nominal and the JES-shifted templates consistently.
+
+### Electron scale & smearing
+
+The `ElectronsScaleCalibrator` (part of `default_calibrators_sequence`) applies the
+electron scale & smearing corrections and their variations. When the corrected
+`ElectronGood_pt` is exported alongside the uncorrected `ElectronGood_pt_original`, the two
+differ for every event, confirming the correction was applied (see
+`config_eleSS_Run3.py`).
 
 ## Apply corrections
 Here we describe how to apply certain corrections recommended by CMS POGs.
@@ -722,3 +1247,102 @@ Currently, the second solution is implemented only for the `condor@lxplus` execu
   * `runner`: Pass `--split-by-category` to `runner` (actually gets passed to the executor parameters). The output from each job is then further split to contain 8 categories per output file, so each job produces `n_groups = n_categories/8` output files. This is handled through the `split-output` command, which in turn calls `utils.filter_output.filter_output_by_category`.
   * `merge-outputs`: Handles the merging per category automatically (no extra flag needed) if `--split-by-category` was passed to `runner`. This will produce `n_groups` merged outputs, containing mutually exclusive groups of categories.
   * `make-plots`: Pass `--split-by-category` flag to handle only the category-wise merged outputs.
+
+## Export columns (arrays)
+
+Besides histograms, PocketCoffea can export selected object fields as flat arrays
+("columns"), stored in the output under `output["columns"]`. Columns are declared with
+`ColOut` objects in the `columns` block of the `Configurator`, using the same
+`common` / `bysample` / `bycategory` structure as weights:
+
+```python
+from pocket_coffea.lib.columns_manager import ColOut
+
+columns = {
+    "common": {
+        "inclusive": [
+            ColOut("JetGood", ["pt", "eta"]),
+        ],
+    },
+    "bysample": {
+        "TTTo2L2Nu": {
+            "bycategory": {
+                "2btag": [ColOut("BJetGood", ["pt", "eta", "phi"])],
+                "4jets": [ColOut("JetGood", ["pt", "eta", "phi"])],
+            }
+        }
+    },
+}
+```
+
+`ColOut(collection, columns, flatten=True, store_size=True, fill_none=True,
+fill_value=-999.0, pos_start=None, pos_end=None)`:
+
+- `flatten=True` (default) flattens the jagged per-event arrays into a single flat array;
+  the per-event multiplicity is recoverable from the companion size column written when
+  `store_size=True`. Set `flatten=False` to keep the jagged (per-event) structure — needed
+  if you intend to dump to parquet (see below).
+- `fill_none` / `fill_value` control how missing entries are padded.
+- `pos_start` / `pos_end` export only a slice of the collection (e.g. the leading jet).
+
+### Dump columns to parquet per chunk
+
+By default the columns accumulate into the `.coffea` output. For large column dumps it is
+more efficient to write one parquet file per processed chunk, keeping the jagged structure
+(`flatten=False`). Enable this with the `dump_columns_as_arrays_per_chunk` workflow option:
+
+```python
+cfg = Configurator(
+    ...
+    workflow_options = {"dump_columns_as_arrays_per_chunk": "./columns"},
+    columns = {
+        "common": {"inclusive": [ColOut("JetGood", ["pt", "eta"], flatten=False)]},
+    },
+    ...
+)
+```
+
+Each chunk writes its arrays under `./columns/...`, organized by sample and category,
+instead of being kept in memory until the end of the job.
+
+## Delayed branches (lazy event variables)
+
+Sometimes a derived per-event quantity is needed in cuts, weights or histograms but you
+want it computed **once per nominal event** and reused across all calibrator variations,
+without it being recomputed in every pass. Register such a quantity as a *delayed branch*
+in the workflow `__init__` via `self.delayed_branches.register`:
+
+```python
+from pocket_coffea.workflows.base import BaseProcessorABC
+
+class BasicProcessor(BaseProcessorABC):
+    def __init__(self, cfg):
+        super().__init__(cfg)
+        # compute event parity once; events that are masked out get the default value
+        self.delayed_branches.register(
+            "parity",
+            lambda events: events.event % 2,
+            default_value=-1.0,
+        )
+```
+
+The registered branch then behaves like any other event field: it can be referenced by
+name in cut functions, in custom weights, and as a histogram axis:
+
+```python
+variables = {
+    "Parity": HistConf([Axis(field="parity", bins=3, start=-1, stop=2, label="Parity")],
+                       variations=True),
+}
+```
+
+`register(name, compute_fn, default_value=1.0)`:
+
+- `compute_fn(events)` returns an array with a leading event axis. The value is evaluated
+  on the nominal events and mapped to each variation, so it is computed only once.
+- `default_value` fills events that are not part of the current selection (the example uses
+  `-1.0` so unselected events are distinguishable from real parities `0`/`1`).
+- To register several branches at once, pass a list of names and a `compute_fn` returning a
+  dict `{name: array}`; `default_value` may then be a dict mapping each name to its default.
+- Dense multi-dimensional outputs are supported as long as the trailing shape matches the
+  shape of the default value.
