@@ -319,9 +319,12 @@ lepton_scale_factors:
       '2023_postBPix':
           id: NUM_TightID_DEN_TrackerMuons
           iso: NUM_LoosePFIso_DEN_TightID
-          trigger: NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight
-      
+          trigger: NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight  
       '2024':
+          id: NUM_TightID_DEN_TrackerMuons
+          iso: NUM_LoosePFIso_DEN_TightID
+          trigger: NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight
+      '2025':
           id: NUM_TightID_DEN_TrackerMuons
           iso: NUM_LoosePFIso_DEN_TightID
           trigger: NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight
@@ -345,6 +348,8 @@ lepton_scale_factors:
           file: ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,MUO,muon_Z.json.gz}
       '2024':
           file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,MUO,muon_Z.json.gz}   
+      '2025':
+          file: ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,MUO,muon_Z.json.gz}   
     rochester:
       apply:
         '2016_PreVFP':  True
@@ -356,6 +361,7 @@ lepton_scale_factors:
         '2023_preBPix': False
         '2023_postBPix': False
         '2024':         False
+        '2025':         False
       so_path: "${default_params_dir:}/roccor/RoccoR.so"
       txt_file:
         '2016_PreVFP':  "${default_params_dir:}/roccor/RoccoR2016aUL.txt"
