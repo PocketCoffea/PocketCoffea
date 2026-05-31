@@ -26,7 +26,7 @@ pileupJSONfiles:
   "2024":
     file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,LUM,puWeights_BCDEFGHI.json.gz}
     name: Collisions24_BCDEFGHI_goldenJSON
-  "2025": # Use 2024 pileup weights for 2025 as well for now, since the 2025 are in prelim tag and passing throuhg group_tags doesn't work for some reason
-    file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,LUM,puWeights_BCDEFGHI.json.gz}
-    name: Collisions24_BCDEFGHI_goldenJSON    
+  "2025":
+    file: ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,LUM,puWeights_2025pp_Golden_Summer24_25ns_69200ub.json.gz,prelim}
+    name: Collisions25_goldenJSON    
 
