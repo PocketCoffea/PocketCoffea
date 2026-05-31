@@ -63,9 +63,6 @@ def setup_cvmfs_resolver(group_tags: dict = None):
             tag = tag
         elif group_tags is not None and group in group_tags and period in group_tags[group]:
             tag = group_tags[group][period]
-        elif group=="LUM":
-            # For the luminosity files we want to use the latest prelim version if no tag is provided
-            tag = "prelim"
         else:
             tag = "latest"
        
