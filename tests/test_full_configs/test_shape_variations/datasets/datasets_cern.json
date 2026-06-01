@@ -10,7 +10,7 @@
             "size": "309022244066"
         },
         "files": [
-            "root://eoscms.cern.ch//eos/cms/store/mc/RunIISummer20UL18NanoAODv9/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/106X_upgrade2018_realistic_v16_L1v1-v1/280000/01881676-C30A-2142-B3B2-7A8449DAF8EF.root"
+            "root://xrootd-cms.infn.it///store/mc/RunIISummer20UL18NanoAODv9/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/106X_upgrade2018_realistic_v16_L1v1-v1/280000/01881676-C30A-2142-B3B2-7A8449DAF8EF.root"
         ]
 },
  
@@ -26,7 +26,7 @@
             "size": "308305217244"
         },
         "files": [
-            "root://eoscms.cern.ch//eos/cms/store/mc/RunIISummer20UL16NanoAODv9/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/106X_mcRun2_asymptotic_v17-v1/70000/6F78A4CF-97BC-7741-B6E4-DE51CF82EE6E.root"
+            "root://xrootd-cms.infn.it///store/mc/RunIISummer20UL16NanoAODv9/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/NANOAODSIM/106X_mcRun2_asymptotic_v17-v1/70000/6F78A4CF-97BC-7741-B6E4-DE51CF82EE6E.root"
         ]
     },
     "DATA_SingleMuon_2018_EraA": {
@@ -41,7 +41,7 @@
             "size": "211774345140"
         },
         "files": [
-            "root://eoscms.cern.ch//eos/cms/store/data/Run2018A/SingleMuon/NANOAOD/UL2018_MiniAODv2_NanoAODv9_GT36-v1/2820000/06EFD7A6-A6F1-E145-B1F8-C6794FE4EDDD.root"
+            "root://xrootd-cms.infn.it///store/data/Run2018A/SingleMuon/NANOAOD/UL2018_MiniAODv2_NanoAODv9_GT36-v1/2820000/06EFD7A6-A6F1-E145-B1F8-C6794FE4EDDD.root"
         ]
     },
     "DATA_EGamma_2018_EraA": {
@@ -56,7 +56,7 @@
             "size": "211774345140"
         },
         "files": [
-            "root://eoscms.cern.ch//eos/cms/store/data/Run2018A/EGamma/NANOAOD/UL2018_MiniAODv2_NanoAODv9_GT36-v1/2830000/10D2F672-4042-5F49-B8D5-73B90AF52CFD.root"]
+            "root://xrootd-cms.infn.it///store/data/Run2018A/EGamma/NANOAOD/UL2018_MiniAODv2_NanoAODv9_GT36-v1/2830000/10D2F672-4042-5F49-B8D5-73B90AF52CFD.root"]
      },
 
      "TTTo2L2Nu_2023_postBPix": {
@@ -70,7 +70,7 @@
             "size": "100000"
         },
         "files": [
-            "root://eoscms.cern.ch//eos/cms/store/mc/Run3Summer23BPixNanoAODv13/TTto2L2Nu-2Jets_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/NANOAODSIM/133X_mcRun3_2023_realistic_postBPix_ForNanov13_v2-v2/100000/19029770-7419-4a59-ba9c-3e549e8561ff.root"]
+            "root://xrootd-cms.infn.it///store/mc/Run3Summer23BPixNanoAODv13/TTto2L2Nu-2Jets_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/NANOAODSIM/133X_mcRun3_2023_realistic_postBPix_ForNanov13_v2-v2/100000/19029770-7419-4a59-ba9c-3e549e8561ff.root"]
      },
 
      "DATA_EGamma_2023_EraD": {
@@ -85,6 +85,6 @@
             "size": "22851463854"
         },
         "files": [
-            "root://eoscms.cern.ch//eos/cms/store/data/Run2023D/EGamma0/NANOAOD/22Sep2023_v2-v1/40000/142f0a5e-1a8c-4048-a3f4-fb38cbc6966a.root"]
+            "root://xrootd-cms.infn.it///store/data/Run2023D/EGamma0/NANOAOD/22Sep2023_v2-v1/40000/142f0a5e-1a8c-4048-a3f4-fb38cbc6966a.root"]
         }
 }

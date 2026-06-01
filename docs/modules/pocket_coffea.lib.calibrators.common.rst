@@ -12,14 +12,6 @@ pocket\_coffea.lib.calibrators.common.common module
    :show-inheritance:
    :undoc-members:
 
-pocket\_coffea.lib.calibrators.common.pnet\_regression module
--------------------------------------------------------------
-
-.. automodule:: pocket_coffea.lib.calibrators.common.pnet_regression
-   :members:
-   :show-inheritance:
-   :undoc-members:
-
 Module contents
 ---------------
 

@@ -30,9 +30,6 @@ parameters = defaults.merge_parameters_from_files(default_parameters,
                                                    update=True)
 
 #Creating custom weight
-from pocket_coffea.lib.weights.weights import WeightLambda
-import numpy as np
-
 cfg = Configurator(
     parameters = parameters,
     datasets = {
@@ -53,7 +50,6 @@ cfg = Configurator(
             }
         }
     },
-
     workflow = BasicProcessor,
 
     skim = [get_nPVgood(1), eventFlags, goldenJson,
@@ -101,7 +97,7 @@ cfg = Configurator(
         },
         "shape": {
             "common": {
-                "inclusive": [ "jet_calibration"],
+                "inclusive": [ "jet_calibration", "met_type1_calibration"],
             },
         }
     },

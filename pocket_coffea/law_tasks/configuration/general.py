@@ -11,10 +11,6 @@ class baseconfig(luigi.Config):
         description="Config file with parameters specific to the current run",
         default=os.path.join(os.getcwd(), "config.py"),
     )
-    # output_dir = luigi.Parameter(
-    #     description="Output directory for the coffea processor and plots",
-    #     default=os.path.join(os.getcwd(), "output"),
-    # )
 
 
 class transferconfig(luigi.Config):
@@ -26,7 +22,7 @@ class transferconfig(luigi.Config):
 class datasetconfig(luigi.Config):
     """Paramters for dataset creation"""
 
-    dataset_definition = luigi.Parameter(
+    dataset_definition = law.CSVParameter(
         description="json file containing the datasets definitions (wildcard supported)",
         default=os.path.join(os.getcwd(), "datasets", "datasets_definitions.json"),
     )
@@ -80,6 +76,10 @@ class datasetconfig(luigi.Config):
         description="Sort replicas (default: 'geoip')",
         default="geoip",
     )
+    prioritylist_sites = law.CSVParameter(
+        description="List of priorities to sort sites (requires sort-replicas: priority)",
+        default=(),
+    )
 
 
 class runnerconfig(luigi.Config):
@@ -103,6 +103,9 @@ class runnerconfig(luigi.Config):
     scaleout = luigi.IntParameter(description="Overwrite scaleout config", default=10)
     process_separately = luigi.BoolParameter(
         description="Process each dataset separately", default=False
+    )
+    skip_bad_files = luigi.BoolParameter(
+        description="Skip bad files during processing", default=None
     )
 
 

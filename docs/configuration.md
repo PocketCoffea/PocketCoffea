@@ -200,27 +200,28 @@ The dataset configuration has the following structure:
 
 ```python
 cfg = Configurator(
-    datasets = {
-        "jsons": [f"{localdir}/datasets/backgrounds_MC_ttbar_2018.json",
-                  f"{localdir}/datasets/backgrounds_MC_ttbar_2017.json",
-                  f"{localdir}/datasets/DATA_SingleEle.json",
-                  f"{localdir}/datasets/DATA_SingleEle.json",
-                    ],
-        "filter" : {
-            "samples": ["TTToSemiLeptonic","DATA_SingleEle","DATA_SingleEle"],
-            "samples_exclude" : [],
-            "year": ['2018','2017']
+    datasets={
+        "jsons": [
+            f"{localdir}/datasets/backgrounds_MC_ttbar_2018.json",
+            f"{localdir}/datasets/backgrounds_MC_ttbar_2017.json",
+            f"{localdir}/datasets/DATA_SingleEle.json",
+            f"{localdir}/datasets/DATA_SingleEle.json",
+        ],
+        "filter": {
+            "samples": ["TTToSemiLeptonic", "DATA_SingleEle", "DATA_SingleEle"],
+            "samples_exclude": [],
+            "year": ["2018", "2017"],
         },
-        "subsamples":{
+        "subsamples": {
             "TTToSemiLeptonic": {
-                "=1b":  [get_nBtagEq(1, coll="Jet")],
-                "=2b" : [get_nBtagEq(2, coll="Jet")],
-                ">2b" : [get_nBtagMin(3, coll="Jet")]
+                "=1b": [get_nBtagEq(1, coll="Jet")],
+                "=2b": [get_nBtagEq(2, coll="Jet")],
+                ">2b": [get_nBtagMin(3, coll="Jet")],
             }
-        }
+        },
     },
-    ....
-    )
+    # ....
+)
 ```
 
 - The `jsons` key contains the list of dataset definition file to consider as inputs
@@ -252,17 +253,16 @@ These subsamples can have different weight and variation configurations:
 
 ```python
 cfg = Configurator(
-    datasets = {
-        "subsamples":{
+    datasets={
+        "subsamples": {
             "TTToSemiLeptonic": {
-                "=1b":  [get_nBtagEq(1, coll="Jet")],
-                "=2b" : [get_nBtagEq(2, coll="Jet")],
-                ">2b" : [get_nBtagMin(3, coll="Jet")]
+                "=1b": [get_nBtagEq(1, coll="Jet")],
+                "=2b": [get_nBtagEq(2, coll="Jet")],
+                ">2b": [get_nBtagMin(3, coll="Jet")],
             }
         }
     },
-    
-    weights = {
+    weights={
         "common": {
             "inclusive": ["genWeight", "lumi", "XS", "pileup"],
         },
@@ -274,20 +274,19 @@ cfg = Configurator(
             # Subsample-specific weights
             "TTToSemiLeptonic__=1b": {
                 "inclusive": ["sf_btag_1b_specific"],  # Custom b-tag SF for 1b events
-                "bycategory": {
-                    "baseline": ["additional_1b_weight"]
-                }
+                "bycategory": {"baseline": ["additional_1b_weight"]},
             },
             "TTToSemiLeptonic__=2b": {
-                "inclusive": ["sf_btag_2b_specific"],  # Different b-tag SF for 2b events
+                "inclusive": [
+                    "sf_btag_2b_specific"
+                ],  # Different b-tag SF for 2b events
             },
             "TTToSemiLeptonic__>2b": {
                 "inclusive": ["sf_btag_multi_specific", "top_pt_reweight"],
-            }
-        }
+            },
+        },
     },
-    
-    variations = {
+    variations={
         "weights": {
             "bysample": {
                 "TTToSemiLeptonic__=1b": {
@@ -298,17 +297,20 @@ cfg = Configurator(
                 },
                 "TTToSemiLeptonic__>2b": {
                     "inclusive": ["sf_btag_multi_specific", "top_pt_reweight"],
-                }
+                },
             }
         },
         "shape": {
             "bysample": {
                 "TTToSemiLeptonic__>2b": {
-                    "inclusive": ["JESTotal", "JER"]  # Only apply shape variations to high b-jet multiplicity
+                    "inclusive": [
+                        "JESTotal",
+                        "JER",
+                    ]  # Only apply shape variations to high b-jet multiplicity
                 }
             }
-        }
-    }
+        },
+    },
 )
 ```
 
@@ -329,9 +331,9 @@ When configuring weights and variations for subsamples, ensure that the subsampl
 from pocket_coffea.workflows.tthbb_base_processor import ttHbbBaseProcessor
 
 cfg = Configurator(
-    workflow : ttHbbBaseProcessor,
-    worflow_options : {},
-    ....
+    workflow=ttHbbBaseProcessor,
+    workflow_options={},
+    # ....
 )
 ```
 
@@ -348,8 +350,8 @@ from pocket_coffea.lib.calibrators.common import default_calibrators_sequence
 
 cfg = Configurator(
     # Default calibrator sequence
-    calibrators = default_calibrators_sequence,
-    ....
+    calibrators=default_calibrators_sequence,
+    # ....
 )
 ```
 
@@ -364,11 +366,7 @@ For a detailed explanation of how calibrators work in the PocketCoffea workflow,
 PocketCoffea provides a default sequence of calibrators for common corrections:
 
 ```python
-default_calibrators_sequence = [
-    JetsCalibrator, 
-    METCalibrator, 
-    ElectronsScaleCalibrator
-]
+default_calibrators_sequence = [JetsCalibrator, METCalibrator, ElectronsScaleCalibrator]
 ```
 
 - **JetsCalibrator**: Applies JEC/JER corrections and provides systematic variations (JESUp/Down, JERUp/Down, etc.)
@@ -391,13 +389,13 @@ from my_custom_calibrators import MyCustomMuonCalibrator
 # Custom sequence
 my_calibrators = [
     JetsCalibrator,
-    METCalibrator, 
+    METCalibrator,
     MyCustomMuonCalibrator,  # Custom calibrator
 ]
 
 cfg = Configurator(
-    calibrators = my_calibrators,
-    ....
+    calibrators=my_calibrators,
+    # ....
 )
 ```
 
@@ -407,7 +405,7 @@ Calibrator behavior is usually controlled through the `parameters` configuration
 
 - **jets_calibration**: Controls JEC/JER application and variations
 - **lepton_scale_factors**: Configures electron/muon scale factors and corrections
-- **rescale_MET_config**: MET correction configuration
+- **met_calibration**: MET correction configuration
 
 See the [Parameters](./parameters.md) page for detailed calibrator parameter configuration, the [Calibrators](./calibrators.md) page for implementation details, and the [Concepts](./concepts.md#object-calibration-and-systematic-variations) page for how calibrators integrate into the workflow.
 
@@ -427,22 +425,24 @@ see [Concepts#Filtering](./concepts.md#filtering) for a detailed explanation of 
 
 ```python
 cfg = Configurator(
-   skim = [
-            get_nPVgood(1), eventFlags, goldenJson,
-            get_nObj_min(4, 15., "Jet"),
-            get_HLTsel() 
-          ],
-
-   preselections = [semileptonic_presel_nobtag],
-
-   categories = StandardSelection({
-          "baseline": [passthrough],
-           "1b" : [ get_nBtagEq(1, coll="BJetGood")],
-           "2b" : [ get_nBtagEq(2, coll="BJetGood")],
-           "3b" : [ get_nBtagEq(3, coll="BJetGood")],
-           "4b" : [ get_nBtagEq(4, coll="BJetGood")]
-      }),
-   ....
+    skim=[
+        get_nPVgood(1),
+        eventFlags,
+        goldenJson,
+        get_nObj_min(4, 15.0, "Jet"),
+        get_HLTsel(),
+    ],
+    preselections=[semileptonic_presel_nobtag],
+    categories=StandardSelection(
+        {
+            "baseline": [passthrough],
+            "1b": [get_nBtagEq(1, coll="BJetGood")],
+            "2b": [get_nBtagEq(2, coll="BJetGood")],
+            "3b": [get_nBtagEq(3, coll="BJetGood")],
+            "4b": [get_nBtagEq(4, coll="BJetGood")],
+        }
+    ),
+    # ....
 )
 ```
 
@@ -476,48 +476,189 @@ In the configuration the categorization is split in:
 
 
 ### Save skimmed NanoAOD
-PocketCoffea can dump events passing the skim selection to NanoAOD root files. This can be useful when your skimming
-efficiecy is high and you can trade the usage of some disk storage for higher processing speed. 
 
-The export of skimmed NanoAOD is activated by the `save_skimmed_files` argument of the `Configurator` object. If
-`save_skimmed_files!=None` then the processing stops after the skimming and one root file for each chunk is saved in the
-folder specified by the argument. 
+PocketCoffea can dump events passing the skim selection to NanoAOD ROOT files. Running once on a skim and reusing it
+for every subsequent processing pass trades a one-off disk cost for much shorter turnaround later — particularly useful
+when you iterate on histograms, weights, or systematic variations and the skim selection itself is stable.
 
-It is recommended to use a xrootd endpoint: `save_skimmed_files='root://eosuser.cern.ch:/eos/user/...`. 
+Skim export is enabled by setting the `save_skimmed_files` argument of the `Configurator` to an output directory (a
+local path or, recommended, an XRootD endpoint such as `root://eosuser.cern.ch://eos/user/.../skim/`). When set, the
+processor finishes the skim step, writes one ROOT file per processed chunk, and stops — categorization, weights and
+histograms are **not** computed in this run.
 
 ```python
 cfg = Configurator(
-     
-    workflow = ttHbbBaseProcessor,
-    workflow_options = {},
-    
-    save_skimmed_files = "root://eosuser.cern.ch://eos/user/x/xxx/skimmed_samples/Run2UL/",
-    skim = [get_nPVgood(1),
-            eventFlags,
-            goldenJson,
-            get_nBtagMin(3, minpt=15., coll="Jet", wp="M"),
-            get_HLTsel(primaryDatasets=["SingleEle", "SingleMuon"])],
-    )
-
+    workflow=ttHbbBaseProcessor,
+    workflow_options={},   # default: skim_mode="skim"
+    save_skimmed_files="root://eosuser.cern.ch://eos/user/x/xxx/skimmed_samples/Run2UL/",
+    skim=[
+        get_nPVgood(1),
+        eventFlags,
+        goldenJson,
+        get_nBtagMin(3, minpt=15.0, coll="Jet", wp="M"),
+        get_HLTsel(primaryDatasets=["SingleEle", "SingleMuon"]),
+    ],
+)
 ```
 
-The PocketCoffea output file contains the list of skimmed files with the number of skimmed events in each file. Moreover
-the root files contain a new branch called `skimRescaleGenWeight` which store for each event the scaling factor
-needed to recover the sum of genWeight of the original factor, and correct for the skimming efficiency.  The factor
-is computed as `(original sum of genweight / sum of genweights of skimmed files)` for each file. This factor needs to
-be multiplied to the sum of genweights accumulated in each chunk by the processor that runs on top of skimmed
-datasets. Therefore the dataset definition file for skimmed datasets must contain the `isSkim:True` metadata,
-which is used by the processor to apply the rescaling.
+#### Two skim modes
+
+The exact set of events that ends up in the skim is controlled by `workflow_options["skim_mode"]`. Two values are
+recognised today (see `BaseProcessorABC.process` in `pocket_coffea/workflows/base.py`):
+
+| `skim_mode` | What gets saved | Object corrections during selection |
+|-------------|-----------------|-------------------------------------|
+| `"skim"` *(default)* | Events passing the `skim` cut list, evaluated on **raw NanoAOD**. | None — skim runs before any calibrator. |
+| `"presel_any_variation"` | Events passing **either** the skim **or** the full event preselection in **at least one** active systematic variation. | The full calibration loop is evaluated in dry-run mode just to compute preselection masks; the events written to disk are the **un-calibrated** ones. |
+
+In default `"skim"` mode the skim is a pure "drop obviously useless events" stage — fast, loose, and only allowed to
+look at branches that exist before any object correction. This is the standard recipe and what the rest of the
+documentation assumes.
+
+#### `skim_mode: "presel_any_variation"`
+
+The variation-aware mode lets you push the skim much closer to the analysis preselection without losing events that
+would be selected only under a systematic shift (e.g. a JES-up shifted jet that crosses the pT threshold). The flow is:
+
+1. Run the normal skim on raw NanoAOD.
+2. Initialise the `CalibratorsManager` and loop over every active shape variation, calling `apply_object_preselection`,
+   `count_objects`, `define_common_variables_before_presel`, and finally evaluating the preselection mask **without
+   filtering the events**.
+3. OR-combine the per-variation masks into a single boolean mask and apply it to the **uncalibrated** events.
+4. Write the surviving events to disk, then exit — no histograms or columns are produced.
+
+The recipe is correct *for the set of calibration variations that were active when the skim was produced*. Each
+downstream re-processing on the skim re-runs the same calibration loop, so a JES-up event that was kept thanks to its
+shifted-up pT is re-evaluated with the corrected pT and ends up in the right variation histogram. Storing the
+uncalibrated events is what lets that downstream re-calibration apply cleanly — it does **not** make the skim
+immune to changes in the calibration configuration itself.
 
 :::{alert}
-**N.B.**: The skim is performed before the object calibration and preselection step. The analyzer must be careful to
-apply a loose enough skim that is invariant under the shape uncertainties applied later in the analysis. For example
-the selection on the minimum number of jets should be loose enought to not be affected by Jet energy scales, **which
-are applied later**. 
+**The skim is bound to the calibration set used to build it.** If you later change which calibrators are active, swap
+a JEC version, or add a systematic variation that wasn't in the dry-run loop, the OR-of-preselections that decided
+which events to keep is no longer guaranteed to be a superset of the new preselection — events you'd now want can be
+missing from disk. Whenever the calibration configuration changes, **re-run the skim** before trusting downstream
+results.
 :::
 
-A full tutorial of the necessar steps to produce a skim and then to use the pocketcoffea tools to prepare a new dataset
-configuration file can be found in the [How To section](./recipes.md#skimming-events).
+```python
+cfg = Configurator(
+    workflow=ttHbbBaseProcessor,
+    save_skimmed_files="root://eosuser.cern.ch://eos/user/x/xxx/skimmed_samples/Run3/",
+    workflow_options={
+        "skim_mode": "presel_any_variation",
+        # the explicit skim list is still applied first;
+        # the preselection-OR is added on top.
+    },
+    skim=[get_nPVgood(1), eventFlags, goldenJson, get_HLTsel(...)],
+    preselections=[
+        get_nObj_min(2, 25., "JetGood"),
+        get_nBtagMin(1, coll="BJetGood", wp="M"),
+    ],
+    calibrators=[JetsCalibrator, MetCalibrator, ElectronSFCalibrator],
+)
+```
+
+When to prefer it:
+
+- The preselection has a non-trivial efficiency, so a basic skim alone would still ship many useless events.
+- You want one canonical skim that already encodes the analysis acceptance for every shape systematic, so downstream
+  re-runs only have to re-evaluate histograms (not preselection).
+- You are willing to spend more CPU in the skim step (the full calibration loop runs once per chunk) in exchange for
+  a smaller, more analysis-shaped output.
+
+When not to use it:
+
+- Skim selection alone is already loose; the dry-run preselection just adds CPU for negligible event reduction.
+- The preselection depends on quantities that aren't yet computed in `define_common_variables_before_presel`.
+
+##### Stopping the run after the skim
+
+By default `save_skimmed_files` already short-circuits the rest of the processor — the chunk returns immediately after
+`export_skimmed_chunk()`. If you have a derived workflow that calls extra steps from `process_extra_after_skim` and you
+also want to bail out there in special debugging configurations, the workflow option `skip_processing_after_skim: True`
+is honoured: it makes the variation-aware branch exit right after writing the skim ROOT file. The default skim path
+already behaves this way; the option only matters when you wire it into your own subclass.
+
+#### Output structure & gen-weight rescaling
+
+The main `.coffea` output of a skim run keeps the usual `sum_genweights`, `cutflow` and dataset metadata and adds two
+extra keys:
+
+- `skimmed_files`: `{dataset: [path/to/file_0.root, ...]}` — the new ROOT files produced for each dataset.
+- `nskimmed_events`: `{dataset: [n_events_in_file_0, ...]}` — event counts per chunk file.
+
+Each output ROOT file carries an extra branch `skimRescaleGenWeight`, set per-event to
+
+```
+skimRescaleGenWeight = (original sum_genweight of the input file) / (sum_genweight surviving the skim)
+```
+
+Downstream, when the skim is used as input dataset, the dataset definition JSON **must** carry `isSkim: True` in its
+metadata. The processor reads that flag in `load_metadata` (`base.py:135-137`) and computes `sum_genweights` as
+`sum(skimRescaleGenWeight * genWeight)` instead of `sum(genWeight)`, so the per-dataset normalisation matches the
+unskimmed reference. Forgetting `isSkim: True` will silently under-normalise your MC.
+
+For chunks that produced zero events the rescale factor is set to 0 (see `export_skimmed_chunk` in `base.py`); these
+chunks contribute 0 to `sum_genweights_skimmed` but are still listed in `skimmed_files` and tracked by the rest of the
+machinery.
+
+##### Recovering `sum_genweight` for zero-event chunks
+
+There is one subtle failure mode of the per-event `skimRescaleGenWeight` mechanism: if an input NanoAOD chunk has
+**zero events surviving the skim**, no ROOT file is written for that chunk, so the downstream per-chunk reconstruction
+`sum(skimRescaleGenWeight * genWeight)` cannot recover its `sum_genweight` contribution. The original total would be
+silently under-counted whenever the skim is tight enough that some input chunks vanish entirely.
+
+To avoid this, `save_skimed_dataset_definition` writes the **authoritative pre-skim dataset-level totals** into the new
+dataset JSON's `metadata`:
+
+```json
+"metadata": {
+    ...,
+    "isSkim": "True",
+    "sum_genweights": 1.2345e+08,
+    "sum_signOf_genweights": 9.87e+06
+}
+```
+
+These values come straight from the skim job's `.coffea` accumulator, where they are computed **before** the skim mask
+is applied (`BaseProcessorABC.process`); they therefore include every input chunk regardless of survival. The hadded
+dataset definition produced by `pocket-coffea hadd-skimmed-files` carries the same fields, so a hadded skim is also
+self-recovering.
+
+At downstream postprocess time `BaseProcessorABC.postprocess` calls
+`pocket_coffea.utils.skim.apply_skim_sumgenweights_override` which, for every `isSkim` dataset whose metadata carries
+these fields, **replaces** the per-chunk-reconstructed `accumulator["sum_genweights"]` /
+`accumulator["sum_signOf_genweights"]` entries with the authoritative values before `rescale_sumgenweights` runs. The
+override is logged at INFO so the recovery is visible. Older skim outputs that lack the new metadata fields keep using
+the per-chunk reconstruction unchanged.
+
+A useful side effect: running downstream with `--limit-files` against an `isSkim` dataset now normalises histograms to
+the **original** sum_genweight rather than to whatever subset of files happened to be processed — which is the
+physically correct behaviour for cross-section normalisation.
+
+#### Practical tips
+
+- **Run the skim on `condor@lxplus`.** Each condor job produces its own slice of skimmed files; failed jobs can be
+  resubmitted individually with `--recreate-jobs` (see `running.md`). The dask scheduler is overkill for an embarrassingly
+  parallel write-only step.
+- **`hadd` the per-chunk files** afterwards with `pocket-coffea hadd-skimmed-files` to reduce file count and size
+  amplification (typical chunk files are ~tens of MB). The post-hadd helper produces an updated dataset definition JSON
+  with `isSkim: True` already set.
+- **Mind the skim looseness.** Even in `presel_any_variation` mode the explicit `skim` list is evaluated on raw NanoAOD
+  *before* any object correction; it must remain loose under the systematic shifts that the preselection sees later.
+
+:::{alert}
+The skim is performed before the object calibration and preselection step. The analyzer must be careful to apply a
+loose enough skim that is invariant under the shape uncertainties applied later in the analysis. For example, the
+selection on the minimum number of jets should be loose enough to not be affected by jet energy scales, **which are
+applied later**. The `presel_any_variation` mode only protects against *preselection* losses under variations — the
+`skim` list itself is still raw-NanoAOD only.
+:::
+
+See the end-to-end recipe in [How-To → Skimming events](./recipes.md#skimming-events) for the concrete CLI invocation
+and post-processing steps.
 
 ### Categorization utilities
 PocketCoffea defines different ways to categorize events. 
@@ -528,13 +669,17 @@ The code is available at [pocket_coffea.lib.categorization](pocket_coffea.lib.ca
      `Cut` objects which are applied with an **AND**.
      
     ```python
-    categories = StandardSelection({
-          "baseline": [passthrough],
-           "1b" : [ get_nBtagEq(1, coll="BJetGood")],
-           "2b" : [ get_nBtagEq(2, coll="BJetGood")],
-           "3b" : [ get_nBtagEq(3, coll="BJetGood")],
-           "4b" : [ get_nBtagEq(4, coll="BJetGood")]
-      }),
+    categories = (
+        StandardSelection(
+            {
+                "baseline": [passthrough],
+                "1b": [get_nBtagEq(1, coll="BJetGood")],
+                "2b": [get_nBtagEq(2, coll="BJetGood")],
+                "3b": [get_nBtagEq(3, coll="BJetGood")],
+                "4b": [get_nBtagEq(4, coll="BJetGood")],
+            }
+        ),
+    )
     ```
      
 - **CartesianSelection**: 
@@ -550,29 +695,37 @@ The code is available at [pocket_coffea.lib.categorization](pocket_coffea.lib.ca
     $((N_{jets} [4,5,>6]) \times (N_{bjets} [3,4,5,>6])) + \text{inclusive} + 4jets40pt$
     
     ```python
-    categories = CartesianSelection(
-        multicuts = [
-            MultiCut(name="Njets",
-                     cuts=[
-                         get_nObj_eq(4, 15., "JetGood"),
-                         get_nObj_eq(5, 15., "JetGood"),
-                         get_nObj_min(6, 15., "JetGood"),
-                     ],
-                     cuts_names=["4j","5j","6j"]),
-            MultiCut(name="Nbjet",
+    categories = (
+        CartesianSelection(
+            multicuts=[
+                MultiCut(
+                    name="Njets",
                     cuts=[
-                         get_nObj_eq(3, 15., "BJetGood"),
-                         get_nObj_eq(4, 15., "BJetGood"),
-                         get_nObj_eq(5, 15., "BJetGood"),
-                         get_nObj_min(6, coll="BJetGood"),
-                     ],
-                     cuts_names=["3b","4b","5b","6b"])
-        ],
-        common_cats = StandardSelection({
-            "inclusive": [passthrough],
-            "4jets_40pt" : [get_nObj_min(4, 40., "JetGood")]
-        })
-    ),
+                        get_nObj_eq(4, 15.0, "JetGood"),
+                        get_nObj_eq(5, 15.0, "JetGood"),
+                        get_nObj_min(6, 15.0, "JetGood"),
+                    ],
+                    cuts_names=["4j", "5j", "6j"],
+                ),
+                MultiCut(
+                    name="Nbjet",
+                    cuts=[
+                        get_nObj_eq(3, 15.0, "BJetGood"),
+                        get_nObj_eq(4, 15.0, "BJetGood"),
+                        get_nObj_eq(5, 15.0, "BJetGood"),
+                        get_nObj_min(6, coll="BJetGood"),
+                    ],
+                    cuts_names=["3b", "4b", "5b", "6b"],
+                ),
+            ],
+            common_cats=StandardSelection(
+                {
+                    "inclusive": [passthrough],
+                    "4jets_40pt": [get_nObj_min(4, 40.0, "JetGood")],
+                }
+            ),
+        ),
+    )
     ```
     
     
@@ -592,29 +745,31 @@ The configuration file specifies which weight is applied to which sample in whic
 from pocket_coffea.lib.weights.common import common_weights
 
 cfg = Configurator(
-    weights_classes = common_weights,
-    weights = {
+    weights_classes=common_weights,
+    weights={
         "common": {
-            "inclusive": ["genWeight","lumi","XS",
-                          "pileup",
-                          "sf_ele_reco", "sf_ele_id",
-                          "sf_mu_id","sf_mu_iso",
-                          "sf_btag", "sf_jet_puId", 
-                          ],
-            "bycategory" : {
-                "2jets_20pt" : [.....]
-            }
+            "inclusive": [
+                "genWeight",
+                "lumi",
+                "XS",
+                "pileup",
+                "sf_ele_reco",
+                "sf_ele_id",
+                "sf_mu_id",
+                "sf_mu_iso",
+                "sf_btag",
+                "sf_jet_puId",
+            ],
+            "bycategory": {"2jets_20pt": []},
         },
         "bysample": {
-             "TTToSemiLeptonic": {
-                  "inclusive": [...],
-                  "bycategory": { 
-                       "2jets_20pt": [....]
-                   }
-             }
-        }
+            "TTToSemiLeptonic": {
+                "inclusive": [],
+                "bycategory": {"2jets_20pt": []},
+            }
+        },
     },
-    ....
+    # ....
 )
 ```
 
@@ -657,33 +812,32 @@ from pocket_coffea.lib.weights_manager import WeightWrapper
 
 # example of WeightWrapper definition
 class CustomTopSF(WeightWrapper):
-    
+
     name = "top_sf"
     has_variations = True
-    
+
     def __init__(self, params, metadata):
         super().__init__(params, metadata)
         self.sf_file = params["top_sf"]["json_file"]
         # custom variations from config
         self._variations = params["top_sf"]["variations"]
-        
+
     def compute(self, events, size, shape_variation):
         # custom computation
-        
+
         if shape_variation == "nominal":
             sf_data = sf_function.compute(self.sf_file, events)
             return WeightDataMultiVariation(
-                name = self.name, 
-                nominal = sf_data["nominal"],
-                up = [sf_data[var] for var in self._variations["up"]],
-                down = [sf_data[var] for var in self._variations["down"]]
+                name=self.name,
+                nominal=sf_data["nominal"],
+                up=[sf_data[var] for var in self._variations["up"]],
+                down=[sf_data[var] for var in self._variations["down"]],
             )
         else:
             return WeightData(
-                name = self.name, 
-                nominal = np.ones(size),
+                name=self.name,
+                nominal=np.ones(size),
             )
-
 ```
 
 The class must be then passed to the configurator in order to be available:
@@ -692,25 +846,27 @@ The class must be then passed to the configurator in order to be available:
 from pocket_coffea.lib.weights.common import common_weights
 
 cfg = Configurator(
-    weights_classes = common_weights + [CustomTopSF],  # note the addition here
-    weights = {
+    weights_classes=common_weights + [CustomTopSF],  # note the addition here
+    weights={
         "common": {
-            "inclusive": ["genWeight","lumi","XS",
-                          "pileup",
-                          "sf_ele_reco", "sf_ele_id",
-                          "sf_mu_id","sf_mu_iso",
-                          "sf_btag", "sf_jet_puId", 
-                          ],
-            "bycategory" : {
-                "2jets_20pt" : [  "top_sf"  # custom weight
-                ]
-            }
+            "inclusive": [
+                "genWeight",
+                "lumi",
+                "XS",
+                "pileup",
+                "sf_ele_reco",
+                "sf_ele_id",
+                "sf_mu_id",
+                "sf_mu_iso",
+                "sf_btag",
+                "sf_jet_puId",
+            ],
+            "bycategory": {"2jets_20pt": ["top_sf"]},  # custom weight
         },
-        ...
-        
-    ....
+        # ...
+    },
+    # ....
 )
-
 ```
 
 Moreover, often weights are easier to define: simple computations can be wrapped in a lambda without the need of
@@ -719,12 +875,13 @@ defining a full WeightWrapper class.
 ```python
 from pocket_coffea.lib.weights.weights import WeightLambda
 
-my_custom_sf  = WeightLambda.wrap_func(
+my_custom_sf = WeightLambda.wrap_func(
     name="sf_custom",
-    function=lambda params, metadata, events, size, shape_variations:
-        call_to_my_fancy_function(events, params, metadata, shape_variations)
-    has_variations=True
-    )
+    function=lambda params, metadata, events, size, shape_variations: call_to_my_fancy_function(
+        events, params, metadata, shape_variations
+    ),
+    has_variations=True,
+)
 ```
 
 The return type of the lambda must be a [WeightData](pocket_coffea.lib.weights.weights.WeightData) or [WeightDataMultiVariation](pocket_coffea.lib.weights.weights.WeightData) object.
@@ -741,12 +898,13 @@ the PocketCoffea core library, it is sufficient to register the modules with `cl
 
 Add this code in the configuration file. 
 ```python
-
 import cloudpickle
-cloudpickle.register_pickle_by_value(workflow) # just an example of user defined modules for processors and cuts
+
+cloudpickle.register_pickle_by_value(
+    workflow
+)  # just an example of user defined modules for processors and cuts
 cloudpickle.register_pickle_by_value(custom_cut_functions)
 cloudpickle.register_pickle_by_value(custom_cuts)
-
 ```
 
 ## Variations
@@ -761,30 +919,28 @@ samples and categories.
   
   ```python
   cfg = Configurator(
-     ....
-    variations = {
-        "weights": {
-            "common": {
-                "inclusive": [  "pileup",
-                                "sf_ele_reco", "sf_ele_id",
-                                "sf_mu_id", "sf_mu_iso",
-                                 "sf_jet_puId","sf_btag"  
-                              ],
-                "bycategory" : {
-                }
-            },
-            "bysample": {
-              "TTToSemiLeptonic": {
-                    "inclusive": [],
-                    "bycategory": {}
-                }
-            } 
-        },
-        "shape": {
-        ....
-        }
-    },
-    ...
+      # ....
+      variations={
+          "weights": {
+              "common": {
+                  "inclusive": [
+                      "pileup",
+                      "sf_ele_reco",
+                      "sf_ele_id",
+                      "sf_mu_id",
+                      "sf_mu_iso",
+                      "sf_jet_puId",
+                      "sf_btag",
+                  ],
+                  "bycategory": {},
+              },
+              "bysample": {"TTToSemiLeptonic": {"inclusive": [], "bycategory": {}}},
+          },
+          "shape": {
+              # ....
+          },
+      },
+      # ...
   )
   ```
   
@@ -838,49 +994,98 @@ changing the interface. However, be aware of memory issues which may affect larg
 
 ```python
 cfg = Configurator(
-   variables = {
-        "HT" : HistConf([Axis(coll="events", field="events", bins=100, start=0, stop=200, label="HT")] ),
-        "leading_jet_pt_eta" : HistConf(
+    variables={
+        "HT": HistConf(
             [
-                Axis(coll="JetGood", field="pt", bins=40, start=0, stop=200, pos=0, label="Leading jet $p_T$"),
-                Axis(coll="JetGood", field="eta", bins=40, start=-5, stop=5, pos=0, label="Leading jet $\eta$")
-            ] ),
-            
-         #Plotting all jets together
-         "all_jets_pt_eta" : HistConf(
+                Axis(
+                    coll="events",
+                    field="events",
+                    bins=100,
+                    start=0,
+                    stop=200,
+                    label="HT",
+                )
+            ]
+        ),
+        "leading_jet_pt_eta": HistConf(
             [
-                Axis(coll="JetGood", field="pt", bins=40, start=0, stop=200, pos=None, label="All jets $p_T$"),
-                Axis(coll="JetGood", field="eta", bins=40, start=-5, stop=5, pos=None, label="All jets $\eta$")
-            ] ),
-            
-        "subleading_jetpt_MET" : HistConf(
+                Axis(
+                    coll="JetGood",
+                    field="pt",
+                    bins=40,
+                    start=0,
+                    stop=200,
+                    pos=0,
+                    label="Leading jet $p_T$",
+                ),
+                Axis(
+                    coll="JetGood",
+                    field="eta",
+                    bins=40,
+                    start=-5,
+                    stop=5,
+                    pos=0,
+                    label="Leading jet $\eta$",
+                ),
+            ]
+        ),
+        # Plotting all jets together
+        "all_jets_pt_eta": HistConf(
             [
-                Axis(coll="JetGood", field="pt", bins=40, start=0, stop=200, pos=0, label="Leading jet $p_T$"),
-                Axis(coll="MET", field="pt", bins=40, start=0, stop=100, label="MET")
-            ] ),
-            
-                
+                Axis(
+                    coll="JetGood",
+                    field="pt",
+                    bins=40,
+                    start=0,
+                    stop=200,
+                    pos=None,
+                    label="All jets $p_T$",
+                ),
+                Axis(
+                    coll="JetGood",
+                    field="eta",
+                    bins=40,
+                    start=-5,
+                    stop=5,
+                    pos=None,
+                    label="All jets $\eta$",
+                ),
+            ]
+        ),
+        "subleading_jetpt_MET": HistConf(
+            [
+                Axis(
+                    coll="JetGood",
+                    field="pt",
+                    bins=40,
+                    start=0,
+                    stop=200,
+                    pos=0,
+                    label="Leading jet $p_T$",
+                ),
+                Axis(coll="MET", field="pt", bins=40, start=0, stop=100, label="MET"),
+            ]
+        ),
         **ele_hists(coll="ElectronGood", pos=0),
         **muon_hists(coll="MuonGood", pos=0),
-        **count_hist(name="nElectronGood", coll="ElectronGood",bins=3, start=0, stop=3),
-        **count_hist(name="nMuonGood", coll="MuonGood",bins=3, start=0, stop=3),
-        **count_hist(name="nJets", coll="JetGood",bins=10, start=4, stop=14),
-        **count_hist(name="nBJets", coll="BJetGood",bins=12, start=2, stop=14),
+        **count_hist(
+            name="nElectronGood", coll="ElectronGood", bins=3, start=0, stop=3
+        ),
+        **count_hist(name="nMuonGood", coll="MuonGood", bins=3, start=0, stop=3),
+        **count_hist(name="nJets", coll="JetGood", bins=10, start=4, stop=14),
+        **count_hist(name="nBJets", coll="BJetGood", bins=12, start=2, stop=14),
         **jet_hists(coll="JetGood", pos=0),
         **jet_hists(coll="JetGood", pos=1),
         **jet_hists(coll="JetGood", pos=2),
-        
     },
-    ...
+    ...,
 )
-
 ```
 
 The `HistConf` class has many options, particularly useful to exclude some categories or samples from a specific
 histogram. 
 
 ```python
-
 @dataclass
 class HistConf:
     axes: List[Axis]
@@ -900,14 +1105,12 @@ class HistConf:
     # of the masks on the axis=2 is performed to get the mask
     # on axis=1, otherwise an exception is raised
     collapse_2D_masks_mode = "OR"  # Use OR or AND to collapse 2D masks for data_ndim=1 if collapse_2D_masks == True
-
 ```
 
 The `Axis` object has many options: in particular the array to be plotted is taken from the `events` mother array
 using the `coll` and `field` attributed. If an array is global in NanoAOD, the `coll` is `events`. 
 
 ```python
-
 @dataclass
 class Axis:
     field: str  # variable to plot
@@ -916,9 +1119,9 @@ class Axis:
     start: float = None
     stop: float = None
     coll: str = "events"  # Collection or events or metadata or custom
-    name: str = None      # Identifier of the axis: By default is built as coll.field, if not provided
-    pos: int = None       # index in the collection to plot. If None plot all the objects on the same histogram
-    type: str = "regular" # regular/variable/integer/intcat/strcat
+    name: str = None  # Identifier of the axis: By default is built as coll.field, if not provided
+    pos: int = None  # index in the collection to plot. If None plot all the objects on the same histogram
+    type: str = "regular"  # regular/variable/integer/intcat/strcat
     transform: str = None
     lim: Tuple[float] = (0, 0)
     underflow: bool = True
@@ -956,19 +1159,22 @@ category.
 
 ```python
 cfg = Configurator(
-   # columns output configuration
-   columns = {
-        "common": {
-             "inclusive": [],
-             "bycategory": {}
-        },
+    # columns output configuration
+    columns={
+        "common": {"inclusive": [], "bycategory": {}},
         "bysample": {
-            "TTToSemiLeptonic" : { "inclusive":  [ColOut("LeptonGood",["pt","eta","phi"])]},
-            "TTToSemiLeptonic__=1b" :{ "inclusive":  [ColOut("JetGood",["pt","eta","phi"])]},
-            "TTToSemiLeptonic__=2b":{ "inclusive":  [ColOut("BJetGood",["pt","eta","phi"])]},
-        }
+            "TTToSemiLeptonic": {
+                "inclusive": [ColOut("LeptonGood", ["pt", "eta", "phi"])]
+            },
+            "TTToSemiLeptonic__=1b": {
+                "inclusive": [ColOut("JetGood", ["pt", "eta", "phi"])]
+            },
+            "TTToSemiLeptonic__=2b": {
+                "inclusive": [ColOut("BJetGood", ["pt", "eta", "phi"])]
+            },
+        },
     }
-    )
+)
 ```
 
 The `ColOut` object defines which collection and fields get exported in the output file, moreover by default the number 
@@ -1023,67 +1229,99 @@ the output parquet file will contain directly awkward arrays (not column accumul
 
 ```python
 cfg = Configurator(
-    parameters = parameters,
-    datasets = {
-        "jsons": [f"{localdir}/datasets/signal_ttHTobb_local.json",
-                  f"{localdir}/datasets/backgrounds_MC_ttbar_local.json",
-                  f"{localdir}/datasets/backgrounds_MC_TTbb_local.json"],
-        "filter" : {
+    parameters=parameters,
+    datasets={
+        "jsons": [
+            f"{localdir}/datasets/signal_ttHTobb_local.json",
+            f"{localdir}/datasets/backgrounds_MC_ttbar_local.json",
+            f"{localdir}/datasets/backgrounds_MC_TTbb_local.json",
+        ],
+        "filter": {
             "samples": ["ttHTobb", "TTToSemiLeptonic", "TTbbSemiLeptonic"],
-            "samples_exclude" : [],
-            "year": ["2016_PreVFP",
-                     "2016_PostVFP",
-                     "2017","2018"] #All the years
-        }
+            "samples_exclude": [],
+            "year": ["2016_PreVFP", "2016_PostVFP", "2017", "2018"],  # All the years
+        },
     },
-
-    workflow = PartonMatchingProcessor,
-    workflow_options = {"parton_jet_min_dR": 0.3,
-                        "dump_columns_as_arrays_per_chunk": "root://t3se01.psi.ch:1094//store/user/dvalsecc/ttHbb/output_columns_parton_matching/sig_bkg_05_07_2023_v1/"},
-    
-    .... 
-    columns = {
+    workflow=PartonMatchingProcessor,
+    workflow_options={
+        "parton_jet_min_dR": 0.3,
+        "dump_columns_as_arrays_per_chunk": "root://t3se01.psi.ch:1094//store/user/dvalsecc/ttHbb/output_columns_parton_matching/sig_bkg_05_07_2023_v1/",
+    },
+    ....columns={
         "common": {
             "bycategory": {
+                "semilep_LHE": [
+                    ColOut(
+                        "Parton",
+                        ["pt", "eta", "phi", "mass", "pdgId", "provenance"],
+                        flatten=False,
+                    ),
+                    ColOut(
+                        "PartonMatched",
+                        [
+                            "pt",
+                            "eta",
+                            "phi",
+                            "mass",
+                            "pdgId",
+                            "provenance",
+                            "dRMatchedJet",
+                        ],
+                        flatten=False,
+                    ),
+                    ColOut(
+                        "JetGood",
+                        ["pt", "eta", "phi", "hadronFlavour", "btagDeepFlavB"],
+                        flatten=False,
+                    ),
+                    ColOut(
+                        "JetGoodMatched",
+                        [
+                            "pt",
+                            "eta",
+                            "phi",
+                            "hadronFlavour",
+                            "btagDeepFlavB",
+                            "dRMatchedJet",
+                        ],
+                        flatten=False,
+                    ),
+                    ColOut(
+                        "LeptonGood",
+                        ["pt", "eta", "phi"],
+                        flatten=False,
+                        pos_end=1,
+                        store_size=False,
+                    ),
+                    ColOut("MET", ["phi", "pt", "significance"], flatten=False),
+                    ColOut(
+                        "Generator",
+                        ["x1", "x2", "id1", "id2", "xpdf1", "xpdf2"],
+                        flatten=False,
+                    ),
+                    ColOut(
+                        "LeptonParton",
+                        ["pt", "eta", "phi", "mass", "pdgId"],
+                        flatten=False,
+                    ),
+                ]
+            }
+        },
+        "bysample": {
+            "ttHTobb": {
+                "bycategory": {
                     "semilep_LHE": [
-                        ColOut("Parton", ["pt", "eta", "phi", "mass", "pdgId", "provenance"], flatten=False),
                         ColOut(
-                            "PartonMatched",
-                            ["pt", "eta", "phi","mass", "pdgId", "provenance", "dRMatchedJet",], flatten=False
-                        ),
-                        ColOut(
-                            "JetGood",
-                            ["pt", "eta", "phi", "hadronFlavour", "btagDeepFlavB"], flatten=False
-                        ),
-                        ColOut(
-                            "JetGoodMatched",
-                            [
-                                "pt",
-                                "eta",
-                                "phi",
-                                "hadronFlavour",
-                                "btagDeepFlavB",
-                                "dRMatchedJet",
-                            ], flatten=False
-                        ),
-                        
-                        ColOut("LeptonGood",
-                               ["pt","eta","phi"],flatten=False,
-                               pos_end=1, store_size=False),
-                        ColOut("MET", ["phi","pt","significance"], flatten=False),
-                        ColOut("Generator",["x1","x2","id1","id2","xpdf1","xpdf2"], flatten=False),
-                        ColOut("LeptonParton",["pt","eta","phi","mass","pdgId"], flatten=False)
+                            "HiggsParton",
+                            ["pt", "eta", "phi", "mass", "pdgId"],
+                            pos_end=1,
+                            store_size=False,
+                            flatten=False,
+                        )
                     ]
                 }
-        },
-        "bysample":{
-            "ttHTobb":{
-                "bycategory": {
-                    "semilep_LHE": [ColOut("HiggsParton",
-                                           ["pt","eta","phi","mass","pdgId"], pos_end=1, store_size=False, flatten=False)]
-                }
             }
-        }
+        },
     },
 )
 ```

@@ -3,7 +3,7 @@ notebooks/.ipynb_checkpoints
 .ipynb_checkpoints/
 plots/
 histograms/
-output/
+output*
 logs/
 profiling/
 *~
@@ -66,6 +66,10 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
+
+# Test outputs
+tests/test_full_configs/test_columns/columns/
+tests/test_full_configs/test_skimming/skim/
 
 # Translations
 *.mo
@@ -162,3 +166,4 @@ VHccPoCo/
 output*
 plots*
 .pkl.gz
+myenv/

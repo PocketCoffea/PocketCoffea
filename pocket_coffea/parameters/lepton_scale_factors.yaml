@@ -17,12 +17,14 @@ lepton_scale_factors:
       mvaFall17V2Iso_WP90: wp90iso
       mvaFall17V2noIso_WP80: wp80noiso
       mvaFall17V2noIso_WP90: wp90noiso
+      promptMVA: PromptMVA-Tight # NanoAOD v15
+      mvaTTH: PromptMVA-Tight # NanoAOD v12
 
     JSONfiles: 
       '2016_PreVFP':
         files:
-          reco: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016preVFP_UL/electron.json.gz
-          id:   /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016preVFP_UL/electron.json.gz
+          reco: ${cvmfs:Run2-2016preVFP-UL-NanoAODv9,EGM,electron.json.gz}
+          id:   ${cvmfs:Run2-2016preVFP-UL-NanoAODv9,EGM,electron.json.gz}
         name: UL-Electron-ID-SF
         reco:
           pt_lt_20: RecoBelow20
@@ -30,8 +32,8 @@ lepton_scale_factors:
   
       '2016_PostVFP':
         files: 
-          reco: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016postVFP_UL/electron.json.gz
-          id:   /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2016postVFP_UL/electron.json.gz
+          reco: ${cvmfs:Run2-2016postVFP-UL-NanoAODv9,EGM,electron.json.gz}
+          id:   ${cvmfs:Run2-2016postVFP-UL-NanoAODv9,EGM,electron.json.gz}
         name: UL-Electron-ID-SF    
         reco:
           pt_lt_20: RecoBelow20
@@ -39,8 +41,8 @@ lepton_scale_factors:
 
       '2017':
         files:
-          reco: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2017_UL/electron.json.gz
-          id:   /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2017_UL/electron.json.gz
+          reco: ${cvmfs:Run2-2017-UL-NanoAODv9,EGM,electron.json.gz}
+          id:   ${cvmfs:Run2-2017-UL-NanoAODv9,EGM,electron.json.gz}
         name: UL-Electron-ID-SF
         reco:
           pt_lt_20: RecoBelow20
@@ -48,8 +50,8 @@ lepton_scale_factors:
 
       '2018':
         files: 
-          reco: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2018_UL/electron.json.gz
-          id:   /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2018_UL/electron.json.gz
+          reco: ${cvmfs:Run2-2018-UL-NanoAODv9,EGM,electron.json.gz}
+          id:   ${cvmfs:Run2-2018-UL-NanoAODv9,EGM,electron.json.gz}
         name: UL-Electron-ID-SF
         reco:
           pt_lt_20: RecoBelow20
@@ -57,8 +59,8 @@ lepton_scale_factors:
 
       '2022_preEE':
         files: 
-          reco: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/electron.json.gz
-          id:   /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/electron.json.gz 
+          reco: ${cvmfs:Run3-22CDSep23-Summer22-NanoAODv12,EGM,electron.json.gz}
+          id:   ${cvmfs:Run3-22CDSep23-Summer22-NanoAODv12,EGM,electron.json.gz}
         name: Electron-ID-SF
         reco:
           pt_lt_20: RecoBelow20
@@ -67,8 +69,8 @@ lepton_scale_factors:
 
       '2022_postEE':
         files:
-          reco: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electron.json.gz
-          id:   /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electron.json.gz
+          reco: ${cvmfs:Run3-22EFGSep23-Summer22EE-NanoAODv12,EGM,electron.json.gz}
+          id:   ${cvmfs:Run3-22EFGSep23-Summer22EE-NanoAODv12,EGM,electron.json.gz}
         name: Electron-ID-SF
         reco:
           pt_lt_20: RecoBelow20
@@ -77,8 +79,8 @@ lepton_scale_factors:
 
       '2023_preBPix':
         files:
-          reco: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electron.json.gz
-          id:   /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electron.json.gz
+          reco: ${cvmfs:Run3-23CSep23-Summer23-NanoAODv12,EGM,electron.json.gz}
+          id:   ${cvmfs:Run3-23CSep23-Summer23-NanoAODv12,EGM,electron.json.gz}
         name: Electron-ID-SF
         reco:
           pt_lt_20: RecoBelow20
@@ -87,8 +89,8 @@ lepton_scale_factors:
 
       '2023_postBPix':
         files:
-          reco: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electron.json.gz
-          id:   /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electron.json.gz
+          reco: ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,EGM,electron.json.gz}
+          id:   ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,EGM,electron.json.gz}
         name: Electron-ID-SF
         reco:
           pt_lt_20: RecoBelow20
@@ -97,13 +99,46 @@ lepton_scale_factors:
 
       "2024":
         files:
-          reco: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2024_Summer24/electron_v1.json.gz
-          id:   /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2024_Summer24/electronID_v1.json.gz
+          reco: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,EGM,electron.json.gz}
+          id:   ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,EGM,electron.json.gz}
         name: Electron-ID-SF
         reco:
-          #pt_lt_20: #"RecoBelow20" bin is still missing for the moment.
+          pt_lt_20: RecoBelow20
           pt_gt_20_lt_75: Reco20to75
           pt_gt_75: RecoAbove75
+
+      "2025":
+        files:
+          reco: ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,EGM,electron.json.gz}
+          id:   ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,EGM,electron.json.gz}
+        name: Electron-ID-SF
+        reco:
+          pt_lt_20: RecoBelow20
+          pt_gt_20_lt_75: Reco20to75
+          pt_gt_75: RecoAbove75
+
+    promptMVA_jsons:
+      # promptMVA NanoAODv15 training on NanoAODv12 MC, to be used for 2022 and 2023 reprocessing, since we are recomputing on the fly the promptMVA value for these years and we want to use the corresponding SF. 
+      '2022_preEE': 
+        file: "${default_params_dir:}/custom_SFs/electron_promptMVA/2022/electron_mvaTTH_2022PreEE.json.gz"
+        model_weights: "${default_params_dir:}/custom_SFs/electron_promptMVA/Electron-mvaTTH.2022EE.weights_mvaISO.json"
+      
+      '2022_postEE': 
+        file: "${default_params_dir:}/custom_SFs/electron_promptMVA/2022EE/electron_mvaTTH_2022PostEE.json.gz"
+        model_weights: "${default_params_dir:}/custom_SFs/electron_promptMVA/Electron-mvaTTH.2022EE.weights_mvaISO.json"
+
+      '2023_preBPix': 
+        file: "${default_params_dir:}/custom_SFs/electron_promptMVA/2023/electron_mvaTTH_2023.json.gz"
+        model_weights: "${default_params_dir:}/custom_SFs/electron_promptMVA/Electron-mvaTTH.2022EE.weights_mvaISO.json"
+
+      '2023_postBPix': 
+        file: "${default_params_dir:}/custom_SFs/electron_promptMVA/2023BPix/electron_mvaTTH_2023BPix.json.gz"
+        model_weights: "${default_params_dir:}/custom_SFs/electron_promptMVA/Electron-mvaTTH.2022EE.weights_mvaISO.json"
+      # In 2024 the promptMVA is taken from NanoAODv15 and the SF is provided centrally
+      '2024': 
+        file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,EGM,electron.json.gz}
+        key: Electron-ID-SF
+
 
     era_mapping:
       # this is needed because the correction set provided by EGM
@@ -140,10 +175,15 @@ lepton_scale_factors:
         reco: "2023PromptD"
         trigger: "2023PromptD"
       "2024": 
-        id: "2024"
+        id: "2024Prompt"
         reco: "2024Prompt"
-        #trigger: "2024Prompt"
+        trigger: "2024Prompt"
 
+      "2025": 
+        id: "2025Prompt"
+        reco: "2025Prompt"
+        trigger: "2025Prompt"
+        
 
     # The scale and smearing configuration is expected to have this structure
     scale_and_smearing:      
@@ -157,39 +197,44 @@ lepton_scale_factors:
         '2023_preBPix': True
         '2023_postBPix': True
         '2024': True
-      
+        '2025': True
       correctionlib_config:
         '2022_preEE':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/electronSS.json.gz
+          file: ${cvmfs:Run3-22CDSep23-Summer22-NanoAODv12,EGM,electronSS_EtDependent.json.gz}
           correction_name:
             scale: "Scale"
-            smear: "Smearing"
-          et_dependent: false
-        '2022_postEE':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electronSS.json.gz
-          correction_name:
-            scale: "Scale"
-            smear: "Smearing"
-          et_dependent: false
-        '2023_preBPix':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electronSS.json.gz
-          correction_name:
-            scale: "2023PromptC_ScaleJSON"
-            smear: "2023PromptC_SmearingJSON"
-          et_dependent: false
-        '2023_postBPix':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electronSS.json.gz
-          correction_name:
-            scale: "2023PromptD_ScaleJSON"
-            smear: "2023PromptD_SmearingJSON"
-          et_dependent: false
-        '2024':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2024_Summer24/electronSS_EtDependent_v1.json.gz
-          correction_name:
-            scale: "EGMScale_Compound_Ele_2024"
-            smear: "EGMSmearAndSyst_ElePTsplit_2024"
+            smear: "SmearAndSyst"
           et_dependent: true
-    
+        '2022_postEE':
+          file: ${cvmfs:Run3-22EFGSep23-Summer22EE-NanoAODv12,EGM,electronSS_EtDependent.json.gz}
+          correction_name:
+            scale: "Scale"
+            smear: "SmearAndSyst"
+          et_dependent: true
+        '2023_preBPix':
+          file: ${cvmfs:Run3-23CSep23-Summer23-NanoAODv12,EGM,electronSS_EtDependent.json.gz}
+          correction_name:
+            scale: "Scale"
+            smear: "SmearAndSyst"
+          et_dependent: true
+        '2023_postBPix':
+          file: ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,EGM,electronSS_EtDependent.json.gz}
+          correction_name:
+            scale: "Scale"
+            smear: "SmearAndSyst"
+          et_dependent: true
+        '2024':
+          file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,EGM,electronSS_EtDependent.json.gz}
+          correction_name:
+            scale: "Scale"
+            smear: "SmearAndSyst"
+          et_dependent: true
+        '2025':
+          file: ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,EGM,electronSS_EtDependent.json.gz}
+          correction_name:
+            scale: "Scale"
+            smear: "SmearAndSyst"
+          et_dependent: true
     # The trigger SF configuration is expected to have this structure
     # needs to be provided by the user.
     trigger_sf:
@@ -206,23 +251,30 @@ lepton_scale_factors:
         name: ???
         file: ???
       2022_preEE:
-        2022_preEE:
         name: Electron-HLT-SF
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22/electronHlt.json.gz
+        file: ${cvmfs:Run3-22CDSep23-Summer22-NanoAODv12,EGM,electronHlt.json.gz}
         path: HLT_SF_Ele30_MVAiso80ID
       2022_postEE:
         name: Electron-HLT-SF
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2022_Summer22EE/electronHlt.json.gz
+        file: ${cvmfs:Run3-22EFGSep23-Summer22EE-NanoAODv12,EGM,electronHlt.json.gz}
         path: HLT_SF_Ele30_MVAiso80ID
       2023_preBPix:
         name: Electron-HLT-SF
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23/electronHlt.json.gz
+        file: ${cvmfs:Run3-23CSep23-Summer23-NanoAODv12,EGM,electronHlt.json.gz}
         path: HLT_SF_Ele30_MVAiso80ID
       2023_postBPix:
         name: Electron-HLT-SF
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/EGM/2023_Summer23BPix/electronHlt.json.gz
+        file: ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,EGM,electronHlt.json.gz}
         path: HLT_SF_Ele30_MVAiso80ID
+      '2024':
+        name: Electron-HLT-SF
+        file: ???
+        path: ???
 
+      '2025':
+        name: Electron-HLT-SF
+        file: ???
+        path: ???
   ##################################################################################################  
   muon_sf:
      # in PocketCoffea by convention the cleaned collection are called *Good
@@ -267,29 +319,132 @@ lepton_scale_factors:
       '2023_postBPix':
           id: NUM_TightID_DEN_TrackerMuons
           iso: NUM_LoosePFIso_DEN_TightID
-          trigger: NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight
-      
+          trigger: NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight  
       '2024':
+          id: NUM_TightID_DEN_TrackerMuons
+          iso: NUM_LoosePFIso_DEN_TightID
+          trigger: NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight
+      '2025':
           id: NUM_TightID_DEN_TrackerMuons
           iso: NUM_LoosePFIso_DEN_TightID
           trigger: NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight
 
     JSONfiles:
       '2016_PreVFP':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2016preVFP_UL/muon_Z.json.gz
+          file: ${cvmfs:Run2-2016preVFP-UL-NanoAODv9,MUO,muon_Z.json.gz}
       '2016_PostVFP':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2016postVFP_UL/muon_Z.json.gz
+          file: ${cvmfs:Run2-2016postVFP-UL-NanoAODv9,MUO,muon_Z.json.gz}
       '2017':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2017_UL/muon_Z.json.gz
+          file: ${cvmfs:Run2-2017-UL-NanoAODv9,MUO,muon_Z.json.gz}
       '2018':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2018_UL/muon_Z.json.gz
+          file: ${cvmfs:Run2-2018-UL-NanoAODv9,MUO,muon_Z.json.gz}
       '2022_preEE':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2022_Summer22/muon_Z.json.gz
+          file: ${cvmfs:Run3-22CDSep23-Summer22-NanoAODv12,MUO,muon_Z.json.gz}
       '2022_postEE':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2022_Summer22EE/muon_Z.json.gz
+          file: ${cvmfs:Run3-22EFGSep23-Summer22EE-NanoAODv12,MUO,muon_Z.json.gz}
       '2023_preBPix':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2023_Summer23/muon_Z.json.gz
+          file: ${cvmfs:Run3-23CSep23-Summer23-NanoAODv12,MUO,muon_Z.json.gz}
       '2023_postBPix':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2023_Summer23BPix/muon_Z.json.gz
+          file: ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,MUO,muon_Z.json.gz}
       '2024':
-          file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/MUO/2024_Summer24/muon_Z.json.gz    
+          file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,MUO,muon_Z.json.gz}   
+      '2025':
+          file: ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,MUO,muon_Z.json.gz}   
+    rochester:
+      apply:
+        '2016_PreVFP':  True
+        '2016_PostVFP': True
+        '2017':         True
+        '2018':         True
+        '2022_preEE':   False
+        '2022_postEE':  False
+        '2023_preBPix': False
+        '2023_postBPix': False
+        '2024':         False
+        '2025':         False
+      so_path: "${default_params_dir:}/roccor/RoccoR.so"
+      txt_file:
+        '2016_PreVFP':  "${default_params_dir:}/roccor/RoccoR2016aUL.txt"
+        '2016_PostVFP': "${default_params_dir:}/roccor/RoccoR2016bUL.txt"
+        '2017':         "${default_params_dir:}/roccor/RoccoR2017UL.txt"
+        '2018':         "${default_params_dir:}/roccor/RoccoR2018UL.txt"      
+    
+    scale_and_resolution:
+      apply: 
+        '2016_PreVFP': False
+        '2016_PostVFP': False
+        '2017': False
+        '2018': False
+        '2022_preEE': True
+        '2022_postEE': True
+        '2023_preBPix': True
+        '2023_postBPix': True
+        '2024': True
+        '2025': True
+
+      correctionlib_config:
+        '2022_preEE':
+          file: ${cvmfs:Run3-22CDSep23-Summer22-NanoAODv12,MUO,muon_scalesmearing.json.gz}
+          correction_name:
+            cb: "cb_params"
+            poly: "poly_params"
+
+        '2022_postEE':
+          file: ${cvmfs:Run3-22EFGSep23-Summer22EE-NanoAODv12,MUO,muon_scalesmearing.json.gz}
+          correction_name:
+            cb: "cb_params"
+            poly: "poly_params"
+
+        '2023_preBPix':
+          file: ${cvmfs:Run3-23CSep23-Summer23-NanoAODv12,MUO,muon_scalesmearing.json.gz}
+          correction_name:
+            cb: "cb_params"
+            poly: "poly_params"
+
+        '2023_postBPix':
+          file: ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,MUO,muon_scalesmearing.json.gz}
+          correction_name:
+            cb: "cb_params"
+            poly: "poly_params"
+
+        '2024':
+          file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,MUO,muon_scalesmearing.json.gz}
+          correction_name:
+            cb: "cb_params"
+            poly: "poly_params" 
+        '2025':
+          file: ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,MUO,muon_scalesmearing.json.gz}
+          correction_name:
+            cb: "cb_params"
+            poly: "poly_params"             
+
+    promptMVA_jsons:
+    # Iso SF is "included" in the private SF
+      '2022_preEE': 
+        file: "${default_params_dir:}/custom_SFs/muon_promptMVA/2022/muon_mvaTTH_2022_SF.json.gz"
+        model_weights: "${default_params_dir:}/custom_SFs/muon_promptMVA/Muon-mvaTTH.2022EE.weights.json"
+      
+      '2022_postEE': 
+        file: "${default_params_dir:}/custom_SFs/muon_promptMVA/2022EE/muon_mvaTTH_2022EE_SF.json.gz"
+        model_weights: "${default_params_dir:}/custom_SFs/muon_promptMVA/Muon-mvaTTH.2022EE.weights.json"
+
+      '2023_preBPix': 
+        file: "${default_params_dir:}/custom_SFs/muon_promptMVA/2023/muon_mvaTTH_2023_SF.json.gz"
+        model_weights: "${default_params_dir:}/custom_SFs/muon_promptMVA/Muon-mvaTTH.2022EE.weights.json"
+
+      '2023_postBPix': 
+        file: "${default_params_dir:}/custom_SFs/muon_promptMVA/2023BPix/muon_mvaTTH_2023BPix_SF.json.gz"
+        model_weights: "${default_params_dir:}/custom_SFs/muon_promptMVA/Muon-mvaTTH.2022EE.weights.json"
+
+      '2024': 
+        file: "${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,MUO,muon_Z.json.gz}"
+        keys: 
+          - NUM_LoosePFIso_DEN_MediumID
+          - NUM_MediumID_DEN_TrackerMuons
+          - NUM_promptMVA_WP64ID_DEN_MediumID
+      '2025': 
+        file: "${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,MUO,muon_Z.json.gz}"
+        keys: 
+          - NUM_LoosePFIso_DEN_MediumID
+          - NUM_MediumID_DEN_TrackerMuons
+          - NUM_promptMVA_WP64ID_DEN_MediumID

@@ -133,7 +133,7 @@ def sf_qcd_factor_scale(events):
 
 
 class SF_ele_trigger(WeightWrapper):
-    name = "sf_ele_trigger"
+    name = "sf_ele_trigger_run2"
     has_variations = True
 
     def __init__(self, params, metadata):

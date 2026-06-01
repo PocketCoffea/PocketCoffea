@@ -5,7 +5,6 @@ from .base import BaseProcessorABC
 from ..utils.configurator import Configurator
 from ..lib.hist_manager import Axis
 from ..lib.objects import (
-    jet_correction,
     lepton_selection,
     jet_selection,
     btagging,

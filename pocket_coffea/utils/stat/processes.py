@@ -72,6 +72,8 @@ class DataProcess(Process):
     Inherits from Process and sets is_data to True by default.
     """
 
+    years: Iterable
+
     def __post_init__(self):
         self.is_data = True
         super().__post_init__()

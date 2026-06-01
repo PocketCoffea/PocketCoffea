@@ -49,32 +49,17 @@ jet_scale_factors:
   btagSF:
     # DeepJet AK4 tagger shape SF
     '2016_PreVFP':
-      file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2016preVFP_UL/btagging.json.gz
-      name: "deepJet_shape"
+        file: ${cvmfs:Run2-2016postVFP-UL-NanoAODv9,BTV,btagging.json.gz}
+        name: "deepJet_shape"
     '2016_PostVFP':
-      file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2016postVFP_UL/btagging.json.gz
-      name: "deepJet_shape"
+        file: ${cvmfs:Run2-2016preVFP-UL-NanoAODv9,BTV,btagging.json.gz}
+        name: "deepJet_shape"
     '2017':
-      file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2017_UL/btagging.json.gz
-      name: "deepJet_shape"
+        file: ${cvmfs:Run2-2017-UL-NanoAODv9,BTV,btagging.json.gz}
+        name: "deepJet_shape"
     '2018':
-      file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2018_UL/btagging.json.gz
-      name: "deepJet_shape"
-
-  jet_puId:
-      # Jet PU ID SF to be applied only on selected jets (pt<50) that are matched to GenJets
-      '2016_PreVFP':
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2016preVFP_UL/jmar.json.gz
-        name: PUJetID_eff
-      '2016_PostVFP':
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2016postVFP_UL/jmar.json.gz
-        name: PUJetID_eff
-      '2017':
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2017_UL/jmar.json.gz
-        name: PUJetID_eff
-      '2018':
-        file: /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/JME/2018_UL/jmar.json.gz
-        name: PUJetID_eff
+        file: ${cvmfs:Run2-2018-UL-NanoAODv9,BTV,btagging.json.gz}
+        name: "deepJet_shape"
 
 ```
 
@@ -92,6 +77,8 @@ parameter dictionaries to have certain key as `jet_scale_factors`. In case one k
 with a nice exception telling the user what's missing in the yaml files. 
 :::
 
+The `cvmfs` files are stored using an *OmegaConf Resolver*.  The format of the resolver is `${cvmfs:period,group,file,tag}`. If a tag is not specified, it is setup when requesting the default parameters. If instead the tag is specified, it won't be overwritten.
+
 
 
 ## Default parameters
@@ -99,42 +86,81 @@ PocketCoffea defines a set of default parameters sets for the most common CMS pa
 flags, btagging working points. The user can get a copy of the default set of parameters programmatically: 
 
 ```python
->>> from pocket_coffea.parameters import defaults
->>> default_parameters = defaults.get_default_parameters()
+from pocket_coffea.parameters import defaults
 
->>> default_parameters.keys()
-dict_keys(['pileupJSONfiles', 'event_flags', 'event_flags_data',
-           'lumi', 'default_jets_calibration', 'jets_calibration', 
-           'jet_scale_factors', 'btagging', 'lepton_scale_factors',
-           'systematic_variations'])
+default_parameters = defaults.get_default_parameters(
+    groups_tags={
+        "EGM": {
+            "Run3-22CDSep23-Summer22-NanoAODv12": "2025-10-11",
+            "Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/": "2025-10-22",
+        },
+        "JME": {
+            "Run3-22CDSep23-Summer22-NanoAODv12": "2025-10-11",
+        },
+    }
+)
 
->>> default_parameters.jet_scale_factors.btagSF
-{'btagSF': {
-    '2016_PreVFP': {'file': '/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2016preVFP_UL/btagging.json.gz', 'name': 'deepJet_shape'},
-    '2016_PostVFP': {'file': '/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2016postVFP_UL/btagging.json.gz', 'name': 'deepJet_shape'}, 
-    '2017': {'file': '/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2017_UL/btagging.json.gz', 'name': 'deepJet_shape'}, 
-    '2018': {'file': '/cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration/POG/BTV/2018_UL/btagging.json.gz',
-    'name': 'deepJet_shape'}},
-}
+default_parameters.keys()
+# dict_keys(['pileupJSONfiles', 'event_flags', 'event_flags_data',
+#            'lumi', 'default_jets_calibration', 'jets_calibration',
+#            'jet_scale_factors', 'btagging', 'lepton_scale_factors',
+#            'systematic_variations'])
 
+default_parameters.jet_scale_factors.btagSF
+# {
+#   '2022_preEE': {
+#     'file': '/cvmfs/cms-griddata.cern.ch/cat/metadata/BTV/Run3-22CDSep23-Summer22-NanoAODv12/latest/btagging.json.gz',
+#     'name': 'deepJet_shape'
+#   },
+#   '2022_postEE': {
+#     'file': '/cvmfs/cms-griddata.cern.ch/cat/metadata/BTV/Run3-22EFGSep23-Summer22EE-NanoAODv12/latest/btagging.json.gz',
+#     'name': 'deepJet_shape'
+#   },
+#   '2023_preBPix': {
+#     'file': '/cvmfs/cms-griddata.cern.ch/cat/metadata/BTV/Run3-23CSep23-Summer23-NanoAODv12/latest/btagging.json.gz',
+#     'name': 'deepJet_shape'
+#   },
+#   ...
+# }
 ```
 
 The `OmegaConf` parameters object behaves like a python dictionary, where keys can be accessed directly as attributes. 
 The user can explore programmatically the full parameters set and dinamycally add more keys. 
+
 
 Parameters set can also be loaded directly from yaml files:
 
 ```python
 ### Using the PocketCoffea interface
 from pocket_coffea.parameters import defaults
+
 default.compose_parameters_from_files(["params/triggers.yaml", "params/leptons.yaml"])
 
 ## Using directly the OmegaConf interface
-pileup = OmegaConf.load('pileup.yaml')
-event_flags = OmegaConf.load('event_flags.yaml')
-lumi = OmegaConf.load('lumi.yaml')
+pileup = OmegaConf.load("pileup.yaml")
+event_flags = OmegaConf.load("event_flags.yaml")
+lumi = OmegaConf.load("lumi.yaml")
 params = OmegaConf.merge(pileup, event_flags, lumi)
 ```
+
+### Metadata files from correctionlib
+
+The metadata files stored on `cvmfs` are defined in the parameters files using an *OmegaConf Resolver*.  The format of the resolver is `${cvmfs:period,group,file,tag}`. 
+The default parameters resolve the location of the json files stored on cvfms by using the groups' tags passed as a dictionary to the `default.get_default_parameters()` function for each run period. If a group:period pair is not specified, the latest version is used. 
+
+The resolution of the cvmfs file path goes as following:
+- If a tag is not specified, it is setup when requesting the default parameters:
+  -  If the group is specified in the `groups_tags` input of the `get_default_parameters()` dictionary, and the requested period is specified in the dictionary,  the specified **tag** is used for the all metadata files of that group for the requested period.
+  - If the group is not specified, the **latest** version of the metadata is used. 
+
+- If the tag is specified, it won't be overwritten.
+
+:::{warning}
+In case different tags are needed for different metadata files of the same group, the user must specify the full tag in the parameter file like `file: ${cvmfs:Run2-2016preVFP-UL-NanoAODv9,EGM,photon.json.gz,2025-04-23}`. 
+
+It is **highly discouraged** to take metadata files from different versions for the same group! The POG should maintain a coherent set of files for each tag.
+:::
+
 
 ## User parameters customization
 
@@ -143,12 +169,13 @@ The most direct way to modify parameters is just to load the defaults and manual
 configuration file or in a script. 
 
 ```python
->>> from pocket_coffea.parameters import defaults
->>> default_parameters = defaults.get_default_parameters()
+from pocket_coffea.parameters import defaults
+
+default_parameters = defaults.get_default_parameters()
 # Now the user can customize the params as a dictionary
->>> a["custom_param"] = {"2018": 3.45, "2017": [2,3,4,5]}
->>> a.custom_param
-{'2018': 3.45, '2017': [2, 3, 4, 5]}
+a["custom_param"] = {"2018": 3.45, "2017": [2, 3, 4, 5]}
+a.custom_param
+# {'2018': 3.45, '2017': [2, 3, 4, 5]}
 ```
 
 A best practice is to save parameters customization in yaml files along the analyses configuration. 
@@ -157,12 +184,15 @@ configuration.
 
 ```python
 from pocket_coffea.parameters import defaults
+
 default_parameters = defaults.get_default_parameters()
 
-parameters = defaults.merge_parameters_from_files(default_parameters,
-                                                  f"{localdir}/params/object_preselection.yaml",
-                                                  f"{localdir}/params/triggers.yaml",
-                                                  update=True)
+parameters = defaults.merge_parameters_from_files(
+    default_parameters,
+    f"{localdir}/params/object_preselection.yaml",
+    f"{localdir}/params/triggers.yaml",
+    update=True,
+)
 ```
 
 The method `defaults.merge_parameters_from_files` loads the additional parameters from the yaml files passed by the user
@@ -202,11 +232,12 @@ The user can define additional macros using the helper before loading the parame
 
 ```python
 from pocket_coffea.parameters import defaults
+
 default_parameters = defaults.get_default_parameters()
 localdir = os.path.dirname(os.path.abspath(__file__))
 
 # Register  a new macro
-defaults.register_configuration_dir("config_dir", localdir+"/params")
+defaults.register_configuration_dir("config_dir", localdir + "/params")
 ```
 
 :::{important}
