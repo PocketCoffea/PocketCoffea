@@ -238,13 +238,27 @@ def lepton_selection(events, lepton_flavour, params):
         raise ValueError(f"Lepton flavour {lepton_flavour} not supported for selection")
     return leptons[good_leptons]
 
-def lepton_selection_mvaTTH(events, lepton_flavour, year, params):
+
+def lepton_selection_promptMVA(events, lepton_flavour, params, year, 
+                               apply_mva_cut=True, mva_var="mvaTTH_redo"):
+    '''Only selecting the leptons passing preselection for the promptMVA.
+    Do not apply any cut on the promptMVA score which is recomputed'''
 
     leptons = events[lepton_flavour]
     cuts = params.object_preselection[lepton_flavour]
     # Requirements on pT and eta
     passes_eta = abs(leptons.eta) < cuts["eta"]
     passes_pt = leptons.pt > cuts["pt"]
+
+    # closest jet cut on btag
+    valid_jetIdx = ak.mask(leptons["jetIdx"], leptons["jetIdx"] != -1)
+    btag = ak.where(
+            leptons["jetIdx"] == -1,
+            0.0,
+            ak.fill_none(events["Jet"][valid_jetIdx]["btagDeepFlavB"], -10.0),
+    )
+    pass_btag_cut = btag < cuts["btag_cut"][year]
+    
 
     if lepton_flavour == "Electron":
         # Requirements on SuperCluster eta, isolation and id
@@ -257,11 +271,14 @@ def lepton_selection_mvaTTH(events, lepton_flavour, year, params):
         passes_dz_check = abs(leptons.dz) < cuts["dz"]
         if "iso" in cuts.keys():
             passes_iso = leptons.pfRelIso03_all < cuts["iso"]
-        passes_id = (leptons[cuts['id'][year]] > cuts['wp'][year])
+        if apply_mva_cut:
+            pass_id = leptons[mva_var] > cuts["mva_wp"][year]
+        else:
+            pass_id = True
 
         good_leptons = (passes_eta & passes_pt & passes_SC & passes_iso & 
                         passes_sip3d & passes_lostHits & passes_dxy_check &
-                          passes_dz_check & passes_id)
+                          passes_dz_check & pass_btag_cut & pass_id)
 
     elif lepton_flavour == "Muon":
         # Requirements on isolation and id
@@ -271,16 +288,21 @@ def lepton_selection_mvaTTH(events, lepton_flavour, year, params):
         passes_dz_check = abs(leptons.dz) < cuts["dz"]
         passes_muon_cut = (leptons.isGlobal | leptons.isTracker) & (leptons.isPFcand)
         passes_baseid = leptons[cuts['base_id']] == True
-        passes_id = (leptons[cuts['id'][year]] > cuts['wp'][year])
+        if apply_mva_cut:
+            pass_id = leptons[mva_var] > cuts["mva_wp"][year]
+        else:            
+            pass_id = True
 
         good_leptons = (passes_eta & passes_pt & passes_iso & 
                         passes_sip3d & passes_dxy_check & 
                         passes_dz_check & passes_muon_cut & 
-                        passes_baseid & passes_id)
+                        passes_baseid & pass_btag_cut & pass_id)
     else:
         raise ValueError(f"Lepton flavour {lepton_flavour} not supported for MVA TTH selection")
 
     return leptons[good_leptons], good_leptons
+
+
 
 def soft_lepton_selection(events, lepton_flavour, params):
 

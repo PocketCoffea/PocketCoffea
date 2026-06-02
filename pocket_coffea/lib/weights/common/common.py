@@ -5,7 +5,9 @@ import awkward as ak
 from pocket_coffea.lib.scale_factors import (
     sf_ele_reco,
     sf_ele_id,
+    sf_ele_promptmva,
     sf_photon,
+    sf_ele_trigger,
     sf_mu,
     sf_mu_promptmva,
     sf_btag,
@@ -73,6 +75,21 @@ SF_ele_id = WeightLambda.wrap_func(
         sf_ele_id(params, events, metadata["year"]),
     has_variations=True
     )
+
+SF_ele_promptMVA = WeightLambda.wrap_func(
+    name="sf_ele_promptMVA",
+    function=lambda params, metadata, events, size, shape_variations:
+        sf_ele_promptmva(params, events, metadata["year"]),
+    has_variations=True
+    )
+
+SF_ele_trigger = WeightLambda.wrap_func(
+    name="sf_ele_trigger",
+    function=lambda params, metadata, events, size, shape_variations: sf_ele_trigger(
+        params, events, metadata["year"]
+    ),
+    has_variations=True,
+)
 
 SF_mu_id = WeightLambda.wrap_func(
     name="sf_mu_id",
@@ -327,6 +344,8 @@ common_weights = [
     pileup,
     SF_ele_reco,
     SF_ele_id,
+    SF_ele_promptMVA,
+    SF_ele_trigger,
     SF_pho_pxseed,
     SF_pho_id,
     SF_mu_id,

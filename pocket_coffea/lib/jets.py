@@ -101,7 +101,7 @@ def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tag
     # For nanoV12 (i.e. 22/23), jet Id is also buggy, should therefore be rederived
     # in the following, if nano_version not explicitly specified in params, v9 is assumed for Run2UL, v12 for 22/23 and v15 for 2024
     jets["jetId_corrected"] = compute_jetId(events, jet_type, params, year)
-
+    nano_version = get_nano_version(events, params, year)
     # Mask for  jets not passing the preselection
     mask_presel = (
         (jets.pt > cuts["pt"])
@@ -118,7 +118,7 @@ def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tag
 
     if jet_type == "Jet":
         # Selection on PUid. Only available in Run2 UL, thus we need to determine which sample we run over;
-        if year in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
+        if year in ['2016_PreVFP', '2016_PostVFP','2017','2018'] and nano_version <= 9:
             mask_jetpuid = (jets.puId >= params.jet_scale_factors.jet_puId[year]["working_point"][cuts["puId"]["wp"]]) | (
                 jets.pt >= cuts["puId"]["maxpt"]
             )
@@ -246,13 +246,16 @@ def compute_jetId(events, jet_type, params, year):
             "multiplicity": jets.chMultiplicity + jets.neMultiplicity
         }
 
+            
         ## Default tight for NanoAOD version 13 and above
         jet_algo_mapping = params.jets_calibration.collection[year]
         jet_algo = next((k for k, v in jet_algo_mapping.items() if v == jet_type), None)
         if jet_algo==None:
             raise Exception(f"No mapping jet_type ({jet_type}) -> jet_algo (e.g. AK4PFPuppi) defined for year {year}")
+        if 'AK4PFPuppiPNetRegression' in jet_algo:
+            jet_algo='AK4PFPuppi'
         jet_algo = jet_algo.replace("PF", "").upper()
-    
+
         if jet_algo+"_Tight" not in list(cset.keys()):
             raise Exception(f"No correction for jet collection {jet_algo} defined in correctionlib file {jsonFile}")
         idTight = cset[jet_algo+"_Tight"]
@@ -465,9 +468,10 @@ def jet_correction_corrlib(
     jet_type,
     jet_coll_name,
     chunk_metadata,
+    nano_version,
     apply_jer=True,
     jec_syst=True,
-):
+):    
     isMC = chunk_metadata["isMC"]
     year = chunk_metadata["year"]
     era = chunk_metadata["era"]
@@ -536,7 +540,8 @@ def jet_correction_corrlib(
         elif tag_jec in list(cset.keys()):
             sf = cset[tag_jec]
         else:
-            print(tag_jec, list(cset.keys()), list(cset.compound.keys()))
+            print("CONFIG ERROR: No JEC correction!")
+            print("Tag=",tag_jec, "\n cset keys:", list(cset.keys()), "\n compound keys:", list(cset.compound.keys()))
             raise Exception(f"[No JEC correction: {tag_jec} - Year: {year} - Era: {era} - Level: {level}")
         inputs = [eval_dict[input.name] for input in sf.inputs]
         sf_value = sf.evaluate(*inputs)
@@ -636,6 +641,7 @@ def msoftdrop_correction(
     subjet_type,
     jet_coll_name,
     chunk_metadata,
+    nano_version,
     jec_syst=True,
 ):
     """Apply softdrop mass correction to large-radius jets (FatJet) using correctionlib.

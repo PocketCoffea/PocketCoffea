@@ -149,3 +149,13 @@ btagging:
         T: 0.4648
         XT: 0.6298
         XXT: 0.9739
+    "2025":
+      reference:
+        btagging_WP: https://btv-wiki.docs.cern.ch/ScaleFactors/Run3Prompt25/#ak4-b-tagging
+      btagging_algorithm: btagUParTAK4B
+      btagging_WP:
+        L: 0.0246
+        M: 0.1272
+        T: 0.4648
+        XT: 0.6298
+        XXT: 0.9739

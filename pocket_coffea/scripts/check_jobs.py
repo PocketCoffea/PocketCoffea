@@ -15,6 +15,7 @@ import sys
 import click
 import glob
 import subprocess as sp
+import yaml
 from pathlib import Path
 from rich.console import Console
 from rich.table import Table
@@ -27,8 +28,14 @@ import time
 import re
 import cloudpickle
 from copy import deepcopy
-from pocket_coffea.utils.rucio import get_xrootd_sites_map
-from collections import Counter
+from pocket_coffea.utils.rucio import get_xrootd_sites_map, get_rucio_client
+from pocket_coffea.utils.site_rewrite import _query_replicas
+from pocket_coffea.utils.job_progress import (
+    aggregate_by_group,
+    load_job_to_group_map,
+    render_progress_bar,
+)
+from collections import Counter, defaultdict
 
 queues = [
     "espresso",
@@ -75,14 +82,25 @@ def get_tables(tot_jobs, idle_jobs, running_jobs, done_jobs, failed_jobs, detail
 
 
 # Layout setup
-def create_layout():
+def create_layout(with_progress=False):
+    """Two-column layout. The left column carries the summary table (and
+    the per-group progress table when `with_progress` is True) and gets
+    twice the width of the log panel on the right, since that's where the
+    interesting content lives."""
     layout = Layout()
-
     layout.split_row(
-        Layout(name="left"),
-        Layout(name="right")
+        Layout(name="left", ratio=2),
+        Layout(name="right", ratio=1),
     )
-    #layout["left"].size = 60  # You can adjust the width of the left panel
+    if with_progress:
+        # Fixed-height summary panel so it doesn't grow at the expense of the
+        # per-group table; 9 rows covers the Panel border + Table title +
+        # header row + data row + a bit of padding. Bumped from 7 to fit
+        # everything without cropping the bottom of the table.
+        layout["left"].split_column(
+            Layout(name="summary", size=9),
+            Layout(name="progress"),
+        )
     return layout
 
 def check_jobs_logs(jobs_folder):
@@ -96,16 +114,51 @@ def check_jobs_logs(jobs_folder):
     failed_jobs = [ a.split("/")[-1][:-7] for a in glob.glob(f"{jobs_folder}/job_*.failed")]
     return idle_jobs, running_jobs, done_jobs, failed_jobs
 
-def find_other_file(filepath,sitemap,xrootdfaillist=[],blacklist_sites=[]):
+
+def get_progress_table(group_counts, label, multi_sample_overlap=False, bar_width=30):
+    """Build a rich Table showing per-group progress, sorted by % done
+    ascending so straggling groups surface at the top. Includes a stacked
+    coloured progress bar column (done / running / idle / failed)."""
+    title = f"Progress by {label}"
+    if multi_sample_overlap:
+        title += "  [dim](jobs touching multiple samples are counted under each)[/]"
+    table = Table(title=title)
+    table.add_column(label.capitalize(), style="cyan", no_wrap=True)
+    table.add_column("Total", justify="right")
+    table.add_column("Idle", justify="right", style="blue")
+    table.add_column("Running", justify="right", style="magenta")
+    table.add_column("Done", justify="right", style="green")
+    table.add_column("Failed", justify="right", style="red")
+    table.add_column("Progress", justify="left", no_wrap=True)
+    table.add_column("% Done", justify="right")
+
+    rows = sorted(group_counts.items(), key=lambda kv: (kv[1]["pct_done"], kv[0]))
+    for name, counts in rows:
+        pct = f"{counts['pct_done']:.1f}%" if counts["total"] else "n/a"
+        pct_style = "green" if counts["pct_done"] >= 99.5 else (
+            "yellow" if counts["pct_done"] >= 50 else "red"
+        )
+        table.add_row(
+            name,
+            str(counts["total"]),
+            str(counts["idle"]),
+            str(counts["running"]),
+            str(counts["done"]),
+            str(counts["failed"]),
+            render_progress_bar(counts, width=bar_width),
+            f"[{pct_style}]{pct}[/]",
+        )
+    return table
+
+def find_other_file(filepath, sitemap, xrootdfaillist=[], blacklist_sites=[], rucio_client=None):
     if filepath.startswith("root:/"):
         rootpref = filepath.split("/store/")[0]
         file = "/store/"+filepath.split("/store/")[1]
     else:
         rootpref = None
         file = filepath
-    
-    command = f'/cvmfs/cms.cern.ch/common/dasgoclient -query="site file={file}"' 
-    sites = os.popen(command,'r').read().split()
+
+    sites = _query_replicas(file, client=rucio_client)
     for site in sites:
         if site not in sitemap:
             continue
@@ -120,8 +173,8 @@ def find_other_file(filepath,sitemap,xrootdfaillist=[],blacklist_sites=[]):
             if rootpref in sitepath or sitepath in rootpref:
                 continue
         return sitepath+file
-                        
-    return filepath  
+
+    return filepath
 
 def update_blacklist(xrootdfaillist,blacklist_threshold):
     sitepathlist = [i.split("/store/")[0] for i in xrootdfaillist]
@@ -152,7 +205,12 @@ def bump_jobqueue(sub_file, shift=1):
 @click.option("-m","--max-resubmit", type=int, help="Maximum number of resubmission", default=4)
 @click.option("-b","--blacklist-threshold", type=int, help="Maximum number of allowed failed files at an xrootd site before it's blacklisted", default=3)
 @click.option("-q","--queue-shift", type=int, help="How many queues to bump to if a job is removed due to time limit? E.g. 1 = bump to next queue, 2 = bump to next-to-next queue", default=1)
-def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold, queue_shift):
+@click.option("--by", "group_by", type=click.Choice(["sample", "dataset", "none"]),
+              default="sample",
+              help="Show a per-group progress table below the summary. Requires "
+                   "jobs_config.yaml in the jobs folder (created by manual-job "
+                   "executors). Pass 'none' to disable. Default: sample.")
+def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold, queue_shift, group_by):
     # check if the user passed the parent folder
     subdirs = os.listdir(jobs_folder)
     if len(subdirs) == 1 and subdirs[0] == "job":
@@ -174,8 +232,33 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
     else:
         maxtimelist = []
 
+    # Load the per-job sample/dataset map if available and the user opted in.
+    group_to_jobs = None
+    group_label = None
+    multi_sample_overlap = False
+    if group_by != "none":
+        sample_to_jobs, dataset_to_jobs = load_job_to_group_map(jobs_folder)
+        if sample_to_jobs is None:
+            rprint(f"[yellow]No jobs_config.yaml in {jobs_folder}; per-group progress "
+                   f"table disabled.[/]")
+        else:
+            if group_by == "sample":
+                group_to_jobs = sample_to_jobs
+                group_label = "sample"
+            else:
+                group_to_jobs = dataset_to_jobs
+                group_label = "dataset"
+            # Detect uniform-split overlap: any job appearing under more than one group.
+            all_jobs_listed = [j for jobs in group_to_jobs.values() for j in jobs]
+            multi_sample_overlap = len(all_jobs_listed) != len(set(all_jobs_listed))
+
     if resubmit:
         sitemap = get_xrootd_sites_map()
+        try:
+            rucio_client = get_rucio_client()
+        except Exception as e:
+            print(f"WARNING: could not open a rucio client ({e}); replica lookups will fail.")
+            rucio_client = None
         xrootdfailfile = f"{jobs_folder}/xrootdfaillist.txt"
         if os.path.isfile(xrootdfailfile):
             with open(xrootdfailfile,"r") as f:
@@ -188,10 +271,17 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
             print("Blacklisted sites:",blacklist_sites)
     
     # Main loop
-    layout = create_layout()
+    show_progress = group_to_jobs is not None
+    layout = create_layout(with_progress=show_progress)
     idle_jobs, running_jobs, done_jobs, failed_jobs = check_jobs_logs(jobs_folder)
     tables = get_tables(tot_jobs, idle_jobs, running_jobs, done_jobs, failed_jobs, details=details)
-    layout["left"].update(Panel(tables[0], title="Job Status"))
+    if show_progress:
+        layout["summary"].update(Panel(tables[0], title="Job Status"))
+        gc = aggregate_by_group(group_to_jobs, idle_jobs, running_jobs, done_jobs, failed_jobs)
+        layout["progress"].update(Panel(
+            get_progress_table(gc, group_label, multi_sample_overlap=multi_sample_overlap)))
+    else:
+        layout["left"].update(Panel(tables[0], title="Job Status"))
     layout["right"].update(Panel("No logs yet", title="Log"))
     
     log_text = []
@@ -202,11 +292,18 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
     with Live(layout, refresh_per_second=1/5, console=console):  # Refresh rate
         try:
             while True:
-                step += 1 
+                step += 1
                 idle_jobs, running_jobs, done_jobs, failed_jobs = check_jobs_logs(jobs_folder)
                 tables = get_tables(tot_jobs, idle_jobs, running_jobs, done_jobs, failed_jobs, details=details)
-                # Update the left panel with a new table
-                layout["left"].update(Panel(tables[0], title="Job Status"))
+                # Update the left panel(s) with fresh tables
+                if show_progress:
+                    layout["summary"].update(Panel(tables[0], title="Job Status"))
+                    gc = aggregate_by_group(group_to_jobs, idle_jobs, running_jobs, done_jobs, failed_jobs)
+                    layout["progress"].update(Panel(
+                        get_progress_table(gc, group_label, multi_sample_overlap=multi_sample_overlap),
+                        title=f"Progress by {group_label}"))
+                else:
+                    layout["left"].update(Panel(tables[0], title="Job Status"))
 
                 # Checking failed jobs
                 if len(failed_jobs) > 0:
@@ -271,7 +368,7 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                                         fllist = dct['files']
                                         if xrootdfile in fllist:
                                             flidx = fllist.index(xrootdfile)
-                                            newfl = find_other_file(xrootdfile,sitemap,xrootdfaillist,blacklist_sites)
+                                            newfl = find_other_file(xrootdfile,sitemap,xrootdfaillist,blacklist_sites,rucio_client=rucio_client)
                                             if newfl != xrootdfile:
                                                 new_fileset[sample]['files'][flidx] = newfl
                                                 config.set_filesets_manually(new_fileset)
@@ -293,7 +390,7 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                                             for flname in fllist:
                                                 thissite = flname.split("/store/")[0]
                                                 if thissite in blacklist_sites:
-                                                    newfl = find_other_file(flname,sitemap,xrootdfaillist,blacklist_sites)
+                                                    newfl = find_other_file(flname,sitemap,xrootdfaillist,blacklist_sites,rucio_client=rucio_client)
                                                     newfllist.append(newfl)
                                                     if newfl != flname:
                                                         flcounter += 1

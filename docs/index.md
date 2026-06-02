@@ -35,6 +35,7 @@ analysis_example.md
 configuration.md
 calibrators.md
 plots.md
+cutflow_plots.md
 statistical_analysis.md
 parameters.md
 datasets.md

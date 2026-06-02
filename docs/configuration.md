@@ -476,19 +476,20 @@ In the configuration the categorization is split in:
 
 
 ### Save skimmed NanoAOD
-PocketCoffea can dump events passing the skim selection to NanoAOD root files. This can be useful when your skimming
-efficiecy is high and you can trade the usage of some disk storage for higher processing speed. 
 
-The export of skimmed NanoAOD is activated by the `save_skimmed_files` argument of the `Configurator` object. If
-`save_skimmed_files!=None` then the processing stops after the skimming and one root file for each chunk is saved in the
-folder specified by the argument. 
+PocketCoffea can dump events passing the skim selection to NanoAOD ROOT files. Running once on a skim and reusing it
+for every subsequent processing pass trades a one-off disk cost for much shorter turnaround later — particularly useful
+when you iterate on histograms, weights, or systematic variations and the skim selection itself is stable.
 
-It is recommended to use a xrootd endpoint: `save_skimmed_files='root://eosuser.cern.ch:/eos/user/...`. 
+Skim export is enabled by setting the `save_skimmed_files` argument of the `Configurator` to an output directory (a
+local path or, recommended, an XRootD endpoint such as `root://eosuser.cern.ch://eos/user/.../skim/`). When set, the
+processor finishes the skim step, writes one ROOT file per processed chunk, and stops — categorization, weights and
+histograms are **not** computed in this run.
 
 ```python
 cfg = Configurator(
     workflow=ttHbbBaseProcessor,
-    workflow_options={},
+    workflow_options={},   # default: skim_mode="skim"
     save_skimmed_files="root://eosuser.cern.ch://eos/user/x/xxx/skimmed_samples/Run2UL/",
     skim=[
         get_nPVgood(1),
@@ -500,23 +501,164 @@ cfg = Configurator(
 )
 ```
 
-The PocketCoffea output file contains the list of skimmed files with the number of skimmed events in each file. Moreover
-the root files contain a new branch called `skimRescaleGenWeight` which store for each event the scaling factor
-needed to recover the sum of genWeight of the original factor, and correct for the skimming efficiency.  The factor
-is computed as `(original sum of genweight / sum of genweights of skimmed files)` for each file. This factor needs to
-be multiplied to the sum of genweights accumulated in each chunk by the processor that runs on top of skimmed
-datasets. Therefore the dataset definition file for skimmed datasets must contain the `isSkim:True` metadata,
-which is used by the processor to apply the rescaling.
+#### Two skim modes
+
+The exact set of events that ends up in the skim is controlled by `workflow_options["skim_mode"]`. Two values are
+recognised today (see `BaseProcessorABC.process` in `pocket_coffea/workflows/base.py`):
+
+| `skim_mode` | What gets saved | Object corrections during selection |
+|-------------|-----------------|-------------------------------------|
+| `"skim"` *(default)* | Events passing the `skim` cut list, evaluated on **raw NanoAOD**. | None — skim runs before any calibrator. |
+| `"presel_any_variation"` | Events passing **either** the skim **or** the full event preselection in **at least one** active systematic variation. | The full calibration loop is evaluated in dry-run mode just to compute preselection masks; the events written to disk are the **un-calibrated** ones. |
+
+In default `"skim"` mode the skim is a pure "drop obviously useless events" stage — fast, loose, and only allowed to
+look at branches that exist before any object correction. This is the standard recipe and what the rest of the
+documentation assumes.
+
+#### `skim_mode: "presel_any_variation"`
+
+The variation-aware mode lets you push the skim much closer to the analysis preselection without losing events that
+would be selected only under a systematic shift (e.g. a JES-up shifted jet that crosses the pT threshold). The flow is:
+
+1. Run the normal skim on raw NanoAOD.
+2. Initialise the `CalibratorsManager` and loop over every active shape variation, calling `apply_object_preselection`,
+   `count_objects`, `define_common_variables_before_presel`, and finally evaluating the preselection mask **without
+   filtering the events**.
+3. OR-combine the per-variation masks into a single boolean mask and apply it to the **uncalibrated** events.
+4. Write the surviving events to disk, then exit — no histograms or columns are produced.
+
+The recipe is correct *for the set of calibration variations that were active when the skim was produced*. Each
+downstream re-processing on the skim re-runs the same calibration loop, so a JES-up event that was kept thanks to its
+shifted-up pT is re-evaluated with the corrected pT and ends up in the right variation histogram. Storing the
+uncalibrated events is what lets that downstream re-calibration apply cleanly — it does **not** make the skim
+immune to changes in the calibration configuration itself.
 
 :::{alert}
-**N.B.**: The skim is performed before the object calibration and preselection step. The analyzer must be careful to
-apply a loose enough skim that is invariant under the shape uncertainties applied later in the analysis. For example
-the selection on the minimum number of jets should be loose enought to not be affected by Jet energy scales, **which
-are applied later**. 
+**The skim is bound to the calibration set used to build it.** If you later change which calibrators are active, swap
+a JEC version, or add a systematic variation that wasn't in the dry-run loop, the OR-of-preselections that decided
+which events to keep is no longer guaranteed to be a superset of the new preselection — events you'd now want can be
+missing from disk. Whenever the calibration configuration changes, **re-run the skim** before trusting downstream
+results.
 :::
 
-A full tutorial of the necessar steps to produce a skim and then to use the pocketcoffea tools to prepare a new dataset
-configuration file can be found in the [How To section](./recipes.md#skimming-events).
+```python
+cfg = Configurator(
+    workflow=ttHbbBaseProcessor,
+    save_skimmed_files="root://eosuser.cern.ch://eos/user/x/xxx/skimmed_samples/Run3/",
+    workflow_options={
+        "skim_mode": "presel_any_variation",
+        # the explicit skim list is still applied first;
+        # the preselection-OR is added on top.
+    },
+    skim=[get_nPVgood(1), eventFlags, goldenJson, get_HLTsel(...)],
+    preselections=[
+        get_nObj_min(2, 25., "JetGood"),
+        get_nBtagMin(1, coll="BJetGood", wp="M"),
+    ],
+    calibrators=[JetsCalibrator, MetCalibrator, ElectronSFCalibrator],
+)
+```
+
+When to prefer it:
+
+- The preselection has a non-trivial efficiency, so a basic skim alone would still ship many useless events.
+- You want one canonical skim that already encodes the analysis acceptance for every shape systematic, so downstream
+  re-runs only have to re-evaluate histograms (not preselection).
+- You are willing to spend more CPU in the skim step (the full calibration loop runs once per chunk) in exchange for
+  a smaller, more analysis-shaped output.
+
+When not to use it:
+
+- Skim selection alone is already loose; the dry-run preselection just adds CPU for negligible event reduction.
+- The preselection depends on quantities that aren't yet computed in `define_common_variables_before_presel`.
+
+##### Stopping the run after the skim
+
+By default `save_skimmed_files` already short-circuits the rest of the processor — the chunk returns immediately after
+`export_skimmed_chunk()`. If you have a derived workflow that calls extra steps from `process_extra_after_skim` and you
+also want to bail out there in special debugging configurations, the workflow option `skip_processing_after_skim: True`
+is honoured: it makes the variation-aware branch exit right after writing the skim ROOT file. The default skim path
+already behaves this way; the option only matters when you wire it into your own subclass.
+
+#### Output structure & gen-weight rescaling
+
+The main `.coffea` output of a skim run keeps the usual `sum_genweights`, `cutflow` and dataset metadata and adds two
+extra keys:
+
+- `skimmed_files`: `{dataset: [path/to/file_0.root, ...]}` — the new ROOT files produced for each dataset.
+- `nskimmed_events`: `{dataset: [n_events_in_file_0, ...]}` — event counts per chunk file.
+
+Each output ROOT file carries an extra branch `skimRescaleGenWeight`, set per-event to
+
+```
+skimRescaleGenWeight = (original sum_genweight of the input file) / (sum_genweight surviving the skim)
+```
+
+Downstream, when the skim is used as input dataset, the dataset definition JSON **must** carry `isSkim: True` in its
+metadata. The processor reads that flag in `load_metadata` (`base.py:135-137`) and computes `sum_genweights` as
+`sum(skimRescaleGenWeight * genWeight)` instead of `sum(genWeight)`, so the per-dataset normalisation matches the
+unskimmed reference. Forgetting `isSkim: True` will silently under-normalise your MC.
+
+For chunks that produced zero events the rescale factor is set to 0 (see `export_skimmed_chunk` in `base.py`); these
+chunks contribute 0 to `sum_genweights_skimmed` but are still listed in `skimmed_files` and tracked by the rest of the
+machinery.
+
+##### Recovering `sum_genweight` for zero-event chunks
+
+There is one subtle failure mode of the per-event `skimRescaleGenWeight` mechanism: if an input NanoAOD chunk has
+**zero events surviving the skim**, no ROOT file is written for that chunk, so the downstream per-chunk reconstruction
+`sum(skimRescaleGenWeight * genWeight)` cannot recover its `sum_genweight` contribution. The original total would be
+silently under-counted whenever the skim is tight enough that some input chunks vanish entirely.
+
+To avoid this, `save_skimed_dataset_definition` writes the **authoritative pre-skim dataset-level totals** into the new
+dataset JSON's `metadata`:
+
+```json
+"metadata": {
+    ...,
+    "isSkim": "True",
+    "sum_genweights": 1.2345e+08,
+    "sum_signOf_genweights": 9.87e+06
+}
+```
+
+These values come straight from the skim job's `.coffea` accumulator, where they are computed **before** the skim mask
+is applied (`BaseProcessorABC.process`); they therefore include every input chunk regardless of survival. The hadded
+dataset definition produced by `pocket-coffea hadd-skimmed-files` carries the same fields, so a hadded skim is also
+self-recovering.
+
+At downstream postprocess time `BaseProcessorABC.postprocess` calls
+`pocket_coffea.utils.skim.apply_skim_sumgenweights_override` which, for every `isSkim` dataset whose metadata carries
+these fields, **replaces** the per-chunk-reconstructed `accumulator["sum_genweights"]` /
+`accumulator["sum_signOf_genweights"]` entries with the authoritative values before `rescale_sumgenweights` runs. The
+override is logged at INFO so the recovery is visible. Older skim outputs that lack the new metadata fields keep using
+the per-chunk reconstruction unchanged.
+
+A useful side effect: running downstream with `--limit-files` against an `isSkim` dataset now normalises histograms to
+the **original** sum_genweight rather than to whatever subset of files happened to be processed — which is the
+physically correct behaviour for cross-section normalisation.
+
+#### Practical tips
+
+- **Run the skim on `condor@lxplus`.** Each condor job produces its own slice of skimmed files; failed jobs can be
+  resubmitted individually with `--recreate-jobs` (see `running.md`). The dask scheduler is overkill for an embarrassingly
+  parallel write-only step.
+- **`hadd` the per-chunk files** afterwards with `pocket-coffea hadd-skimmed-files` to reduce file count and size
+  amplification (typical chunk files are ~tens of MB). The post-hadd helper produces an updated dataset definition JSON
+  with `isSkim: True` already set.
+- **Mind the skim looseness.** Even in `presel_any_variation` mode the explicit `skim` list is evaluated on raw NanoAOD
+  *before* any object correction; it must remain loose under the systematic shifts that the preselection sees later.
+
+:::{alert}
+The skim is performed before the object calibration and preselection step. The analyzer must be careful to apply a
+loose enough skim that is invariant under the shape uncertainties applied later in the analysis. For example, the
+selection on the minimum number of jets should be loose enough to not be affected by jet energy scales, **which are
+applied later**. The `presel_any_variation` mode only protects against *preselection* losses under variations — the
+`skim` list itself is still raw-NanoAOD only.
+:::
+
+See the end-to-end recipe in [How-To → Skimming events](./recipes.md#skimming-events) for the concrete CLI invocation
+and post-processing steps.
 
 ### Categorization utilities
 PocketCoffea defines different ways to categorize events. 
