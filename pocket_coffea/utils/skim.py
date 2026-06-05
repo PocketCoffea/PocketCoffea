@@ -85,7 +85,6 @@ def copy_file(
     pathlib.Path(local_file).unlink()
 
 
-
 def apply_skim_sumgenweights_override(accumulator, filesets):
     '''Override `accumulator['sum_genweights']` and
     `accumulator['sum_signOf_genweights']` from the authoritative dataset-level
