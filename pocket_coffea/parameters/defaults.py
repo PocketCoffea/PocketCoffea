@@ -23,18 +23,20 @@ def register_configuration_dir(key: str, directory: str):
 register_configuration_dir("default_params_dir", os.path.dirname(os.path.abspath(__file__)))
 OmegaConf.register_new_resolver("pico_to_femto", lambda x: float(x)/1000.)
 
-def setup_cvmfs_resolver(groups_tags: dict = None):
+def setup_cvmfs_resolver(group_tags: dict = None):
     """
     Setup the CVMFS path resolver to point to the correct version of the POGs files
-    If groups_tags is None the latest version is used. Otherwise a dictionary with the group names
+    If group_tags is None the latest version is used. Otherwise a dictionary with the group names
     and the corresponding tags for each period must be provided.
     """
     basepath = Path("/cvmfs/cms-griddata.cern.ch/cat/metadata/")
     valid_groups = [ n.name for n in basepath.iterdir() if n.is_dir()]
-    pogpath = Path("/cvmfs/cms-griddata.cern.ch/cat/metadata/EGM")
     # All the groups must share the same valid periods
-    valid_periods = [ n.name for n in pogpath.iterdir() if n.is_dir()]
-    
+    valid_periods = {}
+    for group in valid_groups:
+        valid_periods_group = [ n.name for n in (basepath/group).iterdir() if n.is_dir()]
+        valid_periods[group] = valid_periods_group
+
     # Register the resolver
     def cvmfs_path_resolver(period: str, group: str, file: str, tag=None) -> str:
         '''
@@ -53,13 +55,12 @@ def setup_cvmfs_resolver(groups_tags: dict = None):
         '''
         if group not in valid_groups:
             raise ValueError(f"Invalid group '{group}' for period '{period}' file '{file}'. Valid groups are: {valid_groups}")
-        if period not in valid_periods:
-            raise ValueError(f"Invalid period '{period}' for group '{group}' file '{file}'. Valid periods are: {valid_periods}")
-        
+        if period not in valid_periods[group]:
+            raise ValueError(f"Invalid period '{period}' for group '{group}'  file '{file}'. Valid periods are: {valid_periods[group]}")
         if tag is not None:
             tag = tag
-        elif groups_tags is not None and group in groups_tags and period in groups_tags[group]:
-            tag = groups_tags[group][period]
+        elif group_tags is not None and group in group_tags and period in group_tags[group]:
+            tag = group_tags[group][period]
         else:
             tag = "latest"
        

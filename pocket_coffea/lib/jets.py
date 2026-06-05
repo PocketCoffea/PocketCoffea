@@ -8,6 +8,13 @@ from correctionlib.schemav2 import Correction, CorrectionSet
 from ..utils.utils import get_nano_version, replace_at_indices
 
 
+def get_rho(events, nano_version):
+    if nano_version >= 12:
+        return events.Rho.fixedGridRhoFastjetAll
+    else:
+        return events.fixedGridRhoFastjetAll
+
+
 def add_jec_variables(jets, event_rho, isMC=True):
     # Check if pt is defined, if not take the rawPt
     if "pt" not in jets.fields:
@@ -239,6 +246,7 @@ def compute_jetId(events, jet_type, params, year):
             "multiplicity": jets.chMultiplicity + jets.neMultiplicity
         }
 
+            
         ## Default tight for NanoAOD version 13 and above
         jet_algo_mapping = params.jets_calibration.collection[year]
         jet_algo = next((k for k, v in jet_algo_mapping.items() if v == jet_type), None)
@@ -246,7 +254,7 @@ def compute_jetId(events, jet_type, params, year):
             raise Exception(f"No mapping jet_type ({jet_type}) -> jet_algo (e.g. AK4PFPuppi) defined for year {year}")
         if "AK4PFPuppi" in jet_algo: jet_algo = "AK4PFPuppi"
         jet_algo = jet_algo.replace("PF", "").upper()
-    
+
         if jet_algo+"_Tight" not in list(cset.keys()):
             raise Exception(f"No correction for jet collection {jet_algo} defined in correctionlib file {jsonFile}")
         idTight = cset[jet_algo+"_Tight"]
@@ -523,10 +531,8 @@ def jet_correction_corrlib(
     jets_jagged = events[jet_coll_name]
     counts = ak.num(jets_jagged)
 
-    if year in ['2016_PreVFP', '2016_PostVFP','2017','2018'] and nano_version <= 9:
-        rho = events.fixedGridRhoFastjetAll
-    else:
-        rho = events.Rho.fixedGridRhoFastjetAll
+    nano_version = chunk_metadata.get("nano_version", 9)
+    rho = get_rho(events, nano_version)
     # Add variables needed for JEC and JER corrections (e.g. pt_raw, mass_raw, pt_gen, event_rho)
     jets_jagged = add_jec_variables(jets_jagged, rho, isMC)
 
@@ -555,7 +561,7 @@ def jet_correction_corrlib(
         elif tag_jec in list(cset.keys()):
             sf = cset[tag_jec]
         else:
-            print("CONFIG ERROR")
+            print("CONFIG ERROR: No JEC correction!")
             print("Tag=",tag_jec, "\n cset keys:", list(cset.keys()), "\n compound keys:", list(cset.compound.keys()))
             raise Exception(f"[No JEC correction: {tag_jec} - Year: {year} - Era: {era} - Level: {level}")
         inputs = [eval_dict[input.name] for input in sf.inputs]
@@ -706,11 +712,9 @@ def msoftdrop_correction(
     jets_jagged["event_id"] = ak.ones_like(jets_jagged.pt) * events.event
     jets_jagged["run_nr"] = ak.ones_like(jets_jagged.pt) * events.run
 
-    if year in ['2016_PreVFP', '2016_PostVFP','2017','2018'] and nano_version <= 9:
-        rho = events.fixedGridRhoFastjetAll
-    else:
-        rho = events.Rho.fixedGridRhoFastjetAll
-    
+    nano_version = chunk_metadata.get("nano_version", 9)
+    rho = get_rho(events, nano_version)
+
     jets_jagged["rho"] = ak.ones_like(jets_jagged.pt) * rho
 
     # Early return if no jets in any event

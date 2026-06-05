@@ -62,3 +62,10 @@
       MET_collection: "PuppiMET"
       CorrT1METJet_collection: "CorrT1METJet"
       Jet_collection: "Jet"
+    "2025":
+      apply_MC: True
+      apply_data: True
+      RawMET_collection: "RawPuppiMET"
+      MET_collection: "PuppiMET"
+      CorrT1METJet_collection: "CorrT1METJet"
+      Jet_collection: "Jet"  
