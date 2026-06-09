@@ -47,37 +47,37 @@ default_jets_calibration:
     AK4PFPuppi:
       2022_preEE:
         json_path: ${cvmfs:Run3-22CDSep23-Summer22-NanoAODv12,JME,jet_jerc.json.gz}
-        jec_mc: Summer22_22Sep2023_V3_MC
-        jec_data: Summer22_22Sep2023_V3_DATA
-        jer: Summer22_22Sep2023_JRV1_MC
+        jec_mc: Summer22_22Sep2023_V4_MC
+        jec_data: Summer22_22Sep2023_V4_DATA
+        jer: Summer22_22Sep2023_JRV2_MC
         level: L1L2L3Res
       
       2022_postEE:
         json_path: ${cvmfs:Run3-22EFGSep23-Summer22EE-NanoAODv12,JME,jet_jerc.json.gz}
-        jec_mc: Summer22EE_22Sep2023_V3_MC
-        jec_data: Summer22EE_22Sep2023_V3_DATA
-        jer: Summer22EE_22Sep2023_JRV1_MC
+        jec_mc: Summer22EE_22Sep2023_V4_MC
+        jec_data: Summer22EE_22Sep2023_V4_DATA
+        jer: Summer22EE_22Sep2023_JRV2_MC
         level: L1L2L3Res
 
       2023_preBPix:
         json_path: ${cvmfs:Run3-23CSep23-Summer23-NanoAODv12,JME,jet_jerc.json.gz}
-        jec_mc: Summer23Prompt23_V3_MC
-        jec_data: Summer23Prompt23_V3_DATA
-        jer: Summer23Prompt23_RunCv1234_JRV1_MC
+        jec_mc: Summer23Prompt23_V4_MC
+        jec_data: Summer23Prompt23_V4_DATA
+        jer: Summer23Prompt23_RunCv1234_JRV2_MC
         level: L1L2L3Res
       
       2023_postBPix:
         json_path: ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,JME,jet_jerc.json.gz}
-        jec_mc: Summer23BPixPrompt23_V3_MC
-        jec_data: Summer23BPixPrompt23_V3_DATA
-        jer: Summer23BPixPrompt23_RunD_JRV1_MC
+        jec_mc: Summer23BPixPrompt23_V4_MC
+        jec_data: Summer23BPixPrompt23_V4_DATA
+        jer: Summer23BPixPrompt23_RunD_JRV2_MC
         level: L1L2L3Res
 
       "2024":
         json_path: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,JME,jet_jerc.json.gz}
-        jec_mc: Summer24Prompt24_V2_MC
-        jec_data: Summer24Prompt24_V2_DATA
-        jer: Summer23BPixPrompt23_RunD_JRV1_MC  # For the time being the 2023 jers shall be used https://cms-jerc.web.cern.ch/Recommendations/#2024_1
+        jec_mc: Summer24Prompt24_V3_MC
+        jec_data: Summer24Prompt24_V3_DATA
+        jer: Summer24Prompt24_JRV1_MC  # For the time being the 2023 jers shall be used https://cms-jerc.web.cern.ch/Recommendations/#2024_1
         level: L1L2L3Res
 
       "2025":
