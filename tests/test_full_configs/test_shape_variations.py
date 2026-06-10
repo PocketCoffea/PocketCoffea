@@ -7,6 +7,7 @@ from pathlib import Path
 from pocket_coffea.executors import executors_base as executors_lib
 from coffea import processor
 from coffea.processor import Runner
+from coffea.nanoevents import NanoAODSchema
 from coffea.util import load, save
 import numpy as np
 import awkward as ak
@@ -43,7 +44,7 @@ def test_shape_variations_JEC_run2(base_path: Path, monkeypatch: pytest.MonkeyPa
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
     output = run(config.filesets, treename="Events",
@@ -275,7 +276,7 @@ def test_shape_variations_JEC_run3(base_path: Path, monkeypatch: pytest.MonkeyPa
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
     output = run(config.filesets, treename="Events",
@@ -312,7 +313,7 @@ def test_shape_variations_ele_SS_run3(base_path: Path, monkeypatch: pytest.Monke
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
     output = run(config.filesets, treename="Events",
@@ -350,7 +351,7 @@ def test_shape_variation_default_sequence(base_path: Path, monkeypatch: pytest.M
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
     output = run(config.filesets, treename="Events",
@@ -391,7 +392,7 @@ def test_shape_variation_default_sequence_comparison_with_legacy_run2(base_path:
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
     output = run(config.filesets, treename="Events",
@@ -436,13 +437,6 @@ def test_shape_variation_default_sequence_comparison_with_legacy_run2(base_path:
     values_down = H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalDown"}].values()
     if not np.allclose(ref_values_down, values_down):
         assert check_single_bin_shift(ref_values_down, values_down), "JES Total Down variation should show up to a single bin shift pattern"
-    
-    # ref_H = ref_output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
-    # H = output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
-    # ref_met_up = ref_H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalUp"}].values()
-    # met_up = H[{"cat":"baseline", "variation":"AK4PFchs_JES_TotalUp"}].values()
-    # if not np.allclose(ref_met_up, met_up):
-    #     assert check_single_bin_shift(ref_met_up, met_up), "MET JES Total Up variation should show up to a single bin shift pattern"
 
     # ref_H = ref_output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
     # H = output["variables"]['MET_pt']['TTTo2L2Nu']['TTTo2L2Nu_2018']
@@ -483,7 +477,7 @@ def test_shape_variation_default_sequence_comparison_with_legacy_run3(base_path:
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
     output = run(config.filesets, treename="Events",
@@ -567,7 +561,7 @@ def test_shape_variation_JEC_run3_pt_regression(base_path: Path, monkeypatch: py
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
     output = run(config.filesets, treename="Events",

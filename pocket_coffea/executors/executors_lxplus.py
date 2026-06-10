@@ -1,6 +1,10 @@
 import os
-import sys
 import socket
+import sys
+from copy import deepcopy
+
+import cloudpickle
+import yaml
 from coffea import processor as coffea_processor
 from .executors_base import ExecutorFactoryABC
 from .executors_manual_jobs import (
@@ -14,6 +18,7 @@ from .executors_base import IterativeExecutorFactory, FuturesExecutorFactory
 from pocket_coffea.utils.network import check_port
 from pocket_coffea.parameters.dask_env import setup_dask
 from pocket_coffea.utils.configurator import Configurator
+from pocket_coffea.utils.network import check_port
 from pocket_coffea.utils.rucio import get_xrootd_sites_map
 from pocket_coffea.utils.site_rewrite import (
     GLOBAL_XROOTD_REDIRECTOR,
@@ -132,7 +137,7 @@ class DaskExecutorFactory(ExecutorFactoryABC):
 
         
     def get(self):
-        return coffea_processor.dask_executor(**self.customized_args())
+        return coffea_processor.DaskExecutor(**self.customized_args())
 
     def customized_args(self):
         args = super().customized_args()

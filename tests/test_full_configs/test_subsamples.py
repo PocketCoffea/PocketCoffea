@@ -52,7 +52,7 @@ def test_subsamples(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_f
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
     output = run(config.filesets, treename="Events",
@@ -94,7 +94,7 @@ def test_subsamples_and_weights(base_path: Path, monkeypatch: pytest.MonkeyPatch
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
     output = run(config.filesets, treename="Events",
@@ -150,7 +150,7 @@ def test_subsamples_and_weights_splitbysubsamples(base_path: Path, monkeypatch: 
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
     output = run(config.filesets, treename="Events",
@@ -227,6 +227,6 @@ def test_subsamples_wrong1(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp
         executor=executor,
         chunksize=run_options["chunksize"],
         maxchunks=run_options["limit-chunks"],
-        schema=processor.NanoAODSchema,
+        schema=NanoAODSchema,
         format="root"
     )
