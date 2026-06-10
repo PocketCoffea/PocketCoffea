@@ -60,10 +60,12 @@ class TestHistogramPlotting:
     def test_plot_datamc_all(self, plot_manager: PlotManager):
         """Test data/MC plotting for all shape objects."""
         plot_manager.plot_datamc_all(format="png")
-        for shape_object in plot_manager.shape_objects:
+        for shape_object in plot_manager.shape_objects.values():
             for category in shape_object.categories:
                 plot_path = (
-                    plot_manager.plot_dir / category / f"{shape_object.name}.png"
+                    plot_manager.plot_dir
+                    / category
+                    / f"{shape_object.name}_{category}.png"
                 )
                 assert plot_path.exists(), f"Plot {plot_path} was not created"
 
