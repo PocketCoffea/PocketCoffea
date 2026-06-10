@@ -683,7 +683,7 @@ class Configurator:
                     print(
                         f"Requested missing sample {sample} in the columns configuration"
                     )
-                    raise Exception("Wrong columns configuration")
+                    raise Exception(f"Wrong columns configuration for {sample}: not in {self.total_samples_list}")
                 if "inclusive" in s_wcfg:
                     for w in s_wcfg["inclusive"]:
                         # If the the sample 
