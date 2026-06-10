@@ -16,6 +16,7 @@ from rich.tree import Tree
 import re
 from pocket_coffea.utils import rucio as rucio_utils
 import requests
+import tsgauth
 #from pocket_coffea.parameters.xsection import xsection
 def print_dataset_query(query, dataset_list, console, selected=[]):
     table = Table(title=f"Query: [bold red]{query}")
@@ -308,17 +309,25 @@ Some basic commands:
         parts = dataset_name.split('/')
         if len(parts) > 0:
             parts =  parts[1]
-        url = 'https://xsdb-temp.app.cern.ch/api/search'
-        response = requests.post(url, json={'process_name': parts})
-        if response.status_code == 200:
+        search_payload = {
+        "search": {"process_name": parts}
+        }
+        auth = tsgauth.oidcauth.KerbSessionAuth(use_auth_file=True)
+        session = requests.Session()
+        session.get("https://xsecdb-xsdb-official.app.cern.ch/", **auth.authparams())
+    
+        url = 'https://xsecdb-xsdb-official.app.cern.ch/api/search'
+        response = session.post(url, data=json.dumps(search_payload))
+        data = response.json()
+        try:
             data = response.json()
             if isinstance(data, list) and len(data) > 0:
                 return float(data[0]['cross_section'])
             else:
-                raise ValueError(f"No data found for process_name '{parts}'")
-        else:
-            raise ConnectionError(f"Failed to fetch data for process_name '{parts}'. Status code: {response.status_code}")
-
+                raise ValueError(f"No data found for matrix_generator '{parts}'")
+        except json.decoder.JSONDecodeError:
+            raise ValueError("Failed to decode JSON response")
+        
     def do_select(self, selection=None, metadata=None):
         """Selected the datasets from the list of query results. Input a list of indices
         also with range 4-6 or "all"."""
