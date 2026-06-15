@@ -31,8 +31,6 @@ def setup_cvmfs_resolver(group_tags: dict = None):
     """
     basepath = Path("/cvmfs/cms-griddata.cern.ch/cat/metadata/")
     valid_groups = [ n.name for n in basepath.iterdir() if n.is_dir()]
-    print(f"Valid groups: {valid_groups}")
-    pogpath = Path("/cvmfs/cms-griddata.cern.ch/cat/metadata")
     # All the groups must share the same valid periods
     valid_periods = {}
     for group in valid_groups:
@@ -95,7 +93,6 @@ def get_default_parameters(group_tags: dict = None) -> OmegaConf:
     basedir = os.path.dirname(__file__)
 
     # Loading the cvmfs resolver
-    print(f"Setting up CVMFS resolver with group_tags: {group_tags}")
     setup_cvmfs_resolver(group_tags)
     nano_version = OmegaConf.load(os.path.join(basedir, "nano_version.yaml"))
     pileup = OmegaConf.load(os.path.join(basedir, 'pileup.yaml'))
