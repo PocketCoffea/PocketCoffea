@@ -173,6 +173,7 @@ class DaskExecutorFactory(ExecutorFactoryABC):
         # Setup dask general options from parameters/dask_env.py
         import dask.config
         from distributed import Client
+
         setup_dask(dask.config)
 
         # Check if we're on LPC
@@ -187,7 +188,7 @@ class DaskExecutorFactory(ExecutorFactoryABC):
         requested_port_raw = self.run_options.get("dask-scheduler-port", None)
         requested_port = None
         if requested_port_raw not in (None, "", "null", "None"):
-            requested_port = self._normalize_int(requested_port_raw, 8786)
+            requested_port = self._normalize_int(requested_port_raw, 10000)
 
         if requested_port is not None:
             n_port = requested_port
@@ -344,6 +345,27 @@ class DaskExecutorFactory(ExecutorFactoryABC):
 #--------------------------------------------------------------------
 # Manual jobs executor
 
+def _resolve_host_path(path, host_prefix=None, container_mount="/srv"):
+    """Translate a container-internal path back to its real host path.
+
+    When the analysis runs inside an Apptainer/Singularity image launched with
+    ``apptainer exec -B <hostdir>:/srv --pwd /srv`` (the standard coffea-image
+    pattern), ``os.path.abspath()`` returns ``/srv/...`` paths. Those are valid only
+    inside the container: the HTCondor schedd and the execute nodes run outside it and
+    have no ``/srv``, so submit files and job scripts containing ``/srv/...`` paths
+    fail (e.g. "Cannot access initial working directory /srv/...").
+
+    ``host_prefix`` is the real host directory that is bind-mounted to
+    ``container_mount`` (set it via the ``host-path-prefix`` run option). When it is
+    provided and ``path`` is under ``container_mount``, the mount point is rewritten to
+    the host directory. When it is not set, the path is returned unchanged, so this is a
+    no-op at sites that do not use the container mount.
+    """
+    if host_prefix and path.startswith(container_mount):
+        return host_prefix + path[len(container_mount):]
+    return path
+
+
 class ExecutorFactoryCondorLPC(ExecutorFactoryManualABC):
     def get(self):
         pass
@@ -381,9 +403,10 @@ class ExecutorFactoryCondorLPC(ExecutorFactoryManualABC):
 
     def submit_jobs(self, jobs_config):
         '''Prepare job config and script and submit the jobs to the cluster'''
-        
-        abs_output_path = os.path.abspath(self.outputdir)
-        abs_jobdir_path = os.path.abspath(self.jobs_dir)
+
+        host_prefix = self.run_options.get("host-path-prefix", None)
+        abs_output_path = _resolve_host_path(os.path.abspath(self.outputdir), host_prefix)
+        abs_jobdir_path = _resolve_host_path(os.path.abspath(self.jobs_dir), host_prefix)
         os.makedirs(f"{self.jobs_dir}/logs", exist_ok=True)
         
         env_extras_list=get_worker_env(self.run_options,self.x509_path,"condor")
@@ -397,6 +420,15 @@ class ExecutorFactoryCondorLPC(ExecutorFactoryManualABC):
             abs_output_path = eos_prefix + abs_output_path
         if abs_output_path.startswith(eos_prefix):
             copy_command = "xrdcp -f"
+
+        # On sites where the execute node does NOT share a filesystem with the submit
+        # node (e.g. LPC, where /uscms_data is not mounted on workers), an in-job `cp`
+        # to abs_output_path fails. In that case we let HTCondor transfer the coffea
+        # output back to the submit dir via transfer_output_files + remaps instead.
+        # When the output is on EOS (xrdcp), the worker pushes it directly over xrootd,
+        # so no condor transfer is needed.
+        on_eos = copy_command.startswith("xrdcp")
+        use_condor_transfer = not on_eos
 
         # Handle columns
         columncommand = ""
@@ -418,21 +450,60 @@ class ExecutorFactoryCondorLPC(ExecutorFactoryManualABC):
         # Specify output filename to split-output script ->
         # This will save files such as output_CAT1.coffea, output_CAT2.coffea (remove "_all" from split outputs)...
         if self.run_options.get("split-by-category", False):
-            splitcommands = f'''
+            if use_condor_transfer:
+                # Split locally; condor transfers the whole output/ dir back and we
+                # rename per-job on the submit side after the run (see post-processing).
+                splitcommands = '''
+    cd output
+    split-output output_all.coffea -b category -o output.coffea
+    rm output_all.coffea
+    cd ..
+'''
+            else:
+                splitcommands = f'''
     cd {abs_output_path}
     split-output output_all.coffea -b category -o output.coffea
     rm output_all.coffea
     for f in *.coffea; do
-        run_with_retries "{copy_command} $f {abs_output_path}/${{f%.coffea}}_job_$1.coffea"
+        run_with_retries "{copy_command} $f {abs_output_path}/${{f%.coffea}}_job_$JOBID.coffea"
     done
 '''
         else:
-            splitcommands = f'run_with_retries "{copy_command} output/output_all.coffea {abs_output_path}/output_job_$1.coffea"'
+            if use_condor_transfer:
+                # Leave output/output_all.coffea in place; HTCondor transfers it back
+                # and remaps it to output_job_$(ProcId).coffea (see transfer_output_remaps).
+                splitcommands = 'echo "Output will be transferred back by HTCondor"'
+            else:
+                splitcommands = f'run_with_retries "{copy_command} output/output_all.coffea {abs_output_path}/output_job_$JOBID.coffea"'
+
+        # With condor file-transfer, transfer_output_files names a fixed path. If the
+        # runner failed, that path won't exist and condor would HOLD the job with a
+        # misleading "No such file" transfer error, masking the real failure. Create an
+        # empty placeholder on failure so transfer succeeds; the non-zero exit code (see
+        # below) still marks the job failed for on_exit_remove/max_retries, and the
+        # empty output_job_N.coffea is an obvious marker of a failed job.
+        if use_condor_transfer and not self.run_options.get("split-by-category", False):
+            transfer_placeholder = '    mkdir -p output && touch output/output_all.coffea'
+        else:
+            transfer_placeholder = ''
 
         script = f"""#!/bin/bash
 {env_extras}
 
 JOBDIR={abs_jobdir_path}
+# Capture the ProcId before defining helpers: inside run_with_retries, $1 is the
+# function's own argument, not the job's positional arg, so reference $JOBID instead.
+JOBID=$1
+
+# Status-file bookkeeping (.running/.done/.failed/.idle) lives in $JOBDIR on the
+# submit node. On sites where the worker shares that filesystem these writes track
+# job state for --recreate-jobs; where it does not (e.g. LPC, /uscms_data unmounted
+# on workers) the directory is not writable, so we guard every write to avoid errors.
+set_status() {{  # $1 = status extension to create (running|done|failed)
+    [ -w "$JOBDIR" ] || return 0
+    rm -f $JOBDIR/job_$JOBID.running $JOBDIR/job_$JOBID.done $JOBDIR/job_$JOBID.failed
+    touch $JOBDIR/job_$JOBID.$1
+}}
 
 run_with_retries() {{
     local cmd="$*"
@@ -441,31 +512,45 @@ run_with_retries() {{
         sleep 10
     done
     echo "$cmd failed after 10 attempts."
-    rm $JOBDIR/job_$1.running
-    touch $JOBDIR/job_$1.failed
+    set_status failed
     exit 1
 }}
 
-rm -f $JOBDIR/job_$1.idle
+[ -w "$JOBDIR" ] && rm -f $JOBDIR/job_$JOBID.idle
 
-echo "Starting job $1"
-touch $JOBDIR/job_$1.running
+echo "Starting job $JOBID"
+set_status running
+
+# When running inside an Apptainer worker image, the job's CWD can differ from the
+# HTCondor scratch dir that ON_EXIT file transfer reads from (the container may see
+# an overlay view). Anchor to $_CONDOR_SCRATCH_DIR so the relative `output/` dir is
+# created exactly where condor transfers output_files from. Config inputs were
+# transferred here too, so the relative --cfg still resolves.
+if [ -n "$_CONDOR_SCRATCH_DIR" ] && [ -d "$_CONDOR_SCRATCH_DIR" ]; then
+    cd "$_CONDOR_SCRATCH_DIR"
+    echo "Changed to scratch dir: $_CONDOR_SCRATCH_DIR"
+fi
+echo "Job CWD: $(pwd)"
 
 {runnercmd} --cfg $2 -o output EXECUTOR --chunksize $3
+RUNNER_RC=$?
 # Do things only if the job is successful
-if [ $? -eq 0 ]; then
+if [ $RUNNER_RC -eq 0 ]; then
     echo 'Job successful'
     {splitcommands}
     {columncommand}
 
-    rm $JOBDIR/job_$1.running
-    touch $JOBDIR/job_$1.done
+    set_status done
 else
     echo 'Job failed'
-    rm $JOBDIR/job_$1.running
-    touch $JOBDIR/job_$1.failed
+    set_status failed
+{transfer_placeholder}
 fi
 echo 'Done'
+# Exit with the runner's real return code so HTCondor's on_exit_remove / max_retries
+# see success vs failure correctly. (When condor file-transfer is used, transfer is
+# guarded above so a failed job does not get HELD on a missing output file.)
+exit $RUNNER_RC
 """
         
         cores_per_worker = self.run_options.get("cores-per-worker", 1)
@@ -503,6 +588,23 @@ echo 'Done'
             'on_exit_remove': '(ExitBySignal == False) && (ExitCode == 0)',
             'max_retries' : self.run_options.get("retries", 1),
         }
+        if use_condor_transfer:
+            # Worker can't write the shared output dir directly: have HTCondor stream
+            # the coffea output back to the submit node and rename it per job. We use
+            # absolute remap destinations (not initialdir) so the relative Executable
+            # and transfer_input_files keep resolving against the jobs dir.
+            if self.run_options.get("split-by-category", False):
+                # split-output produced output/output_*.coffea; transfer the dir back
+                # into a per-job subdir (post-processing merges across jobs).
+                sub['transfer_output_files'] = "output"
+                sub['transfer_output_remaps'] = f'"output = {abs_output_path}/output_$(ProcId)"'
+            else:
+                sub['transfer_output_files'] = "output/output_all.coffea"
+                sub['transfer_output_remaps'] = f'"output_all.coffea = {abs_output_path}/output_job_$(ProcId).coffea"'
+        worker_image = self.run_options.get("worker-image", None)
+        if worker_image:
+            sub['+ApptainerImage'] = f'"{worker_image}"'
+            sub['MY.SingularityImage'] = f'"{worker_image}"'
 
         with open(f"{self.jobs_dir}/jobs_all.sub", "w") as f:
             for k,v in sub.items():
@@ -531,6 +633,8 @@ echo 'Done'
 
     def recreate_jobs(self, jobs_to_recreate):
         # Read the jobs config
+        host_prefix = self.run_options.get("host-path-prefix", None)
+        host_jobs_dir = _resolve_host_path(os.path.abspath(self.jobs_dir), host_prefix)
         if not os.path.exists(f"{self.jobs_dir}/jobs_config.yaml"):
             print("No jobs_config.yaml found. Exiting.")
             exit(1)
@@ -604,7 +708,7 @@ echo 'Done'
                 elif job in runningjobs:
                     os.system(f"rm {self.jobs_dir}/{job}.running")
                 os.system(f"touch {self.jobs_dir}/{job}.idle")
-                os.system(f"cd {self.jobs_dir} && condor_submit {job}.sub")
+                os.system(f"cd {host_jobs_dir} && condor_submit {job}.sub")
                 print(f"Resubmitted {job}")
 
 def find_other_file(filepath,sitemap):
