@@ -527,6 +527,12 @@ def jet_correction_corrlib(
     else:
         apply_jer = False
 
+    if jer_syst and not apply_jer: 
+        raise Exception(
+            f"JER systematics can only be applied, "
+            "if nominal JER shifts are applied aswell, "
+            "which is turned off for collection {jet_coll_name}")
+
     tag_jec = "_".join([jec_tag, level, jet_type])
 
     # get the correction sets
@@ -629,7 +635,7 @@ def jet_correction_corrlib(
                     jets["pt_JER_down"] = jets.pt * jersmear_down
                     jets["mass_JER_down"] = jets.mass * jersmear_down
                 else: 
-                    jersmear = get_jersmear(eval_dict, ceval_jer, jer_sf_tag)
+                    jersmear = get_jersmear_SFunc(eval_dict, ceval_jer, jer_sf_tag)
                     jets["pt_jer"] = jets.pt * jersmear
                     jets["mass_jer"] = jets.mass * jersmear
 
