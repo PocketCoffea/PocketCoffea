@@ -370,7 +370,6 @@ def get_jer_correction_set(jer_json, jer_tags):
     # learned from: https://github.com/cms-nanoAOD/correctionlib/issues/130
     with gzip.open(jer_json) as fin:
         cset = CorrectionSet.parse_raw(fin.read())
-
     cset.corrections = [
         c
         for c in cset.corrections
@@ -589,11 +588,8 @@ def jet_correction_corrlib(
         jer_ptres_tag = f"{jer_tag}_PtResolution_{jet_type}"
         jer_sf_tag = f"{jer_tag}_ScaleFactor_{jet_type}"
 
-        if nano_version <=9:
-            ceval_jer = get_jer_correction_set(json_path, (jer_ptres_tag, jer_sf_tag))
-        else:
-            jer_sfunc_tag = jer_sf_tag.replace("ScaleFactor", "SFUncertainty")
-            ceval_jer = get_jer_correction_set(json_path, (jer_ptres_tag, jer_sf_tag, jer_sfunc_tag))
+        jer_sfunc_tag = jer_sf_tag.replace("ScaleFactor", "SFUncertainty")
+        ceval_jer = get_jer_correction_set(json_path, (jer_ptres_tag, jer_sf_tag, jer_sfunc_tag))
 
         # update evaluate dictionary
         eval_dict.update(
@@ -622,38 +618,21 @@ def jet_correction_corrlib(
             }
         )
         if apply_jer:
-            if nano_version>9:
-                if jer_syst:
-                    jersmear, jersmear_up, jersmear_down = get_jersmear_SFunc(eval_dict, ceval_jer, jer_sf_tag, syst_tag=jer_sfunc_tag)
-                    # jer nominal
-                    jets["pt_jer"] = jets.pt * jersmear
-                    jets["mass_jer"] = jets.mass * jersmear
-                    # jer up
-                    jets["pt_JER_up"] = jets.pt * jersmear_up
-                    jets["mass_JER_up"] = jets.mass * jersmear_up
-                    # jer down
-                    jets["pt_JER_down"] = jets.pt * jersmear_down
-                    jets["mass_JER_down"] = jets.mass * jersmear_down
-                else: 
-                    jersmear = get_jersmear_SFunc(eval_dict, ceval_jer, jer_sf_tag)
-                    jets["pt_jer"] = jets.pt * jersmear
-                    jets["mass_jer"] = jets.mass * jersmear
-
-
-            else: 
-                eval_dict, jersmear = get_jersmear(eval_dict, ceval_jer, jer_sf_tag, "nom")
+            if jer_syst:
+                jersmear, jersmear_up, jersmear_down = get_jersmear_SFunc(eval_dict, ceval_jer, jer_sf_tag, syst_tag=jer_sfunc_tag)
+                # jer nominal
                 jets["pt_jer"] = jets.pt * jersmear
                 jets["mass_jer"] = jets.mass * jersmear
-                if jer_syst:
-                    # jer up
-                    eval_dict, jersmear = get_jersmear(eval_dict, ceval_jer, jer_sf_tag, "up")
-                    jets["pt_JER_up"] = jets.pt * jersmear
-                    jets["mass_JER_up"] = jets.mass * jersmear
-                    # jer down
-                    eval_dict, jersmear = get_jersmear(eval_dict, ceval_jer, jer_sf_tag, "down")
-                    jets["pt_JER_down"] = jets.pt * jersmear
-                    jets["mass_JER_down"] = jets.mass * jersmear
-
+                # jer up
+                jets["pt_JER_up"] = jets.pt * jersmear_up
+                jets["mass_JER_up"] = jets.mass * jersmear_up
+                # jer down
+                jets["pt_JER_down"] = jets.pt * jersmear_down
+                jets["mass_JER_down"] = jets.mass * jersmear_down
+            else: 
+                jersmear = get_jersmear_SFunc(eval_dict, ceval_jer, jer_sf_tag)
+                jets["pt_jer"] = jets.pt * jersmear
+                jets["mass_jer"] = jets.mass * jersmear
             
             # to avoid the sf: jer*jer_up or jer*jer_down, update the jer pt/mass after calculation of the jer up/down
             jets["pt"] = jets["pt_jer"]
