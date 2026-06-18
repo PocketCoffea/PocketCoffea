@@ -44,9 +44,11 @@ dask@lpc:
   cores-per-worker: 1
   mem-per-worker: "2GB"
   disk-per-worker: "2GB"
-  death-timeout: 3600
-  queue: "workday"
+  worker-image: /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-latest
+  death-timeout: "3600"
+  queue: "microcentury"
   adaptive: false
+  performance-report: true
   custom-setup-commands: null
   conda-env: false
   local-virtualenv: false
@@ -60,12 +62,17 @@ condor@lpc:
   mem-per-worker: "2GB"
   disk-per-worker: "2GB"
   queue: "workday"
+  worker-image: /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-latest
   custom-setup-commands: null
   conda-env: false
   local-virtualenv: false
   max-retries: 3
   split-by-category: false
   eos-prefix: root://cmseos.fnal.gov//eos/uscms
+  # Real host directory bind-mounted to /srv inside the apptainer image. Required so
+  # condor@lpc rewrites container /srv/... paths to host paths the schedd/workers can
+  # see. Leave null if you launch outside a container. E.g. /uscms_data/d3/<user>/<dir>.
+  host-path-prefix: null
 
 
 dask@T3_CH_PSI:
