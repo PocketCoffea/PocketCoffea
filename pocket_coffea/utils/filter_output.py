@@ -56,6 +56,45 @@ def filter_output_by_category(o, categories):
         o_filtered[key] = o[key]
     return o_filtered
 
+def get_datasets_in_output(o):
+    """Return the set of dataset names present in a coffea output.
+
+    cutflow['initial'] holds exactly one key per processed dataset (MC and data,
+    raw or postprocessed), see workflows/base.py. sum_genweights and
+    datasets_metadata['by_dataset'] are used as robust fallbacks.
+    """
+    datasets = set()
+    datasets |= set(o.get("cutflow", {}).get("initial", {}).keys())
+    datasets |= set(o.get("sum_genweights", {}).keys())
+    datasets |= set(o.get("datasets_metadata", {}).get("by_dataset", {}).keys())
+    return datasets
+
+def remove_datasets_from_output(o, datasets):
+    """Recursively delete every entry keyed by a name in `datasets` from a coffea
+    output dict, in place, wherever it appears.
+
+    Dataset names are unique strings (e.g. ``TTTo2L2Nu_2018``) that appear as dict
+    keys at various depths (sum_genweights, sumw/sumw2/cutflow/columns per category
+    or sample, variables/processing_metadata per variable->sample,
+    datasets_metadata['by_dataset']) and inside the
+    datasets_metadata['by_datataking_period'][year][sample] sets. A single generic
+    walk removes them everywhere without hardcoding each structure. This relies on
+    dataset names not colliding with category/sample/variable keys, which holds for
+    the <sample>_<year> naming convention. Returns `o`.
+    """
+    datasets = set(datasets)
+    def _recurse(node):
+        if isinstance(node, dict):              # also covers defaultdict
+            for k in list(node.keys()):
+                if k in datasets:
+                    del node[k]
+                else:
+                    _recurse(node[k])
+        elif isinstance(node, set):             # by_datataking_period[year][sample]
+            node.difference_update(datasets)
+    _recurse(o)
+    return o
+
 def compare_dict_types(d1, d2, path=""):
     """
     Recursively compare the types of values between two dictionaries.
