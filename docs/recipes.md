@@ -192,6 +192,15 @@ Follow these instructions to skim the files on EOS:
    an already-merged file double-rescales the histograms (the `sum_genweights` is not reset
    between passes), so never feed a merged output back into `merge-outputs`.
    :::
+   :::{tip}
+   To re-run only a few datasets and substitute them into an existing merge, use
+   `--replace`: the **first** input file is treated as the base, and every dataset that also
+   appears in the remaining (incoming) files is removed from the base before merging, so the
+   newer files *replace* rather than *sum with* the base content. For example
+   `merge-outputs base.coffea rerun_datasetX_job_*.coffea -o output_total.coffea --replace -f`.
+   As above, use raw (un-postprocessed) outputs and make sure the configurator picked up for
+   postprocessing knows every dataset that survives the replacement.
+   :::
 
 5. Once done, we usually do an hadd to sum all the small files produced by each saved chunk. An utility script to compute the groups and correctly hadd them is available `pocket-coffea hadd-skimmed-files -fl ../output_total.coffea -o root://eoscms.cern.ch//eos/cms/store/group/phys_higgs/ttHbb/Run3_dileptonic_skim_hadd -e 400000 --dry  -s 6 `
    this script creates some files to be able to send out jobs that runs the hadd for each group of files. Note that it reads the merged `output_total.coffea` produced in the previous step, so the per-chunk event counts and `sum_genweights` are taken from there.
