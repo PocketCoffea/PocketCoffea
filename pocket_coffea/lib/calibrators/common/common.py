@@ -644,16 +644,36 @@ class METCalibrator(Calibrator):
 
         # Check for the unclustered energy variation 
         # It is taken from the PuppiMET collection and reapplied
-        if variation in  ["unclust_EnUp", "unclust_EnDown"]:
-            direct = "Up" if variation=="unclust_EnUp" else "Down"
-            delta_met = vector.zip({
-                        "rho": events[self.met_branch]["ptUnclustered"+direct],
-                        "phi": events[self.met_branch]["phiUnclustered"+direct]
-                    }) - vector.zip({
-                        "rho": events[self.met_branch]["pt"],
-                        "phi": events[self.met_branch]["phi"]
-                    })
-            met_final = met_final + delta_met
+        if variation in ["unclust_EnUp", "unclust_EnDown"]:
+            if self.met_branch=="PuppiMET":
+                direct = "Up" if variation=="unclust_EnUp" else "Down"
+                delta_met = vector.zip({
+                            "rho": events[self.met_branch]["ptUnclustered"+direct],
+                            "phi": events[self.met_branch]["phiUnclustered"+direct]
+                        }) - vector.zip({
+                            "rho": events[self.met_branch]["pt"],
+                            "phi": events[self.met_branch]["phi"]
+                        })
+                met_final = met_final + delta_met
+            
+            elif self.met_branch=="MET": 
+                metx = events[self.met_branch]["pt"] * np.cos(events[self.met_branch]["phi"])
+                mety = events[self.met_branch]["pt"] * np.sin(events[self.met_branch]["phi"])
+                if variation=="unclust_EnUp":
+                    metx = metx + events[self.met_branch]["MetUnclustEnUpDeltaX"]
+                    mety = mety + events[self.met_branch]["MetUnclustEnUpDeltaY"]
+                else:
+                    metx = metx - events[self.met_branch]["MetUnclustEnUpDeltaX"]
+                    mety = mety - events[self.met_branch]["MetUnclustEnUpDeltaY"]
+                
+                met_final = vector.zip({
+                    "rho": np.hypot(metx, mety),
+                    "phi": np.arctan2(mety, metx)
+                }) 
+            else:
+                print(f"WARNING: Met branch {self.met_branch} not supported for unclustered Energy shifts")
+
+                
 
 
         return {f"{self.met_branch}.pt" : met_final.rho,
