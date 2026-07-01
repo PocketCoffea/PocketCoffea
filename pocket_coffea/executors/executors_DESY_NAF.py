@@ -4,16 +4,12 @@ from coffea import processor as coffea_processor
 from .executors_base import ExecutorFactoryABC
 from .executors_base import IterativeExecutorFactory, FuturesExecutorFactory
 from pocket_coffea.utils.network import check_port
-from pocket_coffea.parameters.dask_env import setup_dask
 
 import parsl
 from parsl.providers import CondorProvider
-#from parsl.channels import LocalChannel
 from parsl.config import Config
 from parsl.executors import HighThroughputExecutor
-from parsl.launchers import SrunLauncher, SingleNodeLauncher
-from parsl.addresses import address_by_hostname, address_by_query
-
+from parsl.addresses import address_by_hostname
 
 class ParslCondorExecutorFactory(ExecutorFactoryABC):
     '''
@@ -68,7 +64,6 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
                         prefetch_capacity=0,
                         # Condor settings are here:
                         provider=CondorProvider(
-                            launcher = SingleNodeLauncher(debug=False, fail_on_any=False),
                             nodes_per_block = 1,
                             cores_per_slot = self.run_options.get("cores-per-worker", 1),
                             mem_per_slot   = self.run_options.get("mem-per-worker", 4),
