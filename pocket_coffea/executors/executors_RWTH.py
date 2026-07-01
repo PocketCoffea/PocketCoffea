@@ -1,5 +1,4 @@
-import os, getpass
-import sys
+import os, sys, getpass
 import socket
 from coffea import processor as coffea_processor
 from .executors_base import ExecutorFactoryABC

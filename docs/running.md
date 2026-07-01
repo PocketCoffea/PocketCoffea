@@ -218,7 +218,7 @@ group-samples:
     - "TTToSemiLeptonic"
   TTbbSemiLeptonic:
     - "TTbbSemiLeptonic"
-  "TTTo2L2Nu_SingleTop":
+  TTTo2L2Nu_SingleTop:
     - "TTTo2L2Nu"
     - "SingleTop"
   VJets:
