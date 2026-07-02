@@ -138,7 +138,7 @@ jet_scale_factors:
             name: "Summer24Prompt24_RunBCDEFGHI_V1"
         '2025':
             file: ${cvmfs:Run3-25Prompt-Winter25-NanoAODv15,JME,jetvetomaps.json.gz,2026-06-05}
-            name: "Summer25Prompt25_RunBCDEFGHI_V1"            
+            name: "Winter25Prompt25_RunCDEFG_V1"
 
 
     jet_id:
