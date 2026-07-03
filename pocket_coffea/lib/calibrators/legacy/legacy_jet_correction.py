@@ -1,13 +1,11 @@
 import awkward as ak
 
-from pocket_coffea.lib.jets import add_jec_variables
+from pocket_coffea.lib.jets import add_jec_variables, get_rho
 
 
 def jet_correction(params, events, jets, factory, jet_type, chunk_metadata, cache):
-    if chunk_metadata["year"] in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
-        rho = events.fixedGridRhoFastjetAll
-    else:
-        rho = events.Rho.fixedGridRhoFastjetAll
+    nano_version = chunk_metadata.get("nano_version", 9)
+    rho = get_rho(events, nano_version)
 
     # Note: PNet jet regression should be applied via PNetRegressionCalibrator
     # before calling this function, not within jet_correction itself.
