@@ -32,8 +32,22 @@ class Cut:
         )
 
     def __hash__(self):
-        '''The Cut is unique by its name, the  function, and the dict of parameters.'''
-        return hash((self.name, json.dumps(self.params), self.function))
+        '''The Cut is unique by its name, collection, function, and parameters.
+
+        `collection` must be part of the identity: two otherwise-identical cuts
+        applied to different collections (e.g. "events" vs "Jet") produce masks of
+        different dimensionality and must not be deduplicated to one. The params are
+        serialized with sorted keys (order-independent) and `default=str` so
+        non-JSON-serializable values (e.g. numpy scalars) do not raise.
+        '''
+        return hash(
+            (
+                self.name,
+                self.collection,
+                json.dumps(self.params, sort_keys=True, default=str),
+                self.function,
+            )
+        )
 
     def __eq__(self, other):
         return hash(self) == hash(other)

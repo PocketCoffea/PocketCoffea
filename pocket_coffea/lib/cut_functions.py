@@ -411,23 +411,23 @@ def nBtagEq(events, params, year, processor_params, **kwargs):
 
 
 def nElectron(events, params, year, **kwargs):
-    '''Mask for min N electrons with minpt.'''
-    if params["coll"] == "ElectronGood":
-        return events.nElectronGood >= params["N"]
-    elif params["coll"] == "Electron":
-        return events.nElectron >= params["N"]
+    '''Mask for min N electrons above `minpt`.'''
+    coll = params["coll"]
+    minpt = params.get("minpt", 0)
+    if coll in ("ElectronGood", "Electron"):
+        return ak.sum(events[coll].pt > minpt, axis=1) >= params["N"]
     else:
-        raise Exception(f"The collection '{params['coll']}' does not exist.")
+        raise Exception(f"The collection '{coll}' does not exist.")
 
 
 def nMuon(events, params, year, **kwargs):
-    '''Mask for min N electrons with minpt.'''
-    if params["coll"] == "MuonGood":
-        return events.nMuonGood >= params["N"]
-    elif params["coll"] == "Muon":
-        return events.nMuon >= params["N"]
+    '''Mask for min N muons above `minpt`.'''
+    coll = params["coll"]
+    minpt = params.get("minpt", 0)
+    if coll in ("MuonGood", "Muon"):
+        return ak.sum(events[coll].pt > minpt, axis=1) >= params["N"]
     else:
-        raise Exception(f"The collection '{params['coll']}' does not exist.")
+        raise Exception(f"The collection '{coll}' does not exist.")
 
 
 ##########################33
