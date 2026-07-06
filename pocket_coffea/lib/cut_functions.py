@@ -1,6 +1,6 @@
 import awkward as ak
 from .cut_definition import Cut
-from .triggers import get_trigger_mask_byprimarydataset,  apply_trigger_mask
+from .triggers import get_trigger_mask_byprimarydataset,  apply_trigger_mask, remove_trigger_prefix
 import correctionlib
 import numpy as np
 from coffea.lumi_tools import LumiMask
@@ -57,7 +57,7 @@ def get_HLTsel_custom(trigger_list, invert=False):
 
     The Cut function does not read the triggers configuration, but uses the list of triggers provided dynamically.
     '''
-    triggers_to_apply = [t.lstrip("HLT_") for t in trigger_list]
+    triggers_to_apply = [remove_trigger_prefix(t, "HLT_") for t in trigger_list]
     return Cut(
         name="HLT_trigger_"+ "_".join(trigger_list),
         params={"triggers_to_apply": triggers_to_apply,  "invert": invert},
@@ -112,7 +112,7 @@ def get_L1sel_custom(trigger_list, invert=False):
 
     The Cut function does not read the triggers configuration, but uses the list of triggers provided dynamically.
     '''
-    triggers_to_apply = [t.lstrip("L1_") for t in trigger_list]
+    triggers_to_apply = [remove_trigger_prefix(t, "L1_") for t in trigger_list]
     return Cut(
         name="L1_trigger_"+ "_".join(trigger_list),
         params={"triggers_to_apply": triggers_to_apply,  "invert": invert},
