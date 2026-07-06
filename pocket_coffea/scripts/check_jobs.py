@@ -188,14 +188,22 @@ def update_blacklist(xrootdfaillist,blacklist_threshold):
 def bump_jobqueue(sub_file, shift=1):
     with open(sub_file) as f:
         lines = f.readlines()
+    next_jf = None
     with open(sub_file, "w") as f:
         for line in lines:
             if "+JobFlavour" in line:
                 jf = line.split("=")[1].strip().replace('"', '')
-                next_jf = queues[min(queues.index(jf)+shift, len(queues)-1)]
+                if jf in queues:
+                    next_jf = queues[min(queues.index(jf) + shift, len(queues) - 1)]
+                else:
+                    # Unknown flavour (e.g. a non-lxplus queue): bump to the longest
+                    # known queue rather than raising ValueError on queues.index.
+                    next_jf = queues[-1]
                 f.write(f'+JobFlavour="{next_jf}"\n')
             else:
                 f.write(line)
+    # next_jf stays None if the .sub has no +JobFlavour line (e.g. rubin uses
+    # +MaxRuntime); callers only log it, so return None instead of NameError-ing.
     return next_jf
 
 @click.command()
@@ -328,10 +336,14 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                                     c = f.readlines()
                                     for iln,ln in enumerate(c):
                                         if "OSError: XRootD error" in ln:
-                                            xrootdfile = c[iln+1].strip().split()[-1]
+                                            if iln + 1 < len(c):
+                                                parts = c[iln+1].strip().split()
+                                                if parts:
+                                                    xrootdfile = parts[-1]
                                             break
                                         if "FileNotFoundError: file not found" in ln:
-                                            xrootdfile = c[iln+3].strip().strip("'")
+                                            if iln + 3 < len(c):
+                                                xrootdfile = c[iln+3].strip().strip("'")
                                             break
                                     if xrootdfile:
                                         thisxrootdsite = xrootdfile.split('/store/')[0]
@@ -437,10 +449,12 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
 
                 # check in the logs for SYSTEM_PERIODIC_REMOVE
                 # they are not failed but remain running/idle
-                log_file = glob.glob(f"{jobs_folder}/logs/job_*.log")[0]
-                with open(log_file) as f:
-                    c = f.readlines()
-                
+                _log_files = glob.glob(f"{jobs_folder}/logs/job_*.log")
+                c = []
+                if _log_files:  # no logs yet on the first iterations -> skip
+                    with open(_log_files[0]) as f:
+                        c = f.readlines()
+
                 for il, line in enumerate(c):
                     if line.startswith("009"):
                         # Match with a regex the job id from this
@@ -566,6 +580,12 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                 time.sleep(5)
         except KeyboardInterrupt:
             pass
+        except Exception as e:
+            # The babysitter can run for days; degrade gracefully on an unexpected
+            # error (e.g. a log being written concurrently) with a clear message
+            # instead of dumping a raw traceback and dying silently.
+            rprint(f"[red]check-jobs stopped on an unexpected error:[/] {e!r}")
+            raise
 
 if __name__ == "__main__":
     check_jobs()
