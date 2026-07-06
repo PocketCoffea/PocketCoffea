@@ -15,6 +15,7 @@ def save_histogram_to_root(
     year: str,
     category: str,
     output_file: os.PathLike,
+    datasets: Iterable[str] = None,
 ) -> None:
     """Save histograms for one variable to a root file.
 
@@ -26,18 +27,27 @@ def save_histogram_to_root(
     :type category: str
     :param output_file: Root file to save histograms
     :type output_file: os.PathLike
+    :param datasets: If given, only datasets in this set are summed (used to restrict
+        the sum to the current `year`'s datasets). If None, all datasets are summed.
+    :type datasets: Iterable[str], optional
 
-    The histograms for each sample are summed over all datasets.
+    The histograms for each sample are summed over the selected datasets.
     If the histogram has a variation axis, each variation is saved separately.
     """
+    datasets = None if datasets is None else set(datasets)
     with uproot.recreate(output_file) as root_file:
         for subsample, sub_dict in hist_dict.items():
             subsample = subsample.removesuffix(f"_{year}")
 
-            # sum all datasets for the category
-            hist_sum = reduce(
-                add, (histogram[category, ...] for histogram in sub_dict.values())
-            )
+            # sum only the datasets belonging to this year (all datasets if unfiltered)
+            selected = [
+                h for ds, h in sub_dict.items() if datasets is None or ds in datasets
+            ]
+            if not selected:
+                # This subsample has no datasets in the requested year -> nothing to write.
+                continue
+
+            hist_sum = reduce(add, (histogram[category, ...] for histogram in selected))
 
             # save histograms to root file
             if "variation" not in hist_sum.axes.name:
@@ -75,7 +85,16 @@ def export_coffea_output_to_root(
     """
 
     # load coffea output, get variables histograms
-    histograms = load(coffea_output)["variables"]
+    output = load(coffea_output)
+    histograms = output["variables"]
+
+    # Map each dataset to its data-taking period so the per-year export sums only the
+    # datasets of that year. Without this, a sample split across years was summed over
+    # ALL years and the identical all-years total was written into every year directory.
+    by_dataset = output.get("datasets_metadata", {}).get("by_dataset", {})
+    datasets_by_year = {}
+    for dataset, meta in by_dataset.items():
+        datasets_by_year.setdefault(meta.get("year"), set()).add(dataset)
 
     # make sure all variables are present in the coffea output
     # remove variables that are not present in the coffea output
@@ -95,8 +114,27 @@ def export_coffea_output_to_root(
     for variable in common_variables:
         hist_dict = histograms[variable]
         for year in years:
+            # Restrict to this year's datasets when the metadata is available. If the
+            # output has no datasets_metadata (older files), fall back to summing all
+            # datasets and warn that per-year separation cannot be guaranteed.
+            if by_dataset:
+                datasets = datasets_by_year.get(year)
+                if datasets is None:
+                    warnings.warn(
+                        f"No datasets found for year {year} in datasets_metadata; "
+                        f"writing an empty export for this year."
+                    )
+                    datasets = set()  # write nothing rather than the all-years sum
+            else:
+                warnings.warn(
+                    "Coffea output has no datasets_metadata; cannot separate datasets "
+                    "by year, summing all datasets for every requested year."
+                )
+                datasets = None  # legacy behaviour: sum all datasets
             for category in categories:
                 output_file = Path(output_dir, year, category, f"{variable}.root")
                 output_file.parent.mkdir(parents=True, exist_ok=True)
 
-                save_histogram_to_root(hist_dict, year, category, output_file)
+                save_histogram_to_root(
+                    hist_dict, year, category, output_file, datasets=datasets
+                )
