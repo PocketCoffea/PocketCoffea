@@ -106,6 +106,9 @@ def append_configs(c1, c2):
 
 def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, replace=False, N_reduction=5, max_mem_gb=None, cache_dir=None, verbose=False, skip_check=False, mark_failed=False, configurator=None, skip_initial_events_check_datasets=None):
     '''Merge coffea output files'''
+    # Initialised so the "no inputs and no -jc" branch below can test it without
+    # NameError (it is only assigned when a jobs_config is provided).
+    job_config = None
     if replace and len(inputfiles) == 0:
         print("[red]--replace only works when merging explicit input files (not with -jc).[/]")
         exit(1)
@@ -156,14 +159,19 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, replace
             print(f"Found {ninput} output files.")
 
         type_mismatches = []
-        f0 = inputfiles[0]
+        # Load the reference file once instead of re-deserializing it for every
+        # comparison (it was reloaded N-1 times, doubling I/O on large campaigns).
+        d0 = load(inputfiles[0])
         for f in inputfiles[1:]:
-            type_mismatch_found = compare_dict_types(load(f0), load(f))
+            type_mismatch_found = compare_dict_types(d0, load(f))
             type_mismatches.append(type_mismatch_found)
         if any(type_mismatches):
             print("[red]Type mismatch found between the values of the input dictionaries for the following files:")
-            for i, f in enumerate(inputfiles):
-                if type_mismatches[i]:
+            # type_mismatches has one entry per file compared against the reference,
+            # i.e. it lines up with inputfiles[1:], not the full inputfiles list
+            # (indexing the full list raised IndexError).
+            for f, mism in zip(inputfiles[1:], type_mismatches):
+                if mism:
                     print(f"    {f}")
             raise TypeError("Type mismatch found between the values of the input dictionaries. Please check the input files.")
         
