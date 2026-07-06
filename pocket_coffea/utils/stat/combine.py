@@ -20,6 +20,17 @@ AUTO_MC_STATS = {
 }
 
 
+def format_rate(value, sig=6):
+    """Format a datacard rate preserving its magnitude.
+
+    The previous implementation sliced the plain float repr to a fixed width
+    (`f"{rate}"[:10]`), which silently dropped the exponent of small rates
+    (e.g. 3.4567890123e-05 -> "3.45678901", inflating the rate by 1e5). A
+    significant-figure format keeps the exponent and stays compact.
+    """
+    return f"{value:.{sig}g}"
+
+
 class Datacard:
     """Datacard containing processes, systematics and write utilities.
 
@@ -673,7 +684,7 @@ class Datacard:
         # rates
         content += "rate".ljust(self.adjust_first_column)
         content += "".join(
-            f"{self.rate(f'{process.name}_{year}')}"[: self.number_width].ljust(
+            format_rate(self.rate(f"{process.name}_{year}")).ljust(
                 self.adjust_columns
             )
             for process in self.mc_processes.values()
