@@ -89,6 +89,14 @@ class MCProcesses(dict[str, MCProcess]):
     def __init__(self, processes: list[MCProcess]) -> None:
         if not all(isinstance(process, MCProcess) for process in processes):
             raise TypeError(f"All elements of {processes} must be of type MCProcess")
+        # A dict comprehension silently drops all but the last process sharing a name.
+        names = [process.name for process in processes]
+        duplicates = sorted({n for n in names if names.count(n) > 1})
+        if duplicates:
+            raise ValueError(
+                f"Duplicate MC process name(s): {duplicates}. "
+                "Each MCProcess must have a unique name."
+            )
         super().__init__({process.name: process for process in processes})
 
     @property
