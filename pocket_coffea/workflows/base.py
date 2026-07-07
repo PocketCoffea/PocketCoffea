@@ -984,12 +984,12 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 if rescale and dataset in sumgenw_dict:
                     scaling = 1 / sumgenw_dict[dataset]
                     for sample in dataset_data.keys():
-                        if "nominal" in dataset_data[sample].keys():
-                            dataset_data[sample]["nominal"] *= scaling
-                        else:
+                        if "nominal" not in dataset_data[sample].keys():
                             print("Warning: there is no nominal hist for this sample: ", sample)
                             print(cat, catdata)
-                            
+                        for variation in dataset_data[sample].keys():
+                            dataset_data[sample][variation] *= scaling
+
         # rescale sumw2
         for cat, catdata in output["sumw2"].items():
             for dataset, dataset_data in catdata.items():
@@ -1012,8 +1012,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 if rescale and dataset in sumgenw_dict:
                     scaling = 1/sumgenw_dict[dataset]**2
                     for sample in dataset_data.keys():
-                        if "nominal" in dataset_data[sample].keys():
-                            dataset_data[sample]["nominal"] *= scaling
+                        for variation in dataset_data[sample].keys():
+                            dataset_data[sample][variation] *= scaling
 
     def postprocess(self, accumulator):
         '''
