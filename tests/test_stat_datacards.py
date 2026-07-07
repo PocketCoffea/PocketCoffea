@@ -1,7 +1,14 @@
 """Offline unit tests for datacard rate formatting and duplicate-name detection."""
+import hist
+import numpy as np
 import pytest
 
-from pocket_coffea.utils.stat.combine import format_rate
+from pocket_coffea.utils.stat.combine import (
+    Datacard,
+    _clip_negative,
+    _clip_negative_bins,
+    format_rate,
+)
 from pocket_coffea.utils.stat.systematics import (
     Systematics,
     SystematicUncertainty,
@@ -44,3 +51,58 @@ def test_duplicate_mc_process_name_raises():
         MCProcesses([p1, p2])
     p3 = MCProcess(name="ttcc", samples=["s3"], is_signal=False, years=["2018"])
     assert set(MCProcesses([p1, p3]).keys()) == {"ttbb", "ttcc"}
+
+
+def _single_process_datacard(nominal_values):
+    """Build a minimal one-process, one-category Datacard from bin values."""
+    year, sample, dataset, category = "2018", "sig_sample", "sig_dataset", "cat"
+    values = np.asarray(nominal_values, dtype=float)
+    histogram = hist.Hist(
+        hist.axis.StrCategory([category], name="cat"),
+        hist.axis.StrCategory(["nominal"], name="variation"),
+        hist.axis.Regular(len(values), 0, len(values), name="x"),
+        storage=hist.storage.Weight(),
+    )
+    view = histogram.view()
+    view["value"][0, 0, :] = values
+    view["variance"][0, 0, :] = np.abs(values)
+    return Datacard(
+        histograms={sample: {dataset: histogram}},
+        datasets_metadata={"by_datataking_period": {year: {sample: [dataset]}}},
+        cutflow={"presel": {dataset: {"nominal": 100}}},
+        years=[year],
+        mc_processes=MCProcesses(
+            [MCProcess(name="sig", samples=[sample], is_signal=True, years=[year])]
+        ),
+        systematics=Systematics([]),
+        category=category,
+        verbose=False,
+    )
+
+
+def test_clip_negative_zeroes_only_negatives():
+    out = _clip_negative(np.array([1.0, -2.0, 0.0, 3.5, -0.1]))
+    assert np.array_equal(out, np.array([1.0, 0.0, 0.0, 3.5, 0.0]))
+
+
+def test_rate_matches_clipped_template_integral():
+    # Combine reads the clipped template (negatives -> 0); the datacard rate must
+    # match its integral, not the raw sum that still counts the negative bins.
+    dc = _single_process_datacard([10.0, -3.0, 5.0, 2.0])
+
+    raw_sum = dc.histogram["sig_2018", "nominal", :].sum()["value"]
+    assert raw_sum == pytest.approx(14.0)  # includes the -3 bin
+
+    # rate reflects the negative bin clipped to zero: 10 + 0 + 5 + 2
+    assert dc.rate("sig_2018") == pytest.approx(17.0)
+
+    # and it equals the integral of the template actually written to ROOT
+    templates = dc.create_shape_histogram_dict(is_data=False)
+    with pytest.warns(UserWarning, match="negative content"):
+        written = _clip_negative_bins(templates["sig_2018_nominal"], "sig_2018_nominal")
+    assert dc.rate("sig_2018") == pytest.approx(written.values().sum())
+
+
+def test_rate_unchanged_without_negative_bins():
+    dc = _single_process_datacard([10.0, 3.0, 5.0, 2.0])
+    assert dc.rate("sig_2018") == pytest.approx(20.0)
