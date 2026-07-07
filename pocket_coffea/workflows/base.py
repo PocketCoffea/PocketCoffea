@@ -542,7 +542,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                                                self._categories,
                                                variation,
                                                subsample_mask=self._subsamples[self._sample].get_mask(subs),
-                                               weights_manager=self.weights_manager
+                                               weights_manager=self.weights_manager,
+                                               subsample=f"{self._sample}__{subs}"
                                                )
                     fname = (self.events.behavior["__events_factory__"]._partition_key.replace("/", "_")
                         + ".parquet")
@@ -562,7 +563,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                                                    self._categories,
                                                    variation,
                                                    subsample_mask=self._subsamples[self._sample].get_mask(subs),
-                                                   weights_manager=self.weights_manager
+                                                   weights_manager=self.weights_manager,
+                                                   subsample=f"{self._sample}__{subs}"
                                                    )
                     }
         else:

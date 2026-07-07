@@ -385,12 +385,15 @@ class HistManager:
                 self.weights_manager, category, shape_variation,
             )
 
-        # Preload subsample-specific weights (MC only — data has no subsample SFs).
+        # Preload subsample-specific weights.
         # weights_sub[subsample][category][variation] holds the subsample weight for
         # the variations explicitly defined for that subsample; all other variations
         # fall back to the nominal subsample weight via dict.get() at fill time.
+        # Also preloaded for data: the configurator allows (non-isMC_only) by-subsample
+        # weights on data, and an unweighted subsample simply returns ones, so this is a
+        # no-op for the common data case but applies the weight when one is configured.
         weights_sub = {}
-        if self.has_subsamples and self.isMC:
+        if self.has_subsamples:
             for subsample in self.subsamples:
                 weights_sub[subsample] = {}
                 for category in self.available_categories:
@@ -723,11 +726,16 @@ class HistManager:
                     elif not histo.no_weights and not self.isMC:   #DATA
                         # Broadcast and mask the weight (using the cached value if possible)
                         weight_data = weights[category]["nominal"]
+                        # Fold in the by-subsample data weight (ones if none configured).
+                        weight_sub = (
+                            weights_sub[subsample][category]["nominal"]
+                            if self.has_subsamples else 1.
+                        )
                         weight_data = self.mask_and_broadcast_weight(
                             weight_cache_cat,
                             subsample,
                             "nominal",
-                            weight_data,
+                            weight_data * weight_sub,
                             mask,
                             data_structure,
                         )
