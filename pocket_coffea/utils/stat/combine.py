@@ -225,10 +225,18 @@ class Datacard:
             return -1
 
     def rate(self, process: str, systematic="nominal") -> float:
-        """Rate of a process in the datacard"""
-        # TODO: fix histograms (e.g. negative bins)!
+        """Rate of a process in the datacard.
 
-        return self.histogram[process, systematic, :].sum()["value"]
+        Negative bins are clipped to zero before the shape template is written
+        to ROOT (Combine cannot handle negative bin contents, see
+        ``_clip_negative_bins``). The rate reported here must match the integral
+        of that written template, otherwise Combine would rescale the clipped
+        shape to a rate that no longer equals its integral. So we apply the same
+        clipping before summing (in-range bins only, consistent with how both
+        ``.sum()`` and ``_clip_negative_bins`` treat the flow bins).
+        """
+        values = self.histogram[process, systematic, :].values()
+        return float(_clip_negative(values).sum())
 
     @property
     def imax(self):
@@ -879,6 +887,17 @@ class Datacard:
             f"{indent}mcstat={self.mcstat_config if self.mcstat else 'mcstat=False'}\n"
             ")"
         )
+
+
+def _clip_negative(values: np.ndarray) -> np.ndarray:
+    """Return a copy of ``values`` with negative entries set to zero.
+
+    Used by :meth:`Datacard.rate` so the declared rate matches the integral of
+    the template written to ROOT. It applies the same ``values < 0 -> 0`` rule
+    as :func:`_clip_negative_bins` (which zeroes the actual template bins and
+    their variances); keep the two in sync if that rule ever changes.
+    """
+    return np.where(values < 0, 0.0, values)
 
 
 def _clip_negative_bins(histogram: hist.Hist, shape_name: str) -> hist.Hist:
