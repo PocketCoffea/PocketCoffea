@@ -1206,6 +1206,35 @@ files separately: the option is under development.
 :::
 
 
+### Exported weight columns
+
+Besides the `ColOut` collections you request, the columns output **automatically** includes
+the event weight, so the exported arrays can be used directly for weighted analysis or ML
+training without recomputing it:
+
+- **`weight`** — the nominal total event weight of that category: the product of the
+  inclusive weights, the by-category weights and, for a `sample__subsample` output, the
+  by-subsample weights. It is exactly the weight used to fill the histograms of the same
+  (sample/subsample, category), masked with the same category (and subsample) selection as
+  the exported columns.
+- **`weight_variation_{name}`** — *MC only*. One column per weight variation configured in
+  the `variations["weights"]` block (e.g. `weight_variation_sf_btagUp`,
+  `weight_variation_sf_btagDown`). Data outputs carry no weight-variation columns.
+
+All weight columns share the same length as the other columns of the category (they are
+masked identically). When dumping per-chunk parquet arrays
+(`dump_columns_as_arrays_per_chunk`, see below) the `weight` field is added to the awkward
+array in the same way.
+
+:::{note}
+For subsample outputs the `weight` column folds in the by-subsample weights (the same
+`<sample>__<subsample>` weights configured in the `weights["bysample"]` block). If you are
+on an older PocketCoffea version whose subsample `weight` column looks like the inclusive
+sample weight (missing the by-subsample factor), update to a version that includes the
+by-subsample column-weight fix.
+:::
+
+
 ### Exporting chunks in separate files
 When exporting arrays from the processor, the size of the output may become an issue. In fact, by default the coffea
 processor will accumulate the `column_accumulators` for each chunk to produce the total output at the end of the
