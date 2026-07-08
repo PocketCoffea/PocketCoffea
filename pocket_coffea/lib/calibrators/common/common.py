@@ -3,7 +3,7 @@ import numpy as np
 import vector
 import awkward as ak
 import cachetools
-from pocket_coffea.lib.jets import met_correction_after_jec, jet_correction_corrlib, msoftdrop_correction
+from pocket_coffea.lib.jets import met_correction_after_jec, jet_correction_corrlib, jet_correction_corrlib_bylevel, msoftdrop_correction
 from pocket_coffea.lib.leptons import (
     get_ele_scaled, 
     get_ele_smeared, 
@@ -98,8 +98,18 @@ class JetsCalibrator(Calibrator):
             # register also a new entry which is storing the order of the jets
             self.calibrated_collections.append(f"{jet_coll_name}_sortidx")
 
-            corrected_jets = jet_correction_corrlib(
-                calib_params=self.jet_calib_param.jet_types[jet_type_alias][self._year],
+            calib_params = self.jet_calib_param.jet_types[jet_type_alias][self._year]
+            # Select the JEC application method:
+            #  - by_level=True  -> `level` is a list of single JEC levels, applied one by
+            #                      one (allows customizations spliced between levels)
+            #  - by_level=False -> `level` is the single compound correction name (default)
+            jec_func = (
+                jet_correction_corrlib_bylevel
+                if calib_params.get("by_level", False)
+                else jet_correction_corrlib
+            )
+            corrected_jets = jec_func(
+                calib_params=calib_params,
                 variations=self.jet_calib_param.variations[jet_type_alias][self._year],
                 events=events,
                 jet_type = jet_type_alias,
