@@ -355,6 +355,17 @@ class JetsCalibrator(Calibrator):
             out[jet_coll_name]["pt"] = self.jets_calibrated[jet_coll_name][f"pt_{variation_type}_down"]
             out[jet_coll_name]["mass"] = self.jets_calibrated[jet_coll_name][f"mass_{variation_type}_down"]
 
+        # Keep the rawFactor consistent with the varied pt. The raw pt is invariant, so
+        # rawFactor = 1 - pt_raw/pt, exactly as initialize() computes it for the nominal.
+        # Without this the varied jets keep the *nominal* rawFactor, and any consumer that
+        # derives the JEC factor or the raw pt from rawFactor -- notably the type-1 MET
+        # recompute -- would be wrong for the variation.
+        out[jet_coll_name]["rawFactor"] = ak.where(
+            out[jet_coll_name]["pt"] != 0,
+            1 - out[jet_coll_name]["pt_raw"] / out[jet_coll_name]["pt"],
+            0,
+        )
+
         # Need to reorder the jet collection by pt after the variation
         if self.jet_calib_param.sort_by_pt[self._year][jet_type_alias]:
             sorted_indices = ak.argsort(out[jet_coll_name]["pt"], axis=1, ascending=False)
@@ -554,11 +565,20 @@ class METCalibrator(Calibrator):
         if self.met_calib_active:
             # print("Calibrating METs using jet collection:", self.jet_collection)
             jets_calib = events[self.jet_collection]
+            # The JetsCalibrator keeps rawFactor consistent with the (possibly varied) pt
+            # -- see JetsCalibrator.apply_variation -- so 1/(1-rawFactor) is the correct
+            # L1L2L3 factor and pt*(1-rawFactor) is the invariant raw pt for both the
+            # nominal and the JES/JER variations.
             jet_jecL1L2L3 = 1./(1. - jets_calib["rawFactor"])
-            jet_jecL1 = 1. # For PuppiJets
+            jet_jecL1 = 1. # For Puppi jets (Run3). NB: wrong for Run2 CHS jets, which carry
+                           # an L1/PU offset -> deferred to the Run2 MET follow-up (A2).
 
             corrT1METJet = events[self.corrT1METJet_branch]
             corrT1METJet_jecL1L2L3 = 1./(1. - corrT1METJet["rawFactor"])
+            # TODO (deferred): CorrT1METJet is not calibrated by the jet calibrator, so its
+            # rawFactor/rawPt stay at the nominal NanoAOD values for every variation and its
+            # type-1 MET contribution does not vary with JES/JER. Propagating that variation
+            # requires evaluating the JEC (+ its variations) on CorrT1METJet.
 
             jet_pt_noMuRaw = jets_calib["pt"] * (1. - jets_calib["rawFactor"])*(1. - jets_calib["muonSubtrFactor"])
             if "muonSubtrDeltaPhi" in jets_calib.fields:
