@@ -707,3 +707,79 @@ def test_muons_rochester_calibrator(events, params):
     out_data = cal_data.calibrate(events, {}, variation="nominal")
     assert ak.all(out_data["Muon.pt"] > 0)
     assert not ak.all(out_data["Muon.pt"] == out_data["Muon.pt_original"])
+
+
+def test_met_type1_variation_propagation(events, params):
+    """Validation harness for the type-1 MET recompute (A1).
+
+    Runs JetsCalibrator + METCalibrator and, for the nominal and every JES/JER variation,
+    recomputes the type-1 MET independently from the (varied) jets using the *invariant*
+    raw pt (jet.pt_raw). The METCalibrator must match this recomputation.
+
+    This is what catches A1: before the fix the METCalibrator derived the jet raw pt as
+    pt*(1-rawFactor); for a variation the jets carry the varied pt with the nominal
+    rawFactor, so that raw pt became pt_raw*(varied/nominal) and the varied MET did NOT
+    match this pt_raw-based recomputation.
+    """
+    import vector
+
+    def independent_t1_met(rawmet_pt, rawmet_phi, jets, corrt1):
+        # --- main jets: invariant raw pt, Puppi L1 = 1 ---
+        jet_pt_raw = jets["pt_raw"]
+        jecL1L2L3 = jets["pt"] / jet_pt_raw
+        pt_noMuRaw = jet_pt_raw * (1.0 - jets["muonSubtrFactor"])
+        phi = jets["muonSubtrDeltaPhi"] + jets["phi"] if "muonSubtrDeltaPhi" in jets.fields else jets["phi"]
+        pt_L1 = pt_noMuRaw
+        pt_L1L2L3 = pt_noMuRaw * jecL1L2L3
+        mask = (pt_L1L2L3 > 15) & (jets["chEmEF"] + jets["neEmEF"] < 0.9)
+        d = vector.zip({"rho": pt_L1L2L3[mask], "phi": phi[mask]}) - vector.zip({"rho": pt_L1[mask], "phi": phi[mask]})
+        corr = vector.zip({"x": ak.sum(d.x, axis=1), "y": ak.sum(d.y, axis=1)})
+        # --- CorrT1METJet: nominal (deferred), matches the calibrator ---
+        c_jecL1L2L3 = 1.0 / (1.0 - corrt1["rawFactor"])
+        c_pt_noMuRaw = corrt1["rawPt"] * (1.0 - corrt1["muonSubtrFactor"])
+        c_phi = corrt1["muonSubtrDeltaPhi"] + corrt1["phi"] if "muonSubtrDeltaPhi" in corrt1.fields else corrt1["phi"]
+        c_pt_L1 = c_pt_noMuRaw
+        c_pt_L1L2L3 = c_pt_noMuRaw * c_jecL1L2L3
+        c_mask = (c_pt_L1L2L3 > 15) & (corrt1["EmEF"] < 0.9) if "EmEF" in corrt1.fields else c_pt_L1L2L3 > 15
+        cd = vector.zip({"rho": c_pt_L1L2L3[c_mask], "phi": c_phi[c_mask]}) - vector.zip({"rho": c_pt_L1[c_mask], "phi": c_phi[c_mask]})
+        c_corr = vector.zip({"x": ak.sum(cd.x, axis=1), "y": ak.sum(cd.y, axis=1)})
+        return vector.zip({"rho": rawmet_pt, "phi": rawmet_phi}) - corr - c_corr
+
+    manager = CalibratorsManager(
+        calibrators_list=[JetsCalibrator, METCalibrator],
+        events=events, params=params, metadata={"isMC": True, "year": "2018"},
+    )
+    met_calib = params.met_calibration["2018"]
+    rawmet_branch = met_calib["RawMET_collection"]
+    corrt1_branch = met_calib["CorrT1METJet_collection"]
+
+    captured = {}
+    for variation, ev in manager.calibration_loop(events, variations_for_calibrators=["jet_calibration"]):
+        # The rawFactor must stay consistent with the (varied) pt so that consumers that
+        # derive the JEC factor / raw pt from it (e.g. the type-1 MET below) are correct.
+        jets = ev["Jet"]
+        expected_rawfactor = ak.where(jets["pt"] != 0, 1 - jets["pt_raw"] / jets["pt"], 0)
+        assert np.allclose(
+            ak.to_numpy(ak.flatten(jets["rawFactor"])),
+            ak.to_numpy(ak.flatten(expected_rawfactor)), rtol=1e-5, atol=1e-6,
+        ), f"jet rawFactor is not consistent with the varied pt for variation {variation}"
+
+        rec = independent_t1_met(ev[rawmet_branch]["pt"], ev[rawmet_branch]["phi"], ev["Jet"], ev[corrt1_branch])
+        met = ev["MET"]
+        assert np.allclose(ak.to_numpy(met.pt), ak.to_numpy(rec.rho), rtol=1e-4, atol=1e-2), \
+            f"type-1 MET pt does not match the independent recomputation for variation {variation}"
+        assert np.allclose(ak.to_numpy(met.phi), ak.to_numpy(rec.phi), rtol=1e-4, atol=1e-2), \
+            f"type-1 MET phi does not match the independent recomputation for variation {variation}"
+        captured[variation] = ak.to_numpy(met.pt)
+
+    assert "nominal" in captured
+    # The MET jet collection is "Jet" (AK4). Its JES/JER variations must propagate to the
+    # type-1 MET; AK8 (FatJet) variations act on a different collection and must not.
+    ak4_jes = [v for v in captured if "JES" in v and "AK4" in v]
+    ak4_jer = [v for v in captured if "JER" in v and "AK4" in v]
+    assert ak4_jes and ak4_jer, "expected AK4 JES and JER MET variations to be produced"
+    for v in ak4_jes[:1] + ak4_jer[:1]:
+        assert not np.allclose(captured[v], captured["nominal"]), f"MET variation {v} did not propagate"
+    for v in [x for x in captured if "AK8" in x][:1]:
+        assert np.allclose(captured[v], captured["nominal"]), \
+            f"AK8 variation {v} must not change the AK4-jet-based MET"
