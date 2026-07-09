@@ -538,6 +538,7 @@ called `job`, the tool descends into it automatically.
 | `--blocklist-sites` | — | Comma-separated CMS site names (or xrootd prefixes) to avoid, **unioned** with the automatic count-based blacklist. Files at a blocklisted site are rewritten to an alternative replica via Rucio. |
 | `--recreate-queue` | — | Force each resubmitted job's HTCondor `+JobFlavour` to this queue (`espresso` … `nextweek`). Overrides the implicit `--queue-shift` bump for jobs removed due to time limit. |
 | `--skip-bad-files` | off | Retroactively enable Coffea's skip-bad-files in the inner job by (re)materialising `inner_run_options.yaml` and patching the jobs_dir. Most useful with `--recreate`. |
+| `--remove-running` | off | With `--recreate`, `condor_rm` each recreated job's still-queued (running/idle) HTCondor instance before resubmitting, so a stuck job can't keep running and double-write its output. The instance is matched by the unique `config_job_<n>.pkl` in its condor `Arguments`. |
 
 #### One-shot / proactive recreate
 
@@ -551,8 +552,9 @@ flaky site or straight onto the global xrootd redirector.
 # Recreate specific jobs, forcing them onto a longer HTCondor queue
 pocket-coffea check-jobs -j output/job --recreate 0,1,3 --recreate-queue longlunch
 
-# Recreate every non-done job, routing all files through the global redirector
-pocket-coffea check-jobs -j output/job --recreate auto --use-redirector
+# Recreate every non-done job, routing all files through the global redirector,
+# killing the old still-running condor instances first so they don't double-run
+pocket-coffea check-jobs -j output/job --recreate auto --use-redirector --remove-running
 
 # Recreate + then babysit the resubmitted jobs
 pocket-coffea check-jobs -j output/job --recreate auto --blocklist-sites T1_DE_KIT --resubmit
@@ -566,6 +568,12 @@ migrated to a non-blocklisted replica (falling back to the redirector if none is
 The rewritten fileset is written back into `config_job_{i}.pkl`; the original
 `jobs_config.yaml` is untouched. `--recreate-queue` rewrites the `+JobFlavour` of each
 `.sub` (overriding the implicit one-step bump applied to `.running` jobs).
+
+Recreating a job that is still `.running`/`.idle` in HTCondor leaves the old instance in
+the queue, so it can keep running alongside the resubmitted one and double-write its
+output. Pass `--remove-running` to `condor_rm` each recreated job's still-queued instance
+first — it is matched by the unique `config_job_<n>.pkl` in its condor `Arguments`, so
+`job_1` is never confused with `job_10`.
 
 :::{note}
 `--recreate` is locked to the fileset that was pickled in `jobs_config.yaml` at submission

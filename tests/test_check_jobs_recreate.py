@@ -229,3 +229,59 @@ def test_recreate_missing_jobs_config_is_graceful(tmp_path, replicas):
     d.mkdir()
     # no jobs_config.yaml -> should return without raising
     check_jobs.recreate_jobs_oneshot(d, "0", use_redirector=True, dry_run=True)
+
+
+def test_condor_rm_job_constraint(monkeypatch):
+    captured = {}
+
+    class _R:
+        def read(self):
+            return "1 job removed\n"
+
+    def fake_popen(cmd):
+        captured["cmd"] = cmd
+        return _R()
+
+    monkeypatch.setattr(check_jobs.os, "popen", fake_popen)
+    out = check_jobs.condor_rm_job("job_7")
+    assert "condor_rm" in captured["cmd"]
+    # unique per-job key, escaped dot so job_7 != job_70
+    assert "config_job_7\\.pkl" in captured["cmd"]
+    assert out == "1 job removed"
+
+
+def test_recreate_remove_running_kills_queued_jobs(tmp_path, replicas, monkeypatch):
+    f = SITEA + "/store/data/foo.root"
+    d = _make_jobs_dir(tmp_path, {
+        "job_0": {"filesets": _fs([f]), "flag": "running"},
+        "job_1": {"filesets": _fs([f]), "flag": "failed"},
+        "job_2": {"filesets": _fs([f]), "flag": "idle"},
+    })
+    removed = []
+    monkeypatch.setattr(check_jobs, "condor_rm_job",
+                        lambda job: removed.append(job) or "1 job removed")
+    monkeypatch.setattr(check_jobs.os, "system", lambda cmd: 0)
+    check_jobs.recreate_jobs_oneshot(d, "auto", use_redirector=True,
+                                     remove_running=True, dry_run=False)
+    # only the running + idle (queued) jobs are condor_rm'd; the failed one is not
+    assert sorted(removed) == ["job_0", "job_2"]
+
+
+def test_recreate_remove_running_dry_run_skips_condor_rm(tmp_path, replicas, monkeypatch):
+    f = SITEA + "/store/data/foo.root"
+    d = _make_jobs_dir(tmp_path, {"job_0": {"filesets": _fs([f]), "flag": "running"}})
+    removed = []
+    monkeypatch.setattr(check_jobs, "condor_rm_job", lambda job: removed.append(job) or "")
+    check_jobs.recreate_jobs_oneshot(d, "auto", use_redirector=True,
+                                     remove_running=True, dry_run=True)
+    assert removed == []
+
+
+def test_recreate_remove_running_off_by_default(tmp_path, replicas, monkeypatch):
+    f = SITEA + "/store/data/foo.root"
+    d = _make_jobs_dir(tmp_path, {"job_0": {"filesets": _fs([f]), "flag": "running"}})
+    removed = []
+    monkeypatch.setattr(check_jobs, "condor_rm_job", lambda job: removed.append(job) or "")
+    monkeypatch.setattr(check_jobs.os, "system", lambda cmd: 0)
+    check_jobs.recreate_jobs_oneshot(d, "auto", use_redirector=True, dry_run=False)
+    assert removed == []

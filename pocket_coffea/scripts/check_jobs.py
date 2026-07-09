@@ -159,9 +159,28 @@ def update_blacklist(xrootdfaillist,blacklist_threshold):
             blacklist_sites.append(site)
     return blacklist_sites
 
+def condor_rm_job(job):
+    """condor_rm any still-queued/running HTCondor instance of `job` (a
+    ``job_<n>`` name) so a recreated job's old instance can't keep running and
+    double-write its output.
+
+    The instance is matched on the per-job ``config_job_<n>.pkl`` that appears
+    in the job's condor ``Arguments`` (unique per job index, so ``job_1`` is not
+    confused with ``job_10``). Returns the ``condor_rm`` output, or ``""`` if
+    nothing matched.
+    """
+    idx = job.split("_")[-1]
+    constraint = f'regexp("config_job_{idx}\\.pkl", Arguments)'
+    try:
+        return os.popen(f"condor_rm -constraint '{constraint}'").read().strip()
+    except Exception as e:
+        return f"condor_rm failed: {e}"
+
+
 def recreate_jobs_oneshot(jobs_folder, jobs_to_recreate, *, use_redirector=False,
                           blocklist_sites=None, recreate_queue=None,
-                          skip_bad_files=False, queue_shift=1, dry_run=False):
+                          skip_bad_files=False, queue_shift=1, remove_running=False,
+                          dry_run=False):
     """One-shot recreate/resubmit of a chosen set of manual jobs.
 
     Ported from the manual-job executors' old ``--recreate-jobs`` path so the
@@ -173,6 +192,10 @@ def recreate_jobs_oneshot(jobs_folder, jobs_to_recreate, *, use_redirector=False
 
     `jobs_to_recreate` is ``"auto"`` (scan ``*.failed``/``*.running``/``*.idle``
     flag files) or a comma list (``0,1,3`` or ``job_0,job_3``).
+
+    When `remove_running` is set, each recreated job that is still queued in
+    HTCondor (running/idle) is ``condor_rm``'d before resubmission so the old
+    instance can't keep running and double-write its output.
     """
     jobs_folder = Path(jobs_folder)
     jobs_config_path = jobs_folder / "jobs_config.yaml"
@@ -224,7 +247,21 @@ def recreate_jobs_oneshot(jobs_folder, jobs_to_recreate, *, use_redirector=False
         # undefined for explicit lists, crashing on `job in runningjobs`).
         failedjobs = [j for j in jobs_to_redo if (jobs_folder / f"{j}.failed").exists()]
         runningjobs = [j for j in jobs_to_redo if (jobs_folder / f"{j}.running").exists()]
+        idlejobs = [j for j in jobs_to_redo if (jobs_folder / f"{j}.idle").exists()]
     rprint(f"Recreating jobs: {jobs_to_redo}")
+
+    # Optionally kill the still-queued (running/idle) HTCondor instance of each
+    # recreated job so it can't keep running and double-write its output.
+    if remove_running:
+        queued = [j for j in jobs_to_redo if j in set(runningjobs) | set(idlejobs)]
+        if queued:
+            rprint(f"[recreate] Removing still-queued condor instances of: {queued}")
+        for j in queued:
+            if dry_run:
+                rprint(f"[dim]Dry run, not running condor_rm for {j}[/]")
+                continue
+            out = condor_rm_job(j)
+            rprint(f"[recreate] condor_rm {j}: {out or 'no matching queued job'}")
 
     # Jobs that failed due to an XRootD error get a per-file alternate-site lookup.
     xrootd_err_logs = os.popen(f"grep -il {jobs_folder}/logs/*.err -e 'XRootD error'").read().split()
@@ -355,9 +392,14 @@ def recreate_jobs_oneshot(jobs_folder, jobs_to_recreate, *, use_redirector=False
               help="Retroactively enable Coffea's skip-bad-files in the inner job of the "
                    "recreated/resubmitted jobs by (re)materialising inner_run_options.yaml "
                    "and patching the jobs_dir. Most useful together with --recreate.")
+@click.option("--remove-running", is_flag=True, default=False,
+              help="With --recreate, condor_rm each recreated job's still-queued "
+                   "(running/idle) HTCondor instance before resubmitting, so a stuck job "
+                   "can't keep running and double-write its output. Matched by the unique "
+                   "config_job_<n>.pkl in the job's condor Arguments.")
 def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold,
                queue_shift, group_by, recreate, once, use_redirector, blocklist_sites,
-               recreate_queue, skip_bad_files):
+               recreate_queue, skip_bad_files, remove_running):
     # check if the user passed the parent folder
     subdirs = os.listdir(jobs_folder)
     if len(subdirs) == 1 and subdirs[0] == "job":
@@ -382,6 +424,7 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
             recreate_queue=recreate_queue,
             skip_bad_files=skip_bad_files,
             queue_shift=queue_shift,
+            remove_running=remove_running,
         )
         if not resubmit:
             return
