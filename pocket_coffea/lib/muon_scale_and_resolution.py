@@ -5,36 +5,33 @@ import math
 from scipy.special import erfinv, erf
 from random import random
 import awkward as ak
-from typing import List
 
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
-class SeedSequence:
-    def __init__(self, seeds: List[int]):
-        self.seeds = [s & 0xFFFFFFFF for s in seeds]
+def _splitmix64(z):
+    """Vectorized splitmix64 finalizer: a strong avalanche mix of a uint64 array."""
+    z = (z ^ (z >> np.uint64(30))) * np.uint64(0xBF58476D1CE4E5B9)
+    z = (z ^ (z >> np.uint64(27))) * np.uint64(0x94D049BB133111EB)
+    return z ^ (z >> np.uint64(31))
 
-    def generate(self, n: int) -> List[int]:
-        if n<=0:
-            return []
 
-        mult = 0x9e3779b9
-        mix_const = 0x85ebca6b
-
-        buffer = [0x8b8b8b8b] * n
-        s = len(self.seeds)
-
-        for i in range(min(n, s)):
-            buffer[i] ^= (self.seeds[i] + mult * i) & 0xFFFFFFFF
-
-        for i in range(s, n):
-            buffer[i] ^= (mult * i) & 0xFFFFFFFF
-
-        for k in range(n):
-            z = (buffer[(k + n - 1) % n] ^ (buffer[k] >> 27)) & 0xFFFFFFFF
-            buffer[k] = ((z * mix_const) & 0xFFFFFFFF) ^ ((buffer[k] << 13) & 0xFFFFFFFF)
-
-        return [x & 0xFFFFFFFF for x in buffer]
+def _hashed_uniform(evtNr, lumiNr, phi_int):
+    """Reproducible uniform in [0,1) per muon, derived from (event, lumi, phi) with a fully
+    vectorized 64-bit hash. This replaces the per-muon SeedSequence + MT19937 construction
+    and mixes ALL three entropy words, so muons in the same event get independent draws
+    (the previous scalar SeedSequence.generate(1) mixed only the event word, giving every
+    muon in an event the same draw)."""
+    ev = np.asarray(evtNr).astype(np.uint64)
+    lumi = np.asarray(lumiNr).astype(np.uint64)
+    phi = np.asarray(phi_int).astype(np.uint64)
+    with np.errstate(over="ignore"):  # uint64 multiply/add wrap on purpose
+        key = _splitmix64(ev * np.uint64(0x9E3779B97F4A7C15)
+                          + lumi * np.uint64(0xC2B2AE3D27D4EB4F)
+                          + phi * np.uint64(0x165667B19E3779F9))
+        key = _splitmix64(key)
+    # top 53 bits -> double in [0, 1)
+    return (key >> np.uint64(11)) * (1.0 / (1 << 53))
 
 class CrystallBall:
 
@@ -138,20 +135,6 @@ class CrystallBall:
         return result
 
 
-def _get_rnd_func(rnd_gen):
-    if isinstance(rnd_gen, str):
-        rnd_gen = rnd_gen.lower()
-        if rnd_gen == "np":
-            rnd_func = lambda seed: np.random.Generator(np.random.MT19937(seed=seed)).random()
-        else:
-            raise ValueError(f"unknown rnd_gen string '{rnd_gen}', should either be 'root' or 'np'")
-    elif callable(rnd_gen):
-        rnd_func = rnd_gen
-    else:
-        raise TypeError(f"unsupported rnd_gen '{rnd_gen}', should be string or callable")
-    return rnd_func
-
-
 def get_rndm(eta, phi, nL, evtNr, lumiNr, cset, nested=False, rnd_gen="root"):
     # obtain parameters from correctionlib
     if nested:
@@ -168,14 +151,12 @@ def get_rndm(eta, phi, nL, evtNr, lumiNr, cset, nested=False, rnd_gen="root"):
 
     phi_int_f = (((np.asarray(phi_f, dtype=np.float64) / math.pi) * (1 << 31 - 1) ).astype(np.int64) & 0xFFF).astype(np.uint32)
 
-    seeds = [
-        SeedSequence([np.uint32(ev), np.uint32(lumi), np.uint32(phi_int)]).generate(1)[0]
-        for ev, lumi, phi_int in zip(evtNr_f, lumiNr_f, phi_int_f)
-    ]
-
-    # get random number following the CB
-    rnd_func = _get_rnd_func(rnd_gen)
-    rndm_f = [rnd_func(seed) for seed in seeds]
+    # Vectorized, reproducible per-muon uniform following the CB. Replaces the per-muon
+    # SeedSequence + MT19937 construction loops (rnd_gen is kept for backward compatibility
+    # but no longer selects the generator). NB: the drawn values differ from the old
+    # MT19937 path -- muon-smearing outputs are a different, equally valid noise realization
+    # -- and, unlike before, muons in the same event are smeared independently.
+    rndm_f = _hashed_uniform(evtNr_f, lumiNr_f, phi_int_f)
 
     cb_f = CrystallBall(mean_f, sigma_f, alpha_f, n_f)
 
