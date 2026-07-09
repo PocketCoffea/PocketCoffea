@@ -2,6 +2,7 @@ import awkward as ak
 from .cut_definition import Cut
 from .triggers import get_trigger_mask_byprimarydataset,  apply_trigger_mask, remove_trigger_prefix
 import correctionlib
+from pocket_coffea.lib.correction_cache import load_correction_set
 import numpy as np
 from coffea.lumi_tools import LumiMask
 
@@ -147,7 +148,7 @@ def get_JetVetoMap_Mask(events, params, year, processor_params, sample, isMC, **
         & ((jets["neEmEF"]+jets["chEmEF"])<0.9) # Energy fraction not dominated by ECal
     )
     jets = jets[mask_for_VetoMap]
-    cset = correctionlib.CorrectionSet.from_file(
+    cset = load_correction_set(
         processor_params.jet_scale_factors.vetomaps[year]["file"]
     )
     corr = cset[processor_params.jet_scale_factors.vetomaps[year]["name"]]

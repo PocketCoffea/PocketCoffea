@@ -1,6 +1,7 @@
 import awkward as ak
 import numpy as np
 import correctionlib
+from pocket_coffea.lib.correction_cache import load_correction_set
 
 
 def get_ele_scaled_etdependent(ele, json_scale, 
@@ -9,7 +10,7 @@ def get_ele_scaled_etdependent(ele, json_scale,
     '''
     From example: https://gitlab.cern.ch/cms-analysis-metadata/EGM/examples/-/blob/latest/egmScaleAndSmearingExample.py
     '''
-    evaluator = correctionlib.CorrectionSet.from_file(json_scale)
+    evaluator = load_correction_set(json_scale)
     evaluator_scale = evaluator.compound[correction_name]
     smear_and_syst_evaluator = evaluator[syst_correction_name]
     ele_gain_flat = ak.flatten(ele["seedGain"])
@@ -67,7 +68,7 @@ def get_ele_scaled_etdependent(ele, json_scale,
     
 
 def get_ele_scaled(ele, json_scale, correction_name, isMC, runNr):
-    evaluator = correctionlib.CorrectionSet.from_file(json_scale)
+    evaluator = load_correction_set(json_scale)
     evaluator_scale = evaluator[correction_name]
     ele_gain_flat = ak.flatten(ele["seedGain"])
     ele_eta_flat = ak.flatten(ele["etaSC"])
@@ -108,7 +109,7 @@ def get_ele_smeared_etdependent(mc_ele, jsonFileName, correction_name, isMC, onl
     '''
     if not isMC:
         return
-    evaluator = correctionlib.CorrectionSet.from_file(jsonFileName)
+    evaluator = load_correction_set(jsonFileName)
     evaluator_smearing = evaluator[correction_name]
     ele_eta_flat = ak.flatten(mc_ele["etaSC"]) # eta of supercluster
     ele_r9_flat = ak.flatten(mc_ele["r9"])
@@ -177,7 +178,7 @@ def get_ele_smeared_etdependent(mc_ele, jsonFileName, correction_name, isMC, onl
 def get_ele_smeared(mc_ele, jsonFileName,correction_name, isMC, only_nominal=True, seed=125):
     if not isMC:
         return
-    evaluator = correctionlib.CorrectionSet.from_file(jsonFileName)
+    evaluator = load_correction_set(jsonFileName)
     evaluator_smearing = evaluator[correction_name]
     ele_eta_flat = ak.flatten(mc_ele["etaSC"])
     ele_r9_flat = ak.flatten(mc_ele["r9"])
