@@ -56,6 +56,41 @@ lepton_scale_factors:
         reco:
           pt_lt_20: RecoBelow20
           pt_gt_20: RecoAbove20
+      '2016_PreVFP_v15':
+        files:
+          reco: ${cvmfs:Run2-2016preVFP-UL-NanoAODv15,EGM,electron.json.gz}
+          id:   ${cvmfs:Run2-2016preVFP-UL-NanoAODv15,EGM,electron.json.gz}
+        name: UL-Electron-ID-SF
+        reco:
+          pt_lt_20: RecoBelow20
+          pt_gt_20: RecoAbove20
+  
+      '2016_PostVFP_v15':
+        files: 
+          reco: ${cvmfs:Run2-2016postVFP-UL-NanoAODv15,EGM,electron.json.gz}
+          id:   ${cvmfs:Run2-2016postVFP-UL-NanoAODv15,EGM,electron.json.gz}
+        name: UL-Electron-ID-SF    
+        reco:
+          pt_lt_20: RecoBelow20
+          pt_gt_20: RecoAbove20
+
+      '2017_v15':
+        files:
+          reco: ${cvmfs:Run2-2017-UL-NanoAODv15,EGM,electron.json.gz}
+          id:   ${cvmfs:Run2-2017-UL-NanoAODv15,EGM,electron.json.gz}
+        name: UL-Electron-ID-SF
+        reco:
+          pt_lt_20: RecoBelow20
+          pt_gt_20: RecoAbove20
+
+      '2018_v15':
+        files: 
+          reco: ${cvmfs:Run2-2018-UL-NanoAODv15,EGM,electron.json.gz}
+          id:   ${cvmfs:Run2-2018-UL-NanoAODv15,EGM,electron.json.gz}
+        name: UL-Electron-ID-SF
+        reco:
+          pt_lt_20: RecoBelow20
+          pt_gt_20: RecoAbove20
 
       '2022_preEE':
         files: 
@@ -139,7 +174,7 @@ lepton_scale_factors:
         file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,EGM,electron.json.gz}
         key: Electron-ID-SF
 
-
+  
     era_mapping:
       # this is needed because the correction set provided by EGM
       # have a fixed set of era labels, different from ours
@@ -155,6 +190,21 @@ lepton_scale_factors:
         reco: "2017"
         trigger: "2017"
       "2018": 
+        id: "2018"
+        reco: "2018"
+        trigger: "2018"
+      "2016_PreVFP_v15": 
+        id: "2016preVFP"
+        reco: "2016preVFP"
+      "2016_PostVFP_v15": 
+        id: "2016postVFP"
+        reco: "2016postVFP"
+        trigger: "2016postVFP"
+      "2017_v15": 
+        id: "2017"
+        reco: "2017"
+        trigger: "2017"
+      "2018_v15": 
         id: "2018"
         reco: "2018"
         trigger: "2018"
@@ -192,6 +242,10 @@ lepton_scale_factors:
         '2016_PostVFP': False
         '2017': False
         '2018': False
+        '2016_PreVFP_v15': True
+        '2016_PostVFP_v15': True
+        '2017_v15': True
+        '2018_v15': True
         '2022_preEE': True
         '2022_postEE': True
         '2023_preBPix': True
@@ -199,6 +253,30 @@ lepton_scale_factors:
         '2024': True
         '2025': True
       correctionlib_config:
+        '2016_PreVFP_v15':
+          file: ${cvmfs:Run2-2016preVFP-UL-NanoAODv15,EGM,electronSS_EtDependent.json.gz}
+          correction_name:
+            scale: "Scale"
+            smear: "SmearAndSyst"
+          et_dependent: true
+        '2016_PostVFP_v15':
+          file: ${cvmfs:Run2-2016postVFP-UL-NanoAODv15,EGM,electronSS_EtDependent.json.gz}
+          correction_name:
+            scale: "Scale"
+            smear: "SmearAndSyst"
+          et_dependent: true
+        '2017_v15':
+          file: ${cvmfs:Run2-2017-UL-NanoAODv15,EGM,electronSS_EtDependent.json.gz}
+          correction_name:
+            scale: "Scale"
+            smear: "SmearAndSyst"
+          et_dependent: true
+        '2018_v15':
+          file: ${cvmfs:Run2-2018-UL-NanoAODv15,EGM,electronSS_EtDependent.json.gz}
+          correction_name:
+            scale: "Scale"
+            smear: "SmearAndSyst"
+          et_dependent: true
         '2022_preEE':
           file: ${cvmfs:Run3-22CDSep23-Summer22-NanoAODv12,EGM,electronSS_EtDependent.json.gz,2025-12-15}
           correction_name:
@@ -248,6 +326,18 @@ lepton_scale_factors:
         name: ???
         file: ???
       '2018':
+        name: ???
+        file: ???
+      2016_PreVFP_v15:
+        name: ???
+        file: ???
+      2016_PostVFP_v15:
+        name: ???
+        file: ???
+      '2017_v15':
+        name: ???
+        file: ???
+      '2018_v15':
         name: ???
         file: ???
       2022_preEE:
@@ -300,7 +390,25 @@ lepton_scale_factors:
           id: NUM_TightID_DEN_TrackerMuons
           iso: NUM_LooseRelIso_DEN_TightIDandIPCut
           trigger: NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight
+      '2016_PreVFP_v15':
+          id: NUM_TightID_DEN_TrackerMuons
+          iso: NUM_LooseRelIso_DEN_TightIDandIPCut
+          trigger: NUM_IsoMu24_or_IsoTkMu24_DEN_CutBasedIdTight_and_PFIsoTight
 
+      '2016_PostVFP_v15':
+          id: NUM_TightID_DEN_TrackerMuons
+          iso: NUM_LooseRelIso_DEN_TightIDandIPCut
+          trigger: NUM_IsoMu24_or_IsoTkMu24_DEN_CutBasedIdTight_and_PFIsoTight
+
+      '2017_v15':
+          id: NUM_TightID_DEN_TrackerMuons
+          iso: NUM_LooseRelIso_DEN_TightIDandIPCut
+          trigger: NUM_IsoMu27_DEN_CutBasedIdTight_and_PFIsoTight
+
+      '2018_v15':
+          id: NUM_TightID_DEN_TrackerMuons
+          iso: NUM_LooseRelIso_DEN_TightIDandIPCut
+          trigger: NUM_IsoMu24_DEN_CutBasedIdTight_and_PFIsoTight
       '2022_preEE':
           id: NUM_TightID_DEN_TrackerMuons
           iso: NUM_LoosePFIso_DEN_TightID
@@ -338,6 +446,14 @@ lepton_scale_factors:
           file: ${cvmfs:Run2-2017-UL-NanoAODv9,MUO,muon_Z.json.gz,2024-07-02}
       '2018':
           file: ${cvmfs:Run2-2018-UL-NanoAODv9,MUO,muon_Z.json.gz,2024-07-02}
+      '2016_PreVFP_v15':
+          file: ${cvmfs:Run2-2016preVFP-UL-NanoAODv9,MUO,muon_Z.json.gz}
+      '2016_PostVFP_v15':
+          file: ${cvmfs:Run2-2016postVFP-UL-NanoAODv9,MUO,muon_Z.json.gz}
+      '2017_v15':
+          file: ${cvmfs:Run2-2017-UL-NanoAODv9,MUO,muon_Z.json.gz}
+      '2018_v15':
+          file: ${cvmfs:Run2-2018-UL-NanoAODv9,MUO,muon_Z.json.gz}
       '2022_preEE':
           file: ${cvmfs:Run3-22CDSep23-Summer22-NanoAODv12,MUO,muon_Z.json.gz,2026-06-18}
       '2022_postEE':
@@ -356,6 +472,10 @@ lepton_scale_factors:
         '2016_PostVFP': True
         '2017':         True
         '2018':         True
+        '2016_PreVFP_v15':  True
+        '2016_PostVFP_v15': True
+        '2017_v15':         True
+        '2018_v15':         True
         '2022_preEE':   False
         '2022_postEE':  False
         '2023_preBPix': False
@@ -368,13 +488,20 @@ lepton_scale_factors:
         '2016_PostVFP': "${default_params_dir:}/roccor/RoccoR2016bUL.txt"
         '2017':         "${default_params_dir:}/roccor/RoccoR2017UL.txt"
         '2018':         "${default_params_dir:}/roccor/RoccoR2018UL.txt"      
-    
+        '2016_PreVFP_v15':  "${default_params_dir:}/roccor/RoccoR2016aUL.txt"
+        '2016_PostVFP_v15': "${default_params_dir:}/roccor/RoccoR2016bUL.txt"
+        '2017_v15':         "${default_params_dir:}/roccor/RoccoR2017UL.txt"
+        '2018_v15':         "${default_params_dir:}/roccor/RoccoR2018UL.txt"
     scale_and_resolution:
       apply: 
         '2016_PreVFP': False
         '2016_PostVFP': False
         '2017': False
         '2018': False
+        '2016_PreVFP_v15': False
+        '2016_PostVFP_v15': False
+        '2017_v15': False
+        '2018_v15': False
         '2022_preEE': True
         '2022_postEE': True
         '2023_preBPix': True

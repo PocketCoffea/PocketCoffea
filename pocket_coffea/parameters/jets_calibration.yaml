@@ -45,6 +45,31 @@ default_jets_calibration:
 
 
     AK4PFPuppi:
+      2016_PreVFP_v15:
+        json_path: ${cvmfs:Run2-2016preVFP-UL-NanoAODv15,JME,jet_jerc.json.gz}
+        jec_mc: Summer20UL18NanoV15_V1_MC
+        jec_data: Summer20UL18NanoV15_V1_DATA
+        jer: Summer19UL18_JRV3_MC
+        level: L1L2L3Res
+      2016_PostVFP_v15:
+        json_path: ${cvmfs:Run2-2016postVFP-UL-NanoAODv15,JME,jet_jerc.json.gz}
+        jec_mc: Summer20UL18NanoV15_V1_MC
+        jec_data: Summer20UL18NanoV15_V1_DATA
+        jer: Summer19UL18_JRV3_MC
+        level: L1L2L3Res
+      2017_v15:
+        json_path: ${cvmfs:Run2-2017-UL-NanoAODv15,JME,jet_jerc.json.gz}
+        jec_mc: Summer20UL17NanoV15_V1_MC
+        jec_data: Summer20UL17NanoV15_V1_DATA
+        jer: Summer19UL17_JRV4_MC
+        level: L1L2L3Res
+      2018_v15:
+        json_path: ${cvmfs:Run2-2018-UL-NanoAODv15,JME,jet_jerc.json.gz}
+        jec_mc: Summer20UL18NanoV15_V1_MC
+        jec_data: Summer20UL18NanoV15_V1_DATA
+        jer: Summer19UL18_JRV3_MC
+        level: L1L2L3Res
+
       2022_preEE:
         json_path: ${cvmfs:Run3-22CDSep23-Summer22-NanoAODv12,JME,jet_jerc.json.gz,2026-06-05}
         jec_mc: Summer22_22Sep2023_V3_MC
@@ -115,6 +140,33 @@ default_jets_calibration:
         jec_mc: "${default_jets_calibration.factory_config_clib.AK4PFchs.2018.jec_mc}"
         jec_data: "${default_jets_calibration.factory_config_clib.AK4PFchs.2018.jec_data}"
         jer: "${default_jets_calibration.factory_config_clib.AK4PFchs.2018.jer}"
+        level: L1L2L3Res
+      2016_PreVFP_v15:
+        json_path: ${cvmfs:Run2-2016preVFP-UL-NanoAODv15,JME,fatJet_jerc.json.gz}
+        jec_mc: "${default_jets_calibration.factory_config_clib.AK4PFPuppi.2016_PreVFP_v15.jec_mc}"
+        jec_data: "${default_jets_calibration.factory_config_clib.AK4PFPuppi.2016_PreVFP_v15.jec_data}"
+        jer: "${default_jets_calibration.factory_config_clib.AK4PFPuppi.2016_PreVFP_v15.jer}"
+        level: L1L2L3Res
+
+      2016_PostVFP_v15:
+        json_path: ${cvmfs:Run2-2016postVFP-UL-NanoAODv15,JME,fatJet_jerc.json.gz}
+        jec_mc: "${default_jets_calibration.factory_config_clib.AK4PFPuppi.2016_PostVFP_v15.jec_mc}"
+        jec_data: "${default_jets_calibration.factory_config_clib.AK4PFPuppi.2016_PostVFP_v15.jec_data}"
+        jer: "${default_jets_calibration.factory_config_clib.AK4PFPuppi.2016_PostVFP_v15.jer}"
+        level: L1L2L3Res
+
+      2017_v15:
+        json_path: ${cvmfs:Run2-2017-UL-NanoAODv15,JME,fatJet_jerc.json.gz}
+        jec_mc: "${default_jets_calibration.factory_config_clib.AK4PFPuppi.2017_v15.jec_mc}"
+        jec_data: "${default_jets_calibration.factory_config_clib.AK4PFPuppi.2017_v15.jec_data}"
+        jer: "${default_jets_calibration.factory_config_clib.AK4PFPuppi.2017_v15.jer}"
+        level: L1L2L3Res
+
+      2018_v15:
+        json_path: ${cvmfs:Run2-2018-UL-NanoAODv15,JME,fatJet_jerc.json.gz}
+        jec_mc: "${default_jets_calibration.factory_config_clib.AK4PFPuppi.2018_v15.jec_mc}"
+        jec_data: "${default_jets_calibration.factory_config_clib.AK4PFPuppi.2018_v15.jec_data}"
+        jer: "${default_jets_calibration.factory_config_clib.AK4PFPuppi.2018_v15.jer}"
         level: L1L2L3Res
 
       2022_preEE:
@@ -215,6 +267,58 @@ default_jets_calibration:
           - JES_Regrouped_RelativeSample_2018
           - JER
       AK4PFPuppi:
+        2016_PreVFP_v15:
+          - JES_Regrouped_Absolute
+          - JES_Regrouped_Absolute_2016
+          - JES_Regrouped_FlavorQCD
+          - JES_Regrouped_EC2
+          - JES_Regrouped_EC2_2016
+          - JES_Regrouped_HF
+          - JES_Regrouped_HF_2016
+          - JES_Regrouped_BBEC1
+          - JES_Regrouped_BBEC1_2016
+          - JES_Regrouped_RelativeBal
+          - JES_Regrouped_RelativeSample_2016
+          - JER
+        2016_PostVFP_v15:
+          - JES_Regrouped_Absolute
+          - JES_Regrouped_Absolute_2016
+          - JES_Regrouped_FlavorQCD
+          - JES_Regrouped_EC2
+          - JES_Regrouped_EC2_2016
+          - JES_Regrouped_HF
+          - JES_Regrouped_HF_2016
+          - JES_Regrouped_BBEC1
+          - JES_Regrouped_BBEC1_2016
+          - JES_Regrouped_RelativeBal
+          - JES_Regrouped_RelativeSample_2016
+          - JER
+        2017_v15:
+          - JES_Regrouped_Absolute
+          - JES_Regrouped_Absolute_2017
+          - JES_Regrouped_FlavorQCD
+          - JES_Regrouped_EC2
+          - JES_Regrouped_EC2_2017
+          - JES_Regrouped_HF
+          - JES_Regrouped_HF_2017
+          - JES_Regrouped_BBEC1
+          - JES_Regrouped_BBEC1_2017
+          - JES_Regrouped_RelativeBal
+          - JES_Regrouped_RelativeSample_2017
+          - JER
+        2018_v15:
+          - JES_Regrouped_Absolute
+          - JES_Regrouped_Absolute_2018
+          - JES_Regrouped_FlavorQCD
+          - JES_Regrouped_EC2
+          - JES_Regrouped_EC2_2018
+          - JES_Regrouped_HF
+          - JES_Regrouped_HF_2018
+          - JES_Regrouped_BBEC1
+          - JES_Regrouped_BBEC1_2018
+          - JES_Regrouped_RelativeBal
+          - JES_Regrouped_RelativeSample_2018
+          - JER
         2022_preEE: 
           - JES_Regrouped_Absolute
           - JES_Regrouped_Absolute_2022
@@ -298,6 +402,10 @@ default_jets_calibration:
         2016_PostVFP: "${default_jets_calibration.variations.full_variations.AK4PFchs.2016_PostVFP}"
         "2017": "${default_jets_calibration.variations.full_variations.AK4PFchs.2017}"
         "2018": "${default_jets_calibration.variations.full_variations.AK4PFchs.2018}"
+        2016_PreVFP_v15: "${default_jets_calibration.variations.full_variations.AK4PFPuppi.2016_PreVFP_v15}"
+        2016_PostVFP_v15: "${default_jets_calibration.variations.full_variations.AK4PFPuppi.2016_PostVFP_v15}"
+        "2017_v15": "${default_jets_calibration.variations.full_variations.AK4PFPuppi.2017_v15}"
+        "2018_v15": "${default_jets_calibration.variations.full_variations.AK4PFPuppi.2018_v15}"
         2022_preEE: "${default_jets_calibration.variations.full_variations.AK4PFPuppi.2022_preEE}"
         2022_postEE: "${default_jets_calibration.variations.full_variations.AK4PFPuppi.2022_postEE}"
         2023_preBPix: "${default_jets_calibration.variations.full_variations.AK4PFPuppi.2023_preBPix}"
@@ -324,6 +432,10 @@ default_jets_calibration:
         2016_PostVFP: "${default_jets_calibration.variations.total_variation.AK4PFchs.2016_PostVFP}"
         "2017": "${default_jets_calibration.variations.total_variation.AK4PFchs.2017}"
         "2018": "${default_jets_calibration.variations.total_variation.AK4PFchs.2018}"
+        2016_PreVFP_v15: "${default_jets_calibration.variations.total_variation.AK4PFPuppi.2016_PreVFP_v15}"
+        2016_PostVFP_v15: "${default_jets_calibration.variations.total_variation.AK4PFPuppi.2016_PostVFP_v15}"
+        "2017_v15": "${default_jets_calibration.variations.total_variation.AK4PFPuppi.2017_v15}"
+        "2018_v15": "${default_jets_calibration.variations.total_variation.AK4PFPuppi.2018_v15}"
         2022_preEE: "${default_jets_calibration.variations.total_variation.AK4PFPuppi.2022_preEE}"
         2022_postEE: "${default_jets_calibration.variations.total_variation.AK4PFPuppi.2022_postEE}"
         2023_preBPix: "${default_jets_calibration.variations.total_variation.AK4PFPuppi.2023_preBPix}"
@@ -331,6 +443,18 @@ default_jets_calibration:
         "2024": "${default_jets_calibration.variations.total_variation.AK4PFPuppi.2024}"
         "2025": "${default_jets_calibration.variations.total_variation.AK4PFPuppi.2025}"
       AK4PFPuppi:
+        2016_PreVFP_v15: 
+        - JES_Total
+        - JER
+        2016_PostVFP_v15: 
+        - JES_Total
+        - JER
+        "2017_v15": 
+        - JES_Total
+        - JER
+        "2018_v15": 
+        - JES_Total
+        - JER
         2022_preEE:  
         - JES_Total
         - JER
@@ -381,6 +505,22 @@ jets_calibration:
       AK4PFchs: "Jet"
       AK8PFPuppi: "FatJet"
       AK4CorrT1METJetchs: "CorrT1METJet"
+    2016_PreVFP_v15:
+      AK4PFPuppi: "Jet"
+      AK4CorrT1METJetPuppi: "CorrT1METJet"
+      AK8PFPuppi: "FatJet"
+    2016_PostVFP_v15:
+      AK4PFPuppi: "Jet"
+      AK4CorrT1METJetPuppi: "CorrT1METJet"
+      AK8PFPuppi: "FatJet"
+    "2017_v15":
+      AK4PFPuppi: "Jet"
+      AK4CorrT1METJetPuppi: "CorrT1METJet"
+      AK8PFPuppi: "FatJet"
+    "2018_v15":
+      AK4PFPuppi: "Jet"
+      AK4CorrT1METJetPuppi: "CorrT1METJet"
+      AK8PFPuppi: "FatJet"
     2022_preEE:
       AK4PFPuppi: "Jet"
       AK4CorrT1METJetPuppi: "CorrT1METJet"
@@ -427,6 +567,14 @@ jets_calibration:
       AK4CorrT1METJetchs: AK4PFchs
     "2018":
       AK4CorrT1METJetchs: AK4PFchs
+    2016_PreVFP_v15:
+      AK4CorrT1METJetPuppi: AK4PFPuppi
+    2016_PostVFP_v15:
+      AK4CorrT1METJetPuppi: AK4PFPuppi
+    "2017_v15":
+      AK4CorrT1METJetPuppi: AK4PFPuppi
+    "2018_v15":
+      AK4CorrT1METJetPuppi: AK4PFPuppi
     2022_preEE:
       AK4CorrT1METJetPuppi: AK4PFPuppi
     2022_postEE:
@@ -456,6 +604,22 @@ jets_calibration:
       AK4PFchs: 
         - AK4PFchs  
         - AK4CorrT1METJetchs
+    2016_PreVFP_v15:
+      AK4PFPuppi: 
+        - AK4PFPuppi
+        - AK4CorrT1METJetPuppi
+    2016_PostVFP_v15:
+      AK4PFPuppi: 
+        - AK4PFPuppi
+        - AK4CorrT1METJetPuppi
+    "2017_v15":
+      AK4PFPuppi: 
+        - AK4PFPuppi
+        - AK4CorrT1METJetPuppi
+    "2018_v15":
+      AK4PFPuppi: 
+        - AK4PFPuppi
+        - AK4CorrT1METJetPuppi
     2022_preEE:
       AK4PFPuppi: 
         - AK4PFPuppi
@@ -494,6 +658,26 @@ jets_calibration:
     "2018":
       AK4PFchs: True
       AK8PFPuppi: True    
+    2016_PreVFP_v15:
+      AK4PFPuppi: True
+      AK8PFPuppi: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+    2016_PostVFP_v15:
+      AK4PFPuppi: True
+      AK8PFPuppi: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True  
+    "2017_v15":
+      AK4PFPuppi: True
+      AK8PFPuppi: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+    "2018_v15":
+      AK4PFPuppi: True
+      AK8PFPuppi: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
     2022_preEE:
       AK4PFPuppi: True
       AK8PFPuppi: True
@@ -537,6 +721,26 @@ jets_calibration:
       AK8PFPuppi: True
     "2018": 
       AK4PFchs: True
+      AK8PFPuppi: True
+    2016_PreVFP_v15: 
+      AK4PFPuppi: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+      AK8PFPuppi: True
+    2016_PostVFP_v15: 
+      AK4PFPuppi: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+      AK8PFPuppi: True
+    "2017_v15": 
+      AK4PFPuppi: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+      AK8PFPuppi: True
+    "2018_v15": 
+      AK4PFPuppi: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
       AK8PFPuppi: True
     2022_preEE: 
       AK4PFPuppi: True
@@ -582,6 +786,26 @@ jets_calibration:
     "2018": 
       AK4PFchs: True
       AK8PFPuppi: True
+    2016_PreVFP_v15: 
+      AK4PFPuppi: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+      AK8PFPuppi: True
+    2016_PostVFP_v15: 
+      AK4PFPuppi: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+      AK8PFPuppi: True
+    "2017_v15": 
+      AK4PFPuppi: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+      AK8PFPuppi: True
+    "2018_v15": 
+      AK4PFPuppi: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+      AK8PFPuppi: True
     2022_preEE: 
       AK4PFPuppi: True
       AK4PFPuppiPNetRegression: True
@@ -626,6 +850,26 @@ jets_calibration:
     "2018": 
       AK4PFchs: False
       AK8PFPuppi: False
+    2016_PreVFP_v15: 
+      AK4PFPuppi: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+      AK8PFPuppi: True
+    2016_PostVFP_v15: 
+      AK4PFPuppi: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+      AK8PFPuppi: True
+    "2017_v15": 
+      AK4PFPuppi: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+      AK8PFPuppi: True
+    "2018_v15": 
+      AK4PFPuppi: True
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+      AK8PFPuppi: True
     2022_preEE: 
       AK4PFPuppi: True
       AK4PFPuppiPNetRegression: True
@@ -675,6 +919,30 @@ jets_calibration:
       AK4PFchs: False
       AK8PFPuppi: False
       AK4CorrT1METJetchs: False
+    2016_PreVFP_v15: 
+      AK4PFPuppi: False
+      AK8PFPuppi: False
+      AK4CorrT1METJetPuppi: False
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+    2016_PostVFP_v15: 
+      AK4PFPuppi: False
+      AK8PFPuppi: False
+      AK4CorrT1METJetPuppi: False
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+    "2017_v15": 
+      AK4PFPuppi: False
+      AK8PFPuppi: False
+      AK4CorrT1METJetPuppi: False
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+    "2018_v15": 
+      AK4PFPuppi: False
+      AK8PFPuppi: False
+      AK4CorrT1METJetPuppi: False
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
     2022_preEE: 
       AK4PFPuppi: False
       AK8PFPuppi: False
@@ -729,6 +997,30 @@ jets_calibration:
       AK4PFchs: False
       AK8PFPuppi: False
       AK4CorrT1METJetchs: False
+    2016_PreVFP_v15: 
+      AK4PFPuppi: False
+      AK8PFPuppi: False
+      AK4CorrT1METJetPuppi: False
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+    2016_PostVFP_v15: 
+      AK4PFPuppi: False
+      AK8PFPuppi: False
+      AK4CorrT1METJetPuppi: False
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+    "2017_v15": 
+      AK4PFPuppi: False
+      AK8PFPuppi: False
+      AK4CorrT1METJetPuppi: False
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+    "2018_v15": 
+      AK4PFPuppi: False
+      AK8PFPuppi: False
+      AK4CorrT1METJetPuppi: False
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
     2022_preEE: 
       AK4PFPuppi: False
       AK8PFPuppi: False
@@ -775,6 +1067,14 @@ jets_calibration:
       AK8PFPuppi: False
     "2018": 
       AK8PFPuppi: False
+    2016_PreVFP_v15: 
+      AK8PFPuppi: True
+    2016_PostVFP_v15: 
+      AK8PFPuppi: True
+    "2017_v15": 
+      AK8PFPuppi: True
+    "2018_v15": 
+      AK8PFPuppi: True
     2022_preEE:
       AK8PFPuppi: True
     2022_postEE: 
@@ -795,6 +1095,14 @@ jets_calibration:
       AK8PFPuppi: False
     "2018": 
       AK8PFPuppi: False
+    2016_PreVFP_v15: 
+      AK8PFPuppi: True
+    2016_PostVFP_v15: 
+      AK8PFPuppi: True
+    "2017_v15": 
+      AK8PFPuppi: True
+    "2018_v15": 
+      AK8PFPuppi: True
     2022_preEE:
       AK8PFPuppi: True
     2022_postEE: 

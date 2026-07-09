@@ -25,6 +25,18 @@ jet_scale_factors:
         '2018':
             file: ${cvmfs:Run2-2018-UL-NanoAODv9,BTV,btagging.json.gz,2025-08-19}
             name: "deepJet_shape"
+        '2016_PreVFP_v15':
+            file: ${cvmfs:Run2-2016postVFP-UL-NanoAODv15,BTV,btagging.json.gz}
+            name: "UParTAK4"
+        '2016_PostVFP_v15':
+            file: ${cvmfs:Run2-2016preVFP-UL-NanoAODv15,BTV,btagging.json.gz}
+            name: "UParTAK4"
+        '2017_v15':
+            file: ${cvmfs:Run2-2017-UL-NanoAODv15,BTV,btagging.json.gz}
+            name: "UParTAK4"
+        '2018_v15':
+            file: ${cvmfs:Run2-2018-UL-NanoAODv15,BTV,btagging.json.gz}
+            name: "UParTAK4"
         '2022_preEE':
             file: ${cvmfs:Run3-22CDSep23-Summer22-NanoAODv12,BTV,btagging.json.gz,2025-08-20}
             name: "deepJet_shape"
@@ -45,7 +57,8 @@ jet_scale_factors:
             name: "UParTAK4"            
 
     ctagSF:
-      # DeepJet AK4 tagger shape SF
+      # DeepJet AK4 tagger shape SF 
+      #Still missing v15
       '2016_PreVFP':
         SF_file: ${cvmfs:Run2-2016preVFP-UL-NanoAODv9,BTV,ctagging.json.gz,2025-08-19}
         Calib_file: "${default_params_dir:}/ctagSF_calibrationSF.json"
@@ -119,8 +132,48 @@ jet_scale_factors:
                 M: 6
                 T: 7
             name: PUJetID_eff
+        '2016_PreVFP_v15':
+            file: ${cvmfs:Run2-2016preVFP-UL-NanoAODv9,JME,jmar.json.gz}
+            working_point:
+                L: 1
+                M: 3
+                T: 7
+            name: PUJetID_eff
+        '2016_PostVFP_v15':
+            file: ${cvmfs:Run2-2016postVFP-UL-NanoAODv9,JME,jmar.json.gz}
+            working_point:
+                L: 1
+                M: 3
+                T: 7
+            name: PUJetID_eff
+        '2017_v15':
+            file: ${cvmfs:Run2-2017-UL-NanoAODv9,JME,jmar.json.gz}
+            working_point:
+                L: 4
+                M: 6
+                T: 7
+            name: PUJetID_eff
+        '2018_v15':
+            file: ${cvmfs:Run2-2018-UL-NanoAODv9,JME,jmar.json.gz}
+            working_point:
+                L: 4
+                M: 6
+                T: 7
+            name: PUJetID_eff
 
     vetomaps:
+        2016_PreVFP_v15:    #https://cms-analysis-corrections.docs.cern.ch/corrections_era/Run2-2016preVFP-UL-NanoAODv15/JME/2026-06-05/#jetvetomapsjsongz
+            file: ${cvmfs:Run2-2016preVFP-UL-NanoAODv15,JME,jetvetomaps.json.gz}
+            name: "Summer19UL16_V1"
+        2016_PostVFP_v15:   #https://cms-analysis-corrections.docs.cern.ch/corrections_era/Run2-2016postVFP-UL-NanoAODv15/JME/2026-06-05/#jetvetomapsjsongz
+            file: ${cvmfs:Run2-2016postVFP-UL-NanoAODv15,JME,jetvetomaps.json.gz}
+            name: "Summer19UL16_V1"
+        2017_v15:           #https://cms-analysis-corrections.docs.cern.ch/corrections_era/Run2-2017-UL-NanoAODv15/JME/2026-06-05/#jetvetomapsjsongz
+            file: ${cvmfs:Run2-2017-UL-NanoAODv15,JME,jetvetomaps.json.gz}
+            name: "Summer19UL17_V1"
+        2018_v15:           #https://cms-analysis-corrections.docs.cern.ch/corrections_era/Run2-2018-UL-NanoAODv15/JME/2026-06-05/#jetvetomapsjsongz
+            file: ${cvmfs:Run2-2018-UL-NanoAODv15,JME,jetvetomaps.json.gz}
+            name: "Summer19UL18_V1"
         '2022_preEE':
             file: ${cvmfs:Run3-22CDSep23-Summer22-NanoAODv12,JME,jetvetomaps.json.gz,2026-06-05}
             name: "Summer22_23Sep2023_RunCD_V1"

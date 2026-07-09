@@ -26,6 +26,34 @@
       RawMET_collection: "RawMET"
       MET_collection: "MET"
       CorrT1METJet_collection: "CorrT1METJet"
+      Jet_collection: "Jet"    
+    2016_PreVFP_v15:
+      apply_MC: True
+      apply_data: False
+      RawMET_collection: "RawPuppiMET"
+      MET_collection: "PuppiMET"
+      CorrT1METJet_collection: "CorrT1METJet"
+      Jet_collection: "Jet"
+    2016_PostVFP_v15:
+      apply_MC: True
+      apply_data: False
+      RawMET_collection: "RawPuppiMET"
+      MET_collection: "PuppiMET"
+      CorrT1METJet_collection: "CorrT1METJet"
+      Jet_collection: "Jet"
+    "2017_v15":
+      apply_MC: True
+      apply_data: False
+      RawMET_collection: "RawPuppiMET"
+      MET_collection: "PuppiMET"
+      CorrT1METJet_collection: "CorrT1METJet"
+      Jet_collection: "Jet"
+    "2018_v15": 
+      apply_MC: True
+      apply_data: False
+      RawMET_collection: "RawPuppiMET"
+      MET_collection: "PuppiMET"
+      CorrT1METJet_collection: "CorrT1METJet"
       Jet_collection: "Jet"
     2022_preEE:   
       apply_MC: True
