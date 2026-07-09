@@ -16,6 +16,7 @@ from omegaconf import OmegaConf
 from pocket_coffea.lib.muon_scale_and_resolution import pt_scale, pt_resol, pt_scale_var, pt_resol_var
 from pocket_coffea.utils.utils import get_nano_version
 import correctionlib
+from pocket_coffea.lib.correction_cache import load_correction_set
 
 class JetsCalibrator(Calibrator):
     """
@@ -843,7 +844,7 @@ class MuonsCalibrator(Calibrator):
             return
 
         self.enabled = True
-        self.cset = correctionlib.CorrectionSet.from_file(
+        self.cset = load_correction_set(
             self.mscare_params.correctionlib_config[self._year]["file"]
         )
 

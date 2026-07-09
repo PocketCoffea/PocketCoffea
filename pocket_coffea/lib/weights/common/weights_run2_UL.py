@@ -1,5 +1,6 @@
 import awkward as ak
 import correctionlib
+from pocket_coffea.lib.correction_cache import load_correction_set
 import numpy as np
 
 from ..weights import WeightData, WeightDataMultiVariation, WeightLambda, WeightWrapper
@@ -15,7 +16,7 @@ def get_ele_trigger_sf(params, year, pt, eta, phi, counts, variations):
 
     electronSF = params["lepton_scale_factors"]["electron_sf"]
 
-    electron_correctionset = correctionlib.CorrectionSet.from_file(
+    electron_correctionset = load_correction_set(
         electronSF.trigger_sf[year]["file"]
     )
     map_name = electronSF.trigger_sf[year]["name"]
