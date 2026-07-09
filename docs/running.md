@@ -437,7 +437,8 @@ A few caveats worth knowing about:
   `condor_submit jobs_all.sub` call submits everything regardless of whether
   the resolved values are uniform or vary across jobs. The per-job `.sub`
   files are still written and individually carry the right chunksize, so
-  `--recreate-jobs` of an individual job works without any special handling.
+  recreating an individual job with `check-jobs --recreate` works without any
+  special handling.
 - **Unknown dict keys produce a warning** listing the samples actually
   present in the current fileset, so typos surface immediately.
 
@@ -455,95 +456,17 @@ This is currently implemented for the manual-job executors (`condor@lxplus`,
   proxy, and the wrapper `job.sh` to the worker. The PocketCoffea code is taken from
   the container image (`worker-image`) — you don't need to ship your local checkout
   unless `local-virtualenv: true` is set.
-- For resubmitting only a subset of jobs (e.g. after failures), see the next section.
+- For resubmitting or recreating a subset of jobs (e.g. after failures), see the
+  [`check-jobs`](#monitor-and-resubmit-jobs-with-check-jobs) section below.
 
-### Recreate jobs on manual-job executors
-
-The HTCondor-based manual-job executors (`condor@lxplus`, `condor@rubin`, ...) submit one
-HTCondor job per chunk-group and pickle the per-job `Configurator` to
-`jobs_dir/config_job_{i}.pkl`. To resubmit a subset of these jobs without re-running the
-splitting, use `--recreate-jobs`:
-
-```bash
-# Resubmit specific jobs
-pocket-coffea run --cfg config.py -o output/ --executor condor \
-    --recreate-jobs 0,1,3
-
-# Or auto-detect failed/idle/running jobs from the .failed/.idle/.running flag files
-pocket-coffea run --cfg config.py -o output/ --executor condor --recreate-jobs auto
-```
-
-By default the fileset stored in the pickle is reused as-is, except for jobs whose logs
-contain an `XRootD error` — those have each input file rewritten to an alternate site
-(via a Rucio `list_replicas` lookup).
-
-Use `--blocklist-sites` together with `--recreate-jobs` to proactively migrate every
-file currently served by one of the listed sites:
-
-```bash
-pocket-coffea run --cfg config.py -o output/ --executor condor \
-    --recreate-jobs auto --blocklist-sites T1_DE_KIT,T2_US_FNAL
-```
-
-For each input file whose redirector matches a blocklisted site, Rucio is queried for an
-alternative replica at a non-blocklisted site. If none is found, the file is rewritten to
-use the global xrootd redirector (`root://xrootd-cms.infn.it//`) instead of keeping the
-blocklisted URL. Files at non-blocklisted sites are left untouched, and file order is
-preserved. The original `jobs_config.yaml` is not modified — only the per-job pickle.
-
-:::{note}
-`--recreate-jobs` is locked to the fileset that was pickled at submission time; it does
-not re-read the dataset JSON. If you want to incorporate new files or new sites, rebuild
-the dataset with `build-datasets` (optionally with `--blocklist-sites`) and resubmit from
-scratch.
-:::
-
-#### Change the HTCondor queue on resubmit
-
-Use `--recreate-queue <queue>` together with `--recreate-jobs` to rewrite the
-`+JobFlavour` of every resubmitted `.sub` file before sending it to HTCondor. This is
-the right knob when the original queue was too short (jobs are getting killed by
-`SYSTEM_PERIODIC_REMOVE`) or too long (you want to push a few stragglers into
-`espresso` to grab a worker faster):
-
-```bash
-# Move the failed jobs from their original queue to "workday"
-pocket-coffea run --cfg config.py -o output/ --executor condor \
-    --recreate-jobs auto --recreate-queue workday
-```
-
-Known values are `espresso`, `microcentury`, `longlunch`, `workday`, `tomorrow`,
-`testmatch`, `nextweek`. Unknown values are written verbatim and produce a warning —
-useful for site-specific queues but easy to typo. The explicit `--recreate-queue`
-overrides the implicit one-step bump that `--recreate-jobs auto` would otherwise apply
-to jobs found in the `.running` state.
-
-#### Route every file through the global xrootd redirector
-
-When many sites are flaky and you don't want to spend time on per-file Rucio lookups,
-use `--use-redirector` to rewrite **every** file in the resubmitted jobs to use the
-global xrootd redirector (`root://xrootd-cms.infn.it//`), letting xrootd figure out
-routing on the fly:
-
-```bash
-pocket-coffea run --cfg config.py -o output/ --executor condor \
-    --recreate-jobs auto --use-redirector
-```
-
-This is the fastest recovery path: no Rucio client opened, no DAS query, no
-per-sample dependency. It also takes precedence over `--blocklist-sites` — if both
-are passed, `--use-redirector` wins and a warning is printed (since the blocklist
-becomes meaningless once everything is going through the global redirector). Files
-whose URLs don't carry a recognisable `/store/...` LFN are left untouched.
-
-#### Forwarding Coffea-Runner options to the inner job
+### Forwarding Coffea-Runner options to the inner job
 
 By default the inner `pocket-coffea run` that runs **inside each condor job**
 re-derives its `run_options` from the YAML defaults only — your outer
 `--custom-run-options` YAML is consumed by the submitter but is *not* shipped
-to the worker. To bridge that gap, the manual-job executor now writes
-`jobs_dir/inner_run_options.yaml` at submit (and `--recreate-jobs`) time, ships
-it via `transfer_input_files`, and the wrapper passes
+to the worker. To bridge that gap, the manual-job executor writes
+`jobs_dir/inner_run_options.yaml` at submit time, ships it via
+`transfer_input_files`, and the wrapper passes
 `--custom-run-options inner_run_options.yaml` to the inner call.
 
 The YAML is whitelist-filtered to a small set of *Coffea-Runner-side* keys —
@@ -557,37 +480,42 @@ Outer-only keys (`cores-per-worker`, `mem-per-worker`, `worker-image`, `queue`,
 they describe how the outer HTCondor jobs are sized and scheduled, and have no
 meaning inside the worker.
 
-The two most useful CLI flags that hit this channel today:
+The most useful CLI flag that hits this channel today is `--skip-bad-files`:
 
 ```bash
 # Make every chunk-level read-error survivable, both on the submitter and inside the job
 pocket-coffea run --cfg config.py -o output/ --executor condor@lxplus --skip-bad-files
 
-# Same thing applied retroactively to an existing jobs_dir
-pocket-coffea run --cfg config.py -o output/ --executor condor@lxplus \
-    --recreate-jobs auto --skip-bad-files
+# Apply it retroactively to an already-submitted jobs_dir (see check-jobs --recreate below)
+pocket-coffea check-jobs -j output/job --recreate auto --skip-bad-files
 ```
 
-In the recreate-jobs flow, `inner_run_options.yaml` is **rewritten** from the
-outer `run_options`, and `job.sh` plus each resubmitted `.sub` are
-idempotently patched to reference it. An existing jobs_dir produced before
-this feature shipped therefore picks it up on the first `--recreate-jobs`
-call without a fresh submission.
+When `check-jobs --recreate --skip-bad-files` runs, `inner_run_options.yaml` is
+**rewritten** and `job.sh` plus each resubmitted `.sub` are idempotently patched to
+reference it — so a jobs_dir produced before this feature shipped picks it up
+without a fresh submission.
 
-### Monitor and auto-resubmit jobs with `check-jobs`
+### Monitor and (re)submit jobs with `check-jobs`
 
-`pocket-coffea check-jobs` is a live monitoring tool for the manual-job executors.
-It polls a `jobs_dir/` every few seconds, prints a rich summary of how many jobs are
-idle / running / done / failed (using the `.idle / .running / .done / .failed` flag
-files written by the wrapper script), and can optionally drive resubmission of failed
-jobs in place — without having to call `pocket-coffea run --recreate-jobs` yourself.
+`pocket-coffea check-jobs` is the monitoring **and** (re)submission tool for the
+manual-job executors. It polls a `jobs_dir/` every few seconds, prints a rich summary
+of how many jobs are idle / running / done / failed (using the
+`.idle / .running / .done / .failed` flag files written by the wrapper script), and can
+drive resubmission of jobs in place — both reactively (babysit a run and resubmit
+failures as they appear) and proactively (one-shot recreate of a chosen set of jobs).
+It is the single home for manual-job resubmission; there is no `pocket-coffea run
+--recreate-jobs` any more.
 
 ```bash
 # Just watch the jobs (read-only)
 pocket-coffea check-jobs -j /path/to/output/job
 
-# Watch + auto-resubmit failed jobs as they appear
+# Watch + auto-resubmit failed jobs as they appear (babysitter loop)
 pocket-coffea check-jobs -j /path/to/output/job --resubmit
+
+# One-shot: recreate specific jobs (or 'auto' = all failed/running/idle) and exit
+pocket-coffea check-jobs -j /path/to/output/job --recreate 0,1,3
+pocket-coffea check-jobs -j /path/to/output/job --recreate auto --use-redirector
 ```
 
 If you point `-j` at the parent output directory and it contains a single subfolder
@@ -604,6 +532,48 @@ called `job`, the tool descends into it automatically.
 | `-b, --blacklist-threshold` | `3` | After this many XRootD failures coming from the same site, that site is added to a local blacklist for the rest of the session. |
 | `-q, --queue-shift` | `1` | When HTCondor aborts a job with `SYSTEM_PERIODIC_REMOVE` (max time exceeded), bump its `+JobFlavour` by this many steps along `espresso → microcentury → longlunch → workday → tomorrow → testmatch → nextweek` before resubmitting. |
 | `--by sample\|dataset\|none` | `sample` | Show a per-group progress table below the summary, with a stacked coloured bar (green=done, magenta=running, blue=idle, red=failed) and a `% Done` column sorted from slowest to fastest sample. Requires `jobs_config.yaml` in the jobs folder (written by the manual-job executors); pass `none` to disable. If the YAML is missing the tool silently falls back to the legacy single-table layout. |
+| `--recreate SELECTOR` | — | One-shot proactive recreate/resubmit of a chosen set of jobs, then exit (unless `--resubmit` is also given). `SELECTOR` is `auto` (all `.failed`/`.running`/`.idle` jobs) or a comma list (`0,1,3` or `job_0,job_3`). Unlike `--resubmit`, this can act on running/idle jobs, e.g. to move everything off a site or onto the redirector mid-run. See [One-shot / proactive recreate](#one-shot-proactive-recreate). |
+| `--once` | off | Run a single monitor/resubmit iteration then exit, instead of looping until all jobs finish. |
+| `--use-redirector` | off | Rewrite files through the global xrootd redirector (`root://xrootd-cms.infn.it//`). With `--recreate`, every file of each recreated job is pointed at the redirector (no Rucio lookups); in the `--resubmit` loop it is the fallback used when no alternative site is found for a failed file. Takes precedence over `--blocklist-sites`. |
+| `--blocklist-sites` | — | Comma-separated CMS site names (or xrootd prefixes) to avoid, **unioned** with the automatic count-based blacklist. Files at a blocklisted site are rewritten to an alternative replica via Rucio. |
+| `--recreate-queue` | — | Force each resubmitted job's HTCondor `+JobFlavour` to this queue (`espresso` … `nextweek`). Overrides the implicit `--queue-shift` bump for jobs removed due to time limit. |
+| `--skip-bad-files` | off | Retroactively enable Coffea's skip-bad-files in the inner job by (re)materialising `inner_run_options.yaml` and patching the jobs_dir. Most useful with `--recreate`. |
+
+#### One-shot / proactive recreate
+
+`--recreate` runs a single pass over a chosen set of jobs and then exits (or, with
+`--resubmit`, continues into the babysitter loop afterwards). Unlike `--resubmit` — which
+only reacts to jobs that have *already* failed — `--recreate` can act on `.running` and
+`.idle` jobs too, which is what you want when you decide mid-run to move everything off a
+flaky site or straight onto the global xrootd redirector.
+
+```bash
+# Recreate specific jobs, forcing them onto a longer HTCondor queue
+pocket-coffea check-jobs -j output/job --recreate 0,1,3 --recreate-queue longlunch
+
+# Recreate every non-done job, routing all files through the global redirector
+pocket-coffea check-jobs -j output/job --recreate auto --use-redirector
+
+# Recreate + then babysit the resubmitted jobs
+pocket-coffea check-jobs -j output/job --recreate auto --blocklist-sites T1_DE_KIT --resubmit
+```
+
+For each job the **original** fileset is taken from `jobs_config.yaml` (so repeated
+recreates don't compound), then rewritten: with `--use-redirector` every file is pointed
+at `root://xrootd-cms.infn.it//` (no Rucio); otherwise jobs whose `logs/*.err` contain an
+`XRootD error` get a per-file alternate-site lookup, and any `--blocklist-sites` files are
+migrated to a non-blocklisted replica (falling back to the redirector if none is found).
+The rewritten fileset is written back into `config_job_{i}.pkl`; the original
+`jobs_config.yaml` is untouched. `--recreate-queue` rewrites the `+JobFlavour` of each
+`.sub` (overriding the implicit one-step bump applied to `.running` jobs).
+
+:::{note}
+`--recreate` is locked to the fileset that was pickled in `jobs_config.yaml` at submission
+time; it does not re-read the dataset JSON. To incorporate new files or new sites, rebuild
+the dataset with `build-datasets` and resubmit from scratch. The queue rewrite only applies
+to pools that schedule by `+JobFlavour` (lxplus); the rubin/UMD pool uses `+MaxRuntime`, so
+queue bumping is a no-op there.
+:::
 
 #### What `--resubmit` actually does
 
@@ -617,14 +587,14 @@ For every job whose flag file is `.failed`, `check-jobs` inspects
   `config_job_{i}.pkl` is updated in place. The original log is moved under
   `jobs_dir/logs/processedlogs/` so the same failure is not counted twice.
 - **Recurring failures from the same site**: once a site has produced more than
-  `--blacklist-threshold` failed reads, it is added to an in-memory blacklist and
-  *every* file in the failed job's config that lives at a blacklisted site is
-  proactively migrated, not just the one that failed.
+  `--blacklist-threshold` failed reads, it is added to an in-memory blacklist (unioned
+  with any explicit `--blocklist-sites`) and *every* file in the failed job's config
+  that lives at a blacklisted site is proactively migrated, not just the one that failed.
 - **HTCondor max-time abort** (`SYSTEM_PERIODIC_REMOVE` in the `.log` file): the job's
-  `.sub` file is rewritten with the next `+JobFlavour` queue (per `--queue-shift`),
-  the job is marked failed, and the next poll picks it up for resubmission. The
-  cluster/proc-id is remembered in `jobs_dir/maxtime.txt` so the same abort is not
-  bumped again.
+  `.sub` file is rewritten with the next `+JobFlavour` queue (per `--queue-shift`, or
+  forced to `--recreate-queue` if set), the job is marked failed, and the next poll picks
+  it up for resubmission. The cluster/proc-id is remembered in `jobs_dir/maxtime.txt` so
+  the same abort is not bumped again.
 
 After patching, the script issues `condor_submit job_{i}.sub`, removes the `.failed`
 flag, and touches `.idle`.
@@ -641,12 +611,11 @@ Use `Ctrl-C` to detach at any time — the script does not own the jobs, so leav
 just stops monitoring.
 
 :::{note}
-`check-jobs --resubmit` and `pocket-coffea run --recreate-jobs` overlap in
-functionality but are aimed at different workflows: `check-jobs` is a long-running
-"babysitter" that reacts to failures as they happen, while `--recreate-jobs` is a
-one-shot, manual operation you trigger after looking at the state of `jobs_dir/`.
-Pick one or the other for a given run — running both at the same time will produce
-duplicate `condor_submit` calls.
+The babysitter loop (`--resubmit`) rewrites `config_job_{i}.pkl` incrementally as it
+reacts to one failed file at a time, whereas the one-shot `--recreate` pass re-derives
+each fileset from scratch out of `jobs_config.yaml`. Both are safe on the same jobs_dir,
+but avoid running two `check-jobs --resubmit`/`--recreate` processes against the same
+directory at once — they would issue duplicate `condor_submit` calls.
 :::
 
 ### Merging skim outputs with a skipped input file

@@ -64,9 +64,9 @@ def ensure_job_sh_forwards_inner_yaml(job_sh_path,
     invoked with `--custom-run-options inner_run_options.yaml`.
 
     No-op when the wrapper already references the YAML. Used by
-    `--recreate-jobs` so an existing jobs_dir (whose wrapper predates this
-    feature) starts honouring inner run-options without a fresh
-    submission.
+    `check-jobs --recreate --skip-bad-files` so an existing jobs_dir (whose
+    wrapper predates this feature) starts honouring inner run-options without
+    a fresh submission.
 
     Returns True when the file was modified, False when already up-to-date.
     """
@@ -128,13 +128,11 @@ class ExecutorFactoryManualABC(ABC):
         self.run_options = run_options
         self.job_name = run_options.get("job-name", "job")
         self.jobs_dir = os.path.join(run_options.get("jobs-dir", outputdir), self.job_name)
-        recreate_jobs = run_options.get("recreate-jobs", None)
-        if not recreate_jobs:
-            if  os.path.exists(self.jobs_dir):
-                print(f"Jobs directory {self.jobs_dir} already exists. Please clean it up before running the jobs.")
-                exit(1)
-            else:
-                os.makedirs(self.jobs_dir)
+        if os.path.exists(self.jobs_dir):
+            print(f"Jobs directory {self.jobs_dir} already exists. Please clean it up before running the jobs.")
+            exit(1)
+        else:
+            os.makedirs(self.jobs_dir)
         self.setup()
         # If handles_submission == True, the executor is responsible for submitting the job
         self.handles_submission = True
@@ -182,17 +180,12 @@ class ExecutorFactoryManualABC(ABC):
         self.config = config
         self.outputdir = outputdir
         self.filesets = filesets
-        if jobs_to_recreate:=self.run_options.get("recreate-jobs", None):
-            # Don't run the splitting but read the jobs config, recreate the configurator
-            # and submit the jobs
-            self.recreate_jobs(jobs_to_recreate)
-        else:
-            splits = self.prepare_splitting(filesets)
-            # Save the per-job splits so submit_jobs can resolve per-job options
-            # (per-sample chunksize, etc.) without re-reading jobs_config.yaml.
-            self._splits = splits
-            job_configs = self.prepare_jobs(splits)
-            self.submit_jobs(job_configs)
+        splits = self.prepare_splitting(filesets)
+        # Save the per-job splits so submit_jobs can resolve per-job options
+        # (per-sample chunksize, etc.) without re-reading jobs_config.yaml.
+        self._splits = splits
+        job_configs = self.prepare_jobs(splits)
+        self.submit_jobs(job_configs)
 
     def prepare_splitting(self, filesets):
         '''Looking at the run options the fileset can be split in different ways.
@@ -387,8 +380,4 @@ class ExecutorFactoryManualABC(ABC):
 
     @abstractmethod
     def submit_jobs(self, jobs):
-        pass
-
-    @abstractmethod
-    def recreate_jobs(self, jobs):
         pass

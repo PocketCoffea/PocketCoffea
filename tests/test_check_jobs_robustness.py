@@ -30,7 +30,7 @@ def _ensure_rucio_importable():
 
 _ensure_rucio_importable()
 
-from pocket_coffea.scripts.check_jobs import bump_jobqueue, queues  # noqa: E402
+from pocket_coffea.scripts.check_jobs import bump_jobqueue, queues, set_queue  # noqa: E402
 
 
 def _write_sub(tmp_path, content):
@@ -60,3 +60,20 @@ def test_bump_without_jobflavour_returns_none(tmp_path):
     # Previously raised NameError on `return next_jf`.
     sub = _write_sub(tmp_path, "executable = job.sh\n+MaxRuntime = 3600\nqueue\n")
     assert bump_jobqueue(sub) is None
+
+
+def test_set_queue_forces_flavour(tmp_path):
+    sub = _write_sub(tmp_path, 'executable = job.sh\n+JobFlavour="espresso"\nqueue\n')
+    assert set_queue(sub, "longlunch") is True
+    assert '+JobFlavour="longlunch"' in open(sub).read()
+
+
+def test_set_queue_noop_when_already_set(tmp_path):
+    sub = _write_sub(tmp_path, '+JobFlavour="workday"\n')
+    assert set_queue(sub, "workday") is False
+    assert '+JobFlavour="workday"' in open(sub).read()
+
+
+def test_set_queue_without_jobflavour_returns_false(tmp_path):
+    sub = _write_sub(tmp_path, "executable = job.sh\n+MaxRuntime = 3600\nqueue\n")
+    assert set_queue(sub, "longlunch") is False
