@@ -7,6 +7,7 @@ exposes the index and metadata without loading histograms, and that the
 convert-output / merge --split write paths agree with the monolithic format.
 """
 
+import glob
 import os
 
 import numpy as np
@@ -170,3 +171,42 @@ def test_merge_save_split(mono, tmp_path):
     _save_output(mono, str(tmp_path / "m_mono.coffea"), "monolithic")
     assert not is_split_output(str(tmp_path / "m_mono.coffea"))
     _deep_equal(to_monolithic(sp), mono, "root")
+
+
+def test_split_output_by_category_all_formats(mono, split_path, tmp_path):
+    """split-output must read BOTH a monolithic and a split input and write
+    EITHER format when splitting by category. Regression: it was monolithic-only
+    (hardcoded coffea load/save), so it crashed on a split input and could never
+    emit the low-memory split format."""
+    from pocket_coffea.scripts.split_output import split_output
+
+    cats = set(mono["sumw"].keys())
+    for inp, in_label in [(FIXTURE, "mono_in"), (split_path, "split_in")]:
+        for out_fmt in ("monolithic", "split"):
+            tmpl = str(tmp_path / f"{in_label}_{out_fmt}.coffea")
+            split_output(inp, tmpl, by="category", ncategory_per_file=1,
+                         overwrite=True, output_format=out_fmt)
+            produced = sorted(glob.glob(str(tmp_path / f"{in_label}_{out_fmt}_category*.coffea")))
+            assert len(produced) == len(cats), (in_label, out_fmt, produced)
+            seen = set()
+            for p in produced:
+                assert is_split_output(p) == (out_fmt == "split"), (p, out_fmt)
+                d = to_monolithic(p)  # loads back regardless of format
+                seen.update(d["sumw"].keys())
+            # the union of per-category files reconstructs every category
+            assert seen == cats, (in_label, out_fmt)
+
+
+def test_split_output_by_year_reads_and_writes_split(mono, split_path, tmp_path):
+    """The by-year branch must also accept a split input and honour output_format."""
+    from pocket_coffea.scripts.split_output import split_output
+
+    years = set(mono["datasets_metadata"]["by_datataking_period"].keys())
+    tmpl = str(tmp_path / "yr.coffea")
+    split_output(split_path, tmpl, by="year", ncategory_per_file=8,
+                 overwrite=True, output_format="split")
+    produced = sorted(glob.glob(str(tmp_path / "yr_*.coffea")))
+    assert len(produced) == len(years)
+    for p in produced:
+        assert is_split_output(p)
+        to_monolithic(p)  # loads back
