@@ -1,37 +1,26 @@
-##THIS IS THE MuonScaRe.py from https://gitlab.cern.ch/cms-muonPOG/muonscarekit/-/tree/master/scripts?ref_type=heads
+## Vendored from the official CMS Muon POG MuonScaRe.py
+## Source: https://gitlab.cern.ch/cms-muonPOG/muonscarekit/-/blob/master/scripts/MuonScaRe.py
+##
+## The random smearing draw is now delegated to the ``RandomSmearing`` correction
+## (a correctionlib ``hashprng`` node keyed on event/lumi/phi) shipped inside the
+## muon_scalesmearing.json.gz, so it is reproducible and vectorized without any
+## Python-side RNG. This replaces the previous hand-rolled SeedSequence/MT19937 and
+## _hashed_uniform(splitmix64) implementations.
+##
+## Local deviations from upstream (kept minimal so future syncs stay trivial):
+##   * The upstream ``import_ROOT`` helper is dropped -- it is dead code here (ROOT is
+##     never called) and we keep the module ROOT-free.
+##   * ``filter_boundaries`` defaults to ``silent=True`` to avoid per-chunk log spam
+##     when running over full coffea datasets.
 
 import numpy as np
 import math
 from scipy.special import erfinv, erf
-from random import random
 import awkward as ak
 
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
-def _splitmix64(z):
-    """Vectorized splitmix64 finalizer: a strong avalanche mix of a uint64 array."""
-    z = (z ^ (z >> np.uint64(30))) * np.uint64(0xBF58476D1CE4E5B9)
-    z = (z ^ (z >> np.uint64(27))) * np.uint64(0x94D049BB133111EB)
-    return z ^ (z >> np.uint64(31))
-
-
-def _hashed_uniform(evtNr, lumiNr, phi_int):
-    """Reproducible uniform in [0,1) per muon, derived from (event, lumi, phi) with a fully
-    vectorized 64-bit hash. This replaces the per-muon SeedSequence + MT19937 construction
-    and mixes ALL three entropy words, so muons in the same event get independent draws
-    (the previous scalar SeedSequence.generate(1) mixed only the event word, giving every
-    muon in an event the same draw)."""
-    ev = np.asarray(evtNr).astype(np.uint64)
-    lumi = np.asarray(lumiNr).astype(np.uint64)
-    phi = np.asarray(phi_int).astype(np.uint64)
-    with np.errstate(over="ignore"):  # uint64 multiply/add wrap on purpose
-        key = _splitmix64(ev * np.uint64(0x9E3779B97F4A7C15)
-                          + lumi * np.uint64(0xC2B2AE3D27D4EB4F)
-                          + phi * np.uint64(0x165667B19E3779F9))
-        key = _splitmix64(key)
-    # top 53 bits -> double in [0, 1)
-    return (key >> np.uint64(11)) * (1.0 / (1 << 53))
 
 class CrystallBall:
 
@@ -69,7 +58,7 @@ class CrystallBall:
         x = ak.Array(x)
         d = (x - self.m)/self.s
         result = ak.full_like(d, 1.0)
-        
+
         # define different conditions
         c1a = (d<-self.a) & (self.F - self.s * d / self.G > 0)
         c1b = (d<-self.a) & (self.F - self.s * d / self.G <= 0)
@@ -78,24 +67,24 @@ class CrystallBall:
 
         c3 = ~c1a & ~c1b & ~c2a & ~c2b
         # For d < -a
-        result = ak.where(c1a, 
-                        self.NC / np.power(self.F - self.s * d / self.G, self.n - 1), 
+        result = ak.where(c1a,
+                        self.NC / np.power(self.F - self.s * d / self.G, self.n - 1),
                         result)
-        result = ak.where(c1b, 
-                        self.NC, 
+        result = ak.where(c1b,
+                        self.NC,
                         result)
 
         # For d > a
-        result = ak.where(c2a, 
-                        self.NC * (self.C - np.power(self.F + self.s * d / self.G, 1 - self.n)), 
+        result = ak.where(c2a,
+                        self.NC * (self.C - np.power(self.F + self.s * d / self.G, 1 - self.n)),
                         result)
-        result = ak.where(c2b, 
-                        self.NC * self.C, 
+        result = ak.where(c2b,
+                        self.NC * self.C,
                         result)
 
         # For -a <= d <= a
-        result = ak.where(c3, 
-                        self.Ns * (self.D - self.sqrtPiOver2 * erf(-d / self.sqrt2)), 
+        result = ak.where(c3,
+                        self.Ns * (self.D - self.sqrtPiOver2 * erf(-d / self.sqrt2)),
                         result)
 
         return result
@@ -112,30 +101,30 @@ class CrystallBall:
         c3 = ~c1a & ~c1b & ~c2a & ~c2b
 
         # For u < cdfMa
-        result = ak.where(c1a, 
-                        self.m + self.G * (self.F - (self.NC / u) ** self.k), 
+        result = ak.where(c1a,
+                        self.m + self.G * (self.F - (self.NC / u) ** self.k),
                         result)
-        result = ak.where(c1b, 
-                        self.m + self.G * self.F, 
+        result = ak.where(c1b,
+                        self.m + self.G * self.F,
                         result)
 
         # For u > cdfPa
-        result = ak.where(c2a, 
-                        self.m - self.G * (self.F - (self.C - u / self.NC) ** (-self.k)), 
+        result = ak.where(c2a,
+                        self.m - self.G * (self.F - (self.C - u / self.NC) ** (-self.k)),
                         result)
-        result = ak.where(c2b, 
-                        self.m - self.G * self.F, 
+        result = ak.where(c2b,
+                        self.m - self.G * self.F,
                         result)
 
         # For cdfMa <= u <= cdfPa
-        result = ak.where(c3, 
-                        self.m - self.sqrt2 * self.s * erfinv((self.D - u / self.Ns) / self.sqrtPiOver2), 
+        result = ak.where(c3,
+                        self.m - self.sqrt2 * self.s * erfinv((self.D - u / self.Ns) / self.sqrtPiOver2),
                         result)
 
         return result
 
 
-def get_rndm(eta, phi, nL, evtNr, lumiNr, cset, nested=False, rnd_gen="root"):
+def get_rndm(eta, phi, nL, evtNr, lumiNr, cset, nested=False):
     # obtain parameters from correctionlib
     if nested:
         eta_f, phi_f, nL_f, nmuons = ak.flatten(eta), ak.flatten(phi), ak.flatten(nL), ak.num(nL)
@@ -143,20 +132,15 @@ def get_rndm(eta, phi, nL, evtNr, lumiNr, cset, nested=False, rnd_gen="root"):
         lumiNr_f = np.repeat(np.asarray(lumiNr), nmuons)
     else:
         eta_f, phi_f, nL_f, nmuons = eta, phi, nL, np.ones_like(eta)
+        evtNr_f, lumiNr_f = evtNr, lumiNr
 
     mean_f = cset.get("cb_params").evaluate(abs(eta_f), nL_f, 0)
     sigma_f = cset.get("cb_params").evaluate(abs(eta_f), nL_f, 1)
     n_f = cset.get("cb_params").evaluate(abs(eta_f), nL_f, 2)
     alpha_f = cset.get("cb_params").evaluate(abs(eta_f), nL_f, 3)
 
-    phi_int_f = (((np.asarray(phi_f, dtype=np.float64) / math.pi) * (1 << 31 - 1) ).astype(np.int64) & 0xFFF).astype(np.uint32)
-
-    # Vectorized, reproducible per-muon uniform following the CB. Replaces the per-muon
-    # SeedSequence + MT19937 construction loops (rnd_gen is kept for backward compatibility
-    # but no longer selects the generator). NB: the drawn values differ from the old
-    # MT19937 path -- muon-smearing outputs are a different, equally valid noise realization
-    # -- and, unlike before, muons in the same event are smeared independently.
-    rndm_f = _hashed_uniform(evtNr_f, lumiNr_f, phi_int_f)
+    # get random number following the CB
+    rndm_f = cset.get("RandomSmearing").evaluate(evtNr_f, lumiNr_f, phi_f)
 
     cb_f = CrystallBall(mean_f, sigma_f, alpha_f, n_f)
 
@@ -176,7 +160,7 @@ def get_std(pt, eta, nL, cset, nested=False):
     else:
         eta_f, nL_f, pt_f, nmuons = eta, nL, pt, 1
 
-    # obtain parameters from correctionlib    
+    # obtain parameters from correctionlib
     param0_f = cset.get("poly_params").evaluate(abs(eta_f), nL_f, 0)
     param1_f = cset.get("poly_params").evaluate(abs(eta_f), nL_f, 1)
     param2_f = cset.get("poly_params").evaluate(abs(eta_f), nL_f, 2)
@@ -203,11 +187,11 @@ def get_k(eta, var, cset, nested=False):
     k_data_f = cset.get("k_data").evaluate(abs(eta_f), var)
     k_mc_f = cset.get("k_mc").evaluate(abs(eta_f), var)
 
-    # calculate residual smearing factor 
+    # calculate residual smearing factor
     # return 0 if smearing in MC already larger than in data
     k_f = np.zeros_like(k_data_f)
     condition = k_mc_f<k_data_f
-    k_f[condition] = (k_data_f[condition]**2 - k_mc_f[condition]**2)**.5
+    k_f = np.where(condition, (k_data_f**2 - k_mc_f**2)**.5, k_f)
 
     if nested:
         result = ak.unflatten(k_f, nmuons)
@@ -233,7 +217,7 @@ def filter_boundaries(pt_corr, pt, nested, low_pt_threshold = 26, silent=True):
     if n_pt_outside > 0:
         if not silent:
             print(
-                f"WARNING: There are {n_pt_outside} events with muon pt outside of [" + str(low_pt_threshold) + ",200] GeV. "
+                f"There are {n_pt_outside} events with muon pt outside of [" + str(low_pt_threshold) + ",200] GeV. "
                 "Setting those entries to their initial value."
             )
         pt_corr = np.where(pt>200, pt, pt_corr)
@@ -250,7 +234,7 @@ def filter_boundaries(pt_corr, pt, nested, low_pt_threshold = 26, silent=True):
     if n_nan > 0:
         if not silent:
             print(
-                f"WARNING: There are {n_nan} nan entries in the corrected pt. "
+                f"There are {n_nan} nan entries in the corrected pt. "
                 "This might be due to the number of tracker layers hitting boundaries. "
                 "Setting those entries to their initial value."
             )
@@ -259,10 +243,10 @@ def filter_boundaries(pt_corr, pt, nested, low_pt_threshold = 26, silent=True):
     return pt_corr
 
 
-def pt_resol(pt, eta, phi, nL, evtNr, lumiNr, cset, nested=False, low_pt_threshold = 26, rnd_gen="root"):
+def pt_resol(pt, eta, phi, nL, evtNr, lumiNr, cset, nested=False, low_pt_threshold = 26):
     """"
     Function for the calculation of the resolution correction
-    Input: 
+    Input:
     pt - muon transverse momentum
     eta - muon pseudorapidity
     nL - muon number of tracker layers
@@ -270,7 +254,7 @@ def pt_resol(pt, eta, phi, nL, evtNr, lumiNr, cset, nested=False, low_pt_thresho
 
     This function should only be applied to reco muons in MC!
     """
-    rndm = get_rndm(eta, phi, nL, evtNr, lumiNr, cset, nested, rnd_gen=rnd_gen)
+    rndm = get_rndm(eta, phi, nL, evtNr, lumiNr, cset, nested)
     std = get_std(pt, eta, nL, cset, nested)
     k = get_k(eta, "nom", cset, nested)
 
@@ -293,10 +277,10 @@ def pt_resol_var(pt_woresol, pt_wresol, eta, updn, cset, nested=False):
     eta - muon pseudorapidity
     updn - uncertainty variation (up or dn)
     cset - correctionlib object
-    
+
     This function should only be applied to reco muons in MC!
     """
-    
+
     if nested:
         eta_f, nmuons = ak.flatten(eta), ak.num(eta)
         pt_wresol_f, pt_woresol_f = ak.flatten(pt_wresol), ak.flatten(pt_woresol)
@@ -350,7 +334,7 @@ def pt_scale(is_data, pt, eta, phi, charge, cset, nested=False, low_pt_threshold
     charge - muon charge
     var - variation (standard is "nom")
     cset - correctionlib object
-    
+
     This function should be applied to reco muons in data and MC
     """
     if is_data:
@@ -362,13 +346,13 @@ def pt_scale(is_data, pt, eta, phi, charge, cset, nested=False, low_pt_threshold
         eta_f, phi_f, nmuons = ak.flatten(eta), ak.flatten(phi), ak.num(eta)
     else:
         eta_f, phi_f, nmuons = eta, phi, 1
-    
+
     a_f = cset.get("a_"+dtmc).evaluate(eta_f, phi_f, "nom")
     m_f = cset.get("m_"+dtmc).evaluate(eta_f, phi_f, "nom")
 
     if nested:
         a, m = ak.unflatten(a_f, nmuons), ak.unflatten(m_f, nmuons)
-    else: 
+    else:
         a, m = a_f, m_f
 
     pt_corr = 1. / (m/pt + charge * a)
@@ -403,6 +387,8 @@ def pt_scale_var(pt, eta, phi, charge, updn, cset, nested=False):
 
     if nested:
         stat_a, stat_m, stat_rho = ak.unflatten(stat_a_f, nmuons), ak.unflatten(stat_m_f, nmuons), ak.unflatten(stat_rho_f, nmuons)
+    else:
+        stat_a, stat_m, stat_rho = stat_a_f, stat_m_f, stat_rho_f
 
     unc = pt*pt * (stat_m*stat_m / (pt*pt) + stat_a*stat_a + 2*charge*stat_rho*stat_m/pt*stat_a)**.5
 
@@ -414,4 +400,3 @@ def pt_scale_var(pt, eta, phi, charge, updn, cset, nested=False):
         pt_var = pt_var - unc
 
     return pt_var
-
