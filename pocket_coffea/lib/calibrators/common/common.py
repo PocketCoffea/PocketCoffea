@@ -889,7 +889,8 @@ class MuonsCalibrator(Calibrator):
                 pt_scaled, mu.eta, mu.phi, mu.nTrackerLayers,
                 events.event, events.luminosityBlock,
                 self.cset, nested=True,
-                rnd_gen="np" # ← ROOT-FREE
+                # RNG is a reproducible correctionlib "RandomSmearing" (hashprng) node
+                # keyed on (event, lumi, phi), evaluated inside get_rndm.
             )
         else:
             pt_corr = pt_scaled
