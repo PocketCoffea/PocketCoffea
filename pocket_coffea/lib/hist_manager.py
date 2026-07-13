@@ -99,12 +99,13 @@ def get_hist_axis_from_config(ax: Axis):
             growth=ax.growth,
         )
     elif ax.type == "intcat":
+        # hist.axis.IntCategory has no `underflow` (categories have only an overflow
+        # "other" bin); passing underflow= raises TypeError, so it is dropped here.
         return hist.axis.IntCategory(
             ax.bins,
             name=ax.name,
             label=ax.label,
             overflow=ax.overflow,
-            underflow=ax.underflow,
             growth=ax.growth,
         )
     elif ax.type == "strcat":
@@ -384,12 +385,15 @@ class HistManager:
                 self.weights_manager, category, shape_variation,
             )
 
-        # Preload subsample-specific weights (MC only — data has no subsample SFs).
+        # Preload subsample-specific weights.
         # weights_sub[subsample][category][variation] holds the subsample weight for
         # the variations explicitly defined for that subsample; all other variations
         # fall back to the nominal subsample weight via dict.get() at fill time.
+        # Also preloaded for data: the configurator allows (non-isMC_only) by-subsample
+        # weights on data, and an unweighted subsample simply returns ones, so this is a
+        # no-op for the common data case but applies the weight when one is configured.
         weights_sub = {}
-        if self.has_subsamples and self.isMC:
+        if self.has_subsamples:
             for subsample in self.subsamples:
                 weights_sub[subsample] = {}
                 for category in self.available_categories:
@@ -499,6 +503,12 @@ class HistManager:
             # We need now to iterate on categories and subsamples
             # Mask the events, the weights and then flatten and remove the None correctly
             for category, cat_mask in categories.get_masks():
+                # Skip categories this histogram does not cover. The category axis is
+                # growth=False and holds only histo.only_categories, so filling any other
+                # category would silently land in the overflow bin (contaminating
+                # flow-inclusive projections) on top of wasting the masking/flatten work.
+                if category not in histo.only_categories:
+                    continue
                 # loop directly on subsamples
                 for subsample, subs_mask in subsamples.get_masks():
                     # logging.info(f"\t\tcategory {category}, subsample {subsample}")
@@ -514,8 +524,15 @@ class HistManager:
                     # WARNING!! POTENTIAL PROBLEMATIC BEHAVIOUR
                     # The user must be aware of the behavior.
 
+                    # Cache key for the by-event weight broadcast. Normally the masked
+                    # weight is identical for every histogram in this (category, subsample,
+                    # variation), so the plain category keeps the cache shared. But when a
+                    # 2D category mask is collapsed below, the resulting 1D mask depends on
+                    # this histogram's collapse mode, so the key must be per-histogram.
+                    weight_cache_cat = category
                     if data_ndim == 1 and mask.ndim > 1:
                         if histo.collapse_2D_masks:
+                            weight_cache_cat = f"{category}::collapse::{name}"
                             if histo.collapse_2D_masks_mode == "OR":
                                 mask = ak.any(mask, axis=1)
                             elif histo.collapse_2D_masks_mode == "AND":
@@ -620,7 +637,7 @@ class HistManager:
 
                                 # Broadcast and mask the weight (using the cached value if possible)
                                 weight_varied = self.mask_and_broadcast_weight(
-                                    category,
+                                    weight_cache_cat,
                                     subsample,
                                     variation,
                                     weight_varied*weight_sub, # This creates a copy of the weight
@@ -629,7 +646,7 @@ class HistManager:
                                 )
                                 if custom_weight != None and name in custom_weight:
                                     weight_varied = weight_varied * self.mask_and_broadcast_weight(
-                                        category + "customW",
+                                        f"{category}::customW::{name}",
                                         subsample,
                                         variation,
                                         custom_weight[
@@ -672,17 +689,17 @@ class HistManager:
                             weight_sub = weights_sub[subsample][category]["nominal"] if self.has_subsamples else 1.
                                 
                             weight_nom = self.mask_and_broadcast_weight(
-                                category,
+                                weight_cache_cat,
                                 subsample,
                                 "nominal",
                                 weight_nom * weight_sub,
                                 mask,
                                 data_structure,
                             )
-                            
+
                             if custom_weight != None and name in custom_weight:
                                 weight_nom = weight_nom * self.mask_and_broadcast_weight(
-                                    category + "customW",
+                                    f"{category}::customW::{name}",
                                     subsample,
                                     "nominal",
                                     custom_weight[
@@ -709,17 +726,22 @@ class HistManager:
                     elif not histo.no_weights and not self.isMC:   #DATA
                         # Broadcast and mask the weight (using the cached value if possible)
                         weight_data = weights[category]["nominal"]
+                        # Fold in the by-subsample data weight (ones if none configured).
+                        weight_sub = (
+                            weights_sub[subsample][category]["nominal"]
+                            if self.has_subsamples else 1.
+                        )
                         weight_data = self.mask_and_broadcast_weight(
-                            category,
+                            weight_cache_cat,
                             subsample,
                             "nominal",
-                            weight_data,
+                            weight_data * weight_sub,
                             mask,
                             data_structure,
                         )
                         if custom_weight != None and name in custom_weight:
                             weight_data = weight_data * self.mask_and_broadcast_weight(
-                                category + "customW",
+                                f"{category}::customW::{name}",
                                 subsample,
                                 "nominal",
                                 custom_weight[

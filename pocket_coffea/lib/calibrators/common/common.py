@@ -16,6 +16,7 @@ from omegaconf import OmegaConf
 from pocket_coffea.lib.muon_scale_and_resolution import pt_scale, pt_resol, pt_scale_var, pt_resol_var
 from pocket_coffea.utils.utils import get_nano_version
 import correctionlib
+from pocket_coffea.lib.correction_cache import load_correction_set
 
 class JetsCalibrator(Calibrator):
     """
@@ -355,6 +356,17 @@ class JetsCalibrator(Calibrator):
             out[jet_coll_name]["pt"] = self.jets_calibrated[jet_coll_name][f"pt_{variation_type}_down"]
             out[jet_coll_name]["mass"] = self.jets_calibrated[jet_coll_name][f"mass_{variation_type}_down"]
 
+        # Keep the rawFactor consistent with the varied pt. The raw pt is invariant, so
+        # rawFactor = 1 - pt_raw/pt, exactly as initialize() computes it for the nominal.
+        # Without this the varied jets keep the *nominal* rawFactor, and any consumer that
+        # derives the JEC factor or the raw pt from rawFactor -- notably the type-1 MET
+        # recompute -- would be wrong for the variation.
+        out[jet_coll_name]["rawFactor"] = ak.where(
+            out[jet_coll_name]["pt"] != 0,
+            1 - out[jet_coll_name]["pt_raw"] / out[jet_coll_name]["pt"],
+            0,
+        )
+
         # Need to reorder the jet collection by pt after the variation
         if self.jet_calib_param.sort_by_pt[self._year][jet_type_alias]:
             sorted_indices = ak.argsort(out[jet_coll_name]["pt"], axis=1, ascending=False)
@@ -554,11 +566,20 @@ class METCalibrator(Calibrator):
         if self.met_calib_active:
             # print("Calibrating METs using jet collection:", self.jet_collection)
             jets_calib = events[self.jet_collection]
+            # The JetsCalibrator keeps rawFactor consistent with the (possibly varied) pt
+            # -- see JetsCalibrator.apply_variation -- so 1/(1-rawFactor) is the correct
+            # L1L2L3 factor and pt*(1-rawFactor) is the invariant raw pt for both the
+            # nominal and the JES/JER variations.
             jet_jecL1L2L3 = 1./(1. - jets_calib["rawFactor"])
-            jet_jecL1 = 1. # For PuppiJets
+            jet_jecL1 = 1. # For Puppi jets (Run3). NB: wrong for Run2 CHS jets, which carry
+                           # an L1/PU offset -> deferred to the Run2 MET follow-up (A2).
 
             corrT1METJet = events[self.corrT1METJet_branch]
             corrT1METJet_jecL1L2L3 = 1./(1. - corrT1METJet["rawFactor"])
+            # TODO (deferred): CorrT1METJet is not calibrated by the jet calibrator, so its
+            # rawFactor/rawPt stay at the nominal NanoAOD values for every variation and its
+            # type-1 MET contribution does not vary with JES/JER. Propagating that variation
+            # requires evaluating the JEC (+ its variations) on CorrT1METJet.
 
             jet_pt_noMuRaw = jets_calib["pt"] * (1. - jets_calib["rawFactor"])*(1. - jets_calib["muonSubtrFactor"])
             if "muonSubtrDeltaPhi" in jets_calib.fields:
@@ -644,16 +665,36 @@ class METCalibrator(Calibrator):
 
         # Check for the unclustered energy variation 
         # It is taken from the PuppiMET collection and reapplied
-        if variation in  ["unclust_EnUp", "unclust_EnDown"]:
-            direct = "Up" if variation=="unclust_EnUp" else "Down"
-            delta_met = vector.zip({
-                        "rho": events[self.met_branch]["ptUnclustered"+direct],
-                        "phi": events[self.met_branch]["phiUnclustered"+direct]
-                    }) - vector.zip({
-                        "rho": events[self.met_branch]["pt"],
-                        "phi": events[self.met_branch]["phi"]
-                    })
-            met_final = met_final + delta_met
+        if variation in ["unclust_EnUp", "unclust_EnDown"]:
+            if self.met_branch=="PuppiMET":
+                direct = "Up" if variation=="unclust_EnUp" else "Down"
+                delta_met = vector.zip({
+                            "rho": events[self.met_branch]["ptUnclustered"+direct],
+                            "phi": events[self.met_branch]["phiUnclustered"+direct]
+                        }) - vector.zip({
+                            "rho": events[self.met_branch]["pt"],
+                            "phi": events[self.met_branch]["phi"]
+                        })
+                met_final = met_final + delta_met
+            
+            elif self.met_branch=="MET": 
+                metx = events[self.met_branch]["pt"] * np.cos(events[self.met_branch]["phi"])
+                mety = events[self.met_branch]["pt"] * np.sin(events[self.met_branch]["phi"])
+                if variation=="unclust_EnUp":
+                    metx = metx + events[self.met_branch]["MetUnclustEnUpDeltaX"]
+                    mety = mety + events[self.met_branch]["MetUnclustEnUpDeltaY"]
+                else:
+                    metx = metx - events[self.met_branch]["MetUnclustEnUpDeltaX"]
+                    mety = mety - events[self.met_branch]["MetUnclustEnUpDeltaY"]
+                
+                met_final = vector.zip({
+                    "rho": np.hypot(metx, mety),
+                    "phi": np.arctan2(mety, metx)
+                }) 
+            else:
+                print(f"WARNING: Met branch {self.met_branch} not supported for unclustered Energy shifts")
+
+                
 
 
         return {f"{self.met_branch}.pt" : met_final.rho,
@@ -803,7 +844,7 @@ class MuonsCalibrator(Calibrator):
             return
 
         self.enabled = True
-        self.cset = correctionlib.CorrectionSet.from_file(
+        self.cset = load_correction_set(
             self.mscare_params.correctionlib_config[self._year]["file"]
         )
 

@@ -109,8 +109,8 @@ lepton_scale_factors:
 
       "2025":
         files:
-          reco: ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,EGM,electron.json.gz,2026-06-17}
-          id:   ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,EGM,electron.json.gz,2026-06-17}
+          reco: ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,EGM,electron.json.gz,2026-06-26}
+          id:   ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,EGM,electron.json.gz,2026-06-26}
         name: Electron-ID-SF
         reco:
           pt_lt_20: RecoBelow20

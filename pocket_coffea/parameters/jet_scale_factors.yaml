@@ -41,7 +41,7 @@ jet_scale_factors:
             file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,BTV,btagging.json.gz,2026-03-10}
             name: "UParTAK4"
         '2025': 
-            file: ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,BTV,btagging.json.gz,2026-06-18}
+            file: ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,BTV,btagging.json.gz,2026-06-26}
             name: "UParTAK4"            
 
     ctagSF:
@@ -83,7 +83,7 @@ jet_scale_factors:
         Calib_file: "${default_params_dir:}/ctagSF_calibrationSF.json"
         name: "deepJet_shape"
       '2025':
-        SF_file: ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,BTV,ctagging.json.gz,2026-06-18}
+        SF_file: ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,BTV,ctagging.json.gz,2026-06-26}
         Calib_file: "${default_params_dir:}/ctagSF_calibrationSF.json"
         name: "deepJet_shape"      
       
@@ -138,7 +138,7 @@ jet_scale_factors:
             name: "Summer24Prompt24_RunBCDEFGHI_V1"
         '2025':
             file: ${cvmfs:Run3-25Prompt-Winter25-NanoAODv15,JME,jetvetomaps.json.gz,2026-06-05}
-            name: "Summer25Prompt25_RunBCDEFGHI_V1"            
+            name: "Winter25Prompt25_RunCDEFG_V1"
 
 
     jet_id:
