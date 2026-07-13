@@ -48,7 +48,6 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
 
         # Adding list of custom setup commands from user defined run options
         if self.run_options.get("custom-setup-commands", None):
-            'echo "Executing custom commands below"'
             env_worker += self.run_options["custom-setup-commands"]
 
         return env_worker
@@ -68,13 +67,13 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
                         prefetch_capacity=0,
                         provider=CondorProvider(
                             nodes_per_block=1,
-                            cores_per_slot=self.run_options.get("cores-per-worker", 1),
-                            mem_per_slot=self.run_options.get("mem-per-worker", 4),
-                            init_blocks=self.run_options["scaleout"],
-                            max_blocks=self.run_options["scaleout"],
-                            worker_init="\n".join(self.get_worker_env()),
-                            walltime=self.run_options["walltime"],
-                            requirements=self.run_options.get("requirements", ""),
+                            cores_per_slot = self.run_options.get("cores-per-worker", 1),
+                            mem_per_slot   = self.run_options.get("mem-per-worker", 4),
+                            init_blocks    = self.run_options["scaleout"],
+                            max_blocks     = self.run_options["scaleout"],
+                            worker_init    = "\n".join(self.get_worker_env()),
+                            walltime       = self.run_options["walltime"],
+                            requirements   = self.run_options.get("requirements", ""),
                         ),
                     )
                 ],

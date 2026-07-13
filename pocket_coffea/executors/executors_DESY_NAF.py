@@ -11,10 +11,15 @@ from parsl.config import Config
 from parsl.executors import HighThroughputExecutor
 from parsl.addresses import address_by_hostname
 
+def walltime_to_seconds(walltime: str) -> int:
+    h, m, s = map(int, walltime.split(":"))
+    return h * 3600 + m * 60 + s
+
 class ParslCondorExecutorFactory(ExecutorFactoryABC):
     '''
     Parsl executor based on condor for DESY NAF
     '''
+    print("Initialize Parsl")
     def __init__(self, run_options, outputdir, **kwargs):
         self.outputdir = outputdir
         super().__init__(run_options)
@@ -28,6 +33,9 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
             f'export X509_USER_PROXY={self.x509_path}',
             'export MALLOC_TRIM_THRESHOLD_=0',
             'ulimit -u 32768',
+            'ulimit -s unlimited',
+            f'export PYTHONPATH=$PYTHONPATH:{os.getcwd()}',
+            f'cd {os.getcwd()}',
             'echo conda prefix: $CONDA_PREFIX'
         ]
 
@@ -39,8 +47,7 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
             elif "MAMBA_ROOT_PREFIX" in os.environ:
                 env_worker.append(f"{os.environ['MAMBA_EXE']} activate {os.environ['CONDA_DEFAULT_ENV']}")
             else:
-                raise Exception("CONDA prefix not found in env! Something is wrong with your conda installation if you want to use conda on the cluster."\
-)
+                raise Exception("CONDA prefix not found in env! Something is wrong with your conda installation if you want to use conda on the cluster.")
             env_worker.append('echo "Conda has been activated, hopefully... We are ready to roll!"')
 
         # Adding list of custom setup commands from user defined run options
@@ -65,19 +72,18 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
                         # Condor settings are here:
                         provider=CondorProvider(
                             nodes_per_block = 1,
-                            cores_per_slot = self.run_options.get("cores-per-worker", 1),
-                            mem_per_slot   = self.run_options.get("mem-per-worker", 4),
-                            init_blocks    = self.run_options["scaleout"],
-                            max_blocks     = self.run_options["scaleout"],
-                            worker_init    = "\n".join(self.get_worker_env()),
-                            walltime       = self.run_options["walltime"],
-                            requirements   = self.run_options.get("requirements", ""),
+                            cores_per_slot  = self.run_options.get("cores-per-worker", 1),
+                            mem_per_slot    = self.run_options.get("mem-per-worker", 4),
+                            init_blocks     = self.run_options["scaleout"],
+                            max_blocks      = self.run_options["scaleout"],
+                            worker_init     = "\n".join(self.get_worker_env()),
+                            requirements    = self.run_options.get("requirements", ""),
+                            scheduler_options = "Request_Disk = %i \n+RequestRuntime = %i" % (int(self.run_options["disk-per-worker"][:-2]) * 1024 * 1024, walltime_to_seconds(self.run_options["walltime"])),
                         ),
                     )
                 ],
-            retries=self.run_options["retries"],
-            #run_dir="/tmp/"+getpass.getuser()+"/parsl_runinfo",
-
+            retries = self.run_options["retries"],
+            #run_dir = self.run_options.get("parsl-runinfo", "/tmp/"+getpass.getuser()+"/parsl_runinfo"),           
             )
 
         self.condor_cluster = parsl.load(condor_htex)
