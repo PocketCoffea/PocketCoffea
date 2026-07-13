@@ -3,7 +3,7 @@ import numpy as np
 import vector
 import awkward as ak
 import cachetools
-from pocket_coffea.lib.jets import met_correction_after_jec, jet_correction_corrlib, msoftdrop_correction
+from pocket_coffea.lib.jets import met_correction_after_jec, jet_correction_corrlib, msoftdrop_correction, JET_SORTIDX_FIELD
 from pocket_coffea.lib.leptons import (
     get_ele_scaled, 
     get_ele_smeared, 
@@ -38,10 +38,13 @@ class JetsCalibrator(Calibrator):
         self.jet_calib_param = self.params.jets_calibration
         self.jets_calibrated = {}
         self.jets_calibrated_types = []
+        # Map each calibrated collection name to the jet-type alias used to look up its
+        # per-jet-type configuration (e.g. sort_by_pt). Filled in initialize.
+        self.jetcoll_to_alias = {}
         # It is filled dynamically in the initialize method
         self.calibrated_collections = []
 
-    def initialize(self, events):        
+    def initialize(self, events):
         nano_aod_version = get_nano_version(events,self.params,self._year)
         # Load the calibration of each jet type requested by the parameters
         for jet_type, jet_coll_name in self.jet_calib_param.collection[self.year].items():
@@ -96,8 +99,10 @@ class JetsCalibrator(Calibrator):
 
             # register the collection as calibrated by this calibrator
             self.calibrated_collections.append(jet_coll_name)
-            # register also a new entry which is storing the order of the jets
-            self.calibrated_collections.append(f"{jet_coll_name}_sortidx")
+            # remember the alias to look up the per-jet-type sort configuration later.
+            # The sort permutation is stored as a field on the collection itself
+            # (JET_SORTIDX_FIELD), so no separate calibrated collection is needed.
+            self.jetcoll_to_alias[jet_coll_name] = jet_type_alias
 
             corrected_jets = jet_correction_corrlib(
                 calib_params=self.jet_calib_param.jet_types[jet_type_alias][self._year],
@@ -299,56 +304,63 @@ class JetsCalibrator(Calibrator):
             # because we want to use the collection initialized in the calibrator.
             out[jet_coll_name] = copy.copy(jets)
             
-        if variation == "nominal" or variation not in self._variations:
-            # For nominal and unrelated variation return the nominal
-            # If the variation is nominal or not in the list of variations, we return the nominal values
-            return out
-        
-        # Otherwise, adapt pt and mass according to calibrations:
-        # get the jet type from the variation name
-        variation_parts = variation.split("_")
-        jet_type = variation_parts[0]
-        
-        # get the variation type from the variation name
-        if variation.endswith("Up"):
-            variation_type = "_".join(variation_parts[1:])[:-2]  # remove 'Up'
-            direction = "up"
-        elif variation.endswith("Down"):
-            variation_type = "_".join(variation_parts[1:])[:-4]  # remove 'Down'
-            direction = "down"
-        else:
-            raise ValueError(f"JET Variation {variation} is not recognized. It should end with 'Up' or 'Down'.")
-        
-        # Check if the jet type is merged for variations
-        if (
-            "merge_collections_for_variations" in self.jet_calib_param
-            and self.year in self.jet_calib_param.merge_collections_for_variations
-            and jet_type
-            in self.jet_calib_param.merge_collections_for_variations[self.year]
-        ):
-            for jet_type_to_merge in self.jet_calib_param.merge_collections_for_variations[self.year][jet_type]:
-                self.apply_variation(out, jet_type_to_merge, variation_type, direction)
-        else:
-            self.apply_variation(out, jet_type, variation_type, direction)
-   
+        # Adapt pt and mass to the requested variation, if it is handled by this
+        # calibrator. For the nominal and for variations owned by other calibrators the
+        # nominal values are kept unchanged.
+        if variation != "nominal" and variation in self._variations:
+            # get the jet type from the variation name
+            variation_parts = variation.split("_")
+            jet_type = variation_parts[0]
+
+            # get the variation type from the variation name
+            if variation.endswith("Up"):
+                variation_type = "_".join(variation_parts[1:])[:-2]  # remove 'Up'
+                direction = "up"
+            elif variation.endswith("Down"):
+                variation_type = "_".join(variation_parts[1:])[:-4]  # remove 'Down'
+                direction = "down"
+            else:
+                raise ValueError(f"JET Variation {variation} is not recognized. It should end with 'Up' or 'Down'.")
+
+            # Check if the jet type is merged for variations
+            if (
+                "merge_collections_for_variations" in self.jet_calib_param
+                and self.year in self.jet_calib_param.merge_collections_for_variations
+                and jet_type
+                in self.jet_calib_param.merge_collections_for_variations[self.year]
+            ):
+                for jet_type_to_merge in self.jet_calib_param.merge_collections_for_variations[self.year][jet_type]:
+                    self.apply_variation(out, jet_type_to_merge, variation_type, direction)
+            else:
+                self.apply_variation(out, jet_type, variation_type, direction)
+
+        # Re-sort every calibrated jet collection by the (possibly varied) corrected pt.
+        # This is done for the nominal AND for the variations so that the leading-jet
+        # definition is consistent across them. The applied permutation is recorded as a
+        # field on the collection (JET_SORTIDX_FIELD), so consumers of per-jet indices
+        # (e.g. lepton.jetIdx) can undo the re-sorting via jets_in_original_order.
+        for jet_coll_name in out:
+            jet_type_alias = self.jetcoll_to_alias.get(jet_coll_name)
+            if jet_type_alias is None:
+                continue
+            if self.jet_calib_param.sort_by_pt[self._year][jet_type_alias]:
+                sorted_indices = ak.argsort(out[jet_coll_name]["pt"], axis=1, ascending=False)
+                out[jet_coll_name] = out[jet_coll_name][sorted_indices]
+                out[jet_coll_name] = ak.with_field(out[jet_coll_name], sorted_indices, JET_SORTIDX_FIELD)
+
         return out
-    
+
     def apply_variation(self, out, jet_type, variation_type, direction):
-        if "collection_name_alias" in self.jet_calib_param and jet_type in self.jet_calib_param.collection_name_alias[self.year]:
-            jet_type_alias = self.jet_calib_param.collection_name_alias[self.year][jet_type]
-        else:
-            jet_type_alias=jet_type
-            
         if jet_type not in self.jet_calib_param.collection[self.year]:
             raise ValueError(f"Jet type {jet_type} not found in the parameters for year {self.year}.")
-        
+
         # get the jet collection name from the parameters
         jet_coll_name = self.jet_calib_param.collection[self.year][jet_type]
         if jet_coll_name==None:
             return
         if jet_coll_name not in self.jets_calibrated:
             raise ValueError(f"Jet collection {jet_coll_name} not found in the calibrated jets.")
-        # Apply the variation to the jets
+        # Apply the variation to the jets. Re-sorting is handled uniformly by calibrate.
         if direction == "up":
             out[jet_coll_name]["pt"] = self.jets_calibrated[jet_coll_name][f"pt_{variation_type}_up"]
             out[jet_coll_name]["mass"] = self.jets_calibrated[jet_coll_name][f"mass_{variation_type}_up"]
@@ -360,20 +372,13 @@ class JetsCalibrator(Calibrator):
         # rawFactor = 1 - pt_raw/pt, exactly as initialize() computes it for the nominal.
         # Without this the varied jets keep the *nominal* rawFactor, and any consumer that
         # derives the JEC factor or the raw pt from rawFactor -- notably the type-1 MET
-        # recompute -- would be wrong for the variation.
+        # recompute -- would be wrong for the variation. This is element-wise, so the
+        # subsequent uniform re-sort in calibrate() carries the updated rawFactor along.
         out[jet_coll_name]["rawFactor"] = ak.where(
             out[jet_coll_name]["pt"] != 0,
             1 - out[jet_coll_name]["pt_raw"] / out[jet_coll_name]["pt"],
             0,
         )
-
-        # Need to reorder the jet collection by pt after the variation
-        if self.jet_calib_param.sort_by_pt[self._year][jet_type_alias]:
-            sorted_indices = ak.argsort(out[jet_coll_name]["pt"], axis=1, ascending=False)
-            out[jet_coll_name] = out[jet_coll_name][sorted_indices]
-            # Storing the indices to be able to sort other collections with the same indices
-            out[f"{jet_coll_name}_sortidx"] = sorted_indices
-
 
 class JetsSoftdropMassCalibrator(Calibrator):
     """
