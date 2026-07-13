@@ -21,6 +21,7 @@ from ..lib.jets import load_jet_factory
 from ..lib.calibrators.calibrators_manager import CalibratorsManager
 from ..utils.skim import uproot_writeable, copy_file, apply_skim_sumgenweights_override
 from ..utils.utils import dump_ak_array
+from ..utils.metadata import to_bool
 from ..lib.delayed_eval import DelayedEvalBranchManager
 
 from ..utils.configurator import Configurator
@@ -130,12 +131,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self._samplePart = self.events.metadata.get("part", None) # this is the (optional) name of the part of the sample
 
         self._year = self.events.metadata["year"]
-        self._isMC = ((self.events.metadata["isMC"] in ["True", "true"])
-                      or (self.events.metadata["isMC"] == True))
+        self._isMC = to_bool(self.events.metadata["isMC"])
         # if the dataset is a skim the sumgenweights are scaled by the skim efficiency
-        self._isSkim = ("isSkim" in self.events.metadata and self.events.metadata["isSkim"] in ["True","true"]) or(
-            "isSkim" in self.events.metadata and self.events.metadata["isSkim"] == True)
-        # for some reason this get to a string WIP
+        self._isSkim = to_bool(self.events.metadata.get("isSkim", False))
         if self._isMC:
             self._era = "MC"
             self._xsec = self.events.metadata["xsec"]
@@ -393,6 +391,12 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         also sum their nominal weights (for each sample, by chunk).
         Store the results in the `cutflow` and `sumw` outputs
         '''
+        # Subsample masks are category-independent, so reduce them once per chunk
+        # here instead of re-running storage.all() for every category below.
+        subsample_masks = (
+            list(self._subsamples[self._sample].get_masks())
+            if self._hasSubsamples else []
+        )
         for category, mask in self._categories.get_masks():
             if self._categories.is_multidim and mask.ndim > 1:
                 # The Selection object can be multidim but returning some mask 1-d
@@ -409,7 +413,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
             # If subsamples are defined we also save their metadata
             if self._hasSubsamples:
-                for subs, subsam_mask in self._subsamples[self._sample].get_masks():
+                for subs, subsam_mask in subsample_masks:
                     # get the subsample specific weight
                     mask_withsub = mask_on_events & subsam_mask
                     self.output["cutflow"][category].setdefault(self._dataset, {}).setdefault(f"{self._sample}__{subs}", {})[variation] = ak.sum(mask_withsub)
@@ -536,7 +540,10 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 if self.workflow_options is not None and self.workflow_options.get("dump_columns_as_arrays_per_chunk", None) is not None:
                     # filling awkward arrays to be dumped per chunk
                     if self.column_managers[subs].ncols == 0:
-                        break
+                        # this subsample has no columns to dump; skip it but keep
+                        # processing the remaining subsamples (a `break` here would
+                        # silently drop every later subsample's columns)
+                        continue
                     out_arrays = self.column_managers[subs].fill_ak_arrays(
                                                self.events,
                                                self._categories,
@@ -556,7 +563,10 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                     # Filling columns to be accumulated for all the chunks
                     # Calling hist manager with a subsample mask
                     if self.column_managers[subs].ncols == 0:
-                        break
+                        # this subsample has no columns to dump; skip it but keep
+                        # processing the remaining subsamples (a `break` here would
+                        # silently drop every later subsample's columns)
+                        continue
                     outcols[f"{self._sample}__{subs}"] = {
                         self._dataset: self.column_managers[subs].fill_columns_accumulators(
                                                    self.events,
@@ -618,10 +628,13 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Filling the special histograms for processing metadata if they are present
         total_processing_time = self.stop_time - self.start_time # in seconds
         add_axes = {"variation":"nominal"} if self._isMC else {}
+        # nEvents_after_presel is per-variation; use the value captured on the
+        # nominal pass so this "nominal"-axis metadata is not the last variation's.
+        n_presel = getattr(self, "_nEvents_after_presel_nominal", self.nEvents_after_presel)
         if self._hasSubsamples:
             for subs in self._subsamples[self._sample].keys():
                 for k, n in zip(["initial", "skim","presel"],
-                                [self.nEvents_initial, self.nEvents_after_skim, self.nEvents_after_presel ]):
+                                [self.nEvents_initial, self.nEvents_after_skim, n_presel ]):
                     if hepc := self.hists_manager.get_histogram(subs, f"events_per_chunk_{k}"):
                         hepc.hist_obj.fill(
                             cat=hepc.only_categories[0],
@@ -896,6 +909,13 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             # from further processing
             self.apply_preselections(variation)
 
+            # nEvents_after_presel is overwritten by every variation; remember the
+            # nominal one so save_processing_metadata (run once after this loop)
+            # records the nominal preselection count under the "nominal" axis
+            # instead of whichever variation happened to run last.
+            if variation == "nominal":
+                self._nEvents_after_presel_nominal = self.nEvents_after_presel
+
             # If not events remains after the preselection we skip the chunk
             if not self.has_events:
                 continue
@@ -1075,9 +1095,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         for var, vardata in accumulator["variables"].items():
             for samplename, dataset_in_sample in vardata.items():
                 for dataset, histo in dataset_in_sample.items():
-                    if any(np.isnan(histo.values().flatten())):
+                    if not np.all(np.isfinite(histo.values().flatten())):
                         raise Exception(
-                            f"NaN values in the histogram {var} for dataset {dataset} after rescaling"
+                            f"NaN or Inf values in the histogram {var} for dataset {dataset} after rescaling"
                         )
 
         return accumulator
