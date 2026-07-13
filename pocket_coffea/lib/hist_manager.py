@@ -486,7 +486,20 @@ class HistManager:
                         # General collections
                         if ax.pos == None:
                             data = events[ax.coll][ax.field]
-                            # pos==None on a collection is the only source of ndim>1 data
+                            # pos==None on a collection is the only source of ndim>1 data.
+                            # All ndim>1 axes of a histogram must come from the SAME
+                            # collection: the broadcast/data-structure caches assume a
+                            # single per-event layout keyed by `data_coll`, and two
+                            # collections may have different jagged counts per event (which
+                            # would also break the shared flatten/fill). The data_ndim check
+                            # below does NOT catch this since both collections are ndim==2.
+                            if data_coll is not None and data_coll != ax.coll:
+                                raise Exception(
+                                    f"Histogram {name} mixes full-collection (pos=None) axes "
+                                    f"from different collections ('{data_coll}' and '{ax.coll}'). "
+                                    "All pos=None axes of a histogram must reference the same "
+                                    "collection so their per-event layout matches."
+                                )
                             data_coll = ax.coll
                         elif ax.pos >= 0:
                             data = ak.pad_none(
