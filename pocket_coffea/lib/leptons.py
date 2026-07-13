@@ -3,6 +3,8 @@ import numpy as np
 import correctionlib
 from pocket_coffea.lib.correction_cache import load_correction_set
 
+from pocket_coffea.lib.jets import jets_in_original_order
+
 
 def get_ele_scaled_etdependent(ele, json_scale, 
                                correction_name, syst_correction_name,
@@ -251,12 +253,14 @@ def lepton_selection_promptMVA(events, lepton_flavour, params, year,
     passes_eta = abs(leptons.eta) < cuts["eta"]
     passes_pt = leptons.pt > cuts["pt"]
 
-    # closest jet cut on btag
+    # closest jet cut on btag. leptons["jetIdx"] indexes the Jet collection in its
+    # original NanoAOD order, so undo any calibrator re-sorting before the lookup.
+    jets = jets_in_original_order(events["Jet"])
     valid_jetIdx = ak.mask(leptons["jetIdx"], leptons["jetIdx"] != -1)
     btag = ak.where(
             leptons["jetIdx"] == -1,
             0.0,
-            ak.fill_none(events["Jet"][valid_jetIdx]["btagDeepFlavB"], -10.0),
+            ak.fill_none(jets[valid_jetIdx]["btagDeepFlavB"], -10.0),
     )
     pass_btag_cut = btag < cuts["btag_cut"][year]
     
