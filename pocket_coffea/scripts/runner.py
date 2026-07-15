@@ -13,7 +13,7 @@ from rich.table import Table
 from rich.console import Console
 
 from coffea.util import save
-from coffea import processor
+from coffea.nanoevents import NanoAODSchema
 
 from pocket_coffea.utils.configurator import Configurator
 from pocket_coffea.utils.utils import load_config, path_import, adapt_chunksize, save_failed_jobs, load_failed_jobs, FAILED_JOBS_FILENAME
@@ -306,7 +306,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
             chunksize=run_options["chunksize"],
             maxchunks=run_options["limit-chunks"],
             skipbadfiles=run_options['skip-bad-files'],
-            schema=processor.NanoAODSchema,
+            schema=NanoAODSchema,
             format="root",
             error_log_file=f"{outputdir}/error/run_all.err",
             exit_on_error=True
@@ -378,7 +378,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
                 chunksize=run_options["chunksize"],
                 maxchunks=run_options["limit-chunks"],
                 skipbadfiles=run_options['skip-bad-files'],
-                schema=processor.NanoAODSchema,
+                schema=NanoAODSchema,
                 format="root",
                 error_log_file=f"{outputdir}/error/run_{group_name}.err",
                 exit_on_error=False # Continue to next dataset on error

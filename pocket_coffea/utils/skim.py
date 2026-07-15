@@ -9,11 +9,11 @@ from typing import Any, Dict, List, Optional
 def is_rootcompat(a):
     """Is it a flat or 1-d jagged array?"""
     t = ak.type(a)
-    if isinstance(t, ak._ext.ArrayType):
-        if isinstance(t.type, ak._ext.PrimitiveType):
+    if isinstance(t, ak.types.ArrayType):
+        if isinstance(t.content, ak.types.NumpyType):
             return True
-        if isinstance(t.type, ak._ext.ListType) and isinstance(
-            t.type.type, ak._ext.PrimitiveType
+        if isinstance(t.content, ak.types.ListType) and isinstance(
+            t.content.content, ak.types.NumpyType
         ):
             return True
     return False
@@ -26,13 +26,13 @@ def uproot_writeable(events):
         if events[bname].fields:
             out[bname] = ak.zip(
                 {
-                    n: ak.packed(ak.without_parameters(events[bname][n]))
+                    n: ak.to_packed(ak.without_parameters(events[bname][n]))
                     for n in events[bname].fields
                     if is_rootcompat(events[bname][n])
                 }
             )
         else:
-            out[bname] = ak.packed(ak.without_parameters(events[bname]))
+            out[bname] = ak.to_packed(ak.without_parameters(events[bname]))
     return out
 
 
