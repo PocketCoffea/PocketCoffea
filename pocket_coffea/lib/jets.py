@@ -919,3 +919,27 @@ def msoftdrop_correction(
     #            jets_jagged[f"msoftdrop_JES_{jes_vari}_{shift}"] = new_msoftdrop
 
     return jets_jagged
+
+
+# Name of the field the JetsCalibrator writes on the jet collection to record the
+# permutation applied when it re-sorts the jets by corrected pt.
+JET_SORTIDX_FIELD = "pocket_sortidx"
+
+
+def jets_in_original_order(jets, sortidx_field=JET_SORTIDX_FIELD):
+    '''Return the jet collection in its original (NanoAOD) order.
+
+    The ``JetsCalibrator`` re-sorts the jet collection by the corrected pt (for both the
+    nominal and the systematic variations) and records the applied permutation as the
+    ``sortidx_field`` field of the collection. Per-jet indices carried by other
+    collections (e.g. ``Electron.jetIdx`` / ``Muon.jetIdx``) point into the *original*
+    NanoAOD order, so consumers that look a jet up by such an index must first undo the
+    re-sorting. Applying ``argsort`` to the stored permutation inverts it and restores the
+    original order.
+
+    If the field is absent (no calibrator re-sorting was applied, e.g. sorting disabled or
+    a collection the calibrator did not touch) the jets are returned unchanged.
+    '''
+    if sortidx_field in jets.fields:
+        return jets[ak.argsort(jets[sortidx_field], axis=1)]
+    return jets

@@ -202,15 +202,13 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, replace
             total_out =  merge_group_reduction(inputfiles, N_reduction=N_reduction, cachedir=cache_dir,
                                                max_mem_gb=max_mem_gb, verbose=verbose)
 
+        # Explicit-file merges are NOT postprocessed by default: their inputs are
+        # assumed to be already-postprocessed outputs (e.g. per-dataset merged
+        # files). Postprocessing is only needed for raw job outputs, which are
+        # handled by the -jc branch below. Pass -cfg explicitly to postprocess the
+        # merged result with a given configurator.
         if configurator is not None:
             configurators = configurator.split(",")
-        else:
-            configurators = [os.path.dirname(f)+"/configurator.pkl" for f in inputfiles]
-            configurators = list(set(configurators))
-            configurators = [f for f in configurators if os.path.isfile(f)]
-            print(f"Auto-detected {len(configurators)} configurators:",configurators)
-
-        if len(configurators) > 0:
             allconfigurators = None
             for cf in configurators:
                 with open(cf, 'rb') as f:
@@ -218,12 +216,12 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, replace
                 if allconfigurators is None:
                     allconfigurators = thisconfigurator
                 else:
-                    allconfigurators = append_configs(allconfigurators,thisconfigurator)
+                    allconfigurators = append_configs(allconfigurators, thisconfigurator)
 
             print(f"Applying postprocessing...")
             total_out = allconfigurators.processor_instance.postprocess(total_out)
         else:
-            print("No configurators found, no postprocessing applied.")
+            print("No configurator specified (-cfg); merging without postprocessing.")
 
         save(total_out, outputfile)
         print(f"[green]Output saved to {outputfile}")
