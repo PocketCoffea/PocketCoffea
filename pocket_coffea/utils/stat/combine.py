@@ -471,7 +471,7 @@ class Datacard:
                                 systematic,
                             ) in self.systematics.get_systematics_by_type(
                                 "shape"
-                            ).values():
+                            ).items():
                                 for shift in ("Up", "Down"):
                                     source_variation = f"{systematic.get_coffea_name(process.name)}{shift}"
                                     variation_index = new_histogram.axes[
