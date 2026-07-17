@@ -409,6 +409,120 @@ def test_jets_calibrator(events, params):
             assert ak.all(sorted_jets2.pt[:, :-1] >= sorted_jets2.pt[:, 1:])
 
 
+def test_jets_sort_and_jetidx_remap(events, params):
+    """The JetsCalibrator re-sorts the nominal AND the varied jets by corrected pt and
+    records the permutation as a field, so jets_in_original_order can restore the NanoAOD
+    order for per-jet-index (lepton.jetIdx) lookups."""
+    from pocket_coffea.lib.jets import jets_in_original_order, JET_SORTIDX_FIELD
+
+    jets_calibrator = JetsCalibrator(params=params, metadata={"isMC": True, "year": "2018"},
+                                     do_variations=True)
+    jets_calibrator.initialize(events)
+
+    # calibrate() does not mutate events, so the original NanoAOD jets remain available
+    orig_btag = ak.copy(events.Jet.btagDeepFlavB)
+    orig_counts = ak.num(events.Jet.pt)
+    valid = ak.mask(events.Electron.jetIdx, events.Electron.jetIdx != -1)
+    btag_orig = ak.fill_none(events.Jet[valid].btagDeepFlavB, -10.0)
+
+    variations_to_check = ["nominal"] + [v for v in jets_calibrator.variations if "AK4" in v][:1]
+    for variation in variations_to_check:
+        out = jets_calibrator.calibrate(events, {}, variation=variation)
+        jets_cal = out["Jet"]
+
+        # Nominal AND variations are re-sorted by pt (descending) and carry the permutation
+        assert JET_SORTIDX_FIELD in jets_cal.fields
+        assert ak.all(jets_cal.pt[:, :-1] >= jets_cal.pt[:, 1:])
+
+        # Undoing the sort restores the NanoAOD order (btag is not touched by the JEC)
+        recovered = jets_in_original_order(jets_cal)
+        assert ak.all(ak.num(recovered) == orig_counts)
+        assert ak.all(ak.flatten(recovered.btagDeepFlavB) == ak.flatten(orig_btag))
+
+        # jetIdx remap: the closest-jet btag via the recovered order matches the lookup on
+        # the original unsorted jets — the electron still points at the right jet.
+        btag_recovered = ak.fill_none(recovered[valid].btagDeepFlavB, -10.0)
+        assert ak.all(ak.flatten(btag_recovered) == ak.flatten(btag_orig))
+
+    # jets_in_original_order is a no-op when the sort field is absent
+    plain = jets_in_original_order(events.Jet)
+    assert ak.all(ak.flatten(plain.btagDeepFlavB) == ak.flatten(orig_btag))
+
+
+def test_jets_collection_name_alias(events, params):
+    """`collection_name_alias` lets a jet collection resolve its per-jet-type
+    configuration (jet_types / variations / sort_by_pt / apply_jec_MC / ...)
+    under a *different* jet-type key.
+
+    The default 2018 config uses this for the type-1-MET jets: jet_type
+    `AK4CorrT1METJetchs` (collection `CorrT1METJet`) is aliased to `AK4PFchs`,
+    and `sort_by_pt` / `variations` have NO `AK4CorrT1METJetchs` entry, so any
+    lookup that ignored the alias would KeyError. `calibrate()` re-sorts by pt
+    per collection using `jetcoll_to_alias` to recover that alias from the
+    collection name, so this pins both the feature and that map.
+    """
+    calib_param = params.jets_calibration
+
+    # Preconditions: the alias is configured, and the aliased-away jet_type is
+    # deliberately absent from the per-jet-type config (proving the lookups below
+    # can only succeed via the alias).
+    assert calib_param.collection_name_alias["2018"]["AK4CorrT1METJetchs"] == "AK4PFchs"
+    assert "AK4CorrT1METJetchs" not in calib_param.sort_by_pt["2018"]
+    assert "AK4CorrT1METJetchs" not in calib_param.variations
+
+    jets_calibrator = JetsCalibrator(params=params, metadata={"isMC": True, "year": "2018"},
+                                     do_variations=True)
+    jets_calibrator.initialize(events)
+
+    # 1. jetcoll_to_alias maps each calibrated collection to the alias used for all
+    #    its config lookups: 'Jet'/'FatJet' have no alias (jet_type == alias);
+    #    'CorrT1METJet' is aliased to 'AK4PFchs'.
+    assert jets_calibrator.jetcoll_to_alias["Jet"] == "AK4PFchs"
+    assert jets_calibrator.jetcoll_to_alias["FatJet"] == "AK8PFPuppi"
+    assert jets_calibrator.jetcoll_to_alias["CorrT1METJet"] == "AK4PFchs"
+
+    # 2. The aliased collection is actually calibrated (apply_jec_MC resolved via
+    #    the alias == True) and re-sorted by pt (sort_by_pt resolved via the alias).
+    out = jets_calibrator.calibrate(events, {}, variation="nominal")
+    assert "CorrT1METJet" in out
+    corr = out["CorrT1METJet"]
+    assert ak.all(corr.pt[:, :-1] >= corr.pt[:, 1:])
+
+
+def test_jets_collection_name_alias_value_equivalence(events, params):
+    """Calibrating a collection through a custom alias yields exactly the same
+    result as configuring that jet-type key directly: the alias only redirects
+    where the config is read, not the config itself.
+
+    We rename the 'Jet' jet-type to a key present in NO config sub-dict and alias
+    it back to the real 'AK4PFchs' key; if any lookup bypassed the alias it would
+    KeyError, and the calibrated jets must match the un-aliased baseline.
+    """
+    import copy
+    from omegaconf import OmegaConf
+
+    base = JetsCalibrator(params=params, metadata={"isMC": True, "year": "2018"},
+                          do_variations=False)
+    base.initialize(events)
+    out_base = base.calibrate(events, {}, variation="nominal")["Jet"]
+
+    p2 = copy.deepcopy(params)
+    OmegaConf.set_struct(p2, False)
+    # Only the Jet collection, under a jet-type name that exists nowhere else,
+    # aliased to the real config key.
+    p2.jets_calibration.collection["2018"] = {"MyJetType": "Jet"}
+    p2.jets_calibration.collection_name_alias["2018"] = {"MyJetType": "AK4PFchs"}
+
+    cal = JetsCalibrator(params=p2, metadata={"isMC": True, "year": "2018"},
+                         do_variations=False)
+    cal.initialize(events)
+    assert cal.jetcoll_to_alias["Jet"] == "AK4PFchs"
+    out_alias = cal.calibrate(events, {}, variation="nominal")["Jet"]
+
+    assert ak.all(ak.flatten(out_alias.pt) == ak.flatten(out_base.pt))
+    assert ak.all(ak.flatten(out_alias.mass) == ak.flatten(out_base.mass))
+
+
 def test_jets_softdrop_mass_calibrator(events_run3, params):
     """Test the JetsSoftdropMassCalibrator for AK8 jets softdrop mass correction"""
     # Test requires AK8 jets to be present in events
@@ -707,3 +821,79 @@ def test_muons_rochester_calibrator(events, params):
     out_data = cal_data.calibrate(events, {}, variation="nominal")
     assert ak.all(out_data["Muon.pt"] > 0)
     assert not ak.all(out_data["Muon.pt"] == out_data["Muon.pt_original"])
+
+
+def test_met_type1_variation_propagation(events, params):
+    """Validation harness for the type-1 MET recompute (A1).
+
+    Runs JetsCalibrator + METCalibrator and, for the nominal and every JES/JER variation,
+    recomputes the type-1 MET independently from the (varied) jets using the *invariant*
+    raw pt (jet.pt_raw). The METCalibrator must match this recomputation.
+
+    This is what catches A1: before the fix the METCalibrator derived the jet raw pt as
+    pt*(1-rawFactor); for a variation the jets carry the varied pt with the nominal
+    rawFactor, so that raw pt became pt_raw*(varied/nominal) and the varied MET did NOT
+    match this pt_raw-based recomputation.
+    """
+    import vector
+
+    def independent_t1_met(rawmet_pt, rawmet_phi, jets, corrt1):
+        # --- main jets: invariant raw pt, Puppi L1 = 1 ---
+        jet_pt_raw = jets["pt_raw"]
+        jecL1L2L3 = jets["pt"] / jet_pt_raw
+        pt_noMuRaw = jet_pt_raw * (1.0 - jets["muonSubtrFactor"])
+        phi = jets["muonSubtrDeltaPhi"] + jets["phi"] if "muonSubtrDeltaPhi" in jets.fields else jets["phi"]
+        pt_L1 = pt_noMuRaw
+        pt_L1L2L3 = pt_noMuRaw * jecL1L2L3
+        mask = (pt_L1L2L3 > 15) & (jets["chEmEF"] + jets["neEmEF"] < 0.9)
+        d = vector.zip({"rho": pt_L1L2L3[mask], "phi": phi[mask]}) - vector.zip({"rho": pt_L1[mask], "phi": phi[mask]})
+        corr = vector.zip({"x": ak.sum(d.x, axis=1), "y": ak.sum(d.y, axis=1)})
+        # --- CorrT1METJet: nominal (deferred), matches the calibrator ---
+        c_jecL1L2L3 = 1.0 / (1.0 - corrt1["rawFactor"])
+        c_pt_noMuRaw = corrt1["rawPt"] * (1.0 - corrt1["muonSubtrFactor"])
+        c_phi = corrt1["muonSubtrDeltaPhi"] + corrt1["phi"] if "muonSubtrDeltaPhi" in corrt1.fields else corrt1["phi"]
+        c_pt_L1 = c_pt_noMuRaw
+        c_pt_L1L2L3 = c_pt_noMuRaw * c_jecL1L2L3
+        c_mask = (c_pt_L1L2L3 > 15) & (corrt1["EmEF"] < 0.9) if "EmEF" in corrt1.fields else c_pt_L1L2L3 > 15
+        cd = vector.zip({"rho": c_pt_L1L2L3[c_mask], "phi": c_phi[c_mask]}) - vector.zip({"rho": c_pt_L1[c_mask], "phi": c_phi[c_mask]})
+        c_corr = vector.zip({"x": ak.sum(cd.x, axis=1), "y": ak.sum(cd.y, axis=1)})
+        return vector.zip({"rho": rawmet_pt, "phi": rawmet_phi}) - corr - c_corr
+
+    manager = CalibratorsManager(
+        calibrators_list=[JetsCalibrator, METCalibrator],
+        events=events, params=params, metadata={"isMC": True, "year": "2018"},
+    )
+    met_calib = params.met_calibration["2018"]
+    rawmet_branch = met_calib["RawMET_collection"]
+    corrt1_branch = met_calib["CorrT1METJet_collection"]
+
+    captured = {}
+    for variation, ev in manager.calibration_loop(events, variations_for_calibrators=["jet_calibration"]):
+        # The rawFactor must stay consistent with the (varied) pt so that consumers that
+        # derive the JEC factor / raw pt from it (e.g. the type-1 MET below) are correct.
+        jets = ev["Jet"]
+        expected_rawfactor = ak.where(jets["pt"] != 0, 1 - jets["pt_raw"] / jets["pt"], 0)
+        assert np.allclose(
+            ak.to_numpy(ak.flatten(jets["rawFactor"])),
+            ak.to_numpy(ak.flatten(expected_rawfactor)), rtol=1e-5, atol=1e-6,
+        ), f"jet rawFactor is not consistent with the varied pt for variation {variation}"
+
+        rec = independent_t1_met(ev[rawmet_branch]["pt"], ev[rawmet_branch]["phi"], ev["Jet"], ev[corrt1_branch])
+        met = ev["MET"]
+        assert np.allclose(ak.to_numpy(met.pt), ak.to_numpy(rec.rho), rtol=1e-4, atol=1e-2), \
+            f"type-1 MET pt does not match the independent recomputation for variation {variation}"
+        assert np.allclose(ak.to_numpy(met.phi), ak.to_numpy(rec.phi), rtol=1e-4, atol=1e-2), \
+            f"type-1 MET phi does not match the independent recomputation for variation {variation}"
+        captured[variation] = ak.to_numpy(met.pt)
+
+    assert "nominal" in captured
+    # The MET jet collection is "Jet" (AK4). Its JES/JER variations must propagate to the
+    # type-1 MET; AK8 (FatJet) variations act on a different collection and must not.
+    ak4_jes = [v for v in captured if "JES" in v and "AK4" in v]
+    ak4_jer = [v for v in captured if "JER" in v and "AK4" in v]
+    assert ak4_jes and ak4_jer, "expected AK4 JES and JER MET variations to be produced"
+    for v in ak4_jes[:1] + ak4_jer[:1]:
+        assert not np.allclose(captured[v], captured["nominal"]), f"MET variation {v} did not propagate"
+    for v in [x for x in captured if "AK8" in x][:1]:
+        assert np.allclose(captured[v], captured["nominal"]), \
+            f"AK8 variation {v} must not change the AK4-jet-based MET"

@@ -1,6 +1,9 @@
 import awkward as ak
 import numpy as np
 import correctionlib
+from pocket_coffea.lib.correction_cache import load_correction_set
+
+from pocket_coffea.lib.jets import jets_in_original_order
 
 
 def get_ele_scaled_etdependent(ele, json_scale, 
@@ -9,7 +12,7 @@ def get_ele_scaled_etdependent(ele, json_scale,
     '''
     From example: https://gitlab.cern.ch/cms-analysis-metadata/EGM/examples/-/blob/latest/egmScaleAndSmearingExample.py
     '''
-    evaluator = correctionlib.CorrectionSet.from_file(json_scale)
+    evaluator = load_correction_set(json_scale)
     evaluator_scale = evaluator.compound[correction_name]
     smear_and_syst_evaluator = evaluator[syst_correction_name]
     ele_gain_flat = ak.flatten(ele["seedGain"])
@@ -67,7 +70,7 @@ def get_ele_scaled_etdependent(ele, json_scale,
     
 
 def get_ele_scaled(ele, json_scale, correction_name, isMC, runNr):
-    evaluator = correctionlib.CorrectionSet.from_file(json_scale)
+    evaluator = load_correction_set(json_scale)
     evaluator_scale = evaluator[correction_name]
     ele_gain_flat = ak.flatten(ele["seedGain"])
     ele_eta_flat = ak.flatten(ele["etaSC"])
@@ -108,7 +111,7 @@ def get_ele_smeared_etdependent(mc_ele, jsonFileName, correction_name, isMC, onl
     '''
     if not isMC:
         return
-    evaluator = correctionlib.CorrectionSet.from_file(jsonFileName)
+    evaluator = load_correction_set(jsonFileName)
     evaluator_smearing = evaluator[correction_name]
     ele_eta_flat = ak.flatten(mc_ele["etaSC"]) # eta of supercluster
     ele_r9_flat = ak.flatten(mc_ele["r9"])
@@ -177,7 +180,7 @@ def get_ele_smeared_etdependent(mc_ele, jsonFileName, correction_name, isMC, onl
 def get_ele_smeared(mc_ele, jsonFileName,correction_name, isMC, only_nominal=True, seed=125):
     if not isMC:
         return
-    evaluator = correctionlib.CorrectionSet.from_file(jsonFileName)
+    evaluator = load_correction_set(jsonFileName)
     evaluator_smearing = evaluator[correction_name]
     ele_eta_flat = ak.flatten(mc_ele["etaSC"])
     ele_r9_flat = ak.flatten(mc_ele["r9"])
@@ -250,12 +253,14 @@ def lepton_selection_promptMVA(events, lepton_flavour, params, year,
     passes_eta = abs(leptons.eta) < cuts["eta"]
     passes_pt = leptons.pt > cuts["pt"]
 
-    # closest jet cut on btag
+    # closest jet cut on btag. leptons["jetIdx"] indexes the Jet collection in its
+    # original NanoAOD order, so undo any calibrator re-sorting before the lookup.
+    jets = jets_in_original_order(events["Jet"])
     valid_jetIdx = ak.mask(leptons["jetIdx"], leptons["jetIdx"] != -1)
     btag = ak.where(
             leptons["jetIdx"] == -1,
             0.0,
-            ak.fill_none(events["Jet"][valid_jetIdx]["btagDeepFlavB"], -10.0),
+            ak.fill_none(jets[valid_jetIdx]["btagDeepFlavB"], -10.0),
     )
     pass_btag_cut = btag < cuts["btag_cut"][year]
     

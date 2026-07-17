@@ -1,8 +1,10 @@
+import functools
 import gzip
 import cloudpickle
 import awkward as ak
 import numpy as np
 import correctionlib
+from pocket_coffea.lib.correction_cache import load_correction_set
 from coffea.jetmet_tools import  CorrectedMETFactory
 from correctionlib.schemav2 import Correction, CorrectionSet
 from ..utils.utils import get_nano_version, replace_at_indices
@@ -233,7 +235,7 @@ def compute_jetId(events, jet_type, params, year):
         # Example code: https://gitlab.cern.ch/cms-nanoAOD/jsonpog-integration/-/blob/master/examples/jetidExample.py?ref_type=heads
         # Load CorrectionSet
         jsonFile = params.jet_scale_factors.jet_id[year]
-        cset = correctionlib.CorrectionSet.from_file(jsonFile)
+        cset = load_correction_set(jsonFile)
 
         counts = ak.num(jets)
         jets = ak.flatten(jets, axis=1)
@@ -370,8 +372,13 @@ def get_dijet(jets, taggerVars=True, remnant_jet = False):
         return dijet, remnant
 
 
+@functools.lru_cache(maxsize=None)
 def get_jer_correction_set(jer_json, jer_tags):
     # learned from: https://github.com/cms-nanoAOD/correctionlib/issues/130
+    # Cached per process by (jer_json, jer_tags): the JSON is parsed and the JERSmear
+    # evaluator built once. jer_tags is a tuple (hashable). The parsed schema is filtered
+    # in place, but that happens on this local object; the returned evaluator is read-only,
+    # so caching it does not share the mutated schema with any other consumer.
     with gzip.open(jer_json) as fin:
         cset = CorrectionSet.parse_raw(fin.read())
     cset.corrections = [
@@ -539,7 +546,7 @@ def jet_correction_corrlib(
     tag_jec = "_".join([jec_tag, level, jet_type])
 
     # get the correction sets
-    cset = correctionlib.CorrectionSet.from_file(json_path)
+    cset = load_correction_set(json_path)
 
     # prepare inputs
     # no need of copies
@@ -717,7 +724,7 @@ def msoftdrop_correction(
     tag_jec = "_".join([jec_tag, level, subjet_type])
 
     # get the correction sets
-    cset = correctionlib.CorrectionSet.from_file(json_path)
+    cset = load_correction_set(json_path)
 
     # prepare inputs
     jets_jagged = events[jet_coll_name]
@@ -916,3 +923,27 @@ def msoftdrop_correction(
     #            jets_jagged[f"msoftdrop_JES_{jes_vari}_{shift}"] = new_msoftdrop
 
     return jets_jagged
+
+
+# Name of the field the JetsCalibrator writes on the jet collection to record the
+# permutation applied when it re-sorts the jets by corrected pt.
+JET_SORTIDX_FIELD = "pocket_sortidx"
+
+
+def jets_in_original_order(jets, sortidx_field=JET_SORTIDX_FIELD):
+    '''Return the jet collection in its original (NanoAOD) order.
+
+    The ``JetsCalibrator`` re-sorts the jet collection by the corrected pt (for both the
+    nominal and the systematic variations) and records the applied permutation as the
+    ``sortidx_field`` field of the collection. Per-jet indices carried by other
+    collections (e.g. ``Electron.jetIdx`` / ``Muon.jetIdx``) point into the *original*
+    NanoAOD order, so consumers that look a jet up by such an index must first undo the
+    re-sorting. Applying ``argsort`` to the stored permutation inverts it and restores the
+    original order.
+
+    If the field is absent (no calibrator re-sorting was applied, e.g. sorting disabled or
+    a collection the calibrator did not touch) the jets are returned unchanged.
+    '''
+    if sortidx_field in jets.fields:
+        return jets[ak.argsort(jets[sortidx_field], axis=1)]
+    return jets
