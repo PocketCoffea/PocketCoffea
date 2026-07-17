@@ -135,7 +135,7 @@ class JetsCalibrator(Calibrator):
         for jet_type, jet_coll_name in self.jet_calib_param.collection[self.year].items():
             if jet_coll_name==None:
                 continue
-
+            
             # Define the key name to get the corrections
             if ((("collection_name_alias" in self.jet_calib_param) and 
                 (self.year in self.jet_calib_param.collection_name_alias)) and
@@ -160,6 +160,7 @@ class JetsCalibrator(Calibrator):
                         and self.year in self.jet_calib_param.merge_collections_for_variations
                     ):
                         for merged_jet_type, jets_to_merge in self.jet_calib_param.merge_collections_for_variations[self.year].items():
+                            #print("\t Merged jet type:", merged_jet_type, "  jets to merge:", jets_to_merge)
                             if jet_type_alias in jets_to_merge:
                                 variation_jet_type = merged_jet_type
                                 break
@@ -168,6 +169,8 @@ class JetsCalibrator(Calibrator):
                         f"{variation_jet_type}_{variation}Down"
                     ]
                     # we want to vary independently each jet type
+                    
+                #print("available_jet_variations", available_jet_variations)
         self._variations = list(sorted(set(available_jet_variations)))  # remove duplicates
 
     def apply_regression(self, jets, jet_type, regression_params=None):
@@ -334,6 +337,7 @@ class JetsCalibrator(Calibrator):
         return out
     
     def apply_variation(self, out, jet_type, variation_type, direction):
+        # print("applying variation for", jet_type, variation_type, direction)
         if "collection_name_alias" in self.jet_calib_param and jet_type in self.jet_calib_param.collection_name_alias[self.year]:
             jet_type_alias = self.jet_calib_param.collection_name_alias[self.year][jet_type]
         else:

@@ -28,10 +28,8 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
         env_worker = [
             'echo \"Current date and time: `date`"',
             'echo "Hostname=`hostname`"',
-            'export XRD_RUNFORKHANDLER=1',
             'source /cvmfs/grid.desy.de/etc/profile.d/grid-ui-env.sh',
             f'export X509_USER_PROXY={self.x509_path}',
-            'export MALLOC_TRIM_THRESHOLD_=0',
             'ulimit -u 32768',
             'ulimit -s unlimited',
             f'export PYTHONPATH=$PYTHONPATH:{os.getcwd()}',
@@ -61,6 +59,10 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
         ''' Start the slurm cluster here'''
         self.setup_proxyfile()
 
+        if 'afs' in self.x509_path:
+            print("self.x509_path = ", self.x509_path)
+            print(" *Warning*: your grid proxy file is on AFS. This is not a good idea for *long* jobs submitted with screen. If/when AFS token expires the jobs will crash. Instead set the X509_USER_PROXY variable to point at DUST (in your .bashrc): \n export X509_USER_PROXY=/data/dust/user/*USERNAME*/x509up\n then re-run voms-proxy-init and set the 'voms-proxy' path in your run-options config to point to that file.")
+            
         condor_htex = Config(
                 executors=[
                     HighThroughputExecutor(
@@ -83,7 +85,7 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
                     )
                 ],
             retries = self.run_options["retries"],
-            #run_dir = self.run_options.get("parsl-runinfo", "/tmp/"+getpass.getuser()+"/parsl_runinfo"),           
+            #run_dir = self.run_options.get("parsl-runinfo", "/tmp/"+getpass.getuser()+"/parsl_runinfo"),
             )
 
         self.condor_cluster = parsl.load(condor_htex)
