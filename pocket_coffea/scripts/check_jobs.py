@@ -1,4 +1,10 @@
-'''Simple script that checks the status of the jobs submitted by runner on condor.
+'''Simple script that checks the status of the jobs submitted by the manual-job
+executors (HTCondor at lxplus/rubin, SLURM at T3_CH_PSI).
+
+The scheduler is auto-detected from the jobs folder (``scheduler`` key in
+jobs_config.yaml, falling back to probing for ``job_<n>.slurm`` files); all
+flag-file handling is scheduler-agnostic, only submission, queue bumping and
+kill-reason detection dispatch on it.
 
 The status of the jobs can be checked by looking at the file in the jobs folder.
 
@@ -35,7 +41,9 @@ from pocket_coffea.utils.site_rewrite import (
     rewrite_fileset_to_redirector,
     GLOBAL_XROOTD_REDIRECTOR,
 )
+from pocket_coffea.utils import htcondor_queue, slurm_queue
 from pocket_coffea.utils.htcondor_queue import QUEUES as queues, bump_queue, set_queue
+from pocket_coffea.utils.slurm_queue import classify_slurm_log, detect_scheduler
 from pocket_coffea.utils.job_progress import (
     aggregate_by_group,
     load_job_to_group_map,
@@ -177,10 +185,61 @@ def condor_rm_job(job):
         return f"condor_rm failed: {e}"
 
 
+# ---------------------------------------------------------------------------
+# Scheduler dispatch: everything flag-file based is scheduler-agnostic; only
+# the submission-file extension, the submit/cancel CLIs and the queue model
+# (condor +JobFlavour vs slurm --partition/--time) differ.
+
+JOB_DESC_EXT = {"condor": "sub", "slurm": "slurm"}
+
+
+def job_desc_file(jobs_folder, job, scheduler):
+    """Path of the per-job submission file (``job_<n>.sub`` / ``job_<n>.slurm``)."""
+    return f"{jobs_folder}/{job}.{JOB_DESC_EXT.get(scheduler, 'sub')}"
+
+
+def queue_lib(scheduler):
+    """The bump_queue/set_queue helper module for `scheduler`."""
+    return slurm_queue if scheduler == "slurm" else htcondor_queue
+
+
+def known_queues(scheduler):
+    """The named queue/partition ladder for `scheduler`."""
+    return slurm_queue.PARTITIONS if scheduler == "slurm" else queues
+
+
+def submit_job_cmd(jobs_folder, job, scheduler):
+    """Shell command resubmitting `job` with the scheduler's CLI."""
+    if scheduler == "slurm":
+        return f"cd {jobs_folder} && sbatch {job}.slurm"
+    return f"cd {jobs_folder} && condor_submit {job}.sub"
+
+
+def resubmit_job(jobs_folder, job, scheduler):
+    """Resubmit `job` and parse the CLI output. Returns ``(log_line, success)``."""
+    out = os.popen(submit_job_cmd(jobs_folder, job, scheduler), 'r').read()
+    if scheduler == "slurm":
+        line = out.strip().split("\n")[-1] if out.strip() else out
+        return line, "Submitted batch job" in out
+    # condor: the usual output ends with "1 job(s) submitted to cluster XXXX"
+    if len(out.split('\n')) > 2:
+        line = out.split('\n')[-2]
+        return line, "job(s) submitted to cluster" in line
+    return out, False
+
+
+def remove_queued_job(jobs_folder, job, scheduler):
+    """Kill any still-queued/running scheduler instance of `job`. Returns the
+    scheduler CLI output."""
+    if scheduler == "slurm":
+        return slurm_queue.scancel_job(job_desc_file(jobs_folder, job, "slurm"))
+    return condor_rm_job(job)
+
+
 def recreate_jobs_oneshot(jobs_folder, jobs_to_recreate, *, use_redirector=False,
                           blocklist_sites=None, recreate_queue=None,
                           skip_bad_files=False, queue_shift=1, remove_running=False,
-                          dry_run=False):
+                          dry_run=False, scheduler=None):
     """One-shot recreate/resubmit of a chosen set of manual jobs.
 
     Ported from the manual-job executors' old ``--recreate-jobs`` path so the
@@ -194,10 +253,16 @@ def recreate_jobs_oneshot(jobs_folder, jobs_to_recreate, *, use_redirector=False
     flag files) or a comma list (``0,1,3`` or ``job_0,job_3``).
 
     When `remove_running` is set, each recreated job that is still queued in
-    HTCondor (running/idle) is ``condor_rm``'d before resubmission so the old
-    instance can't keep running and double-write its output.
+    the scheduler (running/idle) is ``condor_rm``'d/``scancel``'d before
+    resubmission so the old instance can't keep running and double-write its
+    output.
+
+    `scheduler` is ``"condor"``/``"slurm"``; when None it is auto-detected from
+    the jobs folder.
     """
     jobs_folder = Path(jobs_folder)
+    if scheduler is None:
+        scheduler = detect_scheduler(jobs_folder)
     jobs_config_path = jobs_folder / "jobs_config.yaml"
     if not jobs_config_path.exists():
         rprint(f"[red]No jobs_config.yaml found in {jobs_folder}. Cannot recreate jobs.[/]")
@@ -255,13 +320,13 @@ def recreate_jobs_oneshot(jobs_folder, jobs_to_recreate, *, use_redirector=False
     if remove_running:
         queued = [j for j in jobs_to_redo if j in set(runningjobs) | set(idlejobs)]
         if queued:
-            rprint(f"[recreate] Removing still-queued condor instances of: {queued}")
+            rprint(f"[recreate] Removing still-queued {scheduler} instances of: {queued}")
         for j in queued:
             if dry_run:
-                rprint(f"[dim]Dry run, not running condor_rm for {j}[/]")
+                rprint(f"[dim]Dry run, not removing the queued instance of {j}[/]")
                 continue
-            out = condor_rm_job(j)
-            rprint(f"[recreate] condor_rm {j}: {out or 'no matching queued job'}")
+            out = remove_queued_job(jobs_folder, j, scheduler)
+            rprint(f"[recreate] remove {j}: {out or 'no matching queued job'}")
 
     # Jobs that failed due to an XRootD error get a per-file alternate-site lookup.
     xrootd_err_logs = os.popen(f"grep -il {jobs_folder}/logs/*.err -e 'XRootD error'").read().split()
@@ -292,9 +357,9 @@ def recreate_jobs_oneshot(jobs_folder, jobs_to_recreate, *, use_redirector=False
             rprint(f"[yellow]WARNING: could not open a rucio client ({e}); "
                    f"replica lookups will fail.[/]")
 
-    if recreate_queue is not None and recreate_queue not in queues:
+    if recreate_queue is not None and recreate_queue not in known_queues(scheduler):
         rprint(f"[yellow]WARNING: recreate-queue={recreate_queue!r} is not in the known "
-               f"HTCondor queue list {queues}; writing your value verbatim.[/]")
+               f"{scheduler} queue list {known_queues(scheduler)}; writing your value verbatim.[/]")
 
     for job in jobs_to_redo:
         if job not in jobs_config["jobs_list"]:
@@ -330,14 +395,17 @@ def recreate_jobs_oneshot(jobs_folder, jobs_to_recreate, *, use_redirector=False
             config.set_filesets_manually(new_fileset)
             cloudpickle.dump(config, open(cfgfile, "wb"))
 
-        if skip_bad_files and ensure_sub_transfers is not None:
-            ensure_sub_transfers(f"{jobs_folder}/{job}.sub", abs_jobdir)
+        desc_file = job_desc_file(jobs_folder, job, scheduler)
+        # The transfer_input_files patch only applies to condor .sub files; the
+        # SLURM wrapper references the inner YAML by absolute path already.
+        if skip_bad_files and ensure_sub_transfers is not None and scheduler == "condor":
+            ensure_sub_transfers(desc_file, abs_jobdir)
 
         # Explicit queue override wins over the implicit timeout bump.
         if recreate_queue is not None:
-            set_queue(f"{jobs_folder}/{job}.sub", recreate_queue, job)
+            queue_lib(scheduler).set_queue(desc_file, recreate_queue, job)
         elif job in runningjobs:
-            bump_queue(f"{jobs_folder}/{job}.sub", queue_shift)
+            queue_lib(scheduler).bump_queue(desc_file, queue_shift)
 
         if dry_run:
             rprint(f"[dim]Dry run, not resubmitting {job}[/]")
@@ -347,7 +415,7 @@ def recreate_jobs_oneshot(jobs_folder, jobs_to_recreate, *, use_redirector=False
         elif job in runningjobs:
             os.system(f"rm {jobs_folder}/{job}.running")
         os.system(f"touch {jobs_folder}/{job}.idle")
-        os.system(f"cd {jobs_folder} && condor_submit {job}.sub")
+        os.system(submit_job_cmd(jobs_folder, job, scheduler))
         rprint(f"[green]Resubmitted {job}[/]")
 
 
@@ -384,19 +452,20 @@ def recreate_jobs_oneshot(jobs_folder, jobs_to_recreate, *, use_redirector=False
                    "Unioned with check-jobs' automatic count-based blacklist. Files at "
                    "a blocklisted site are rewritten to an alternative replica via Rucio.")
 @click.option("--recreate-queue", type=str, default=None,
-              help="Force each resubmitted job's HTCondor +JobFlavour to this queue "
+              help="Force each resubmitted job's queue: the HTCondor +JobFlavour "
                    "(espresso, microcentury, longlunch, workday, tomorrow, testmatch, "
-                   "nextweek). Overrides the implicit --queue-shift bump for jobs removed "
-                   "due to time limit.")
+                   "nextweek) or the SLURM partition (quick, standard, long). Overrides "
+                   "the implicit --queue-shift bump for jobs removed due to time limit.")
 @click.option("--skip-bad-files", is_flag=True, default=False,
               help="Retroactively enable Coffea's skip-bad-files in the inner job of the "
                    "recreated/resubmitted jobs by (re)materialising inner_run_options.yaml "
                    "and patching the jobs_dir. Most useful together with --recreate.")
 @click.option("--remove-running", is_flag=True, default=False,
-              help="With --recreate, condor_rm each recreated job's still-queued "
-                   "(running/idle) HTCondor instance before resubmitting, so a stuck job "
-                   "can't keep running and double-write its output. Matched by the unique "
-                   "config_job_<n>.pkl in the job's condor Arguments.")
+              help="With --recreate, kill each recreated job's still-queued "
+                   "(running/idle) scheduler instance before resubmitting, so a stuck job "
+                   "can't keep running and double-write its output. HTCondor: condor_rm "
+                   "matched on the unique config_job_<n>.pkl in the job's Arguments; "
+                   "SLURM: scancel matched on the job_<n>.slurm --job-name.")
 def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold,
                queue_shift, group_by, recreate, once, use_redirector, blocklist_sites,
                recreate_queue, skip_bad_files, remove_running):
@@ -406,6 +475,9 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
         jobs_folder = os.path.join(jobs_folder,"job")
 
     jobs_folder = Path(jobs_folder)
+    scheduler = detect_scheduler(jobs_folder)
+    if scheduler != "condor":
+        rprint(f"[dim]Detected batch scheduler: {scheduler}[/]")
 
     # Parse the explicit --blocklist-sites list once (unioned with the auto
     # blacklist inside the resubmit loop).
@@ -425,11 +497,14 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
             skip_bad_files=skip_bad_files,
             queue_shift=queue_shift,
             remove_running=remove_running,
+            scheduler=scheduler,
         )
         if not resubmit:
             return
     # Get the list of files in the folder
-    tot_jobs = [ a.split("/")[-1][:-4] for a in glob.glob(f"{jobs_folder}/job_*.sub") ]
+    desc_ext = JOB_DESC_EXT.get(scheduler, "sub")
+    tot_jobs = [ a.split("/")[-1][:-(len(desc_ext) + 1)]
+                 for a in glob.glob(f"{jobs_folder}/job_*.{desc_ext}") ]
     # Redo everything every 5 sec
     console = Console()
 
@@ -533,8 +608,12 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                         failed_job_num = failed_job.split('_')[1]
 
                         if not failed_job in definitive_failed:
-                            # Check the log file
+                            # Check the log file. Under SLURM the python
+                            # traceback lands in the .err (sbatch --error), so
+                            # probe those too, preferring the most recent.
                             glob_file = glob.glob(f"{jobs_folder}/logs/job_*.{failed_job_num}.out")
+                            if scheduler == "slurm":
+                                glob_file += glob.glob(f"{jobs_folder}/logs/job_*.{failed_job_num}.err")
                             xrootdfile = None
                             if glob_file:
                                 with open(glob_file[-1]) as f:
@@ -638,15 +717,8 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                                         if samecounter > 0:
                                             log_text.append(f"[red][b]Job {failed_job}[/]: Could not replace {samecounter} files in config though they were in blacklisted sites, because no alternative site was found![/]")
 
-                                resubmit_log = os.popen(f"cd {jobs_folder} && condor_submit {failed_job}.sub",'r').read()
-
-                                resubmit_succeeded = True
-                                if len(resubmit_log.split('\n')) > 2:
-                                    resubmit_log = resubmit_log.split('\n')[-2]     # This is the usual condor_submit output "1 job(s) submitted to cluster XXXX"
-                                    if not "job(s) submitted to cluster" in resubmit_log:
-                                        resubmit_succeeded = False
-                                else:
-                                    resubmit_succeeded = False
+                                resubmit_log, resubmit_succeeded = resubmit_job(
+                                    jobs_folder, failed_job, scheduler)
 
                                 log_text.append(resubmit_log)
                                 if resubmit_succeeded:
@@ -660,11 +732,13 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                                 # Add it to the list of jobs that are definitely failed
                                 definitive_failed.append(failed_job)
                     if resubmit_count > 0:
-                        log_text.append(f"[red]Resubmitted {resubmit_count} failed jobs to condor[/]")
+                        log_text.append(f"[red]Resubmitted {resubmit_count} failed jobs to {scheduler}[/]")
 
                 # check in the logs for SYSTEM_PERIODIC_REMOVE
                 # they are not failed but remain running/idle
-                _log_files = glob.glob(f"{jobs_folder}/logs/job_*.log")
+                # (condor event logs only: under SLURM this block no-ops and the
+                # slurm-specific scan below takes over.)
+                _log_files = glob.glob(f"{jobs_folder}/logs/job_*.log") if scheduler == "condor" else []
                 c = []
                 if _log_files:  # no logs yet on the first iterations -> skip
                     with open(_log_files[0]) as f:
@@ -725,7 +799,8 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                 
                 # Now check jobs which were resubmitted by this script but then failed again
                 # Look for "job was aborted"
-                failedlogs = os.popen(f'grep -il {jobs_folder}/logs/job_*.log -e "Job was aborted"').read().split("\n")[:-1]
+                failedlogs = [] if scheduler != "condor" else \
+                    os.popen(f'grep -il {jobs_folder}/logs/job_*.log -e "Job was aborted"').read().split("\n")[:-1]
                 for failedlog in failedlogs:
                     # Skip the primary/original log (already handled by the
                     # SYSTEM_PERIODIC_REMOVE block above). `log_file` used to be
@@ -792,7 +867,61 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                                 log_text.append(f"Resubmitted job, {thisjob}, was removed [i]again[/] by the system due to max-time reached. Marked as failed and bumped to longer condor queue: {next_jf}.")
                             
                             os.system(f"mv {failedlog} {jobs_folder}/logs/processedlogs")
-                   
+
+                # SLURM kill-reason detection: there is no condor-style event
+                # log — a job killed for its walltime or by the OOM killer just
+                # leaves its .running flag behind, and slurmstepd writes the
+                # reason into the job's stderr (logs/job_<slurmid>.<idx>.err).
+                # Flip the flags so the resubmit section picks the job up, and
+                # bump the partition/--time (timeout) or --mem (OOM).
+                if scheduler == "slurm":
+                    for errlog in glob.glob(f"{jobs_folder}/logs/job_*.err"):
+                        parts = os.path.basename(errlog).split(".")
+                        if len(parts) != 3:   # expect job_<slurmid>.<idx>.err
+                            continue
+                        sched_id = parts[0][len("job_"):]
+                        job_idx = parts[1]
+                        job_key = f"{sched_id}_{job_idx}"
+                        if job_key in maxtimelist:
+                            continue
+                        kind = classify_slurm_log(errlog)
+                        if kind is None:
+                            continue
+                        thisjob = f"job_{job_idx}"
+                        if thisjob not in running_jobs and thisjob not in idle_jobs:
+                            continue
+                        if thisjob in running_jobs:
+                            running_jobs.remove(thisjob)
+                            os.system(f"rm {jobs_folder}/{thisjob}.running")
+                        if thisjob in idle_jobs:
+                            idle_jobs.remove(thisjob)
+                            os.system(f"rm {jobs_folder}/{thisjob}.idle")
+                        failed_jobs.append(thisjob)
+                        os.system(f"touch {jobs_folder}/{thisjob}.failed")
+
+                        maxtimelist.append(job_key)
+                        with open(maxtimefile, 'a') as f:
+                            f.write(job_key + "\n")
+
+                        slurm_file = f"{jobs_folder}/{thisjob}.slurm"
+                        if kind == "timeout":
+                            if recreate_queue is not None:
+                                slurm_queue.set_queue(slurm_file, recreate_queue, thisjob)
+                                next_q = recreate_queue
+                            else:
+                                next_q = slurm_queue.bump_queue(slurm_file, queue_shift)
+                            log_text.append(f"{thisjob} was killed by SLURM for hitting its "
+                                            f"time limit. Marked as failed and moved to "
+                                            f"partition: {next_q}.")
+                        else:  # oom
+                            new_mem = slurm_queue.bump_mem(slurm_file)
+                            log_text.append(f"{thisjob} was killed by the OOM killer. Marked "
+                                            f"as failed and --mem raised to {new_mem}.")
+                        # Park the classified log so a stale copy can't
+                        # re-trigger the flag flip after resubmission.
+                        os.makedirs(f"{jobs_folder}/logs/processedlogs", exist_ok=True)
+                        os.system(f"mv {errlog} {jobs_folder}/logs/processedlogs")
+
                 if len(log_text):
                     if len(log_text) > 20:
                         log_text = log_text[-20:]

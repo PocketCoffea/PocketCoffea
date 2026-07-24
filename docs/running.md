@@ -121,7 +121,7 @@ respectively).
 |------|--------------------|----------------|
 |lxplus| dask, condor       | dask@lxplus, condor@lxplus |
 |swan| dask                 | dask@swan      |
-|T3_CH_PSI| dask            | dask@T3_CH_PSI |
+|T3_CH_PSI| dask, slurm     | dask@T3_CH_PSI, slurm@T3_CH_PSI |
 |DESY NAF | parsl           | parsl@DESY     |
 |RWTH Aachen LX-Cluster | parsl, dask    | parsl@RWTH, dask@RWTH |
 |RWTH CLAIX | parsl, dask          | parsl@CLAIX, dask@CLAIX |
@@ -300,17 +300,18 @@ The `--resubmit-failed` flag reads `failed_jobs.json` from the output directory 
 `--resubmit-failed` requires `--process-separately` to be set as well.
 :::
 
-### Manual-job (HTCondor) executors
+### Manual-job executors (HTCondor / SLURM)
 
 In addition to the Dask executors — which keep a Python scheduler alive on the submit
 node and stream results back to it — PocketCoffea also ships **manual-job executors**
-that submit one self-contained HTCondor job per chunk-group and let HTCondor do the
-scheduling. Currently available:
+that submit one self-contained batch job per chunk-group and let the batch scheduler do
+the scheduling. Currently available:
 
-| Executor string | Site             |
-|-----------------|------------------|
-| `condor@lxplus` | CERN HTCondor    |
-| `condor@rubin`  | Maryland HTCondor |
+| Executor string    | Site               |
+|--------------------|--------------------|
+| `condor@lxplus`    | CERN HTCondor      |
+| `condor@rubin`     | Maryland HTCondor  |
+| `slurm@T3_CH_PSI`  | PSI Tier-3 SLURM   |
 
 This mode is best when:
 
@@ -376,12 +377,52 @@ custom-setup-commands:              # extra `source ...` lines added to the job 
 dry-run: false                      # true → prepare jobs_dir but skip condor_submit
 ```
 
-Defaults for `condor@lxplus` and `condor@rubin` live in
+Defaults for `condor@lxplus`, `condor@rubin` and `slurm@T3_CH_PSI` live in
 [`pocket_coffea/parameters/executor_options_defaults.yaml`](https://github.com/PocketCoffea/PocketCoffea/blob/main/pocket_coffea/parameters/executor_options_defaults.yaml).
 You **must** provide either `--scaleout` or `max-events-per-job` — otherwise the
 splitting will produce a single job. The HTCondor `+JobFlavour` queues from shortest to
 longest are `espresso`, `microcentury`, `longlunch`, `workday`, `tomorrow`, `testmatch`,
 `nextweek`.
+
+#### SLURM manual jobs at PSI T3 (`slurm@T3_CH_PSI`)
+
+`slurm@T3_CH_PSI` follows the exact same flow and on-disk contract (per-job pickles,
+`jobs_config.yaml`, the flag files) with the scheduler layer swapped out for SLURM:
+
+- **One sbatch script per job** (`job_{i}.slurm`, the analogue of `job_{i}.sub`) plus a
+  single **job array** `jobs_all.slurm` submitted with `sbatch jobs_all.slurm`; each
+  array task reads its own chunksize from `jobs_dir/chunksizes.txt`.
+- **Shared filesystem, no transfers**: `/t3home`, `/work` and `/pnfs` are mounted on the
+  worker nodes, so the config pickles, the proxy and `inner_run_options.yaml` are
+  referenced by absolute path. Jobs run inside node-local scratch
+  (`local-scratch-dir`, default `/scratch/$USER`, cleaned up on exit) and copy the
+  output back to `--outputdir` with plain `cp`.
+- **Queue = SLURM partition**: `quick → standard → long` (default `standard` with
+  `walltime: 06:00:00`). When `check-jobs` detects a job killed for its time limit it
+  bumps the partition *and* raises `--time` to the partition's walltime; an
+  out-of-memory kill doubles `--mem` instead.
+- **Environment**: by default the job inherits `conda-env` / `local-virtualenv` /
+  `custom-setup-commands` like the `dask@T3_CH_PSI` executor. If `worker-image` is set,
+  the whole wrapper instead runs inside `apptainer exec` with the `apptainer-binds`
+  mounts (default `/scratch,/pnfs,/t3home,/work,/cvmfs`).
+
+```bash
+pocket-coffea run --cfg config.py -o output/ --executor slurm@T3_CH_PSI --scaleout 50
+```
+
+Options specific to `slurm@T3_CH_PSI` (run-options YAML):
+
+```yaml
+queue: "standard"               # SLURM partition: quick | standard | long
+walltime: "06:00:00"
+account: null                   # sbatch --account, if your group needs it
+worker-image: null              # if set, wrap the job in apptainer exec
+apptainer-binds: "/scratch,/pnfs,/t3home,/work,/cvmfs"
+local-scratch-dir: "/scratch/$USER"
+max-concurrent-jobs: 100        # throttle the array (sbatch --array=0-N%100)
+custom-sbatch-options:          # extra raw "#SBATCH ..." lines
+  - "--constraint=el9"
+```
 
 ##### Per-sample `max-events-per-job`
 
@@ -443,7 +484,9 @@ A few caveats worth knowing about:
   present in the current fileset, so typos surface immediately.
 
 This is currently implemented for the manual-job executors (`condor@lxplus`,
-`condor@rubin`) only.
+`condor@rubin`, `slurm@T3_CH_PSI`) only. Under SLURM the same mechanism uses
+`jobs_dir/chunksizes.txt`: the array tasks look their chunksize up by line
+number, and the per-job `.slurm` files hard-code their own value.
 
 #### Tips
 
@@ -506,6 +549,13 @@ failures as they appear) and proactively (one-shot recreate of a chosen set of j
 It is the single home for manual-job resubmission; there is no `pocket-coffea run
 --recreate-jobs` any more.
 
+The batch scheduler is **auto-detected** from the jobs folder (the `scheduler` key in
+`jobs_config.yaml`, falling back to probing for `job_<n>.slurm` files): the same
+commands work on an HTCondor jobs_dir (`condor@lxplus`, `condor@rubin`) and on a SLURM
+one (`slurm@T3_CH_PSI`) — resubmission goes through `condor_submit`/`sbatch`, the queue
+model is `+JobFlavour`/`--partition`+`--time`, and killed-job detection reads the condor
+event log / the slurmstepd messages, respectively.
+
 ```bash
 # Just watch the jobs (read-only)
 pocket-coffea check-jobs -j /path/to/output/job
@@ -530,15 +580,15 @@ called `job`, the tool descends into it automatically.
 | `-r, --resubmit` | off | Actively resubmit failed jobs with the recovery logic described below. |
 | `-m, --max-resubmit` | `4` | Give up on a job after this many resubmissions. |
 | `-b, --blacklist-threshold` | `3` | After this many XRootD failures coming from the same site, that site is added to a local blacklist for the rest of the session. |
-| `-q, --queue-shift` | `1` | When HTCondor aborts a job with `SYSTEM_PERIODIC_REMOVE` (max time exceeded), bump its `+JobFlavour` by this many steps along `espresso → microcentury → longlunch → workday → tomorrow → testmatch → nextweek` before resubmitting. |
+| `-q, --queue-shift` | `1` | When the scheduler kills a job for exceeding its time limit, bump its queue by this many steps before resubmitting: the HTCondor `+JobFlavour` along `espresso → microcentury → longlunch → workday → tomorrow → testmatch → nextweek`, or the SLURM `--partition` along `quick → standard → long` (raising `--time` accordingly). |
 | `--by sample\|dataset\|none` | `sample` | Show a per-group progress table below the summary, with a stacked coloured bar (green=done, magenta=running, blue=idle, red=failed) and a `% Done` column sorted from slowest to fastest sample. Requires `jobs_config.yaml` in the jobs folder (written by the manual-job executors); pass `none` to disable. If the YAML is missing the tool silently falls back to the legacy single-table layout. |
 | `--recreate SELECTOR` | — | One-shot proactive recreate/resubmit of a chosen set of jobs, then exit (unless `--resubmit` is also given). `SELECTOR` is `auto` (all `.failed`/`.running`/`.idle` jobs) or a comma list (`0,1,3` or `job_0,job_3`). Unlike `--resubmit`, this can act on running/idle jobs, e.g. to move everything off a site or onto the redirector mid-run. See [One-shot / proactive recreate](#one-shot-proactive-recreate). |
 | `--once` | off | Run a single monitor/resubmit iteration then exit, instead of looping until all jobs finish. |
 | `--use-redirector` | off | Rewrite files through the global xrootd redirector (`root://xrootd-cms.infn.it//`). With `--recreate`, every file of each recreated job is pointed at the redirector (no Rucio lookups); in the `--resubmit` loop it is the fallback used when no alternative site is found for a failed file. Takes precedence over `--blocklist-sites`. |
 | `--blocklist-sites` | — | Comma-separated CMS site names (or xrootd prefixes) to avoid, **unioned** with the automatic count-based blacklist. Files at a blocklisted site are rewritten to an alternative replica via Rucio. |
-| `--recreate-queue` | — | Force each resubmitted job's HTCondor `+JobFlavour` to this queue (`espresso` … `nextweek`). Overrides the implicit `--queue-shift` bump for jobs removed due to time limit. |
+| `--recreate-queue` | — | Force each resubmitted job's queue: the HTCondor `+JobFlavour` (`espresso` … `nextweek`) or the SLURM partition (`quick`, `standard`, `long`). Overrides the implicit `--queue-shift` bump for jobs removed due to time limit. |
 | `--skip-bad-files` | off | Retroactively enable Coffea's skip-bad-files in the inner job by (re)materialising `inner_run_options.yaml` and patching the jobs_dir. Most useful with `--recreate`. |
-| `--remove-running` | off | With `--recreate`, `condor_rm` each recreated job's still-queued (running/idle) HTCondor instance before resubmitting, so a stuck job can't keep running and double-write its output. The instance is matched by the unique `config_job_<n>.pkl` in its condor `Arguments`. |
+| `--remove-running` | off | With `--recreate`, kill each recreated job's still-queued (running/idle) scheduler instance before resubmitting, so a stuck job can't keep running and double-write its output. HTCondor: `condor_rm` matched by the unique `config_job_<n>.pkl` in the job's `Arguments`; SLURM: `scancel` matched by the `--job-name` in `job_<n>.slurm`. |
 
 #### One-shot / proactive recreate
 
@@ -578,9 +628,10 @@ first — it is matched by the unique `config_job_<n>.pkl` in its condor `Argume
 :::{note}
 `--recreate` is locked to the fileset that was pickled in `jobs_config.yaml` at submission
 time; it does not re-read the dataset JSON. To incorporate new files or new sites, rebuild
-the dataset with `build-datasets` and resubmit from scratch. The queue rewrite only applies
-to pools that schedule by `+JobFlavour` (lxplus); the rubin/UMD pool uses `+MaxRuntime`, so
-queue bumping is a no-op there.
+the dataset with `build-datasets` and resubmit from scratch. The queue rewrite applies to
+pools that schedule by `+JobFlavour` (lxplus) and to SLURM jobs_dirs (where it rewrites
+`--partition` and `--time`); the rubin/UMD pool uses `+MaxRuntime`, so queue bumping is a
+no-op there.
 :::
 
 #### What `--resubmit` actually does
@@ -603,9 +654,16 @@ For every job whose flag file is `.failed`, `check-jobs` inspects
   forced to `--recreate-queue` if set), the job is marked failed, and the next poll picks
   it up for resubmission. The cluster/proc-id is remembered in `jobs_dir/maxtime.txt` so
   the same abort is not bumped again.
+- **SLURM kills** (SLURM jobs_dirs only): a job killed by SLURM leaves its `.running`
+  flag behind and slurmstepd writes the reason into `logs/job_<slurmid>.<n>.err`. The
+  loop scans those logs: `DUE TO TIME LIMIT` bumps the `--partition`/`--time` of
+  `job_<n>.slurm` (per `--queue-shift`/`--recreate-queue`), an `oom-kill` doubles its
+  `--mem`; in both cases the job is marked failed for the next poll to resubmit, the
+  slurm-id is remembered in `maxtime.txt` and the log is parked under
+  `logs/processedlogs/`.
 
-After patching, the script issues `condor_submit job_{i}.sub`, removes the `.failed`
-flag, and touches `.idle`.
+After patching, the script issues `condor_submit job_{i}.sub` / `sbatch job_{i}.slurm`,
+removes the `.failed` flag, and touches `.idle`.
 
 The tool exits automatically when `done + failed == total`, and prints the suggested
 next command:
