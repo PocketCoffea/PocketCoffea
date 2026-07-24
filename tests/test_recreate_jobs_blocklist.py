@@ -1,9 +1,10 @@
-"""Tests for the blocklist-driven rewrite used by --recreate-jobs.
+"""Tests for the blocklist-driven rewrite used by `check-jobs` (recreate/resubmit).
 
-These exercise the pure helper `rewrite_fileset_blocklist` in
-`pocket_coffea.utils.site_rewrite`, which is reused by both the lxplus and
-rubin manual-job executors. The DAS query inside `find_other_file` is
-stubbed out so the tests are self-contained and don't pull in dask.
+These exercise the pure helpers `rewrite_fileset_blocklist` and
+`find_other_file` in `pocket_coffea.utils.site_rewrite`, which back both the
+one-shot recreate pass and the reactive resubmit loop of `check-jobs`. The DAS
+query inside `find_other_file` is stubbed out so the tests are self-contained
+and don't pull in dask.
 """
 from collections import OrderedDict
 
@@ -111,6 +112,45 @@ def test_empty_blocklist_is_noop(das_sites):
     out = ex.rewrite_fileset_blocklist(fileset, SITEMAP, blocklist=set())
 
     assert out is fileset or out["sampleA"]["files"] == [f]
+
+
+# ----------------------- find_other_file extensions -----------------------
+
+def test_find_other_file_exclude_urls_skips_candidate(das_sites):
+    """A replica whose reconstructed PFN is in exclude_urls is skipped."""
+    f = SITEA_PREFIX + "/store/data/foo.root"
+    das_sites["/store/data/foo.root"] = ["T2_X_SITEA", "T2_X_SITEC"]
+    excluded = SITEC_PREFIX + "/store/data/foo.root"
+    out = ex.find_other_file(f, SITEMAP, blocklist={"T2_X_SITEA"},
+                             exclude_urls={excluded})
+    # SITEC is the only alternative but it's excluded -> fall back to redirector
+    assert out == ex.GLOBAL_XROOTD_REDIRECTOR + "store/data/foo.root"
+
+
+def test_find_other_file_blocklist_by_prefix_string(das_sites):
+    """blocklist entries may be xrootd prefix strings, not just Rucio site names."""
+    f = SITEA_PREFIX + "/store/data/foo.root"
+    das_sites["/store/data/foo.root"] = ["T2_X_SITEA", "T2_X_SITEC"]
+    out = ex.find_other_file(f, SITEMAP, blocklist={SITEA_PREFIX, SITEC_PREFIX})
+    # both replicas are behind blocklisted prefixes -> fall back to redirector
+    assert out == ex.GLOBAL_XROOTD_REDIRECTOR + "store/data/foo.root"
+
+
+def test_find_other_file_no_fallback_returns_unchanged(das_sites):
+    """fallback_redirector=None -> return the file unchanged when no alt is found."""
+    f = SITEA_PREFIX + "/store/data/foo.root"
+    das_sites["/store/data/foo.root"] = ["T2_X_SITEA"]  # only the current (blocked) site
+    out = ex.find_other_file(f, SITEMAP, blocklist={"T2_X_SITEA"},
+                             fallback_redirector=None)
+    assert out == f
+
+
+def test_find_other_file_picks_alt_site(das_sites):
+    """Sanity: with a clean alternative and default fallback, return the alt site URL."""
+    f = SITEA_PREFIX + "/store/data/foo.root"
+    das_sites["/store/data/foo.root"] = ["T2_X_SITEA", "T2_X_SITEC"]
+    out = ex.find_other_file(f, SITEMAP, blocklist={"T2_X_SITEA"})
+    assert out == SITEC_PREFIX + "/store/data/foo.root"
 
 
 # ----------------------- rewrite_fileset_to_redirector -----------------------
