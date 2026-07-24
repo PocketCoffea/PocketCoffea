@@ -4,21 +4,22 @@ from coffea import processor as coffea_processor
 from .executors_base import ExecutorFactoryABC
 from .executors_base import IterativeExecutorFactory, FuturesExecutorFactory
 from pocket_coffea.utils.network import check_port
-from pocket_coffea.parameters.dask_env import setup_dask
 
 import parsl
 from parsl.providers import CondorProvider
-#from parsl.channels import LocalChannel
 from parsl.config import Config
 from parsl.executors import HighThroughputExecutor
-from parsl.launchers import SrunLauncher, SingleNodeLauncher
-from parsl.addresses import address_by_hostname, address_by_query
+from parsl.addresses import address_by_hostname
 
+def walltime_to_seconds(walltime: str) -> int:
+    h, m, s = map(int, walltime.split(":"))
+    return h * 3600 + m * 60 + s
 
 class ParslCondorExecutorFactory(ExecutorFactoryABC):
     '''
     Parsl executor based on condor for DESY NAF
     '''
+    print("Initialize Parsl")
     def __init__(self, run_options, outputdir, **kwargs):
         self.outputdir = outputdir
         super().__init__(run_options)
@@ -27,11 +28,12 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
         env_worker = [
             'echo \"Current date and time: `date`"',
             'echo "Hostname=`hostname`"',
-            'export XRD_RUNFORKHANDLER=1',
             'source /cvmfs/grid.desy.de/etc/profile.d/grid-ui-env.sh',
             f'export X509_USER_PROXY={self.x509_path}',
-            'export MALLOC_TRIM_THRESHOLD_=0',
             'ulimit -u 32768',
+            'ulimit -s unlimited',
+            f'export PYTHONPATH=$PYTHONPATH:{os.getcwd()}',
+            f'cd {os.getcwd()}',
             'echo conda prefix: $CONDA_PREFIX'
         ]
 
@@ -43,8 +45,7 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
             elif "MAMBA_ROOT_PREFIX" in os.environ:
                 env_worker.append(f"{os.environ['MAMBA_EXE']} activate {os.environ['CONDA_DEFAULT_ENV']}")
             else:
-                raise Exception("CONDA prefix not found in env! Something is wrong with your conda installation if you want to use conda on the cluster."\
-)
+                raise Exception("CONDA prefix not found in env! Something is wrong with your conda installation if you want to use conda on the cluster.")
             env_worker.append('echo "Conda has been activated, hopefully... We are ready to roll!"')
 
         # Adding list of custom setup commands from user defined run options
@@ -58,6 +59,10 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
         ''' Start the slurm cluster here'''
         self.setup_proxyfile()
 
+        if 'afs' in self.x509_path:
+            print("self.x509_path = ", self.x509_path)
+            print(" *Warning*: your grid proxy file is on AFS. This is not a good idea for *long* jobs submitted with screen. If/when AFS token expires the jobs will crash. Instead set the X509_USER_PROXY variable to point at DUST (in your .bashrc): \n export X509_USER_PROXY=/data/dust/user/*USERNAME*/x509up\n then re-run voms-proxy-init and set the 'voms-proxy' path in your run-options config to point to that file.")
+            
         condor_htex = Config(
                 executors=[
                     HighThroughputExecutor(
@@ -68,21 +73,19 @@ class ParslCondorExecutorFactory(ExecutorFactoryABC):
                         prefetch_capacity=0,
                         # Condor settings are here:
                         provider=CondorProvider(
-                            launcher = SingleNodeLauncher(debug=False, fail_on_any=False),
                             nodes_per_block = 1,
-                            cores_per_slot = self.run_options.get("cores-per-worker", 1),
-                            mem_per_slot   = self.run_options.get("mem-per-worker", 4),
-                            init_blocks    = self.run_options["scaleout"],
-                            max_blocks     = self.run_options["scaleout"],
-                            worker_init    = "\n".join(self.get_worker_env()),
-                            walltime       = self.run_options["walltime"],
-                            requirements   = self.run_options.get("requirements", ""),
+                            cores_per_slot  = self.run_options.get("cores-per-worker", 1),
+                            mem_per_slot    = self.run_options.get("mem-per-worker", 4),
+                            init_blocks     = self.run_options["scaleout"],
+                            max_blocks      = self.run_options["scaleout"],
+                            worker_init     = "\n".join(self.get_worker_env()),
+                            requirements    = self.run_options.get("requirements", ""),
+                            scheduler_options = "Request_Disk = %i \n+RequestRuntime = %i" % (int(self.run_options["disk-per-worker"][:-2]) * 1024 * 1024, walltime_to_seconds(self.run_options["walltime"])),
                         ),
                     )
                 ],
-            retries=self.run_options["retries"],
-            #run_dir="/tmp/"+getpass.getuser()+"/parsl_runinfo",
-
+            retries = self.run_options["retries"],
+            #run_dir = self.run_options.get("parsl-runinfo", "/tmp/"+getpass.getuser()+"/parsl_runinfo"),
             )
 
         self.condor_cluster = parsl.load(condor_htex)
