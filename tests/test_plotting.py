@@ -5,7 +5,7 @@ import pytest
 from coffea.util import load
 from omegaconf import OmegaConf
 from pocket_coffea.parameters.defaults import get_default_parameters
-from pocket_coffea.utils.plot_utils import PlotManager, Shape
+from pocket_coffea.utils.plot_utils import PlotManager, Shape, Style
 
 
 @pytest.fixture(scope="module")
@@ -62,7 +62,6 @@ def test_plot_manager(plot_manager, default_plotting_parameters, coffea_output: 
 
 
 class TestHistogramPlotting:
-    # TODO: test with MC only, i.e. filter DATA samples
     def test_plot_datamc_all(
         self,
         plot_manager: Callable[..., PlotManager],
@@ -100,25 +99,10 @@ class TestHistogramPlotting:
                 )
                 assert plot_path.exists(), f"Plot {plot_path} was not created"
 
-    def test_plot_with_custom_cms_label(
-        self,
-        plot_manager: Callable[..., PlotManager],
-        default_plotting_parameters: dict,
-    ):
-        """Test plotting with a custom title."""
-        OmegaConf.update(default_plotting_parameters, "cms_label", "Custom Plot Title")
-        plot_mngr = plot_manager(default_plotting_parameters)
-        plot_mngr.plot_datamc_all(format="png")
-        for shape_object in plot_mngr.shape_objects.values():
-            for category in shape_object.categories:
-                plot_path = (
-                    plot_mngr.plot_dir
-                    / category
-                    / f"{shape_object.name}_{category}.png"
-                )
-                assert plot_path.exists(), f"Plot {plot_path} was not created"
 
-
+# UserWarning is raised when the systematic shift is flat.
+# we do not want to test for this here
+@pytest.mark.filterwarnings("ignore:The ratio plot for:UserWarning:")
 class TestSystematicsPlotting:
     def test_plot_systematic_shifts(
         self,
@@ -142,3 +126,45 @@ class TestSystematicsPlotting:
                 / f"{shape.name}_{category}_{variation}.png"
             )
             assert plot_path.exists(), f"Plot {plot_path} was not created"
+
+
+class TestDeprecationWarnings:
+    """Test that deprecation warnings are raised for deprecated plotting parameters."""
+
+    def test_print_info_year_deprecation_warning(self, default_plotting_parameters):
+        """Test that a DeprecationWarning is raised when print_info.year is enabled."""
+
+        deprecation_message = (
+            "The 'print_info.year' option is deprecated. "
+            "Use 'cms_label.year: true' to display year info instead."
+        )
+
+        # Set print_info.year to True to trigger the deprecation warning
+        OmegaConf.update(default_plotting_parameters, "print_info.year", True)
+        with pytest.deprecated_call(match=deprecation_message):
+            Style(
+                style_cfg=default_plotting_parameters,
+            )
+
+        OmegaConf.update(default_plotting_parameters, "print_info.year", False)
+        with pytest.deprecated_call(match=deprecation_message):
+            Style(
+                style_cfg=default_plotting_parameters,
+            )
+
+    def test_experiment_label_loc_deprecation_warning(
+        self, default_plotting_parameters
+    ):
+        """Test that a DeprecationWarning is raised when experiment_label_loc is used."""
+
+        deprecation_message = (
+            "The 'experiment_label_loc' option is deprecated. "
+            "Use 'cms_label.loc' instead."
+        )
+
+        # Set experiment_label_loc to trigger the deprecation warning
+        OmegaConf.update(default_plotting_parameters, "experiment_label_loc", 2)
+        with pytest.deprecated_call(match=deprecation_message):
+            Style(
+                style_cfg=default_plotting_parameters,
+            )

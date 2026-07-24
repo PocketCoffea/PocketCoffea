@@ -27,6 +27,60 @@ np.seterr(divide="ignore", invalid="ignore", over="ignore")
 
 plotting_style_defaults = get_default_parameters()["plotting_style"]
 
+
+def build_cms_label_kwargs(cfg, is_mc_only: bool, year, fontsize: float) -> dict:
+    '''Build kwargs dict for hep.cms.label from cms_label config.
+    
+    Parameters
+    ----------
+    cfg : OmegaConf
+        The cms_label config from plotting_style
+    is_mc_only : bool
+        Whether the sample is MC only (data=False in label)
+    year : str
+        The year string
+    fontsize : float
+        Base font size
+        
+    Returns
+    -------
+    dict
+        Dictionary of keyword arguments for hep.cms.label()
+    '''
+    com_cfg = cfg.get("com", {})
+    lumi_cfg = cfg.get("lumi", {})
+
+    label_kwargs = {
+        "data": not is_mc_only,
+        "loc": cfg.get("loc"),
+        "fontsize": fontsize,
+    }
+
+    for key in ("text", "llabel", "rlabel", "supp"):
+        val = cfg.get(key)
+        if val is not None:
+            label_kwargs[key] = val
+
+    if cfg.get("year", False):
+        label_kwargs["year"] = year
+
+    # lumi: resolve value and pass if show is enabled
+    if lumi_cfg.get("show", False):
+        val = lumi_cfg.get("value", {})
+        lumi_val = val.get(year)
+        label_kwargs["lumi"] = lumi_val
+        label_kwargs["lumi_format"] = lumi_cfg.get("format", "{0:.1f}")
+
+    # com: look up in com dict for this year
+    if com_cfg:
+        label_kwargs["com"] = com_cfg.get(year)
+
+    return label_kwargs
+
+
+# cms default style
+hep.style.use("CMS")
+
 # colormaps according to CMS guidelines
 # https://cms-analysis.docs.cern.ch/guidelines/plotting/colors/#categorical-data-eg-1d-stackplots
 CMAP_6 = hep.styles.cms.cmap_petroff
@@ -80,7 +134,6 @@ class Style:
         self.has_colors_mc = "colors_mc" in style_cfg
         self.has_signal_samples = "signal_samples" in style_cfg
         self.has_order_mc = "order_mc" in style_cfg
-        self.has_custom_title = "cms_label" in style_cfg
         self.has_blind_hists = False
         if "blind_hists" in style_cfg:
             if (
@@ -115,6 +168,36 @@ class Style:
                     raise Exception(
                         f"The key `{subkey}` with value `{val}` is not a valid categorical axis for {key}. Available axes: {self._available_categorical_axes(is_mc)}"
                     )
+
+        # Deprecation warning for print_info
+        if hasattr(self.style_cfg, "print_info") and hasattr(
+            self.style_cfg.print_info, "year"
+        ):
+            warn(
+                "The 'print_info.year' option is deprecated. "
+                "Use 'cms_label.year: true' to display year info instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
+        # Deprecation warning for plot_upper_label
+        if hasattr(self.style_cfg, "plot_upper_label"):
+            warn(
+                "The 'plot_upper_label' option is deprecated. "
+                "Use 'cms_label.lumi.value' for per-year luminosity values "
+                "and 'cms_label.lumi.show: true' to display it.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        # Deprecation warning for experiment_label_loc
+        if hasattr(self.style_cfg, "experiment_label_loc"):
+            warn(
+                "The 'experiment_label_loc' option is deprecated. "
+                "Use 'cms_label.loc' instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.style_cfg.cms_label.loc = self.style_cfg.experiment_label_loc
 
     def update(self, style_cfg):
         '''Updates the style options with a new dictionary.'''
@@ -210,11 +293,6 @@ class PlotManager:
                 if self.only_year and year not in self.only_year:
                     continue
                 name = '_'.join([variable, year])
-                # If toplabel is overwritten we use that, if not we take the lumi from the year
-                if self.toplabel:
-                    toplabel_to_use = self.toplabel
-                else:
-                    toplabel_to_use = f"$\mathcal{{L}}$ = {style_cfg.plot_upper_label.by_year[year]:.2f}/fb"
 
                 self.shape_objects[name] = Shape(
                     h_dict,
@@ -227,7 +305,6 @@ class PlotManager:
                     log_y=self.log_y,
                     density=self.density,
                     has_mcstat=has_mcstat,
-                    toplabel=toplabel_to_use,
                     year=year,
                     verbose=self.verbose,
                     cache=self.cache
@@ -997,12 +1074,20 @@ class Shape:
 
         return ratios, ratios_unc
 
+    def _build_label_kwargs(self):
+        '''Build kwargs dict for hep.cms.label from cms_label config.'''
+        return build_cms_label_kwargs(
+            cfg=self.style.cms_label,
+            is_mc_only=self.is_mc_only,
+            year=self.year,
+            fontsize=self.style.fontsize,
+        )
+
     def define_figure(self, ratio=True):
         '''Defines the figure for the Data/MC plot.
         If ratio is True, a subplot is defined to include the Data/MC ratio plot.'''
         # load CMS plotting style
         # https://cms-analysis.docs.cern.ch/guidelines/plotting/
-        hep.style.use("CMS")
         plt.rcParams.update({'font.size': self.style.fontsize})
         if ratio:
             self.fig, (self.ax, self.rax) = plt.subplots(
@@ -1013,34 +1098,8 @@ class Shape:
         else:
             self.fig, self.ax = plt.subplots(1, 1, **self.style.opts_figure["datamc"])
             axes = self.ax
-        if self.style.has_custom_title:
-            hep.cms.text(
-                self.style.cms_label,
-                fontsize=self.style.fontsize,
-                loc=self.style.experiment_label_loc,
-                ax=self.ax,
-            )
-        else:
-            if self.is_mc_only:
-                hep.cms.text(
-                    "Simulation Preliminary",
-                    fontsize=self.style.fontsize,
-                    loc=self.style.experiment_label_loc,
-                    ax=self.ax,
-                )
-            else:
-                hep.cms.text(
-                    "Preliminary",
-                    fontsize=self.style.fontsize,
-                    loc=self.style.experiment_label_loc,
-                    ax=self.ax,
-                )
-        if self.toplabel:
-            hep.cms.lumitext(
-                text=self.toplabel,
-                fontsize=self.style.fontsize,
-                ax=self.ax,
-            )
+
+        hep.cms.label(ax=self.ax, **self._build_label_kwargs())
         return self.fig, axes
 
     def format_figure(self, cat, ratio=True, ref=None):
@@ -1146,7 +1205,8 @@ class Shape:
                 loc="upper right",
             )
 
-        if self.style.print_info["year"]:
+        # TODO: deprecate print_info.year
+        if self.style.print_info.get("year", False):
             self.ax.text(0.04, 0.75, f'Year: {self.year}', fontsize=0.7*self.style.fontsize, transform=self.ax.transAxes)
         if self.style.print_info["category"]:
             self.ax.text(0.04, 0.70, f'Cat: {cat}', fontsize=0.7*self.style.fontsize, transform=self.ax.transAxes)
@@ -1780,7 +1840,6 @@ class SystUnc:
         :type ratio: bool, optional
         """
 
-        plt.style.use(hep.style.CMS)
         plt.rcParams.update({"font.size": self.style.fontsize})
         if ratio:
             self.fig, (self.ax, self.rax) = plt.subplots(
@@ -1793,18 +1852,9 @@ class SystUnc:
                 1, 1, **self.style.opts_figure["systematics"]
             )
             axes = self.ax
-        hep.cms.text(
-            "Simulation Preliminary",
-            fontsize=self.style.fontsize,
-            loc=self.style.experiment_label_loc,
-            ax=self.ax,
-        )
-        if toplabel:
-            hep.cms.lumitext(
-                text=toplabel,
-                fontsize=self.style.fontsize,
-                ax=self.ax,
-            )
+        label_kwargs = self.shape._build_label_kwargs()
+        label_kwargs['data'] = False
+        hep.cms.label(ax=self.ax, **label_kwargs)
         return self.fig, axes
 
     def format_figure(self, ratio=True):

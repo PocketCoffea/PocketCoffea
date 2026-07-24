@@ -3,7 +3,6 @@ plotting_style:
     collapse_datasets: true     # Plot all the datasets with the same sample as a single shape
     fontsize: 22
     fontsize_legend: 18
-    experiment_label_loc: 2  # location of CMS label (https://twiki.cern.ch/twiki/bin/viewauth/CMS/Internal/FigGuidelines)
 
 
     opts_figure:
@@ -25,6 +24,14 @@ plotting_style:
         figsize: [12,9]
       systematics_ratio:
         figsize: [12,12]
+        gridspec_kw:
+          height_ratios: [3,1]
+        sharex: true
+
+      cutflow:
+        figsize: [10,6]
+      cutflow_ratio:
+        figsize: [10,9]
         gridspec_kw:
           height_ratios: [3,1]
         sharex: true
@@ -96,21 +103,41 @@ plotting_style:
         ylim_log:
           lo: 0.01
 
+    cms_label:
+      text: "Preliminary"
+      loc: 2  # location of CMS label (https://twiki.cern.ch/twiki/bin/viewauth/CMS/Internal/FigGuidelines)
+      year: false  # whether to show the year in the CMS label
+      llabel: null
+      rlabel: null
+      supp: null
+      com:
+        "2016_PreVFP": 13
+        "2016_PostVFP": 13
+        "2017": 13
+        "2018": 13
+        "2022_preEE": 13.6
+        "2022_postEE": 13.6
+        "2023_preBPix": 13.6
+        "2023_postBPix": 13.6
+        "2024": 13.6
+        "2025": 13.6
+      lumi:
+        show: false
+        format: "{0:.1f}"
+        value:
+          "2016_PreVFP": "${pico_to_femto:${lumi.picobarns.2016_PreVFP.tot}}"
+          "2016_PostVFP": "${pico_to_femto:${lumi.picobarns.2016_PostVFP.tot}}"
+          "2017": "${pico_to_femto:${lumi.picobarns.2017.tot}}"
+          "2018": "${pico_to_femto:${lumi.picobarns.2018.tot}}"
+          "2022_preEE": "${pico_to_femto:${lumi.picobarns.2022_preEE.tot}}"
+          "2022_postEE": "${pico_to_femto:${lumi.picobarns.2022_postEE.tot}}"
+          "2023_preBPix": "${pico_to_femto:${lumi.picobarns.2023_preBPix.tot}}"
+          "2023_postBPix": "${pico_to_femto:${lumi.picobarns.2023_postBPix.tot}}"
+          "2024": "${pico_to_femto:${lumi.picobarns.2024.tot}}"
+          "2025": "${pico_to_femto:${lumi.picobarns.2025.tot}}"
+
     print_info:
       category: False
-      year: false
-
-    plot_upper_label:
-      by_year:
-        "2016_PreVFP": "${pico_to_femto:${lumi.picobarns.2016_PreVFP.tot}}"
-        "2016_PostVFP": "${pico_to_femto:${lumi.picobarns.2016_PostVFP.tot}}"
-        "2017": "${pico_to_femto:${lumi.picobarns.2017.tot}}"
-        "2018": "${pico_to_femto:${lumi.picobarns.2018.tot}}"
-        "2022_preEE": "${pico_to_femto:${lumi.picobarns.2022_preEE.tot}}"
-        "2022_postEE": "${pico_to_femto:${lumi.picobarns.2022_postEE.tot}}"
-        "2023_preBPix": "${pico_to_femto:${lumi.picobarns.2023_preBPix.tot}}"
-        "2023_postBPix": "${pico_to_femto:${lumi.picobarns.2023_postBPix.tot}}"
-        "2024": "${pico_to_femto:${lumi.picobarns.2024.tot}}"
 
     categorical_axes_data:
      year: years
