@@ -415,7 +415,9 @@ def test_shape_variation_default_sequence_comparison_with_legacy_run2(base_path:
     # Then expand test to check the columns of each variation
     jet_pt_MC = ref_output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2018"]["baseline"]["Jet_pt"].value
     jet_pt = output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2018"]["baseline"]["nominal"]["Jet_pt"].value
-    # larger relative difference allowed as we may compare slighlty different JEC versions
+    # The reference is regenerated with the default sequence, which re-sorts the nominal
+    # jets by the corrected pt (see regenerate_run2_reference.py), so this is an
+    # order-sensitive comparison.
     assert np.allclose(jet_pt, jet_pt_MC), "Jet pt values do not match with the reference output"
     # Check MET in MC
     # met_pt_MC = ref_output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2018"]["baseline"]["MET_pt"].value

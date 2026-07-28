@@ -2,6 +2,8 @@ import numpy as np
 import awkward as ak
 import xgboost as xgb
 
+from pocket_coffea.lib.jets import jets_in_original_order
+
 
 class XGBoostEvaluator:
     """Base class for XGBoost BDT inference on lepton collections.
@@ -85,7 +87,10 @@ class MuonMVAEvaluator(XGBoostEvaluator):
     ]
 
     def prepare_inputs(self, leptons, jets):
-        # Closest-jet b-tag score: jagged lookup must happen before flattening
+        # Closest-jet b-tag score: jagged lookup must happen before flattening.
+        # leptons["jetIdx"] indexes the Jet collection in its original NanoAOD order, so
+        # undo any calibrator re-sorting before the lookup.
+        jets = jets_in_original_order(jets)
         valid_jetIdx = ak.mask(leptons["jetIdx"], leptons["jetIdx"] != -1)
         btag = ak.flatten(
             ak.where(
@@ -147,7 +152,10 @@ class ElectronMVAEvaluator(XGBoostEvaluator):
     ]
 
     def prepare_inputs(self, leptons, jets):
-        # Closest-jet b-tag score: jagged lookup must happen before flattening
+        # Closest-jet b-tag score: jagged lookup must happen before flattening.
+        # leptons["jetIdx"] indexes the Jet collection in its original NanoAOD order, so
+        # undo any calibrator re-sorting before the lookup.
+        jets = jets_in_original_order(jets)
         valid_jetIdx = ak.mask(leptons["jetIdx"], leptons["jetIdx"] != -1)
         btag = ak.flatten(
             ak.where(

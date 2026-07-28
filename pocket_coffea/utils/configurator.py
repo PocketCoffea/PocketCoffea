@@ -21,6 +21,7 @@ from ..lib.categorization import StandardSelection, CartesianSelection
 from ..parameters.cuts import passthrough
 from ..lib.hist_manager import Axis, HistConf
 from ..utils import build_jets_calibrator
+from ..utils.metadata import to_bool
 
 from pprint import PrettyPrinter
 
@@ -177,7 +178,7 @@ class Configurator:
                     if (m["era"]) not in self.eras:
                         self.eras.append(m["era"])
                 self.samples_metadata[m["sample"]] = {
-                    "isMC": m["isMC"] =="True",
+                    "isMC": to_bool(m["isMC"]),
                 }
             
         self.load_subsamples()
@@ -259,6 +260,11 @@ class Configurator:
             if self.samples_metadata[s]["isMC"]
         }
         
+        # Default both variation types symmetrically: a config may declare only
+        # shape variations (or only weight variations), and the missing key must
+        # not KeyError when it is loaded just below.
+        if "weights" not in self.variations_cfg:
+            self.variations_cfg["weights"] = {"common": {"inclusive": []}}
         if "shape" not in self.variations_cfg:
             self.variations_cfg["shape"] = {"common": {"inclusive": []}}
 
@@ -730,7 +736,20 @@ class Configurator:
         filtered_filesets = {}
         filtered_datasets = []
         for dataset_name, ds in self.filesets.items():
+            n_total_files = len(ds["files"])
             ds["files"] = ds["files"][0:nfiles]
+            # Keep the advertised event count consistent with the truncated file
+            # list (it feeds the run summary and adapt_chunksize). Exact per-file
+            # counts are not known here, so scale nevents by the fraction of files
+            # kept rather than leaving the full-dataset count in place.
+            meta = ds.get("metadata")
+            if meta is not None and "nevents" in meta and n_total_files > 0:
+                try:
+                    orig = meta["nevents"]
+                    scaled = int(int(orig) * len(ds["files"]) / n_total_files)
+                    meta["nevents"] = str(scaled) if isinstance(orig, str) else scaled
+                except (ValueError, TypeError):
+                    pass
             filtered_filesets[dataset_name] = ds
             filtered_datasets.append(dataset_name)
         self.filesets = filtered_filesets

@@ -192,6 +192,15 @@ Follow these instructions to skim the files on EOS:
    an already-merged file double-rescales the histograms (the `sum_genweights` is not reset
    between passes), so never feed a merged output back into `merge-outputs`.
    :::
+   :::{tip}
+   To re-run only a few datasets and substitute them into an existing merge, use
+   `--replace`: the **first** input file is treated as the base, and every dataset that also
+   appears in the remaining (incoming) files is removed from the base before merging, so the
+   newer files *replace* rather than *sum with* the base content. For example
+   `merge-outputs base.coffea rerun_datasetX_job_*.coffea -o output_total.coffea --replace -f`.
+   As above, use raw (un-postprocessed) outputs and make sure the configurator picked up for
+   postprocessing knows every dataset that survives the replacement.
+   :::
 
 5. Once done, we usually do an hadd to sum all the small files produced by each saved chunk. An utility script to compute the groups and correctly hadd them is available `pocket-coffea hadd-skimmed-files -fl ../output_total.coffea -o root://eoscms.cern.ch//eos/cms/store/group/phys_higgs/ttHbb/Run3_dileptonic_skim_hadd -e 400000 --dry  -s 6 `
    this script creates some files to be able to send out jobs that runs the hadd for each group of files. Note that it reads the merged `output_total.coffea` produced in the previous step, so the per-chunk event counts and `sum_genweights` are taken from there.
@@ -225,6 +234,119 @@ output holding the cutflow and the `sum_genweights` of every chunk it processed 
 chunks that skimmed 0 events); these must be combined with `merge-outputs` — see step 4 of
 the [workflow above](#skimming-events) — to get the correct normalization of the skimmed
 dataset.
+
+### Skim modes
+
+When `save_skimmed_files` is set, **which events get written** is governed by the
+`skim_mode` entry of `workflow_options`. Two modes are available; both *short-circuit* the
+processing — once the skimmed chunk is exported the processor returns immediately and does
+**not** fill histograms or columns.
+
+| `skim_mode` | events written | calibration / preselection run? |
+|---|---|---|
+| `"skim"` *(default)* | events passing the `skim` cuts | no — cuts evaluated on raw NanoAOD only |
+| `"presel_any_variation"` | events passing the `preselections` in **at least one** calibration variation | yes — but only to build the selection mask |
+
+#### `skim_mode: "skim"` (default)
+
+This is the standard skim: the cuts in the `skim` list are evaluated on the **raw NanoAOD**
+(before any object correction) and every event that passes is exported. No calibrators and
+no preselections are run, so the skim is fast and depends only on uncorrected quantities.
+This is the mode used by the [minimal configuration above](#minimal-skimming-configuration)
+— you do not need to set `skim_mode` explicitly.
+
+Use it when your skim selection can be expressed purely on raw branches (trigger bits,
+golden JSON, event flags, raw-jet/lepton multiplicities, …). It is the right choice for the
+first-pass reduction of a large dataset.
+
+#### `skim_mode: "presel_any_variation"`
+
+In this mode the skim is **systematic-aware**: an event is kept if it passes the
+`preselections` in *any* active calibration variation. For example an event that fails the
+nominal jet selection but enters it after a JES Up shift is still written, so the skimmed
+files remain valid inputs for a later systematics analysis.
+
+```python
+cfg = Configurator(
+    ...
+    workflow_options = {"skim_mode": "presel_any_variation"},
+
+    skim = [get_nPVgood(1), eventFlags, get_HLTsel()],   # loose, on raw NanoAOD
+    save_skimmed_files = "./skim_presel_any/",
+
+    preselections = [get_nObj_min(5, minpt=30., coll="JetGood")],  # tighter, on calibrated objects
+
+    calibrators = default_calibrators_sequence,
+    variations = {
+        "weights": {"common": {"inclusive": [], "bycategory": {}}, "bysample": {}},
+        "shape":   {"common": {"inclusive": ["jet_calibration"]}, "bysample": {}},
+    },
+    ...
+)
+```
+
+Internally the processor first applies the `skim` cuts, then runs the calibration loop as a
+*dry run*: for every variation it applies the object preselection and computes the
+preselection mask **without filtering events**, accumulating the logical OR of all the
+per-variation masks. The combined mask is finally applied to the (uncalibrated) post-skim
+events, which are then exported. The set of variations considered is exactly the one
+declared in `variations["shape"]` together with the nominal pass.
+
+Use this mode when the events you ultimately want are defined by a selection on
+**calibrated** objects (jets after JEC/JER, etc.) and you must not lose events that only
+enter the selection under a systematic shift.
+
+:::{warning}
+`skim_mode` only has an effect when `save_skimmed_files` is configured. Setting it without
+`save_skimmed_files` triggers a warning and is ignored — the processor then runs the normal
+analysis (calibration, preselection, histograms) rather than skimming.
+:::
+
+### hadd the skimmed files
+
+The skim produces many small per-chunk files. `hadd-skimmed-files` computes sensible
+groups and writes out the jobs to merge them:
+
+```bash
+pocket-coffea hadd-skimmed-files -fl output_total.coffea \
+    -o root://eoscms.cern.ch//eos/cms/store/group/.../skim_hadd \
+    -e 400000 -s 6 --dry
+```
+
+After the hadd jobs have run, validate the result with `--check`. This does *not* run hadd
+again — it rebuilds the expected workload and verifies, for each output file, that it
+exists, opens, has an `Events` tree, and that `GetEntries()` matches the expected sum of
+`nskimmed_events`. Any failures are written to `hadd_failed.json` / `.txt` together with a
+resubmission `.sub` file:
+
+```bash
+pocket-coffea hadd-skimmed-files -fl output_total.coffea \
+    -o root://eoscms.cern.ch//eos/cms/store/group/.../skim_hadd --check
+```
+
+### Minimal skimming configuration
+
+Skimming is enabled simply by setting `save_skimmed_files` on the `Configurator` to an
+output folder (local path or `root://…` EOS URL). The skim cuts in the `skim` list define
+which events are written; everything downstream (preselections, categories, …) is still
+declared but is only used if you keep processing after the skim:
+
+```python
+cfg = Configurator(
+    ...
+    skim = [
+        get_nPVgood(1), eventFlags, goldenJson,
+        get_HLTsel(),
+        get_nObj_min(2, minpt=20., coll="Jet"),   # at least 2 raw jets
+    ],
+    save_skimmed_files = "./skim/",
+    ...
+)
+```
+
+Each processed chunk produces one ROOT file under `save_skimmed_files`. The generator
+weight sum is rescaled (`skimRescaleGenWeight`) so cross sections still match once the
+skimmed files are used as inputs downstream.
 
 ### Skim modes
 

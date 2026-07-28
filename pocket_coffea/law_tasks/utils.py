@@ -317,6 +317,8 @@ def load_run_options(
     if test:
         run_options["limit-files"] = limit_files if limit_files is not None else 1
         run_options["limit-chunks"] = limit_chunks if limit_chunks is not None else 1
+
+    if run_options.get("limit-files") is not None:
         config.filter_dataset(run_options["limit-files"])
 
     return run_options, config

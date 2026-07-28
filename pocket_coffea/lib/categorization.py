@@ -221,7 +221,7 @@ class StandardSelection:
             self.categories[k] = []
             for c in cuts:
                 if not isinstance(c, Cut):
-                    raise Exception(f"The cut is not defined as a Cut object: {cut}")
+                    raise Exception(f"The cut is not defined as a Cut object: {c}")
                 self.categories[k].append(c.id)
                 self.cut_functions.append(c)
                 self.cut_dict[c.id] = c
@@ -284,7 +284,7 @@ class StandardSelection:
 
     @property
     def template_mask(self):
-        if self.ready and self.ismulti_dim:
+        if self.ready and self.is_multidim:
             return self.storage.template_mask
         else:
             return None
@@ -464,10 +464,13 @@ class CartesianSelection:
 
     @property
     def template_mask(self):
-        if self.ready and self.ismulti_dim:
-            return self.storage.template_mask
-        else:
-            return None
+        # A CartesianSelection has no single MaskStorage (it caches per-multi-index
+        # products); the multidim template, when relevant, lives in the common
+        # StandardSelection. `self.ready`/`self.storage`/`self.ismulti_dim` were never
+        # set here, so the previous body raised AttributeError if ever accessed.
+        if self.has_common_cats:
+            return self.common_cats.template_mask
+        return None
 
     def keys(self):
         return self.categories
@@ -487,7 +490,11 @@ class CartesianSelection:
     def serialize(self):
         return {
             "type": "CartesianSelection",
-            "common_categories": self.common_cats.serialize(),
+            # When no common categories are given, `self.common_cats` is an empty dict
+            # (not a StandardSelection), which has no serialize() -> guard it.
+            "common_categories": (
+                self.common_cats.serialize() if self.has_common_cats else None
+            ),
             "multicuts": [m.serialize() for m in self.multicuts],
             "is_multidim": self.is_multidim,
             "multidim_collection": self.multidim_collection,

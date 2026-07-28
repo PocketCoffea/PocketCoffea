@@ -34,8 +34,14 @@ class ColumnsManager:
         for cat in categories:
             self.cfg[cat].append(cfg)
 
-    def fill_columns_accumulators(self, events, cuts_masks, variation, subsample_mask=None, weights_manager=None):
-        """Fill columns of a given variation in all categories and return the output containing also previously filled variations."""
+    def fill_columns_accumulators(self, events, cuts_masks, variation, subsample_mask=None, weights_manager=None, subsample=None):
+        """Fill columns of a given variation in all categories and return the output containing also previously filled variations.
+
+        `subsample` is the fully-qualified subsample name (``sample__subsample``) whose
+        by-subsample weights must be folded into the exported weight, or None for the
+        inclusive sample. Passing it to ``get_weight`` makes the exported weight match the
+        weight the histograms use for the same subsample.
+        """
         for category, outarrays in self.cfg.items():
             if category not in self.output.keys():
                 self.output[category] = {}
@@ -48,7 +54,7 @@ class ColumnsManager:
             # Getting the weight variations into nominal column s
             if weights_manager:
                 self.output[category][variation]["weight"] = column_accumulator(
-                    ak.to_numpy(weights_manager.get_weight(category)[mask], allow_missing=False))
+                    ak.to_numpy(weights_manager.get_weight(category, subsample=subsample)[mask], allow_missing=False))
                 if weights_manager._isMC:
                     available_weights_variations = []
                     for weight in self.variations_config["weights"][category]:
@@ -59,7 +65,7 @@ class ColumnsManager:
                         # Ask the WeightsManager the available variations
                         if weight != "nominal":
                             self.output[category][variation][f"weight_variation_{weight}"] = column_accumulator(
-                                ak.to_numpy(weights_manager.get_weight(category, modifier=weight)[mask], allow_missing=False))
+                                ak.to_numpy(weights_manager.get_weight(category, subsample=subsample, modifier=weight)[mask], allow_missing=False))
 
             for outarray in outarrays:
                 # Check if the cut is multidimensional
@@ -129,7 +135,7 @@ class ColumnsManager:
                     )
         return self.output
 
-    def fill_ak_arrays(self, events, cuts_masks, variation, subsample_mask=None, weights_manager=None):
+    def fill_ak_arrays(self, events, cuts_masks, variation, subsample_mask=None, weights_manager=None, subsample=None):
         self.output = {}
         for category, outarrays in self.cfg.items():
             if len(outarrays)==0:
@@ -142,8 +148,10 @@ class ColumnsManager:
 
             # Getting the weights
             # Only for nominal variation for the moment
+            # `subsample` (sample__subsample or None) folds in the by-subsample weights so
+            # the exported weight matches the histogram weight for the same subsample.
             if weights_manager: # no present for data
-                out_by_cat["weight"] = weights_manager.get_weight(category)[mask]
+                out_by_cat["weight"] = weights_manager.get_weight(category, subsample=subsample)[mask]
                 if weights_manager._isMC:
                     available_weights_variations = []
                     for weight in self.variations_config["weights"][category]:
@@ -153,7 +161,7 @@ class ColumnsManager:
                     for weight in get_weights_by_cat_var(available_weights_variations, weights_manager, category, variation).keys():
                         # Ask the WeightsManager the available variations
                         if weight != "nominal":
-                            out_by_cat[f"weight_variation_{weight}"] = weights_manager.get_weight(category, modifier=weight)[mask]
+                            out_by_cat[f"weight_variation_{weight}"] = weights_manager.get_weight(category, subsample=subsample, modifier=weight)[mask]
 
             for outarray in outarrays:
                 # Check if the cut is multidimensional
