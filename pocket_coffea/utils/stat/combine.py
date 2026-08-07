@@ -590,6 +590,19 @@ class Datacard:
                     )
                     new_histogram_view = new_histogram.view()
                     new_histogram_view[:] = histogram[process_name_byyear, :].view()
+                    if not np.all(
+                        np.mod(new_histogram.values(), 1) == 0
+                    ):
+                        if process.round_counts:
+                            new_histogram_view["value"] = np.round(
+                                new_histogram_view["value"]
+                            )
+                            # Set the variance to the value itself (so the uncertainty is sqrt(N))
+                            new_histogram_view["variance"] = new_histogram_view["value"]
+                        else:
+                            warnings.warn(
+                                f"Data histogram for process '{process_name_byyear}' has non-integer bin values, but it should represent event counts."
+                            )
                     new_histograms[f"{process_name_byyear}_nominal"] = new_histogram
                 else:
                     process_name_byyear = f"{process.name}_{year}"
