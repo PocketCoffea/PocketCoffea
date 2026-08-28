@@ -6,7 +6,7 @@ from pocket_coffea.lib.calibrators.common.common import (
     METCalibrator, 
     ElectronsScaleCalibrator, 
     MuonsCalibrator,
-    JetsSoftdropMassCalibrator)
+    JetsSoftdropMassCalibrator, HEM2018Calibrator)
 from pocket_coffea.lib.calibrators.calibrator import Calibrator
 from pocket_coffea.lib.calibrators.calibrators_manager import CalibratorsManager
 
@@ -897,3 +897,86 @@ def test_met_type1_variation_propagation(events, params):
     for v in [x for x in captured if "AK8" in x][:1]:
         assert np.allclose(captured[v], captured["nominal"]), \
             f"AK8 variation {v} must not change the AK4-jet-based MET"
+
+def test_hem2018_calibrator():
+    jets = ak.Array(
+        [
+            [
+                {
+                    "pt": 100.0,
+                    "mass": 20.0,
+                    "eta": -2.0,
+                    "phi": -1.0,
+                    "jetId": 2,
+                    "pt_raw": 80.0,
+                    "rawFactor": 0.2,
+                },
+                {
+                    "pt": 90.0,
+                    "mass": 18.0,
+                    "eta": -2.7,
+                    "phi": -1.0,
+                    "jetId": 2,
+                    "pt_raw": 72.0,
+                    "rawFactor": 0.2,
+                },
+                {
+                    "pt": 70.0,
+                    "mass": 14.0,
+                    "eta": 0.5,
+                    "phi": 0.2,
+                    "jetId": 2,
+                    "pt_raw": 56.0,
+                    "rawFactor": 0.2,
+                },
+            ]
+        ]
+    )
+
+    events = ak.Array(
+        [
+            {
+                "Jet": jets[0],
+            }
+        ]
+    )
+
+    calibrator = HEM2018Calibrator(
+        params=None,
+        metadata={"year": "2018", "isMC": True},
+        do_variations=True,
+    )
+    calibrator.initialize(events)
+
+    nominal = calibrator.calibrate(
+        events,
+        orig_colls={},
+        variation="nominal",
+    )["Jet"]
+
+    up = calibrator.calibrate(
+        events,
+        orig_colls={},
+        variation="HEM2018Up",
+    )["Jet"]
+
+    down = calibrator.calibrate(
+        events,
+        orig_colls={},
+        variation="HEM2018Down",
+    )["Jet"]
+
+    assert ak.all(nominal.pt == events.Jet.pt)
+    assert ak.all(up.pt == events.Jet.pt)
+
+    assert np.allclose(
+        ak.to_numpy(down.pt[0]),
+        np.array([80.0, 70.0, 58.5]),
+    )
+
+    assert np.allclose(
+        ak.to_numpy(down.mass[0]),
+        np.array([16.0, 14.0, 11.7]),
+    )
+
+    assert ak.to_list(down["pocket_sortidx"][0]) == [0, 2, 1]
