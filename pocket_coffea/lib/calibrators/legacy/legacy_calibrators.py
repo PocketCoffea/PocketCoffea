@@ -5,6 +5,7 @@ import cachetools
 import copy
 from pocket_coffea.lib.calibrators.legacy.legacy_jet_correction import jet_correction
 from pocket_coffea.lib.calibrators.legacy.roccor_wrapper import RoccoR as RoccoRWrapper
+from pocket_coffea.lib.correction_cache import load_correction_set
 from pocket_coffea.utils.utils import get_random_seed, get_nano_version
 
 class JetsCalibrator(Calibrator):
@@ -451,3 +452,135 @@ class MuonsRochesterCalibrator(Calibrator):
             return {"Muon.pt": self.pt_corr["up"],      "Muon.pt_original": pt_orig}
         if variation == "muon_roccorDown":
             return {"Muon.pt": self.pt_corr["down"],    "Muon.pt_original": pt_orig}
+
+
+class ElectronsScaleSmearingLegacyCalibrator(Calibrator):
+    """
+    Legacy Run-2 UL electron energy scale + smearing systematics.
+
+    `Electron_pt` in NanoAOD is already the corrected pT, so the nominal is left
+    untouched -- this calibrator only applies the uncertainties.
+
+    Both systematics are defined on the ENERGY, so the variations are built in
+    energy space and converted back:
+
+        E = pT * cosh(eta)                       (electron mass is negligible)
+        E -> E +/- dE        ->     pT = E / cosh(eta)
+
+
+    SCALE, from EGM_ScaleUnc.json. `Electron_dEscaleUp/Down` are unintentionally
+    set to 0 in UL NanoAOD MC (they are present in data), so the JSON is used as
+    a patch to recover them. Evaluated as
+
+        evaluate(year, value_type, eta, gain)
+
+    with year in {"2016preVFP", "2016postVFP", "2017", "2018"}, value_type in
+    {"scaleup", "scaledown", "scaleunc"}, `eta` the supercluster eta and `gain`
+    the electron seed gain. Only the combined "scaleup"/"scaledown" are used;
+    the per-source templates ("Stat", "Gain", "Syst", and "ScaleEt" for the
+    ~45 GeV inflection in 2016) are not split out, which the EGM twiki allows
+    when the analysis is not strongly sensitive to the energy scale.
+
+    SMEARING, from `Electron_dEsigmaUp/Down`. These are absolute energy shifts
+    in GeV (they scale with E: <|dEsigma|/E> is flat at ~4e-5 in UL18), applied
+    as E +/- dEsigma.
+
+    Both sets of variations are MC-only, per the EGM recommendation: the scale
+    is measured as a data/MC agreement, so varying MC down is equivalent to
+    varying data up for the systematic templates, and smearing is not applied
+    to data at all.
+
+    Run 3 uses ElectronsScaleCalibrator (`electron_scale_and_smearing`) instead.
+    """
+
+    name = "electron_scale_smearing_legacy"
+    has_variations = True
+    isMC_only = True   # the nominal is a no-op; only MC carries the variations
+    calibrated_collections = ["Electron.pt", "Electron.pt_original"]
+
+    def __init__(self, params, metadata, do_variations=True, **kwargs):
+        super().__init__(params, metadata, do_variations, **kwargs)
+        self._year = metadata["year"]
+        self.isMC = metadata["isMC"]
+        self.ss_params = self.params.lepton_scale_factors.electron_sf.scale_unc_legacy
+
+        if not self.ss_params.apply.get(self._year, False):
+            self.enabled = False
+            self._variations = []
+            self.calibrated_collections = []
+            return
+
+        self.enabled = True
+        cfg = self.ss_params.correctionlib_config[self._year]
+        self.cset = load_correction_set(cfg["file"])
+        self.correction_name = cfg["correction_name"]
+        self.year_key = cfg["year_key"]
+        print(f"[ElectronScaleSmearingLegacyCalibrator] Loaded for year {self._year} "
+              f"from {cfg['file']}")
+        self._variations = (
+            ["ele_scale_legacyUp", "ele_scale_legacyDown",
+             "ele_smear_legacyUp", "ele_smear_legacyDown"]
+            if (self.isMC and do_variations) else []
+        )
+
+    def initialize(self, events):
+        if not self.enabled:
+            return
+
+        ele = events.Electron
+        self.electrons = ak.with_field(ele, ele.pt, "pt_original")
+        counts = ak.num(ele)
+
+        pt = ak.to_numpy(ak.flatten(ele.pt)).astype(np.float64)
+        eta = ak.to_numpy(ak.flatten(ele.eta)).astype(np.float64)
+        # The scale map is binned in supercluster eta, not in the track eta.
+        eta_sc = ak.to_numpy(ak.flatten(ele.eta + ele.deltaEtaSC)).astype(np.float64)
+        gain = ak.to_numpy(ak.flatten(ele.seedGain)).astype(np.float64)
+
+        if len(pt) == 0 or not self._variations:
+            # No electrons, or variations not requested / not MC: nominal only.
+            self.pt_corr = {k: self.electrons["pt_original"] for k in
+                            ("nominal", "scale_up", "scale_down",
+                             "smear_up", "smear_down")}
+            return
+
+        # Clip to the map's |eta| < 2.5 acceptance: electrons sitting exactly on
+        # the boundary would otherwise put correctionlib out of range.
+        eta_sc_c = np.clip(eta_sc, -2.49999, 2.49999)
+        corr = self.cset[self.correction_name]
+        sf_up = corr.evaluate(self.year_key, "scaleup", eta_sc_c, gain)
+        sf_down = corr.evaluate(self.year_key, "scaledown", eta_sc_c, gain)
+
+        d_sigma_up = ak.to_numpy(ak.flatten(ele.dEsigmaUp)).astype(np.float64)
+        d_sigma_down = ak.to_numpy(ak.flatten(ele.dEsigmaDown)).astype(np.float64)
+
+        cosh_eta = np.cosh(eta)
+        energy = pt * cosh_eta
+
+        # Scale is multiplicative on E (the cosh cancels back to pT);
+        # smearing is an absolute energy shift (the cosh does NOT cancel).
+        # Clip at zero: a per-mille tail of dEsigma exceeds the electron energy.
+        def to_pt(e):
+            return ak.unflatten(np.clip(e, 0.0, None) / cosh_eta, counts)
+
+        self.pt_corr = {
+            "nominal":    self.electrons["pt_original"],
+            "scale_up":   to_pt(energy * sf_up),
+            "scale_down": to_pt(energy * sf_down),
+            "smear_up":   to_pt(energy + d_sigma_up),
+            "smear_down": to_pt(energy - d_sigma_down),
+        }
+
+    def calibrate(self, events, orig_colls, variation, already_applied_calibrators=None):
+        if not self.enabled:
+            return {}
+
+        key = {
+            "ele_scale_legacyUp":   "scale_up",
+            "ele_scale_legacyDown": "scale_down",
+            "ele_smear_legacyUp":   "smear_up",
+            "ele_smear_legacyDown": "smear_down",
+        }.get(variation) if variation in self._variations else None
+
+        return {"Electron.pt": self.pt_corr[key or "nominal"],
+                "Electron.pt_original": self.electrons["pt_original"]}

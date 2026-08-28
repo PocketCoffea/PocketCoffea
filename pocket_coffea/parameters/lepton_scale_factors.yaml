@@ -235,6 +235,41 @@ lepton_scale_factors:
             scale: "Scale"
             smear: "SmearAndSyst"
           et_dependent: true
+    
+    # Legacy Run-2 UL electron energy-scale uncertainty (EGM_ScaleUnc.json).
+    # The UL scale correction is already applied in NanoAOD, so this provides
+    # ONLY the up/down variations -- the nominal pt is left untouched.
+    # Used by the ElectronsScaleSmearingLegacyCalibrator; Run 3 uses
+    # `scale_and_smearing` above instead.
+    scale_unc_legacy:
+      apply:
+        '2016_PreVFP':  True
+        '2016_PostVFP': True
+        '2017':         True
+        '2018':         True
+        '2022_preEE':   False
+        '2022_postEE':  False
+        '2023_preBPix': False
+        '2023_postBPix': False
+        '2024':         False
+        '2025':         False
+      correctionlib_config:
+        '2016_PreVFP':
+          file: ## NEED CUSTOM PATH FOR EGM UNCERT
+          correction_name: "UL-EGM_ScaleUnc"
+          year_key: "2016preVFP"
+        '2016_PostVFP':
+          file: ## NEED CUSTOM PATH FOR EGM UNCERT
+          correction_name: "UL-EGM_ScaleUnc"
+          year_key: "2016postVFP"
+        '2017':
+          file: ## NEED CUSTOM PATH FOR EGM UNCERT
+          correction_name: "UL-EGM_ScaleUnc"
+          year_key: "2017"
+        '2018':
+          file: ## NEED CUSTOM PATH FOR EGM UNCERT
+          correction_name: "UL-EGM_ScaleUnc"
+          year_key: "2018"      
     # The trigger SF configuration is expected to have this structure
     # needs to be provided by the user.
     trigger_sf:
