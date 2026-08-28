@@ -1,6 +1,14 @@
 pocket\_coffea.utils package
 ============================
 
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   pocket_coffea.utils.stat
+
 Submodules
 ----------
 
@@ -28,6 +36,14 @@ pocket\_coffea.utils.configurator module
    :show-inheritance:
    :undoc-members:
 
+pocket\_coffea.utils.cutflow\_utils module
+------------------------------------------
+
+.. automodule:: pocket_coffea.utils.cutflow_utils
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 pocket\_coffea.utils.dataset module
 -----------------------------------
 
@@ -36,10 +52,26 @@ pocket\_coffea.utils.dataset module
    :show-inheritance:
    :undoc-members:
 
+pocket\_coffea.utils.export module
+----------------------------------
+
+.. automodule:: pocket_coffea.utils.export
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 pocket\_coffea.utils.filter\_output module
 ------------------------------------------
 
 .. automodule:: pocket_coffea.utils.filter_output
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+pocket\_coffea.utils.histogram module
+-------------------------------------
+
+.. automodule:: pocket_coffea.utils.histogram
    :members:
    :show-inheritance:
    :undoc-members:

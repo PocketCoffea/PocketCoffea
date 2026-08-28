@@ -95,6 +95,43 @@ The same dataset can contain different group of dataset (**DAS**) names, each  w
 dictionary**. Each group will be interpreted by the `build_datasets` script to create unique set of files, with a
 unique label build as `{user_defined_label}__{part}__{year}_{Era}`.
 
+## Building datasets from local files
+
+If the ROOT files are already available on local disk (or on a locally mounted filesystem), the dataset can be
+built without querying DAS/Rucio at all: instead of `das_names`, use the `local_files` key.
+
+```python
+{
+    "MyLocalSample": {
+        "sample": "MyLocalSample",
+        "json_output": "datasets/MyLocalSample.json",
+        "files": [
+            {
+                "local_files": [
+                    "/path/to/local/files_dir",
+                    "/path/to/other/dir/with_glob_*.root",
+                    "/path/to/single_file.root"
+                ],
+                "metadata": {
+                    "year": "2018",
+                    "isMC": true,
+                    "xsec": 1.0
+                }
+            }
+        ]
+    }
+}
+```
+
+`local_files` entries can be directories (searched recursively for `*.root` files), glob patterns, or explicit file
+paths. `nevents` and `size` are extracted directly from the files (entries of the `Events` tree, and file size on
+disk) instead of being read from DBS. No xrootd redirector prefix is added to the resulting file paths, and no
+`_redirector`/`_local` variants with a prefix are produced for these samples since the files are already local.
+
+A dataset entry must specify either `das_names` or `local_files`, not both. The `-l/--local-prefix`,
+`-as/-bs/-ps/-rs` site-filtering options, `--check`, `-d/--download` and `--append-parents` are not applicable to
+local samples.
+
 ## Create the Dataset JSON Files
 
 To build a JSON file with a list of datasets, run the following script:

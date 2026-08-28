@@ -12,10 +12,26 @@ pocket\_coffea.scripts.plot.make\_plots module
    :show-inheritance:
    :undoc-members:
 
+pocket\_coffea.scripts.plot.plot\_cutflow module
+------------------------------------------------
+
+.. automodule:: pocket_coffea.scripts.plot.plot_cutflow
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 pocket\_coffea.scripts.plot.trigger\_efficiency module
 ------------------------------------------------------
 
 .. automodule:: pocket_coffea.scripts.plot.trigger_efficiency
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+pocket\_coffea.scripts.plot.trigger\_scalefactor module
+-------------------------------------------------------
+
+.. automodule:: pocket_coffea.scripts.plot.trigger_scalefactor
    :members:
    :show-inheritance:
    :undoc-members:

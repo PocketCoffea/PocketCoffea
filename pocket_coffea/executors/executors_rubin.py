@@ -12,6 +12,18 @@ import dask.config
 from dask_jobqueue import HTCondorCluster
 
 from pocket_coffea.utils.configurator import Configurator
+from pocket_coffea.utils.rucio import get_xrootd_sites_map
+from pocket_coffea.utils.site_rewrite import (
+    rewrite_fileset_blocklist,
+    rewrite_fileset_to_redirector,
+    GLOBAL_XROOTD_REDIRECTOR,
+)
+from .executors_manual_jobs import (
+    INNER_RUN_OPTIONS_FILENAME,
+    ensure_job_sh_forwards_inner_yaml,
+    ensure_sub_transfers_inner_yaml,
+    write_inner_run_options,
+)
 import cloudpickle
 import yaml
         
@@ -134,6 +146,12 @@ class ExecutorFactoryCondorUMD(ExecutorFactoryManualABC):
         abs_jobdir_path = os.path.abspath(self.jobs_dir)
         os.makedirs(f"{self.jobs_dir}/logs", exist_ok=True)
 
+        # Forward inner-relevant run-option overrides (skip-bad-files, ...)
+        # to the worker so the inner pocket-coffea call honours them via
+        # --custom-run-options. See executors_manual_jobs.write_inner_run_options.
+        inner_yaml_path = write_inner_run_options(self.jobs_dir, self.run_options)
+        inner_yaml_basename = os.path.basename(inner_yaml_path)
+
         script = f"""#!/bin/bash
 export X509_USER_PROXY={self.x509_path.split("/")[-1]}
 export XRD_RUNFORKHANDLER=1
@@ -144,7 +162,7 @@ rm -f $JOBDIR/job_$1.idle
 
 echo "Starting job $1"
 touch $JOBDIR/job_$1.running
-pocket-coffea run --cfg $2 -o output EXECUTOR --chunksize $4
+pocket-coffea run --cfg $2 -o output EXECUTOR --chunksize $4 --custom-run-options {inner_yaml_basename}
 # Do things only if the job is successful
 if [ $? -eq 0 ]; then
     echo 'Job successful'
@@ -178,28 +196,47 @@ echo 'Done'"""
             '+MaxRuntime' : self.run_options['max-run-time'],
             'RequestCpus' : self.run_options['cores-per-worker'],
             'RequestMemory' : f"{self.run_options['mem-per-worker']}",
-            'arguments': f"$(ProcId) config_job_$(ProcId).pkl {abs_output_path} {self.run_options['chunksize']}",
+            'arguments': f"$(ProcId) config_job_$(ProcId).pkl {abs_output_path} $(chunksize)",
             'should_transfer_files':'YES',
             'when_to_transfer_output' : 'ON_EXIT',
-            'transfer_input_files' : f"{abs_jobdir_path}/config_job_$(ProcId).pkl,{self.x509_path},{abs_jobdir_path}/job.sh",
+            'transfer_input_files' : f"{abs_jobdir_path}/config_job_$(ProcId).pkl,{self.x509_path},{abs_jobdir_path}/job.sh,{abs_jobdir_path}/{inner_yaml_basename}",
             'on_exit_remove': '(ExitBySignal == False) && (ExitCode == 0)',
             'max_retries' : self.run_options["max-retries"],
             'requirements' : 'Machine =!= LastRemoteHost',
             'notify_user': self.run_options['notify-user'],
             'notification': 'always'
-            
+
         }
 
+        # Resolve per-job chunksize: accepts a scalar or per-sample dict.
+        chunksize_cfg = self.run_options['chunksize']
+        self._validate_chunksize_keys(chunksize_cfg, self.filesets)
+        per_job_chunksize = [self._resolve_chunksize_for_job(chunksize_cfg, split)
+                             for split in self._splits]
+        if len(set(per_job_chunksize)) > 1:
+            print(f"[chunksize] Per-job chunksize varies (min={min(per_job_chunksize)}, "
+                  f"max={max(per_job_chunksize)}); HTCondor `queue chunksize from arglist.txt` "
+                  f"will inject the right value per job.")
+
+        # HTCondor inline `queue <var> from ( ... )` form: one job per item, with
+        # the per-job value made available as $(chunksize) in the arguments line.
+        # Single condor_submit jobs_all.sub submits everything; the items are
+        # embedded directly in the sub file (no separate arglist file to manage).
         with open(f"{self.jobs_dir}/jobs_all.sub", "w") as f:
-            for k,v in sub.items():
+            for k, v in sub.items():
                 f.write(f"{k} = {v}\n")
-            f.write(f"queue {len(jobs_config)}\n")
-        # Creating also single sub files for resubmission
+            f.write("queue chunksize from (\n")
+            for cs in per_job_chunksize:
+                f.write(f"  {cs}\n")
+            f.write(")\n")
+        # Creating also single sub files for resubmission. These hard-code their
+        # own chunksize since they will be submitted with plain `queue`.
         for i, _ in enumerate(jobs_config):
             with open(f"{self.jobs_dir}/job_{i}.sub", "w") as f:
                 for k,v in sub.items():
                     if isinstance(v, str):
                         v = v.replace("$(ProcId)", str(i))
+                        v = v.replace("$(chunksize)", str(per_job_chunksize[i]))
                     f.write(f"{k} = {v}\n")
                 f.write(f"queue\n")
             # Let's also create a .idle file to indicate the the job is in idle
@@ -223,11 +260,47 @@ echo 'Done'"""
         with open(f"{self.jobs_dir}/jobs_config.yaml") as f:
             jobs_config = yaml.safe_load(f)
 
+        # Re-materialise inner-run-options YAML so any --skip-bad-files /
+        # --custom-run-options-style overrides reach the resubmitted jobs;
+        # idempotently patch the wrapper if it predates this feature.
+        abs_jobdir_path = os.path.abspath(self.jobs_dir)
+        write_inner_run_options(self.jobs_dir, self.run_options)
+        if ensure_job_sh_forwards_inner_yaml(f"{self.jobs_dir}/job.sh"):
+            print(f"[recreate-jobs] Patched {self.jobs_dir}/job.sh to forward "
+                  f"{INNER_RUN_OPTIONS_FILENAME} to the inner pocket-coffea run.")
+
         jobs_to_redo = []
         for j in jobs_to_recreate.split(","):
             if not j.startswith("job_"):
                 jobs_to_redo.append(f"job_{j}")
         print(f"Recreating jobs: {jobs_to_redo}")
+
+        # Parse blocklist-sites: accept comma-separated string or list
+        blocklist_raw = self.run_options.get("blocklist-sites", None) or []
+        if isinstance(blocklist_raw, str):
+            blocklist_sites = {s for s in blocklist_raw.split(",") if s}
+        else:
+            blocklist_sites = set(blocklist_raw)
+        sitemap = get_xrootd_sites_map() if blocklist_sites else None
+        if blocklist_sites:
+            print(f"Blocklisting sites at recreate time: {sorted(blocklist_sites)}")
+
+        use_redirector = bool(self.run_options.get("use-redirector", False))
+        if use_redirector:
+            print(f"[recreate-jobs] --use-redirector: rewriting every file to "
+                  f"{GLOBAL_XROOTD_REDIRECTOR} without per-site Rucio lookups.")
+            if blocklist_sites:
+                print("[recreate-jobs] WARNING: --blocklist-sites is set but --use-redirector "
+                      "overrides it.")
+
+        rucio_client = None
+        if blocklist_sites and not use_redirector:
+            try:
+                from pocket_coffea.utils.rucio import get_rucio_client
+                rucio_client = get_rucio_client()
+            except Exception as e:
+                print(f"WARNING: could not open a rucio client ({e}); replica lookups will fail.")
+
         # Check if the job is in the list of jobs to recreate
         for job in jobs_to_redo:
             if job not in jobs_config["jobs_list"]:
@@ -237,10 +310,18 @@ echo 'Done'"""
             # This is usually done to change a file location
             # Load the configurator
             config = cloudpickle.load(open(f"{self.jobs_dir}/config_{job}.pkl", "rb"))
-            # Modify the fileset
-            config.set_filesets_manually(jobs_config["jobs_list"][job]["filesets"])
+            # Modify the fileset (optionally rewriting blocklisted sites)
+            fileset = jobs_config["jobs_list"][job]["filesets"]
+            if use_redirector:
+                fileset = rewrite_fileset_to_redirector(fileset)
+            elif blocklist_sites:
+                fileset = rewrite_fileset_blocklist(fileset, sitemap, blocklist_sites,
+                                                    rucio_client=rucio_client)
+            config.set_filesets_manually(fileset)
             # Save the configurator
             cloudpickle.dump(config, open(f"{self.jobs_dir}/config_{job}.pkl", "wb"))
+            # Make sure this .sub ships the inner-run-options YAML.
+            ensure_sub_transfers_inner_yaml(f"{self.jobs_dir}/{job}.sub", abs_jobdir_path)
             # Resubmit the job
             dry_run = self.run_options.get("dry-run", False)
             if dry_run:

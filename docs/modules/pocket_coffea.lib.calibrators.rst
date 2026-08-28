@@ -8,6 +8,7 @@ Subpackages
    :maxdepth: 4
 
    pocket_coffea.lib.calibrators.common
+   pocket_coffea.lib.calibrators.legacy
 
 Submodules
 ----------

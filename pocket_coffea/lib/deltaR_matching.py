@@ -100,16 +100,23 @@ def object_matching(obj, obj2, dr_min, dpt_max=None, return_indices=False):
         maskPt = deltaPt < dpt_max
         maskDR = maskDR & maskPt
 
-    # Get the indexing to sort the pairs sorted by deltaR without any cut
+    # Get the indexing to sort the pairs by deltaR
     idx_pairs_sorted = ak.argsort(deltaR, axis=1)
     pairs = ak.argcartesian([obj, obj2])
     # Sort all the collection over pairs by deltaR
     pairs_sorted = pairs[idx_pairs_sorted]
     deltaR_sorted = deltaR[idx_pairs_sorted]
     maskDR_sorted = maskDR[idx_pairs_sorted]
-    idx_obj, idx_obj2 = ak.unzip(pairs_sorted)
 
-    # Now get only the matching indices by looping over the pairs in order of deltaR.
+    # Apply the deltaR (+ pT, if requested) requirement BEFORE the greedy assignment.
+    # The greedy matcher consumes each object the first time it appears in deltaR order;
+    # if a cut-failing pair were left in, it would consume its objects and block an
+    # otherwise-valid larger-deltaR pair (this bit specifically when dpt_max is used).
+    pairs_valid = pairs_sorted[maskDR_sorted]
+    deltaR_valid = deltaR_sorted[maskDR_sorted]
+    idx_obj, idx_obj2 = ak.unzip(pairs_valid)
+
+    # Now get only the matching indices by looping over the (valid) pairs in order of deltaR.
     # The result contains the list of pairs that are considered valid
     _idx_matched_pairs, _idx_missed_pairs = get_matching_pairs_indices(
         ak.without_parameters(idx_obj, behavior={}),
@@ -123,25 +130,20 @@ def object_matching(obj, obj2, dr_min, dpt_max=None, return_indices=False):
     # Now let's get get the indices of the objects corresponding to the valid pairs
     idx_matched_obj = idx_obj[idx_matched_pairs]
     idx_matched_obj2 = idx_obj2[idx_matched_pairs]
-    # Getting also deltaR and maskDR of the valid pairs
-    deltaR_matched = deltaR_sorted[idx_matched_pairs]
-    maskDR_matched = maskDR_sorted[idx_matched_pairs]
+    # Getting also deltaR of the valid pairs
+    deltaR_matched = deltaR_valid[idx_matched_pairs]
     # Now we want to order the pairs as the second collection.
     # We *assume* that the order of the indices of the second collection is the natural ordering:
     # for example the jet indices are a natural ordering for their pt because they are originally sorted.
 
     # We get the indices needed to reorder the second collection
-    # and we use them to re-order also the other collection (same dimension of the valid pairs)
+    # and we use them to re-order also the other collection (same dimension of the valid pairs).
+    # No further mask is applied here: the pairs were already filtered above.
     obj2_order = ak.argsort(idx_matched_obj2)
-    idx_obj_obj2sorted = idx_matched_obj[obj2_order]
-    idx_obj2_obj2sorted = idx_matched_obj2[obj2_order]
-    deltaR_obj2sorted = deltaR_matched[obj2_order]
-    maskDR_obj2sorted = maskDR_matched[obj2_order]
-    # Here we apply the deltaR + pT requirements on the objects and on deltaR
-    idx_obj_masked = idx_obj_obj2sorted[maskDR_obj2sorted]
-    idx_obj2_masked = idx_obj2_obj2sorted[maskDR_obj2sorted]
+    idx_obj_masked = idx_matched_obj[obj2_order]
+    idx_obj2_masked = idx_matched_obj2[obj2_order]
     # Getting also the deltaR of the masked pairs
-    deltaR_masked = deltaR_obj2sorted[maskDR_obj2sorted]
+    deltaR_masked = deltaR_matched[obj2_order]
     # N.B. We are still working only with indices not final objects
 
     # Now we have the object in the collection 1 ordered as the collection 2,

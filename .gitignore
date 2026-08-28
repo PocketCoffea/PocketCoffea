@@ -3,7 +3,7 @@ notebooks/.ipynb_checkpoints
 .ipynb_checkpoints/
 plots/
 histograms/
-output/
+output*
 logs/
 profiling/
 *~
@@ -166,3 +166,4 @@ VHccPoCo/
 output*
 plots*
 .pkl.gz
+myenv/

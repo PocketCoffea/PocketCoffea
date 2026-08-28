@@ -1,6 +1,9 @@
 import awkward as ak
 import numpy as np
 import correctionlib
+from pocket_coffea.lib.correction_cache import load_correction_set
+
+from pocket_coffea.lib.jets import jets_in_original_order
 
 
 def get_ele_scaled_etdependent(ele, json_scale, 
@@ -9,7 +12,7 @@ def get_ele_scaled_etdependent(ele, json_scale,
     '''
     From example: https://gitlab.cern.ch/cms-analysis-metadata/EGM/examples/-/blob/latest/egmScaleAndSmearingExample.py
     '''
-    evaluator = correctionlib.CorrectionSet.from_file(json_scale)
+    evaluator = load_correction_set(json_scale)
     evaluator_scale = evaluator.compound[correction_name]
     smear_and_syst_evaluator = evaluator[syst_correction_name]
     ele_gain_flat = ak.flatten(ele["seedGain"])
@@ -67,7 +70,7 @@ def get_ele_scaled_etdependent(ele, json_scale,
     
 
 def get_ele_scaled(ele, json_scale, correction_name, isMC, runNr):
-    evaluator = correctionlib.CorrectionSet.from_file(json_scale)
+    evaluator = load_correction_set(json_scale)
     evaluator_scale = evaluator[correction_name]
     ele_gain_flat = ak.flatten(ele["seedGain"])
     ele_eta_flat = ak.flatten(ele["etaSC"])
@@ -108,7 +111,7 @@ def get_ele_smeared_etdependent(mc_ele, jsonFileName, correction_name, isMC, onl
     '''
     if not isMC:
         return
-    evaluator = correctionlib.CorrectionSet.from_file(jsonFileName)
+    evaluator = load_correction_set(jsonFileName)
     evaluator_smearing = evaluator[correction_name]
     ele_eta_flat = ak.flatten(mc_ele["etaSC"]) # eta of supercluster
     ele_r9_flat = ak.flatten(mc_ele["r9"])
@@ -177,7 +180,7 @@ def get_ele_smeared_etdependent(mc_ele, jsonFileName, correction_name, isMC, onl
 def get_ele_smeared(mc_ele, jsonFileName,correction_name, isMC, only_nominal=True, seed=125):
     if not isMC:
         return
-    evaluator = correctionlib.CorrectionSet.from_file(jsonFileName)
+    evaluator = load_correction_set(jsonFileName)
     evaluator_smearing = evaluator[correction_name]
     ele_eta_flat = ak.flatten(mc_ele["etaSC"])
     ele_r9_flat = ak.flatten(mc_ele["r9"])
@@ -234,16 +237,33 @@ def lepton_selection(events, lepton_flavour, params):
         passes_id = leptons[cuts['id']] == True
 
         good_leptons = passes_eta & passes_pt & passes_iso & passes_id
-
+    else:
+        raise ValueError(f"Lepton flavour {lepton_flavour} not supported for selection")
     return leptons[good_leptons]
 
-def lepton_selection_mvaTTH(events, lepton_flavour, params):
+
+def lepton_selection_promptMVA(events, lepton_flavour, params, year, 
+                               apply_mva_cut=True, mva_var="mvaTTH_redo"):
+    '''Only selecting the leptons passing preselection for the promptMVA.
+    Do not apply any cut on the promptMVA score which is recomputed'''
 
     leptons = events[lepton_flavour]
     cuts = params.object_preselection[lepton_flavour]
     # Requirements on pT and eta
     passes_eta = abs(leptons.eta) < cuts["eta"]
     passes_pt = leptons.pt > cuts["pt"]
+
+    # closest jet cut on btag. leptons["jetIdx"] indexes the Jet collection in its
+    # original NanoAOD order, so undo any calibrator re-sorting before the lookup.
+    jets = jets_in_original_order(events["Jet"])
+    valid_jetIdx = ak.mask(leptons["jetIdx"], leptons["jetIdx"] != -1)
+    btag = ak.where(
+            leptons["jetIdx"] == -1,
+            0.0,
+            ak.fill_none(jets[valid_jetIdx]["btagDeepFlavB"], -10.0),
+    )
+    pass_btag_cut = btag < cuts["btag_cut"][year]
+    
 
     if lepton_flavour == "Electron":
         # Requirements on SuperCluster eta, isolation and id
@@ -256,18 +276,38 @@ def lepton_selection_mvaTTH(events, lepton_flavour, params):
         passes_dz_check = abs(leptons.dz) < cuts["dz"]
         if "iso" in cuts.keys():
             passes_iso = leptons.pfRelIso03_all < cuts["iso"]
-        passes_id = (leptons[cuts['id']] > cuts['wp']['tight'])
+        if apply_mva_cut:
+            pass_id = leptons[mva_var] > cuts["mva_wp"][year]
+        else:
+            pass_id = True
 
-        good_leptons = passes_eta & passes_pt & passes_SC & passes_iso & passes_sip3d & passes_lostHits & passes_dxy_check & passes_dz_check & passes_id
+        good_leptons = (passes_eta & passes_pt & passes_SC & passes_iso & 
+                        passes_sip3d & passes_lostHits & passes_dxy_check &
+                          passes_dz_check & pass_btag_cut & pass_id)
 
     elif lepton_flavour == "Muon":
         # Requirements on isolation and id
         passes_iso = leptons.pfRelIso04_all < cuts["iso"]
-        passes_id  = leptons[cuts['id']] == True
+        passes_sip3d = leptons.sip3d < cuts["sip3d"]
+        passes_dxy_check = abs(leptons.dxy) < cuts["dxy"]
+        passes_dz_check = abs(leptons.dz) < cuts["dz"]
+        passes_muon_cut = (leptons.isGlobal | leptons.isTracker) & (leptons.isPFcand)
+        passes_baseid = leptons[cuts['base_id']] == True
+        if apply_mva_cut:
+            pass_id = leptons[mva_var] > cuts["mva_wp"][year]
+        else:            
+            pass_id = True
 
-        good_leptons = passes_eta & passes_pt & passes_iso & passes_id
+        good_leptons = (passes_eta & passes_pt & passes_iso & 
+                        passes_sip3d & passes_dxy_check & 
+                        passes_dz_check & passes_muon_cut & 
+                        passes_baseid & pass_btag_cut & pass_id)
+    else:
+        raise ValueError(f"Lepton flavour {lepton_flavour} not supported for MVA TTH selection")
 
-    return leptons[good_leptons]
+    return leptons[good_leptons], good_leptons
+
+
 
 def soft_lepton_selection(events, lepton_flavour, params):
 

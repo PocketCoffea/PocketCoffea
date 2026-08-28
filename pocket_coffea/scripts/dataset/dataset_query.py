@@ -243,6 +243,12 @@ Some basic commands:
         try:
             xsec = self.extract_xsec_from_dataset_name(dataset)
         except Exception as e:
+            # Falling back to 1.0 silently writes a wrong MC normalization into the
+            # dataset definition; surface it so the user can fix the xsec by hand.
+            print(
+                f"[red]WARNING[/]: could not determine cross section for {dataset} "
+                f"({e}); defaulting xsec=1.0 — set it manually in the dataset definition."
+            )
             xsec = 1.0
         primary_dataset,year_data,era_data = self.extract_era_from_dataset_name(dataset)
         if isMC == True:
@@ -341,7 +347,11 @@ Some basic commands:
             if s < Nresults:
                 self.selected_datasets.append(self.last_query_list[s])
                 if metadata:
-                    self.selected_datasets_metadata.append(metadata)
+                    # Deep-copy: the same `metadata` dict is passed for every dataset in a
+                    # (wildcard) selection. Appending the shared reference means later
+                    # per-dataset mutations in do_save (e.g. das_names) overwrite every
+                    # dataset's metadata with the last one's.
+                    self.selected_datasets_metadata.append(copy.deepcopy(metadata))
                 else:
                     self.selected_datasets_metadata.append(self.generate_default_metadata(self.last_query_list[s]))
                     #self.selected_datasets_metadata.append({
@@ -685,7 +695,7 @@ Some basic commands:
             for dataset in datasets:
                 dataset_info["files"].append({
                 "das_names": [dataset],
-                "metadata": self.selected_datasets_metadata[self.selected_datasets.index(dataset)]
+                "metadata": copy.deepcopy(self.selected_datasets_metadata[self.selected_datasets.index(dataset)])
                 })
             output_definition[group] = dataset_info
             # now replica info
