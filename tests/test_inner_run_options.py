@@ -1,6 +1,7 @@
-"""Tests for the inner-run-options forwarding mechanism that lets the OUTER
-`pocket-coffea run --recreate-jobs --skip-bad-files` reach the INNER
-`pocket-coffea run` inside each condor job (via --custom-run-options).
+"""Tests for the inner-run-options forwarding mechanism that lets an outer
+`--skip-bad-files` (at submit time, or via `check-jobs --recreate
+--skip-bad-files`) reach the INNER `pocket-coffea run` inside each condor job
+(via --custom-run-options).
 
 The whitelist filter and the idempotent .sub / job.sh patchers live in
 `pocket_coffea/executors/executors_manual_jobs.py`. They are dependency-free
