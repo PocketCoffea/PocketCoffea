@@ -722,7 +722,8 @@ class Shape:
                 if self.verbose>=1:
                     print("WARNING. The list of samples to group is empty!  Group name:", sample_new)
                 continue
-
+            if not len(self.samples_mc) == 0:
+                self.replace_missing_variations()
             h_dict_grouped[sample_new] = self._stack_sum(
                 stack=hist.Stack.from_dict(
                     {s: h for s, h in self.h_dict.items() if s in samples_list}

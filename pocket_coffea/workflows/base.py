@@ -1097,7 +1097,8 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 for dataset, histo in dataset_in_sample.items():
                     if not np.all(np.isfinite(histo.values().flatten())):
                         raise Exception(
-                            f"NaN or Inf values in the histogram {var} for dataset {dataset} after rescaling"
+                            f"NaN values in the histogram {var} for dataset {dataset} after rescaling",
+                            f"Values: {[val for matrix in histo.values() for row in matrix for val in row]}"
                         )
 
         return accumulator

@@ -1,6 +1,8 @@
 """Systematic Uncertainties and Utilities for Statistical Analysis"""
 
 from dataclasses import dataclass
+from collections import defaultdict
+from copy import deepcopy
 
 from pocket_coffea.utils.stat.processes import Process
 
@@ -97,21 +99,55 @@ class Systematics(dict[str, SystematicUncertainty]):
             raise TypeError(
                 f"All elements of {systematics} must be of type SystematicUncertainty"
             )
-        # Building the dict by comprehension silently drops all but the last entry when
-        # two systematics share a datacard_name (a natural mistake when declaring the
-        # same systematic for different year/process lists), making a nuisance vanish
-        # from the card. Detect the collision instead.
-        names = [systematic.datacard_name for systematic in systematics]
-        duplicates = sorted({n for n in names if names.count(n) > 1})
-        if duplicates:
-            raise ValueError(
-                f"Duplicate systematic datacard_name(s): {duplicates}. "
-                "Each SystematicUncertainty must have a unique datacard_name; merge "
-                "the process/year lists into a single declaration instead."
-            )
-        super().__init__(
-            {systematic.datacard_name: systematic for systematic in systematics}
-        )
+        systematics = self.merge_duplicates(systematics)
+        # # Building the dict by comprehension silently drops all but the last entry when
+        # # two systematics share a datacard_name (a natural mistake when declaring the
+        # # same systematic for different year/process lists), making a nuisance vanish
+        # # from the card. Detect the collision instead.
+        # names = [systematic.datacard_name for systematic in systematics]
+        # duplicates = sorted({n for n in names if names.count(n) > 1})
+        # if duplicates:
+        #     raise ValueError(
+        #         f"Duplicate systematic datacard_name(s): {duplicates}. "
+        #         "Each SystematicUncertainty must have a unique datacard_name; merge "
+        #         "the process/year lists into a single declaration instead."
+        #     )
+        # super().__init__(
+        #     {systematic.datacard_name: systematic for systematic in systematics}
+        # )
+
+    def merge_duplicates(self, systematics: list[SystematicUncertainty]) -> list[SystematicUncertainty]:
+        """Merge systematics with the same name together to have them as correlated systematics in the datacard."""
+        grouped: dict[tuple[str,str], list[SystematicUncertainty]] = defaultdict(list)
+
+        for syst in systematics:
+            key = (syst.datacard_name, syst.name)
+            grouped[key].append(syst)
+
+        merged_systematics: list[SystematicUncertainty] = []
+
+        for (_,_), systs in grouped.items():
+            if len(systs) == 1:
+                merged_systematics.append(systs[0])
+                continue
+            base = deepcopy(systs[0])
+            for other in systs[1:]:
+                if base.typ != other.typ:
+                    raise ValueError(
+                        f"Inconsystent type of systematics with same name '{base.name}': "
+                        f"{base.typ} vs {other.typ}"
+                    )
+                for proc, val in other.processes.items():
+                    if proc in base.processes and base.processes[proc] != val:
+                        raise ValueError(
+                            f"Conflicting values for process '{proc}' in "
+                            f"systematic '{base.name}': "
+                            f"{base.processes[proc]} vs {val}"
+                        )
+                    base.processes[proc] = val
+                    base.years += other.years
+                merged_systematics.append(base)
+        return merged_systematics
 
     @property
     def variations_names(self) -> list[str]:
@@ -134,7 +170,7 @@ class Systematics(dict[str, SystematicUncertainty]):
         return [key for key in self if self[key].typ == syst_type]
 
     def get_systematics_by_type(self, syst_type: str) -> dict[SystematicUncertainty]:
-        """Dict of Systematics of a specific type."""
+        """Dict of Systematics of a specific type by datacard_name."""
         return {name: syst for name, syst in self.items() if syst.typ == syst_type}
 
     def get_systematics_by_process(
