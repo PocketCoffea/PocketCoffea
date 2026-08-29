@@ -7,16 +7,21 @@ import nox
 
 DIR = Path(__file__).parent.resolve()
 
-nox.options.sessions = ["lint", "pylint", "tests"]
+nox.needs_version = ">=2024.3.2"
+nox.options.sessions = ["lint", "tests"]
+nox.options.default_venv_backend = "uv|virtualenv"
 
 
-@nox.session
+@nox.session(reuse_venv=True)
 def lint(session: nox.Session) -> None:
     """
     Run the linter.
     """
     session.install("pre-commit")
-    session.run("pre-commit", "run", "--all-files", *session.posargs)
+    session.run(
+        "pre-commit", "run", "--all-files", *session.posargs
+    )
+
 
 
 @nox.session
@@ -27,10 +32,10 @@ def pylint(session: nox.Session) -> None:
     # This needs to be installed into the package environment, and is slower
     # than a pre-commit check
     session.install(".", "pylint")
-    session.run("pylint", "src", *session.posargs)
+    session.run("pylint", "pocket_coffea", *session.posargs)
 
 
-@nox.session
+@nox.session(reuse_venv=True)
 def tests(session: nox.Session) -> None:
     """
     Run the unit and regular tests.
@@ -49,7 +54,7 @@ def coverage(session: nox.Session) -> None:
     tests(session)
 
 
-@nox.session
+@nox.session(reuse_venv=True)
 def docs(session: nox.Session) -> None:
     """
     Build the docs. Pass "serve" to serve.
@@ -68,7 +73,7 @@ def docs(session: nox.Session) -> None:
             session.warn("Unsupported argument to docs")
 
 
-@nox.session
+@nox.session(reuse_venv=True)
 def build(session: nox.Session) -> None:
     """
     Build an SDist and wheel.
