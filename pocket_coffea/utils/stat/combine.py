@@ -401,6 +401,14 @@ class Datacard:
         """Rearrange histograms from pocket_coffea output format to match processes
         and systematics in one histogram.
 
+        The under/overflow content of the variable axis is preserved (copied with
+        ``flow=True``), so flow-inclusive sums of the rearranged histogram equal the
+        input category totals even when rebinning to a sub-range moved content into
+        the flow bins. This is what makes the shape-only rateParam factors of
+        :meth:`compute_rateparam_shape_scales` observable-independent and identical
+        across the per-category datacards. Written templates and rates still use
+        in-range bins only.
+
         :param is_data: Flag to indicate if the datacard is for data, defaults to False
         :type is_data: bool, optional
         :param category: Category to select; defaults to ``self.category``. Allows building
@@ -451,7 +459,10 @@ class Datacard:
                 variable_axis,
                 storage=hist.storage.Weight(),
             )
-        new_histogram_view = new_histogram.view()
+        # flow=True view: keep the variable-axis under/overflow (see docstring).
+        # Categorical axes append their overflow slot at the end, so the integer
+        # process/variation indices used below are unaffected.
+        new_histogram_view = new_histogram.view(flow=True)
 
         for process in processes.values():
             for sample in process.samples:
@@ -468,7 +479,7 @@ class Datacard:
                             )
                             new_histogram_view[process_index, :] += histogram[
                                 cat, :
-                            ].view()
+                            ].view(flow=True)
                         else:
                             process_index = new_histogram.axes["process"].index(
                                 f"{process.name}_{year}"
@@ -479,7 +490,7 @@ class Datacard:
                             ].index("nominal")
                             new_histogram_view[
                                 process_index, variation_index_nominal, :
-                            ] += histogram[cat, "nominal", :].view()
+                            ] += histogram[cat, "nominal", :].view(flow=True)
                             for (
                                 syst_name,
                                 systematic,
@@ -494,14 +505,16 @@ class Datacard:
                                     if source_variation in histogram.axes["variation"]:
                                         new_histogram_view[
                                             process_index, variation_index, :
-                                        ] += histogram[cat, source_variation, :].view()
+                                        ] += histogram[
+                                            cat, source_variation, :
+                                        ].view(flow=True)
                                     else:
                                         print(
                                             f"Setting `{source_variation}` variation to nominal variation for sample {sample}."
                                         )
                                         new_histogram_view[
                                             process_index, variation_index, :
-                                        ] += histogram[cat, "nominal", :].view()
+                                        ] += histogram[cat, "nominal", :].view(flow=True)
         return new_histogram
 
     def _all_input_categories(self) -> list[str]:
@@ -521,8 +534,12 @@ class Datacard:
         and over the process years where the systematic applies. Applying it to every
         Up/Down template holds the process total fixed (the normalization the rateParam
         already absorbs) while preserving the bin-to-bin shape and the region/year
-        migration. The totals are observable-independent (flow included), so every
-        per-category Datacard derives the same factors.
+        migration. The totals are observable-independent because
+        :meth:`rearrange_histograms` preserves the variable-axis flow content and the
+        sums here include it: even when a card's variable is rebinned to a sub-range,
+        the out-of-range content still counts. Every per-category Datacard therefore
+        derives the same factors, provided every event in a category fills every
+        card's variable.
 
         :return: mapping ``(process_name, systematic.datacard_name, shift) -> float``
         :rtype: dict

@@ -106,3 +106,97 @@ def test_rate_matches_clipped_template_integral():
 def test_rate_unchanged_without_negative_bins():
     dc = _single_process_datacard([10.0, 3.0, 5.0, 2.0])
     assert dc.rate("sig_2018") == pytest.approx(20.0)
+
+
+def _norm_variation_datacard(category, bins_edges=None):
+    """One rateParam process, two categories with disjoint x ranges, and an
+    artificial norm variation (+20% in SR only): CR content sits at low x, so a
+    card rebinned to [0.8, 1.0] only keeps it in the underflow."""
+    year, sample, dataset = "2018", "ttbb_sample", "ttbb_dataset"
+    histogram = hist.Hist(
+        hist.axis.StrCategory(["CR", "SR"], name="cat"),
+        hist.axis.StrCategory(["nominal", "normUp", "normDown"], name="variation"),
+        hist.axis.Regular(10, 0, 1, name="x"),
+        storage=hist.storage.Weight(),
+    )
+    view = histogram.view()
+    cr = histogram.axes["cat"].index("CR")
+    sr = histogram.axes["cat"].index("SR")
+    for variation_i, scale_sr in ((0, 1.0), (1, 1.2), (2, 1.0)):
+        view["value"][cr, variation_i, 0] = 10.0  # x ~ 0.05, out of [0.8, 1.0]
+        view["value"][sr, variation_i, 9] = 20.0 * scale_sr  # x ~ 0.95
+        view["variance"][cr, variation_i, 0] = 10.0
+        view["variance"][sr, variation_i, 9] = 20.0 * scale_sr
+    return Datacard(
+        histograms={sample: {dataset: histogram}},
+        datasets_metadata={"by_datataking_period": {year: {sample: [dataset]}}},
+        cutflow={"presel": {dataset: {"nominal": 100}}},
+        years=[year],
+        mc_processes=MCProcesses(
+            [
+                MCProcess(
+                    name="ttbb",
+                    samples=[sample],
+                    is_signal=True,
+                    years=[year],
+                    has_rateParam=True,
+                )
+            ]
+        ),
+        systematics=Systematics(
+            [
+                SystematicUncertainty(
+                    name="norm",
+                    typ="shape",
+                    processes=["ttbb"],
+                    years=[year],
+                    value=1.0,
+                )
+            ]
+        ),
+        category=category,
+        bins_edges=bins_edges,
+        verbose=False,
+        shape_only_for_rateparam=True,
+        rateparam_norm_categories=["CR", "SR"],
+    )
+
+
+def test_rateparam_scale_consistent_across_rebinned_cards():
+    # Regression: the shape-only factor must be computed from category-inclusive
+    # totals. The SR card rebins to [0.8, 1.0], pushing all CR content into the
+    # underflow; rearrange_histograms must keep that flow content so the SR card
+    # derives the same Sum(nominal)/Sum(varied) as the unrebinned CR card, not an
+    # SR-only factor (the old behavior: 30/36 -> 20/24).
+    dc_sr = _norm_variation_datacard("SR", bins_edges=[0.8, 0.9, 1.0])
+    dc_cr = _norm_variation_datacard("CR")
+    expected = 30.0 / 34.0  # (10 + 20) / (10 + 1.2 * 20)
+
+    scales_sr = dc_sr.compute_rateparam_shape_scales()
+    scales_cr = dc_cr.compute_rateparam_shape_scales()
+    assert scales_sr[("ttbb", "norm", "Up")] == pytest.approx(expected)
+    assert scales_cr[("ttbb", "norm", "Up")] == pytest.approx(expected)
+    assert scales_sr[("ttbb", "norm", "Down")] == pytest.approx(1.0)
+
+    # the rearranged histogram keeps the rebinning underflow (10 from CR-range x)
+    assert dc_sr.rearrange_histograms(category="CR")[
+        "ttbb_2018", "nominal", :
+    ].values(flow=True).sum() == pytest.approx(10.0)
+
+    # written in-range templates: the relative SR/CR response stays the injected
+    # +20%, and both cards share the same overall rescaling
+    dc_sr.rateparam_shape_scale = scales_sr
+    dc_cr.rateparam_shape_scale = scales_cr
+    templates_sr = dc_sr.create_shape_histogram_dict()
+    templates_cr = dc_cr.create_shape_histogram_dict()
+    ratio_sr = (
+        templates_sr["ttbb_2018_normUp"].values().sum()
+        / templates_sr["ttbb_2018_nominal"].values().sum()
+    )
+    ratio_cr = (
+        templates_cr["ttbb_2018_normUp"].values().sum()
+        / templates_cr["ttbb_2018_nominal"].values().sum()
+    )
+    assert ratio_sr == pytest.approx(1.2 * expected)
+    assert ratio_cr == pytest.approx(1.0 * expected)
+    assert ratio_sr / ratio_cr == pytest.approx(1.2)

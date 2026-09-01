@@ -5,6 +5,10 @@ from pocket_coffea.utils.stat.processes import (
     MCProcess,
     MCProcesses,
 )
+from pocket_coffea.utils.stat.shape_manipulation import (
+    add_binwise_variation,
+    add_norm_variation,
+)
 from pocket_coffea.utils.stat.systematics import Systematics, SystematicUncertainty
 
 __all__ = [
@@ -15,4 +19,6 @@ __all__ = [
     "MCProcesses",
     "SystematicUncertainty",
     "Systematics",
+    "add_binwise_variation",
+    "add_norm_variation",
 ]
