@@ -466,9 +466,14 @@ class Datacard:
                             process_index = new_histogram.axes["process"].index(
                                 "data_obs"
                             )
-                            new_histogram_view[process_index, :] += histogram[
-                                cat, :
-                            ].view()
+                            if "variation" in histogram.axes.name:
+                                new_histogram_view[process_index, :] += histogram[
+                                    cat, "nominal", :
+                                ].view()
+                            else:
+                                new_histogram_view[process_index, :] += histogram[
+                                    cat, :
+                                ].view()
                         else:
                             process_index = new_histogram.axes["process"].index(
                                 f"{process.name}_{year}"
@@ -502,6 +507,14 @@ class Datacard:
                                         new_histogram_view[
                                             process_index, variation_index, :
                                         ] += histogram[cat, "nominal", :].view()
+            if is_data:
+                if not np.all(
+                    np.mod(new_histogram.values(), 1) == 0
+                ):
+                    if process.round_counts:
+                        new_histogram_view["value"] = np.round(
+                            new_histogram_view["value"]
+                        )
         return new_histogram
 
     def _all_input_categories(self) -> list[str]:
