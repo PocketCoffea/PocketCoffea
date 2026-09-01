@@ -5,6 +5,8 @@ import re
 import json
 import time
 import requests
+from rich.console import Console
+from rich.table import Table
 from rucio.client import Client
 from rucio.common.client import detect_client_location
 from pocket_coffea.utils.network import get_proxy_path
@@ -119,6 +121,30 @@ def _get_pfn_for_site(path, rules):
         return rules + "/" + path
 
 
+def print_sites_availability(dataset, sites_counts, nfiles, console=None):
+    """Print a table with the number/fraction of files of `dataset` available at each site.
+
+    Same table layout as the `replicas` command of the dataset-discovery CLI
+    (`pocket_coffea/scripts/dataset/dataset_query.py`), so that users get a
+    familiar, actionable printout when a `build-datasets` allowlist/blocklist
+    leaves a file with no available site.
+    """
+    console = console if console else Console()
+    console.print(f"[cyan]Sites availability for dataset: [red]{dataset}")
+    table = Table(title="Available replicas")
+    table.add_column("Index", justify="center")
+    table.add_column("Site", justify="left", style="cyan", no_wrap=True)
+    table.add_column("Files", style="magenta", no_wrap=True)
+    table.add_column("Availability", justify="center")
+    table.row_styles = ["dim", "none"]
+
+    sorted_sites = dict(sorted(sites_counts.items(), key=lambda x: x[1], reverse=True))
+    for i, (site, stat) in enumerate(sorted_sites.items()):
+        table.add_row(str(i), site, f"{stat} / {nfiles}", f"{stat*100/nfiles:.1f}%")
+
+    console.print(table)
+
+
 def get_dataset_files_replicas(
         dataset,
         allowlist_sites=None,
@@ -184,6 +210,11 @@ def get_dataset_files_replicas(
     client = client if client else get_rucio_client()
     outsites = []
     outfiles = []
+    missing_files = []
+    # Unfiltered site coverage of the dataset, used to report where files actually are
+    # if the allowlist/blocklist/regex filtering leaves some file with no available site.
+    raw_sites_counts = defaultdict(int)
+    nfiles_seen = 0
     # print("What is my location (according to Rucio):", detect_client_location())
     for filedata in client.list_replicas(
         [{"scope": scope, "name": dataset}],
@@ -202,6 +233,10 @@ def get_dataset_files_replicas(
         if filedata["name"] in invalid_list:
             #print(f"The following file is invalid, we skip it:\n {filedata['name']}")
             continue
+
+        nfiles_seen += 1
+        for site in rses.keys():
+            raw_sites_counts[site] += 1
 
         if allowlist_sites:
             for site in allowlist_sites:
@@ -229,9 +264,6 @@ def get_dataset_files_replicas(
                         (key not in blocklist_sites) and (key.replace("_Disk", "") not in blocklist_sites)
                         ), possible_sites)
                 )
-
-            if len(possible_sites) == 0 and not partial_allowed and not include_redirector:
-                raise Exception(f"No SITE available for file {filedata['name']}")
 
             # now check for regex
             for site in possible_sites:
@@ -283,7 +315,10 @@ def get_dataset_files_replicas(
                 found = True
 
         if not found and not partial_allowed:
-            raise Exception(f"No SITE available for file: \n {filedata['name']}")
+            # Keep scanning the rest of the dataset so that the site-availability table
+            # printed below reflects the whole dataset, not just this one file.
+            missing_files.append(filedata["name"])
+            continue
         else:
             # Sort by prioritylist if applicable
             # print("Sorting by priority:", prioritylist_sites)
@@ -301,6 +336,15 @@ def get_dataset_files_replicas(
                 outsites.append(outsite[0])
             else:
                 raise NotImplementedError(f"Mode {mode} not yet implemented!")
+
+    if missing_files:
+        print_sites_availability(dataset, raw_sites_counts, nfiles_seen)
+        raise Exception(
+            f"No SITE available for {len(missing_files)}/{nfiles_seen} file(s) in dataset "
+            f"{dataset} (e.g. {missing_files[0]}) after applying the allowlist/blocklist/regex "
+            "filters. See the site-availability table above and adjust `allowlist_sites` "
+            "accordingly."
+        )
 
     # Computing replicas by site:
     sites_counts = defaultdict(int)
