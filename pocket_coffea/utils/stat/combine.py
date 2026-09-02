@@ -480,11 +480,11 @@ class Datacard:
                             if "variation" in histogram.axes.name:
                                 new_histogram_view[process_index, :] += histogram[
                                     cat, "nominal", :
-                                ].view()
+                                ].view(flow=True)
                             else:
                                 new_histogram_view[process_index, :] += histogram[
                                     cat, :
-                                ].view()
+                                ].view(flow=True)
                         else:
                             process_index = new_histogram.axes["process"].index(
                                 f"{process.name}_{year}"
@@ -519,7 +519,7 @@ class Datacard:
                                         )
                                         new_histogram_view[
                                             process_index, variation_index, :
-                                        ] += histogram[cat, "nominal", :].view()
+                                        ] += histogram[cat, "nominal", :].view(flow=True)
             if is_data:
                 if not np.all(
                     np.mod(new_histogram.values(), 1) == 0
