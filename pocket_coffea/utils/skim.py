@@ -1,4 +1,5 @@
 import os
+import logging
 import pathlib
 import shutil
 import json
@@ -24,13 +25,20 @@ def uproot_writeable(events):
     out = {}
     for bname in events.fields:
         if events[bname].fields:
-            out[bname] = ak.zip(
-                {
-                    n: ak.packed(ak.without_parameters(events[bname][n]))
-                    for n in events[bname].fields
-                    if is_rootcompat(events[bname][n])
-                }
-            )
+            b = {
+                n: ak.packed(ak.without_parameters(events[bname][n]))
+                for n in events[bname].fields
+                if is_rootcompat(events[bname][n])
+            }
+            if not b:
+                # A collection whose fields are all option/union typed (e.g. a
+                # derived collection built with ak.mask/pad_none/concatenate)
+                # has no ROOT-writable content, and ak.zip({}) raises IndexError.
+                logging.warning(
+                    f"uproot_writeable: skipping branch '{bname}': no ROOT-compatible field"
+                )
+                continue
+            out[bname] = ak.zip(b)
         else:
             out[bname] = ak.packed(ak.without_parameters(events[bname]))
     return out
