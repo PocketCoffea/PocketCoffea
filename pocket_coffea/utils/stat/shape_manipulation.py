@@ -13,6 +13,10 @@ Two flavors are provided:
 - :func:`add_binwise_variation`: Up = nominal reweighted bin by bin with a
   per-category weight array (generic shape reweighting); a scalar entry behaves
   like a normalization factor.
+
+:func:`rescale_histograms` instead changes the histograms themselves: it
+multiplies the nominal *and* every variation of the selected samples/datasets
+by one scalar (a plain yield rescaling, no new variation entry).
 """
 
 import hist
@@ -49,6 +53,32 @@ def _resolve_bin_weights(weight_spec, variable_axis, category):
         f"{variable_axis.size} (in-range bins of axis {variable_axis.name!r}, "
         f"flow bins keep weight 1) or {variable_axis.extent} (flow slots included)"
     )
+
+
+def _select_datasets(histograms, samples, datasets):
+    """Return the ``{(sample, dataset)}`` pairs targeted by ``samples`` (all must
+    exist in ``histograms``) and ``datasets`` (None = every dataset of those
+    samples). Datasets in the list that are absent from the histograms are
+    ignored (e.g. empty datasets), but a list matching nothing at all raises."""
+    missing_samples = sorted(set(samples) - set(histograms))
+    if missing_samples:
+        raise ValueError(
+            f"Samples {missing_samples} not found in histograms "
+            f"(available: {sorted(histograms)})"
+        )
+    dataset_filter = None if datasets is None else set(datasets)
+    selected = {
+        (sample, dataset)
+        for sample in set(samples)
+        for dataset in histograms[sample]
+        if dataset_filter is None or dataset in dataset_filter
+    }
+    if dataset_filter is not None and not selected:
+        raise ValueError(
+            f"None of the requested datasets {sorted(dataset_filter)} found in "
+            f"the histograms of samples {sorted(set(samples))}"
+        )
+    return selected
 
 
 def add_binwise_variation(
@@ -174,29 +204,20 @@ def add_binwise_variation(
             f"Unknown down_mode {down_mode!r}, expected 'nominal' or 'mirror'"
         )
 
-    missing_samples = sorted(set(samples) - set(histograms))
-    if missing_samples:
-        raise ValueError(
-            f"Samples {missing_samples} not found in histograms "
-            f"(available: {sorted(histograms)})"
-        )
+    selected = _select_datasets(histograms, samples, datasets)
 
     up_name = f"{variation_name}Up"
     down_name = f"{variation_name}Down"
-
-    dataset_filter = None if datasets is None else set(datasets)
-    matched_datasets = 0
 
     new_histograms = dict(histograms)
     for sample in set(samples):
         new_histograms[sample] = {}
         for dataset, histogram in histograms[sample].items():
-            if dataset_filter is not None and dataset not in dataset_filter:
+            if (sample, dataset) not in selected:
                 # carried over untouched; a later call (same variation_name,
                 # different weights) can cover it
                 new_histograms[sample][dataset] = histogram
                 continue
-            matched_datasets += 1
             axis_names = [axis.name for axis in histogram.axes]
             if "cat" not in axis_names or "variation" not in axis_names:
                 raise ValueError(
@@ -308,12 +329,6 @@ def add_binwise_variation(
 
             new_histograms[sample][dataset] = new_histogram
 
-    if dataset_filter is not None and matched_datasets == 0:
-        raise ValueError(
-            f"None of the requested datasets {sorted(dataset_filter)} found in "
-            f"the histograms of samples {sorted(set(samples))}"
-        )
-
     return new_histograms
 
 
@@ -372,3 +387,52 @@ def add_norm_variation(
         down_mode=down_mode,
         datasets=datasets,
     )
+
+
+def rescale_histograms(
+    histograms: dict[str, dict[str, hist.Hist]],
+    samples: list[str],
+    scale: float,
+    datasets: list[str] | None = None,
+) -> dict[str, dict[str, hist.Hist]]:
+    """Rescale the normalization of whole histograms by a constant factor.
+
+    Every histogram of the requested ``samples`` (optionally restricted to
+    ``datasets``) is multiplied by ``scale`` in all its bins: every category,
+    the nominal *and* every variation, under/overflow included. Bin variances
+    scale with ``scale**2``. Unlike :func:`add_norm_variation` no variation
+    entry is created: the histograms themselves change, so the effect is a
+    plain change of the sample yield (e.g. a k-factor or a cross-section fix
+    for one year's datasets).
+
+    Typical use — apply a per-year factor to a sample::
+
+        for year, factor in factor_by_year.items():
+            year_datasets = datasets_metadata["by_datataking_period"][year].get(
+                "TTBB", []
+            )
+            histograms = rescale_histograms(
+                histograms, ["TTBB"], factor, datasets=year_datasets
+            )
+
+    The input dictionary is not modified: a new outer dict is returned,
+    sharing the untouched histogram objects with the input.
+
+    :param histograms: pocket_coffea histograms, ``{sample: {dataset: hist.Hist}}``.
+    :param samples: samples to rescale. Must all be present in ``histograms``.
+    :param scale: scalar multiplied into every bin (variances by its square).
+    :param datasets: optionally restrict the rescaling to these datasets
+        (within the selected samples); absent datasets are ignored, but a
+        list matching nothing raises. Defaults to None (all datasets).
+    :return: new ``{sample: {dataset: hist.Hist}}`` dict.
+    """
+    if np.ndim(scale) != 0:
+        raise ValueError(f"scale must be a scalar, got {scale!r}")
+    selected = _select_datasets(histograms, samples, datasets)
+    new_histograms = dict(histograms)
+    for sample in set(samples):
+        new_histograms[sample] = {
+            dataset: histogram * scale if (sample, dataset) in selected else histogram
+            for dataset, histogram in histograms[sample].items()
+        }
+    return new_histograms

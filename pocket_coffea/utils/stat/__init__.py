@@ -8,6 +8,7 @@ from pocket_coffea.utils.stat.processes import (
 from pocket_coffea.utils.stat.shape_manipulation import (
     add_binwise_variation,
     add_norm_variation,
+    rescale_histograms,
 )
 from pocket_coffea.utils.stat.systematics import Systematics, SystematicUncertainty
 
@@ -21,4 +22,5 @@ __all__ = [
     "Systematics",
     "add_binwise_variation",
     "add_norm_variation",
+    "rescale_histograms",
 ]

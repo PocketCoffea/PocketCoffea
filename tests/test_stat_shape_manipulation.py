@@ -8,6 +8,7 @@ from pocket_coffea.utils.stat.processes import MCProcess, MCProcesses
 from pocket_coffea.utils.stat.shape_manipulation import (
     add_binwise_variation,
     add_norm_variation,
+    rescale_histograms,
 )
 from pocket_coffea.utils.stat.systematics import Systematics, SystematicUncertainty
 
@@ -301,6 +302,41 @@ def test_add_binwise_variation_validations():
         )
     with pytest.raises(ValueError, match="must be a scalar"):
         add_norm_variation(histograms, "v", ["s"], scale_by_category={"SR": [1.0, 1.0]})
+
+
+def test_rescale_histograms():
+    h_2024 = _make_hist(
+        ["CR", "SR"], ["nominal", "vUp"], {"CR": [1.0, 2.0], "SR": [3.0, 4.0]}
+    )
+    h_2022 = _make_hist(["SR"], ["nominal"], {"SR": [1.0, 3.0]})
+    other = h_2022.copy()
+    histograms = {"s": {"ds_2024": h_2024, "ds_2022": h_2022}, "other": {"d": other}}
+
+    out = rescale_histograms(histograms, ["s"], 1.5, datasets=["ds_2024", "ds_empty"])
+    new = out["s"]["ds_2024"]
+    # every category and variation, flow included; variance scales quadratically
+    assert list(new.axes["variation"]) == ["nominal", "vUp"]
+    assert np.allclose(
+        new.view(flow=True)["value"], h_2024.view(flow=True)["value"] * 1.5
+    )
+    assert np.allclose(
+        new.view(flow=True)["variance"], h_2024.view(flow=True)["variance"] * 1.5**2
+    )
+    # untouched datasets/samples shared by reference, input not mutated
+    assert out["s"]["ds_2022"] is h_2022
+    assert out["other"]["d"] is other
+    assert np.allclose(h_2024["SR", "nominal", :].values(), [3.0, 4.0])
+
+    # datasets=None rescales every dataset of the sample
+    out_all = rescale_histograms(histograms, ["s"], 2.0)
+    assert np.allclose(out_all["s"]["ds_2022"]["SR", "nominal", :].values(), [2.0, 6.0])
+
+    with pytest.raises(ValueError, match="not found in histograms"):
+        rescale_histograms(histograms, ["typo"], 2.0)
+    with pytest.raises(ValueError, match="None of the requested datasets"):
+        rescale_histograms(histograms, ["s"], 2.0, datasets=["typo"])
+    with pytest.raises(ValueError, match="must be a scalar"):
+        rescale_histograms(histograms, ["s"], [1.0, 2.0])
 
 
 def _two_sample_datacard(scale_by_category, category, shape_only_for_rateparam=False):
