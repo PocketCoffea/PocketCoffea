@@ -79,6 +79,7 @@ class Datacard:
         verbose: bool = True,
         shape_only_for_rateparam: bool = False,
         rateparam_norm_categories: list[str] = None,
+        data_variations: dict[str, str] = None,
     ) -> None:
         """Initialize the Datacard.
 
@@ -110,6 +111,7 @@ class Datacard:
         self.verbose = verbose
         self.shape_only_for_rateparam = shape_only_for_rateparam
         self.rateparam_norm_categories = rateparam_norm_categories
+        self.data_variations = data_variations
         self.rateparam_shape_scale = {}
         if self.bin_suffix is None:
             self.bin_suffix = "_".join(self.years)
@@ -145,9 +147,13 @@ class Datacard:
         self._check_histograms()
         self.histogram = self.rearrange_histograms(is_data=False)
 
+        #if self.has_data:
+        #    self.data_obs = self.rearrange_histograms(is_data=True)
         if self.has_data:
-            self.data_obs = self.rearrange_histograms(is_data=True)
-
+            self.data_obs = self.rearrange_histograms(
+                is_data=True,
+                data_variations=self.data_variations,
+            )
         self._check_shapes()
 
         # helper attributes
@@ -397,6 +403,7 @@ class Datacard:
         self,
         is_data: bool = False,
         category: str = None,
+        data_variations: dict[str, str] | None = None,
     ) -> hist.Hist:
         """Rearrange histograms from pocket_coffea output format to match processes
         and systematics in one histogram.
@@ -473,14 +480,36 @@ class Datacard:
                         if self.is_empty_dataset(dataset):
                             continue
                         histogram = self.histograms[sample][dataset]
+                        #if is_data:
+                        #    process_index = new_histogram.axes["process"].index(
+                        #        "data_obs"
+                        #    )
+                        #    if "variation" in histogram.axes.name:
+                        #        new_histogram_view[process_index, :] += histogram[
+                        #            cat, "nominal", :
+                        #        ].view(flow=True)
+                        #    else:
+                        #        new_histogram_view[process_index, :] += histogram[
+                        #            cat, :
+                        #        ].view(flow=True)
+
                         if is_data:
-                            process_index = new_histogram.axes["process"].index(
-                                "data_obs"
-                            )
+                            process_index = new_histogram.axes["process"].index("data_obs")
                             if "variation" in histogram.axes.name:
+                                variation = (
+                                    data_variations.get(sample, "nominal")
+                                    if data_variations is not None
+                                    else "nominal")
+                                if variation not in histogram.axes["variation"]:
+                                    raise ValueError(
+                                        f"Requested data variation {variation!r} for sample "
+                                        f"{sample!r}, dataset {dataset}, but available variations are "
+                                        f"{list(histogram.axes['variation'])}"
+                                    )
                                 new_histogram_view[process_index, :] += histogram[
-                                    cat, "nominal", :
+                                    cat, variation, :
                                 ].view(flow=True)
+
                             else:
                                 new_histogram_view[process_index, :] += histogram[
                                     cat, :
