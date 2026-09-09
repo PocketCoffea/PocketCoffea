@@ -80,6 +80,7 @@ class Datacard:
         shape_only_for_rateparam: bool = False,
         rateparam_norm_categories: list[str] = None,
         rateparam_norm_histograms: dict[str, dict[str, hist.Hist]] = None,
+        data_variations: dict[str, str] = None,
     ) -> None:
         """Initialize the Datacard.
 
@@ -119,6 +120,7 @@ class Datacard:
         self.shape_only_for_rateparam = shape_only_for_rateparam
         self.rateparam_norm_categories = rateparam_norm_categories
         self.rateparam_norm_histograms = rateparam_norm_histograms
+        self.data_variations = data_variations
         self.rateparam_shape_scale = {}
         if self.bin_suffix is None:
             self.bin_suffix = "_".join(self.years)
@@ -154,9 +156,13 @@ class Datacard:
         self._check_histograms()
         self.histogram = self.rearrange_histograms(is_data=False)
 
+        #if self.has_data:
+        #    self.data_obs = self.rearrange_histograms(is_data=True)
         if self.has_data:
-            self.data_obs = self.rearrange_histograms(is_data=True)
-
+            self.data_obs = self.rearrange_histograms(
+                is_data=True,
+                data_variations=self.data_variations,
+            )
         self._check_shapes()
 
         # helper attributes
@@ -407,6 +413,7 @@ class Datacard:
         is_data: bool = False,
         category: str = None,
         histograms: dict[str, dict[str, hist.Hist]] = None,
+        data_variations: dict[str, str] | None = None,
     ) -> hist.Hist:
         """Rearrange histograms from pocket_coffea output format to match processes
         and systematics in one histogram.
@@ -487,12 +494,26 @@ class Datacard:
                             continue
                         histogram = hs[sample][dataset]
                         if is_data:
-                            process_index = new_histogram.axes["process"].index(
-                                "data_obs"
-                            )
-                            new_histogram_view[process_index, :] += histogram[
-                                cat, :
-                            ].view(flow=True)
+                            process_index = new_histogram.axes["process"].index("data_obs")
+                            if "variation" in histogram.axes.name:
+                                variation = (
+                                    data_variations.get(sample, "nominal")
+                                    if data_variations is not None
+                                    else "nominal")
+                                if variation not in histogram.axes["variation"]:
+                                    raise ValueError(
+                                        f"Requested data variation {variation!r} for sample "
+                                        f"{sample!r}, dataset {dataset}, but available variations are "
+                                        f"{list(histogram.axes['variation'])}"
+                                    )
+                                new_histogram_view[process_index, :] += histogram[
+                                    cat, variation, :
+                                ].view(flow=True)
+
+                            else:
+                                new_histogram_view[process_index, :] += histogram[
+                                    cat, :
+                                ].view(flow=True)
                         else:
                             process_index = new_histogram.axes["process"].index(
                                 f"{process.name}_{year}"
@@ -528,6 +549,14 @@ class Datacard:
                                         new_histogram_view[
                                             process_index, variation_index, :
                                         ] += histogram[cat, "nominal", :].view(flow=True)
+            if is_data:
+                if not np.all(
+                    np.mod(new_histogram.values(), 1) == 0
+                ):
+                    if process.round_counts:
+                        new_histogram_view["value"] = np.round(
+                            new_histogram_view["value"]
+                        )
         return new_histogram
 
     def _all_input_categories(
@@ -636,6 +665,19 @@ class Datacard:
                     )
                     new_histogram_view = new_histogram.view()
                     new_histogram_view[:] = histogram[process_name_byyear, :].view()
+                    if not np.all(
+                        np.mod(new_histogram.values(), 1) == 0
+                    ):
+                        if process.round_counts:
+                            new_histogram_view["value"] = np.round(
+                                new_histogram_view["value"]
+                            )
+                            # Set the variance to the value itself (so the uncertainty is sqrt(N))
+                            new_histogram_view["variance"] = new_histogram_view["value"]
+                        else:
+                            warnings.warn(
+                                f"Data histogram for process '{process_name_byyear}' has non-integer bin values, but it should represent event counts."
+                            )
                     new_histograms[f"{process_name_byyear}_nominal"] = new_histogram
                 else:
                     process_name_byyear = f"{process.name}_{year}"

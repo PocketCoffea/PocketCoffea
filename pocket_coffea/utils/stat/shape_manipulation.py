@@ -289,6 +289,7 @@ def add_binwise_variation(
             up_i = new_variation_axis.index(up_name)
             down_i = new_variation_axis.index(down_name)
             for category in cat_axis:
+                #breakpoint()
                 weights = _resolve_bin_weights(
                     weights_by_category.get(category, default_weight),
                     variable_axis,
