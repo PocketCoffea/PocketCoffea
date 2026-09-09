@@ -79,6 +79,7 @@ class Datacard:
         verbose: bool = True,
         shape_only_for_rateparam: bool = False,
         rateparam_norm_categories: list[str] = None,
+        rateparam_norm_histograms: dict[str, dict[str, hist.Hist]] = None,
     ) -> None:
         """Initialize the Datacard.
 
@@ -93,6 +94,13 @@ class Datacard:
             input histogram axis. Pass the explicit list of fit categories when the coffea
             output contains categories that are not part of the combined datacard.
         :type rateparam_norm_categories: list[str], optional
+        :param rateparam_norm_histograms: Histograms (``{sample: {dataset: hist}}``) of any
+            variable filled in every ``rateparam_norm_categories`` category, used only for the
+            flow-inclusive totals of the shape-only factor. Defaults to the card's own
+            ``histograms``; pass it when the card's variable is restricted with
+            ``only_categories`` and so lacks some norm categories. Never rebinned (the totals
+            include the flow bins, so the binning is irrelevant).
+        :type rateparam_norm_histograms: dict[str, dict[str, hist.Hist]], optional
         """
 
         self.histograms = histograms
@@ -110,6 +118,7 @@ class Datacard:
         self.verbose = verbose
         self.shape_only_for_rateparam = shape_only_for_rateparam
         self.rateparam_norm_categories = rateparam_norm_categories
+        self.rateparam_norm_histograms = rateparam_norm_histograms
         self.rateparam_shape_scale = {}
         if self.bin_suffix is None:
             self.bin_suffix = "_".join(self.years)
@@ -397,6 +406,7 @@ class Datacard:
         self,
         is_data: bool = False,
         category: str = None,
+        histograms: dict[str, dict[str, hist.Hist]] = None,
     ) -> hist.Hist:
         """Rearrange histograms from pocket_coffea output format to match processes
         and systematics in one histogram.
@@ -414,10 +424,13 @@ class Datacard:
         :param category: Category to select; defaults to ``self.category``. Allows building
             the rearranged single-category histogram for any region from the same input.
         :type category: str, optional
+        :param histograms: Input histograms to rearrange; defaults to ``self.histograms``.
+        :type histograms: dict[str, dict[str, hist.Hist]], optional
         :return: Rearranged histogram
         :rtype: hist.Hist
         """
         cat = category if category is not None else self.category
+        hs = histograms if histograms is not None else self.histograms
         if is_data:
             processes = self.data_processes
         else:
@@ -432,10 +445,10 @@ class Datacard:
         sample = list(processes.values())[0].samples[0]
         datasets = list(self.get_datasets_by_sample(sample))
         for dataset in datasets:
-            if not dataset in self.histograms[sample]:
+            if not dataset in hs[sample]:
                 continue
             else:
-                variable_axis = self.histograms[sample][dataset].axes[-1]
+                variable_axis = hs[sample][dataset].axes[-1]
                 break
 
         if is_data:
@@ -472,7 +485,7 @@ class Datacard:
                     for dataset in self.get_datasets_by_sample(sample, year):
                         if self.is_empty_dataset(dataset):
                             continue
-                        histogram = self.histograms[sample][dataset]
+                        histogram = hs[sample][dataset]
                         if is_data:
                             process_index = new_histogram.axes["process"].index(
                                 "data_obs"
@@ -517,13 +530,16 @@ class Datacard:
                                         ] += histogram[cat, "nominal", :].view(flow=True)
         return new_histogram
 
-    def _all_input_categories(self) -> list[str]:
+    def _all_input_categories(
+        self, histograms: dict[str, dict[str, hist.Hist]] = None
+    ) -> list[str]:
         """List the category labels available on the input histograms' category axis."""
+        hs = histograms if histograms is not None else self.histograms
         for process in self.mc_processes.values():
             for sample in process.samples:
                 for dataset in self.get_datasets_by_sample(sample):
-                    if dataset in self.histograms.get(sample, {}):
-                        return list(self.histograms[sample][dataset].axes[0])
+                    if dataset in hs.get(sample, {}):
+                        return list(hs[sample][dataset].axes[0])
         raise RuntimeError("No input histogram found to read the category axis from.")
 
     def compute_rateparam_shape_scales(self) -> dict:
@@ -538,8 +554,8 @@ class Datacard:
         :meth:`rearrange_histograms` preserves the variable-axis flow content and the
         sums here include it: even when a card's variable is rebinned to a sub-range,
         the out-of-range content still counts. Every per-category Datacard therefore
-        derives the same factors, provided every event in a category fills every
-        card's variable.
+        derives the same factors, provided the histograms used for the totals (the
+        card's own, or ``rateparam_norm_histograms``) are filled in every norm category.
 
         :return: mapping ``(process_name, systematic.datacard_name, shift) -> float``
         :rtype: dict
@@ -548,9 +564,22 @@ class Datacard:
         if not rateparam_processes:
             return {}
 
-        cats = self.rateparam_norm_categories or self._all_input_categories()
+        norm_hists = self.rateparam_norm_histograms or self.histograms
+        available = self._all_input_categories(norm_hists)
+        cats = self.rateparam_norm_categories or available
+        missing = set(cats) - set(available)
+        if missing:
+            raise ValueError(
+                f"rateparam_norm_categories {sorted(missing)} are not on the category axis "
+                "of the histograms used for the shape-only totals. Pass "
+                "`rateparam_norm_histograms=` with a variable filled in every norm category "
+                "(e.g. a jet-multiplicity histogram)."
+            )
         hists_by_cat = {
-            cat: self.rearrange_histograms(is_data=False, category=cat) for cat in cats
+            cat: self.rearrange_histograms(
+                is_data=False, category=cat, histograms=norm_hists
+            )
+            for cat in cats
         }
 
         shape_systs = self.systematics.get_systematics_by_type("shape")
