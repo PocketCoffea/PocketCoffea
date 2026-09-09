@@ -132,7 +132,7 @@ def _norm_variation_histogram(categories=("CR", "SR")):
     return histogram
 
 
-def _norm_variation_datacard(category, bins_edges=None, histogram=None, **kwargs):
+def _norm_variation_datacard(category, bins_edges=None, histogram=None, typ="shape", **kwargs):
     """One rateParam process on the ``_norm_variation_histogram`` input."""
     year, sample, dataset = "2018", "ttbb_sample", "ttbb_dataset"
     if histogram is None:
@@ -161,7 +161,7 @@ def _norm_variation_datacard(category, bins_edges=None, histogram=None, **kwargs
             [
                 SystematicUncertainty(
                     name="norm",
-                    typ="shape",
+                    typ=typ,
                     processes=["ttbb"],
                     years=[year],
                     value=1.0,
@@ -239,3 +239,15 @@ def test_rateparam_scale_from_norm_histograms():
     assert dc_sr.histogram["ttbb_2018", "nominal", :].values().sum() == pytest.approx(
         20.0
     )
+
+
+def test_shapeu_systematic_gets_templates_and_datacard_type():
+    # Combine shape flavours (shapeU here) must be treated like "shape" everywhere
+    # templates are needed, and written with their own type in the card.
+    dc = _norm_variation_datacard("SR", typ="shapeU")
+    assert list(dc.systematics.get_systematics_by_type("shape")) == ["norm"]
+    assert dc.systematics.get_systematics_by_type("shapeU")["norm"].typ == "shapeU"
+    assert "normUp" in dc.histogram.axes["variation"]
+    assert "ttbb_2018_normUp" in dc.create_shape_histogram_dict()
+    (line,) = [l for l in dc.systematics_section().splitlines() if l.startswith("norm")]
+    assert line.split()[1] == "shapeU"
