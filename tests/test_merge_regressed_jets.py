@@ -70,13 +70,23 @@ def _write_btag_wp_file(directory):
 # module-level parameter sets below can reference it.
 BTAG_FILE = _write_btag_wp_file(tempfile.mkdtemp(prefix="pc_btag_wp_"))
 
-# Minimal parameters. `btagging` selects the discriminant branch to cut on;
-# `jet_scale_factors.btagSF` points at the BTV file the WP score is read from.
+# NanoAOD b-tag discriminant branch -> the correction storing its WP cut values,
+# mirroring `btagging.btag_wp_values_map` in the parameters YAML. Only the two
+# taggers present in the stand-in file above are needed here.
+BTAG_WP_VALUES_MAP = {
+    "btagDeepFlavB": "deepJet_wp_values",
+    "btagPNetB": "particleNet_wp_values",
+}
+
+# Minimal parameters. `btagging` selects the discriminant branch to cut on and
+# maps it to its WP-values correction; `jet_scale_factors.btagSF` points at the
+# BTV file the WP score is read from.
 FLAT_PARAMS = {
     "btagging": {
         "working_point": {
             "2018": {"btagging_algorithm": "btagDeepFlavB"},
-        }
+        },
+        "btag_wp_values_map": BTAG_WP_VALUES_MAP,
     },
     "jet_scale_factors": {
         "btagSF": {"2018": {"file": BTAG_FILE, "name": "deepJet_shape"}}
@@ -86,7 +96,8 @@ NESTED_PARAMS = {
     "btagging": {
         "working_point": {
             "2022_postEE": {"btagging_algorithm": "btagPNetB"},
-        }
+        },
+        "btag_wp_values_map": BTAG_WP_VALUES_MAP,
     },
     "jet_scale_factors": {
         "btagSF": {"2022_postEE": {"file": BTAG_FILE, "name": "particleNet_shape"}}
@@ -98,7 +109,8 @@ MULTI_PARAMS = {
     "btagging": {
         "working_point": {
             "2022_postEE": {"btagging_algorithm": "btagPNetB"},
-        }
+        },
+        "btag_wp_values_map": BTAG_WP_VALUES_MAP,
     },
     "jet_scale_factors": {
         "btagSF": {"2022_postEE": {"file": BTAG_FILE, "name": "particleNet_shape"}}
