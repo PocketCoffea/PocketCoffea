@@ -145,3 +145,17 @@ def test_override_only_acts_on_listed_datasets():
 
     apply_skim_sumgenweights_override(acc, filesets)
     assert acc["sum_genweights"]["UnknownDS"] == pytest.approx(999.0)
+
+
+# ----------------------- skimmed_file_exists -----------------------
+
+def test_skimmed_file_exists_local(tmp_path):
+    from pocket_coffea.utils.skim import skimmed_file_exists
+
+    assert not skimmed_file_exists(str(tmp_path / "missing.root"))
+    empty = tmp_path / "empty.root"
+    empty.touch()
+    assert not skimmed_file_exists(str(empty))
+    full = tmp_path / "full.root"
+    full.write_bytes(b"x")
+    assert skimmed_file_exists(str(full))

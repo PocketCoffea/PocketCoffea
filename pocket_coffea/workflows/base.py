@@ -21,7 +21,7 @@ from ..lib.columns_manager import ColumnsManager
 from ..lib.hist_manager import HistManager
 from ..lib.jets import load_jet_factory
 from ..lib.calibrators.calibrators_manager import CalibratorsManager
-from ..utils.skim import uproot_writeable, copy_file, apply_skim_sumgenweights_override
+from ..utils.skim import uproot_writeable, copy_file, apply_skim_sumgenweights_override, skimmed_file_exists
 from ..utils.utils import dump_ak_array
 from ..utils.metadata import to_bool
 from ..lib.delayed_eval import DelayedEvalBranchManager
@@ -236,29 +236,33 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             )
             + ".root"
         )
-        # Write the chunk in a temporary working directory instead of the cwd,
-        # which is often on AFS: TMPDIR (or the HTCondor scratch) points to
-        # node-local storage. copy_file deletes the local file after the copy;
-        # the directory itself is cleaned up here, also on failure.
-        tmpdir = tempfile.mkdtemp(
-            prefix="skim_",
-            dir=os.environ.get("TMPDIR") or os.environ.get("_CONDOR_SCRATCH_DIR"),
-        )
-        try:
-            with uproot.recreate(os.path.join(tmpdir, filename), compression=uproot.ZSTD(5)) as fout:
-                fout["Events"] = uproot_writeable(self.events)
-            # copy the file
-            copy_file(
-                filename, tmpdir, self.cfg.save_skimmed_files_folder, subdirs=[self._dataset]
+        destination = os.path.join(self.cfg.save_skimmed_files_folder, self._dataset, filename)
+        # workflow_options["skim_skip_existing"]: on a resubmission, keep the
+        # metadata (cutflow, sum_genweights, file list) but do not rewrite a
+        # chunk that already exists at the destination.
+        skip_existing = (self.workflow_options or {}).get("skim_skip_existing", False)
+        if skip_existing and skimmed_file_exists(destination):
+            logging.info(f"[skim] {self._dataset}: {filename} exists, skip write")
+        else:
+            # Write the chunk in a temporary working directory instead of the cwd,
+            # which is often on AFS: TMPDIR (or the HTCondor scratch) points to
+            # node-local storage. copy_file deletes the local file after the copy;
+            # the directory itself is cleaned up here, also on failure.
+            tmpdir = tempfile.mkdtemp(
+                prefix="skim_",
+                dir=os.environ.get("TMPDIR") or os.environ.get("_CONDOR_SCRATCH_DIR"),
             )
-        finally:
-            shutil.rmtree(tmpdir, ignore_errors=True)
+            try:
+                with uproot.recreate(os.path.join(tmpdir, filename), compression=uproot.ZSTD(5)) as fout:
+                    fout["Events"] = uproot_writeable(self.events)
+                # copy the file
+                copy_file(
+                    filename, tmpdir, self.cfg.save_skimmed_files_folder, subdirs=[self._dataset]
+                )
+            finally:
+                shutil.rmtree(tmpdir, ignore_errors=True)
         # save the new file location for the new dataset definition
-        self.output["skimmed_files"] = {
-            self._dataset: [
-                os.path.join(self.cfg.save_skimmed_files_folder, self._dataset, filename)
-            ]
-        }
+        self.output["skimmed_files"] = {self._dataset: [destination]}
         self.output["nskimmed_events"] = {self._dataset: [self.nEvents_after_skim]}
 
     @abstractmethod
