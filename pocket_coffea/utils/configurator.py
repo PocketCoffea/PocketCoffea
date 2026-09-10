@@ -5,8 +5,10 @@ from copy import deepcopy
 from pprint import pprint, pformat
 import cloudpickle
 from collections import defaultdict
+from collections.abc import Mapping
 import inspect
 import logging
+from math import ceil
 from omegaconf import OmegaConf
 from warnings import warn
 
@@ -748,6 +750,56 @@ class Configurator:
                     orig = meta["nevents"]
                     scaled = int(int(orig) * len(ds["files"]) / n_total_files)
                     meta["nevents"] = str(scaled) if isinstance(orig, str) else scaled
+                except (ValueError, TypeError):
+                    pass
+            filtered_filesets[dataset_name] = ds
+            filtered_datasets.append(dataset_name)
+        self.filesets = filtered_filesets
+        self.datasets = filtered_datasets
+
+    @staticmethod
+    def _dataset_event_target(target_events, dataset_name, metadata):
+        if isinstance(target_events, Mapping):
+            sample = metadata.get("sample")
+            value = target_events.get(dataset_name)
+            if value is None and sample is not None:
+                value = target_events.get(sample)
+            if value is None:
+                value = target_events.get("default")
+            if value is None:
+                raise ValueError(
+                    f"chunksize mapping has no entry for dataset {dataset_name!r} "
+                    f"or sample {sample!r}, and no 'default' fallback"
+                )
+        else:
+            value = target_events
+        value = int(value)
+        if value <= 0:
+            raise ValueError(f"target_events for dataset {dataset_name!r} must be positive")
+        return value
+
+    def filter_dataset_by_events(self, target_events):
+        filtered_filesets = {}
+        filtered_datasets = []
+        for dataset_name, ds in self.filesets.items():
+            files = ds.get("files", [])
+            metadata = ds.get("metadata") or {}
+            n_total_files = len(files)
+            target = self._dataset_event_target(target_events, dataset_name, metadata)
+            try:
+                total_events = int(metadata["nevents"])
+                mean_events_per_file = total_events / n_total_files
+                nfiles = min(n_total_files, max(1, ceil(target / mean_events_per_file)))
+            except (KeyError, TypeError, ValueError, ZeroDivisionError):
+                warn(f"Could not estimate events per file for {dataset_name}; keeping all files")
+                nfiles = n_total_files
+
+            ds["files"] = files[:nfiles]
+            if metadata is not None and "nevents" in metadata and n_total_files > 0:
+                try:
+                    orig = metadata["nevents"]
+                    scaled = int(int(orig) * len(ds["files"]) / n_total_files)
+                    metadata["nevents"] = str(scaled) if isinstance(orig, str) else scaled
                 except (ValueError, TypeError):
                     pass
             filtered_filesets[dataset_name] = ds

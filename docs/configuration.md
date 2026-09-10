@@ -641,7 +641,7 @@ physically correct behaviour for cross-section normalisation.
 #### Practical tips
 
 - **Run the skim on `condor@lxplus`.** Each condor job produces its own slice of skimmed files; failed jobs can be
-  resubmitted individually with `--recreate-jobs` (see `running.md`). The dask scheduler is overkill for an embarrassingly
+  resubmitted individually with `pocket-coffea check-jobs --recreate` (see `running.md`). The dask scheduler is overkill for an embarrassingly
   parallel write-only step.
 - **`hadd` the per-chunk files** afterwards with `pocket-coffea hadd-skimmed-files` to reduce file count and size
   amplification (typical chunk files are ~tens of MB). The post-hadd helper produces an updated dataset definition JSON

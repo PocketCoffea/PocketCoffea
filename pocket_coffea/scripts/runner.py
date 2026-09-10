@@ -8,6 +8,7 @@ import yaml
 from yaml import Loader, Dumper
 import click
 import time
+from collections.abc import Mapping
 from rich import print as rprint
 from rich.table import Table
 from rich.console import Console
@@ -22,7 +23,39 @@ from pocket_coffea.utils.run import get_runner
 from pocket_coffea.utils.time import wait_until
 from pocket_coffea.parameters import defaults as parameters_utils
 from pocket_coffea.executors import executors_base, executors_manual_jobs
-from pocket_coffea.utils.benchmarking import print_processing_stats
+from pocket_coffea.utils.benchmarking import (
+    add_sample_processing_stats,
+    print_processing_stats,
+    print_sample_processing_stats,
+    timeit_dir,
+    write_sample_throughputs,
+)
+
+
+def _executor_worker_count(executor, run_options):
+    """Return the concurrency represented by the active local executor."""
+    return 1 if executor == "iterative" else int(run_options.get("scaleout", 1))
+
+
+def _resolve_local_chunksize(chunksize_cfg, filesets):
+    """Resolve a mapping to one scalar accepted by Coffea's Runner."""
+    if not isinstance(chunksize_cfg, Mapping):
+        return int(chunksize_cfg)
+    values = []
+    for dataset, fileset in filesets.items():
+        sample = fileset.get("metadata", {}).get("sample")
+        value = chunksize_cfg.get(dataset)
+        if value is None and sample is not None:
+            value = chunksize_cfg.get(sample)
+        if value is None:
+            value = chunksize_cfg.get("default")
+        if value is None:
+            raise click.UsageError(
+                f"chunksize mapping has no entry for dataset {dataset!r} "
+                f"or sample {sample!r}, and no 'default' fallback"
+            )
+        values.append(int(value))
+    return max(values)
 
 @click.command(context_settings=dict(ignore_unknown_options=True, allow_extra_args=True))
 @click.option('--cfg', required=True, type=str,
@@ -31,8 +64,9 @@ from pocket_coffea.utils.benchmarking import print_processing_stats
 @click.option("-o", "--outputdir", required=True, type=str, help="Output folder")
 @click.option("-t", "--test", is_flag=True, help="Run with limit 1 interactively")
 @click.option("-lf","--limit-files", type=int, help="Limit number of files")
+@click.option("-ls","--limit-samples", type=int, help="Limit number of samples")
 @click.option("-lc","--limit-chunks", type=int, help="Limit number of chunks", default=None)
-@click.option("-e","--executor", type=str, help="Overwrite executor from config (to be used only with the --test options)", default="iterative")
+@click.option("-e","--executor", type=str, help="Overwrite executor from config (used with --test or --timeit)", default="iterative")
 @click.option("-s","--scaleout", type=int, help="Overwrite scaleout config" )
 @click.option("-c","--chunksize", type=int, help="Overwrite chunksize config" )
 @click.option("-q","--queue", type=str, help="Overwrite queue config" )
@@ -43,33 +77,18 @@ from pocket_coffea.utils.benchmarking import print_processing_stats
 @click.option("--filter-samples", type=str, help="Filter the samples to be processed (comma separated list)")
 @click.option("--filter-datasets", type=str, help="Filter the datasets to be processed (comma separated list)")
 @click.option("--resubmit-failed", is_flag=True, help="Resubmit only failed jobs from previous run (requires failed_jobs.json)", default=False)
-@click.option("--blocklist-sites", type=str, default=None,
-              help="Comma-separated CMS site names to avoid when using --recreate-jobs on a manual-jobs executor. "
-                   "Files currently served by a blocklisted site are rewritten via DAS lookup, falling back to the "
-                   "global xrootd redirector if no alternative is available.")
-@click.option("--recreate-queue", type=str, default=None,
-              help="When used together with --recreate-jobs on a manual-jobs executor, "
-                   "rewrite each resubmitted job's +JobFlavour to this HTCondor queue "
-                   "(e.g. espresso, microcentury, longlunch, workday, tomorrow, testmatch, nextweek). "
-                   "Overrides the implicit timeout-bump for running jobs.")
-@click.option("--use-redirector", is_flag=True, default=False,
-              help="When used together with --recreate-jobs on a manual-jobs executor, "
-                   "rewrite every file in every resubmitted job to use the global xrootd "
-                   "redirector (root://xrootd-cms.infn.it//), skipping per-site Rucio lookups. "
-                   "Useful when many sites are flaky and you want xrootd to figure out routing.")
 @click.option("--skip-bad-files", is_flag=True, default=False,
               help="Tell Coffea's Runner to skip files that fail to open (xrootd timeout, "
                    "missing file, corrupted ROOT header) instead of aborting the run. "
                    "Works for every executor; for manual-jobs executors (`condor@*`) it is "
-                   "shipped to the inner job via inner_run_options.yaml. Combined with "
-                   "--recreate-jobs, also idempotently patches an existing jobs_dir so the "
-                   "flag is honoured by the inner pocket-coffea call.")
+                   "shipped to the inner job via inner_run_options.yaml.")
+@click.option("--timeit", is_flag=True, help="Measure throughput; automatically select files and local chunks")
 
-def run(cfg,  custom_run_options, outputdir, test, limit_files,
+def run(cfg,  custom_run_options, outputdir, test, limit_files, limit_samples,
            limit_chunks, executor, scaleout, chunksize,
            queue, loglevel, process_separately, executor_custom_setup,
            filter_years, filter_samples, filter_datasets, resubmit_failed,
-           blocklist_sites, recreate_queue, use_redirector, skip_bad_files):
+           skip_bad_files, timeit):
     '''Run an analysis on NanoAOD files using PocketCoffea processors'''
     # Setting up the output dir
     os.makedirs(outputdir, exist_ok=True)
@@ -126,10 +145,6 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     if custom_run_options:
         run_options = parameters_utils.merge_parameters_from_files(run_options, custom_run_options)
     
-    if limit_files!=None:
-        run_options["limit-files"] = limit_files
-        config.filter_dataset(run_options["limit-files"])
-
     if limit_chunks!=None:
         run_options["limit-chunks"] = limit_chunks
 
@@ -141,15 +156,6 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
 
     if queue!=None:
         run_options["queue"] = queue
-
-    if blocklist_sites is not None:
-        run_options["blocklist-sites"] = blocklist_sites
-
-    if recreate_queue is not None:
-        run_options["recreate-queue"] = recreate_queue
-
-    if use_redirector:
-        run_options["use-redirector"] = True
 
     if skip_bad_files:
         run_options["skip-bad-files"] = True
@@ -168,14 +174,50 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
                 else:
                     run_options[arg[2:]] = True
 
+    if run_options.get("queue") == "auto" and executor != "condor@lxplus":
+        raise click.UsageError("--queue auto is only implemented for condor@lxplus")
+
+    if timeit:
+        if executor not in ("iterative", "futures", "condor@lxplus"):
+            raise click.UsageError(
+                "--timeit is not implemented for this executor; use iterative, futures, or condor@lxplus"
+            )
+        run_options["timeit"] = True
+        if not run_options.get("_timeit-worker", False):
+            run_options["limit-files"] = None
+            run_options["limit-chunks"] = 1 if executor in ("iterative", "futures") else None
 
     ## Default config for testing: iterative executor, with 2 file and 2 chunks
     if test:
         executor = executor if executor else "iterative"
-        run_options["limit-files"] = limit_files if limit_files else 2
-        run_options["limit-chunks"] = limit_chunks if limit_chunks else 2
-        config.filter_dataset(run_options["limit-files"])
+        if not timeit:
+            run_options["limit-files"] = limit_files if limit_files else 2
+            run_options["limit-chunks"] = limit_chunks if limit_chunks else 2
 
+    # Filter on the fly the fileset to process by datataking period
+    filesets_to_run = config.filesets
+    filter_years = filter_years.split(",") if filter_years else None
+    filter_samples = filter_samples.split(",") if filter_samples else None
+    filter_datasets = filter_datasets.split(",") if filter_datasets else None
+    if filter_years:
+        filesets_to_run = {dataset: files for dataset, files in filesets_to_run.items() if files["metadata"]["year"] in filter_years}
+    if filter_samples:
+        filesets_to_run = {dataset: files for dataset, files in filesets_to_run.items() if files["metadata"]["sample"] in filter_samples}
+    if filter_datasets:
+        filesets_to_run = {dataset: files for dataset, files in filesets_to_run.items() if dataset in filter_datasets}
+    if limit_samples is not None:
+        filesets_to_run = dict(list(filesets_to_run.items())[:limit_samples])
+    config.set_filesets_manually(filesets_to_run)
+
+    outer_timeit = timeit and not run_options.get("_timeit-worker", False)
+    if outer_timeit:
+        config.filter_dataset_by_events(run_options["chunksize"])
+    elif not timeit:
+        selected_limit = limit_files if limit_files is not None else (2 if test else None)
+        if selected_limit is not None:
+            run_options["limit-files"] = selected_limit
+            config.filter_dataset(selected_limit)
+    filesets_to_run = config.filesets
     # Run option display
     table = Table(title="Run Configuration")
     table.add_column("Option", style="cyan")
@@ -185,6 +227,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         table.add_row(key, str(value))
 
     Console().print(table)
+    run_options["_timeit-dir"] = str(timeit_dir(cfg))
     
     # The user can provide a custom executor factory module
     if executor_custom_setup:
@@ -240,18 +283,6 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         
         exit(1)
 
-    # Filter on the fly the fileset to process by datataking period
-    filesets_to_run = config.filesets
-    filter_years = filter_years.split(",") if filter_years else None
-    filter_samples = filter_samples.split(",") if filter_samples else None
-    filter_datasets = filter_datasets.split(",") if filter_datasets else None
-    if filter_years:
-        filesets_to_run = {dataset: files for dataset, files in filesets_to_run.items() if files["metadata"]["year"] in filter_years}
-    if filter_samples:
-        filesets_to_run = {dataset: files for dataset, files in filesets_to_run.items() if files["metadata"]["sample"] in filter_samples}
-    if filter_datasets:
-        filesets_to_run = {dataset: files for dataset, files in filesets_to_run.items() if dataset in filter_datasets}
-
     # Handle resubmission of failed jobs
     if resubmit_failed:
         if not process_separately:
@@ -288,6 +319,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
 
 
     start_time = time.time()
+    timing_stats = {}
         
     if not process_separately:
         # Running on all datasets at once
@@ -296,14 +328,19 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         n_events_tot = sum([int(files["metadata"]["nevents"]) for files in filesets_to_run.values()])
         logging.info("Total number of events: %d", n_events_tot)
 
-        adapted_chunksize = adapt_chunksize(n_events_tot, run_options)
-        if adapted_chunksize != run_options["chunksize"]:
-            logging.info(f"Reducing chunksize from {run_options['chunksize']} to {adapted_chunksize} for datasets")
+        runner_chunksize = (
+            _resolve_local_chunksize(run_options["chunksize"], filesets_to_run)
+            if timeit else run_options["chunksize"]
+        )
+        adapt_options = dict(run_options, chunksize=runner_chunksize)
+        adapted_chunksize = adapt_chunksize(n_events_tot, adapt_options)
+        if adapted_chunksize != runner_chunksize:
+            logging.info(f"Reducing chunksize from {runner_chunksize} to {adapted_chunksize} for datasets")
 
         # Get the coffea Runner wrapped with error logging
         run = get_runner(
             executor=executor,
-            chunksize=run_options["chunksize"],
+            chunksize=runner_chunksize,
             maxchunks=run_options["limit-chunks"],
             skipbadfiles=run_options['skip-bad-files'],
             schema=processor.NanoAODSchema,
@@ -314,10 +351,12 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
 
         output = run(filesets_to_run, treename="Events",
                      processor_instance=config.processor_instance)
-        
+        if timeit:
+            add_sample_processing_stats(timing_stats, output, filesets_to_run)
+        output.pop("processing_time", None)
         print(f"Saving output to {outfile.format('all')}")
         save(output, outfile.format("all") )
-        print_processing_stats(output, start_time, run_options["scaleout"])
+        print_processing_stats(output, start_time, _executor_worker_count(executor_name, run_options))
 
     else:
         if run_options["group-samples"] is not None:
@@ -368,14 +407,19 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
             n_events_tot = sum([int(files["metadata"]["nevents"]) for files in fileset_.values()])
             logging.info("Total number of events: %d", n_events_tot)
 
-            adapted_chunksize = adapt_chunksize(n_events_tot, run_options)
-            if adapted_chunksize != run_options["chunksize"]:
-                logging.info(f"Reducing chunksize from {run_options['chunksize']} to {adapted_chunksize} for dataset(s) {group_name}")
+            runner_chunksize = (
+                _resolve_local_chunksize(run_options["chunksize"], fileset_)
+                if timeit else run_options["chunksize"]
+            )
+            adapt_options = dict(run_options, chunksize=runner_chunksize)
+            adapted_chunksize = adapt_chunksize(n_events_tot, adapt_options)
+            if adapted_chunksize != runner_chunksize:
+                logging.info(f"Reducing chunksize from {runner_chunksize} to {adapted_chunksize} for dataset(s) {group_name}")
 
             # Get the coffea Runner wrapped with error logging
             run = get_runner(
                 executor=executor,
-                chunksize=run_options["chunksize"],
+                chunksize=runner_chunksize,
                 maxchunks=run_options["limit-chunks"],
                 skipbadfiles=run_options['skip-bad-files'],
                 schema=processor.NanoAODSchema,
@@ -391,9 +435,15 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
                 failed_jobs_list.append(group_name)
                 continue
             else:
+                if timeit:
+                    add_sample_processing_stats(timing_stats, output, fileset_)
+                output.pop("processing_time", None)
                 print(f"Saving output to {outfile.format(group_name)}")
                 save(output, outfile.format(group_name))
-                print_processing_stats(output, dataset_start_time, run_options["scaleout"])
+                print_processing_stats(
+                    output, dataset_start_time,
+                    _executor_worker_count(executor_name, run_options),
+                )
 
         # Save the list of failed jobs
         if len(failed_jobs_list) > 0:
@@ -401,6 +451,14 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
             logging.warning(f"{len(failed_jobs_list)} job(s) failed. Failed jobs saved to {os.path.join(outputdir, FAILED_JOBS_FILENAME)}")
         else:
             logging.info("All jobs completed successfully.")
+
+    if timeit:
+        print_sample_processing_stats(timing_stats)
+        try:
+            write_sample_throughputs(run_options["_timeit-dir"], timing_stats)
+        except (OSError, ValueError) as exc:
+            raise click.ClickException(str(exc)) from exc
+        print(f"Saved per-dataset throughput to {run_options['_timeit-dir']}")
 
 
     # If the processor has skimmed NanoAOD, we export a dataset_definition file
