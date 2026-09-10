@@ -21,7 +21,7 @@ from ..lib.columns_manager import ColumnsManager
 from ..lib.hist_manager import HistManager
 from ..lib.jets import load_jet_factory
 from ..lib.calibrators.calibrators_manager import CalibratorsManager
-from ..utils.skim import uproot_writeable, copy_file, apply_skim_sumgenweights_override, skimmed_file_exists
+from ..utils.skim import uproot_writeable, copy_file, apply_skim_sumgenweights_override, skimmed_file_is_complete
 from ..utils.utils import dump_ak_array
 from ..utils.metadata import to_bool
 from ..lib.delayed_eval import DelayedEvalBranchManager
@@ -239,10 +239,11 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         destination = os.path.join(self.cfg.save_skimmed_files_folder, self._dataset, filename)
         # workflow_options["skim_skip_existing"]: on a resubmission, keep the
         # metadata (cutflow, sum_genweights, file list) but do not rewrite a
-        # chunk that already exists at the destination.
+        # chunk whose file at the destination already has the expected number
+        # of events. A missing, partial or corrupted file is rewritten.
         skip_existing = (self.workflow_options or {}).get("skim_skip_existing", False)
-        if skip_existing and skimmed_file_exists(destination):
-            logging.info(f"[skim] {self._dataset}: {filename} exists, skip write")
+        if skip_existing and skimmed_file_is_complete(destination, self.nEvents_after_skim):
+            logging.info(f"[skim] {self._dataset}: {filename} exists with {self.nEvents_after_skim} events, skip write")
         else:
             # Write the chunk in a temporary working directory instead of the cwd,
             # which is often on AFS: TMPDIR (or the HTCondor scratch) points to

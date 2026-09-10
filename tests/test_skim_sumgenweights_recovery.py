@@ -147,15 +147,19 @@ def test_override_only_acts_on_listed_datasets():
     assert acc["sum_genweights"]["UnknownDS"] == pytest.approx(999.0)
 
 
-# ----------------------- skimmed_file_exists -----------------------
+# ----------------------- skimmed_file_is_complete -----------------------
 
-def test_skimmed_file_exists_local(tmp_path):
-    from pocket_coffea.utils.skim import skimmed_file_exists
+def test_skimmed_file_is_complete_local(tmp_path):
+    import numpy as np
+    import uproot
+    from pocket_coffea.utils.skim import skimmed_file_is_complete
 
-    assert not skimmed_file_exists(str(tmp_path / "missing.root"))
+    assert not skimmed_file_is_complete(str(tmp_path / "missing.root"), 3)
     empty = tmp_path / "empty.root"
     empty.touch()
-    assert not skimmed_file_exists(str(empty))
-    full = tmp_path / "full.root"
-    full.write_bytes(b"x")
-    assert skimmed_file_exists(str(full))
+    assert not skimmed_file_is_complete(str(empty), 3)
+    good = tmp_path / "good.root"
+    with uproot.recreate(good) as f:
+        f["Events"] = {"x": np.arange(3)}
+    assert skimmed_file_is_complete(str(good), 3)
+    assert not skimmed_file_is_complete(str(good), 4)

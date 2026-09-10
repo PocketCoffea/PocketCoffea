@@ -93,21 +93,17 @@ def copy_file(
     pathlib.Path(local_file).unlink()
 
 
-def skimmed_file_exists(path: str) -> bool:
-    '''True if `path` (local or root://host//abs/path) exists and is not empty.
-    An empty file is a leftover of a failed copy and must be rewritten.'''
-    if path.startswith("root://"):
-        try:
-            import XRootD.client
-        except ImportError as err:
-            raise ImportError(
-                "Install XRootD python bindings with: conda install -c conda-forge xroot"
-            ) from err
-        host, _, remote = path[len("root://"):].partition("/")
-        status, info = XRootD.client.FileSystem(f"root://{host.rstrip(':')}").stat("/" + remote.lstrip("/"))
-        return bool(status.ok) and info.size > 0
-    return os.path.isfile(path) and os.path.getsize(path) > 0
-
+def skimmed_file_is_complete(path: str, nevents: int) -> bool:
+    '''True if `path` (local or root://) can be opened and its Events tree has
+    exactly `nevents` entries. Any error (missing, partial or corrupted file)
+    returns False so that the caller rewrites the file.'''
+    import uproot
+    try:
+        with uproot.open(path) as f:
+            return f["Events"].num_entries == nevents
+    except Exception as err:
+        logging.info(f"skimmed_file_is_complete: cannot validate {path}: {err}")
+        return False
 
 
 def apply_skim_sumgenweights_override(accumulator, filesets):
