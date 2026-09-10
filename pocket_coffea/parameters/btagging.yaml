@@ -222,7 +222,7 @@ btagging:
         XXT: 0.9739
   # Map NanoAOD b-tag discriminant branch -> BTV correctionlib correction name that
   # stores its working-point cut values (evaluated with WP name "L"/"M"/"T"/...).
-  btag_wp_values_correction:
+  btag_wp_values_map:
     btagDeepFlavB: deepJet_wp_values
     btagPNetB: particleNet_wp_values
     btagRobustParTAK4B: robustParticleTransformer_wp_values

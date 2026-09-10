@@ -312,7 +312,7 @@ def get_btag_wp_score(params, year, wp, tagger):
     the shape SF (``jet_scale_factors.btagSF.<year>.file``), so the cut applied to
     the jets and the SF applied to them always refer to the same tagger and
     campaign. The BTV file exposes the working-point values under a
-    ``<tagger>_wp_values`` correction (see ``btagging.btag_wp_values_correction`` in the parameters YAML).
+    ``<tagger>_wp_values`` correction (see ``btagging.btag_wp_values_map`` in the parameters YAML).
 
     Args:
         params: PocketCoffea parameters (with the ``jet_scale_factors`` section).
@@ -326,7 +326,7 @@ def get_btag_wp_score(params, year, wp, tagger):
     """
     btagSF = params["jet_scale_factors"]["btagSF"][year]
     cset = load_correction_set(btagSF["file"])
-    wp_values_map = params["btagging"]["btag_wp_values_correction"]
+    wp_values_map = params["btagging"]["btag_wp_values_map"]
     corr_name = wp_values_map.get(tagger)
     if corr_name is None:
         raise KeyError(
