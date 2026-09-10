@@ -1245,10 +1245,13 @@ jets_calibration:
 
 ```
 
-The merging of the two jet collections should be done in the user's workflow, e.g. in the `apply_object_preselection` section:
+The merging is done in the user's workflow (e.g. in `apply_object_preselection`) with the `merge_regressed_jets` helper (in `pocket_coffea.lib.jets`). Its arguments `jets_high_btag` and `jets_low_btag` are the collections used for jets passing / failing a b-tag cut; **each may be a single collection or an ordered fallback chain**, in which the first collection with a valid regression (`pt > 0`) is used per jet and the last one is the unconditional fallback (usually the standard JEC jets). Taking whole collections keeps every pt-dependent field (pt, mass, variations) consistent. If `jets_low_btag` is omitted, no b-tag cut is applied.
+
+The simplest case — regressed jet where valid, else the standard JEC jet — is a single fallback chain with no b-tag cut:
 
 ```python
 from pocket_coffea.workflows.base import BaseProcessorABC
+from pocket_coffea.lib.jets import merge_regressed_jets
 
 
 class PtRegrProcessor(BaseProcessorABC):
@@ -1261,14 +1264,22 @@ class PtRegrProcessor(BaseProcessorABC):
         #self.events["JetPtRegPlusNeutrino"] = ak.copy(self.events["Jet"])
 
     def apply_object_preselection(self, variation):
-        # Use the regressed jet from PNet collection if available,
-        # otherwise use the standard, JEC corrected collection.
-        # This way we consider correctly all fields which change depending on
-        # the pt definition, namely the pt, mass and the associated systematic variations:
-        self.events["Jet"] = ak.where(
-            self.events["JetPtReg"].pt > 0,
-            self.events["JetPtReg"],
-            self.events.Jet,
+        # Use the regressed jet where the regression is valid, otherwise the
+        # standard, JEC-corrected collection.
+        self.events["Jet"] = merge_regressed_jets(
+            [self.events["JetPtReg"], self.events["Jet"]],
+        )
+```
+
+Passing `jets_low_btag` and a b-tag cut makes high-b-tag jets always use the regression, even where its pt is invalid (the "second" approach of HIG24-010). The cut is set with `btag_algorithm`, `btag_wp` and `btag_score` (see the next section), defaulting to the loose WP of the tagger from the parameters:
+
+```python
+    def apply_object_preselection(self, variation):
+        self.events["Jet"] = merge_regressed_jets(
+            jets_high_btag=self.events["JetPtReg"],                    # high b-tag: always regressed
+            jets_low_btag=[self.events["JetPtReg"], self.events["Jet"]],  # else: regressed if valid
+            params=self.params,
+            year=self._year,
         )
 ```
 
@@ -1279,6 +1290,66 @@ In order to merge the variations of the `Jet` and `JetPtReg` collections, you ne
 :::{warning}
 When merging the collections like this, make sure to set the `sort_by_pt` option to `False` for the jet type in the jets calibration configuration, otherwise the jet ordering will be changed and the merging will fail.
 :::
+
+#### Apply the regression with neutrinos only to high b-tag jets
+Two versions of the PNet/UParT regression are available, *with* and *without* neutrinos. The one with neutrinos recovers the energy of neutrinos from semileptonic heavy-flavour decays, so it mostly helps b (and c) jets while it is not motivated for light jets. A natural choice is therefore the regression **with neutrinos for high-b-tag jets** and **without neutrinos for the rest**.
+
+The split is done **in the workflow** from three collections (standard JEC, plain regression, regression + neutrinos), created in `process_extra_after_skim` and calibrated independently:
+
+```python
+def process_extra_after_skim(self):
+    self.events["JetDefault"] = ak.copy(self.events["Jet"])            # JEC only
+    self.events["JetPNet"] = ak.copy(self.events["Jet"])              # regression, no neutrinos
+    self.events["JetPNetPlusNeutrino"] = ak.copy(self.events["Jet"])  # regression + neutrinos
+```
+
+with the matching `jets_calibration` entries (`AK4PFPuppiPNetRegression` -> `JetPNet` and `AK4PFPuppiPNetRegressionPlusNeutrino` -> `JetPNetPlusNeutrino`, both with `apply_pt_regr_*: True`).
+
+The **threshold defaults to the loose (`L`) working point of the tagger used**. The working-point score is **read directly from the BTV `correctionlib` file** — the same `btagging.json.gz` that provides the shape SF (`jet_scale_factors.btagSF.<year>.file`) — so the cut on the jets and the SF applied to them always refer to the same tagger and campaign. The tagger to cut on comes from `btagging.working_point.<year>.btagging_algorithm`:
+
+```yaml
+btagging:
+  working_point:
+    "2024":
+      btagging_algorithm: btagUParTAK4B   # <- tagger used to build the b-tag cut
+```
+
+The WP score itself is looked up in the BTV file under the `<tagger>_wp_values` correction (e.g. `particleNet_wp_values`, `deepJet_wp_values`), evaluated with the working-point name — see `get_btag_wp_score` in `pocket_coffea/lib/jets.py`.
+
+The merge uses the same `merge_regressed_jets` helper, with fallback chains ending on the JEC-only jets. The b-tag cut is set with three arguments, so the user chooses **which discriminant** to cut on and **where**:
+
+* `btag_algorithm` — discriminant (jet field) to cut on, e.g. `"btagPNetB"`. Defaults to the `btagging_algorithm` of the parameters.
+* `btag_wp` — working-point name (`"L"`, `"M"`, `"T"`…), score read from the BTV `correctionlib` file. Defaults to `"L"`. Mutually exclusive with `btag_score`.
+* `btag_score` — a raw discriminant value used directly as the threshold.
+
+Using it in `apply_object_preselection`:
+
+```python
+from pocket_coffea.lib.jets import merge_regressed_jets
+
+
+def apply_object_preselection(self, variation):
+    # high b-tag -> +neutrino regression; rest -> plain regression;
+    # each falls back to the JEC-only jets where a regression is invalid
+    self.events["Jet"] = merge_regressed_jets(
+        # +neutrino -> plain -> JEC-only fallback chain
+        jets_high_btag=[
+            self.events["JetPNetPlusNeutrino"],
+            self.events["JetPNet"],
+            self.events["JetDefault"],
+        ],
+        # plain -> JEC-only fallback chain
+        jets_low_btag=[self.events["JetPNet"], self.events["JetDefault"]],
+        params=self.params,
+        year=self._year,
+        # defaults to the loose WP of the tagger from the parameters; override with
+        # e.g. btag_algorithm="btagPNetB", btag_wp="M" (or btag_score=0.5)
+    )
+```
+
+A ready-to-use implementation is available in the HH4b analysis of `AnalysisConfigs` (`configs/HH4b_common/workflow_common.py`), where the helper is exposed through the `neutrino_regression_btag_cut` workflow option (`None` disables the feature and keeps the standard approach; `True` uses the loose WP, a WP name selects `btag_wp`, and a `float` selects `btag_score`).
+
+The same [warnings](#merge-regressed-and-standard-jet-pt) about `merge_collections_for_variations` and `sort_by_pt` apply when merging the collections this way.
 
 
 ## Create a custom executor to use `onnxruntime`
