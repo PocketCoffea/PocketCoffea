@@ -93,6 +93,18 @@ def copy_file(
     pathlib.Path(local_file).unlink()
 
 
+def skimmed_file_is_complete(path: str, nevents: int) -> bool:
+    '''True if `path` (local or root://) can be opened and its Events tree has
+    exactly `nevents` entries. Any error (missing, partial or corrupted file)
+    returns False so that the caller rewrites the file.'''
+    import uproot
+    try:
+        with uproot.open(path) as f:
+            return f["Events"].num_entries == nevents
+    except Exception as err:
+        logging.info(f"skimmed_file_is_complete: cannot validate {path}: {err}")
+        return False
+
 
 def apply_skim_sumgenweights_override(accumulator, filesets):
     '''Override `accumulator['sum_genweights']` and
