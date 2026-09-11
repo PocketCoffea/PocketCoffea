@@ -164,6 +164,7 @@ cython_debug/
 AnalysisConfigs/
 VHccPoCo/
 output*
+!pocket_coffea/utils/output_split.py
 plots*
 .pkl.gz
 myenv/
