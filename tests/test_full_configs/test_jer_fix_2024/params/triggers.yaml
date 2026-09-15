@@ -1,0 +1,6 @@
+HLT_triggers:
+  "2024":
+    SingleEle:
+      - Ele30_WPTight_Gsf
+    SingleMuon:
+      - IsoMu24
