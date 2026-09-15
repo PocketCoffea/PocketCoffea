@@ -384,7 +384,10 @@ def test_jets_calibrator(events, params):
 
     out1 = jets_calibrator.calibrate(events, {}, variation="nominal")
     assert "Jet" in out1
-    
+    # The nominal jets are also sorted by pt
+    assert ak.all(out1["Jet"].pt[:, :-1] >= out1["Jet"].pt[:, 1:])
+    assert ak.all(out1["FatJet"].pt[:, :-1] >= out1["FatJet"].pt[:, 1:])
+
     for variation in jets_calibrator.variations:
         out2 = jets_calibrator.calibrate(events, {}, variation=variation)
 
@@ -394,9 +397,7 @@ def test_jets_calibrator(events, params):
             assert ak.all(out2["Jet"].pt != out1["Jet"].pt)
 
             # Check that the jets are always sorted by pt
-            sorted_indices1 = ak.argsort(out2["Jet"].pt, axis=1, ascending=False)
-            sorted_jets1 = out2["Jet"][sorted_indices1]
-            assert ak.all(sorted_jets1.pt[:, :-1] >= sorted_jets1.pt[:, 1:])
+            assert ak.all(out2["Jet"].pt[:, :-1] >= out2["Jet"].pt[:, 1:])
 
         if "AK8" in variation:
             assert "FatJet" in out2
@@ -404,9 +405,7 @@ def test_jets_calibrator(events, params):
             assert ak.all(out2["FatJet"].pt != out1["FatJet"].pt)
 
             # Check that the fatjets are always sorted by pt
-            sorted_indices2 = ak.argsort(out2["FatJet"].pt, axis=1, ascending=False)
-            sorted_jets2 = out2["FatJet"][sorted_indices2]
-            assert ak.all(sorted_jets2.pt[:, :-1] >= sorted_jets2.pt[:, 1:])
+            assert ak.all(out2["FatJet"].pt[:, :-1] >= out2["FatJet"].pt[:, 1:])
 
 
 def test_jets_sort_and_jetidx_remap(events, params):
