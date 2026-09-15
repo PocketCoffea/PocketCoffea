@@ -3,7 +3,6 @@ import awkward as ak
 from pocket_coffea.workflows.base import BaseProcessorABC
 from pocket_coffea.utils.configurator import Configurator
 from pocket_coffea.lib.objects import (
-    jet_correction,
     lepton_selection,
     jet_selection,
     btagging,

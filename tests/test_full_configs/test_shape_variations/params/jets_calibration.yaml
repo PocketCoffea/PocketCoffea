@@ -1,0 +1,2 @@
+jets_calibration:
+  variations: "${default_jets_calibration.variations.full_variations}"

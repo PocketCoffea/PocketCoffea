@@ -15,6 +15,7 @@ import sys
 import click
 import glob
 import subprocess as sp
+import yaml
 from pathlib import Path
 from rich.console import Console
 from rich.table import Table
@@ -25,6 +26,16 @@ from rich.layout import Layout
 from rich.panel import Panel
 import time
 import re
+import cloudpickle
+from copy import deepcopy
+from pocket_coffea.utils.rucio import get_xrootd_sites_map, get_rucio_client
+from pocket_coffea.utils.site_rewrite import _query_replicas
+from pocket_coffea.utils.job_progress import (
+    aggregate_by_group,
+    load_job_to_group_map,
+    render_progress_bar,
+)
+from collections import Counter, defaultdict
 
 queues = [
     "espresso",
@@ -71,14 +82,25 @@ def get_tables(tot_jobs, idle_jobs, running_jobs, done_jobs, failed_jobs, detail
 
 
 # Layout setup
-def create_layout():
+def create_layout(with_progress=False):
+    """Two-column layout. The left column carries the summary table (and
+    the per-group progress table when `with_progress` is True) and gets
+    twice the width of the log panel on the right, since that's where the
+    interesting content lives."""
     layout = Layout()
-
     layout.split_row(
-        Layout(name="left"),
-        Layout(name="right")
+        Layout(name="left", ratio=2),
+        Layout(name="right", ratio=1),
     )
-    #layout["left"].size = 60  # You can adjust the width of the left panel
+    if with_progress:
+        # Fixed-height summary panel so it doesn't grow at the expense of the
+        # per-group table; 9 rows covers the Panel border + Table title +
+        # header row + data row + a bit of padding. Bumped from 7 to fit
+        # everything without cropping the bottom of the table.
+        layout["left"].split_column(
+            Layout(name="summary", size=9),
+            Layout(name="progress"),
+        )
     return layout
 
 def check_jobs_logs(jobs_folder):
@@ -93,43 +115,201 @@ def check_jobs_logs(jobs_folder):
     return idle_jobs, running_jobs, done_jobs, failed_jobs
 
 
+def get_progress_table(group_counts, label, multi_sample_overlap=False, bar_width=30):
+    """Build a rich Table showing per-group progress, sorted by % done
+    ascending so straggling groups surface at the top. Includes a stacked
+    coloured progress bar column (done / running / idle / failed)."""
+    title = f"Progress by {label}"
+    if multi_sample_overlap:
+        title += "  [dim](jobs touching multiple samples are counted under each)[/]"
+    table = Table(title=title)
+    table.add_column(label.capitalize(), style="cyan", no_wrap=True)
+    table.add_column("Total", justify="right")
+    table.add_column("Idle", justify="right", style="blue")
+    table.add_column("Running", justify="right", style="magenta")
+    table.add_column("Done", justify="right", style="green")
+    table.add_column("Failed", justify="right", style="red")
+    table.add_column("Progress", justify="left", no_wrap=True)
+    table.add_column("% Done", justify="right")
+
+    rows = sorted(group_counts.items(), key=lambda kv: (kv[1]["pct_done"], kv[0]))
+    for name, counts in rows:
+        pct = f"{counts['pct_done']:.1f}%" if counts["total"] else "n/a"
+        pct_style = "green" if counts["pct_done"] >= 99.5 else (
+            "yellow" if counts["pct_done"] >= 50 else "red"
+        )
+        table.add_row(
+            name,
+            str(counts["total"]),
+            str(counts["idle"]),
+            str(counts["running"]),
+            str(counts["done"]),
+            str(counts["failed"]),
+            render_progress_bar(counts, width=bar_width),
+            f"[{pct_style}]{pct}[/]",
+        )
+    return table
+
+def find_other_file(filepath, sitemap, xrootdfaillist=[], blacklist_sites=[], rucio_client=None):
+    if filepath.startswith("root:/"):
+        rootpref = filepath.split("/store/")[0]
+        file = "/store/"+filepath.split("/store/")[1]
+    else:
+        rootpref = None
+        file = filepath
+
+    sites = _query_replicas(file, client=rucio_client)
+    for site in sites:
+        if site not in sitemap:
+            continue
+        sitepath = sitemap[site]
+        if not isinstance(sitepath,str):
+            continue
+        if sitepath in blacklist_sites:
+            continue
+        if sitepath+file in xrootdfaillist:
+            continue
+        if rootpref:
+            if rootpref in sitepath or sitepath in rootpref:
+                continue
+        return sitepath+file
+
+    return filepath
+
+def update_blacklist(xrootdfaillist,blacklist_threshold):
+    sitepathlist = [i.split("/store/")[0] for i in xrootdfaillist]
+    failedsitecounter = Counter(sitepathlist)
+    blacklist_sites = []
+    for site,fails in failedsitecounter.items():
+        if fails > blacklist_threshold:
+            blacklist_sites.append(site)
+    return blacklist_sites
+
+def bump_jobqueue(sub_file, shift=1):
+    with open(sub_file) as f:
+        lines = f.readlines()
+    with open(sub_file, "w") as f:
+        for line in lines:
+            if "+JobFlavour" in line:
+                jf = line.split("=")[1].strip().replace('"', '')
+                next_jf = queues[min(queues.index(jf)+shift, len(queues)-1)]
+                f.write(f'+JobFlavour="{next_jf}"\n')
+            else:
+                f.write(line)
+    return next_jf
+
 @click.command()
 @click.option("-j", "--jobs-folder", type=str, help="Folder containing the jobs", required=True)
 @click.option("-d","--details", is_flag=True, help="Show the details of the jobs")
 @click.option("-r","--resubmit", is_flag=True, help="Resubmit the failed jobs")
-@click.option("--max-resubmit", type=int, help="Maximum number of resubmission", default=3)
-def check_jobs(jobs_folder, details, resubmit, max_resubmit):
+@click.option("-m","--max-resubmit", type=int, help="Maximum number of resubmission", default=4)
+@click.option("-b","--blacklist-threshold", type=int, help="Maximum number of allowed failed files at an xrootd site before it's blacklisted", default=3)
+@click.option("-q","--queue-shift", type=int, help="How many queues to bump to if a job is removed due to time limit? E.g. 1 = bump to next queue, 2 = bump to next-to-next queue", default=1)
+@click.option("--by", "group_by", type=click.Choice(["sample", "dataset", "none"]),
+              default="sample",
+              help="Show a per-group progress table below the summary. Requires "
+                   "jobs_config.yaml in the jobs folder (created by manual-job "
+                   "executors). Pass 'none' to disable. Default: sample.")
+def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold, queue_shift, group_by):
+    # check if the user passed the parent folder
+    subdirs = os.listdir(jobs_folder)
+    if len(subdirs) == 1 and subdirs[0] == "job":
+        jobs_folder = os.path.join(jobs_folder,"job")
+
     jobs_folder = Path(jobs_folder)
     # Get the list of files in the folder
-    tot_jobs = [ a.split("/")[-1][:-4] for a in glob.glob(f"{jobs_folder}/job_*.sub")]
+    tot_jobs = [ a.split("/")[-1][:-4] for a in glob.glob(f"{jobs_folder}/job_*.sub") ]
     # Redo everything every 5 sec
     console = Console()
 
     failed_jobs_stats = {}
     tot_done = 0
+
+    maxtimefile = f"{jobs_folder}/maxtime.txt"
+    if os.path.isfile(maxtimefile):
+            with open(maxtimefile,"r") as f:
+                maxtimelist = [l.strip() for l in f.readlines()]
+    else:
+        maxtimelist = []
+
+    # Load the per-job sample/dataset map if available and the user opted in.
+    group_to_jobs = None
+    group_label = None
+    multi_sample_overlap = False
+    if group_by != "none":
+        sample_to_jobs, dataset_to_jobs = load_job_to_group_map(jobs_folder)
+        if sample_to_jobs is None:
+            rprint(f"[yellow]No jobs_config.yaml in {jobs_folder}; per-group progress "
+                   f"table disabled.[/]")
+        else:
+            if group_by == "sample":
+                group_to_jobs = sample_to_jobs
+                group_label = "sample"
+            else:
+                group_to_jobs = dataset_to_jobs
+                group_label = "dataset"
+            # Detect uniform-split overlap: any job appearing under more than one group.
+            all_jobs_listed = [j for jobs in group_to_jobs.values() for j in jobs]
+            multi_sample_overlap = len(all_jobs_listed) != len(set(all_jobs_listed))
+
+    if resubmit:
+        sitemap = get_xrootd_sites_map()
+        try:
+            rucio_client = get_rucio_client()
+        except Exception as e:
+            print(f"WARNING: could not open a rucio client ({e}); replica lookups will fail.")
+            rucio_client = None
+        xrootdfailfile = f"{jobs_folder}/xrootdfaillist.txt"
+        if os.path.isfile(xrootdfailfile):
+            with open(xrootdfailfile,"r") as f:
+                xrootdfaillist = [l.strip() for l in f.readlines()]
+        else:
+            xrootdfaillist = []
+        os.makedirs(f"{jobs_folder}/logs/processedlogs", exist_ok=True)
+        blacklist_sites = update_blacklist(xrootdfaillist,blacklist_threshold)
+        if len(blacklist_sites) > 0:
+            print("Blacklisted sites:",blacklist_sites)
     
     # Main loop
-    layout = create_layout()
+    show_progress = group_to_jobs is not None
+    layout = create_layout(with_progress=show_progress)
     idle_jobs, running_jobs, done_jobs, failed_jobs = check_jobs_logs(jobs_folder)
     tables = get_tables(tot_jobs, idle_jobs, running_jobs, done_jobs, failed_jobs, details=details)
-    layout["left"].update(Panel(tables[0], title="Job Status"))
+    if show_progress:
+        layout["summary"].update(Panel(tables[0], title="Job Status"))
+        gc = aggregate_by_group(group_to_jobs, idle_jobs, running_jobs, done_jobs, failed_jobs)
+        layout["progress"].update(Panel(
+            get_progress_table(gc, group_label, multi_sample_overlap=multi_sample_overlap)))
+    else:
+        layout["left"].update(Panel(tables[0], title="Job Status"))
     layout["right"].update(Panel("No logs yet", title="Log"))
     
     log_text = []
     definitive_failed = []
+    resubmitted_and_failed = []
+    step = 0
     
     with Live(layout, refresh_per_second=1/5, console=console):  # Refresh rate
         try:
             while True:
+                step += 1
                 idle_jobs, running_jobs, done_jobs, failed_jobs = check_jobs_logs(jobs_folder)
                 tables = get_tables(tot_jobs, idle_jobs, running_jobs, done_jobs, failed_jobs, details=details)
-                # Update the left panel with a new table
-                layout["left"].update(Panel(tables[0], title="Job Status"))
+                # Update the left panel(s) with fresh tables
+                if show_progress:
+                    layout["summary"].update(Panel(tables[0], title="Job Status"))
+                    gc = aggregate_by_group(group_to_jobs, idle_jobs, running_jobs, done_jobs, failed_jobs)
+                    layout["progress"].update(Panel(
+                        get_progress_table(gc, group_label, multi_sample_overlap=multi_sample_overlap),
+                        title=f"Progress by {group_label}"))
+                else:
+                    layout["left"].update(Panel(tables[0], title="Job Status"))
 
                 # Checking failed jobs
                 if len(failed_jobs) > 0:
-                    if len(failed_jobs) > len(definitive_failed):
+                    if len(failed_jobs) > len(definitive_failed) and not resubmit:
                         log_text.append("[red]Failed jobs found. Check the details below. Use --resubmit to resubmit the failed jobs[/]")
+                    resubmit_count = 0
                     for failed_job in failed_jobs:
                         if failed_job in failed_jobs_stats:
                             if failed_job not in definitive_failed:
@@ -137,66 +317,243 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit):
                         else:
                             failed_jobs_stats[failed_job] = 1
 
+                        failed_job_num = failed_job.split('_')[1]
+
                         if not failed_job in definitive_failed:
                             # Check the log file
-                            glob_file = glob.glob(f"{jobs_folder}/logs/job_*.{failed_job.split('_')[1]}.err")
+                            glob_file = glob.glob(f"{jobs_folder}/logs/job_*.{failed_job_num}.out")
+                            xrootdfile = None
                             if glob_file:
                                 with open(glob_file[-1]) as f:
                                     c = f.readlines()
-                                    log_text.append( f"[b]Job {failed_job} failed[/] {failed_jobs_stats[failed_job]} times. Last error:")
-                                    log_text.append("\t"+ "".join(c[-3:]))
+                                    for iln,ln in enumerate(c):
+                                        if "OSError: XRootD error" in ln:
+                                            xrootdfile = c[iln+1].strip().split()[-1]
+                                            break
+                                        if "FileNotFoundError: file not found" in ln:
+                                            xrootdfile = c[iln+3].strip().strip("'")
+                                            break
+                                    if xrootdfile:
+                                        thisxrootdsite = xrootdfile.split('/store/')[0]
+                                        log_text.append( f"[b]Job {failed_job} failed[/] {failed_jobs_stats[failed_job]} times due to an XRootD error. Site: {thisxrootdsite}")
+                                    else:
+                                        log_text.append( f"[b]Job {failed_job} failed[/] {failed_jobs_stats[failed_job]} times. Last error:")
+                                        log_text.append("\t"+ "".join(c[-3:]))
                             else:
-                                log_text.append( f"Error in job {failed_job}: No log file found")
+                                log_text.append( f"Error in job {failed_job}: No .err file found")
 
                             if resubmit and failed_jobs_stats[failed_job] <= max_resubmit:
-                                os.system(f"rm {jobs_folder}/{failed_job}.failed")
-                                os.system(f"touch {jobs_folder}/{failed_job}.idle")
-                                os.system(f"cd {jobs_folder} && condor_submit {failed_job}.sub")
+                                if xrootdfile:
+                                    # Include the failed file in the global list so that it's not reused later
+                                    if xrootdfile not in xrootdfaillist:
+                                        with open(xrootdfailfile,"a") as f:
+                                            f.write(xrootdfile+"\n")
+                                        xrootdfaillist.append(xrootdfile)
+                                        new_blacklist_sites = update_blacklist(xrootdfaillist,blacklist_threshold)
+                                        if len(new_blacklist_sites) > len(blacklist_sites):
+                                            diff = len(new_blacklist_sites) - len(blacklist_sites)
+                                            log_text.append(f"[red][b]New blacklist sites[/]: {new_blacklist_sites[-diff:]}[/]")
+                                            blacklist_sites = new_blacklist_sites
+
+                                    # Move the .err file so that this xrootdfile is not marked again as an XRootD failure
+                                    if glob_file:
+                                        os.system(f"mv {glob_file[-1]} {jobs_folder}/logs/processedlogs")
+
+                                    # Update the filelist in the failed job's config to exclude this failed file
+                                    thisconfigfile = f"{jobs_folder}/config_{failed_job}.pkl"
+                                    config = cloudpickle.load(open(thisconfigfile, "rb"))
+                                    current_fileset = config.filesets
+                                    new_fileset = deepcopy(current_fileset)
+                                    for sample, dct in new_fileset.items():
+                                        fllist = dct['files']
+                                        if xrootdfile in fllist:
+                                            flidx = fllist.index(xrootdfile)
+                                            newfl = find_other_file(xrootdfile,sitemap,xrootdfaillist,blacklist_sites,rucio_client=rucio_client)
+                                            if newfl != xrootdfile:
+                                                new_fileset[sample]['files'][flidx] = newfl
+                                                config.set_filesets_manually(new_fileset)
+                                                cloudpickle.dump(config, open(thisconfigfile, "wb"))
+                                                log_text.append(f"[b]Job {failed_job}[/]: Updated XRootD path of failed file to a new site.")
+                                            else:
+                                                log_text.append(f"[b]Job {failed_job}[/]: No alternative site found for {xrootdfile}. Resubmitting with the same file!")
+                                        
+                                    # Enforce blacklist              
+                                    # Take this opportunity to replace all files in the config that are
+                                    # at one of the blacklisted sites          
+                                    if len(blacklist_sites) > 0:
+                                        flcounter = 0
+                                        samecounter = 0
+                                        sitecounter = []
+                                        for sample, dct in new_fileset.items():
+                                            fllist = dct['files']
+                                            newfllist = []
+                                            for flname in fllist:
+                                                thissite = flname.split("/store/")[0]
+                                                if thissite in blacklist_sites:
+                                                    newfl = find_other_file(flname,sitemap,xrootdfaillist,blacklist_sites,rucio_client=rucio_client)
+                                                    newfllist.append(newfl)
+                                                    if newfl != flname:
+                                                        flcounter += 1
+                                                        if thissite not in sitecounter:
+                                                            sitecounter.append(thissite)
+                                                    else:
+                                                        samecounter += 1
+                                                else:
+                                                    newfllist.append(flname)
+                                            
+                                            new_fileset[sample]['files'] = newfllist
+
+                                        config.set_filesets_manually(new_fileset)
+                                        cloudpickle.dump(config, open(thisconfigfile, "wb"))
+
+                                        if flcounter > 0:
+                                            log_text.append(f"[b]Job {failed_job}[/]: Replaced {flcounter} files in config because they were in {len(sitecounter)} blacklisted sites: {sitecounter}.")
+                                        if samecounter > 0:
+                                            log_text.append(f"[red][b]Job {failed_job}[/]: Could not replace {samecounter} files in config though they were in blacklisted sites, because no alternative site was found![/]")
+
+                                resubmit_log = os.popen(f"cd {jobs_folder} && condor_submit {failed_job}.sub",'r').read()
+
+                                resubmit_succeeded = True
+                                if len(resubmit_log.split('\n')) > 2:
+                                    resubmit_log = resubmit_log.split('\n')[-2]     # This is the usual condor_submit output "1 job(s) submitted to cluster XXXX"
+                                    if not "job(s) submitted to cluster" in resubmit_log:
+                                        resubmit_succeeded = False
+                                else:
+                                    resubmit_succeeded = False
+
+                                log_text.append(resubmit_log)
+                                if resubmit_succeeded:
+                                    os.system(f"rm {jobs_folder}/{failed_job}.failed")
+                                    os.system(f"touch {jobs_folder}/{failed_job}.idle")
+                                    resubmit_count += 1
+
+                                if resubmit_count % 10 == 0:
+                                    rprint(f"[green]Resubmitted {resubmit_count}/{len(failed_jobs)} jobs so far in step {step}[/]")   # Terminal output so that the user knows something's going on
                             else:
                                 # Add it to the list of jobs that are definitely failed
                                 definitive_failed.append(failed_job)
+                    if resubmit_count > 0:
+                        log_text.append(f"[red]Resubmitted {resubmit_count} failed jobs to condor[/]")
 
-
-                # checked in the logs for SYSTEM_PERIODIC_REMOVE
-                # They are not failed but remain running
+                # check in the logs for SYSTEM_PERIODIC_REMOVE
+                # they are not failed but remain running/idle
                 log_file = glob.glob(f"{jobs_folder}/logs/job_*.log")[0]
                 with open(log_file) as f:
                     c = f.readlines()
-                    for il, line in enumerate(c):
-                        if line.startswith("009"):
-                            # Match with a regex the job id from this
-                            # line format "005 (5189350.010.000) 11/15 21:29:13 Job aborted
-                            pattern = re.compile(r"\((\d+)\.(\d+)\.\d+\)")
-                            match = pattern.search(line)
-                            if match:
-                                job_id = match.group(2)
-                                if job_id in running_jobs:
-                                    running_jobs.remove(f"job_{job_id}")
-                                    failed_jobs.append(f"job_{job_id}")
-                                    os.system(f"rm {jobs_folder}/job_{job_id}.running")
-                                    os.system(f"touch {jobs_folder}/job_{job_id}.failed")
-                                    # Modify the sub file
-                                    # Check if next line has SYSTEM_PERIODIC_REMOVE
-                                    if not "SYSTEM_PERIODIC_REMOVE" in c[il+1]:
-                                        log_text.append(f"Job {job_id} was aborted by condor. Check the log file for more details")
-                                    else:
-                                        log_text.append(f"Job {job_id} was removed by the system by max-time reached. Resubmitting the job with longer queue.")
-                                        continue
-                                    sub_file = f"{jobs_folder}/job_{i}.sub"
-                                    with open(sub_file) as f:
-                                        lines = f.readlines()
-                                    with open(sub_file, "w") as f:
-                                        for line in lines:
-                                            if "+JobFlavour" in line:
-                                                jf = line.split("=")[1].strip().replace('"', '')
-                                                next_jf = queues[(queues.index(jf)+1)%len(queues)]
-                                                f.write(f'+JobFlavour="{next_jf}"\n')
-                                            else:
-                                                f.write(line)
+                
+                for il, line in enumerate(c):
+                    if line.startswith("009"):
+                        # Match with a regex the job id from this
+                        # line format "005 (5189350.010.000) 11/15 21:29:13 Job was aborted
+                        pattern = re.compile(r"\((\d+)\.(\d+)\.\d+\)")
+                        match = pattern.search(line)
+                        if match:
+                            cluster_id = match.group(1)
+                            job_id = int(match.group(2))    # 010 -> 10
+                            job_name = f"{cluster_id}_{job_id}"
 
-                                    os.system(f"cd {jobs_folder} && condor_submit job_{i}.sub")
-                                    os.system(f"touch {jobs_folder}/job_{i}.idle")
+                            # If this job was already resubmitted, skip
+                            if job_name in maxtimelist:
+                                continue
 
+                            thisjob = f"job_{job_id}"
+                            if thisjob in running_jobs or thisjob in idle_jobs:
+                                if thisjob in running_jobs:
+                                    running_jobs.remove(thisjob)
+                                    os.system(f"rm {jobs_folder}/{thisjob}.running")
+                                
+                                # Sometimes jobs which never run also get aborted; they have the idle tag
+                                # but exist in the log file as and aborted job
+                                if thisjob in idle_jobs:
+                                    idle_jobs.remove(thisjob)
+                                    os.system(f"rm {jobs_folder}/{thisjob}.idle")
+
+                                failed_jobs.append(thisjob)                                
+                                os.system(f"touch {jobs_folder}/{thisjob}.failed")
+
+                                maxtimelist.append(job_name)
+                                with open(maxtimefile,'a') as f:
+                                    f.write(job_name+"\n")
+
+                                # Modify the sub file
+                                # Check if next line has SYSTEM_PERIODIC_REMOVE
+                                if not "SYSTEM_PERIODIC_REMOVE" in c[il+1]:
+                                    log_text.append(f"{thisjob} was aborted by condor. Check the log file for more details")
+                                else:     
+                                    sub_file = f"{jobs_folder}/{thisjob}.sub"
+                                    next_jf = bump_jobqueue(sub_file, queue_shift)                                    
+
+                                    log_text.append(f"{thisjob} was removed by the system due to max-time reached. Marked as failed and bumped to longer condor queue: {next_jf}.")
+
+                                    # No need to resubmit, just let the next pass handle it in its first section
+                                    # os.system(f"cd {jobs_folder} && condor_submit {thisjob}.sub")
+                                    # os.system(f"rm {jobs_folder}/{thisjob}.failed")
+                                    # os.system(f"touch {jobs_folder}/{thisjob}.idle")
+                
+                # Now check jobs which were resubmitted by this script but then failed again
+                # Look for "job was aborted"
+                failedlogs = os.popen(f'grep -il {jobs_folder}/logs/job_*.log -e "Job was aborted"').read().split("\n")[:-1]
+                for failedlog in failedlogs:
+                    # Skip the OG log
+                    if log_file.split("/")[-1] in failedlog:
+                        continue
+                    failedlogcluster = failedlog.split("/")[-1].split(".")[0]
+                    jobid = None
+                    try:
+                        jobid = failedlog.split("/")[-1].split(".")[1]
+                    except:
+                        pass
+
+                    if not jobid:
+                        if failedlog not in resubmitted_and_failed:
+                            # Report once, but don't keep reporting the same thing
+                            log_text.append(f"[red]Detected a failed job log {failedlog} but could not determine the job id.[/]")
+                            resubmitted_and_failed.append(failedlog)
+                    else:
+                        job_name = f"{failedlogcluster}_{jobid}"
+                        if job_name in maxtimelist:
+                            continue
+
+                        thisjob = f"job_{jobid}"
+                        if thisjob in running_jobs or thisjob in idle_jobs:
+                            if thisjob in running_jobs:
+                                running_jobs.remove(thisjob)
+                                os.system(f"rm {jobs_folder}/{thisjob}.running")
+                            
+                            # Sometimes jobs which never run also get aborted; they have the idle tag
+                            # but exist in the log file as and aborted job
+                            if thisjob in idle_jobs:
+                                idle_jobs.remove(thisjob)
+                                os.system(f"rm {jobs_folder}/{thisjob}.idle")
+
+                            failed_jobs.append(thisjob)                                
+                            os.system(f"touch {jobs_folder}/{thisjob}.failed")
+
+                            maxtimelist.append(job_name)
+                            with open(maxtimefile,'a') as f:
+                                f.write(job_name+"\n")
+
+                            # Modify the sub file
+                            # Check if log file has SYSTEM_PERIODIC_REMOVE
+                            with open(failedlog,"r") as f:
+                                lines = f.readlines()
+                            
+                            dobump = False
+                            for line in lines:
+                                if "SYSTEM_PERIODIC_REMOVE" in line:
+                                    dobump = True
+                                    break
+
+                            if not dobump:
+                                log_text.append(f"Resubmitted job, {thisjob}, was aborted [i]again[/] by condor. Check the log file for more details")
+                            else:     
+                                sub_file = f"{jobs_folder}/{thisjob}.sub"
+                                next_jf = bump_jobqueue(sub_file, queue_shift)                                    
+
+                                log_text.append(f"Resubmitted job, {thisjob}, was removed [i]again[/] by the system due to max-time reached. Marked as failed and bumped to longer condor queue: {next_jf}.")
+                            
+                            os.system(f"mv {failedlog} {jobs_folder}/logs/processedlogs")
+                   
                 if len(log_text):
                     if len(log_text) > 20:
                         log_text = log_text[-20:]
@@ -204,8 +561,11 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit):
 
                 if len(tot_jobs) == len(done_jobs) + len(failed_jobs):
                     rprint("[green]All jobs are completed[/]")
+                    rprint(f"Now merge outputs with [yellow]merge-outputs -jc {jobs_folder}[/].")
                     break
                 time.sleep(5)
         except KeyboardInterrupt:
             pass
 
+if __name__ == "__main__":
+    check_jobs()

@@ -101,3 +101,14 @@ class BaseTask(law.Task):
             parts = (self.version, *parts)
 
         return parts
+
+
+class BaseTaskWithTest(BaseTask):
+    test = luigi.BoolParameter(
+        description="Run in test mode. Implementation depends on task", default=False
+    )
+
+    def store_parts(self) -> tuple[str]:
+        if self.test:
+            return super().store_parts() + ("test",)
+        return super().store_parts()

@@ -21,10 +21,10 @@ law checks wether the output of a tasks exists and runs the task and its depende
 
 The following tasks are available in PocketCoffea (`pocket_coffea/law_tasks/tasks`):
   - `CreateDatasets`: prepare datasets for processing
-  - `JetCalibration`: build jet calibration factory
   - `Runner`: run the analysis on the datasets
   - `Plotter`: create histogram plots from the processed datasets
   - `PlotSystematics`: create histogram plots for systematic shifts
+  - `DatacardProducer`: create datacards and shapes files for statistical analysis with [combine](https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/latest/)
 
 ## Analysis Setup
 

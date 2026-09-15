@@ -1,0 +1,29 @@
+cvmfs_correction_updates:
+  stage: test
+  image: python:3.11-slim
+  tags:
+    - cvmfs
+    # Use k8s-cvmfs here instead if the project moves to the Kubernetes CVMFS runners.
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $RUN_CVMFS_CORRECTION_UPDATE == "1"'
+    - when: never
+  variables:
+    CORRECTION_POGS: "all"
+    PIP_DISABLE_PIP_VERSION_CHECK: "1"
+    PIP_NO_PYTHON_VERSION_WARNING: "1"
+  before_script:
+    - python -m pip install --upgrade pip
+    - python -m pip install requests
+  script:
+    - >-
+      python -m pocket_coffea.scripts.update_cvmfs_corrections
+      --pogs "${CORRECTION_POGS:-all}"
+      --base-path /cvmfs/cms-griddata.cern.ch/cat/metadata
+      --parameters-glob 'pocket_coffea/parameters/*.yaml'
+      --report correction-update-report.json
+      --create-merge-requests
+  artifacts:
+    when: always
+    paths:
+      - correction-update-report.json
+    expire_in: 1 week

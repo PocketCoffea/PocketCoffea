@@ -1,0 +1,37 @@
+object_preselection:
+  Electron:
+    pt: 15.0
+    eta: 2.5
+    sip3d: 8.0
+    lostHits: 1
+    dxy: 0.05
+    dz: 0.1
+    id:
+      "2023_postBPix": mvaTTH_redo
+    mva_wp:
+      "2023_postBPix": 0.9
+    btag_cut:
+      "2023_postBPix": 0.7
+
+  Muon:
+    pt: 10.0
+    eta: 2.4
+    iso: 0.4
+    sip3d: 8.0
+    dxy: 0.05
+    dz: 0.1
+    base_id: looseId
+    id:
+      "2023_postBPix": mvaTTH_redo
+    mva_wp:
+      "2023_postBPix": 0.64
+    btag_cut:
+      "2023_postBPix": 0.7
+
+  Jet:
+    dr_lepton: 0.4
+    pt: 25.0
+    eta: 2.4
+    jetId: 6
+    btag:
+      wp: M

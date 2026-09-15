@@ -21,14 +21,15 @@ class ExecutorFactoryABC(ABC):
 
     def setup_proxyfile(self):
         if self.run_options['ignore-grid-certificate']: return
-        if vomsproxy:=self.run_options.get('voms-proxy', None) is not None:
+        if (vomsproxy := self.run_options.get('voms-proxy', None)) is not None:
              self.x509_path = vomsproxy
         else:
              _x509_localpath = get_proxy_path()
              # Copy the proxy to the home from the /tmp to be used by workers
              self.x509_path = os.environ['HOME'] + f'/{_x509_localpath.split("/")[-1]}'
-             print("Copying proxy file to $HOME.")
-             os.system(f'scp {_x509_localpath} {self.x509_path}')       # scp makes sure older file is overwritten without prompting
+             if _x509_localpath != self.x509_path:
+                 print("Copying proxy file to $HOME.")
+                 os.system(f'scp {_x509_localpath} {self.x509_path}')  # scp makes sure older file is overwritten without prompting
              
     def set_env(self):
         # define some environmental variable

@@ -18,69 +18,93 @@ pocket\_coffea.scripts.build\_jec module
 
 .. automodule:: pocket_coffea.scripts.build_jec
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
+
+pocket\_coffea.scripts.check\_jobs module
+-----------------------------------------
+
+.. automodule:: pocket_coffea.scripts.check_jobs
+   :members:
+   :show-inheritance:
+   :undoc-members:
 
 pocket\_coffea.scripts.config\_template module
 ----------------------------------------------
 
 .. automodule:: pocket_coffea.scripts.config_template
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 pocket\_coffea.scripts.hadd\_skimmed\_files module
 --------------------------------------------------
 
 .. automodule:: pocket_coffea.scripts.hadd_skimmed_files
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 pocket\_coffea.scripts.make\_config module
 ------------------------------------------
 
 .. automodule:: pocket_coffea.scripts.make_config
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
+
+pocket\_coffea.scripts.merge\_columns module
+--------------------------------------------
+
+.. automodule:: pocket_coffea.scripts.merge_columns
+   :members:
+   :show-inheritance:
+   :undoc-members:
 
 pocket\_coffea.scripts.merge\_outputs module
 --------------------------------------------
 
 .. automodule:: pocket_coffea.scripts.merge_outputs
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
-pocket\_coffea.scripts.split\_output module
---------------------------------------------
+pocket\_coffea.scripts.pileup\_corrlib module
+---------------------------------------------
 
-.. automodule:: pocket_coffea.scripts.split_output
+.. automodule:: pocket_coffea.scripts.pileup_corrlib
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 pocket\_coffea.scripts.print\_parameters module
 -----------------------------------------------
 
 .. automodule:: pocket_coffea.scripts.print_parameters
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 pocket\_coffea.scripts.runner module
 ------------------------------------
 
 .. automodule:: pocket_coffea.scripts.runner
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
+
+pocket\_coffea.scripts.split\_output module
+-------------------------------------------
+
+.. automodule:: pocket_coffea.scripts.split_output
+   :members:
+   :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: pocket_coffea.scripts
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

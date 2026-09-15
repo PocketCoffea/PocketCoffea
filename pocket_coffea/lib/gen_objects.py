@@ -15,14 +15,20 @@ def getGenLeptons(events, lepton_flavour, params):
     ]
     leptons = leptons[ak.argsort(leptons.pt, axis=1, ascending=False)]
 
+    # The flavour split must use the *already filtered and sorted* `leptons`
+    # collection, NOT `particles`: the two have different per-event lengths, so a
+    # mask built on `particles` is misaligned and silently scrambles entries
+    # (in awkward 1.x it does not even raise).
     if lepton_flavour == "Muon":
-        return leptons[np.abs(particles.pdgId) == 13]
+        return leptons[np.abs(leptons.pdgId) == 13]
     elif lepton_flavour == "Electron":
-        return leptons[np.abs(particles.pdgId) == 11]
+        return leptons[np.abs(leptons.pdgId) == 11]
     elif lepton_flavour == "Both":
         return leptons
     else:
-        raise("This lepton flavour in GEN particles is not supported:", lepton_flavour)
+        raise ValueError(
+            f"This lepton flavour in GEN particles is not supported: {lepton_flavour}"
+        )
 
 
 

@@ -8,6 +8,7 @@ Subpackages
    :maxdepth: 4
 
    pocket_coffea.executors
+   pocket_coffea.law_tasks
    pocket_coffea.lib
    pocket_coffea.parameters
    pocket_coffea.scripts
@@ -19,5 +20,5 @@ Module contents
 
 .. automodule:: pocket_coffea
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

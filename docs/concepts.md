@@ -54,7 +54,37 @@ The first step in the processing reduces the number of events on which we need t
     Only the events passing the skimming mask are further processed down the chain.
     
 * **Exporting skimmed files**
-    Skimmed NanoAODs can be exported at this stage: check the Configurations page for details. 
+    Skimmed NanoAODs can be exported at this stage. Two modes are available, controlled by
+    `workflow_options["skim_mode"]`:
+    - `"skim"` (default): events passing the explicit skim cuts are written out, untouched by any object correction.
+      The rest of the processor (categorization, weights, histograms) is skipped on this run.
+    - `"presel_any_variation"`: the full calibration loop is evaluated in *dry-run* mode just to compute the
+      preselection mask per variation; the OR of those masks is then applied to the uncalibrated events before they
+      are written. Use this when you want a single skim to already encode the analysis preselection in a way that
+      survives every shape systematic. See [Configuration → Save skimmed NanoAOD](./configuration.md#save-skimmed-nanoaod)
+      for the detailed mechanics, gen-weight rescaling, and downstream `isSkim` metadata.
+
+### Object calibration and systematic variations
+
+After the skimming phase, the framework applies object calibrations and handles systematic variations through the **Calibrators** system:
+
+* **Initialize Calibrators**
+    The `CalibratorsManager` is created with a sequence of `Calibrator` objects. Each calibrator declares which collections it modifies and what systematic variations it provides (e.g., JEC uncertainties, electron energy scale variations).
+
+* **Variation Loop**
+    The framework automatically loops over all requested systematic variations. For each variation:
+    - All calibrators in the sequence are applied to produce corrected object collections
+    - The original collections are preserved for calibrators that need uncorrected inputs
+    - Events are processed through the full analysis chain (preselection, categories, histograms)
+    - Events are reset to original state before processing the next variation
+
+* **Built-in Calibrators**
+    PocketCoffea provides ready-to-use calibrators for common corrections:
+    - **JetsCalibrator**: JEC/JER corrections with uncertainty variations
+    - **METCalibrator**: MET corrections after jet calibration
+    - **ElectronsScaleCalibrator**: Electron energy scale and smearing
+    
+See the [Calibrators](./calibrators.md) page for detailed documentation on the calibration system.
 
 ### Object cleaning and preselection
 
@@ -142,16 +172,12 @@ In PocketCoffea a small layer is defined to handle as **a single object both the
 implemented in the `Cut` helper class (see [cut_definition](pocket_coffea.lib.cut_definition.Cut).
 
 ```python
-def NjetsNb(events,params, **kwargs):
-    mask =  ((events.njet >= params["njet"] ) &
-             (events.nbjet >= params["nbjet"]))
+def NjetsNb(events, params, **kwargs):
+    mask = (events.njet >= params["njet"]) & (events.nbjet >= params["nbjet"])
     return mask
 
-cut = Cut(
-    name = "4j-2b",
-    params = { "njet":4, "nbjet": 2},
-    function = NjetsNb
-)
+
+cut = Cut(name="4j-2b", params={"njet": 4, "nbjet": 2}, function=NjetsNb)
 ```
     
 
@@ -164,10 +190,8 @@ This structure makes possible the creation of **factory methods** to build the `
 ```python
 def getNjetNb_cut(njet, nb):
     return Cut(
-        name=f"{njet}jet-{nb}bjet",
-        params ={"njet": njet, "nbjet": nb},
-        function=NjetsNb
-     )
+        name=f"{njet}jet-{nb}bjet", params={"njet": njet, "nbjet": nb}, function=NjetsNb
+    )
 ```
 
 PocketCoffea implements a set of **factory methods** for common cut operations: they are defined in [cut functions](pocket_coffea.lib.cut_functions).
@@ -220,35 +244,35 @@ schema is `category:dataset:(sub)sample:N.events.
 For example (from the [#Z\rightarrow \mu\mu$ analysis example]):
 ```python
 out["cutflow"] = {
-  'initial': {
-      'DATA_SingleMuon_2018_EraA': 241608232,
-      'DYJetsToLL_M-50_2018': 195510810,
-      'DATA_SingleMuon_2018_EraD': 513909894,
-      'DATA_SingleMuon_2018_EraC': 109986009,
-      'DATA_SingleMuon_2018_EraB': 119918017
-      },
-  'skim': {
-      'DATA_SingleMuon_2018_EraA': 182721650,
-      'DYJetsToLL_M-50_2018': 42180665,
-      'DATA_SingleMuon_2018_EraD': 416492318,
-      'DATA_SingleMuon_2018_EraC': 89702938,
-      'DATA_SingleMuon_2018_EraB': 91326404
-      },
-  'presel': {
-      'DATA_SingleMuon_2018_EraA': 10474575,
-      'DYJetsToLL_M-50_2018': 24267626,
-      'DATA_SingleMuon_2018_EraD': 24042954,
-      'DATA_SingleMuon_2018_EraC': 5193039,
-      'DATA_SingleMuon_2018_EraB': 5305372
-      },
-  'baseline': {
-      'DATA_SingleMuon_2018_EraA': {'DATA_SingleMuon': 10474575},
-      'DYJetsToLL_M-50_2018': {'DYJetsToLL': 24267626},
-      'DATA_SingleMuon_2018_EraD': {'DATA_SingleMuon': 24042954},
-      'DATA_SingleMuon_2018_EraC': {'DATA_SingleMuon': 5193039},
-      'DATA_SingleMuon_2018_EraB': {'DATA_SingleMuon': 5305372}
-      }
-  }
+    "initial": {
+        "DATA_SingleMuon_2018_EraA": 241608232,
+        "DYJetsToLL_M-50_2018": 195510810,
+        "DATA_SingleMuon_2018_EraD": 513909894,
+        "DATA_SingleMuon_2018_EraC": 109986009,
+        "DATA_SingleMuon_2018_EraB": 119918017,
+    },
+    "skim": {
+        "DATA_SingleMuon_2018_EraA": 182721650,
+        "DYJetsToLL_M-50_2018": 42180665,
+        "DATA_SingleMuon_2018_EraD": 416492318,
+        "DATA_SingleMuon_2018_EraC": 89702938,
+        "DATA_SingleMuon_2018_EraB": 91326404,
+    },
+    "presel": {
+        "DATA_SingleMuon_2018_EraA": 10474575,
+        "DYJetsToLL_M-50_2018": 24267626,
+        "DATA_SingleMuon_2018_EraD": 24042954,
+        "DATA_SingleMuon_2018_EraC": 5193039,
+        "DATA_SingleMuon_2018_EraB": 5305372,
+    },
+    "baseline": {
+        "DATA_SingleMuon_2018_EraA": {"DATA_SingleMuon": 10474575},
+        "DYJetsToLL_M-50_2018": {"DYJetsToLL": 24267626},
+        "DATA_SingleMuon_2018_EraD": {"DATA_SingleMuon": 24042954},
+        "DATA_SingleMuon_2018_EraC": {"DATA_SingleMuon": 5193039},
+        "DATA_SingleMuon_2018_EraB": {"DATA_SingleMuon": 5305372},
+    },
+}
 ```
   
 If a dataset is split in more subsamples (by configuration), the output shows the number of events in each of the
@@ -256,52 +280,54 @@ If a dataset is split in more subsamples (by configuration), the output shows th
   
 ```python
 out["cutflow"] = {
-    ......
-   'baseline': {
-       'DATA_SingleEle_2018_EraD': {'DATA_SingleEle': 2901},
-       'DATA_SingleEle_2018_EraC': {'DATA_SingleEle': 3252},
-       'DATA_SingleEle_2018_EraB': {'DATA_SingleEle': 2763},
-       'DATA_SingleEle_2018_EraA': {'DATA_SingleEle': 2385},
-       'DATA_SingleEle_2017_EraF': {'DATA_SingleEle': 7162},
-       'DATA_SingleEle_2017_EraE': {'DATA_SingleEle': 6681},
-       'DATA_SingleEle_2017_EraD': {'DATA_SingleEle': 6003},
-       'DATA_SingleEle_2017_EraC': {'DATA_SingleEle': 4961},
-       'DATA_SingleEle_2017_EraB': {'DATA_SingleEle': 4709},
-
-       'TTToSemiLeptonic_2017': {
-           'TTToSemiLeptonic': 253530,
-           'TTToSemiLeptonic__=1b': 78524,
-           'TTToSemiLeptonic__=2b': 133595,
-           'TTToSemiLeptonic__>2b': 29690},
-       'TTToSemiLeptonic_2018': {
-           'TTToSemiLeptonic': 252951,
-           'TTToSemiLeptonic__=1b': 76406,
-           'TTToSemiLeptonic__=2b': 133971,
-           'TTToSemiLeptonic__>2b': 31414}},
-
- '1b': {
-     'DATA_SingleEle_2018_EraD': {'DATA_SingleEle': 901},
-     'DATA_SingleEle_2018_EraC': {'DATA_SingleEle': 984},
-     'DATA_SingleEle_2018_EraB': {'DATA_SingleEle': 879},
-     'DATA_SingleEle_2018_EraA': {'DATA_SingleEle': 762},
-     'DATA_SingleEle_2017_EraF': {'DATA_SingleEle': 2185},
-     'DATA_SingleEle_2017_EraE': {'DATA_SingleEle': 2063},
-     'DATA_SingleEle_2017_EraD': {'DATA_SingleEle': 1881},
-     'DATA_SingleEle_2017_EraC': {'DATA_SingleEle': 1530},
-     'DATA_SingleEle_2017_EraB': {'DATA_SingleEle': 1457},
-
-     'TTToSemiLeptonic_2017': {
-         'TTToSemiLeptonic': 97865,
-         'TTToSemiLeptonic__=1b': 72355,
-         'TTToSemiLeptonic__=2b': 23417,
-         'TTToSemiLeptonic__>2b': 2093},
-     'TTToSemiLeptonic_2018': {
-         'TTToSemiLeptonic': 96522,
-         'TTToSemiLeptonic__=1b': 70336,
-         'TTToSemiLeptonic__=2b': 23890,
-         'TTToSemiLeptonic__>2b': 2296}}
- }
-
+    # ......
+    "baseline": {
+        "DATA_SingleEle_2018_EraD": {"DATA_SingleEle": 2901},
+        "DATA_SingleEle_2018_EraC": {"DATA_SingleEle": 3252},
+        "DATA_SingleEle_2018_EraB": {"DATA_SingleEle": 2763},
+        "DATA_SingleEle_2018_EraA": {"DATA_SingleEle": 2385},
+        "DATA_SingleEle_2017_EraF": {"DATA_SingleEle": 7162},
+        "DATA_SingleEle_2017_EraE": {"DATA_SingleEle": 6681},
+        "DATA_SingleEle_2017_EraD": {"DATA_SingleEle": 6003},
+        "DATA_SingleEle_2017_EraC": {"DATA_SingleEle": 4961},
+        "DATA_SingleEle_2017_EraB": {"DATA_SingleEle": 4709},
+        "TTToSemiLeptonic_2017": {
+            "TTToSemiLeptonic": 253530,
+            "TTToSemiLeptonic__=1b": 78524,
+            "TTToSemiLeptonic__=2b": 133595,
+            "TTToSemiLeptonic__>2b": 29690,
+        },
+        "TTToSemiLeptonic_2018": {
+            "TTToSemiLeptonic": 252951,
+            "TTToSemiLeptonic__=1b": 76406,
+            "TTToSemiLeptonic__=2b": 133971,
+            "TTToSemiLeptonic__>2b": 31414,
+        },
+    },
+    "1b": {
+        "DATA_SingleEle_2018_EraD": {"DATA_SingleEle": 901},
+        "DATA_SingleEle_2018_EraC": {"DATA_SingleEle": 984},
+        "DATA_SingleEle_2018_EraB": {"DATA_SingleEle": 879},
+        "DATA_SingleEle_2018_EraA": {"DATA_SingleEle": 762},
+        "DATA_SingleEle_2017_EraF": {"DATA_SingleEle": 2185},
+        "DATA_SingleEle_2017_EraE": {"DATA_SingleEle": 2063},
+        "DATA_SingleEle_2017_EraD": {"DATA_SingleEle": 1881},
+        "DATA_SingleEle_2017_EraC": {"DATA_SingleEle": 1530},
+        "DATA_SingleEle_2017_EraB": {"DATA_SingleEle": 1457},
+        "TTToSemiLeptonic_2017": {
+            "TTToSemiLeptonic": 97865,
+            "TTToSemiLeptonic__=1b": 72355,
+            "TTToSemiLeptonic__=2b": 23417,
+            "TTToSemiLeptonic__>2b": 2093,
+        },
+        "TTToSemiLeptonic_2018": {
+            "TTToSemiLeptonic": 96522,
+            "TTToSemiLeptonic__=1b": 70336,
+            "TTToSemiLeptonic__=2b": 23890,
+            "TTToSemiLeptonic__>2b": 2296,
+        },
+    },
+}
 ```
 
 ### Sum of weights
@@ -310,7 +336,7 @@ The output key `sumw` contains the total number of weighted MC events in each ca
 (sub)sample. The two levels are necessary since each dataset may be split in multiple subsamples.
   
 ```python
-out["sumw"] = {'baseline': { 'DYJetsToLL_M-50_2018': {'DYJetsToLL': 44614145.4945453}}}                                
+out["sumw"] = {"baseline": {"DYJetsToLL_M-50_2018": {"DYJetsToLL": 44614145.4945453}}}
 ```
 
 ### Total sum of genweights
@@ -320,7 +346,7 @@ The key `sum_genweights` contians the total sum of the generator weights for eac
 later uses.
   
 ```python
-out["sum_genweights"] =  {'DYJetsToLL_M-50_2018': 3323477400000.0}
+out["sum_genweights"] = {"DYJetsToLL_M-50_2018": 3323477400000.0}
 ```
 
 
@@ -376,22 +402,23 @@ name  --> category --> column output name.  The grouping is on the sample and no
 column outputs are more frequently used separated by samples. 
 
 ```python
->>> out["columns"].keys()
-dict_keys(['TTToSemiLeptonic__=1b', 'TTToSemiLeptonic__=2b', 'TTToSemiLeptonic__>2b'])
+out["columns"].keys()
+# dict_keys(['TTToSemiLeptonic__=1b', 'TTToSemiLeptonic__=2b', 'TTToSemiLeptonic__>2b'])
 
->>> out["columns"]["TTToSemiLeptonic__=1b"].keys()
-dict_keys(['TTToSemiLeptonic_2018', 'TTToSemiLeptonic_2017'])
+out["columns"]["TTToSemiLeptonic__=1b"].keys()
+# dict_keys(['TTToSemiLeptonic_2018', 'TTToSemiLeptonic_2017'])
 
->>> out["columns"]["TTToSemiLeptonic__=1b"]["TTToSemiLeptonic_2018"].keys()
-dict_keys(['baseline', '1b', '2b', '3b', '4b'])
+out["columns"]["TTToSemiLeptonic__=1b"]["TTToSemiLeptonic_2018"].keys()
+# dict_keys(['baseline', '1b', '2b', '3b', '4b'])
 
->>> out["columns"]["TTToSemiLeptonic__=1b"]["TTToSemiLeptonic_2018"]["baseline"].keys()
-dict_keys(['LeptonGood_N', 'LeptonGood_pt', 'LeptonGood_eta', 'LeptonGood_phi', 'JetGood_N', 'JetGood_pt', 'JetGood_eta', 'JetGood_phi'])
+out["columns"]["TTToSemiLeptonic__=1b"]["TTToSemiLeptonic_2018"]["baseline"].keys()
+# dict_keys(['LeptonGood_N', 'LeptonGood_pt', 'LeptonGood_eta', 'LeptonGood_phi', 'JetGood_N', 'JetGood_pt', 'JetGood_eta', 'JetGood_phi'])
 
->>> out["columns"]["TTToSemiLeptonic__=1b"]["TTToSemiLeptonic_2018"]["baseline"]["JetGood_pt"]
-column_accumulator(array([ 73.79437 ,  60.94935 ,  59.455273, ..., 113.379875,  58.940334,
-      57.60932 ], dtype=float32))
-
+out["columns"]["TTToSemiLeptonic__=1b"]["TTToSemiLeptonic_2018"]["baseline"][
+    "JetGood_pt"
+]
+# column_accumulator(array([ 73.79437 ,  60.94935 ,  59.455273, ..., 113.379875,  58.940334,
+#       57.60932 ], dtype=float32))
 ```
 
 

@@ -34,8 +34,7 @@ customized ones (please get in touch if you need a specific environment).
 The apptainer environment is activated on **lxplus** with the following command:
 
 ```bash
-apptainer shell -B /afs -B /cvmfs/cms.cern.ch \
-                -B /tmp  -B /eos/cms/  -B /etc/sysconfig/ngbauth-submit \
+apptainer shell -B /afs -B /cvmfs \ -B /tmp  -B /eos/cms/ -B /etc/sysconfig/ngbauth-submit \
                 -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME="FILE:${XDG_RUNTIME_DIR}/krb5cc" \
     /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-stable
 ```
@@ -88,8 +87,7 @@ git clone git@github.com:PocketCoffea/PocketCoffea.git
 cd PocketCoffea
 
 #Enter the Singularity image
-apptainer shell --bind /afs -B /cvmfs/cms.cern.ch \
-         --bind /tmp  --bind /eos/cms/ -B /etc/sysconfig/ngbauth-submit \
+apptainer shell --bind /afs -B /cvmfs -B /tmp -B /eos/cms/ -B /etc/sysconfig/ngbauth-submit \
          -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME="FILE:${XDG_RUNTIME_DIR}/krb5cc"  \
          /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-stable
 
@@ -103,14 +101,17 @@ source myenv/bin/activate
 # Install in EDITABLE mode
 pip install -e .[dev]
 
+# Set the PYTHONPATH to make sure the editable PocketCoffea installation is picked up
+export PYTHONPATH=`pwd`
+
 # One could also install additional packages if necessary for anaysis, eg:
 pip install lightgbm 
 ```
 
-The next time the user enters in the apptainer the virtual environment needs to be activated. 
+The next time the user enters in the apptainer the virtual environment needs to be activated and the PYTHONPATH needs to be set. 
 ```bash
 #Enter the image
-apptainer shell  -B /afs -B /cvmfs/cms.cern.ch -B /tmp  -B /eos/cms/  \
+apptainer shell  -B /afs -B /cvmfs -B /tmp -B /eos/cms/  \
                  -B /etc/sysconfig/ngbauth-submit  \
                  -B ${XDG_RUNTIME_DIR}  --env KRB5CCNAME="FILE:${XDG_RUNTIME_DIR}/krb5cc" \
                  /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-stable
@@ -118,13 +119,14 @@ apptainer shell  -B /afs -B /cvmfs/cms.cern.ch -B /tmp  -B /eos/cms/  \
 # Activate the virtual environment
 cd PocketCoffea
 source myenv/bin/activate
+export PYTHONPATH=`pwd`
 ```
 
 
 :::{admonition} Setup the job submission with local core changes
 :class: warning
 **N.B.**: In order to properly propagated the local environment and local code changes to jobs running on condor through
-Dask, the user needs to setup the executor option `local-virtualenv: true`.
+Dask/condor, the user needs to setup the executor option `local-virtualenv: true` or pass `--local-virtualenv` to the runner command.
 Checkout the [running instructions](https://pocketcoffea.readthedocs.io/en/stable/running.html) for more details.  
 :::
 

@@ -12,7 +12,7 @@ def print_processing_stats(output, start_time, workers):
     cutflow = output["cutflow"]
     tot_events_initial = sum([v for v in cutflow['initial'].values()])
     tot_events_skim = sum([v for v in cutflow['skim'].values()])
-    tot_events_presel = sum([v for v in cutflow['presel'].values()])
+    tot_events_presel = sum([v["nominal"] for v in cutflow['presel'].values()])
 
     # Create a Table object
     table = Table(show_header=True, header_style="bold magenta")

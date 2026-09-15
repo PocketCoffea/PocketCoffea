@@ -1,0 +1,21 @@
+jets_calibration:
+  collection:
+    2022_preEE:
+      AK4PFPuppi: "Jet"
+      AK4PFPuppiPNetRegression: "JetPtReg"
+      AK4PFPuppiPNetRegressionPlusNeutrino: "JetPtRegPlusNeutrino"
+      
+    2022_postEE:
+      AK4PFPuppi: "Jet"
+      AK4PFPuppiPNetRegression: "JetPtReg"
+      AK4PFPuppiPNetRegressionPlusNeutrino: "JetPtRegPlusNeutrino"
+
+    2023_preBPix:
+      AK4PFPuppi: "Jet"
+      AK4PFPuppiPNetRegression: "JetPtReg"
+      AK4PFPuppiPNetRegressionPlusNeutrino: "JetPtRegPlusNeutrino"
+
+    2023_postBPix:
+      AK4PFPuppi: "Jet"
+      AK4PFPuppiPNetRegression: "JetPtReg"
+      AK4PFPuppiPNetRegressionPlusNeutrino: "JetPtRegPlusNeutrino"

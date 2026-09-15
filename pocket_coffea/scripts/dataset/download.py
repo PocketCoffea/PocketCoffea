@@ -45,11 +45,12 @@ if __name__ == '__main__':
     run_futures = []  # Future list
     for key in sorted(sample_dict.keys()):
         new_list = []
+        out_dict[key] = {}
         # print(key)
-        for i, fname in enumerate(sample_dict[key]):
+        for i, fname in enumerate(sample_dict[key]["files"]):
             if i % 5 == 0:
                 # print some progress info
-                ith = f'{key}: {i}/{len(sample_dict[key])}'
+                ith = f'{key}: {i}/{len(sample_dict[key]["files"])}'
             else:
                 ith = None
             out = os.path.join(
@@ -62,7 +63,8 @@ if __name__ == '__main__':
                 else:
                     x = down_file(fname, out, ith)
                     run_futures.append(x)
-        out_dict[key] = new_list
+        out_dict[key]["metadata"] = sample_dict[key]["metadata"]
+        out_dict[key]["files"] = new_list
 
     for i, r in enumerate(run_futures):
         r.result()

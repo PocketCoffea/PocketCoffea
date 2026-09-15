@@ -150,7 +150,7 @@ class WeightWrapper(ABC, metaclass=WeightWrapperMeta):
             },
         }
         if src_code: #to be tested
-            out["function"]["src_code"] = inspect.getsource(self.__class__)
+            out["class"]["src_code"] = inspect.getsource(self.__class__)
         return out
 
 
@@ -192,7 +192,10 @@ class WeightLambda(WeightWrapper):
         elif isinstance(out, ak.Array):
             return WeightData(self.name, out)
         elif (isinstance(out, list) or isinstance(out, tuple)) and len(out) == 1:
-            return WeightData(self.name, out)
+            # A 1-element sequence carries the nominal weight as its single element;
+            # unwrap it (WeightData(name, out) would wrap the list itself, which coffea
+            # then rejects as not-an-array).
+            return WeightData(self.name, out[0])
         elif (isinstance(out, list) or isinstance(out, tuple)) and len(out) == 3:
             return WeightData(self.name, *out)
         elif (isinstance(out, list) or isinstance(out, tuple)) and len(out) == 4:
