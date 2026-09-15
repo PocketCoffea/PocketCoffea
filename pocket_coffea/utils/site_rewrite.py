@@ -1,9 +1,8 @@
 """Helpers for rewriting xrootd URLs in a manual-job fileset.
 
-Used by `--recreate-jobs` on the manual-jobs executors
-(`executors_lxplus.py`, `executors_rubin.py`) and by
-`scripts/check_jobs.py` to migrate files away from a blocklisted CMS site
-and to recover from per-file XRootD errors.
+Used by `scripts/check_jobs.py` (the `check-jobs --resubmit` / `--recreate`
+tooling) to migrate files away from a blocklisted CMS site and to recover
+from per-file XRootD errors.
 
 Replica lookups go through the Rucio client (same path as
 `pocket_coffea.utils.rucio.get_dataset_files_replicas`), so the tools
@@ -91,20 +90,36 @@ def _query_replicas(lfn, client=None, scope="cms", sort="random"):
     return [pfn["rse"] for pfn in pfns.values()]
 
 
-def find_other_file(filepath, sitemap, blocklist=None,
+def find_other_file(filepath, sitemap, blocklist=None, exclude_urls=None,
                     fallback_redirector=GLOBAL_XROOTD_REDIRECTOR,
                     rucio_client=None):
     """Find an alternative xrootd location for `filepath`.
 
     Asks Rucio for the file's replicas (via `_query_replicas`) and returns
     the first one served by a site that is (a) present in `sitemap`,
-    (b) not in `blocklist`, and (c) different from the file's current
-    site. If no such site is found, falls back to
-    `fallback_redirector + LFN`. If the URL has no /store/ segment to
-    extract, returns it unchanged with a warning.
+    (b) not in `blocklist`, (c) different from the file's current site, and
+    (d) whose reconstructed PFN is not in `exclude_urls`.
+
+    `blocklist` entries may be either Rucio site names (``T2_US_Foo``) or
+    xrootd redirector-prefix strings (``root://...//``); both forms are
+    honoured, so the same call works for the executor's explicit
+    ``--blocklist-sites`` and for check-jobs' auto blacklist (which is keyed
+    on the prefix string).
+
+    `exclude_urls` is an optional iterable of full PFNs that have already
+    failed (check-jobs' ``xrootdfaillist.txt``); a candidate reconstructing
+    to one of them is skipped.
+
+    If no suitable replica is found, falls back to
+    ``fallback_redirector + LFN`` — unless `fallback_redirector` is ``None``,
+    in which case the file is returned **unchanged** (used by check-jobs'
+    reactive loop, which prefers "resubmit with the same file" over the
+    redirector). If the URL has no /store/ segment to extract, returns it
+    unchanged with a warning.
 
     Every site change is logged so the user can audit what was rewritten."""
     blocklist = set(blocklist or [])
+    exclude_urls = set(exclude_urls or [])
     rootpref, file = _split_lfn(filepath)
 
     if rootpref is None:
@@ -123,11 +138,25 @@ def find_other_file(filepath, sitemap, blocklist=None,
         sitepath = sitemap[site]
         if not isinstance(sitepath, str):
             continue
+        # check-jobs' auto blacklist is keyed on the sitepath prefix string,
+        # not the Rucio site name — treat a blocklisted prefix as blocked too.
+        if sitepath in blocklist:
+            continue
         if rootpref in sitepath or sitepath in rootpref:
             continue
         new_url = sitepath + file
+        # Skip a candidate whose exact PFN has already failed before.
+        if new_url in exclude_urls:
+            continue
         print(f"  [site rewrite] {file}  {cur_site_str} -> {site}  ({rootpref or '<none>'} -> {sitepath})")
         return new_url
+
+    if fallback_redirector is None:
+        # No alternative replica and the caller opted out of the redirector
+        # fallback: leave the file unchanged.
+        print(f"  [site rewrite] {file}  {cur_site_str} -> UNCHANGED  "
+              f"[no alternative replica; blocklist={sorted(blocklist) or None}]")
+        return filepath
 
     new_url = fallback_redirector + file.lstrip("/")
     print(f"  [site rewrite] {file}  {cur_site_str} -> GLOBAL_REDIRECTOR  "
