@@ -32,6 +32,13 @@ last section); the reference code is the `master` of both repositories (Septembe
 Steps that agree with the reference: raw pt, the chained nominal JES, the JES inputs, the
 JER inputs, the JER SF uncertainty, the random number generator and the smearing formulas.
 
+The tutorial also ships a python implementation (`ApplyOnNanoAOD/ForPythonUser/JecApplication.py`,
+correctionlib python bindings, vectorized). It has the same chain as the C++ with two
+details worth noting: the AK8 gen-match radius is 0.4 (R/2, as in PocketCoffea; the C++
+NanoAOD helper uses 0.6), and there is **no guard** on the smear factor
+(`out = pt_in * scale`). The C++ replaces a non-finite or non-positive factor by 1;
+PocketCoffea follows the C++.
+
 ## 1b. What σ (the "JER") is
 
 In the formulas of this note, and in `eval_dict["JER"]` of `jet_correction_corrlib`, σ is the
