@@ -73,6 +73,11 @@ condor@lpc:
   # condor@lpc rewrites container /srv/... paths to host paths the schedd/workers can
   # see. Leave null if you launch outside a container. E.g. /uscms_data/d3/<user>/<dir>.
   host-path-prefix: null
+  # Extra files the PROCESSOR opens by path at runtime (correction maps, SF JSONs).
+  # LPC execute nodes do not mount the submit filesystem, so these must ride along with
+  # the job. They are staged into the job's scratch dir (the process CWD), so the
+  # analysis config must reference them by BASENAME, not by submit-side path.
+  extra-input-files: []
 
 
 dask@T3_CH_PSI:

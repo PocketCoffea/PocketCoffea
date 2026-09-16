@@ -573,6 +573,25 @@ exit $RUNNER_RC
         else:
             mem_value = f"{mem_per_worker}GB"
             
+        # Extra payload files the analysis needs at RUNTIME on the worker (correction
+        # maps, scale-factor JSONs, ...). LPC execute nodes do not mount the submit
+        # filesystem, so anything the processor opens by path must be shipped with the
+        # job; it lands in the job's scratch dir, i.e. the process CWD, so the analysis
+        # config should refer to it by BASENAME. Paths are host-resolved like every
+        # other path here, so /srv/... entries written inside the container work.
+        extra_input_files = self.run_options.get("extra-input-files", None) or []
+        if isinstance(extra_input_files, str):
+            extra_input_files = [extra_input_files]
+        extra_input_files = [
+            _resolve_host_path(os.path.abspath(str(p)), host_prefix) for p in extra_input_files
+        ]
+        for p in extra_input_files:
+            if not os.path.exists(p):
+                raise FileNotFoundError(
+                    f"extra-input-files entry does not exist: {p}. It must be readable "
+                    "from the submit node so HTCondor can stage it to the worker."
+                )
+
         sub = {
             'Executable': "job.sh",
             'Error': f"{abs_jobdir_path}/logs/job_$(ClusterId).$(ProcId).err",
@@ -584,7 +603,10 @@ exit $RUNNER_RC
             'arguments': f"$(ProcId) config_job_$(ProcId).pkl {chunksize}",
             'should_transfer_files':'YES',
             'when_to_transfer_output' : 'ON_EXIT',
-            'transfer_input_files' : f"{abs_jobdir_path}/config_job_$(ProcId).pkl,{self.x509_path},{abs_jobdir_path}/job.sh",
+            'transfer_input_files' : ",".join(
+                [f"{abs_jobdir_path}/config_job_$(ProcId).pkl", self.x509_path,
+                 f"{abs_jobdir_path}/job.sh"] + extra_input_files
+            ),
             'on_exit_remove': '(ExitBySignal == False) && (ExitCode == 0)',
             'max_retries' : self.run_options.get("retries", 1),
         }
