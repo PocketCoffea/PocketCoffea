@@ -35,14 +35,10 @@ class ParslSlurmExecutorFactory(ExecutorFactoryABC):
             'export MALLOC_TRIM_THRESHOLD_=0',
             f'export X509_USER_PROXY={self.x509_path}',
             'export X509_CERT_DIR=/cvmfs/grid.cern.ch/etc/grid-security/certificates',
+            f'export PYTHONPATH=$PYTHONPATH:{os.getcwd()}',
             'ulimit -u 32768',
             'echo "Which Shell?  $SHELL"',
-            #'echo "Swtiching to bash"',
-            #'/usr/local_rwth/bin/bash',
-            #'echo "Which Shell now?  $SHELL"'
             f'export PYTHONPATH=$PYTHONPATH:{os.getcwd()}',
-            #'ulimit -s unlimited || true', # aviod failure
-            #'ulimit -u unlimited || true',
             f'cd {os.getcwd()}',
         ]
 
@@ -65,8 +61,7 @@ class ParslSlurmExecutorFactory(ExecutorFactoryABC):
     def setup(self):
         """Start Parsl HTEX + SLURM with options taken from YAML."""
         self.setup_proxyfile()
-        scheduler_options = ""
-        # Provider (pass-through from YAML)
+        scheduler_options = self.run_options.get("scheduler_options","")
         provider = SlurmProvider(
             partition       = self.run_options['queue'],
             nodes_per_block = self.run_options.get("nodes-per-block", 1),
@@ -83,7 +78,6 @@ class ParslSlurmExecutorFactory(ExecutorFactoryABC):
             exclusive         = self.run_options.get("exclusive", False),
         )
 
-        # Executor
         htex = HighThroughputExecutor(
             label   = "coffea_parsl_slurm",
             address = address_by_hostname(),
@@ -142,10 +136,6 @@ class DaskExecutorFactory(ExecutorFactoryABC):
             f'export X509_USER_PROXY={self.x509_path}',
             'export X509_CERT_DIR=/cvmfs/grid.cern.ch/etc/grid-security/certificates',
             'ulimit -u 32768',
-            #'echo "Which Shell?  $SHELL"',
-            #'echo "Swtiching to bash"',
-            #'/usr/local_rwth/bin/bash',
-            #'echo "Which Shell now?  $SHELL"'
             ]
 
         # Adding list of custom setup commands from user defined run options
