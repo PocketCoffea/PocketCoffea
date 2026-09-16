@@ -226,4 +226,4 @@ def get_executor_factory(executor_name, **kwargs):
     elif  executor_name == "parsl":
         return ParslSlurmExecutorFactory(**kwargs)
     else:
-        print("The executor is not recognized!\n available executors are: iterative, futures, dask")
+        print("The executor is not recognized!\n available executors are: iterative, futures, parsl, dask")
