@@ -91,27 +91,25 @@ dask@RWTH:
 
 parsl@CLAIX:
   scaleout: 20
-  mem-per-worker: 4
+  cores-per-worker: 1
+  mem-per-worker: 5  
+  queue: "c23mm"
+  walltime: "6:00:00"
   logs-dir: logs_parsl
   local-virtualenv: false
   conda-env: true
-  cores-per-worker: 1
-  walltime: "6:00:00"
   worker-debug: false
+  retries: 3  
   tree-reduction: 4
-  slurm:
-    partition: "c23ms"       # CLAIX partition
-    account: null            # fill if your project needs it
-    scheduler-options: |
-      #SBATCH --cpus-per-task=1
-      #SBATCH --mem=4G
-      #SBATCH --ntasks-per-node=1
-      #SBATCH --constraint=zen4
+  account: null
+  #scheduler-options: |
+  #      SBATCH --ntasks-per-node=1
+  #      SBATCH --constraint=zen4
 
 dask@CLAIX:
   scaleout: 10
   cores-per-worker: 1
-  mem-per-worker: "10GB"
+  mem-per-worker: "5GB"
   disk-per-worker: "2GB"
   queue: "c23mm"
   walltime: "6:00:00"
@@ -122,6 +120,7 @@ dask@CLAIX:
   local-virtualenv: false
   retries: 3
   tree-reduction: 4
+  account: null
 
 dask@brux:
   scaleout: 336
