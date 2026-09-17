@@ -1,0 +1,35 @@
+{
+    "TTTo2L2Nu_2024": {
+        "sample": "TTTo2L2Nu",
+        "json_output": "datasets/datasets_2024.json",
+        "files": [
+            {
+                "das_names": [
+                    "/TTtoLNu2Q_TuneCP5_13p6TeV_powheg-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM"
+                ],
+                "metadata": {
+                    "year": "2024",
+                    "isMC": true,
+                    "xsec": 98.04
+                }
+            }
+        ]
+    },
+    "DATA_EGamma_2024": {
+        "sample": "DATA_SingleEle",
+        "json_output": "datasets/datasets_2024.json",
+        "files": [
+            {
+                "das_names": [
+                    "/EGamma0/Run2024C-MINIv6NANOv15-v1/NANOAOD"
+                ],
+                "metadata": {
+                    "year": "2024",
+                    "isMC": false,
+                    "primaryDataset": "SingleEle",
+                    "era": "C"
+                }
+            }
+        ]
+    }
+}

@@ -17,7 +17,15 @@ def get_rho(events, nano_version):
         return events.fixedGridRhoFastjetAll
 
 
-def add_jec_variables(jets, event_rho, isMC=True):
+def add_jec_variables(jets, event_rho, isMC=True, gen_match_dr=None, nomatch_value=0.0):
+    """Add the inputs of the JEC/JER evaluation (pt_raw, mass_raw, event_rho, pt_gen).
+
+    pt_gen is the pt of the matched gen jet, or ``nomatch_value`` when there is no match.
+    The legacy coffea factory expects 0 for "no match"; the correctionlib JERSmear node
+    expects -1 (0 falls in its scaling bin [0, 1) and gives factor = JERsf).
+    ``gen_match_dr``: when set, the NanoAOD gen match is also required to satisfy
+    dR < gen_match_dr (JME recommendation: R/2), otherwise the jet counts as unmatched.
+    """
     # Check if pt is defined, if not take the rawPt
     if "pt" not in jets.fields:
         jets["pt"] = jets.rawPt
@@ -33,9 +41,15 @@ def add_jec_variables(jets, event_rho, isMC=True):
     jets["event_rho"] = ak.broadcast_arrays(event_rho, jets.pt)[0]
     if isMC:
         try:
-            jets["pt_gen"] = ak.values_astype(ak.fill_none(jets.matched_gen.pt, 0), np.float32)
+            gen = jets.matched_gen
+            pt_gen = ak.fill_none(gen.pt, nomatch_value)
+            if gen_match_dr is not None:
+                dr = ak.fill_none(jets.delta_r(gen), np.inf)
+                pt_gen = ak.where(dr < gen_match_dr, pt_gen, nomatch_value)
         except AttributeError:
-            jets["pt_gen"] = ak.zeros_like(jets.pt, dtype=np.float32)
+            # collection without gen match (e.g. CorrT1METJet)
+            pt_gen = ak.full_like(jets.pt, nomatch_value)
+        jets["pt_gen"] = ak.values_astype(pt_gen, np.float32)
     return jets
 
 def add_jec_variables_subjet(jets, event_rho, isMC=True):
@@ -557,6 +571,76 @@ def get_dijet(jets, taggerVars=True, remnant_jet = False):
         return dijet, remnant
 
 
+# JER smearing node, identical to jer_smear.json of the JERC application tutorial
+# (https://gitlab.cern.ch/cms-analysis/jme/jerc-application-tutorial).
+# GenPt selects the method: GenPt < 0 (bin [-1, 0)) -> stochastic smearing with a hashprng
+# random number; GenPt >= 0 (bin [0, 1), clamped above) -> scaling with the matched gen pt.
+# Therefore "no match" MUST be encoded as GenPt = -1: GenPt = 0 selects the scaling
+# formula and returns 1 + (sf - 1) * (pt - 0) / pt = sf.
+JERSMEAR_SCHEMA = {
+    "name": "JERSmear",
+    "description": "Jet smearing tool",
+    "inputs": [
+        {"name": "JetPt", "type": "real"},
+        {"name": "JetEta", "type": "real"},
+        {
+            "name": "GenPt",
+            "type": "real",
+            "description": "matched GenJet pt, or -1 if no match",
+        },
+        {"name": "Rho", "type": "real", "description": "entropy source"},
+        {"name": "EventID", "type": "int", "description": "entropy source"},
+        {
+            "name": "JER",
+            "type": "real",
+            "description": "Jet energy resolution",
+        },
+        {
+            "name": "JERsf",
+            "type": "real",
+            "description": "Jet energy resolution scale factor",
+        },
+    ],
+    "output": {"name": "smear", "type": "real"},
+    "version": 1,
+    "data": {
+        "nodetype": "binning",
+        "input": "GenPt",
+        "edges": [-1, 0, 1],
+        "flow": "clamp",
+        "content": [
+            # stochastic
+            {
+                # rewrite gen_pt with a random gaussian
+                "nodetype": "transform",
+                "input": "GenPt",
+                "rule": {
+                    "nodetype": "hashprng",
+                    "inputs": ["JetPt", "JetEta", "Rho", "EventID"],
+                    "distribution": "normal",
+                },
+                "content": {
+                    "nodetype": "formula",
+                    # TODO min jet pt?
+                    "expression": "1+sqrt(max(x*x - 1, 0)) * y * z",
+                    "parser": "TFormula",
+                    # now gen_pt is actually the output of hashprng
+                    "variables": ["JERsf", "JER", "GenPt"],
+                },
+            },
+            # deterministic
+            {
+                "nodetype": "formula",
+                # TODO min jet pt?
+                "expression": "1+(x-1)*(y-z)/y",
+                "parser": "TFormula",
+                "variables": ["JERsf", "JetPt", "GenPt"],
+            },
+        ],
+    },
+}
+
+
 @functools.lru_cache(maxsize=None)
 def get_jer_correction_set(jer_json, jer_tags):
     # learned from: https://github.com/cms-nanoAOD/correctionlib/issues/130
@@ -573,72 +657,7 @@ def get_jer_correction_set(jer_json, jer_tags):
         in jer_tags
     ]
     cset.compound_corrections = []
-
-    res = Correction.parse_obj(
-        {
-            "name": "JERSmear",
-            "description": "Jet smearing tool",
-            "inputs": [
-                {"name": "JetPt", "type": "real"},
-                {"name": "JetEta", "type": "real"},
-                {
-                    "name": "GenPt",
-                    "type": "real",
-                    "description": "matched GenJet pt, or -1 if no match",
-                },
-                {"name": "Rho", "type": "real", "description": "entropy source"},
-                {"name": "EventID", "type": "int", "description": "entropy source"},
-                {
-                    "name": "JER",
-                    "type": "real",
-                    "description": "Jet energy resolution",
-                },
-                {
-                    "name": "JERsf",
-                    "type": "real",
-                    "description": "Jet energy resolution scale factor",
-                },
-            ],
-            "output": {"name": "smear", "type": "real"},
-            "version": 1,
-            "data": {
-                "nodetype": "binning",
-                "input": "GenPt",
-                "edges": [-1, 0, 1],
-                "flow": "clamp",
-                "content": [
-                    # stochastic
-                    {
-                        # rewrite gen_pt with a random gaussian
-                        "nodetype": "transform",
-                        "input": "GenPt",
-                        "rule": {
-                            "nodetype": "hashprng",
-                            "inputs": ["JetPt", "JetEta", "Rho", "EventID"],
-                            "distribution": "normal",
-                        },
-                        "content": {
-                            "nodetype": "formula",
-                            # TODO min jet pt?
-                            "expression": "1+sqrt(max(x*x - 1, 0)) * y * z",
-                            "parser": "TFormula",
-                            # now gen_pt is actually the output of hashprng
-                            "variables": ["JERsf", "JER", "GenPt"],
-                        },
-                    },
-                    # deterministic
-                    {
-                        "nodetype": "formula",
-                        # TODO min jet pt?
-                        "expression": "1+(x-1)*(y-z)/y",
-                        "parser": "TFormula",
-                        "variables": ["JERsf", "JetPt", "GenPt"],
-                    },
-                ],
-            },
-        }
-    )
-    cset.corrections.append(res)
+    cset.corrections.append(Correction.parse_obj(JERSMEAR_SCHEMA))
     ceval = cset.to_evaluator()
     return ceval
 
@@ -650,6 +669,12 @@ def get_jersmear(_eval_dict, _ceval, _jer_sf_tag, _syst="nom"):
     _inputs = [_eval_dict[input.name] for input in _ceval["JERSmear"].inputs]
     _jersmear = _ceval["JERSmear"].evaluate(*_inputs)
     return _eval_dict, _jersmear
+
+
+def safe_jersmear(smear):
+    # As in the JERC reference implementation: a non-finite or non-positive smear factor
+    # (a large negative random number on a low-pt jet) is replaced by 1.
+    return np.where(np.isfinite(smear) & (smear > 0), smear, 1.0)
 
 
 def get_jersmear_SFunc(_eval_dict, _ceval, _jer_sf_tag, syst_tag=None):
@@ -740,8 +765,10 @@ def jet_correction_corrlib(
 
     nano_version = chunk_metadata.get("nano_version", 9)
     rho = get_rho(events, nano_version)
-    # Add variables needed for JEC and JER corrections (e.g. pt_raw, mass_raw, pt_gen, event_rho)
-    jets_jagged = add_jec_variables(jets_jagged, rho, isMC)
+    # Add variables needed for JEC and JER corrections (e.g. pt_raw, mass_raw, pt_gen, event_rho).
+    # JME gen matching for the JER: dR < R/2 on top of the NanoAOD genJetIdx match; -1 = no match.
+    cone = 0.8 if jet_type.startswith("AK8") else 0.4
+    jets_jagged = add_jec_variables(jets_jagged, rho, isMC, gen_match_dr=cone / 2, nomatch_value=-1.0)
 
     if ("event_id" not in jets_jagged.fields) and (apply_jer or jer_syst):
         jets_jagged["event_id"] = ak.ones_like(jets_jagged.pt) * events.event
@@ -777,6 +804,10 @@ def jet_correction_corrlib(
         jets["pt"] = sf_value * jets["pt_raw"]
         jets["mass"] = sf_value * jets["mass_raw"]
 
+    # The pt after the nominal JES is the input of both the JER (resolution, SF, smearing
+    # seed) and the JES uncertainties, as in the JERC reference implementation.
+    eval_dict.update({"JetPt": jets.pt})
+
     # jer central and systematics
     if apply_jer or jer_syst:
         # learned from: https://github.com/cms-nanoAOD/correctionlib/issues/130
@@ -790,7 +821,6 @@ def jet_correction_corrlib(
         # update evaluate dictionary
         eval_dict.update(
             {
-                "JetPt": jets.pt,
                 "GenPt": jets.pt_gen,
                 "EventID": jets.event_id,
             }
@@ -802,7 +832,9 @@ def jet_correction_corrlib(
         jer_ptres = ceval_jer[jer_ptres_tag].evaluate(*inputs_jer_ptres)
         # update evaluate dictionary
         eval_dict.update({"JER": jer_ptres})
-        # adjust pt gen
+        # adjust pt gen: the match is used (scaling method) only if |pt - pt_gen| < 3 sigma pt,
+        # otherwise GenPt = -1 selects the stochastic method in the JERSmear node.
+        # Unmatched jets already carry pt_gen = -1, which stays -1 in both branches.
         eval_dict.update(
             {
                 "GenPt": np.where(
@@ -815,7 +847,8 @@ def jet_correction_corrlib(
         )
         if apply_jer:
             if jer_syst:
-                jersmear, jersmear_up, jersmear_down = get_jersmear_SFunc(eval_dict, ceval_jer, jer_sf_tag, syst_tag=jer_sfunc_tag)
+                jersmear, jersmear_up, jersmear_down = map(
+                    safe_jersmear, get_jersmear_SFunc(eval_dict, ceval_jer, jer_sf_tag, syst_tag=jer_sfunc_tag))
                 # jer nominal
                 jets["pt_jer"] = jets.pt * jersmear
                 jets["mass_jer"] = jets.mass * jersmear
@@ -825,8 +858,8 @@ def jet_correction_corrlib(
                 # jer down
                 jets["pt_JER_down"] = jets.pt * jersmear_down
                 jets["mass_JER_down"] = jets.mass * jersmear_down
-            else: 
-                jersmear = get_jersmear_SFunc(eval_dict, ceval_jer, jer_sf_tag)
+            else:
+                jersmear = safe_jersmear(get_jersmear_SFunc(eval_dict, ceval_jer, jer_sf_tag))
                 jets["pt_jer"] = jets.pt * jersmear
                 jets["mass_jer"] = jets.mass * jersmear
             
@@ -834,10 +867,10 @@ def jet_correction_corrlib(
             jets["pt"] = jets["pt_jer"]
             jets["mass"] = jets["mass_jer"]
 
-    # jes systematics
+    # jes systematics: the uncertainty is evaluated at the pt after the nominal JES
+    # (eval_dict["JetPt"], not the smeared pt) and applied on the smeared pt, so the JES
+    # variations carry the same nominal JER smearing (same random number) as the nominal.
     if jes_syst:
-        # update evaluate dictionary
-        eval_dict.update({"JetPt": jets.pt})
         # loop over all JES variations
         jes_strings = [s[4:] for s in variations if s.startswith("JES")]
         for jes_vari in jes_strings:
