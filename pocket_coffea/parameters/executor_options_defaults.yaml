@@ -39,6 +39,46 @@ condor@lxplus:
   split-by-category: false
   eos-prefix: root://eosuser.cern.ch/
 
+dask@lpc:
+  scaleout: 10
+  cores-per-worker: 1
+  mem-per-worker: "2GB"
+  disk-per-worker: "2GB"
+  worker-image: /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-latest
+  death-timeout: "3600"
+  queue: "microcentury"
+  adaptive: false
+  performance-report: true
+  custom-setup-commands: null
+  conda-env: false
+  local-virtualenv: false
+  dask-scheduler-port: null
+  dask-worker-start-timeout: 600
+  dask-log-directory: null
+  worker-python: "python3"
+
+condor@lpc:
+  cores-per-worker: 1
+  mem-per-worker: "2GB"
+  disk-per-worker: "2GB"
+  queue: "workday"
+  worker-image: /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-latest
+  custom-setup-commands: null
+  conda-env: false
+  local-virtualenv: false
+  max-retries: 3
+  split-by-category: false
+  eos-prefix: root://cmseos.fnal.gov//eos/uscms
+  # Real host directory bind-mounted to /srv inside the apptainer image. Required so
+  # condor@lpc rewrites container /srv/... paths to host paths the schedd/workers can
+  # see. Leave null if you launch outside a container. E.g. /uscms_data/d3/<user>/<dir>.
+  host-path-prefix: null
+  # Extra files the PROCESSOR opens by path at runtime (correction maps, SF JSONs).
+  # LPC execute nodes do not mount the submit filesystem, so these must ride along with
+  # the job. They are staged into the job's scratch dir (the process CWD), so the
+  # analysis config must reference them by BASENAME, not by submit-side path.
+  extra-input-files: []
+
 
 dask@T3_CH_PSI:
   scaleout: 10
