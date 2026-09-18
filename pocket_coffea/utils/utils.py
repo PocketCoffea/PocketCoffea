@@ -7,6 +7,7 @@ import awkward
 import pathlib
 import shutil
 from .configurator import Configurator
+from .metadata import to_bool
 import hashlib
 from numba import njit
 import awkward as ak
@@ -78,17 +79,21 @@ def load_config(cfg, do_load=True, save_config=True, outputdir=None):
     config_module =  path_import(cfg)
     try:
         config = config_module.cfg
-        # Load the configuration
-        if do_load:
-            config.load()
-        if save_config and outputdir is not None:
-            config.save_config(outputdir)
     except AttributeError as e:
         print("Error: ", e)
         raise Exception("The provided configuration module does not contain a `cfg` attribute of type Configurator. Please check your configuration!")
 
     if not isinstance(config, Configurator):
-        raise Exception("The configuration module attribute `cfg` is not of type Configurator. Please check yuor configuration!")
+        raise Exception("The configuration module attribute `cfg` is not of type Configurator. Please check your configuration!")
+
+    # Load/save the configuration OUTSIDE the AttributeError guard above: a
+    # genuine AttributeError raised inside config.load() is a real bug in the
+    # user's config and must surface with its own traceback, not be masked as a
+    # missing `cfg` attribute.
+    if do_load:
+        config.load()
+    if save_config and outputdir is not None:
+        config.save_config(outputdir)
     return config
 
 def adapt_chunksize(nevents, run_options):
@@ -161,7 +166,7 @@ def get_nano_version(events, params, year):
     if "nano_version" in events.metadata:
         nano_version = events.metadata["nano_version"]
     else:
-        if events.metadata.get("isMC", False):
+        if to_bool(events.metadata.get("isMC", False)):
             # Try to extract from the sample name
             if "NanoAODv12" in events.metadata["filename"]:
                 nano_version = 12

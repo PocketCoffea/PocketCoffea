@@ -53,7 +53,7 @@ jet_scale_factors:
             file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,BTV,btagging.json.gz,2026-03-10}
             name: "UParTAK4"
         '2025': 
-            file: ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,BTV,btagging.json.gz,2026-06-18}
+            file: ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,BTV,btagging.json.gz,2026-06-26}
             name: "UParTAK4"            
 
     ctagSF:
@@ -96,7 +96,7 @@ jet_scale_factors:
         Calib_file: "${default_params_dir:}/ctagSF_calibrationSF.json"
         name: "deepJet_shape"
       '2025':
-        SF_file: ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,BTV,ctagging.json.gz,2026-06-18}
+        SF_file: ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,BTV,ctagging.json.gz,2026-06-26}
         Calib_file: "${default_params_dir:}/ctagSF_calibrationSF.json"
         name: "deepJet_shape"      
       
@@ -181,27 +181,31 @@ jet_scale_factors:
             file: ${cvmfs:Run3-22EFGSep23-Summer22EE-NanoAODv12,JME,jetvetomaps.json.gz,2026-06-05}
             name: "Summer22EE_23Sep2023_RunEFG_V1"
         '2023_preBPix':
-            file: ${cvmfs:Run3-23CSep23-Summer23-NanoAODv12,JME,jetvetomaps.json.gz,2026-06-05}
+            file: ${cvmfs:Run3-23CSep23-Summer23-NanoAODv12,JME,jetvetomaps.json.gz,2026-07-15}
             name: "Summer23Prompt23_RunC_V1"
         '2023_postBPix':
-            file: ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,JME,jetvetomaps.json.gz,2026-06-05}
+            file: ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,JME,jetvetomaps.json.gz,2026-07-15}
             name: "Summer23BPixPrompt23_RunD_V1"
         '2024':
-            file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,JME,jetvetomaps.json.gz,2026-06-05}
+            file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,JME,jetvetomaps.json.gz,2026-07-16}
             name: "Summer24Prompt24_RunBCDEFGHI_V1"
         '2025':
-            file: ${cvmfs:Run3-25Prompt-Winter25-NanoAODv15,JME,jetvetomaps.json.gz,2026-06-05}
-            name: "Summer25Prompt25_RunBCDEFGHI_V1"            
+            file: ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,JME,jetvetomaps.json.gz,2026-07-16}
+            name: "Summer24Prompt25_RunCDEFG_V1"
+        '2026':
+            file: ${cvmfs:Run3-26Prompt-Summer24-NanoAODv15,JME,jetvetomaps.json.gz,2026-07-15}
+            name: "Summer24Prompt26_RunBCD_V1"
 
 
     jet_id:
         "2022_preEE": ${cvmfs:Run3-22CDSep23-Summer22-NanoAODv12,JME,jetid.json.gz,2026-06-05}
         "2022_postEE": ${cvmfs:Run3-22EFGSep23-Summer22EE-NanoAODv12,JME,jetid.json.gz,2026-06-05}
-        "2023_preBPix": ${cvmfs:Run3-23CSep23-Summer23-NanoAODv12,JME,jetid.json.gz,2026-06-05}
-        "2023_postBPix": ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,JME,jetid.json.gz,2026-06-05}
-        "2024": ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,JME,jetid.json.gz,2026-06-05}
-        "2025": ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,JME,jetid.json.gz,2026-06-05}        
-        "2016_PreVFP_v15": ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,JME,jetid.json.gz,2026-06-05}
-        "2016_PostVFP_v15": ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,JME,jetid.json.gz,2026-06-05}
-        "2017_v15": ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,JME,jetid.json.gz,2026-06-05}
-        "2018_v15": ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,JME,jetid.json.gz,2026-06-05}
+        "2023_preBPix": ${cvmfs:Run3-23CSep23-Summer23-NanoAODv12,JME,jetid.json.gz,2026-07-15}
+        "2023_postBPix": ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,JME,jetid.json.gz,2026-07-15}
+        "2024": ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,JME,jetid.json.gz,2026-07-16}
+        "2025": ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,JME,jetid.json.gz,2026-07-16}   
+        "2026": ${cvmfs:Run3-26Prompt-Summer24-NanoAODv15,JME,jetid.json.gz,2026-07-15}   
+        "2016_PreVFP_v15": ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,JME,jetid.json.gz,2026-07-16}
+        "2016_PostVFP_v15": ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,JME,jetid.json.gz,2026-07-16}
+        "2017_v15": ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,JME,jetid.json.gz,2026-07-16}
+        "2018_v15": ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,JME,jetid.json.gz,2026-07-16}

@@ -149,6 +149,86 @@ class DaskExecutorFactory(ExecutorFactoryABC):
 #--------------------------------------------------------------------
 # Manual jobs executor
 
+def build_job_script(
+    env_extras,
+    abs_jobdir_path,
+    abs_output_path,
+    copy_command,
+    runnercmd,
+    inner_yaml_basename,
+    split_by_category,
+    cores_per_worker,
+):
+    '''Build the per-job HTCondor wrapper (job.sh) as a string.
+
+    Extracted from ExecutorFactoryCondorCERN.submit_jobs so the generated script can be
+    unit-tested without a live condor submission. The job id is passed to the wrapper as
+    ``$1`` and captured once into ``$JOBID`` so it is available inside ``run_with_retries``
+    (where bare ``$1`` refers to the *function's* first argument — the command string —
+    not the job id, which used to corrupt the flag-file names on copy failure).
+
+    In split-by-category mode the split runs inside the job-local ``output/`` scratch dir
+    (never the shared final dir) and every step is exit-checked, so a split/copy failure
+    marks the job ``.failed`` instead of silently reporting ``.done``.
+    '''
+    if split_by_category:
+        splitcommands = f'''
+    cd output || {{ echo 'cd output failed'; rm $JOBDIR/job_$JOBID.running; touch $JOBDIR/job_$JOBID.failed; exit 1; }}
+    split-output output_all.coffea -b category -o output.coffea || {{ echo 'split-output failed'; rm $JOBDIR/job_$JOBID.running; touch $JOBDIR/job_$JOBID.failed; exit 1; }}
+    rm -f output_all.coffea
+    for f in *.coffea; do
+        run_with_retries "{copy_command} $f {abs_output_path}/${{f%.coffea}}_job_$JOBID.coffea"
+    done
+    cd ..
+'''
+    else:
+        splitcommands = f'run_with_retries "{copy_command} output/output_all.coffea {abs_output_path}/output_job_$JOBID.coffea"'
+
+    script = f"""#!/bin/bash
+{env_extras}
+
+JOBDIR={abs_jobdir_path}
+JOBID="$1"
+
+run_with_retries() {{
+    local cmd="$*"
+    for i in {{1..10}}; do
+        eval "$cmd" && return 0
+        sleep 10
+    done
+    echo "$cmd failed after 10 attempts."
+    rm $JOBDIR/job_$JOBID.running
+    touch $JOBDIR/job_$JOBID.failed
+    exit 1
+}}
+
+rm -f $JOBDIR/job_$JOBID.idle
+
+echo "Starting job $JOBID"
+touch $JOBDIR/job_$JOBID.running
+
+{runnercmd} --cfg $2 -o output EXECUTOR --chunksize $3 --custom-run-options {inner_yaml_basename}
+# Do things only if the job is successful
+if [ $? -eq 0 ]; then
+    echo 'Job successful'
+    {splitcommands}
+    rm $JOBDIR/job_$JOBID.running
+    touch $JOBDIR/job_$JOBID.done
+else
+    echo 'Job failed'
+    rm $JOBDIR/job_$JOBID.running
+    touch $JOBDIR/job_$JOBID.failed
+fi
+echo 'Done'
+"""
+
+    if int(cores_per_worker) > 1:
+        script = script.replace("EXECUTOR", f"--executor futures --scaleout {cores_per_worker}")
+    else:
+        script = script.replace("EXECUTOR", "--executor iterative")
+    return script
+
+
 class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
     def get(self):
         pass
@@ -235,62 +315,18 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
         inner_yaml_path = write_inner_run_options(self.jobs_dir, self.run_options)
         inner_yaml_basename = os.path.basename(inner_yaml_path)
 
-        # Specify output filename to split-output script ->
-        # This will save files such as output_CAT1.coffea, output_CAT2.coffea (remove "_all" from split outputs)...
-        if self.run_options["split-by-category"]:
-            splitcommands = f'''
-    cd {abs_output_path}
-    split-output output_all.coffea -b category -o output.coffea
-    rm output_all.coffea
-    for f in *.coffea; do
-        run_with_retries "{copy_command} $f {abs_output_path}/${{f%.coffea}}_job_$1.coffea"
-    done
-'''
-        else:
-            splitcommands = f'run_with_retries "{copy_command} output/output_all.coffea {abs_output_path}/output_job_$1.coffea"'
+        # Build the per-job wrapper (extracted into build_job_script so it is unit-testable).
+        script = build_job_script(
+            env_extras=env_extras,
+            abs_jobdir_path=abs_jobdir_path,
+            abs_output_path=abs_output_path,
+            copy_command=copy_command,
+            runnercmd=runnercmd,
+            inner_yaml_basename=inner_yaml_basename,
+            split_by_category=self.run_options["split-by-category"],
+            cores_per_worker=self.run_options["cores-per-worker"],
+        )
 
-        script = f"""#!/bin/bash
-{env_extras}
-
-JOBDIR={abs_jobdir_path}
-
-run_with_retries() {{
-    local cmd="$*"
-    for i in {{1..10}}; do
-        eval "$cmd" && return 0
-        sleep 10
-    done
-    echo "$cmd failed after 10 attempts."
-    rm $JOBDIR/job_$1.running
-    touch $JOBDIR/job_$1.failed
-    exit 1
-}}
-
-rm -f $JOBDIR/job_$1.idle
-
-echo "Starting job $1"
-touch $JOBDIR/job_$1.running
-
-{runnercmd} --cfg $2 -o output EXECUTOR --chunksize $3 --custom-run-options {inner_yaml_basename}
-# Do things only if the job is successful
-if [ $? -eq 0 ]; then
-    echo 'Job successful'
-    {splitcommands}
-    rm $JOBDIR/job_$1.running
-    touch $JOBDIR/job_$1.done
-else
-    echo 'Job failed'
-    rm $JOBDIR/job_$1.running
-    touch $JOBDIR/job_$1.failed
-fi
-echo 'Done'
-"""
-        
-        if int(self.run_options["cores-per-worker"]) > 1:
-            script = script.replace("EXECUTOR", f"--executor futures --scaleout {self.run_options['cores-per-worker']}")
-        else:
-            script = script.replace("EXECUTOR", "--executor iterative")
-            
         with open(f"{self.jobs_dir}/job.sh", "w") as f:
             f.write(script)
 
@@ -379,10 +415,16 @@ echo 'Done'
             print(f"[recreate-jobs] Patched {self.jobs_dir}/job.sh to forward "
                   f"{INNER_RUN_OPTIONS_FILENAME} to the inner pocket-coffea run.")
 
+        # Flag-file state lists. Computed unconditionally: they drive `auto` selection
+        # AND are consulted below (whether to clear .failed/.running, whether to bump the
+        # queue) for explicit `--recreate-jobs <ids>` resubmissions too. Previously they
+        # were defined only inside the `auto` branch, so any explicit id list raised
+        # NameError on `job in runningjobs`.
+        failedjobs = [f.replace(".failed","") for f in os.listdir(self.jobs_dir) if f.endswith(".failed")]
+        runningjobs = [f.replace(".running","") for f in os.listdir(self.jobs_dir) if f.endswith(".running")]
+        idlejobs = [f.replace(".idle","") for f in os.listdir(self.jobs_dir) if f.endswith(".idle")]
+
         if jobs_to_recreate == "auto":
-            failedjobs = [f.replace(".failed","") for f in os.listdir(self.jobs_dir) if f.endswith(".failed")]
-            runningjobs = [f.replace(".running","") for f in os.listdir(self.jobs_dir) if f.endswith(".running")]
-            idlejobs = [f.replace(".idle","") for f in os.listdir(self.jobs_dir) if f.endswith(".idle")]
             jobs_to_recreate = failedjobs + runningjobs + idlejobs
             if len(jobs_to_recreate) == 0:
                 print(f"Could not automatically find *.failed/*.running/*.idle files in {self.jobs_dir}. All jobs probably succeeded! Exiting.")

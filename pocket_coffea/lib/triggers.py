@@ -1,5 +1,21 @@
+import logging
 import numpy as np
 import awkward as ak
+
+# Track trigger names already reported as missing so the warning is not emitted
+# once per chunk (this module is imported once per worker process).
+_missing_trigger_warned = set()
+
+
+def remove_trigger_prefix(name, prefix):
+    '''Remove `prefix` from the start of a trigger `name`.
+
+    This is a genuine prefix removal: `str.lstrip(prefix)` must NOT be used because
+    it strips any leading character contained in `prefix` (a character set), which
+    silently mangles trigger names, e.g. ``"HLT_TkMu50".lstrip("HLT_")`` -> ``"kMu50"``.
+    '''
+    return name[len(prefix):] if name.startswith(prefix) else name
+
 
 def apply_trigger_mask(events, triggers_to_apply, year, invert=False, trigger_type="HLT"):
     '''Computes the HLT/L1 trigger mask doing the OR of all the triggers in the list
@@ -26,6 +42,19 @@ def apply_trigger_mask(events, triggers_to_apply, year, invert=False, trigger_ty
         else:
             if trigger in events_trigger.fields:
                 trigger_mask = trigger_mask | events_trigger[trigger]
+            else:
+                # A requested trigger is not present in this NanoAOD file. This can be
+                # legitimate (trigger menu evolution across eras / NanoAOD versions) but
+                # is also how a mistyped or mangled trigger name would silently vanish
+                # from the OR, so surface it loudly (once per name per worker).
+                key = (trigger_type, year, trigger)
+                if key not in _missing_trigger_warned:
+                    _missing_trigger_warned.add(key)
+                    logging.warning(
+                        f"[triggers] {trigger_type} path '{trigger}' (year {year}) not found "
+                        f"in events.{trigger_type} fields; it is skipped in the trigger OR. "
+                        f"Check the trigger name if this is unexpected."
+                    )
 
     if invert:
         trigger_mask = ~trigger_mask
@@ -57,14 +86,15 @@ def get_trigger_mask_byprimarydataset(events, trigger_dict, year, isMC, primaryD
     if primaryDatasets:
         # if primary dataset is passed, take all the requested trigger
         for pd in primaryDatasets:
-            triggers_to_apply += [t.lstrip(trigger_prefix) for t in cfg[pd]]
+            triggers_to_apply += [remove_trigger_prefix(t, trigger_prefix) for t in cfg[pd]]
     else:
         if isMC:
             # If MC take the OR of all primary datasets
             for pd, trgs in cfg.items():
-                triggers_to_apply += [t.lstrip(trigger_prefix) for t in trgs]
+                triggers_to_apply += [remove_trigger_prefix(t, trigger_prefix) for t in trgs]
         else:
             # If Data take only the specific pd
-            triggers_to_apply += [t.lstrip(trigger_prefix) for t in cfg[events.metadata["primaryDataset"]]]
+            triggers_to_apply += [remove_trigger_prefix(t, trigger_prefix) for t in cfg[events.metadata["primaryDataset"]]]
 
+    # trigger_prefix is "HLT_" or "L1_"; stripping the single trailing "_" is unambiguous.
     return apply_trigger_mask(events, triggers_to_apply, year, invert=invert, trigger_type=trigger_prefix.rstrip("_"))

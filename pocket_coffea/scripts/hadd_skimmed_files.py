@@ -118,6 +118,11 @@ def _write_do_hadd_job_splitbyfile_script(path="do_hadd_job_splitbyfile.py"):
 
 
 def do_hadd(group, overwrite=False):
+    # ROOT is imported here (not at module scope) so this function works both in the
+    # local Pool.map path and when it is inherited by worker processes; the previous
+    # code referenced an undefined `R` because `import ROOT as R` was function-local to
+    # hadd_skimmed_files() only.
+    import ROOT as R
     try:
         chain = R.TChain('Events')
         for inputfile in group[1]:
@@ -136,9 +141,11 @@ def do_hadd(group, overwrite=False):
         output_tree.Write()
         output_file.Close()
         return group[0], 0
-    except subprocess.CalledProcessError as e:
+    except Exception as e:
+        # Was `except subprocess.CalledProcessError`, which never matches (this body
+        # uses ROOT, not subprocess), so any real ROOT failure crashed the whole pool.
         print("Error producing group: ", group[0])
-        print(e.stderr)
+        print(e)
         return group[0], 1
 
 @click.command()

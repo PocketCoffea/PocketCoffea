@@ -106,6 +106,9 @@ def append_configs(c1, c2):
 
 def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, replace=False, N_reduction=5, max_mem_gb=None, cache_dir=None, verbose=False, skip_check=False, mark_failed=False, configurator=None, skip_initial_events_check_datasets=None):
     '''Merge coffea output files'''
+    # Initialised so the "no inputs and no -jc" branch below can test it without
+    # NameError (it is only assigned when a jobs_config is provided).
+    job_config = None
     if replace and len(inputfiles) == 0:
         print("[red]--replace only works when merging explicit input files (not with -jc).[/]")
         exit(1)
@@ -156,14 +159,19 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, replace
             print(f"Found {ninput} output files.")
 
         type_mismatches = []
-        f0 = inputfiles[0]
+        # Load the reference file once instead of re-deserializing it for every
+        # comparison (it was reloaded N-1 times, doubling I/O on large campaigns).
+        d0 = load(inputfiles[0])
         for f in inputfiles[1:]:
-            type_mismatch_found = compare_dict_types(load(f0), load(f))
+            type_mismatch_found = compare_dict_types(d0, load(f))
             type_mismatches.append(type_mismatch_found)
         if any(type_mismatches):
             print("[red]Type mismatch found between the values of the input dictionaries for the following files:")
-            for i, f in enumerate(inputfiles):
-                if type_mismatches[i]:
+            # type_mismatches has one entry per file compared against the reference,
+            # i.e. it lines up with inputfiles[1:], not the full inputfiles list
+            # (indexing the full list raised IndexError).
+            for f, mism in zip(inputfiles[1:], type_mismatches):
+                if mism:
                     print(f"    {f}")
             raise TypeError("Type mismatch found between the values of the input dictionaries. Please check the input files.")
         
@@ -194,15 +202,13 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, replace
             total_out =  merge_group_reduction(inputfiles, N_reduction=N_reduction, cachedir=cache_dir,
                                                max_mem_gb=max_mem_gb, verbose=verbose)
 
+        # Explicit-file merges are NOT postprocessed by default: their inputs are
+        # assumed to be already-postprocessed outputs (e.g. per-dataset merged
+        # files). Postprocessing is only needed for raw job outputs, which are
+        # handled by the -jc branch below. Pass -cfg explicitly to postprocess the
+        # merged result with a given configurator.
         if configurator is not None:
             configurators = configurator.split(",")
-        else:
-            configurators = [os.path.dirname(f)+"/configurator.pkl" for f in inputfiles]
-            configurators = list(set(configurators))
-            configurators = [f for f in configurators if os.path.isfile(f)]
-            print(f"Auto-detected {len(configurators)} configurators:",configurators)
-
-        if len(configurators) > 0:
             allconfigurators = None
             for cf in configurators:
                 with open(cf, 'rb') as f:
@@ -210,12 +216,12 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, replace
                 if allconfigurators is None:
                     allconfigurators = thisconfigurator
                 else:
-                    allconfigurators = append_configs(allconfigurators,thisconfigurator)
+                    allconfigurators = append_configs(allconfigurators, thisconfigurator)
 
             print(f"Applying postprocessing...")
             total_out = allconfigurators.processor_instance.postprocess(total_out)
         else:
-            print("No configurators found, no postprocessing applied.")
+            print("No configurator specified (-cfg); merging without postprocessing.")
 
         save(total_out, outputfile)
         print(f"[green]Output saved to {outputfile}")

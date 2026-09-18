@@ -332,7 +332,57 @@ def test_custom_weights_on_data(base_path: Path, monkeypatch: pytest.MonkeyPatch
     H = output["variables"]["nJetGood"]["DATA_SingleMuon"]["DATA_SingleMuon_2018_EraA"]
     assert np.isclose(H[{"cat":"2jets_B"}].values().sum()/ H[{"cat":"2jets_A"}].values().sum(), 2.0)
 
-    
+
+def test_weights_data_subsamples(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
+    # A by-subsample weight configured on a DATA sample must be applied to that
+    # subsample's histograms and exported columns. Two data subsamples select the same
+    # events; only 'wtd' carries a constant weight of 2, so its yield/weight is 2x 'unwtd'.
+    monkeypatch.chdir(base_path / "test_custom_weights")
+    outputdir = tmp_path_factory.mktemp("test_weights_data_subsamples")
+    config = load_config("config_weights_data_subsamples.py", save_config=True, outputdir=outputdir)
+    assert isinstance(config, Configurator)
+
+    run_options = defaults.get_default_run_options()["general"]
+    run_options["limit-files"] = 1
+    run_options["limit-chunks"] = 1
+    run_options["chunksize"] = 500
+    config.filter_dataset(run_options["limit-files"])
+
+    executor_factory = executors_lib.get_executor_factory("iterative",
+                                                          run_options=run_options,
+                                                          outputdir=outputdir)
+    executor = executor_factory.get()
+
+    run = Runner(
+        executor=executor,
+        chunksize=run_options["chunksize"],
+        maxchunks=run_options["limit-chunks"],
+        schema=processor.NanoAODSchema,
+        format="root"
+    )
+    output = run(config.filesets, treename="Events",
+                 processor_instance=config.processor_instance)
+    assert output is not None
+
+    ds = "DATA_SingleMuon_2018_EraA"
+
+    # Histograms: the data fill branch must fold the by-subsample weight.
+    Hw = output["variables"]["nJetGood"]["DATA_SingleMuon__wtd"][ds]
+    Hu = output["variables"]["nJetGood"]["DATA_SingleMuon__unwtd"][ds]
+    sw = Hw[{"cat": "2jets"}].values().sum()
+    su = Hu[{"cat": "2jets"}].values().sum()
+    assert su > 0
+    assert np.isclose(sw / su, 2.0)
+
+    # Columns: the exported per-event weight for the weighted data subsample is 2.0,
+    # and 1.0 for the unweighted one.
+    cw = output["columns"]["DATA_SingleMuon__wtd"][ds]["2jets"]["nominal"]["weight"].value
+    cu = output["columns"]["DATA_SingleMuon__unwtd"][ds]["2jets"]["nominal"]["weight"].value
+    assert len(cw) > 0
+    assert np.allclose(cw, 2.0)
+    assert np.allclose(cu, 1.0)
+
+
 def test_cartesian_categorization(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_categorization" )
     outputdir = tmp_path_factory.mktemp("test_categorization_cartesian")

@@ -249,34 +249,25 @@ class WeightsManager:
         If subsample is not None, the modifiers for the subsample are returned.
         If subsample is None, the modifiers for the overall sample are returned.
         '''
+        # The _available_modifiers_* containers are sets, so they must be combined with
+        # set-union (|), not '+'. The category-specific modifiers are optional: a category
+        # with only inclusive modifiers is valid and returns just those.
         if subsample is None:
             if category is None:
-                return self._available_modifiers_inclusive
-            elif category in self._available_modifiers_bycat:
-                return self._available_modifiers_bycat[category] + self._available_modifiers_inclusive
-            else:
-                raise ValueError(f"Category {category} not available in the WeightsManager")
+                return set(self._available_modifiers_inclusive)
+            return set(self._available_modifiers_inclusive) | set(
+                self._available_modifiers_bycat.get(category, set())
+            )
         else:
             if subsample not in self.weightsConf_subsamples:
                 raise ValueError(f"Subsample {subsample} not available in the WeightsManager")
-            
-            if category is None:
-                return self._available_modifiers_inclusive + \
-                       self._available_modifiers_inclusive_subsamples[subsample]
-            if category:
-                if category not in self._available_modifiers_bycat_subsamples[subsample]:
-                    if category in self._available_modifiers_bycat:
-                        return self._available_modifiers_inclusive + \
-                            self._available_modifiers_bycat[category] + \
-                            self._available_modifiers_inclusive_subsamples[subsample]
-                    
-                elif category in self._available_modifiers_bycat_subsamples[subsample]:
-                    return self._available_modifiers_inclusive + \
-                        self._available_modifiers_bycat[category] + \
-                        self._available_modifiers_bycat_subsamples[subsample][category] + \
-                        self._available_modifiers_inclusive_subsamples[subsample]
-                else:
-                    raise ValueError(f"Category {category} not available in the WeightsManager")
+            mods = set(self._available_modifiers_inclusive) | set(
+                self._available_modifiers_inclusive_subsamples[subsample]
+            )
+            if category is not None:
+                mods |= set(self._available_modifiers_bycat.get(category, set()))
+                mods |= set(self._available_modifiers_bycat_subsamples[subsample].get(category, set()))
+            return mods
 
     def add_weight(self, name, nominal, up=None, down=None, category=None):
         '''
@@ -319,6 +310,10 @@ class WeightsManager:
                     if subsample is None or modifier not in self._installed_modifiers_inclusive_subsamples[subsample]:
                         raise ValueError(
                             f"Modifier {modifier} not available in inclusive category")
+                    # The modifier lives only in the subsample: start from the inclusive
+                    # nominal so the subsample-modified factor below multiplies onto it
+                    # (otherwise overall_weight stays None and the *= below raises).
+                    overall_weight = self._weightsIncl.weight()
 
         elif category and self.weightsConf["is_split_bycat"] == True:
             # Check if this category has a bycategory configuration
@@ -347,7 +342,12 @@ class WeightsManager:
                     if subsample is None or modifier not in self._installed_modifiers_bycat_subsamples[subsample][category]:
                         raise ValueError(
                             f"Modifier {modifier} not available in category {category}")
-                    
+                    # The modifier lives only in the subsample: start from the inclusive
+                    # * bycategory nominal so the subsample-modified factor multiplies onto it.
+                    overall_weight = (
+                        self._weightsIncl.weight() * self._weightsByCat[category].weight()
+                    )
+
         # add subsample specific weights
         if subsample is not None:
             if subsample not in self.weightsConf_subsamples:
@@ -360,18 +360,18 @@ class WeightsManager:
                 # return the inclusive weight for the subsample
                 if modifier == None:
                     # Get the nominal both for the inclusive and the split weights
-                    overall_weight *= self._weightsIncl_subsamples[subsample].weight()
+                    overall_weight = overall_weight *self._weightsIncl_subsamples[subsample].weight()
                 if modifier != None and modifier in self._installed_modifiers_inclusive_subsamples[subsample]:
                     # requesting a modifier but the variation is not defined for the subsample
                     # It should not happen as the histmanager is reading the same config..
-                    overall_weight *= self._weightsIncl_subsamples[subsample].weight(modifier=modifier)
+                    overall_weight = overall_weight *self._weightsIncl_subsamples[subsample].weight(modifier=modifier)
                     # all the other cases should be already checked in the code above
 
             elif category and self.weightsConf_subsamples[subsample]["is_split_bycat"] == True:
                 # Check if this category has a bycategory configuration
                 if modifier == None:
                     # Get the nominal both for the inclusive and the split weights
-                    overall_weight *= ( self._weightsIncl_subsamples[subsample].weight() *
+                    overall_weight = overall_weight *( self._weightsIncl_subsamples[subsample].weight() *
                                         self._weightsByCat_subsamples[subsample][category].weight())
                 else:
                     mod_incl = modifier in self._installed_modifiers_inclusive_subsamples[subsample]
@@ -379,12 +379,12 @@ class WeightsManager:
 
                     if mod_incl and not mod_bycat:
                         # Get the modified inclusive and nominal bycat
-                        overall_weight *= (self._weightsIncl_subsamples[subsample].weight(modifier=modifier) *
+                        overall_weight = overall_weight *(self._weightsIncl_subsamples[subsample].weight(modifier=modifier) *
                                            self._weightsByCat_subsamples[subsample][category].weight())
                         
                     elif not mod_incl and mod_bycat:
                         # Get the nominal by cat and modified inclusive
-                        overall_weight *= ( self._weightsIncl_subsamples[subsample].weight() *
+                        overall_weight = overall_weight *( self._weightsIncl_subsamples[subsample].weight() *
                                             self._weightsByCat_subsamples[subsample][category].weight(modifier=modifier))
                     # We don't need a else here as
                     # if the modifier is not defined without subsample then the code above is already
