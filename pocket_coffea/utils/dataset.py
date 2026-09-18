@@ -1,5 +1,6 @@
 import os
 import sys
+import glob
 import json
 from collections import defaultdict
 
@@ -7,6 +8,7 @@ from multiprocessing import Pool
 from functools import partial
 import subprocess
 import requests
+import uproot
 import parsl
 import uproot
 from parsl import python_app
@@ -54,8 +56,10 @@ def do_dataset(
             },
             sort_replicas=sort_replicas,
         )
-    except:
-        raise Exception(f"Error getting info about dataset: {key}")
+    except Exception as e:
+        print(f"\nERROR: could not build dataset for key '{key}'")
+        print(f"  {e}\n")
+        raise Exception(f"Error getting info about dataset: {key}") from e
 
     return dataset
 
@@ -116,10 +120,11 @@ class Sample:
     def __init__(
         self,
         name,
-        das_names,
         sample,
         metadata,
         sites_cfg,
+        das_names=None,
+        local_files=None,
         sort_replicas: str = "geoip",
         **kwargs,
     ):
@@ -133,11 +138,23 @@ class Sample:
          -- isMC: true/false
          -- era: A/B/C/D (only for data)
         - sites_cfg is a dictionary contaning allowlist, blocklist, prioritylist and regex to filter the SITES
+
+        Either `das_names` (CMS DAS dataset names, queried through DBS/Rucio) or `local_files`
+        (paths/glob-patterns/directories of ROOT files already present on disk) must be provided.
+        When `local_files` is used, nevents and size are extracted directly from the files with uproot,
+        no DAS/Rucio query is performed, and no xrootd prefix is added to the file paths.
         """
+        if bool(das_names) == bool(local_files):
+            raise ValueError(
+                f"Sample {name}: exactly one of `das_names` or `local_files` must be specified."
+            )
         self.name = name
         self.das_names = das_names
+        self.local_files = local_files
+        self.is_local = local_files is not None
         self.metadata = {}
-        self.metadata["das_names"] = das_names
+        if das_names:
+            self.metadata["das_names"] = das_names
         if "dbs_instance" in kwargs.keys():
             self.metadata["dbs_instance"] = kwargs["dbs_instance"]
         self.metadata["sample"] = sample
@@ -150,10 +167,14 @@ class Sample:
         self.sites_cfg = sites_cfg
         self.sort_replicas: str = sort_replicas
 
-        print(
-            f">> Query for sample: {self.metadata['sample']},  das_name: {self.metadata['das_names']}"
-        )
-        self.get_filelist()
+        if self.is_local:
+            print(f">> Reading local files for sample: {self.metadata['sample']}, name: {self.name}")
+            self.get_filelist_local()
+        else:
+            print(
+                f">> Query for sample: {self.metadata['sample']},  das_name: {self.metadata['das_names']}"
+            )
+            self.get_filelist()
 
     def get_filelist(self):
         '''Function to get the dataset filelist from DAS and from Rucio.
@@ -231,8 +252,49 @@ class Sample:
                 
             self.fileslist_concrete += files_replicas
 
+    def get_filelist_local(self):
+        '''Function to build the filelist from local ROOT files, bypassing DAS/Rucio.
+        `local_files` entries can be individual file paths, glob patterns, or directories
+        (which are searched recursively for `*.root` files).
+        nevents and size are extracted directly from the files: nevents by counting the
+        entries of the "Events" tree, size from the file on disk.
+        '''
+        files = []
+        for pattern in self.local_files:
+            pattern = os.path.expanduser(pattern)
+            if os.path.isdir(pattern):
+                files += sorted(glob.glob(os.path.join(pattern, "**", "*.root"), recursive=True))
+            else:
+                matched = sorted(glob.glob(pattern))
+                files += matched if matched else [pattern]
+
+        if len(files) == 0:
+            raise Exception(f"Found 0 local files for sample {self.name} with patterns {self.local_files}!")
+
+        for f in files:
+            f = os.path.abspath(f)
+            if not os.path.exists(f):
+                print(f"\t WARNING: local file not found, skipping: {f}")
+                continue
+            try:
+                with uproot.open(f) as rf:
+                    nevents = rf["Events"].num_entries
+            except Exception as e:
+                print(f"\t WARNING: could not read 'Events' tree from {f}: {e}")
+                continue
+
+            self.metadata["nevents"] += nevents
+            self.metadata["size"] += os.path.getsize(f)
+            self.fileslist_redirector.append(f)
+            self.fileslist_concrete.append(f)
+
+        if len(self.fileslist_concrete) == 0:
+            raise Exception(f"Found 0 valid local files for sample {self.name}!")
+
     # Function to build the sample dictionary
     def get_sample_dict(self, redirector=True, prefix="root://xrootd-cms.infn.it//"):
+        if self.is_local:
+            prefix = ""
         if redirector:
             out = {
                 self.name: {
@@ -253,6 +315,8 @@ class Sample:
         '''Function to get the parent dataset filelist from DAS.
         The parent list is included as an additional metadata in the sample's dict.
         '''
+        if self.is_local:
+            raise Exception(f"Sample {self.name} is built from local files, it has no DAS parent dataset.")
         for das_name in self.das_names:
             command = f'dasgoclient -json -query="parent dataset={das_name}"'
             records = json.load(os.popen(command))
@@ -286,6 +350,8 @@ class Sample:
             return 0
 
     def __repr__(self):
+        if self.is_local:
+            return f"name: {self.name}, sample: {self.metadata['sample']}, local_files: {self.local_files}, year: {self.metadata['year']}"
         return f"name: {self.name}, sample: {self.metadata['sample']}, das_name: {self.metadata['das_names']}, year: {self.metadata['year']}"
 
 
@@ -336,7 +402,8 @@ class Dataset:
                 kwargs = {}
             sample = Sample(
                 name=sname,
-                das_names=scfg["das_names"],
+                das_names=scfg.get("das_names"),
+                local_files=scfg.get("local_files"),
                 sample=self.sample,
                 metadata=scfg["metadata"],
                 sites_cfg=self.sites_cfg,
@@ -350,13 +417,13 @@ class Dataset:
             # Save concrete
             self.sample_dict_concrete.update(sample.get_sample_dict(redirector=False))
 
-            if self.prefix:
+            if self.prefix and not sample.is_local:
                 #  If a storage prefix is specified, save also a local storage file
                 self.sample_dict_local.update(
                     sample.get_sample_dict(redirector=True, prefix=self.prefix)
                 )
 
-            if self.append_parents:
+            if self.append_parents and not sample.is_local:
                 parents_names = sample.get_parentlist()
                 scfg["das_parents_names"] = parents_names
 

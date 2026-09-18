@@ -9,6 +9,8 @@ from copy import deepcopy
 import copy
 import os
 import logging
+import shutil
+import tempfile
 import time
 
 from coffea import processor
@@ -19,7 +21,7 @@ from ..lib.columns_manager import ColumnsManager
 from ..lib.hist_manager import HistManager
 from ..lib.jets import load_jet_factory
 from ..lib.calibrators.calibrators_manager import CalibratorsManager
-from ..utils.skim import uproot_writeable, copy_file, apply_skim_sumgenweights_override
+from ..utils.skim import uproot_writeable, copy_file, apply_skim_sumgenweights_override, skimmed_file_is_complete
 from ..utils.utils import dump_ak_array
 from ..utils.metadata import to_bool
 from ..lib.delayed_eval import DelayedEvalBranchManager
@@ -234,18 +236,34 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             )
             + ".root"
         )
-        with uproot.recreate(f"{filename}", compression=uproot.ZSTD(5)) as fout:
-            fout["Events"] = uproot_writeable(self.events)
-        # copy the file
-        copy_file(
-            filename, "./", self.cfg.save_skimmed_files_folder, subdirs=[self._dataset]
-        )
+        destination = os.path.join(self.cfg.save_skimmed_files_folder, self._dataset, filename)
+        # workflow_options["skim_skip_existing"]: on a resubmission, keep the
+        # metadata (cutflow, sum_genweights, file list) but do not rewrite a
+        # chunk whose file at the destination already has the expected number
+        # of events. A missing, partial or corrupted file is rewritten.
+        skip_existing = (self.workflow_options or {}).get("skim_skip_existing", False)
+        if skip_existing and skimmed_file_is_complete(destination, self.nEvents_after_skim):
+            logging.info(f"[skim] {self._dataset}: {filename} exists with {self.nEvents_after_skim} events, skip write")
+        else:
+            # Write the chunk in a temporary working directory instead of the cwd,
+            # which is often on AFS: TMPDIR (or the HTCondor scratch) points to
+            # node-local storage. copy_file deletes the local file after the copy;
+            # the directory itself is cleaned up here, also on failure.
+            tmpdir = tempfile.mkdtemp(
+                prefix="skim_",
+                dir=os.environ.get("TMPDIR") or os.environ.get("_CONDOR_SCRATCH_DIR"),
+            )
+            try:
+                with uproot.recreate(os.path.join(tmpdir, filename), compression=uproot.ZSTD(5)) as fout:
+                    fout["Events"] = uproot_writeable(self.events)
+                # copy the file
+                copy_file(
+                    filename, tmpdir, self.cfg.save_skimmed_files_folder, subdirs=[self._dataset]
+                )
+            finally:
+                shutil.rmtree(tmpdir, ignore_errors=True)
         # save the new file location for the new dataset definition
-        self.output["skimmed_files"] = {
-            self._dataset: [
-                os.path.join(self.cfg.save_skimmed_files_folder, self._dataset, filename)
-            ]
-        }
+        self.output["skimmed_files"] = {self._dataset: [destination]}
         self.output["nskimmed_events"] = {self._dataset: [self.nEvents_after_skim]}
 
     @abstractmethod
@@ -833,12 +851,14 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
 
         # --- Systematic-aware skimming logic
         if self.cfg.save_skimmed_files and skim_mode == "presel_any_variation":
+            # Keep a reference to the uncalibrated events
+            # Taking a snapshot of the events references before any change, in order to avoid
+            # saving the added collections in the skimmed file. The skimmed file should contain only the original NanoAOD branches.
+            events_after_skim = copy.copy(self.events)  #just a shallow copy of the events reference, not a deep copy of the data
+            pass_any_variation = np.zeros(len(self.events), dtype=bool)
+
             self.process_extra_after_skim()
             self.initialize_calibrators()
-
-            # Keep a reference to the uncalibrated events
-            events_after_skim = self.events
-            pass_any_variation = np.zeros(len(self.events), dtype=bool)
 
             # Dry-run loop to accumulate the OR of preselection masks
             n_variations = 0

@@ -164,7 +164,10 @@ def dump_ak_array(
 def get_nano_version(events, params, year):
     '''Helper function to get the nano version from the events metadata or from the default parameters.'''
     if "nano_version" in events.metadata:
-        nano_version = events.metadata["nano_version"]
+        try:
+            nano_version = int(events.metadata["nano_version"])
+        except:
+            raise("The metadata nano_version needs to be convertible to an integer!")
     else:
         if to_bool(events.metadata.get("isMC", False)):
             # Try to extract from the sample name

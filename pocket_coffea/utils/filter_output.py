@@ -50,7 +50,12 @@ def filter_output_by_category(o, categories):
             for s, _dict in val.items():
                 o_filtered[key][k][s] = {}
                 for sam, hist in _dict.items():
-                    o_filtered[key][k][s][sam] = hist[{'cat' : categories}]
+                    # Variables may be configured for only a subset of the
+                    # analysis categories.  Select the intersection so a
+                    # category block can retain an empty histogram when none
+                    # of its categories apply to this variable.
+                    selected_categories = [cat for cat in categories if cat in hist.axes['cat']]
+                    o_filtered[key][k][s][sam] = hist[{'cat' : selected_categories}]
 
     for key in allkeys:
         o_filtered[key] = o[key]
