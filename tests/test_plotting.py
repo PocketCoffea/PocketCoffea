@@ -8,6 +8,10 @@ import pytest
 from coffea.util import load
 from omegaconf import OmegaConf
 from pocket_coffea.parameters.defaults import get_default_parameters
+from pocket_coffea.utils.cutflow_utils import (
+    plot_cutflow_from_output,
+    plot_sample_cutflow,
+)
 from pocket_coffea.utils.plot_utils import (
     PlotManager,
     Shape,
@@ -109,6 +113,35 @@ class TestHistogramPlotting:
                     / f"{shape_object.name}_{category}.png"
                 )
                 assert plot_path.exists(), f"Plot {plot_path} was not created"
+
+
+# from pocket_coffea.utils.plot_functions import plot_shapes_comparison
+
+# def test_plot_shapes_comparison(self, coffea_output: dict, tmp_path: Path):
+#     """Test plot_shapes_comparison function."""
+#     df = coffea_output["variables"]
+#     var = "ElectronGood_eta"
+#     shapes = [
+#         ("TTTo2L2Nu", "baseline", "2023_postBPix", "nominal", "TT nominal"),
+#         (
+#             "TTTo2L2Nu",
+#             "baseline",
+#             "2023_postBPix",
+#             "AK8PFPuppi_JES_TotalUp",
+#             "TT JES up",
+#         ),
+#         (
+#             "TTTo2L2Nu",
+#             "baseline",
+#             "2023_postBPix",
+#             "AK8PFPuppi_JES_TotalDown",
+#             "TT JES down",
+#         ),
+#     ]
+#     outputfile = str(tmp_path / "shapes_comparison")
+#     fig = plot_shapes_comparison(
+#         df, var, shapes, title="Comparison", outputfile=outputfile
+#     )
 
 
 # UserWarning is raised when the systematic shift is flat.
@@ -260,4 +293,87 @@ class TestDeprecationWarnings:
         with pytest.deprecated_call(match=deprecation_message):
             Style(
                 style_cfg=default_plotting_parameters,
+            )
+
+
+class TestCutflowPlotting:
+    """Test cutflow plotting utilities in cutflow_utils."""
+
+    @pytest.mark.parametrize(
+        "log_y,with_ratio", [(False, False), (False, True), (True, False), (True, True)]
+    )
+    def test_plot_sample_cutflow(
+        self,
+        tmp_path: Path,
+        log_y: bool,
+        with_ratio: bool,
+    ):
+        """Test plot_sample_cutflow for all log_y/with_ratio combinations."""
+        sample = "TTTo2L2Nu"
+        sample_data = {"initial": 300, "skim": 200, "presel": 190, "baseline": 180}
+        categories = list(sample_data.keys())
+        year = "2023_postBPix"
+        datasets_metadata = {
+            f"{sample}_{year}": {
+                "sample": sample,
+                "isMC": True,
+            }
+        }
+
+        output_dir = tmp_path / "sample_cutflow"
+        output_dir.mkdir()
+
+        saved_files = plot_sample_cutflow(
+            sample=sample,
+            sample_data=sample_data,
+            year=year,
+            categories=categories,
+            plot_type="Cutflow",
+            ylabel="Number of Events",
+            log_y=log_y,
+            with_ratio=with_ratio,
+            output_dir=str(output_dir),
+            output_format="png",
+            datasets_metadata=datasets_metadata,
+        )
+
+        if with_ratio:
+            assert len(saved_files) == 2
+        else:
+            assert len(saved_files) == 1
+
+        for name in saved_files:
+            path = output_dir / name
+            assert path.exists(), f"expected plot file {path} was not created"
+
+    # def test_plot_cutflow_from_output(self, tmp_path: Path, coffea_output: dict):
+    #     """Test plot_cutflow_from_output on the full coffea output."""
+    #     output_dir = tmp_path / "cutflow"
+    #     output_dir.mkdir()
+
+    #     saved_files = plot_cutflow_from_output(
+    #         output=coffea_output,
+    #         output_dir=str(output_dir),
+    #     )
+
+    #     for plot_type, filepaths in saved_files.items():
+    #         assert filepaths, f"no {plot_type} plots were created"
+    #         for path in filepaths:
+    #             assert Path(path).exists(), f"plot file {path} was not created"
+
+    def test_plot_sample_cutflow_raises_on_missing_categories(self, tmp_path: Path):
+        """Test that a ValueError is raised when sample_data shares no category."""
+        output_dir = tmp_path / "sample_cutflow"
+        output_dir.mkdir()
+
+        with pytest.raises(ValueError, match="No data found for sample"):
+            plot_sample_cutflow(
+                sample="TTTo2L2Nu",
+                sample_data={"some_other_category": 10},
+                year="2023_postBPix",
+                categories=["initial", "skim", "presel"],
+                plot_type="Cutflow",
+                ylabel="Number of Events",
+                output_dir=str(output_dir),
+                output_format="png",
             )
