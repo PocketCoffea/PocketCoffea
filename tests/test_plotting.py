@@ -1,11 +1,22 @@
 from collections.abc import Callable
 from pathlib import Path
 
+import matplotlib
+import matplotlib.pyplot as plt
+import mplhep as hep
 import pytest
 from coffea.util import load
 from omegaconf import OmegaConf
 from pocket_coffea.parameters.defaults import get_default_parameters
-from pocket_coffea.utils.plot_utils import PlotManager, Shape, Style
+from pocket_coffea.utils.plot_utils import (
+    PlotManager,
+    Shape,
+    Style,
+    build_cms_label_kwargs,
+)
+
+# use non-interactive backend for tests
+matplotlib.use("agg")
 
 
 @pytest.fixture(scope="module")
@@ -23,7 +34,7 @@ def coffea_output():
     return load(output_path)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def default_plotting_parameters():
     """Provide default parameters for plotting tests."""
     return get_default_parameters()["plotting_style"]
@@ -126,6 +137,88 @@ class TestSystematicsPlotting:
                 / f"{shape.name}_{category}_{variation}.png"
             )
             assert plot_path.exists(), f"Plot {plot_path} was not created"
+
+
+class TestBuildCmsLabelKwargs:
+    """Test build_cms_label_kwargs function."""
+
+    def _create_label(self, kwargs: dict):
+        fig, ax = plt.subplots()
+        try:
+            hep.cms.label(ax=ax, **kwargs)
+            assert len(ax.texts) >= 1
+        finally:
+            plt.close(fig)
+
+    def test_default_cms_label_kwargs(self, default_plotting_parameters: dict):
+        """Default parameters in PocketCoffea should be valid for mplhep.cms.label."""
+        style = Style(default_plotting_parameters)
+        # we need a year that exists in the plotting config
+        year = next(iter(style.cms_label.com.keys()))
+        # test is_mc_only=True
+        kwargs = build_cms_label_kwargs(
+            cfg=style.cms_label, is_mc_only=True, year=year, fontsize=style.fontsize
+        )
+        # pass to mplhep.cms.label
+        self._create_label(kwargs)
+
+        # test is_mc_only=False
+        kwargs = build_cms_label_kwargs(
+            cfg=style.cms_label, is_mc_only=False, year=year, fontsize=style.fontsize
+        )
+        # pass to mplhep.cms.label
+        self._create_label(kwargs)
+
+    def test_year_missing_in_lumi_and_com_warning(
+        self, default_plotting_parameters: dict
+    ):
+        style = Style(default_plotting_parameters)
+        style.cms_label.lumi.show = True
+        year = "1642"
+        # this year does not exist in the lumi dict
+        # so a warning should be printed
+        with pytest.warns() as record:
+            kwargs = build_cms_label_kwargs(
+                style.cms_label, is_mc_only=True, year=year, fontsize=style.fontsize
+            )
+
+        assert len(record) == 2
+        assert "not in the 'value' dict of cms_label.lumi" in str(record[0].message)
+        assert "not in 'com' dict of cms_label" in str(record[1].message)
+
+        # check that plotting succeeds
+        self._create_label(kwargs)
+
+    def test_llabel_rlabel(self, default_plotting_parameters: dict):
+        style = Style(default_plotting_parameters)
+        style.cms_label.llabel = "Left Label"
+        style.cms_label.rlabel = "Right Label"
+        year = next(iter(style.cms_label.com.keys()))
+        kwargs = build_cms_label_kwargs(
+            style.cms_label,
+            is_mc_only=True,
+            year=year,
+            fontsize=style.fontsize,
+        )
+        self._create_label(kwargs)
+
+    def test_custom_cms_text(self, default_plotting_parameters: dict):
+        style = Style(default_plotting_parameters)
+        style.cms_label.text = "Custom CMS Text"
+        year = next(iter(style.cms_label.com.keys()))
+        kwargs = build_cms_label_kwargs(
+            style.cms_label, is_mc_only=True, year=year, fontsize=style.fontsize
+        )
+        self._create_label(kwargs)
+
+    def test_supp_kwarg(self, default_plotting_parameters: dict):
+        style = Style(default_plotting_parameters)
+        style.cms_label.text = "Custom CMS Text"
+        year = next(iter(style.cms_label.com.keys()))
+        kwargs = build_cms_label_kwargs(
+            style.cms_label, is_mc_only=True, year=year, fontsize=style.fontsize
+        )
+        self._create_label(kwargs)
 
 
 class TestDeprecationWarnings:

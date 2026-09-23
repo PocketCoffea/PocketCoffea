@@ -28,9 +28,9 @@ np.seterr(divide="ignore", invalid="ignore", over="ignore")
 plotting_style_defaults = get_default_parameters()["plotting_style"]
 
 
-def build_cms_label_kwargs(cfg, is_mc_only: bool, year, fontsize: float) -> dict:
-    '''Build kwargs dict for hep.cms.label from cms_label config.
-    
+def build_cms_label_kwargs(cfg, is_mc_only: bool, year: str, fontsize: float) -> dict:
+    """Build kwargs dict for mplhep.cms.label from cms_label config.
+
     Parameters
     ----------
     cfg : OmegaConf
@@ -38,15 +38,15 @@ def build_cms_label_kwargs(cfg, is_mc_only: bool, year, fontsize: float) -> dict
     is_mc_only : bool
         Whether the sample is MC only (data=False in label)
     year : str
-        The year string
+        year to index the lumi/com dictionary
     fontsize : float
-        Base font size
-        
+        font size passed to mplhep.cms.label
+
     Returns
     -------
     dict
         Dictionary of keyword arguments for hep.cms.label()
-    '''
+    """
     com_cfg = cfg.get("com", {})
     lumi_cfg = cfg.get("lumi", {})
 
@@ -61,19 +61,37 @@ def build_cms_label_kwargs(cfg, is_mc_only: bool, year, fontsize: float) -> dict
         if val is not None:
             label_kwargs[key] = val
 
+    # whether to show year in cms label
     if cfg.get("year", False):
         label_kwargs["year"] = year
 
     # lumi: resolve value and pass if show is enabled
     if lumi_cfg.get("show", False):
         val = lumi_cfg.get("value", {})
-        lumi_val = val.get(year)
-        label_kwargs["lumi"] = lumi_val
         label_kwargs["lumi_format"] = lumi_cfg.get("format", "{0:.1f}")
+        # check if the lumi is specified for the year
+        # if not warn, but do not stop plotting
+        try:
+            label_kwargs["lumi"] = val[year]
+        except KeyError:
+            msg = (
+                f"{year=} not in the 'value' dict of cms_label.lumi, "
+                f"available years are: {list(val.keys())}\n"
+                "Check the plotting_style.yaml configuration."
+            )
+            warn(msg, stacklevel=2)
 
     # com: look up in com dict for this year
     if com_cfg:
-        label_kwargs["com"] = com_cfg.get(year)
+        try:
+            label_kwargs["com"] = com_cfg[year]
+        except KeyError:
+            msg = (
+                f"{year=} not in 'com' dict of cms_label, "
+                f"available years are: {list(com_cfg.keys())}\n"
+                "Check the plotting_style.yaml configuration"
+            )
+            warn(msg, stacklevel=2)
 
     return label_kwargs
 
