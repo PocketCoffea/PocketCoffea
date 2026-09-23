@@ -85,8 +85,6 @@ plotting_style:
 
     print_info:
         category: True
-        year: True
-
 ```
 
 With `labels_mc` and `colors_mc` settings the user can define custom
@@ -112,8 +110,17 @@ that are considered signals.  Then these samples would be also drawn
 as a separate histogram (in addition to the stack MC hist). The
 histogram is rescaled by the number specified.  
 
-The `print_info` options would print a text on the plots for category
-name and the year (era period).
+The `print_info` option accepts the key `category` which if set to `True` will print the category name in the plot.
+
+The `cms_label` options control the CMS label rendered at the top of
+each plot. For details about the arguments see the mplhep documentation (https://mplhep.readthedocs.io/en/latest/api/#mplhep.label.exp_label).
+
+- `text`: label text (default `"Preliminary"`)
+- `loc`: label position
+- `year` (bool=false): if `true`, the year is shown in the label
+- `lumi`:
+    - `show` (bool=false): if `true`, the integrated luminosity is shown in the label
+- `llabel` / `rlabel`: you can overwrite the left and right labels to fully customize them.
 
 In addition, all the default parameters related to the formatting of figures,
 such as `opts_figure`, `opts_data`, `opts_mc`, `opts_sig`, `opts_syst`, `opts_unc` and

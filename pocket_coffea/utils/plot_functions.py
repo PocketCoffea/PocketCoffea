@@ -8,7 +8,6 @@ def plot_shapes_comparison(
     shapes,
     title=None,
     ylog=False,
-    output_folder=None,
     figsize=(8, 9),
     dpi=100,
     lumi_label="$137/fb$ (13 TeV)",
@@ -47,8 +46,8 @@ def plot_shapes_comparison(
     axu.legend()
     axu.set_xlabel('')
     axu.set_ylabel('Events')
-    hep.plot.ylow(axu)
-    hep.plot.yscale_legend(axu)
+    hep.set_ylow(axu)
+    hep.yscale_legend(axu)
 
     # Ratios
     sample, cat, year, variation, label = shapes[0]
@@ -90,7 +89,7 @@ def plot_shapes_comparison(
         )
 
     axd.legend(ncol=3, fontsize='xx-small')
-    hep.plot.yscale_legend(axd, soft_fail=True)
+    hep.yscale_legend(axd, soft_fail=True)
     axd.set_xlabel(nom.axes[0].label)
     axd.set_ylim(0.8 * minratio, 1.2 * maxratio)
     axd.set_ylabel("ratio")

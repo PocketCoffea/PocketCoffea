@@ -11,6 +11,7 @@ import correctionlib
 import correctionlib.convert
 
 from pocket_coffea.parameters.lumi import lumi, femtobarn
+from pocket_coffea.utils.plot_utils import build_cms_label_kwargs, plotting_style_defaults
 
 opts_sf = {
     'nominal': {
@@ -85,11 +86,14 @@ def plot_variation_correctionlib(file, axis_x, systematics, plot_dir, **kwargs):
                 gridspec_kw={"height_ratios": (3, 1)},
                 sharex=True,
             )
-        hep.cms.text("Preliminary", loc=0, ax=ax)
-        hep.cms.lumitext(
-            text=f'{totalLumi}' + r' fb$^{-1}$, 13 TeV,' + f' {kwargs["year"]}',
-            fontsize=18,
+        hep.cms.label(
             ax=ax,
+            **build_cms_label_kwargs(
+                plotting_style_defaults.get("cms_label", {}),
+                is_mc_only=False,
+                year=kwargs["year"],
+                fontsize=18,
+            ),
         )
         binwidth_x = np.ediff1d(edges_x)
         x = edges_x[:-1] + 0.5 * binwidth_x
