@@ -56,8 +56,10 @@ def do_dataset(
             },
             sort_replicas=sort_replicas,
         )
-    except:
-        raise Exception(f"Error getting info about dataset: {key}")
+    except Exception as e:
+        print(f"\nERROR: could not build dataset for key '{key}'")
+        print(f"  {e}\n")
+        raise Exception(f"Error getting info about dataset: {key}") from e
 
     return dataset
 

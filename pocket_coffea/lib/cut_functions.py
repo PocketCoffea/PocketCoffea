@@ -335,6 +335,9 @@ def nBtagMin(events, params, year, processor_params, **kwargs):
     '''Mask for min N jets with minpt and passing btagging.
     The btag params will come from the processor, not from the parameters
     '''
+    # Local import to avoid the circular import chain
+    # configurator -> cuts -> cut_functions -> jets -> utils -> configurator
+    from .jets import get_btag_wp_threshold
     if params["coll"] == "BJetGood":
         # No need to apply the btaggin on the jet
         # Assume that the collection of clean bjets has been created
@@ -351,7 +354,7 @@ def nBtagMin(events, params, year, processor_params, **kwargs):
                 ak.sum(
                     (
                         events[params["coll"]][btagparam["btagging_algorithm"]]
-                        > btagparam["btagging_WP"][params["wp"]]
+                        > get_btag_wp_threshold(btagparam, params["wp"])
                     )
                     & (events[params["coll"]].pt >= params["minpt"]),
                     axis=1,
@@ -363,7 +366,7 @@ def nBtagMin(events, params, year, processor_params, **kwargs):
                 ak.sum(
                     (
                         events[params["coll"]][btagparam["btagging_algorithm"]]
-                        > btagparam["btagging_WP"][params["wp"]]
+                        > get_btag_wp_threshold(btagparam, params["wp"])
                     ),
                     axis=1,
                 )
@@ -375,6 +378,9 @@ def nBtagEq(events, params, year, processor_params, **kwargs):
     '''Mask for == N jets with minpt and passing btagging.
     The btag params will come from the processor, not from the parameters
     '''
+    # Local import to avoid the circular import chain
+    # configurator -> cuts -> cut_functions -> jets -> utils -> configurator
+    from .jets import get_btag_wp_threshold
     if params["coll"] == "BJetGood":
         # No need to apply the btaggin on the jet
         # Assume that the collection of clean bjets has been created
@@ -391,7 +397,7 @@ def nBtagEq(events, params, year, processor_params, **kwargs):
                 ak.sum(
                     (
                         events[params["coll"]][btagparam["btagging_algorithm"]]
-                        > btagparam["btagging_WP"][params["wp"]]
+                        > get_btag_wp_threshold(btagparam, params["wp"])
                     )
                     & (events[params["coll"]].pt >= params["minpt"]),
                     axis=1,
@@ -403,7 +409,7 @@ def nBtagEq(events, params, year, processor_params, **kwargs):
                 ak.sum(
                     (
                         events[params["coll"]][btagparam["btagging_algorithm"]]
-                        > btagparam["btagging_WP"][params["wp"]]
+                        > get_btag_wp_threshold(btagparam, params["wp"])
                     ),
                     axis=1,
                 )

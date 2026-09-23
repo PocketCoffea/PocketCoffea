@@ -1,4 +1,5 @@
 import os
+import logging
 import pathlib
 import shutil
 import json
@@ -24,13 +25,20 @@ def uproot_writeable(events):
     out = {}
     for bname in events.fields:
         if events[bname].fields:
-            out[bname] = ak.zip(
-                {
-                    n: ak.packed(ak.without_parameters(events[bname][n]))
-                    for n in events[bname].fields
-                    if is_rootcompat(events[bname][n])
-                }
-            )
+            b = {
+                n: ak.packed(ak.without_parameters(events[bname][n]))
+                for n in events[bname].fields
+                if is_rootcompat(events[bname][n])
+            }
+            if not b:
+                # A collection whose fields are all option/union typed (e.g. a
+                # derived collection built with ak.mask/pad_none/concatenate)
+                # has no ROOT-writable content, and ak.zip({}) raises IndexError.
+                logging.warning(
+                    f"uproot_writeable: skipping branch '{bname}': no ROOT-compatible field"
+                )
+                continue
+            out[bname] = ak.zip(b)
         else:
             out[bname] = ak.packed(ak.without_parameters(events[bname]))
     return out
@@ -84,6 +92,18 @@ def copy_file(
         assert os.path.isfile(destination)
     pathlib.Path(local_file).unlink()
 
+
+def skimmed_file_is_complete(path: str, nevents: int) -> bool:
+    '''True if `path` (local or root://) can be opened and its Events tree has
+    exactly `nevents` entries. Any error (missing, partial or corrupted file)
+    returns False so that the caller rewrites the file.'''
+    import uproot
+    try:
+        with uproot.open(path) as f:
+            return f["Events"].num_entries == nevents
+    except Exception as err:
+        logging.info(f"skimmed_file_is_complete: cannot validate {path}: {err}")
+        return False
 
 
 def apply_skim_sumgenweights_override(accumulator, filesets):

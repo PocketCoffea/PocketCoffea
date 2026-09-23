@@ -416,7 +416,7 @@ def test_shape_variation_default_sequence_comparison_with_legacy_run2(base_path:
     jet_pt_MC = ref_output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2018"]["baseline"]["Jet_pt"].value
     jet_pt = output["columns"]["TTTo2L2Nu"]["TTTo2L2Nu_2018"]["baseline"]["nominal"]["Jet_pt"].value
     # The reference is regenerated with the default sequence, which re-sorts the nominal
-    # jets by the corrected pt (see regenerate_run2_reference.py), so this is an
+    # jets by the corrected pt (see regenerate_references.py), so this is an
     # order-sensitive comparison.
     assert np.allclose(jet_pt, jet_pt_MC), "Jet pt values do not match with the reference output"
     # Check MET in MC
@@ -460,8 +460,6 @@ def test_shape_variation_default_sequence_comparison_with_legacy_run2(base_path:
     # assert H.axes["variation"].value(1) == "AK4PFchs_JES_TotalUp"
     # assert H.axes["variation"].value(2) == "nominal"
 
-# Skip test as the lumi changes and the test becomes unstable, need to update the reference file with the new lumi and recheck the output
-@pytest.mark.skip
 def test_shape_variation_default_sequence_comparison_with_legacy_run3(base_path: Path, monkeypatch: pytest.MonkeyPatch, tmp_path_factory):
     monkeypatch.chdir(base_path / "test_shape_variations")
     if os.path.exists("jets_calibrator_JES_JER_Syst.pkl.gz"):

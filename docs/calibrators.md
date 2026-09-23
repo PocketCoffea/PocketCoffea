@@ -36,8 +36,8 @@ class YourCalibrator(Calibrator):
 
 ### Required Methods
 
-#### Constructor `__init__(self, params, metadata, **kwargs)`
-Called to initialize the Calibrator and store necessary metadata for easy later usage. 
+#### Constructor `__init__(self, params, metadata, do_variations, **kwargs)`
+Called to initialize the Calibrator and store necessary metadata for easy later usage. `do_variations` tells the calibrator whether its variations are requested for the current chunk (set by the `CalibratorsManager`, based on the configuration).
 
 #### `initialize(events)`
 Called once per chunk to prepare calibration data:
@@ -72,25 +72,41 @@ def calibrate(
 
 ## Built-in Calibrators
 
-PocketCoffea provides several ready-to-use calibrators:
+PocketCoffea provides several ready-to-use calibrators in `pocket_coffea.lib.calibrators.common`:
 
 ### JetsCalibrator
 - **Name**: `"jet_calibration"`
-- **Purpose**: Applies Jet Energy Corrections (JEC) and Jet Energy Resolution (JER)
-- **Collections**: `["Jet", "FatJet"]`
-- **Variations**: JEC and JER uncertainties (e.g., `"jet_jecUp"`, `"jet_jerDown"`)
+- **Purpose**: Applies Jet Energy Corrections (JEC) and Jet Energy Resolution (JER) smearing. If pT regression is requested for a jet type (`apply_pt_regr_MC`/`apply_pt_regr_Data`), it is applied first, before the JEC.
+- **Collections**: Configurable. Every jet collection listed in `jets_calibration.collection[year]` (e.g. `Jet`, `FatJet`) that has `apply_jec_MC`/`apply_jec_Data` enabled for its jet type is calibrated.
+- **Variations**: One `"{jet_type}_{source}Up"` / `"{jet_type}_{source}Down"` pair per entry configured in `jets_calibration.variations[jet_type][year]` (e.g. `"AK4PFchs_jecUp"`, `"AK4PFchs_jerDown"`).
+
+### JetsSoftdropMassCalibrator
+- **Name**: `"msoftdrop_calibration"`
+- **Purpose**: Applies the JEC to the softdrop mass of AK8 (`AK8PFPuppi`) jets, using the corresponding AK4 subjet corrections.
+- **Collections**: `["FatJet.msoftdrop"]`
+- **Variations**: Not yet implemented for the softdrop mass (only the nominal correction is available).
+- **Note**: Not part of `default_calibrators_sequence`; add it explicitly to your calibrator sequence if softdrop mass calibration is needed.
 
 ### METCalibrator
-- **Name**: `"met_rescaling"`
-- **Purpose**: Propagates jet corrections to Missing Energy (MET)
-- **Collections**: `["MET.pt", "MET.phi"]` (configurable)
-- **Dependencies**: Must run after JetsCalibrator
+- **Name**: `"met_type1_calibration"`
+- **Purpose**: Recomputes Type-1 corrected MET starting from the raw MET, propagating the jet corrections and, if they ran earlier in the sequence, the electron/muon scale and smearing corrections.
+- **Collections**: `["MET.pt", "MET.phi"]` or `["PuppiMET.pt", "PuppiMET.phi"]`, depending on `met_calibration.MET_collection`
+- **Variations**: `"unclust_EnUp"`, `"unclust_EnDown"` (unclustered energy variations)
+- **Dependencies**: Must run after `JetsCalibrator`, and after any electron/muon calibrators whose corrections should be propagated to the MET (it compares the original and calibrated `Electron.pt`/`Muon.pt` to do so)
 
 ### ElectronsScaleCalibrator
 - **Name**: `"electron_scale_and_smearing"`
-- **Purpose**: Applies electron energy scale and resolution corrections
+- **Purpose**: Applies electron energy scale (data) and resolution smearing (MC) corrections
 - **Collections**: `["Electron.pt", "Electron.pt_original"]`
 - **Variations**: `"ele_scaleUp/Down"`, `"ele_smearUp/Down"` (MC only)
+
+### MuonsCalibrator
+- **Name**: `"muons_scale_and_resolution"`
+- **Purpose**: Applies muon momentum scale and resolution corrections
+- **Collections**: `["Muon.pt", "Muon.pt_original", "Muon.energyErr"]`
+- **Variations**: `"muon_scaleUp/Down"`, `"muon_smearUp/Down"` (MC only)
+
+`default_calibrators_sequence` runs these in the order `[JetsCalibrator, ElectronsScaleCalibrator, MuonsCalibrator, METCalibrator]` (`JetsSoftdropMassCalibrator` is not included).
 
 ## Configuration
 
@@ -200,8 +216,8 @@ class MyCustomCalibrator(Calibrator):
     isMC_only = False
     calibrated_collections = ["MyObject.pt", "MyObject.mass"]
 
-    def __init__(self, params, metadata, **kwargs):
-        super().__init__(params, metadata, **kwargs)
+    def __init__(self, params, metadata, do_variations, **kwargs):
+        super().__init__(params, metadata, do_variations, **kwargs)
         # Access configuration
         self.my_config = self.params.my_calibrator_config
 
@@ -274,13 +290,11 @@ class AdvancedCalibrator(Calibrator):
 
 ### Variation Naming Convention
 
-Systematic variations should follow the pattern: `"{source}_{direction}"` where:
-- `source`: describes the uncertainty source (e.g., "jec", "jer", "ele_scale")
-- `direction`: either "Up" or "Down"
+Systematic variations should follow the pattern: `"{source}Up"` / `"{source}Down"` where `source` describes the uncertainty source (e.g., "AK4PFchs_jec", "AK4PFchs_jer", "ele_scale").
 
 Examples:
-- `"jet_jecUp"`, `"jet_jecDown"`
-- `"ele_scaleUp"`, `"ele_scaleDown"`
+- `"AK4PFchs_jecUp"`, `"AK4PFchs_jerDown"` (from `JetsCalibrator`)
+- `"ele_scaleUp"`, `"ele_scaleDown"` (from `ElectronsScaleCalibrator`)
 
 ### Configuration in Analysis
 
@@ -324,7 +338,7 @@ def initialize_calibrators(self):
         self.events,
         self.params,
         self._metadata,
-        jme_factory=self.jmefactory,  # Additional arguments passed to calibrators
+        requested_calibrator_variations=self.cfg.available_shape_variations[self._sample],
     )
 ```
 

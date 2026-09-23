@@ -515,6 +515,15 @@ In default `"skim"` mode the skim is a pure "drop obviously useless events" stag
 look at branches that exist before any object correction. This is the standard recipe and what the rest of the
 documentation assumes.
 
+#### Resubmitting a partially failed skim
+
+Set `workflow_options={"skim_skip_existing": True}` to skip the ROOT write and copy of a chunk whose output file
+already exists at the destination with the expected number of events (the file is opened with uproot, also through
+XRootD; a missing, partial or corrupted file is rewritten). The chunk is still fully processed, so the cutflow,
+`sum_genweights` and the skimmed dataset definition are complete. Use it only when you resubmit the **same** config
+with the **same** chunksize: the output filename is built from the input file uuid and the chunk entry range, so a
+different chunksize produces new files and the old ones are stale.
+
 #### `skim_mode: "presel_any_variation"`
 
 The variation-aware mode lets you push the skim much closer to the analysis preselection without losing events that

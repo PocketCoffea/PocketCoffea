@@ -25,18 +25,20 @@ jet_scale_factors:
         '2018':
             file: ${cvmfs:Run2-2018-UL-NanoAODv9,BTV,btagging.json.gz,2025-08-19}
             name: "deepJet_shape"
+        # Run3 default b-tagger is btagPNetB (see btagging.yaml), so the shape SF
+        # must be the matching ParticleNet one, evaluated on the same discriminant.
         '2022_preEE':
             file: ${cvmfs:Run3-22CDSep23-Summer22-NanoAODv12,BTV,btagging.json.gz,2025-08-20}
-            name: "deepJet_shape"
+            name: "particleNet_shape"
         '2022_postEE':
             file: ${cvmfs:Run3-22EFGSep23-Summer22EE-NanoAODv12,BTV,btagging.json.gz,2025-08-20}
-            name: "deepJet_shape"
+            name: "particleNet_shape"
         '2023_preBPix':
             file: ${cvmfs:Run3-23CSep23-Summer23-NanoAODv12,BTV,btagging.json.gz,2025-08-20}
-            name: "deepJet_shape"
+            name: "particleNet_shape"
         '2023_postBPix':
             file: ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,BTV,btagging.json.gz,2025-08-20}
-            name: "deepJet_shape"
+            name: "particleNet_shape"
         '2024': 
             file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,BTV,btagging.json.gz,2026-03-10}
             name: "UParTAK4"

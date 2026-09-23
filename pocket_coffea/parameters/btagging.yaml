@@ -70,13 +70,28 @@ btagging:
     '2022_preEE':
       reference:
         btagging_WP: https://btv-wiki.docs.cern.ch/ScaleFactors/Run3Summer22/#ak4-b-tagging
-      btagging_algorithm: btagDeepFlavB
+      btagging_algorithm: btagPNetB
+      # Working points are indexed per tagger: select the discriminant via
+      # `btagging_algorithm` (or explicitly) and look it up under btagging_WP.
       btagging_WP:
-        L: 0.0583
-        M: 0.3086
-        T: 0.7183
-        XT: 0.8111
-        XXT: 0.9512
+        btagDeepFlavB:
+          L: 0.0583
+          M: 0.3086
+          T: 0.7183
+          XT: 0.8111
+          XXT: 0.9512
+        btagPNetB:
+          L: 0.047
+          M: 0.245
+          T: 0.6734
+          XT: 0.7862
+          XXT: 0.961
+        btagRobustParTAK4B:
+          L: 0.0849
+          M: 0.4319
+          T: 0.8482
+          XT: 0.9151
+          XXT: 0.9874
       bbtagging_algorithm: btagDDBvL
       bbtagging_WP: 0.86
       bbtagSF_DDBvL_M1_loPt: 0.81
@@ -88,13 +103,31 @@ btagging:
     '2022_postEE':
       reference:
         btagging_WP: https://btv-wiki.docs.cern.ch/ScaleFactors/Run3Summer22EE/
-      btagging_algorithm: btagDeepFlavB
+      btagging_algorithm: btagPNetB
+      # Working points are indexed per tagger.
       btagging_WP:
-        L: 0.0614
-        M: 0.3196
-        T: 0.7300
-        XT: 0.8184
-        XXT: 0.9542
+        btagDeepFlavB:
+          L: 0.0614
+          M: 0.3196
+          T: 0.7300
+          XT: 0.8184
+          XXT: 0.9542
+        btagPNetB:
+          L: 0.0499
+          M: 0.2605
+          T: 0.6915
+          XT: 0.8033
+          XXT: 0.9664
+        btagRobustParTAK4B:
+          L: 0.0897
+          M: 0.451
+          T: 0.8604
+          XT: 0.9234
+          XXT: 0.9893
+        btagBB:
+          MP: 0.95
+          HP: 0.975
+          VHP: 0.99
       bbtagging_algorithm: btagDDBvL
       bbtagging_WP: 0.86
       bbtagSF_DDBvL_M1_loPt: 0.81
@@ -106,13 +139,27 @@ btagging:
     '2023_preBPix':
       reference:
         btagging_WP: https://btv-wiki.docs.cern.ch/ScaleFactors/Run3Summer23/
-      btagging_algorithm: btagDeepFlavB
+      btagging_algorithm: btagPNetB
+      # Working points are indexed per tagger.
       btagging_WP:
-        L: 0.0479
-        M: 0.2431
-        T: 0.6553
-        XT: 0.7667
-        XXT: 0.9459
+        btagDeepFlavB:
+          L: 0.0479
+          M: 0.2431
+          T: 0.6553
+          XT: 0.7667
+          XXT: 0.9459
+        btagPNetB:
+          L: 0.0358
+          M: 0.1917
+          T: 0.6172
+          XT: 0.7515
+          XXT: 0.9659
+        btagRobustParTAK4B:
+          L: 0.0681
+          M: 0.3487
+          T: 0.7969
+          XT: 0.8882
+          XXT: 0.9883
       bbtagging_algorithm: btagDDBvL
       bbtagging_WP: 0.86
       bbtagSF_DDBvL_M1_loPt: 0.81
@@ -124,13 +171,27 @@ btagging:
     '2023_postBPix':
       reference:
         btagging_WP: https://btv-wiki.docs.cern.ch/ScaleFactors/Run3Summer23BPix/
-      btagging_algorithm: btagDeepFlavB
+      btagging_algorithm: btagPNetB
+      # Working points are indexed per tagger.
       btagging_WP:
-        L: 0.048
-        M: 0.2435
-        T: 0.6563
-        XT: 0.7671
-        XXT: 0.9483
+        btagDeepFlavB:
+          L: 0.048
+          M: 0.2435
+          T: 0.6563
+          XT: 0.7671
+          XXT: 0.9483
+        btagPNetB:
+          L: 0.0359
+          M: 0.1919
+          T: 0.6133
+          XT: 0.7544
+          XXT: 0.9688
+        btagRobustParTAK4B:
+          L: 0.0683
+          M: 0.3494
+          T: 0.7994
+          XT: 0.8877
+          XXT: 0.9883
       bbtagging_algorithm: btagDDBvL
       bbtagging_WP: 0.86
       bbtagSF_DDBvL_M1_loPt: 0.81
@@ -159,3 +220,10 @@ btagging:
         T: 0.4648
         XT: 0.6298
         XXT: 0.9739
+  # Map NanoAOD b-tag discriminant branch -> BTV correctionlib correction name that
+  # stores its working-point cut values (evaluated with WP name "L"/"M"/"T"/...).
+  btag_wp_values_map:
+    btagDeepFlavB: deepJet_wp_values
+    btagPNetB: particleNet_wp_values
+    btagRobustParTAK4B: robustParticleTransformer_wp_values
+    btagUParTAK4B: UParTAK4_wp_values

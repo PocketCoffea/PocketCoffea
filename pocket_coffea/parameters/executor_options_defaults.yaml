@@ -4,7 +4,7 @@ general:
   limit-files: null
   limit-chunks: null
   retries: 10
-  tree-reduction: 20
+  tree-reduction: 10
   skip-bad-files: false
   voms-proxy: null
   ignore-grid-certificate: false
@@ -72,6 +72,7 @@ parsl@RWTH:
   conda-env: true
   cores-per-worker: 1
   walltime: "6:00:00"
+  retries: 3
   worker-debug: false
   tree-reduction: 4
 
@@ -85,39 +86,41 @@ dask@RWTH:
   walltime: "6:00:00"
   adaptive: false
   sched-url: null
+  retries: 3
   tree-reduction: 4
 
 parsl@CLAIX:
   scaleout: 20
-  mem-per-worker: 4
+  cores-per-worker: 1
+  mem-per-worker: 5  
+  queue: "c23mm"
+  walltime: "6:00:00"
   logs-dir: logs_parsl
   local-virtualenv: false
   conda-env: true
-  cores-per-worker: 1
-  walltime: "6:00:00"
   worker-debug: false
+  retries: 3  
   tree-reduction: 4
-  slurm:
-    partition: "c23ms"       # CLAIX partition
-    account: null            # fill if your project needs it
-    scheduler-options: |
-      #SBATCH --cpus-per-task=1
-      #SBATCH --mem=4G
-      #SBATCH --ntasks-per-node=1
-      #SBATCH --constraint=zen4
+  account: null
+  #scheduler-options: |
+  #      SBATCH --ntasks-per-node=1
+  #      SBATCH --constraint=zen4
 
 dask@CLAIX:
   scaleout: 10
   cores-per-worker: 1
-  mem-per-worker: "2GB"
+  mem-per-worker: "5GB"
   disk-per-worker: "2GB"
-  queue: "c23ms"
+  queue: "c23mm"
   walltime: "6:00:00"
   adaptive: false
   performance-report: false
   custom-setup-commands: null
   conda-env: true
   local-virtualenv: false
+  retries: 3
+  tree-reduction: 4
+  account: null
 
 dask@brux:
   scaleout: 336
