@@ -540,6 +540,137 @@ class JetsSoftdropMassCalibrator(Calibrator):
    
         return out
 
+
+###########################################
+class HEM2018Calibrator(Calibrator):
+    """Apply the one-sided 2018 HEM jet-response variation to simulated events."""
+
+    name = "HEM2018"
+    has_variations = True
+    isMC_only = True
+    calibrated_collections = ["Jet"]
+
+    def __init__(self, params, metadata, do_variations, **kwargs):
+        super().__init__(
+            params,
+            metadata,
+            do_variations,
+            **kwargs,
+        )
+
+        self._year = metadata["year"]
+        self._isMC = metadata["isMC"]
+
+        if self.do_variations and self._isMC and self._year == "2018":
+            self._variations = [
+                "HEM2018Up",
+                "HEM2018Down",
+            ]
+        else:
+            self._variations = []
+
+    def initialize(self, events):
+        pass
+
+    def calibrate(
+        self,
+        events,
+        orig_colls,
+        variation,
+        already_applied_calibrators=None,
+    ):
+        jets = copy.copy(events.Jet)
+
+        if JET_SORTIDX_FIELD in jets.fields:
+            original_sortidx = jets[JET_SORTIDX_FIELD]
+        else:
+            original_sortidx = ak.local_index(jets.pt, axis=1)
+
+        if (
+            not self._isMC
+            or self._year != "2018"
+            or variation != "HEM2018Down"
+        ):
+            if JET_SORTIDX_FIELD not in jets.fields:
+                jets = ak.with_field(
+                    jets,
+                    original_sortidx,
+                    JET_SORTIDX_FIELD,
+                )
+
+            return {"Jet": jets}
+
+        tight_jet_id = jets.jetId >= 2
+
+        common_mask = (
+            (jets.pt > 15.0)
+            & tight_jet_id
+            & (jets.phi > -1.57)
+            & (jets.phi < -0.87)
+        )
+
+        hem_20 = (
+            common_mask
+            & (jets.eta > -2.5)
+            & (jets.eta < -1.3)
+        )
+
+        hem_35 = (
+            common_mask
+            & (jets.eta > -3.0)
+            & (jets.eta < -2.5)
+        )
+
+        scale = ak.ones_like(jets.pt)
+        scale = ak.where(hem_20, 0.80, scale)
+        scale = ak.where(hem_35, 0.65, scale)
+
+        old_pt = jets.pt
+        shifted_pt = old_pt * scale
+        shifted_mass = jets.mass * scale
+
+        jets = ak.with_field(jets, shifted_pt, "pt")
+        jets = ak.with_field(jets, shifted_mass, "mass")
+
+        shifted_raw_factor = ak.where(
+            shifted_pt != 0,
+            1.0 - jets.pt_raw / shifted_pt,
+            0.0,
+        )
+        jets = ak.with_field(
+            jets,
+            shifted_raw_factor,
+            "rawFactor",
+        )
+
+        if "L1FastJetFactor" in jets.fields:
+            shifted_l1_factor = ak.where(
+                shifted_pt != 0,
+                jets.L1FastJetFactor * old_pt / shifted_pt,
+                jets.L1FastJetFactor,
+            )
+            jets = ak.with_field(
+                jets,
+                shifted_l1_factor,
+                "L1FastJetFactor",
+            )
+
+        new_sortidx = ak.argsort(
+            jets.pt,
+            axis=1,
+            ascending=False,
+        )
+        jets = jets[new_sortidx]
+
+        composed_sortidx = original_sortidx[new_sortidx]
+        jets = ak.with_field(
+            jets,
+            composed_sortidx,
+            JET_SORTIDX_FIELD,
+        )
+
+        return {"Jet": jets}
+
 ###########################################
 class METCalibrator(Calibrator):
 
@@ -997,5 +1128,9 @@ class MuonsCalibrator(Calibrator):
 
 #########################################
 default_calibrators_sequence = [
-    JetsCalibrator, ElectronsScaleCalibrator, MuonsCalibrator, METCalibrator
+    JetsCalibrator,
+    HEM2018Calibrator,
+    ElectronsScaleCalibrator,
+    MuonsCalibrator,
+    METCalibrator,
 ]
