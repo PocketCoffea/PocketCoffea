@@ -212,7 +212,7 @@ def get_ele_smeared(mc_ele, jsonFileName,correction_name, isMC, only_nominal=Tru
                 "down": mc_ele_pt_down}
 
 
-def lepton_selection(events, lepton_flavour, params):
+def lepton_selection(events, lepton_flavour, params, return_mask=False):
 
     leptons = events[lepton_flavour]
     cuts = params.object_preselection[lepton_flavour]
@@ -239,7 +239,11 @@ def lepton_selection(events, lepton_flavour, params):
         good_leptons = passes_eta & passes_pt & passes_iso & passes_id
     else:
         raise ValueError(f"Lepton flavour {lepton_flavour} not supported for selection")
-    return leptons[good_leptons]
+
+    if return_mask:
+        return leptons[good_leptons], good_leptons
+    else:
+        return leptons[good_leptons]
 
 
 def lepton_selection_promptMVA(events, lepton_flavour, params, year, 
