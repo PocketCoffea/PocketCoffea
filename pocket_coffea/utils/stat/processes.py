@@ -68,11 +68,13 @@ class DataProcess(Process):
     :param samples: Iterable of sample names associated with the process
     :param years: Iterable of years the process is relevant for
     :param label: Label for the process, defaults to `name` if not specified
+    :param round_counts: Flag to indicate if counts should be rounded to integers, defaults to False
 
     Inherits from Process and sets is_data to True by default.
     """
 
     years: Iterable
+    round_counts: bool = False
 
     def __post_init__(self):
         self.is_data = True
