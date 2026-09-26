@@ -2,7 +2,9 @@ import os
 import yaml
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
+from statistics import median
 from coffea import processor as coffea_processor
+from pocket_coffea.utils.benchmarking import load_sample_throughputs
 from pocket_coffea.utils.network import get_proxy_path
 from rich import print
 from rich.table import Table
@@ -58,69 +60,16 @@ def write_inner_run_options(jobs_dir, run_options, whitelist=INNER_RUN_OPTIONS_W
     return yaml_path
 
 
-def ensure_job_sh_forwards_inner_yaml(job_sh_path,
-                                     yaml_filename=INNER_RUN_OPTIONS_FILENAME):
-    """Idempotently rewrite `job.sh` so the inner pocket-coffea run is
-    invoked with `--custom-run-options inner_run_options.yaml`.
-
-    No-op when the wrapper already references the YAML. Used by
-    `--recreate-jobs` so an existing jobs_dir (whose wrapper predates this
-    feature) starts honouring inner run-options without a fresh
-    submission.
-
-    Returns True when the file was modified, False when already up-to-date.
-    """
-    if not os.path.isfile(job_sh_path):
-        return False
-    with open(job_sh_path) as f:
-        content = f.read()
-    if yaml_filename in content:
-        return False
-    # The wrapper line we need to patch looks like:
-    #   "<runner> --cfg $2 -o output --executor iterative --chunksize $3"
-    # We append `--custom-run-options <yaml>` to it.
-    new_content = content.replace(
-        "--chunksize $3",
-        f"--chunksize $3 --custom-run-options {yaml_filename}",
-        1,
-    )
-    if new_content == content:
-        return False
-    with open(job_sh_path, "w") as f:
-        f.write(new_content)
-    return True
-
-
-def ensure_sub_transfers_inner_yaml(sub_path, abs_jobdir_path,
-                                    yaml_filename=INNER_RUN_OPTIONS_FILENAME):
-    """Idempotently append the inner-run-options YAML to a `.sub` file's
-    `transfer_input_files` line. No-op when already present.
-
-    Returns True when the file was modified, False when already up-to-date.
-    """
-    if not os.path.isfile(sub_path):
-        return False
-    target = f"{abs_jobdir_path}/{yaml_filename}"
-    with open(sub_path) as f:
-        content = f.read()
-    if yaml_filename in content:
-        return False
-    lines = content.splitlines(keepends=True)
-    out = []
-    patched = False
-    for line in lines:
-        if line.startswith("transfer_input_files") and not patched:
-            # Append the yaml path before the newline.
-            stripped = line.rstrip("\r\n")
-            out.append(f"{stripped},{target}\n")
-            patched = True
-        else:
-            out.append(line)
-    if not patched:
-        return False
-    with open(sub_path, "w") as f:
-        f.writelines(out)
-    return True
+def render_condor_submit(template, rows, executor):
+    """Render the current-format submit template for one or more jobs."""
+    columns = ("PROC", "QUEUE", "CHUNKSIZE", "CPUS", "MEMORY")
+    if executor == "condor@rubin":
+        columns = ("PROC", "CHUNKSIZE", "CPUS", "MEMORY")
+    lines = [template.rstrip(), "", f"queue {', '.join(columns)} from ("]
+    for row in rows:
+        lines.append("  " + " ".join(str(row[column]) for column in columns))
+    lines.append(")")
+    return "\n".join(lines) + "\n"
 
 class ExecutorFactoryManualABC(ABC):
 
@@ -128,13 +77,10 @@ class ExecutorFactoryManualABC(ABC):
         self.run_options = run_options
         self.job_name = run_options.get("job-name", "job")
         self.jobs_dir = os.path.join(run_options.get("jobs-dir", outputdir), self.job_name)
-        recreate_jobs = run_options.get("recreate-jobs", None)
-        if not recreate_jobs:
-            if  os.path.exists(self.jobs_dir):
-                print(f"Jobs directory {self.jobs_dir} already exists. Please clean it up before running the jobs.")
-                exit(1)
-            else:
-                os.makedirs(self.jobs_dir)
+        if os.path.exists(self.jobs_dir):
+            print(f"Jobs directory {self.jobs_dir} already exists. Please clean it up before running the jobs.")
+            exit(1)
+        os.makedirs(self.jobs_dir)
         self.setup()
         # If handles_submission == True, the executor is responsible for submitting the job
         self.handles_submission = True
@@ -178,21 +124,15 @@ class ExecutorFactoryManualABC(ABC):
 
 
     def submit(self, config, filesets, outputdir):
-        # storing the job config
         self.config = config
         self.outputdir = outputdir
         self.filesets = filesets
-        if jobs_to_recreate:=self.run_options.get("recreate-jobs", None):
-            # Don't run the splitting but read the jobs config, recreate the configurator
-            # and submit the jobs
-            self.recreate_jobs(jobs_to_recreate)
-        else:
-            splits = self.prepare_splitting(filesets)
-            # Save the per-job splits so submit_jobs can resolve per-job options
-            # (per-sample chunksize, etc.) without re-reading jobs_config.yaml.
-            self._splits = splits
-            job_configs = self.prepare_jobs(splits)
-            self.submit_jobs(job_configs)
+        splits = self.prepare_splitting(filesets)
+        # Save the per-job splits so submit_jobs can resolve per-job options
+        # (per-sample chunksize, etc.) without re-reading jobs_config.yaml.
+        self._splits = splits
+        job_configs = self.prepare_jobs(splits)
+        self.submit_jobs(job_configs)
 
     def prepare_splitting(self, filesets):
         '''Looking at the run options the fileset can be split in different ways.
@@ -206,12 +146,30 @@ class ExecutorFactoryManualABC(ABC):
            sample/dataset. Useful when sample sizes differ by orders of magnitude.
         2. `max-events-per-job` as a **scalar**: same as (1) but with a single limit
            applied to every sample, and jobs may pack multiple datasets together
-           (legacy behaviour).
+           (uniform scalar behaviour).
         3. `scaleout`: target total number of jobs; the per-job event budget is
            derived as `tot_n_events // scaleout`.
         '''
         tot_n_events = sum([int(fileset["metadata"]["nevents"]) for fileset in filesets.values()])
+        if self.run_options.get("timeit", False):
+            jobs = [{dataset: fileset} for dataset, fileset in filesets.items()]
+            nfiles_jobs = [int(job[dataset]["metadata"]["nevents"])
+                           for job in jobs for dataset in job]
+            print(f"[timeit] One job per dataset: {len(jobs)} job(s)")
+            self._print_jobs_table(jobs, nfiles_jobs, tot_n_events)
+            return jobs
+
         max_events_per_job = self.run_options.get("max-events-per-job", None)
+
+        if max_events_per_job is None and (timeit_path := self.run_options.get("_timeit-dir")):
+            throughputs = load_sample_throughputs(timeit_path)
+            if throughputs:
+                target_jobs = self._adaptive_job_targets(
+                    filesets, throughputs, self.run_options.get("scaleout")
+                )
+                jobs, nfiles_jobs = self._split_per_dataset(filesets, target_jobs)
+                self._print_jobs_table(jobs, nfiles_jobs, tot_n_events)
+                return jobs
 
         # Accept both plain dict and OmegaConf DictConfig (from --custom-run-options YAML).
         if isinstance(max_events_per_job, Mapping):
@@ -230,6 +188,37 @@ class ExecutorFactoryManualABC(ABC):
 
         self._print_jobs_table(jobs, nfiles_jobs, tot_n_events)
         return jobs
+
+    @staticmethod
+    def _adaptive_job_targets(filesets, throughputs, scaleout):
+        scaleout = int(scaleout)
+        if scaleout <= 0:
+            raise ValueError("scaleout must be positive")
+
+        events = {
+            dataset: int(fileset["metadata"]["nevents"])
+            for dataset, fileset in filesets.items()
+        }
+
+        fallback = median(throughputs.values())
+        missing = sorted(set(events) - set(throughputs))
+        if missing:
+            print(f"[adaptive-splitting] Missing throughput for datasets {missing}; using median {fallback:.2f} events/s")
+        rates = {dataset: throughputs.get(dataset, fallback) for dataset in events}
+        target_seconds = sum(events[dataset] / rates[dataset] for dataset in events) / scaleout
+        print(f"[adaptive-splitting] Targeting {scaleout} jobs at about {target_seconds:.1f} s/job")
+        requested = {
+            dataset: ceil(events[dataset] / (rates[dataset] * target_seconds))
+            for dataset in events
+        }
+        targets = {
+            dataset: min(max(1, requested[dataset]), len(filesets[dataset]["files"]))
+            for dataset in events
+        }
+        for dataset in events:
+            print(f"[adaptive-splitting] {dataset}: requested {requested[dataset]} job(s), "
+                  f"using {targets[dataset]} (files={len(filesets[dataset]['files'])})")
+        return targets
 
     @staticmethod
     def _split_uniform(filesets, max_events_per_job):
@@ -270,16 +259,38 @@ class ExecutorFactoryManualABC(ABC):
         return jobs, nfiles_jobs
 
     @staticmethod
-    def _split_per_sample(filesets, max_events_per_job_by_sample):
+    def _split_per_dataset(filesets, target_jobs):
+        '''Split each dataset into its assigned number of contiguous file groups.'''
+        jobs = []
+        nfiles_jobs = []
+        for dataset_name, fileset in filesets.items():
+            files = fileset["files"]
+            n_jobs = min(max(1, int(target_jobs[dataset_name])), len(files))
+            files_per_job, remainder = divmod(len(files), n_jobs)
+            nevents_per_file = ceil(int(fileset["metadata"]["nevents"]) / len(files))
+            start = 0
+            for job_index in range(n_jobs):
+                stop = start + files_per_job + (job_index < remainder)
+                job_files = files[start:stop]
+                jobs.append({
+                    dataset_name: {"files": job_files, "metadata": fileset["metadata"]}
+                })
+                nfiles_jobs.append(nevents_per_file * len(job_files))
+                start = stop
+        return jobs, nfiles_jobs
+
+    @staticmethod
+    def _split_per_sample(filesets, max_events_per_job_by_sample, dataset_keys=False):
         '''Per-sample splitting: each dataset is split independently using its
         sample-specific events-per-job budget. Output jobs contain files from
         exactly one dataset.'''
         default_limit = max_events_per_job_by_sample.get("default", None)
         known_keys = {k for k in max_events_per_job_by_sample if k != "default"}
 
-        # Discover the samples actually present in this fileset to surface typos early.
+        # Accept exact dataset keys and metadata sample keys.
+        datasets_present = set(filesets)
         samples_present = {fs["metadata"]["sample"] for fs in filesets.values()}
-        unknown_keys = known_keys - samples_present
+        unknown_keys = known_keys - datasets_present - samples_present
         if unknown_keys:
             print(f"[max-events-per-job] WARNING: dict keys {sorted(unknown_keys)} do not match any sample in the current fileset. "
                   f"Samples present: {sorted(samples_present)}. These keys will be ignored.")
@@ -288,10 +299,14 @@ class ExecutorFactoryManualABC(ABC):
         nfiles_jobs = []
         for dataset_name, fileset in filesets.items():
             sample = fileset["metadata"]["sample"]
-            limit = max_events_per_job_by_sample.get(sample, default_limit)
+            if dataset_keys:
+                limit = max_events_per_job_by_sample.get(dataset_name, default_limit)
+            else:
+                limit = max_events_per_job_by_sample.get(dataset_name,
+                                                         max_events_per_job_by_sample.get(sample, default_limit))
             if limit is None:
                 raise Exception(
-                    f"max-events-per-job dict has no entry for sample {sample!r} (dataset {dataset_name!r}) "
+                    f"max-events-per-job dict has no entry for dataset {dataset_name!r} "
                     f"and no 'default' fallback. Provide one or the other."
                 )
             limit = int(limit)
@@ -344,7 +359,7 @@ class ExecutorFactoryManualABC(ABC):
         if not isinstance(chunksize_cfg, Mapping):
             return
         samples_present = {fs["metadata"]["sample"] for fs in filesets.values()}
-        unknown = {k for k in chunksize_cfg if k != "default"} - samples_present
+        unknown = {k for k in chunksize_cfg if k != "default"} - (set(filesets) | samples_present)
         if unknown:
             print(f"[chunksize] WARNING: dict keys {sorted(unknown)} do not match any sample in the "
                   f"current fileset. Samples present: {sorted(samples_present)}. These keys will be ignored.")
@@ -353,7 +368,7 @@ class ExecutorFactoryManualABC(ABC):
     def _resolve_chunksize_for_job(chunksize_cfg, job_split):
         '''Resolve the chunksize for a single condor job.
 
-        `chunksize_cfg` is either an int (legacy uniform behaviour) or a dict
+        `chunksize_cfg` is either an int (uniform behaviour) or a dict
         `{sample: int, ...}` with an optional ``default`` fallback. `job_split` is
         a single entry from `prepare_splitting`'s return value, i.e. a dict
         ``{dataset_name: {"files": [...], "metadata": {...}}}``.
@@ -373,7 +388,10 @@ class ExecutorFactoryManualABC(ABC):
                 f"or revert chunksize to a scalar value."
             )
         sample = next(iter(samples))
-        value = chunksize_cfg.get(sample, chunksize_cfg.get("default"))
+        dataset = next(iter(job_split))
+        value = chunksize_cfg.get(dataset)
+        if value is None:
+            value = chunksize_cfg.get(sample, chunksize_cfg.get("default"))
         if value is None:
             raise Exception(
                 f"chunksize dict has no entry for sample {sample!r} and no 'default' fallback. "
@@ -387,8 +405,4 @@ class ExecutorFactoryManualABC(ABC):
 
     @abstractmethod
     def submit_jobs(self, jobs):
-        pass
-
-    @abstractmethod
-    def recreate_jobs(self, jobs):
         pass

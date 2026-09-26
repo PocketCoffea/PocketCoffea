@@ -219,9 +219,153 @@ def test_per_sample_split_accepts_non_dict_mapping():
     assert all(len(j["TT_2018"]["files"]) == 2 for j in jobs)
 
 
+def test_adaptive_targets_give_fast_samples_fewer_jobs_and_slow_samples_more_jobs():
+    filesets = _make_filesets([
+        ("fast_ds", "same", 1_000, [f"fast_{i}.root" for i in range(10)]),
+        ("slow_ds", "same", 1_000, [f"slow_{i}.root" for i in range(10)]),
+    ])
+
+    targets = ExecutorFactoryManualABC._adaptive_job_targets(
+        filesets, {"fast_ds": 100.0, "slow_ds": 10.0}, scaleout=11
+    )
+
+    assert targets == {"fast_ds": 1, "slow_ds": 10}
+
+
+def test_adaptive_limits_use_median_for_unknown_samples():
+    filesets = _make_filesets([
+        ("known_ds", "same", 100, [f"known_{i}.root" for i in range(10)]),
+        ("new_ds", "same", 100, [f"new_{i}.root" for i in range(10)]),
+    ])
+
+    targets = ExecutorFactoryManualABC._adaptive_job_targets(
+        filesets, {"known_ds": 20.0, "other": 10.0}, scaleout=2
+    )
+
+    assert targets == {"known_ds": 1, "new_ds": 2}
+
+
+def test_adaptive_dataset_limits_split_each_dataset_independently():
+    filesets = _make_filesets([
+        ("fast_ds", "same", 1_000, [f"fast_{i}.root" for i in range(10)]),
+        ("slow_ds", "same", 1_000, [f"slow_{i}.root" for i in range(10)]),
+    ])
+    targets = {"fast_ds": 2, "slow_ds": 4}
+
+    jobs, _ = ExecutorFactoryManualABC._split_per_dataset(filesets, targets)
+
+    assert [next(iter(job)) for job in jobs] == [
+        "fast_ds", "fast_ds", "slow_ds", "slow_ds", "slow_ds", "slow_ds"
+    ]
+
+
+def test_adaptive_target_can_exceed_global_scaleout():
+    filesets = _make_filesets([
+        (f"ds_{i}", f"sample_{i}", 1_000, [f"file_{i}_{j}.root" for j in range(4)])
+        for i in range(3)
+    ])
+    targets = ExecutorFactoryManualABC._adaptive_job_targets(
+        filesets, {name: 10.0 for name in filesets}, scaleout=2
+    )
+
+    assert targets == {name: 1 for name in filesets}
+    jobs, _ = ExecutorFactoryManualABC._split_per_dataset(filesets, targets)
+    assert len(jobs) == 3
+
+
+def test_adaptive_target_is_clamped_to_available_files():
+    filesets = _make_filesets([
+        ("small_ds", "small", 1_000, [f"small_{i}.root" for i in range(3)]),
+    ])
+    targets = ExecutorFactoryManualABC._adaptive_job_targets(
+        filesets, {"small_ds": 1.0}, scaleout=100
+    )
+
+    assert targets == {"small_ds": 3}
+
+
+def test_per_dataset_split_preserves_files_and_balances_group_sizes():
+    files = [f"file_{i}.root" for i in range(5)]
+    filesets = _make_filesets([("dataset", "sample", 500, files)])
+
+    jobs, _ = ExecutorFactoryManualABC._split_per_dataset(filesets, {"dataset": 2})
+    groups = [job["dataset"]["files"] for job in jobs]
+
+    assert [file for group in groups for file in group] == files
+    assert sorted(map(len, groups)) == [2, 3]
+
+
+def test_prepare_adaptive_splitting_uses_exact_dataset_keys(monkeypatch, tmp_path):
+    monkeypatch.setattr(
+        "pocket_coffea.executors.executors_manual_jobs.load_sample_throughputs",
+        lambda _: {"fast_ds": 100.0, "slow_ds": 10.0},
+    )
+    factory = _ManualFactory(_manual_options(
+        tmp_path, scaleout=11, **{"_timeit-dir": str(tmp_path / "timeit")}
+    ), str(tmp_path))
+    filesets = _make_filesets([
+        ("fast_ds", "same", 1_000, [f"fast_{i}.root" for i in range(10)]),
+        ("slow_ds", "same", 1_000, [f"slow_{i}.root" for i in range(10)]),
+    ])
+
+    jobs = factory.prepare_splitting(filesets)
+
+    assert [len(job[next(iter(job))]["files"]) for job in jobs] == [10] + [1] * 10
+
+
+def test_timeit_keeps_one_job_per_dataset_and_all_selected_files(tmp_path):
+    factory = _ManualFactory(_manual_options(
+        tmp_path, timeit=True, scaleout=99, **{"_timeit-dir": str(tmp_path / "timeit")}
+    ), str(tmp_path))
+    filesets = _make_filesets([
+        ("fast_ds", "same", 1_000, ["fast_0.root", "fast_1.root"]),
+        ("slow_ds", "same", 2_000, ["slow_0.root", "slow_1.root", "slow_2.root"]),
+    ])
+
+    jobs = factory.prepare_splitting(filesets)
+
+    assert len(jobs) == 2
+    assert [next(iter(job)) for job in jobs] == ["fast_ds", "slow_ds"]
+    assert [len(job[dataset]["files"]) for job, dataset in zip(jobs, ("fast_ds", "slow_ds"))] == [2, 3]
+
+
 def test_validate_chunksize_keys_accepts_non_dict_mapping(capsys):
     filesets = _make_filesets([("TT_2018", "TT", 10, ["f.root"])])
     cfg = _NonDictMapping({"TT": 50_000, "Typo": 99_999, "default": 150_000})
     ExecutorFactoryManualABC._validate_chunksize_keys(cfg, filesets)
     captured = capsys.readouterr().out
     assert "Typo" in captured
+
+
+def test_chunksize_mapping_prefers_exact_dataset_key():
+    job = _make_single_sample_job("TT")
+    dataset = next(iter(job))
+    assert ExecutorFactoryManualABC._resolve_chunksize_for_job(
+        {dataset: 25_000, "TT": 50_000, "default": 150_000}, job
+    ) == 25_000
+
+
+class _ManualFactory(ExecutorFactoryManualABC):
+    def get(self):
+        return None
+
+    def prepare_jobs(self, splits):
+        raise AssertionError("recreation must not split jobs")
+
+    def submit_jobs(self, jobs):
+        raise AssertionError("recreation must not submit through the normal path")
+
+def _manual_options(tmp_path, **extra):
+    options = {
+        "ignore-grid-certificate": True,
+        "jobs-dir": str(tmp_path),
+        "job-name": "job",
+    }
+    options.update(extra)
+    return options
+
+
+def test_manual_factory_rejects_existing_directory_for_new_submission(tmp_path):
+    (tmp_path / "job").mkdir()
+    with pytest.raises(SystemExit):
+        _ManualFactory(_manual_options(tmp_path), str(tmp_path))
