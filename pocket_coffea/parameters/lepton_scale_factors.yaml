@@ -237,8 +237,8 @@ lepton_scale_factors:
           et_dependent: true
     
     # Legacy Run-2 UL electron energy-scale uncertainty (EGM_ScaleUnc.json).
-    # The UL scale correction is already applied in NanoAOD, so this provides
-    # ONLY the up/down variations -- the nominal pt is left untouched.
+    # The UL scale correction is already applied in NanoAODv9, so this provides
+    # ONLY the up/down variations -- the nominal pt is left untouched. https://twiki.cern.ch/twiki/bin/view/CMS/EgammaUL2016To2018#Scale_and_smearing_corrections_f
     # Used by the ElectronsScaleSmearingLegacyCalibrator; Run 3 uses
     # `scale_and_smearing` above instead.
     scale_unc_legacy:
