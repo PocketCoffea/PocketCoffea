@@ -240,6 +240,147 @@ def compute_jetId(events, jet_type, params, year):
         else:
             raise ValueError(f"Jet type {jet_type} not recognized for JetID")
 
+    # nanoAOD = v15 and Run2 (2016)
+    elif year == '2016_PreVFP_v15' or year == '2016_PostVFP_v15':
+
+         ### Following this code: https://twiki.cern.ch/twiki/bin/viewauth/CMS/JetID13TeVUL?extralog=-%20caching%20topic#NanoAODv15
+
+         counts = ak.num(jets)
+         jets = ak.flatten(jets, axis=1)
+
+         eval_dict = {
+             "eta": jets.eta,
+             "chHEF": jets.chHEF,
+             "neHEF": jets.neHEF,
+             "chEmEF": jets.chEmEF,
+             "neEmEF": jets.neEmEF,
+             "muEF": jets.muEF,
+             "chMultiplicity": jets.chMultiplicity,
+             "neMultiplicity": jets.neMultiplicity,
+             "multiplicity": jets.chMultiplicity + jets.neMultiplicity
+         }
+
+         idTight_region_1 = (
+                            (abs(jets.eta) <= 2.4)
+                            & (jets.neHEF < 0.9)
+                            & (jets.neEmEF < 0.9)
+                            & (jets.chMultiplicity+jets.neMultiplicity > 1)
+                            & (jets.chHEF > 0.0)
+                            & (jets.chMultiplicity > 0)
+                            )
+
+         idTight_region_2 = (
+                            ((abs(jets.eta) > 2.4) & (abs(jets.eta) <= 2.7))
+                            & (jets.neHEF < 0.98)
+                            & (jets.neEmEF < 0.99)
+                            )
+
+         idTight_region_3 = (
+                            ((abs(jets.eta) > 2.7) & (abs(jets.eta) <= 3.0))
+                            & (jets.neMultiplicity >= 1)
+                            )
+
+         idTight_region_4 = (
+                            (abs(jets.eta) > 3.0)
+                            & (jets.neMultiplicity > 2)
+                            & (jets.neEmEF < 0.9)
+                            )
+
+         idTight = idTight_region_1 | idTight_region_2 | idTight_region_3 | idTight_region_4
+
+         idTightLepVeto_region_1 = (
+                                    (abs(jets.eta) <= 2.4)
+                                    & (idTight)
+                                    & (jets.muEF < 0.8)
+                                    & (jets.chEmEF < 0.8)
+                                    )
+        
+         idTightLepVeto_region_2 = (
+                                    (abs(jets.eta) > 2.4)
+                                    & (idTight)
+                                    )
+
+         idTightLepVeto = idTightLepVeto_region_1 | idTightLepVeto_region_2
+
+         idTight_value = idTight * 2          # bit2
+         idTightLepVeto_value = idTightLepVeto * 4   # bit3
+
+         id_value = idTight_value + idTightLepVeto_value
+
+         return ak.unflatten(id_value, counts)
+
+
+
+    # nanoAOD = v15 and Run2 (2017 - 2018)
+    elif year == '2017_v15' or year == '2018_v15':
+
+         ### Following this code: https://twiki.cern.ch/twiki/bin/viewauth/CMS/JetID13TeVUL?extralog=-%20caching%20topic#NanoAODv15
+
+         counts = ak.num(jets)
+         jets = ak.flatten(jets, axis=1)
+
+         eval_dict = {
+             "eta": jets.eta,
+             "chHEF": jets.chHEF,
+             "neHEF": jets.neHEF,
+             "chEmEF": jets.chEmEF,
+             "neEmEF": jets.neEmEF,
+             "muEF": jets.muEF,
+             "chMultiplicity": jets.chMultiplicity,
+             "neMultiplicity": jets.neMultiplicity,
+             "multiplicity": jets.chMultiplicity + jets.neMultiplicity
+         }
+        
+        
+         idTight_region_1 = (
+                            (abs(jets.eta) <= 2.6)
+                            & (jets.neHEF < 0.9)
+                            & (jets.neEmEF < 0.9)
+                            & (jets.chMultiplicity+jets.neMultiplicity > 1)
+                            & (jets.chHEF > 0.0)
+                            & (jets.chMultiplicity > 0)
+                            )
+
+         idTight_region_2 = (
+                            ((abs(jets.eta) > 2.6) & (abs(jets.eta) <= 2.7))
+                            & (jets.neHEF < 0.90)
+                            & (jets.neEmEF < 0.99)
+                            )
+
+         idTight_region_3 = (
+                            ((abs(jets.eta) > 2.7) & (abs(jets.eta) <= 3.0))
+                            & (jets.neHEF < 0.9999)
+                            )
+
+         idTight_region_4 = (
+                            (abs(jets.eta) > 3.0)
+                            & (jets.neMultiplicity > 2)
+                            & (jets.neEmEF < 0.9)
+                            )
+
+         idTight = idTight_region_1 | idTight_region_2 | idTight_region_3 | idTight_region_4
+
+         idTightLepVeto_region_1 = (
+                                    (abs(jets.eta) <= 2.7)
+                                    & (idTight)
+                                    & (jets.muEF < 0.8)
+                                    & (jets.chEmEF < 0.8)
+                                    )
+        
+         idTightLepVeto_region_2 = (
+                                    (abs(jets.eta) > 2.7)
+                                    & (idTight)
+                                    )
+
+         idTightLepVeto = idTightLepVeto_region_1 | idTightLepVeto_region_2
+
+         idTight_value = idTight * 2          # bit2
+         idTightLepVeto_value = idTightLepVeto * 4   # bit3
+
+         id_value = idTight_value + idTightLepVeto_value
+
+         return ak.unflatten(id_value, counts)
+
 
     elif nano_version >= 15:
         # Example code: https://gitlab.cern.ch/cms-nanoAOD/jsonpog-integration/-/blob/master/examples/jetidExample.py?ref_type=heads
