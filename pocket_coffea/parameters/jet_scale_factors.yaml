@@ -43,7 +43,7 @@ jet_scale_factors:
             file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,BTV,btagging.json.gz,2026-03-10}
             name: "UParTAK4"
         '2025': 
-            file: ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,BTV,btagging.json.gz,2026-06-26}
+            file: ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,BTV,btagging.json.gz,2026-09-21}
             name: "UParTAK4"            
 
     ctagSF:
@@ -85,7 +85,7 @@ jet_scale_factors:
         Calib_file: "${default_params_dir:}/ctagSF_calibrationSF.json"
         name: "deepJet_shape"
       '2025':
-        SF_file: ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,BTV,ctagging.json.gz,2026-06-26}
+        SF_file: ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,BTV,ctagging.json.gz,2026-09-21}
         Calib_file: "${default_params_dir:}/ctagSF_calibrationSF.json"
         name: "deepJet_shape"      
       
@@ -123,6 +123,19 @@ jet_scale_factors:
             name: PUJetID_eff
 
     vetomaps:
+        2016_PreVFP_v15:
+            file: ${cvmfs:Run2-2016preVFP-UL-NanoAODv15,JME,jetvetomaps.json.gz,2026-06-05}
+            name: "Summer19UL16_V1"
+        2016_PostVFP_v15:
+            file: ${cvmfs:Run2-2016postVFP-UL-NanoAODv15,JME,jetvetomaps.json.gz,2026-06-05}
+            name: "Summer19UL16_V1"
+        "2017_v15":
+            file: ${cvmfs:Run2-2017-UL-NanoAODv15,JME,jetvetomaps.json.gz,2026-06-05}
+            name: "Summer19UL17_V1"
+        "2018_v15":
+            file: ${cvmfs:Run2-2018-UL-NanoAODv15,JME,jetvetomaps.json.gz,2026-06-05}
+            name: "Summer19UL18_V1"
+        
         '2022_preEE':
             file: ${cvmfs:Run3-22CDSep23-Summer22-NanoAODv12,JME,jetvetomaps.json.gz,2026-06-05}
             name: "Summer22_23Sep2023_RunCD_V1"

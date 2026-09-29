@@ -9,6 +9,13 @@ event_flags :
     - "EcalDeadCellTriggerPrimitiveFilter"
     - "BadPFMuonFilter"
       # "BadChargedCandidateFilter "EcalBadCalibFilter
+  "2018_v15":
+    - "goodVertices"
+    - "globalSuperTightHalo2016Filter"
+    - "HBHENoiseFilter"
+    - "HBHENoiseIsoFilter"
+    - "EcalDeadCellTriggerPrimitiveFilter"
+    - "BadPFMuonFilter"
   "2017":
     - "goodVertices"
     - "globalSuperTightHalo2016Filter"
@@ -19,6 +26,13 @@ event_flags :
       # "BadChargedCandidateFilter "EcalBadCalibFilter
     # N.B.: The values for the 2016 pre/post VFP have been copied from the previous 2016 key.
     # These values need to be checked.
+  "2017_v15":
+    - "goodVertices"
+    - "globalSuperTightHalo2016Filter"
+    - "HBHENoiseFilter"
+    - "HBHENoiseIsoFilter"
+    - "EcalDeadCellTriggerPrimitiveFilter"
+    - "BadPFMuonFilter"
   "2016_PostVFP":
     - "goodVertices"
     - "globalSuperTightHalo2016Filter"
@@ -27,6 +41,13 @@ event_flags :
     - "EcalDeadCellTriggerPrimitiveFilter"
     - "BadPFMuonFilter"
       # "BadChargedCandidateFilter" "ecalBadCalibFilter
+  "2016_PostVFP_v15":
+    - "goodVertices"
+    - "globalSuperTightHalo2016Filter"
+    - "HBHENoiseFilter"
+    - "HBHENoiseIsoFilter"
+    - "EcalDeadCellTriggerPrimitiveFilter"
+    - "BadPFMuonFilter"
   "2016_PreVFP":
     - "goodVertices"
     - "globalSuperTightHalo2016Filter"
@@ -35,6 +56,13 @@ event_flags :
     - "EcalDeadCellTriggerPrimitiveFilter"
     - "BadPFMuonFilter"
      # "BadChargedCandidateFilter" "ecalBadCalibFilter
+  "2016_PreVFP_v15":
+    - "goodVertices"
+    - "globalSuperTightHalo2016Filter"
+    - "HBHENoiseFilter"
+    - "HBHENoiseIsoFilter"
+    - "EcalDeadCellTriggerPrimitiveFilter"
+    - "BadPFMuonFilter"
 
 # "HBHENoiseFilter" and "HBHENoiseIsoFilter" no longer recommended for Run 3
   "2022_preEE":
@@ -100,6 +128,14 @@ event_flags_data:
   "2016_PostVFP":
     - "eeBadScFilter"
   "2016_PreVFP":
+    - "eeBadScFilter"
+  "2018_v15":
+    - "eeBadScFilter"
+  "2017_v15":
+    - "eeBadScFilter"
+  "2016_PostVFP_v15":
+    - "eeBadScFilter"
+  "2016_PreVFP_v15":
     - "eeBadScFilter"
   "2022_preEE":
     - "eeBadScFilter"

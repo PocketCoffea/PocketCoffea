@@ -673,7 +673,6 @@ class METCalibrator(Calibrator):
                 }
             )
             met_final = met_final - mu_p2D_delta_sum
-
         # Check for the unclustered energy variation 
         # It is taken from the PuppiMET collection and reapplied
         if variation in ["unclust_EnUp", "unclust_EnDown"]:
