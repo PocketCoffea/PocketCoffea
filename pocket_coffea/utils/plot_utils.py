@@ -97,7 +97,13 @@ def build_cms_label_kwargs(cfg, is_mc_only: bool, year: str, fontsize: float) ->
 
 
 # cms default style
-hep.style.use("CMS")
+hep.style.use(
+    hep.style.CMS
+    | {
+        "figure.constrained_layout.use": True,
+        "figure.dpi": 150,
+    }
+)
 
 # colormaps according to CMS guidelines
 # https://cms-analysis.docs.cern.ch/guidelines/plotting/colors/#categorical-data-eg-1d-stackplots
@@ -1487,7 +1493,7 @@ class Shape:
         See the `mplhep.savelabels` documentation for details.
         """
         if not label_variations:
-            plt.savefig(filepath, dpi=150, format=format, bbox_inches="tight")
+            plt.savefig(filepath, format=format)
             return
         if not (isinstance(label_variations, (list, bool)) and label_variations):
             raise ValueError(
@@ -1502,9 +1508,7 @@ class Shape:
             fname=filepath,
             ax=ax,
             labels=labels,
-            dpi=150,
             format=format,
-            bbox_inches="tight",
         )
 
     def plot_datamc_all(self, ratio=True, syst=True, spliteras=False, save=True, format='png', label_variations=False):
