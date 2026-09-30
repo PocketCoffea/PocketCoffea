@@ -116,35 +116,6 @@ class TestHistogramPlotting:
                 assert plot_path.exists(), f"Plot {plot_path} was not created"
 
 
-# from pocket_coffea.utils.plot_functions import plot_shapes_comparison
-
-# def test_plot_shapes_comparison(self, coffea_output: dict, tmp_path: Path):
-#     """Test plot_shapes_comparison function."""
-#     df = coffea_output["variables"]
-#     var = "ElectronGood_eta"
-#     shapes = [
-#         ("TTTo2L2Nu", "baseline", "2023_postBPix", "nominal", "TT nominal"),
-#         (
-#             "TTTo2L2Nu",
-#             "baseline",
-#             "2023_postBPix",
-#             "AK8PFPuppi_JES_TotalUp",
-#             "TT JES up",
-#         ),
-#         (
-#             "TTTo2L2Nu",
-#             "baseline",
-#             "2023_postBPix",
-#             "AK8PFPuppi_JES_TotalDown",
-#             "TT JES down",
-#         ),
-#     ]
-#     outputfile = str(tmp_path / "shapes_comparison")
-#     fig = plot_shapes_comparison(
-#         df, var, shapes, title="Comparison", outputfile=outputfile
-#     )
-
-
 # UserWarning is raised when the systematic shift is flat.
 # we do not want to test for this here
 @pytest.mark.filterwarnings("ignore:The ratio plot for:UserWarning:")
@@ -347,6 +318,7 @@ class TestCutflowPlotting:
             path = output_dir / name
             assert path.exists(), f"expected plot file {path} was not created"
 
+    # test fails with coffea==0.7.29, after upgrade to coffea2026, include this test
     # def test_plot_cutflow_from_output(self, tmp_path: Path, coffea_output: dict):
     #     """Test plot_cutflow_from_output on the full coffea output."""
     #     output_dir = tmp_path / "cutflow"
@@ -430,7 +402,9 @@ class TestLabelVariations:
     def test_invalid_variations_raise(self, plot_manager, default_plotting_parameters):
         """A bare string is not a valid label_variations value."""
         with pytest.raises(ValueError):
-            plot_mngr = plot_manager(default_plotting_parameters, label_variations="Preliminary")
+            plot_mngr = plot_manager(
+                default_plotting_parameters, label_variations="Preliminary"
+            )
             plot_mngr.plot_datamc(next(iter(plot_mngr.shape_objects)), format="png")
 
     def test_parse_save_label_variations(self):
@@ -443,6 +417,7 @@ class TestLabelVariations:
         assert parse_save_label_variations(("True",)) is True
         assert parse_save_label_variations(("TRUE",)) is True
         assert parse_save_label_variations(("Preliminary",)) == ["Preliminary"]
-        assert parse_save_label_variations(
-            ("Preliminary", "Work in Progress")
-        ) == ["Preliminary", "Work in Progress"]
+        assert parse_save_label_variations(("Preliminary", "Work in Progress")) == [
+            "Preliminary",
+            "Work in Progress",
+        ]
