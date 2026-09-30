@@ -43,6 +43,7 @@ Other optional arguments are:
 - `--no-ratio`: Do not draw the ratio panel 
 - `--density`: Set density parameter to have a normalized plot
 - `--verbose`: Tells how much printing is done. 0 - for minimal, 2- for a lot (useful for debugging).
+- `--save-label-variations`: save plot with multiple CMS label versions (e.g. Preliminary, Work in Progress), see [mplhep documentation](https://mplhep.readthedocs.io/en/latest/api/#mplhep.label.savelabels) for details
 
 ## Plotting parameters
 

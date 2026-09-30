@@ -266,7 +266,8 @@ class PlotManager:
         verbose=1,
         save=True,
         index_file=None,
-        cache=True
+        cache=True,
+        label_variations=False
     ) -> None:
 
         self.shape_objects = {}
@@ -283,6 +284,7 @@ class PlotManager:
         self.toplabel = toplabel
         self.verbose=verbose
         self.cache = cache
+        self.label_variations = label_variations
 
         # Reading the datasets_metadata to
         # build the correct shapes for each datataking year
@@ -373,7 +375,7 @@ class PlotManager:
             ratio = False
         else:
             ratio = ratio
-        shape.plot_datamc_all(ratio, syst, spliteras=spliteras, save=self.save, format=format)
+        shape.plot_datamc_all(ratio, syst, spliteras=spliteras, save=self.save, format=format, label_variations=self.label_variations)
 
     def plot_datamc_all(self, ratio=True, syst=True,  spliteras=False, format="png"):
         '''Plots all the histograms contained in the dictionary, for all years and categories.'''
@@ -397,7 +399,7 @@ class PlotManager:
                 print(f"WARNING: cannot plot histogram {shape.name} with dimension {shape.dense_dim}. It will be skipped")
             return
 
-        shape.plot_comparison_all(ratio,  save=self.save, format=format)
+        shape.plot_comparison_all(ratio,  save=self.save, format=format, label_variations=self.label_variations)
 
     def plot_comparison_all(self, ratio=True, format=format):
         '''Plots all the histograms contained in the dictionary, for all years and categories.'''
@@ -426,7 +428,7 @@ class PlotManager:
             raise Exception(
                 "The systematic shifts cannot be plotted if the histogram is Data only."
             )
-        shape.plot_systematic_shifts_all(ratio=ratio, format=format)
+        shape.plot_systematic_shifts_all(ratio=ratio, format=format, label_variations=self.label_variations)
 
     def plot_systematic_shifts_all(self, format="png", ratio=True):
         """Plots the systematic shifts for all the shape objects."""
@@ -1470,7 +1472,42 @@ class Shape:
 
         self.format_figure(cat, ratio=ratio)
 
-    def plot_datamc_all(self, ratio=True, syst=True, spliteras=False, save=True, format='png'):
+    def _save_plot(
+        self,
+        filepath,
+        ax,
+        format: str = "png",
+        label_variations: list[tuple[str, str]] | list[str] | bool = False,
+    ):
+        """Saves the current figure.
+        If label_variations is True, additional copies with the default
+        mplhep.savelabels label variations are saved.
+        If label_variations is a list of strings, additional copies with these
+        label texts are saved.
+        See the `mplhep.savelabels` documentation for details.
+        """
+        if not label_variations:
+            plt.savefig(filepath, dpi=150, format=format, bbox_inches="tight")
+            return
+        if not (isinstance(label_variations, (list, bool)) and label_variations):
+            raise ValueError(
+                f"Invalid label_variations {label_variations!r}: "
+                "expected True or a non-empty list of strings."
+            )
+        labels = None
+        if isinstance(label_variations, list):
+            labels = label_variations
+
+        hep.label.savelabels(
+            fname=filepath,
+            ax=ax,
+            labels=labels,
+            dpi=150,
+            format=format,
+            bbox_inches="tight",
+        )
+
+    def plot_datamc_all(self, ratio=True, syst=True, spliteras=False, save=True, format='png', label_variations=False):
         '''Plots the data and MC histograms for each year and category contained in the histograms.
         If ratio is True, also the Data/MC ratio plot is plotted.
         If syst is True, also the total systematic uncertainty is plotted.'''
@@ -1499,7 +1536,7 @@ class Shape:
                     filepath = os.path.join(plot_dir, f"{self.name}_{cat}.{format}")
                 if self.verbose>0:
                     print("Saving", filepath)
-                plt.savefig(filepath, dpi=150, format=format, bbox_inches="tight")
+                self._save_plot(filepath, ax=self.ax, format=format, label_variations=label_variations)
             else:
                 plt.show(self.fig)
             plt.close(self.fig)
@@ -1537,7 +1574,7 @@ class Shape:
             self.rax.remove()
 
 
-    def plot_comparison_all(self, ratio=True, save=True, format='png'):
+    def plot_comparison_all(self, ratio=True, save=True, format='png', label_variations=False):
         ''' '''
         if self.dense_dim > 1:
             print(f"WARNING: cannot plot histogram {self.name} with dimension {self.dense_dim}. It will be skipped.")
@@ -1563,14 +1600,14 @@ class Shape:
                     filepath = os.path.join(plot_dir, f"{self.name}_{cat}.{format}")
                 if self.verbose>0:
                     print("Saving", filepath)
-                plt.savefig(filepath, dpi=150, format=format, bbox_inches="tight")
+                self._save_plot(filepath, ax=self.ax, format=format, label_variations=label_variations)
             else:
                 plt.show(self.fig)
                 plt.close(self.fig)
 
 
     def plot_systematic_shifts(
-        self, cat, syst_name, ratio=True, format="png", save=True
+        self, cat, syst_name, ratio=True, format="png", save=True, label_variations=False
     ):
         """Plots the systematic shifts (up/down) of a given systematic uncertainty.
         The systematic shifts are plotted as a ratio plot if ratio is set to True."""
@@ -1604,12 +1641,12 @@ class Shape:
             filepath = os.path.join(plot_dir, f"{filename}.{format}")
             if self.verbose > 0:
                 print("Saving", filepath)
-            plt.savefig(filepath, dpi=150, format=format, bbox_inches="tight")
+            self._save_plot(filepath, ax=systematic.ax, format=format, label_variations=label_variations)
         else:
             plt.show(systematic.fig)
         plt.close(systematic.fig)
 
-    def plot_systematic_shifts_all(self, ratio=True, format="png", save=True):
+    def plot_systematic_shifts_all(self, ratio=True, format="png", save=True, label_variations=False):
         """Plots the systematic shifts (up/down) of all the systematic uncertainties
         for a given category."""
         for syst_name in self.syst_manager.systematics:
@@ -1619,7 +1656,8 @@ class Shape:
                 if self.verbose > 1:
                     print("Plotting systematic:", syst_name, "for category:", cat)
                 self.plot_systematic_shifts(
-                    cat, syst_name, ratio=ratio, format=format, save=save
+                    cat, syst_name, ratio=ratio, format=format, save=save,
+                    label_variations=label_variations
                 )
 
 

@@ -46,7 +46,7 @@ def default_plotting_parameters():
 
 @pytest.fixture(scope="function")
 def plot_manager(tmp_path: Path, coffea_output: dict) -> Callable[..., PlotManager]:
-    def _plot_manager(plotting_parameters: dict) -> PlotManager:
+    def _plot_manager(plotting_parameters: dict, label_variations=False) -> PlotManager:
         assert coffea_output is not None
         assert "variables" in coffea_output
 
@@ -60,6 +60,7 @@ def plot_manager(tmp_path: Path, coffea_output: dict) -> Callable[..., PlotManag
             style_cfg=plotting_parameters,
             workers=1,  # Use single worker for testing
             verbose=1,
+            label_variations=label_variations,
         )
 
     return _plot_manager
@@ -377,3 +378,71 @@ class TestCutflowPlotting:
                 output_dir=str(output_dir),
                 output_format="png",
             )
+
+
+class TestLabelVariations:
+    """Test saving additional CMS label variations via mplhep.savelabels."""
+
+    @staticmethod
+    def _variation_path(base_path: Path, suffix: str) -> Path:
+        """Path of a savelabels variation file for a given base plot path."""
+        return base_path.parent / f"{base_path.stem}{suffix}{base_path.suffix}"
+
+    def test_no_variations_by_default(self, plot_manager, default_plotting_parameters):
+        """Without label_variations, only the base plot files are saved."""
+        plot_mngr = plot_manager(default_plotting_parameters)
+        name = next(iter(plot_mngr.shape_objects))
+        plot_mngr.plot_datamc(name, format="png")
+        for cat in plot_mngr.shape_objects[name].categories:
+            base = plot_mngr.plot_dir / cat / f"{name}_{cat}.png"
+            assert base.exists(), f"base plot {base} was not created"
+            for suffix in ("_pas", "_supp", "_wip"):
+                assert not self._variation_path(base, suffix).exists()
+
+    def test_variations_true(self, plot_manager, default_plotting_parameters):
+        """label_variations=True uses the default mplhep.savelabels variations."""
+        plot_mngr = plot_manager(default_plotting_parameters, label_variations=True)
+        name = next(iter(plot_mngr.shape_objects))
+        plot_mngr.plot_datamc(name, format="png")
+        for cat in plot_mngr.shape_objects[name].categories:
+            base = plot_mngr.plot_dir / cat / f"{name}_{cat}.png"
+            assert base.exists(), f"base plot {base} was not created"
+            for suffix in ("_pas", "_supp", "_wip"):
+                path = self._variation_path(base, suffix)
+                assert path.exists(), f"variation plot {path} was not created"
+
+    def test_variations_custom_list(self, plot_manager, default_plotting_parameters):
+        """A list of label texts is passed to mplhep.savelabels as is."""
+        plot_mngr = plot_manager(
+            default_plotting_parameters,
+            label_variations=["Preliminary", "Work in Progress"],
+        )
+        name = next(iter(plot_mngr.shape_objects))
+        plot_mngr.plot_datamc(name, format="png")
+        for cat in plot_mngr.shape_objects[name].categories:
+            base = plot_mngr.plot_dir / cat / f"{name}_{cat}.png"
+            for suffix in ("_preliminary", "_work_in_progress"):
+                path = self._variation_path(base, suffix)
+                assert path.exists(), f"variation plot {path} was not created"
+            # mplhep.savelabels only saves the listed variations
+            assert not base.exists(), "base plot should not be saved for a custom list"
+
+    def test_invalid_variations_raise(self, plot_manager, default_plotting_parameters):
+        """A bare string is not a valid label_variations value."""
+        with pytest.raises(ValueError):
+            plot_mngr = plot_manager(default_plotting_parameters, label_variations="Preliminary")
+            plot_mngr.plot_datamc(next(iter(plot_mngr.shape_objects)), format="png")
+
+    def test_parse_save_label_variations(self):
+        """Test the CLI parsing of the --save-label-variations option."""
+        from pocket_coffea.scripts.plot.make_plots import parse_save_label_variations
+
+        assert parse_save_label_variations(None) is False
+        assert parse_save_label_variations(()) is False
+        assert parse_save_label_variations(("true",)) is True
+        assert parse_save_label_variations(("True",)) is True
+        assert parse_save_label_variations(("TRUE",)) is True
+        assert parse_save_label_variations(("Preliminary",)) == ["Preliminary"]
+        assert parse_save_label_variations(
+            ("Preliminary", "Work in Progress")
+        ) == ["Preliminary", "Work in Progress"]
