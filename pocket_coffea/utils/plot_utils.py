@@ -1,27 +1,24 @@
+import decimal
+import math
 import os
-from copy import deepcopy
-from multiprocessing import Pool
 from collections import defaultdict
+from copy import deepcopy
+from decimal import Decimal
 from functools import partial
-from itertools import product
+from multiprocessing import Pool
 from warnings import warn
 
-import math
-import decimal
-from decimal import Decimal
-import numpy as np
 import awkward as ak
 import hist
-
 import matplotlib
 import matplotlib.pyplot as plt
-from matplotlib.pyplot import cm
 import mplhep as hep
-from mplhep.error_estimation import poisson_interval
+import numpy as np
 from cycler import cycler
-
+from mplhep.error_estimation import poisson_interval
 from omegaconf import OmegaConf
-from pocket_coffea.parameters.defaults import merge_parameters, get_default_parameters
+
+from pocket_coffea.parameters.defaults import get_default_parameters, merge_parameters
 
 np.seterr(divide="ignore", invalid="ignore", over="ignore")
 
