@@ -11,7 +11,9 @@ class SystematicUncertainty:
     Store information about one systematic uncertainty.
 
     :param name: Name of the systematic uncertainty.
-    :param typ: Type of the systematic uncertainty (e.g. 'shape', 'lnN').
+    :param typ: Type of the systematic uncertainty as written in the datacard: 'lnN' or one of
+        the Combine shape flavours 'shape', 'shapeN', 'shapeU', 'shape?'. All shape flavours
+        need Up/Down templates and are handled alike; only the datacard line differs.
     :param processes: List or tuple of process names affected, or a dict mapping process names to values.
     :param years: List or tuple of years the uncertainty applies to.
     :param value: Value (float or tuple of floats) of the uncertainty for all processes, or None if using a dict for processes.
@@ -129,13 +131,21 @@ class Systematics(dict[str, SystematicUncertainty]):
         """Number of Systematics"""
         return len(self.keys())
 
+    @staticmethod
+    def _is_type(syst: SystematicUncertainty, syst_type: str) -> bool:
+        # "shape" covers every Combine shape flavour (shape, shapeN, shapeU, shape?):
+        # they all carry Up/Down templates and only differ in the datacard line.
+        if syst_type == "shape":
+            return syst.typ.startswith("shape")
+        return syst.typ == syst_type
+
     def list_type(self, syst_type: str) -> list[str]:
-        """List of Names of Systematics of a specific type."""
-        return [key for key in self if self[key].typ == syst_type]
+        """List of Names of Systematics of a specific type ("shape" matches all shape flavours)."""
+        return [key for key in self if self._is_type(self[key], syst_type)]
 
     def get_systematics_by_type(self, syst_type: str) -> dict[SystematicUncertainty]:
-        """Dict of Systematics of a specific type."""
-        return {name: syst for name, syst in self.items() if syst.typ == syst_type}
+        """Dict of Systematics of a specific type ("shape" matches all shape flavours)."""
+        return {name: syst for name, syst in self.items() if self._is_type(syst, syst_type)}
 
     def get_systematics_by_process(
         self, process: Process
