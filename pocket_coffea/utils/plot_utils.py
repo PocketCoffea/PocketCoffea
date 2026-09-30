@@ -1116,7 +1116,6 @@ class Shape:
             self.fig, (self.ax, self.rax) = plt.subplots(
                 2, 1, **self.style.opts_figure["datamc_ratio"]
             )
-            self.fig.subplots_adjust(hspace=0.06)
             axes = (self.ax, self.rax)
         else:
             self.fig, self.ax = plt.subplots(1, 1, **self.style.opts_figure["datamc"])
@@ -1902,7 +1901,6 @@ class SystUnc:
             self.fig, (self.ax, self.rax) = plt.subplots(
                 2, 1, **self.style.opts_figure["systematics_ratio"]
             )
-            self.fig.subplots_adjust(hspace=0.06)
             axes = (self.ax, self.rax)
         else:
             self.fig, self.ax = plt.subplots(
