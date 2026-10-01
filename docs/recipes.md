@@ -1150,6 +1150,21 @@ jets_calibration:
       AK4PFPuppiPNetRegression: True
       #AK4PFPuppiPNetRegressionPlusNeutrino: True
 ```
+
+Both the ParticleNet (PNet) and the UParTAK4 regression are available as `jet_types` for every year. PNet is recommended for 2022/2023, while UParTAK4 is recommended for Run 2 and for 2024/2025. For each algorithm two variants exist -- with and without neutrinos used in the training -- named by the corresponding `jet_types`/`collection` tag: the variant without neutrinos is recommended for jets below the b-tag working point (low b-tag), while the variant with neutrinos is recommended for jets above the b-tag working point (high b-tag).
+
+| Year | Recommended algorithm | Jet type name (low b-tag, no neutrino) | Jet type name (high b-tag, + neutrino) | Resolution branch |
+|---|---|---|---|---|
+| 2016_PreVFP -- 2018 (Run 2) | UParTAK4 | `AK4PFPuppiUParTRegression` | `AK4PFPuppiUParTRegressionPlusNeutrino` | `UParTAK4RegPtRawRes` |
+| 2022_preEE | PNet | `AK4PFPuppiPNetRegression` | `AK4PFPuppiPNetRegressionPlusNeutrino` | `PNetRegPtRawRes` |
+| 2022_postEE | PNet | `AK4PFPuppiPNetRegression` | `AK4PFPuppiPNetRegressionPlusNeutrino` | `PNetRegPtRawRes` |
+| 2023_preBPix | PNet | `AK4PFPuppiPNetRegression` | `AK4PFPuppiPNetRegressionPlusNeutrino` | `PNetRegPtRawRes` |
+| 2023_postBPix | PNet | `AK4PFPuppiPNetRegression` | `AK4PFPuppiPNetRegressionPlusNeutrino` | `PNetRegPtRawRes` |
+| 2024 | UParTAK4 | `AK4PFPuppiUParTRegression` | `AK4PFPuppiUParTRegressionPlusNeutrino` | `UParTAK4RegPtRawRes` |
+| 2025 | UParTAK4 | `AK4PFPuppiUParTRegression` | `AK4PFPuppiUParTRegressionPlusNeutrino` | `UParTAK4RegPtRawRes` |
+
+The other algorithm's `jet_types` (e.g. `AK4PFPuppiPNetRegression*` for Run 2, 2024, 2025; `AK4PFPuppiUParTRegression*` for 2022/2023) remain available and can be selected instead by overriding `jets_calibration.collection`.
+
 Note that there are two versions of regression are available in PNet: with and without neutrinos used in the training.  
 In the example above, the default `jets` configuration is overwritten to assign the `Jet` collection to the `AK4PFPuppiPNetRegression` tag, and to activate the pt regression for data and MC for that tag. Note the line `AK4PFPuppi: null` -- it is needed to remove the association of the `AK4PFPuppi` to the `Jet`, which is default pocket-coffea setting.
 
@@ -1303,7 +1318,28 @@ def process_extra_after_skim(self):
     self.events["JetPNetPlusNeutrino"] = ak.copy(self.events["Jet"])  # regression + neutrinos
 ```
 
-with the matching `jets_calibration` entries (`AK4PFPuppiPNetRegression` -> `JetPNet` and `AK4PFPuppiPNetRegressionPlusNeutrino` -> `JetPNetPlusNeutrino`, both with `apply_pt_regr_*: True`).
+with the matching `jets_calibration` entries (`AK4PFPuppiPNetRegression` -> `JetPNet` and `AK4PFPuppiPNetRegressionPlusNeutrino` -> `JetPNetPlusNeutrino`, both with `apply_pt_regr_*: True`):
+
+```yaml
+jets_calibration:
+  collection:
+    2022_preEE:
+      AK4PFPuppi: "JetDefault"
+      AK4PFPuppiPNetRegression: "JetPNet"
+      AK4PFPuppiPNetRegressionPlusNeutrino: "JetPNetPlusNeutrino"
+
+  apply_pt_regr_MC:
+    2022_preEE:
+      AK4PFPuppi: False
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+
+  apply_pt_regr_Data:
+    2022_preEE:
+      AK4PFPuppi: False
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+```
 
 The **threshold defaults to the loose (`L`) working point of the tagger used**. The working-point score is **read directly from the BTV `correctionlib` file** — the same `btagging.json.gz` that provides the shape SF (`jet_scale_factors.btagSF.<year>.file`) — so the cut on the jets and the SF applied to them always refer to the same tagger and campaign. The tagger to cut on comes from `btagging.working_point.<year>.btagging_algorithm`:
 
