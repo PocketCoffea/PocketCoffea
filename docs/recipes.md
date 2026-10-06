@@ -1151,21 +1151,8 @@ jets_calibration:
       #AK4PFPuppiPNetRegressionPlusNeutrino: True
 ```
 
-Both the ParticleNet (PNet) and the UParTAK4 regression are available as `jet_types` for every year. PNet is recommended for 2022/2023, while UParTAK4 is recommended for Run 2 and for 2024/2025. For each algorithm two variants exist -- with and without neutrinos used in the training -- named by the corresponding `jet_types`/`collection` tag: the variant without neutrinos is recommended for jets below the b-tag working point (low b-tag), while the variant with neutrinos is recommended for jets above the b-tag working point (high b-tag).
+Both the ParticleNet (PNet) and the UParTAK4 regression are available as `jet_types` for every year, each in two variants -- with and without neutrinos used in the training -- named `AK4PFPuppiPNetRegression`, `AK4PFPuppiPNetRegressionPlusNeutrino`, `AK4PFPuppiUParTRegression` and `AK4PFPuppiUParTRegressionPlusNeutrino`. The algorithm can be selected by overriding `jets_calibration.collection`. For the recommendations on which algorithm and variant to use for each year, see the JME documentation: [https://cms-jme-jerc.docs.cern.ch/exp_jec/#jec-and-jer-for-pnet-and-upart-regressed-jets](https://cms-jme-jerc.docs.cern.ch/exp_jec/#jec-and-jer-for-pnet-and-upart-regressed-jets).
 
-| Year | Recommended algorithm | Jet type name (low b-tag, no neutrino) | Jet type name (high b-tag, + neutrino) | Resolution branch |
-|---|---|---|---|---|
-| 2016_PreVFP -- 2018 (Run 2) | UParTAK4 | `AK4PFPuppiUParTRegression` | `AK4PFPuppiUParTRegressionPlusNeutrino` | `UParTAK4RegPtRawRes` |
-| 2022_preEE | PNet | `AK4PFPuppiPNetRegression` | `AK4PFPuppiPNetRegressionPlusNeutrino` | `PNetRegPtRawRes` |
-| 2022_postEE | PNet | `AK4PFPuppiPNetRegression` | `AK4PFPuppiPNetRegressionPlusNeutrino` | `PNetRegPtRawRes` |
-| 2023_preBPix | PNet | `AK4PFPuppiPNetRegression` | `AK4PFPuppiPNetRegressionPlusNeutrino` | `PNetRegPtRawRes` |
-| 2023_postBPix | PNet | `AK4PFPuppiPNetRegression` | `AK4PFPuppiPNetRegressionPlusNeutrino` | `PNetRegPtRawRes` |
-| 2024 | UParTAK4 | `AK4PFPuppiUParTRegression` | `AK4PFPuppiUParTRegressionPlusNeutrino` | `UParTAK4RegPtRawRes` |
-| 2025 | UParTAK4 | `AK4PFPuppiUParTRegression` | `AK4PFPuppiUParTRegressionPlusNeutrino` | `UParTAK4RegPtRawRes` |
-
-The other algorithm's `jet_types` (e.g. `AK4PFPuppiPNetRegression*` for Run 2, 2024, 2025; `AK4PFPuppiUParTRegression*` for 2022/2023) remain available and can be selected instead by overriding `jets_calibration.collection`.
-
-Note that there are two versions of regression are available in PNet: with and without neutrinos used in the training.  
 In the example above, the default `jets` configuration is overwritten to assign the `Jet` collection to the `AK4PFPuppiPNetRegression` tag, and to activate the pt regression for data and MC for that tag. Note the line `AK4PFPuppi: null` -- it is needed to remove the association of the `AK4PFPuppi` to the `Jet`, which is default pocket-coffea setting.
 
 However, this is not all. We also need to apply JEC and JER on the regressed jets. The dedicated corrections, derived for PNet regressed jets, have been recently releasesd by JME, see [https://cms-jerc.web.cern.ch/ExpJEC/](https://cms-jerc.web.cern.ch/ExpJEC/) (as of 19 May 2026). The corrections are located at CERN EOS (not CVMFS!). One has to specify a path to them and set the tags, like so for *2022_preEE*:  
