@@ -1150,7 +1150,9 @@ jets_calibration:
       AK4PFPuppiPNetRegression: True
       #AK4PFPuppiPNetRegressionPlusNeutrino: True
 ```
-Note that there are two versions of regression are available in PNet: with and without neutrinos used in the training.  
+
+Both the ParticleNet (PNet) and the UParTAK4 regression are available as `jet_types` for every year, each in two variants -- with and without neutrinos used in the training -- named `AK4PFPuppiPNetRegression`, `AK4PFPuppiPNetRegressionPlusNeutrino`, `AK4PFPuppiUParTRegression` and `AK4PFPuppiUParTRegressionPlusNeutrino`. The algorithm can be selected by overriding `jets_calibration.collection`. For the recommendations on which algorithm and variant to use for each year, see the JME documentation: [https://cms-jme-jerc.docs.cern.ch/exp_jec/#jec-and-jer-for-pnet-and-upart-regressed-jets](https://cms-jme-jerc.docs.cern.ch/exp_jec/#jec-and-jer-for-pnet-and-upart-regressed-jets).
+
 In the example above, the default `jets` configuration is overwritten to assign the `Jet` collection to the `AK4PFPuppiPNetRegression` tag, and to activate the pt regression for data and MC for that tag. Note the line `AK4PFPuppi: null` -- it is needed to remove the association of the `AK4PFPuppi` to the `Jet`, which is default pocket-coffea setting.
 
 However, this is not all. We also need to apply JEC and JER on the regressed jets. The dedicated corrections, derived for PNet regressed jets, have been recently releasesd by JME, see [https://cms-jerc.web.cern.ch/ExpJEC/](https://cms-jerc.web.cern.ch/ExpJEC/) (as of 19 May 2026). The corrections are located at CERN EOS (not CVMFS!). One has to specify a path to them and set the tags, like so for *2022_preEE*:  
@@ -1303,7 +1305,28 @@ def process_extra_after_skim(self):
     self.events["JetPNetPlusNeutrino"] = ak.copy(self.events["Jet"])  # regression + neutrinos
 ```
 
-with the matching `jets_calibration` entries (`AK4PFPuppiPNetRegression` -> `JetPNet` and `AK4PFPuppiPNetRegressionPlusNeutrino` -> `JetPNetPlusNeutrino`, both with `apply_pt_regr_*: True`).
+with the matching `jets_calibration` entries (`AK4PFPuppiPNetRegression` -> `JetPNet` and `AK4PFPuppiPNetRegressionPlusNeutrino` -> `JetPNetPlusNeutrino`, both with `apply_pt_regr_*: True`):
+
+```yaml
+jets_calibration:
+  collection:
+    2022_preEE:
+      AK4PFPuppi: "JetDefault"
+      AK4PFPuppiPNetRegression: "JetPNet"
+      AK4PFPuppiPNetRegressionPlusNeutrino: "JetPNetPlusNeutrino"
+
+  apply_pt_regr_MC:
+    2022_preEE:
+      AK4PFPuppi: False
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+
+  apply_pt_regr_Data:
+    2022_preEE:
+      AK4PFPuppi: False
+      AK4PFPuppiPNetRegression: True
+      AK4PFPuppiPNetRegressionPlusNeutrino: True
+```
 
 The **threshold defaults to the loose (`L`) working point of the tagger used**. The working-point score is **read directly from the BTV `correctionlib` file** — the same `btagging.json.gz` that provides the shape SF (`jet_scale_factors.btagSF.<year>.file`) — so the cut on the jets and the SF applied to them always refer to the same tagger and campaign. The tagger to cut on comes from `btagging.working_point.<year>.btagging_algorithm`:
 
