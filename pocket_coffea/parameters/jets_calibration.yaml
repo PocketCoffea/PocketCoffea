@@ -1199,6 +1199,7 @@ jets_calibration:
   # 3 < |eta| < 5), following the JME recommendations. All switched off by default:
   # set `apply: True` to activate one of them. The |eta| regions are [eta_min, eta_max) intervals,
   # given per year: the mitigation does nothing in the years without regions.
+  # Recommendations: https://indico.cern.ch/event/1615783/contributions/6811120/attachments/3186812/5672346/20251204_JetMET_PerformanceRun3.pdf#page=14
   # See docs/calibrators.md for the details.
   forward_jets_mitigation:
     # jet types (calibration aliases) the JER and residual mitigations are applied to

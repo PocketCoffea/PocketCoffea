@@ -229,7 +229,8 @@ JES/JER systematics are the same in the two modes.
 ### Run3 forward jets mitigations
 
 The JME POG recommends some mitigations for the issues of the Run3 jets in the endcaps
-(HE, 2.5 < |η| < 3, the "horns") and in the forward calorimeter (HF, 3 < |η| < 5):
+(HE, 2.5 < |η| < 3, the "horns") and in the forward calorimeter (HF, 3 < |η| < 5)
+([JetMET Run3 performance, slide 14](https://indico.cern.ch/event/1615783/contributions/6811120/attachments/3186812/5672346/20251204_JetMET_PerformanceRun3.pdf#page=14)):
 
 | Year | HF (3 < \|η\| < 5) | HE (2.5 < \|η\| < 3) | 2.0 < \|η\| < 2.5 |
 |------|--------------------|-----------------------|-------------------|
