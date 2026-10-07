@@ -3,7 +3,7 @@ import numpy as np
 import vector
 import awkward as ak
 import cachetools
-from pocket_coffea.lib.jets import met_correction_after_jec, jet_correction_corrlib, jet_correction_corrlib_bylevel, msoftdrop_correction, JET_SORTIDX_FIELD
+from pocket_coffea.lib.jets import met_correction_after_jec, jet_correction_corrlib, msoftdrop_correction, JET_SORTIDX_FIELD
 from pocket_coffea.lib.leptons import (
     get_ele_scaled, 
     get_ele_smeared, 
@@ -106,18 +106,10 @@ class JetsCalibrator(Calibrator):
             
             # print(f"Doing JECS for {jet_type}/{jet_coll_name}/{jet_type_alias}.")
             # print(f"Variations for {jet_type_alias}: {self.jet_calib_param.variations[jet_type_alias][self._year]}")
-            calib_params = self.jet_calib_param.jet_types[jet_type_alias][self._year]
-            # Select the JEC application method:
-            #  - by_level=True  -> `level` is a list of single JEC levels, applied one by
-            #                      one (allows customizations spliced between levels)
-            #  - by_level=False -> `level` is the single compound correction name (default)
-            jec_func = (
-                jet_correction_corrlib_bylevel
-                if calib_params.get("by_level", False)
-                else jet_correction_corrlib
-            )
-            corrected_jets = jec_func(
-                calib_params=calib_params,
+            # `by_level` in the calibration parameters selects whether the JEC is the single
+            # compound correction or the list of single levels applied one by one
+            corrected_jets = jet_correction_corrlib(
+                calib_params=self.jet_calib_param.jet_types[jet_type_alias][self._year],
                 variations=self.jet_calib_param.variations[jet_type_alias][self._year],
                 events=events,
                 jet_type = jet_type_alias,
@@ -131,6 +123,7 @@ class JetsCalibrator(Calibrator):
                 nano_version=nano_aod_version,
                 jec_syst=self.do_variations,
                 apply_jer=self.jet_calib_param.apply_jer_MC[self.year][jet_type_alias] if self.isMC else False,
+                forward_mitigation=self.jet_calib_param.get("forward_jets_mitigation"),
             )
             # update the rawFactor of the corrected jets
             #print(f"Calibrating jet collection {jet_coll_name} with jet type {jet_type} and alias {jet_type_alias}. " + f"Year: {self._year}")

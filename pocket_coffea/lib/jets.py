@@ -4,6 +4,7 @@ import cloudpickle
 import awkward as ak
 import numpy as np
 import correctionlib
+from omegaconf import OmegaConf
 from pocket_coffea.lib.correction_cache import load_correction_set
 from coffea.jetmet_tools import  CorrectedMETFactory
 from correctionlib.schemav2 import Correction, CorrectionSet
@@ -109,7 +110,14 @@ def met_xy_correction(params, events, METcol,  year, era):
     return pt_corr, phi_corr
 
 
-def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tagger=""):
+def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tagger="", forward_jet_veto=None):
+    """Select the jets of the ``jet_type`` collection passing ``params.object_preselection[jet_type]``.
+
+    ``forward_jet_veto``: reject the low-pt forward jets following the ``pt_cut`` forward jets
+    mitigation of ``params.jets_calibration.forward_jets_mitigation`` (year-dependent pt
+    threshold and |eta| regions). ``None`` (default) takes the switch from the ``apply`` key
+    of the configuration, ``True``/``False`` overrides it.
+    """
     jets = events[jet_type]
     cuts = params.object_preselection[jet_type]
 
@@ -123,6 +131,9 @@ def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tag
         (jets.pt > cuts["pt"])
         & (np.abs(jets.eta) < cuts["eta"])
         & (jets.jetId_corrected >= cuts["jetId"])
+        & forward_jets_pt_cut_mask(
+            jets, OmegaConf.select(params, "jets_calibration.forward_jets_mitigation"), year, apply=forward_jet_veto
+        )
     )
     # Lepton cleaning
     # Only jets that are more distant than dr to ALL leptons are tagged as good jets
@@ -849,6 +860,87 @@ def get_jersmear_SFunc(_eval_dict, _ceval, _jer_sf_tag, syst_tag=None):
 
     return _jersmear, _jersmear_up, _jersmear_down
 
+def abs_eta_in_regions(eta, regions):
+    """Mask of the objects with |eta| in any of the ``[eta_min, eta_max)`` regions."""
+    abs_eta = np.abs(eta)
+    mask = ak.zeros_like(abs_eta, dtype=bool)
+    for eta_min, eta_max in regions:
+        mask = mask | ((abs_eta >= eta_min) & (abs_eta < eta_max))
+    return mask
+
+
+def get_forward_jets_mitigation(mitigation_cfg, name, year, jet_type=None, apply=None):
+    """Configuration of the forward jets mitigation ``name`` active for ``year``.
+
+    ``mitigation_cfg`` is ``params.jets_calibration.forward_jets_mitigation``.
+    Returns ``None`` if the mitigation is switched off (``apply``, which defaults to the
+    ``apply`` key of the configuration), if ``jet_type`` is given and not listed in
+    ``jet_types``, or if no |eta| region is defined for the year.
+    """
+    if mitigation_cfg is None or name not in mitigation_cfg:
+        return None
+    cfg = mitigation_cfg[name]
+    if apply is None:
+        apply = cfg.get("apply", False)
+    if not apply:
+        return None
+    if jet_type is not None and jet_type not in mitigation_cfg.get("jet_types", []):
+        return None
+    if not cfg.get("eta_regions", {}).get(str(year)):
+        return None
+    return cfg
+
+
+def forward_jets_pt_cut_mask(jets, mitigation_cfg, year, apply=None):
+    """False for the jets with pt < ``pt_min`` in the |eta| regions of the
+    ``pt_cut`` forward jets mitigation for ``year``, True for all the others."""
+    cfg = get_forward_jets_mitigation(mitigation_cfg, "pt_cut", year, apply=apply)
+    if cfg is None:
+        return ak.ones_like(jets.pt, dtype=bool)
+    return ~(abs_eta_in_regions(jets.eta, cfg.eta_regions[str(year)]) & (jets.pt < cfg.pt_min))
+
+
+def jec_by_level(cset, jec_tag, levels, jet_type, eval_dict, residual_pt_floor=None):
+    """Total JEC factor obtained applying the single JEC ``levels`` one after the other.
+
+    This reproduces the chaining of the compound correction (``input_op='*'``,
+    ``inputs_update=['JetPt']``, ``output_op='*'``): each level is evaluated on the running,
+    partially-corrected pt, its factor is multiplied into the total correction, and the
+    updated pt is fed to the next level.
+    The pt at which a level is *evaluated* can differ from the pt the correction
+    *propagates* on: with ``residual_pt_floor`` (dict with ``level``, ``pt_min`` and the
+    flat jet ``mask``), the level ``level`` is evaluated at ``pt_min`` for the masked jets
+    with running pt < ``pt_min``, while the running pt is still multiplied by that factor.
+    """
+    jet_pt_prop = eval_dict["JetPt"]
+    corr_total = ak.ones_like(jet_pt_prop)
+    for level in levels:
+        tag_jec_level = "_".join([jec_tag, level, jet_type])
+        # single JEC levels live among the regular corrections; keep a compound
+        # fallback in case a configured "level" is itself a compound correction
+        if tag_jec_level in list(cset.keys()):
+            sf = cset[tag_jec_level]
+        elif tag_jec_level in list(cset.compound.keys()):
+            sf = cset.compound[tag_jec_level]
+        else:
+            print("CONFIG ERROR: No JEC correction for level!")
+            print("Tag=", tag_jec_level, "\n cset keys:", list(cset.keys()),
+                  "\n compound keys:", list(cset.compound.keys()))
+            raise Exception(f"[No JEC correction: {tag_jec_level} - Level: {level}]")
+
+        jet_pt_eval = jet_pt_prop
+        if residual_pt_floor is not None and level == residual_pt_floor["level"]:
+            pt_min = residual_pt_floor["pt_min"]
+            jet_pt_eval = ak.where(
+                residual_pt_floor["mask"] & (jet_pt_prop < pt_min), pt_min, jet_pt_prop
+            )
+        eval_dict["JetPt"] = jet_pt_eval
+        factor = sf.evaluate(*[eval_dict[input.name] for input in sf.inputs])
+        corr_total = corr_total * factor
+        jet_pt_prop = jet_pt_prop * factor
+    return corr_total
+
+
 def jet_correction_corrlib(
     calib_params,
     variations,
@@ -859,8 +951,18 @@ def jet_correction_corrlib(
     nano_version,
     apply_jer=True,
     jec_syst=True,
-):    
+    forward_mitigation=None,
+):
+    """JEC (+ JER and JES/JER systematics on MC) with correctionlib.
 
+    ``calib_params['level']`` is the compound correction name (e.g. ``L1L2L3Res``), or,
+    with ``calib_params['by_level'] = True``, a list of single JEC levels (e.g.
+    ``['L1FastJet', 'L2Relative', 'L3Absolute', 'L2L3Residual']``) applied one by one
+    (see :func:`jec_by_level`).
+    ``forward_mitigation`` is ``params.jets_calibration.forward_jets_mitigation``: the
+    ``jer_genmatched_only`` (MC) and ``residual_pt_floor`` (data) mitigations are applied
+    if switched on for this year and jet type.
+    """
     isMC = chunk_metadata["isMC"]
     year = chunk_metadata["year"]
     era = chunk_metadata["era"]
@@ -877,6 +979,26 @@ def jet_correction_corrlib(
             jec_tag = calib_params['jec_data'][chunk_metadata["era"]]
     
     level = calib_params['level']  # e.g. 'L1L2L3' for MC, 'L1L2L3Residual' for data
+    by_level = calib_params.get("by_level", False)
+    if by_level and isinstance(level, str):
+        raise Exception(
+            f"[jet_correction_corrlib] with by_level=True 'level' must be a list of single JEC levels "
+            f"(e.g. ['L1FastJet', 'L2Relative', 'L3Absolute', 'L2L3Residual']), got the "
+            f"string '{level}'. Set by_level=False for the compound correction."
+        )
+
+    # forward jets mitigations active for this year and jet type
+    jer_genmatched_only = residual_pt_floor = None
+    if isMC:
+        jer_genmatched_only = get_forward_jets_mitigation(
+            forward_mitigation, "jer_genmatched_only", year, jet_type)
+    else:
+        residual_pt_floor = get_forward_jets_mitigation(
+            forward_mitigation, "residual_pt_floor", year, jet_type)
+        if residual_pt_floor is not None and not by_level:
+            # the floor needs the single levels: use the configured ones
+            by_level = True
+            level = list(residual_pt_floor["levels"])
 
     # no jer and variations applied on data
     apply_jes = True
@@ -894,8 +1016,6 @@ def jet_correction_corrlib(
             f"JER systematics can only be applied, "
             "if nominal JER shifts are applied aswell, "
             "which is turned off for collection {jet_coll_name}")
-
-    tag_jec = "_".join([jec_tag, level, jet_type])
 
     # get the correction sets
     cset = load_correction_set(json_path)
@@ -931,17 +1051,27 @@ def jet_correction_corrlib(
 
     # jes central
     if apply_jes:
-        # get the correction
-        if tag_jec in list(cset.compound.keys()):
-            sf = cset.compound[tag_jec]
-        elif tag_jec in list(cset.keys()):
-            sf = cset[tag_jec]
+        if by_level:
+            if residual_pt_floor is not None:
+                residual_pt_floor = {
+                    "level": residual_pt_floor["level"],
+                    "pt_min": residual_pt_floor["pt_min"],
+                    "mask": abs_eta_in_regions(jets.eta, residual_pt_floor["eta_regions"][str(year)]),
+                }
+            sf_value = jec_by_level(cset, jec_tag, level, jet_type, eval_dict, residual_pt_floor)
         else:
-            print("CONFIG ERROR: No JEC correction!")
-            print("Tag=",tag_jec, "\n cset keys:", list(cset.keys()), "\n compound keys:", list(cset.compound.keys()))
-            raise Exception(f"[No JEC correction: {tag_jec} - Year: {year} - Era: {era} - Level: {level}")
-        inputs = [eval_dict[input.name] for input in sf.inputs]
-        sf_value = sf.evaluate(*inputs)
+            tag_jec = "_".join([jec_tag, level, jet_type])
+            # get the correction
+            if tag_jec in list(cset.compound.keys()):
+                sf = cset.compound[tag_jec]
+            elif tag_jec in list(cset.keys()):
+                sf = cset[tag_jec]
+            else:
+                print("CONFIG ERROR: No JEC correction!")
+                print("Tag=",tag_jec, "\n cset keys:", list(cset.keys()), "\n compound keys:", list(cset.compound.keys()))
+                raise Exception(f"[No JEC correction: {tag_jec} - Year: {year} - Era: {era} - Level: {level}")
+            inputs = [eval_dict[input.name] for input in sf.inputs]
+            sf_value = sf.evaluate(*inputs)
         # update the nominal pt and mass
         jets["pt"] = sf_value * jets["pt_raw"]
         jets["mass"] = sf_value * jets["mass_raw"]
@@ -987,10 +1117,22 @@ def jet_correction_corrlib(
                 ),
             }
         )
+        # forward jets mitigation: smear only the gen-matched jets in the |eta| regions,
+        # i.e. no stochastic smearing (GenPt = -1) there
+        no_smear = None
+        if jer_genmatched_only is not None:
+            no_smear = abs_eta_in_regions(
+                jets.eta, jer_genmatched_only["eta_regions"][str(year)]
+            ) & (eval_dict["GenPt"] < 0)
+
+        def _safe_jersmear(smear):
+            smear = safe_jersmear(smear)
+            return smear if no_smear is None else ak.where(no_smear, 1.0, smear)
+
         if apply_jer:
             if jer_syst:
                 jersmear, jersmear_up, jersmear_down = map(
-                    safe_jersmear, get_jersmear_SFunc(eval_dict, ceval_jer, jer_sf_tag, syst_tag=jer_sfunc_tag))
+                    _safe_jersmear, get_jersmear_SFunc(eval_dict, ceval_jer, jer_sf_tag, syst_tag=jer_sfunc_tag))
                 # jer nominal
                 jets["pt_jer"] = jets.pt * jersmear
                 jets["mass_jer"] = jets.mass * jersmear
@@ -1001,7 +1143,7 @@ def jet_correction_corrlib(
                 jets["pt_JER_down"] = jets.pt * jersmear_down
                 jets["mass_JER_down"] = jets.mass * jersmear_down
             else:
-                jersmear = safe_jersmear(get_jersmear_SFunc(eval_dict, ceval_jer, jer_sf_tag))
+                jersmear = _safe_jersmear(get_jersmear_SFunc(eval_dict, ceval_jer, jer_sf_tag))
                 jets["pt_jer"] = jets.pt * jersmear
                 jets["mass_jer"] = jets.mass * jersmear
             
@@ -1040,265 +1182,10 @@ def jet_correction_corrlib(
     return jets_jagged
 
 
-def jet_correction_corrlib_bylevel(
-    calib_params,
-    variations,
-    events,
-    jet_type,
-    jet_coll_name,
-    chunk_metadata,
-    nano_version,
-    apply_jer=True,
-    jec_syst=True,
-):
-    """By-level variant of :func:`jet_correction_corrlib`.
-
-    Instead of applying the single *compound* JEC correction (e.g. ``L1L2L3Res``),
-    this function expects ``calib_params['level']`` to be a **list** of single JEC
-    levels (e.g. ``['L1FastJet', 'L2Relative', 'L3Absolute', 'L2L3Residual']``) and
-    applies them one after the other. This reproduces exactly the chaining performed
-    internally by the compound correction (``input_op='*'``, ``inputs_update=['JetPt']``,
-    ``output_op='*'``): each level is evaluated on the running, partially-corrected jet
-    pt, its factor is multiplied into the cumulative correction, and the updated pt is
-    fed to the next level.
-
-    Applying the levels explicitly leaves a place to splice in a custom correction right
-    after any given level: see the CUSTOMIZATION SEAM inside the per-level loop.
-
-    JER and JES-systematic handling are identical to :func:`jet_correction_corrlib`.
-    """
-    isMC = chunk_metadata["isMC"]
-    year = chunk_metadata["year"]
-    era = chunk_metadata["era"]
-
-    json_path = calib_params["json_path"]
-    jer_tag = None
-    if isMC:
-        jec_tag = calib_params['jec_mc']
-        jer_tag = calib_params['jer']
-    else:
-        if type(calib_params['jec_data']) == str:
-            jec_tag = calib_params['jec_data']
-        else:
-            jec_tag = calib_params['jec_data'][chunk_metadata["era"]]
-
-    # 'level' is a LIST of single JEC levels applied in order, e.g.
-    # ['L1FastJet', 'L2Relative', 'L3Absolute', 'L2L3Residual']
-    levels = calib_params['level']
-    if isinstance(levels, str):
-        raise Exception(
-            f"[jet_correction_corrlib_bylevel] 'level' must be a list of single JEC levels "
-            f"(e.g. ['L1FastJet', 'L2Relative', 'L3Absolute', 'L2L3Residual']), got the "
-            f"string '{levels}'. Use jet_correction_corrlib for the compound correction."
-        )
-
-    # no jer and variations applied on data
-    apply_jes = True
-    jes_syst = jer_syst = False
-    if isMC:
-        if jec_syst:
-            jes_syst = True
-            if "JER" in variations:
-                jer_syst = True
-    else:
-        apply_jer = False
-
-    if jer_syst and not apply_jer:
-        raise Exception(
-            f"JER systematics can only be applied, "
-            "if nominal JER shifts are applied aswell, "
-            "which is turned off for collection {jet_coll_name}")
-
-    # get the correction sets
-    cset = correctionlib.CorrectionSet.from_file(json_path)
-
-    # prepare inputs
-    # no need of copies
-    jets_jagged = events[jet_coll_name]
-    counts = ak.num(jets_jagged)
-
-    nano_version = chunk_metadata.get("nano_version", 9)
-    rho = get_rho(events, nano_version)
-    # Add variables needed for JEC and JER corrections (e.g. pt_raw, mass_raw, pt_gen, event_rho)
-    jets_jagged = add_jec_variables(jets_jagged, rho, isMC)
-
-    if ("event_id" not in jets_jagged.fields) and (apply_jer or jer_syst):
-        jets_jagged["event_id"] = ak.ones_like(jets_jagged.pt) * events.event
-    if ("run_nr" not in jets_jagged.fields):
-        jets_jagged["run_nr"] = ak.ones_like(jets_jagged.pt) * events.run
-
-    # flatten
-    jets = ak.flatten(jets_jagged)
-    # evaluate dictionary
-    eval_dict = {
-        "JetPt": jets.pt_raw,
-        "JetEta": jets.eta,
-        "JetPhi": jets.phi,
-        "Rho": jets.event_rho,
-        "JetA": jets.area,
-        "run": jets.run_nr
-    }
-
-    # jes central: apply the single JEC levels one by one
-    if apply_jes:
-        # Two distinct running pt quantities are tracked:
-        #   jet_pt_prop : the PROPAGATION pt = pt_raw * (cumulative factor so far). This is
-        #                 the physical, partially-corrected pt carried from level to level.
-        #   corr_total  : the cumulative multiplicative JEC correction, applied to
-        #                 pt_raw/mass_raw at the very end.
-        # The pt used to *evaluate* each level (jet_pt_eval) defaults to jet_pt_prop, but it
-        # can be adjusted at the EVALUATION-PT SEAM to change only the pt at which a level's
-        # correction is looked up, WITHOUT changing the pt the correction propagates on.
-        jet_pt_prop = jets.pt_raw
-        corr_total = ak.ones_like(jets.pt_raw)
-
-        for level in levels:
-            tag_jec_level = "_".join([jec_tag, level, jet_type])
-            # single JEC levels live among the regular corrections; keep a compound
-            # fallback in case a configured "level" is itself a compound correction
-            if tag_jec_level in list(cset.keys()):
-                sf = cset[tag_jec_level]
-            elif tag_jec_level in list(cset.compound.keys()):
-                sf = cset.compound[tag_jec_level]
-            else:
-                print("CONFIG ERROR: No JEC correction for level!")
-                print("Tag=", tag_jec_level, "\n cset keys:", list(cset.keys()),
-                      "\n compound keys:", list(cset.compound.keys()))
-                raise Exception(
-                    f"[No JEC correction: {tag_jec_level} - Year: {year} - Era: {era} - Level: {level}]")
-
-            # by default, evaluate this level at the running propagation pt
-            jet_pt_eval = jet_pt_prop
-
-            # =================================================================
-            # === EVALUATION-PT SEAM — runs BEFORE level `level` is evaluated ==
-            # -----------------------------------------------------------------
-            # Adjust `jet_pt_eval` here to change ONLY the pt at which this level's
-            # correction is looked up. `jet_pt_prop` / `corr_total` are left untouched,
-            # so the correction still propagates on the real (unadjusted) pt.
-            # e.g. evaluate a level at a clipped 30 GeV in the 2.0 < |eta| < 2.5 region:
-            #   if level == "<level>":
-            #       jet_pt_eval = ak.where(
-            #           (np.abs(jets.eta) < 2.5) & (np.abs(jets.eta) > 2.0) & (jet_pt_prop < 30.0),
-            #           30., jet_pt_eval)
-            # =================================================================
-            if level == "L2L3Residual" and year == "2024" and not isMC:
-                # 2024: if pt_L3corr < 30. GeV, evaluate L2L3Residual at 30 GeV instead of the real pt.
-                # only in [2.0, 2.5] eta region, to avoid the large L2L3Residual correction at low pt
-                jet_pt_eval = ak.where((np.abs(jets.eta) < 2.5) & (np.abs(jets.eta) > 2.0) & (jet_pt_prop < 30.0), 30., jet_pt_prop)
-
-            # evaluate this level on the (possibly adjusted) evaluation pt
-            eval_dict["JetPt"] = jet_pt_eval
-            inputs = [eval_dict[input.name] for input in sf.inputs]
-            factor = sf.evaluate(*inputs)
-
-            # propagate the correction: the factor (computed from jet_pt_eval) is applied to
-            # the real running pt and accumulated. jet_pt_prop is updated with the factor,
-            # NOT with the adjusted jet_pt_eval, so an evaluation-pt tweak never leaks into
-            # the propagated pt.
-            corr_total = corr_total * factor
-            jet_pt_prop = jet_pt_prop * factor
-
-            # =================================================================
-            # === POST-LEVEL SEAM — extra propagating correction ==============
-            # To splice in an extra factor that behaves like another JEC layer
-            # (seen by later levels AND the final pt/mass), multiply both:
-            #   if level == "<level>":
-            #       extra = my_custom_factor(jets, eval_dict)   # flat awkward array
-            #       corr_total  = corr_total  * extra
-            #       jet_pt_prop = jet_pt_prop * extra
-            # =================================================================
-
-        # update the nominal pt and mass with the accumulated correction
-        jets["pt"] = corr_total * jets["pt_raw"]
-        jets["mass"] = corr_total * jets["mass_raw"]
-
-    # jer central and systematics
-    if apply_jer or jer_syst:
-        # learned from: https://github.com/cms-nanoAOD/correctionlib/issues/130
-
-        jer_ptres_tag = f"{jer_tag}_PtResolution_{jet_type}"
-        jer_sf_tag = f"{jer_tag}_ScaleFactor_{jet_type}"
-
-        jer_sfunc_tag = jer_sf_tag.replace("ScaleFactor", "SFUncertainty")
-        ceval_jer = get_jer_correction_set(json_path, (jer_ptres_tag, jer_sf_tag, jer_sfunc_tag))
-
-        # update evaluate dictionary
-        eval_dict.update(
-            {
-                "JetPt": jets.pt,
-                "GenPt": jets.pt_gen,
-                "EventID": jets.event_id,
-            }
-        )
-        # get jer pt resolution
-        inputs_jer_ptres = [
-            eval_dict[input.name] for input in ceval_jer[jer_ptres_tag].inputs
-        ]
-        jer_ptres = ceval_jer[jer_ptres_tag].evaluate(*inputs_jer_ptres)
-        # update evaluate dictionary
-        eval_dict.update({"JER": jer_ptres})
-        # adjust pt gen
-        eval_dict.update(
-            {
-                "GenPt": np.where(
-                    np.abs(eval_dict["JetPt"] - eval_dict["GenPt"])
-                    < 3 * eval_dict["JetPt"] * eval_dict["JER"],
-                    eval_dict["GenPt"],
-                    -1.0,
-                ),
-            }
-        )
-        if apply_jer:
-            if jer_syst:
-                jersmear, jersmear_up, jersmear_down = get_jersmear_SFunc(eval_dict, ceval_jer, jer_sf_tag, syst_tag=jer_sfunc_tag)
-                # jer nominal
-                jets["pt_jer"] = jets.pt * jersmear
-                jets["mass_jer"] = jets.mass * jersmear
-                # jer up
-                jets["pt_JER_up"] = jets.pt * jersmear_up
-                jets["mass_JER_up"] = jets.mass * jersmear_up
-                # jer down
-                jets["pt_JER_down"] = jets.pt * jersmear_down
-                jets["mass_JER_down"] = jets.mass * jersmear_down
-            else:
-                jersmear = get_jersmear_SFunc(eval_dict, ceval_jer, jer_sf_tag)
-                jets["pt_jer"] = jets.pt * jersmear
-                jets["mass_jer"] = jets.mass * jersmear
-
-            # to avoid the sf: jer*jer_up or jer*jer_down, update the jer pt/mass after calculation of the jer up/down
-            jets["pt"] = jets["pt_jer"]
-            jets["mass"] = jets["mass_jer"]
-
-    # jes systematics
-    if jes_syst:
-        # update evaluate dictionary
-        eval_dict.update({"JetPt": jets.pt})
-        # loop over all JES variations
-        jes_strings = [s[4:] for s in variations if s.startswith("JES")]
-        for jes_vari in jes_strings:
-            # If Regrouped variations are wanted, the Regrouped_ name must be used in the config
-            tag_jec_syst = "_".join([jec_tag, jes_vari, jet_type])
-            try:
-                sf = cset[tag_jec_syst]
-            except:
-                raise Exception(
-                    f"[ jerc_jet ] No JEC systematic: {tag_jec_syst} - Year: {year} - Era: {era}"
-                )
-            # systematics
-            inputs = [eval_dict[input.name] for input in sf.inputs]
-            sf_delta = sf.evaluate(*inputs)
-
-            # divide by correction since it is already applied before
-            corr_up_variation = 1 + sf_delta
-            corr_down_variation = 1 - sf_delta
-
-            jets[f"pt_JES_{jes_vari}_up"] = jets.pt * corr_up_variation
-            jets[f"pt_JES_{jes_vari}_down"] = jets.pt * corr_down_variation
-            jets[f"mass_JES_{jes_vari}_up"] = jets.mass * corr_up_variation
-            jets[f"mass_JES_{jes_vari}_down"] = jets.mass * corr_down_variation
-    jets_jagged = ak.unflatten(jets, counts)
-    return jets_jagged
+def jet_correction_corrlib_bylevel(calib_params, *args, **kwargs):
+    """By-level variant of :func:`jet_correction_corrlib`: ``calib_params['level']`` is a
+    list of single JEC levels applied one after the other (see :func:`jec_by_level`)."""
+    return jet_correction_corrlib({**calib_params, "by_level": True}, *args, **kwargs)
 
 
 def msoftdrop_correction(

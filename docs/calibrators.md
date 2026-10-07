@@ -79,6 +79,7 @@ PocketCoffea provides several ready-to-use calibrators in `pocket_coffea.lib.cal
 - **Purpose**: Applies Jet Energy Corrections (JEC) and Jet Energy Resolution (JER) smearing. If pT regression is requested for a jet type (`apply_pt_regr_MC`/`apply_pt_regr_Data`), it is applied first, before the JEC.
 - **Collections**: Configurable. Every jet collection listed in `jets_calibration.collection[year]` (e.g. `Jet`, `FatJet`) that has `apply_jec_MC`/`apply_jec_Data` enabled for its jet type is calibrated.
 - **Variations**: One `"{jet_type}_{source}Up"` / `"{jet_type}_{source}Down"` pair per entry configured in `jets_calibration.variations[jet_type][year]` (e.g. `"AK4PFchs_jecUp"`, `"AK4PFchs_jerDown"`).
+- **Options**: the JEC can be applied [by level](#jec-applied-by-level) instead of with the compound correction, and the [Run3 forward jets mitigations](#run3-forward-jets-mitigations) can be switched on.
 
 ### JetsSoftdropMassCalibrator
 - **Name**: `"msoftdrop_calibration"`
@@ -198,6 +199,115 @@ jets_calibration:
       AK4PFchs: ["jec", "jer"]
       AK8PFPuppi: ["jec"]
 ```
+
+### JEC applied by level
+
+By default the JEC is the single *compound* correction named by `level` (e.g. `L1L2L3Res`).
+With `by_level: True` in the calibration parameters of a jet type and year, `level` is instead
+a list of single JEC levels, applied one after the other:
+
+```yaml
+jets_calibration:
+  jet_types:
+    AK4PFPuppi:
+      "2024":
+        json_path: ...
+        jec_mc: Summer24Prompt24_V5_MC
+        jec_data: Summer24Prompt24_V5_DATA
+        jer: Summer24Prompt24_JRV2_MC
+        by_level: True
+        level: [L1FastJet, L2Relative, L3Absolute, L2L3Residual]
+```
+
+Each level is evaluated on the running, partially-corrected pt and its factor is multiplied into
+the total correction, exactly as done internally by the compound correction: without any
+customization the result is identical. Applying the levels explicitly allows evaluating a level
+at a different pt than the one the correction propagates on (used by the `residual_pt_floor`
+mitigation below). The implementation is `pocket_coffea.lib.jets.jec_by_level`; the JER and the
+JES/JER systematics are the same in the two modes.
+
+### Run3 forward jets mitigations
+
+The JME POG recommends some mitigations for the issues of the Run3 jets in the endcaps
+(HE, 2.5 < |η| < 3, the "horns") and in the forward calorimeter (HF, 3 < |η| < 5):
+
+| Year | HF (3 < \|η\| < 5) | HE (2.5 < \|η\| < 3) | 2.0 < \|η\| < 2.5 |
+|------|--------------------|-----------------------|-------------------|
+| 2022 | Require pT > 50 GeV | Require pT > 50 GeV + JER for gen-matched only | - |
+| 2023 | Require pT > 50 GeV | Require pT > 50 GeV + JER for gen-matched only | - |
+| 2024 | Fixed | Require pT > 50 GeV + JER for gen-matched only | Data: for MC-truth corrected pT < 30 GeV, use the L2L3Residual evaluated at MC-truth corrected pT = 30 GeV |
+| 2025 | Fixed, but worsening due to radiation damage | Much improved | Should not be an issue |
+
+They are configured in `jets_calibration.forward_jets_mitigation` (`pocket_coffea/parameters/jets_calibration.yaml`)
+and are **all switched off by default**. Each mitigation is turned on with its `apply` key and acts
+only in the years for which `eta_regions` (a list of `[eta_min, eta_max)` intervals in |η|) are
+defined, so the defaults reproduce the table above:
+
+```yaml
+jets_calibration:
+  forward_jets_mitigation:
+    jet_types: [AK4PFPuppi]   # jet types the JER and residual mitigations are applied to
+    pt_cut:                   # jet_selection: reject jets with pt < pt_min in the regions
+      apply: False
+      pt_min: 50.
+      eta_regions:
+        2022_preEE: [[2.5, 3.0], [3.0, 5.0]]
+        ...                   # same for 2022_postEE, 2023_preBPix, 2023_postBPix
+        "2024": [[2.5, 3.0]]
+    jer_genmatched_only:      # MC: JER smearing only for the gen-matched jets in the regions
+      apply: False
+      eta_regions:
+        2022_preEE: [[2.5, 3.0]]
+        ...                   # 2022, 2023 and 2024
+    residual_pt_floor:        # Data: evaluate `level` at pt_min for MC-truth corrected pt < pt_min
+      apply: False
+      level: L2L3Residual
+      pt_min: 30.
+      levels: [L1FastJet, L2Relative, L3Absolute, L2L3Residual]
+      eta_regions:
+        "2024": [[2.0, 2.5]]
+```
+
+To activate them, override the `apply` keys in the analysis parameters, either in a parameters
+yaml file passed to `defaults.merge_parameters_from_files`:
+
+```yaml
+jets_calibration:
+  forward_jets_mitigation:
+    pt_cut:
+      apply: True
+    jer_genmatched_only:
+      apply: True
+    residual_pt_floor:
+      apply: True
+```
+
+or directly in the configuration:
+
+```python
+parameters = defaults.merge_parameters_from_files(default_parameters, ...)
+parameters.jets_calibration.forward_jets_mitigation.pt_cut.apply = True
+parameters.jets_calibration.forward_jets_mitigation.jer_genmatched_only.apply = True
+parameters.jets_calibration.forward_jets_mitigation.residual_pt_floor.apply = True
+```
+
+- **`pt_cut`** is a selection, applied by `pocket_coffea.lib.jets.jet_selection` to every jet
+  collection it selects. The `forward_jet_veto` argument of `jet_selection` overrides the `apply`
+  key for a single selection: `jet_selection(events, "Jet", params, year, forward_jet_veto=True)`
+  applies the cut even if it is off in the parameters, `forward_jet_veto=False` never applies it,
+  and the default `None` follows the parameters. The cut is on the `pt` of the selected collection.
+- **`jer_genmatched_only`** (MC only, applied by the `JetsCalibrator` to the `jet_types`): in the
+  regions the JER smearing is applied only to the jets using the scaling method, i.e. with a
+  gen-jet match (ΔR < R/2 and |pT − pT,gen| < 3 σ<sub>JER</sub> pT). The jets without a match keep
+  their JES-corrected pt instead of being stochastically smeared. The same applies to the JER
+  up/down variations.
+- **`residual_pt_floor`** (data only, applied by the `JetsCalibrator` to the `jet_types`): for the
+  jets in the regions with MC-truth corrected pt (pt after the levels before `level`) below
+  `pt_min`, the `level` correction factor is evaluated at `pt_min`, and applied to the real pt.
+  This needs the JEC applied by level: if the jet type is configured with the compound
+  correction, the single `levels` are used instead for the years where the mitigation is active.
+  The jet types sharing the AK4 PUPPI calibration (e.g. `AK4CorrT1METJetPuppi`, aliased to
+  `AK4PFPuppi`) are corrected consistently, so that the MET propagation sees the same JEC.
 
 ## Creating Custom Calibrators
 
