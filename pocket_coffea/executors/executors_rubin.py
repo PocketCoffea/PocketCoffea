@@ -12,18 +12,7 @@ import dask.config
 from dask_jobqueue import HTCondorCluster
 
 from pocket_coffea.utils.configurator import Configurator
-from pocket_coffea.utils.rucio import get_xrootd_sites_map
-from pocket_coffea.utils.site_rewrite import (
-    rewrite_fileset_blocklist,
-    rewrite_fileset_to_redirector,
-    GLOBAL_XROOTD_REDIRECTOR,
-)
-from .executors_manual_jobs import (
-    INNER_RUN_OPTIONS_FILENAME,
-    ensure_job_sh_forwards_inner_yaml,
-    ensure_sub_transfers_inner_yaml,
-    write_inner_run_options,
-)
+from .executors_manual_jobs import write_inner_run_options
 import cloudpickle
 import yaml
         
@@ -250,87 +239,6 @@ echo 'Done'"""
         else:
             print("Submitting jobs")
             os.system(f"cd {abs_jobdir_path} && condor_submit jobs_all.sub")
-
-
-    def recreate_jobs(self, jobs_to_recreate):
-        # Read the jobs config
-        if not os.path.exists(f"{self.jobs_dir}/jobs_config.yaml"):
-            print("No jobs_config.yaml found. Exiting.")
-            exit(1)
-        with open(f"{self.jobs_dir}/jobs_config.yaml") as f:
-            jobs_config = yaml.safe_load(f)
-
-        # Re-materialise inner-run-options YAML so any --skip-bad-files /
-        # --custom-run-options-style overrides reach the resubmitted jobs;
-        # idempotently patch the wrapper if it predates this feature.
-        abs_jobdir_path = os.path.abspath(self.jobs_dir)
-        write_inner_run_options(self.jobs_dir, self.run_options)
-        if ensure_job_sh_forwards_inner_yaml(f"{self.jobs_dir}/job.sh"):
-            print(f"[recreate-jobs] Patched {self.jobs_dir}/job.sh to forward "
-                  f"{INNER_RUN_OPTIONS_FILENAME} to the inner pocket-coffea run.")
-
-        jobs_to_redo = []
-        for j in jobs_to_recreate.split(","):
-            if not j.startswith("job_"):
-                jobs_to_redo.append(f"job_{j}")
-        print(f"Recreating jobs: {jobs_to_redo}")
-
-        # Parse blocklist-sites: accept comma-separated string or list
-        blocklist_raw = self.run_options.get("blocklist-sites", None) or []
-        if isinstance(blocklist_raw, str):
-            blocklist_sites = {s for s in blocklist_raw.split(",") if s}
-        else:
-            blocklist_sites = set(blocklist_raw)
-        sitemap = get_xrootd_sites_map() if blocklist_sites else None
-        if blocklist_sites:
-            print(f"Blocklisting sites at recreate time: {sorted(blocklist_sites)}")
-
-        use_redirector = bool(self.run_options.get("use-redirector", False))
-        if use_redirector:
-            print(f"[recreate-jobs] --use-redirector: rewriting every file to "
-                  f"{GLOBAL_XROOTD_REDIRECTOR} without per-site Rucio lookups.")
-            if blocklist_sites:
-                print("[recreate-jobs] WARNING: --blocklist-sites is set but --use-redirector "
-                      "overrides it.")
-
-        rucio_client = None
-        if blocklist_sites and not use_redirector:
-            try:
-                from pocket_coffea.utils.rucio import get_rucio_client
-                rucio_client = get_rucio_client()
-            except Exception as e:
-                print(f"WARNING: could not open a rucio client ({e}); replica lookups will fail.")
-
-        # Check if the job is in the list of jobs to recreate
-        for job in jobs_to_redo:
-            if job not in jobs_config["jobs_list"]:
-                print(f"Job {job} not found in the list of jobs")
-                continue
-            # Open the configurator and modify the fileset.
-            # This is usually done to change a file location
-            # Load the configurator
-            config = cloudpickle.load(open(f"{self.jobs_dir}/config_{job}.pkl", "rb"))
-            # Modify the fileset (optionally rewriting blocklisted sites)
-            fileset = jobs_config["jobs_list"][job]["filesets"]
-            if use_redirector:
-                fileset = rewrite_fileset_to_redirector(fileset)
-            elif blocklist_sites:
-                fileset = rewrite_fileset_blocklist(fileset, sitemap, blocklist_sites,
-                                                    rucio_client=rucio_client)
-            config.set_filesets_manually(fileset)
-            # Save the configurator
-            cloudpickle.dump(config, open(f"{self.jobs_dir}/config_{job}.pkl", "wb"))
-            # Make sure this .sub ships the inner-run-options YAML.
-            ensure_sub_transfers_inner_yaml(f"{self.jobs_dir}/{job}.sub", abs_jobdir_path)
-            # Resubmit the job
-            dry_run = self.run_options.get("dry-run", False)
-            if dry_run:
-                print(f"Dry run, not resubmitting  {job}")
-            else:
-                os.system(f"rm {self.jobs_dir}/{job}.failed")
-                os.system(f"touch {self.jobs_dir}/{job}.idle")
-                os.system(f"cd {self.jobs_dir} && condor_submit {job}.sub")
-                print(f"Resubmitted {job}")
 
 
 def get_executor_factory(executor_name, **kwargs):
