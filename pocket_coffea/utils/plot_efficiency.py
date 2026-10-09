@@ -9,10 +9,8 @@ import mplhep as hep
 import hist
 from hist import Hist
 
-import correctionlib
-import correctionlib.convert
-
 from pocket_coffea.parameters.lumi import lumi, femtobarn
+from pocket_coffea.utils.plot_utils import build_cms_label_kwargs, plotting_style_defaults
 
 # color_datamc = {'data' : 'black', 'mc' : 'red'}
 opts_data = {
@@ -448,12 +446,7 @@ def plot_variation(
     config = kwargs['config']
     if data & sf:
         sys.exit("'data' and 'sf' cannot be True at the same time.")
-    hep.cms.text("Preliminary", loc=0, ax=ax)
-    hep.cms.lumitext(
-        text=f'{kwargs["totalLumi"]}' + r' fb$^{-1}$, 13 TeV,' + f' {kwargs["year"]}',
-        fontsize=18,
-        ax=ax,
-    )
+    hep.cms.label(ax=ax, **build_cms_label_kwargs(plotting_style_defaults.get('cms_label', {}), is_mc_only=not data, year=kwargs["year"], fontsize=18))
     # plot.plot1d(eff[['mc','data']], ax=ax_eff, error_opts=opts_datamc);
     if data & (not sf) & (var == 'nominal'):
         if not 'era' in var:
@@ -1114,13 +1107,14 @@ class EfficiencyMap:
                                                   vmax=self.config['opts_map']['patch_opts'][label]['vmax'])
                     )
 
-                    hep.cms.text("Preliminary", loc=0, ax=ax_map)
-                    hep.cms.lumitext(
-                        text=f'{self.totalLumi}'
-                        + r' fb$^{-1}$, 13 TeV,'
-                        + f' {self.year}',
-                        fontsize=18,
+                    hep.cms.label(
                         ax=ax_map,
+                        **build_cms_label_kwargs(
+                            plotting_style_defaults.get("cms_label", {}),
+                            is_mc_only=True,
+                            year=self.year,
+                            fontsize=18,
+                        ),
                     )
                     ax_map.set_title(self.map2d.label)
                     if self.varname_x == 'ElectronGood.pt':
