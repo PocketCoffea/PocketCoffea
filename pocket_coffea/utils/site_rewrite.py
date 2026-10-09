@@ -1,9 +1,8 @@
 """Helpers for rewriting xrootd URLs in a manual-job fileset.
 
-Used by `--recreate-jobs` on the manual-jobs executors
-(`executors_lxplus.py`, `executors_rubin.py`) and by
-`scripts/check_jobs.py` to migrate files away from a blocklisted CMS site
-and to recover from per-file XRootD errors.
+Used by proactive `check-jobs --recreate` and worker-side XRootD recovery
+through `scripts/rewrite_xrootd_site.py` to migrate files away from a
+blocklisted CMS site and recover from per-file XRootD errors.
 
 Replica lookups go through the Rucio client (same path as
 `pocket_coffea.utils.rucio.get_dataset_files_replicas`), so the tools
@@ -15,9 +14,46 @@ importable in environments without the rucio package (the unit tests
 monkey-patch `_query_replicas` directly).
 """
 from copy import deepcopy
+import re
 
 
 GLOBAL_XROOTD_REDIRECTOR = "root://xrootd-cms.infn.it//"
+XROOTD_FAILURE_STRINGS = (
+    "OSError: XRootD error",
+    "received 0 bytes from XRootDSource",
+    "FileNotFoundError: file not found",
+)
+ROOT_URL_RE = re.compile(r"root://[^\s'\"<>]+?/store/[^\s'\",)]+")
+
+
+def normalize_rse(site):
+    """Use one CMS/Rucio name for disk and non-disk RSE variants."""
+    if isinstance(site, str) and site.endswith("_Disk"):
+        return site[:-5]
+    return site
+
+
+def _site_map_entry(site, sitemap):
+    normalized = normalize_rse(site)
+    if site in sitemap and isinstance(sitemap[site], str):
+        return normalized, sitemap[site]
+    for mapped_site, sitepath in sitemap.items():
+        if normalize_rse(mapped_site) == normalized and isinstance(sitepath, str):
+            return normalized, sitepath
+    return normalized, None
+
+
+def extract_failed_url(log_text):
+    """Return the XRootD URL near the first known failure in a job .out log."""
+    lines = log_text.splitlines()
+    for line_number, line in enumerate(lines):
+        if not any(marker in line for marker in XROOTD_FAILURE_STRINGS):
+            continue
+        nearby = "\n".join(lines[max(0, line_number - 3): line_number + 7])
+        match = ROOT_URL_RE.search(nearby)
+        if match:
+            return match.group(0).rstrip(".,;:")
+    return None
 
 
 def _split_lfn(filepath):
@@ -40,7 +76,7 @@ def _site_of_url(filepath, sitemap):
         if not isinstance(sitepath, str):
             continue
         if rootpref in sitepath or sitepath in rootpref:
-            return site
+            return normalize_rse(site)
     return None
 
 
@@ -55,7 +91,7 @@ def _query_replicas(lfn, client=None, scope="cms", sort="random"):
     `sort` is forwarded to rucio. The default is ``"random"`` because
     this helper is used to find an *alternative* replica for a file that
     just failed: geoip sorting would deterministically pick the same
-    nearby site for every file in a recreate-jobs pass, which both
+    nearby site for every file in a ``check-jobs --recreate`` pass, which both
     concentrates load on one site and is likely to re-hit the same
     unhealthy replica the user is trying to escape. Pass ``sort="geoip"``
     explicitly if you want the closest replica.
@@ -98,30 +134,33 @@ def find_other_file(filepath, sitemap, blocklist=None,
 
     Asks Rucio for the file's replicas (via `_query_replicas`) and returns
     the first one served by a site that is (a) present in `sitemap`,
-    (b) not in `blocklist`, and (c) different from the file's current
-    site. If no such site is found, falls back to
-    `fallback_redirector + LFN`. If the URL has no /store/ segment to
+    (b) not in `blocklist`, and (c) different from the file's current site.
+
+    `blocklist` entries are CMS/Rucio site names (for example
+    ``T2_CH_CERN``). XRootD prefixes are resolved from `sitemap` and are not
+    accepted as blocklist values.
+
+    If no suitable replica is found, falls back to
+    ``fallback_redirector + LFN``. If the URL has no /store/ segment to
     extract, returns it unchanged with a warning.
 
     Every site change is logged so the user can audit what was rewritten."""
-    blocklist = set(blocklist or [])
+    blocklist = {normalize_rse(site) for site in (blocklist or [])}
     rootpref, file = _split_lfn(filepath)
 
     if rootpref is None:
         print(f"WARNING: cannot extract LFN from {filepath}; leaving unchanged.")
         return filepath
 
-    cur_site = _site_of_url(filepath, sitemap)
+    cur_site = normalize_rse(_site_of_url(filepath, sitemap))
     cur_site_str = cur_site or f"<unknown:{rootpref}>"
 
     sites = _query_replicas(file, client=rucio_client)
-    for site in sites:
-        if site in blocklist or site.replace("_Disk", "") in blocklist:
+    for raw_site in sites:
+        site, sitepath = _site_map_entry(raw_site, sitemap)
+        if site in blocklist:
             continue
-        if site not in sitemap:
-            continue
-        sitepath = sitemap[site]
-        if not isinstance(sitepath, str):
+        if sitepath is None:
             continue
         if rootpref in sitepath or sitepath in rootpref:
             continue
@@ -180,7 +219,7 @@ def rewrite_fileset_blocklist(fileset, sitemap, blocklist,
     A shared `rucio_client` is created lazily on the first lookup so that
     a single rewrite over many files reuses the same authenticated
     client."""
-    blocklist = set(blocklist or [])
+    blocklist = {normalize_rse(site) for site in (blocklist or [])}
     if not blocklist:
         return fileset
     new_fileset = deepcopy(fileset)

@@ -14,7 +14,7 @@ general:
 dask@lxplus:
   scaleout: 10
   cores-per-worker: 1
-  mem-per-worker: "2GB"
+  mem-per-worker: "3GB"
   disk-per-worker: "2GB"
   worker-image: /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-latest
   death-timeout: "3600"
@@ -28,10 +28,11 @@ dask@lxplus:
 
 condor@lxplus:
   cores-per-worker: 1
-  mem-per-worker: "2GB"
+  mem-per-worker: "3GB"
   disk-per-worker: "2GB"
   worker-image: /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-latest
   queue: "microcentury"
+  queue_time_threshold_percent: 80
   custom-setup-commands: null
   conda-env: false
   local-virtualenv: false

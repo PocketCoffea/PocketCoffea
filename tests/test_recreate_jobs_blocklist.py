@@ -1,9 +1,10 @@
-"""Tests for the blocklist-driven rewrite used by --recreate-jobs.
+"""Tests for the blocklist-driven rewrite used by `check-jobs` (recreate/resubmit).
 
-These exercise the pure helper `rewrite_fileset_blocklist` in
-`pocket_coffea.utils.site_rewrite`, which is reused by both the lxplus and
-rubin manual-job executors. The DAS query inside `find_other_file` is
-stubbed out so the tests are self-contained and don't pull in dask.
+These exercise the pure helpers `rewrite_fileset_blocklist` and
+`find_other_file` in `pocket_coffea.utils.site_rewrite`, which backs the
+one-shot recreate pass of `check-jobs`. The DAS
+query inside `find_other_file` is stubbed out so the tests are self-contained
+and don't pull in dask.
 """
 from collections import OrderedDict
 
@@ -111,6 +112,52 @@ def test_empty_blocklist_is_noop(das_sites):
     out = ex.rewrite_fileset_blocklist(fileset, SITEMAP, blocklist=set())
 
     assert out is fileset or out["sampleA"]["files"] == [f]
+
+
+def test_find_other_file_picks_alt_site(das_sites):
+    """Sanity: with a clean alternative and default fallback, return the alt site URL."""
+    f = SITEA_PREFIX + "/store/data/foo.root"
+    das_sites["/store/data/foo.root"] = ["T2_X_SITEA", "T2_X_SITEC"]
+    out = ex.find_other_file(f, SITEMAP, blocklist={"T2_X_SITEA"})
+    assert out == SITEC_PREFIX + "/store/data/foo.root"
+
+
+def test_disk_rse_names_normalize_for_blocklist_and_replica_lookup(das_sites):
+    f = SITEA_PREFIX + "/store/data/foo.root"
+    sitemap = {
+        "T2_X_SITEA_Disk": SITEA_PREFIX,
+        "T2_X_SITEC_Disk": SITEC_PREFIX,
+    }
+    das_sites["/store/data/foo.root"] = ["T2_X_SITEA_Disk", "T2_X_SITEC_Disk"]
+    out = ex.rewrite_fileset_blocklist(
+        _fileset([("sampleA", [f])]), sitemap, blocklist={"T2_X_SITEA"}
+    )
+    assert out["sampleA"]["files"] == [SITEC_PREFIX + "/store/data/foo.root"]
+
+
+def test_exact_rse_key_wins_before_disk_normalization(das_sites):
+    base = "root://base.example//"
+    disk = "root://disk.example//"
+    sitemap = {"T2_X_SITE": base, "T2_X_SITE_Disk": disk,
+               "T2_X_ALT": SITEC_PREFIX}
+    f = base + "/store/data/foo.root"
+    das_sites["/store/data/foo.root"] = ["T2_X_SITE_Disk", "T2_X_ALT"]
+    out = ex.find_other_file(f, sitemap, blocklist={"T2_X_SITE"})
+    assert out == SITEC_PREFIX + "/store/data/foo.root"
+    das_sites["/store/data/foo.root"] = ["T2_X_SITE", "T2_X_ALT"]
+    out = ex.find_other_file(f, sitemap, blocklist={"T2_X_SITE"})
+    assert out == SITEC_PREFIX + "/store/data/foo.root"
+
+
+def test_exact_rse_prefix_is_used_for_unblocked_replica(das_sites):
+    base = "root://base.example//"
+    disk = "root://disk.example//"
+    sitemap = {"T2_X_SITE": base, "T2_X_SITE_Disk": disk}
+    f = "root://other.example//store/data/foo.root"
+    das_sites["/store/data/foo.root"] = ["T2_X_SITE_Disk"]
+    assert ex.find_other_file(f, sitemap, blocklist=set()) == disk + "/store/data/foo.root"
+    das_sites["/store/data/foo.root"] = ["T2_X_SITE"]
+    assert ex.find_other_file(f, sitemap, blocklist=set()) == base + "/store/data/foo.root"
 
 
 # ----------------------- rewrite_fileset_to_redirector -----------------------
