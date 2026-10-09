@@ -17,6 +17,20 @@ import psutil, gc
 mem_threshold = 0.5 # ~50% + memory needed to dump files, is the empirical threshold on lxplus
 
 
+def _save_output(data, path, output_format="monolithic"):
+    """Save the merged output in the requested format.
+
+    - "monolithic": the classic single-blob coffea file (coffea.util.save).
+    - "split": the per-variable format that plotting can load one variable at a
+      time (pocket_coffea.utils.output_split.save_split).
+    """
+    if output_format == "split":
+        from pocket_coffea.utils.output_split import save_split
+        save_split(data, path)
+    else:
+        save(data, path)
+
+
 def merge_group_reduction(output_files, N_reduction=5, cachedir="merge_cache", max_mem_gb=8, verbose=False):
     with Progress() as progress:
         task1 = progress.add_task("[cyan]Merging...", total=len(output_files))
@@ -104,7 +118,7 @@ def append_configs(c1, c2):
             
     return c1
 
-def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, replace=False, N_reduction=5, max_mem_gb=None, cache_dir=None, verbose=False, skip_check=False, mark_failed=False, configurator=None, skip_initial_events_check_datasets=None):
+def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, replace=False, N_reduction=5, max_mem_gb=None, cache_dir=None, verbose=False, skip_check=False, mark_failed=False, configurator=None, skip_initial_events_check_datasets=None, output_format="monolithic"):
     '''Merge coffea output files'''
     # Initialised so the "no inputs and no -jc" branch below can test it without
     # NameError (it is only assigned when a jobs_config is provided).
@@ -223,8 +237,8 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, replace
         else:
             print("No configurator specified (-cfg); merging without postprocessing.")
 
-        save(total_out, outputfile)
-        print(f"[green]Output saved to {outputfile}")
+        _save_output(total_out, outputfile, output_format)
+        print(f"[green]Output saved to {outputfile} ({output_format} format)")
 
     else:
         if job_config is None:
@@ -338,9 +352,9 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, replace
                 save_skimed_dataset_definition(total_output, f"{job_config['output_dir']}/skimmed_dataset_definition.json",
                                                skip_initial_events_check_datasets=skip_initial_events_check_datasets)
 
-            # Save the output            
-            print(f"[green]Saving output to {thisoutputfile}...[/]")
-            save(total_output, thisoutputfile)
+            # Save the output
+            print(f"[green]Saving output to {thisoutputfile} ({output_format} format)...[/]")
+            _save_output(total_output, thisoutputfile, output_format)
 
             del total_output
 
@@ -444,9 +458,26 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, replace
          "when a corrupted input file had to be skipped. Repeatable.",
 )
 
-def main(inputfiles, outputfile, jobs_config, force, replace, reduction, max_mem_gb, cache_dir, verbose, skip_check, mark_failed, configurator, skip_initial_events_check_datasets):
+@click.option(
+    "--output-format",
+    type=click.Choice(["monolithic", "split"]),
+    default="monolithic",
+    help="Output format: 'monolithic' (classic single-blob .coffea) or 'split' "
+         "(per-variable format that plotting can load one variable at a time, "
+         "for low-memory plotting of large outputs).",
+)
+@click.option(
+    "--split",
+    "split_flag",
+    is_flag=True,
+    help="Shortcut for --output-format split.",
+)
+
+def main(inputfiles, outputfile, jobs_config, force, replace, reduction, max_mem_gb, cache_dir, verbose, skip_check, mark_failed, configurator, skip_initial_events_check_datasets, output_format, split_flag):
     '''Merge coffea output files'''
-    merge_outputs(inputfiles, outputfile, jobs_config, force, replace, reduction, max_mem_gb, cache_dir, verbose, skip_check, mark_failed, configurator, list(skip_initial_events_check_datasets))
+    if split_flag:
+        output_format = "split"
+    merge_outputs(inputfiles, outputfile, jobs_config, force, replace, reduction, max_mem_gb, cache_dir, verbose, skip_check, mark_failed, configurator, list(skip_initial_events_check_datasets), output_format=output_format)
 
 if __name__ == "__main__":
     main()
