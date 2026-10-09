@@ -356,48 +356,23 @@ def sf_ele_promptmva(params, events, year, key=''):
         ak.num(ele_pt),
     )
 
-    # in 2022 and 2023 the promptMVA SFs are provided by the ttH multilepton team, 
-    # in 2024 they are provided by the central POG
-    if year in ["2022_preEE", "2022_postEE", "2023_preBPix", "2023_postBPix"]:
-        # The SFs provided by the ttH multilepton team 
-        electron_correctionset = load_correction_set(
-        params.lepton_scale_factors.electron_sf.promptMVA_jsons[year]['file'])
-        # Need to put max pt to 500 for these custom SF
-        sf = electron_correctionset["NUM_TightmvaTTH_DEN_LooseElectrons"].evaluate(
-            np.abs(ele_eta_flat), 
-            np.clip(ele_pt_flat, 0. ,499.99), 
-            "nominal")
-        sfup = electron_correctionset["NUM_TightmvaTTH_DEN_LooseElectrons"].evaluate(
-            np.abs(ele_eta_flat), 
-            np.clip(ele_pt_flat, 0, 499.99), 
-            "systup")
-        sfdown = electron_correctionset["NUM_TightmvaTTH_DEN_LooseElectrons"].evaluate(
-            np.abs(ele_eta_flat), 
-            np.clip(ele_pt_flat, 0., 499.99), 
-            "systdown")
+    corr_params = params.lepton_scale_factors.electron_sf.JSONfiles[year]
+    corrkey = corr_params.name
+    electron_correctionset = load_correction_set(corr_params['files']['id'])
+    sf, sfup, sfdown = [],[],[]
+    year_pog = params.lepton_scale_factors.electron_sf.era_mapping[year]["id"]
+    wp = params.lepton_scale_factors.electron_sf.id.promptMVA
 
-    elif year == "2024":
-        # The SFs provided by the central POG are split in tightID SF
-        # and num_promptMVA_denum_tightID SF --> we need to combine them
-        corr_params = params.lepton_scale_factors.electron_sf.promptMVA_jsons[year]
-        corrkey = corr_params.key
-        electron_correctionset = load_correction_set(corr_params['file'])
-        sf, sfup, sfdown = [],[],[]
-        year_pog = params.lepton_scale_factors.electron_sf.era_mapping[year]["id"]
-    
-        sf = electron_correctionset[corrkey].evaluate(
-            year_pog, "sf", "PromptMVA-Tight", ele_eta_flat, ele_pt_flat
-        )
-        sfup = electron_correctionset[corrkey].evaluate(
-            year_pog, "sfup", "PromptMVA-Tight", ele_eta_flat, ele_pt_flat  
-        )
-        sfdown = electron_correctionset[corrkey].evaluate(
-            year_pog, "sfdown", "PromptMVA-Tight", ele_eta_flat, ele_pt_flat
-        )
+    sf = electron_correctionset[corrkey].evaluate(
+        year_pog, "sf", wp, ele_eta_flat, ele_pt_flat
+    )
+    sfup = electron_correctionset[corrkey].evaluate(
+        year_pog, "sfup", wp, ele_eta_flat, ele_pt_flat  
+    )
+    sfdown = electron_correctionset[corrkey].evaluate(
+        year_pog, "sfdown", wp, ele_eta_flat, ele_pt_flat
+    )
 
-    else:
-        raise Exception(f"Muon promptMVA SFs for year {year} are not implemented yet")
-    
     # Unflatten 
     sf = ak.unflatten(sf, ele_counts)
     sfup = ak.unflatten(sfup, ele_counts)

@@ -257,18 +257,6 @@ def lepton_selection_promptMVA(events, lepton_flavour, params, year,
     passes_eta = abs(leptons.eta) < cuts["eta"]
     passes_pt = leptons.pt > cuts["pt"]
 
-    # closest jet cut on btag. leptons["jetIdx"] indexes the Jet collection in its
-    # original NanoAOD order, so undo any calibrator re-sorting before the lookup.
-    jets = jets_in_original_order(events["Jet"])
-    valid_jetIdx = ak.mask(leptons["jetIdx"], leptons["jetIdx"] != -1)
-    btag = ak.where(
-            leptons["jetIdx"] == -1,
-            0.0,
-            ak.fill_none(jets[valid_jetIdx]["btagDeepFlavB"], -10.0),
-    )
-    pass_btag_cut = btag < cuts["btag_cut"][year]
-    
-
     if lepton_flavour == "Electron":
         # Requirements on SuperCluster eta, isolation and id
         etaSC = abs(leptons.deltaEtaSC + leptons.eta)
@@ -287,7 +275,7 @@ def lepton_selection_promptMVA(events, lepton_flavour, params, year,
 
         good_leptons = (passes_eta & passes_pt & passes_SC & passes_iso & 
                         passes_sip3d & passes_lostHits & passes_dxy_check &
-                          passes_dz_check & pass_btag_cut & pass_id)
+                          passes_dz_check & pass_id)
 
     elif lepton_flavour == "Muon":
         # Requirements on isolation and id
@@ -305,7 +293,7 @@ def lepton_selection_promptMVA(events, lepton_flavour, params, year,
         good_leptons = (passes_eta & passes_pt & passes_iso & 
                         passes_sip3d & passes_dxy_check & 
                         passes_dz_check & passes_muon_cut & 
-                        passes_baseid & pass_btag_cut & pass_id)
+                        passes_baseid & pass_id)
     else:
         raise ValueError(f"Lepton flavour {lepton_flavour} not supported for MVA TTH selection")
 
