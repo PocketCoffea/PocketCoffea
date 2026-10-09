@@ -5,9 +5,16 @@ The status of the jobs can be checked by looking at the file in the jobs folder.
 - job_x.idle: The job is waiting to be executed
 - job_x.running: The job is running
 - job_x.done: The job has finished
-- job_x.failed: The job has failed
-    
+- job_x.failed: The job has failed (the file may contain a short failure
+  reason, e.g. for jobs that were held by condor)
+
     where x is the job id.
+
+Jobs held by condor (e.g. for going over the memory limit) never update
+their flag file, so they are detected from the 012 events in the condor
+logs: memory holds are removed from the queue, their RequestMemory is
+bumped and they are marked as failed so that the normal resubmission
+logic picks them up.
 '''
 
 import os
@@ -34,6 +41,11 @@ from pocket_coffea.utils.job_progress import (
     aggregate_by_group,
     load_job_to_group_map,
     render_progress_bar,
+)
+from pocket_coffea.utils.job_holds import (
+    bump_memory,
+    find_held_jobs,
+    parse_hold_memory_mb,
 )
 from collections import Counter, defaultdict
 
@@ -287,6 +299,7 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
     log_text = []
     definitive_failed = []
     resubmitted_and_failed = []
+    reported_holds = set()
     step = 0
     
     with Live(layout, refresh_per_second=1/5, console=console):  # Refresh rate
@@ -320,10 +333,22 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                         failed_job_num = failed_job.split('_')[1]
 
                         if not failed_job in definitive_failed:
+                            # The held-jobs check below writes the hold summary
+                            # into the .failed flag file: report that instead of
+                            # parsing the job output log, which a held job never
+                            # produced (output is only transferred on exit).
+                            flag_note = ""
+                            try:
+                                with open(f"{jobs_folder}/{failed_job}.failed") as f:
+                                    flag_note = f.read().strip()
+                            except OSError:
+                                pass
                             # Check the log file
                             glob_file = glob.glob(f"{jobs_folder}/logs/job_*.{failed_job_num}.out")
                             xrootdfile = None
-                            if glob_file:
+                            if flag_note:
+                                log_text.append(f"[b]Job {failed_job} failed[/] {failed_jobs_stats[failed_job]} times: {flag_note}")
+                            elif glob_file:
                                 with open(glob_file[-1]) as f:
                                     c = f.readlines()
                                     for iln,ln in enumerate(c):
@@ -340,7 +365,7 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                                         log_text.append( f"[b]Job {failed_job} failed[/] {failed_jobs_stats[failed_job]} times. Last error:")
                                         log_text.append("\t"+ "".join(c[-3:]))
                             else:
-                                log_text.append( f"Error in job {failed_job}: No .err file found")
+                                log_text.append( f"Error in job {failed_job}: no job output log found")
 
                             if resubmit and failed_jobs_stats[failed_job] <= max_resubmit:
                                 if xrootdfile:
@@ -437,7 +462,11 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
 
                 # check in the logs for SYSTEM_PERIODIC_REMOVE
                 # they are not failed but remain running/idle
-                log_file = glob.glob(f"{jobs_folder}/logs/job_*.log")[0]
+                # The original-submission log is job_<cluster>.log; per-job
+                # resubmission logs are job_<cluster>.<jobid>.log and must not
+                # be picked up here (glob order is arbitrary).
+                log_file = [l for l in glob.glob(f"{jobs_folder}/logs/job_*.log")
+                            if re.match(r"job_\d+\.log$", os.path.basename(l))][0]
                 with open(log_file) as f:
                     c = f.readlines()
                 
@@ -553,13 +582,73 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                                 log_text.append(f"Resubmitted job, {thisjob}, was removed [i]again[/] by the system due to max-time reached. Marked as failed and bumped to longer condor queue: {next_jf}.")
                             
                             os.system(f"mv {failedlog} {jobs_folder}/logs/processedlogs")
-                   
+
+                # Check for held jobs (e.g. over the memory limit): condor keeps
+                # them in the queue and the wrapper never toggles the flag file,
+                # so they would stay .running forever. Memory holds are removed
+                # from the queue, RequestMemory is bumped in the sub file and the
+                # job is marked as failed so that the resubmission logic above
+                # picks it up on the next pass.
+                for (cluster_id, proc_id, job_id), (hold_reason, schedd) in find_held_jobs(jobs_folder).items():
+                    job_name = f"{cluster_id}_{job_id}"
+                    # Already handled (also shields the abort event that our own
+                    # condor_rm appends to the log from the aborted-jobs checks)
+                    if job_name in maxtimelist:
+                        continue
+                    thisjob = f"job_{job_id}"
+                    if thisjob not in running_jobs and thisjob not in idle_jobs:
+                        continue
+
+                    if "memory limit" not in hold_reason.lower():
+                        # Non-memory holds (credentials, transfers, ...) are often
+                        # transient and auto-released: report them but don't act.
+                        if job_name not in reported_holds:
+                            reported_holds.add(job_name)
+                            log_text.append(f"[yellow]{thisjob} ({cluster_id}.{proc_id}) is held: {hold_reason} "
+                                            f"Release it or condor_rm it manually.[/]")
+                        continue
+
+                    # A memory-held job will never succeed as is: remove it from
+                    # the queue (on the schedd it was submitted from) and let the
+                    # resubmission logic requeue it with more memory.
+                    schedd_arg = f"-name {schedd} " if schedd else ""
+                    os.system(f"condor_rm {schedd_arg}{cluster_id}.{proc_id} > /dev/null 2>&1")
+
+                    if thisjob in running_jobs:
+                        running_jobs.remove(thisjob)
+                        os.system(f"rm {jobs_folder}/{thisjob}.running")
+                    if thisjob in idle_jobs:
+                        idle_jobs.remove(thisjob)
+                        os.system(f"rm {jobs_folder}/{thisjob}.idle")
+                    limit_mb, measured_mb = parse_hold_memory_mb(hold_reason)
+                    new_mb = bump_memory(f"{jobs_folder}/{thisjob}.sub", limit_mb, measured_mb)
+                    hold_summary = (f"held over the memory limit ({measured_mb} MB used, "
+                                    f"{limit_mb} MB allowed), RequestMemory bumped to {new_mb} MB")
+
+                    failed_jobs.append(thisjob)
+                    # The hold summary goes into the flag file so the failed-jobs
+                    # report shows it (instead of looking for a job output log
+                    # that a held job never produced)
+                    with open(f"{jobs_folder}/{thisjob}.failed", "w") as f:
+                        f.write(hold_summary + "\n")
+
+                    maxtimelist.append(job_name)
+                    with open(maxtimefile, 'a') as f:
+                        f.write(job_name + "\n")
+
+                    log_text.append(f"{thisjob} was {hold_summary}. Removed from the queue and marked as failed.")
+
                 if len(log_text):
                     if len(log_text) > 20:
                         log_text = log_text[-20:]
                     layout["right"].update(Panel("\n".join(log_text), title="Log"))
 
-                if len(tot_jobs) == len(done_jobs) + len(failed_jobs):
+                # Failed jobs not yet in definitive_failed are still pending a
+                # resubmission attempt (handled at the top of the next pass), so
+                # don't declare completion on them: e.g. a job marked failed by
+                # the held/aborted checks in this very pass.
+                if len(tot_jobs) == len(done_jobs) + len(failed_jobs) \
+                        and all(j in definitive_failed for j in failed_jobs):
                     rprint("[green]All jobs are completed[/]")
                     rprint(f"Now merge outputs with [yellow]merge-outputs -jc {jobs_folder}[/].")
                     break
