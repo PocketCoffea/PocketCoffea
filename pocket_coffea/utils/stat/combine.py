@@ -28,6 +28,8 @@ def format_rate(value, sig=6):
     (e.g. 3.4567890123e-05 -> "3.45678901", inflating the rate by 1e5). A
     significant-figure format keeps the exponent and stays compact.
     """
+    if isinstance(value, str):
+        value = float(value)
     return f"{value:.{sig}g}"
 
 
@@ -290,7 +292,11 @@ class Datacard:
 
     @cached_property
     def adjust_syst_colum(self):
-        return max(len(systematic) for systematic in self.systematics)
+        try:
+            adjustment = max(len(systematic) for systematic in self.systematics)
+        except:
+            adjustment = 0
+        return adjustment
 
     @cached_property
     def adjust_columns(self):
@@ -785,9 +791,7 @@ class Datacard:
         # rates
         content += "rate".ljust(self.adjust_first_column)
         content += "".join(
-            format_rate(self.rate(f"{process.name}{self.process_suffix(year)}")).ljust(
-                self.adjust_columns
-            )
+            format_rate(self.rate(f"{process.name}{self.process_suffix(year)}")).ljust(self.adjust_columns)
             for process in self.mc_processes.values()
             for year in process.years
             if not process.is_data
