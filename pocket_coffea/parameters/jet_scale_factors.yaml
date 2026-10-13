@@ -14,10 +14,10 @@ jet_scale_factors:
     btagSF:
         # DeepJet AK4 tagger shape SF
         '2016_PreVFP':
-            file: ${cvmfs:Run2-2016postVFP-UL-NanoAODv9,BTV,btagging.json.gz,2025-08-19}
+            file: ${cvmfs:Run2-2016preVFP-UL-NanoAODv9,BTV,btagging.json.gz,2025-08-19}
             name: "deepJet_shape"
         '2016_PostVFP':
-            file: ${cvmfs:Run2-2016preVFP-UL-NanoAODv9,BTV,btagging.json.gz,2025-08-19}
+            file: ${cvmfs:Run2-2016postVFP-UL-NanoAODv9,BTV,btagging.json.gz,2025-08-19}
             name: "deepJet_shape"
         '2017':
             file: ${cvmfs:Run2-2017-UL-NanoAODv9,BTV,btagging.json.gz,2025-08-19}
@@ -25,6 +25,19 @@ jet_scale_factors:
         '2018':
             file: ${cvmfs:Run2-2018-UL-NanoAODv9,BTV,btagging.json.gz,2025-08-19}
             name: "deepJet_shape"
+
+        '2016_PreVFP_v15':
+            file: ${cvmfs:Run2-2016preVFP-UL-NanoAODv15,BTV,btagging.json.gz,2026-06-18}
+            name: "UParTAK4_comb"
+        '2016_PostVFP_v15':
+            file: ${cvmfs:Run2-2016postVFP-UL-NanoAODv15,BTV,btagging.json.gz,2026-06-18}
+            name: "UParTAK4_comb"
+        '2017_v15':
+            file: ${cvmfs:Run2-2017-UL-NanoAODv15,BTV,btagging.json.gz,2026-06-18}
+            name: "UParTAK4_comb"
+        '2018_v15':
+            file: ${cvmfs:Run2-2018-UL-NanoAODv15,BTV,btagging.json.gz,2026-06-18}
+            name: "UParTAK4_comb"
         # Run3 default b-tagger is btagPNetB (see btagging.yaml), so the shape SF
         # must be the matching ParticleNet one, evaluated on the same discriminant.
         '2022_preEE':
