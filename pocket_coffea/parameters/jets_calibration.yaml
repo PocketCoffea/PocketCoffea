@@ -1195,6 +1195,47 @@ jets_calibration:
       AK8PFPuppi: True
 
 
+  # Mitigations of the Run3 forward jets issues (HE "horns" in 2.5 < |eta| < 3 and HF in
+  # 3 < |eta| < 5), following the JME recommendations. All switched off by default:
+  # set `apply: True` to activate one of them. The |eta| regions are [eta_min, eta_max) intervals,
+  # given per year: the mitigation does nothing in the years without regions.
+  # Recommendations: https://indico.cern.ch/event/1615783/contributions/6811120/attachments/3186812/5672346/20251204_JetMET_PerformanceRun3.pdf#page=14
+  # See docs/calibrators.md for the details.
+  forward_jets_mitigation:
+    # jet types (calibration aliases) the JER and residual mitigations are applied to
+    jet_types: [AK4PFPuppi]
+    # jet_selection: reject the jets with pt < pt_min in the |eta| regions
+    # (the `forward_jet_veto` argument of jet_selection overrides `apply`)
+    pt_cut:
+      apply: False
+      pt_min: 50.
+      eta_regions:
+        2022_preEE: [[2.5, 3.0], [3.0, 5.0]]
+        2022_postEE: [[2.5, 3.0], [3.0, 5.0]]
+        2023_preBPix: [[2.5, 3.0], [3.0, 5.0]]
+        2023_postBPix: [[2.5, 3.0], [3.0, 5.0]]
+        "2024": [[2.5, 3.0]]
+    # MC: JER smearing applied only to the gen-matched jets in the |eta| regions
+    # (no stochastic smearing of the jets without a gen match)
+    jer_genmatched_only:
+      apply: False
+      eta_regions:
+        2022_preEE: [[2.5, 3.0]]
+        2022_postEE: [[2.5, 3.0]]
+        2023_preBPix: [[2.5, 3.0]]
+        2023_postBPix: [[2.5, 3.0]]
+        "2024": [[2.5, 3.0]]
+    # Data: for the jets in the |eta| regions with MC-truth corrected pt < pt_min, the `level`
+    # correction is evaluated at pt = pt_min. The JEC is applied by level: if the jet type is
+    # configured with the compound correction, the single `levels` are used instead.
+    residual_pt_floor:
+      apply: False
+      level: L2L3Residual
+      pt_min: 30.
+      levels: [L1FastJet, L2Relative, L3Absolute, L2L3Residual]
+      eta_regions:
+        "2024": [[2.0, 2.5]]
+
   # By default only the total variations are included
   # The user can customize the wanted variations by changing the variations key in the user parameters.
   # the key default_jets_calibration.variations.full_variations contains the full setup of JET variations.

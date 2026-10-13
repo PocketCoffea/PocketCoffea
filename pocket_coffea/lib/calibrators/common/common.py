@@ -106,6 +106,8 @@ class JetsCalibrator(Calibrator):
             
             # print(f"Doing JECS for {jet_type}/{jet_coll_name}/{jet_type_alias}.")
             # print(f"Variations for {jet_type_alias}: {self.jet_calib_param.variations[jet_type_alias][self._year]}")
+            # `by_level` in the calibration parameters selects whether the JEC is the single
+            # compound correction or the list of single levels applied one by one
             corrected_jets = jet_correction_corrlib(
                 calib_params=self.jet_calib_param.jet_types[jet_type_alias][self._year],
                 variations=self.jet_calib_param.variations[jet_type_alias][self._year],
@@ -121,6 +123,7 @@ class JetsCalibrator(Calibrator):
                 nano_version=nano_aod_version,
                 jec_syst=self.do_variations,
                 apply_jer=self.jet_calib_param.apply_jer_MC[self.year][jet_type_alias] if self.isMC else False,
+                forward_mitigation=self.jet_calib_param.get("forward_jets_mitigation"),
             )
             # update the rawFactor of the corrected jets
             #print(f"Calibrating jet collection {jet_coll_name} with jet type {jet_type} and alias {jet_type_alias}. " + f"Year: {self._year}")
