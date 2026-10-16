@@ -30,6 +30,7 @@ import cloudpickle
 from copy import deepcopy
 from pocket_coffea.utils.rucio import get_xrootd_sites_map, get_rucio_client
 from pocket_coffea.utils.site_rewrite import _query_replicas
+from pocket_coffea.utils.job_logs import find_job_input_failure, last_lines
 from pocket_coffea.utils.job_progress import (
     aggregate_by_group,
     load_job_to_group_map,
@@ -320,27 +321,22 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                         failed_job_num = failed_job.split('_')[1]
 
                         if not failed_job in definitive_failed:
-                            # Check the log file
-                            glob_file = glob.glob(f"{jobs_folder}/logs/job_*.{failed_job_num}.out")
-                            xrootdfile = None
-                            if glob_file:
-                                with open(glob_file[-1]) as f:
-                                    c = f.readlines()
-                                    for iln,ln in enumerate(c):
-                                        if "OSError: XRootD error" in ln:
-                                            xrootdfile = c[iln+1].strip().split()[-1]
-                                            break
-                                        if "FileNotFoundError: file not found" in ln:
-                                            xrootdfile = c[iln+3].strip().strip("'")
-                                            break
-                                    if xrootdfile:
-                                        thisxrootdsite = xrootdfile.split('/store/')[0]
-                                        log_text.append( f"[b]Job {failed_job} failed[/] {failed_jobs_stats[failed_job]} times due to an XRootD error. Site: {thisxrootdsite}")
-                                    else:
-                                        log_text.append( f"[b]Job {failed_job} failed[/] {failed_jobs_stats[failed_job]} times. Last error:")
-                                        log_text.append("\t"+ "".join(c[-3:]))
+                            # Check the latest .out AND .err logs of this job for an
+                            # input-file failure (XRootD error, file not found,
+                            # corrupt input data) and extract the failing file.
+                            failreason, xrootdfile, job_logs = find_job_input_failure(
+                                f"{jobs_folder}/logs", failed_job_num)
+                            if job_logs:
+                                if xrootdfile:
+                                    thisxrootdsite = xrootdfile.split('/store/')[0]
+                                    log_text.append( f"[b]Job {failed_job} failed[/] {failed_jobs_stats[failed_job]} times due to: {failreason}. Site: {thisxrootdsite}")
+                                elif failreason:
+                                    log_text.append( f"[b]Job {failed_job} failed[/] {failed_jobs_stats[failed_job]} times due to: {failreason}, but the failing file could not be identified in the logs.")
+                                else:
+                                    log_text.append( f"[b]Job {failed_job} failed[/] {failed_jobs_stats[failed_job]} times. Last error:")
+                                    log_text.append("\t"+ last_lines(job_logs))
                             else:
-                                log_text.append( f"Error in job {failed_job}: No .err file found")
+                                log_text.append( f"Error in job {failed_job}: No .out/.err log file found")
 
                             if resubmit and failed_jobs_stats[failed_job] <= max_resubmit:
                                 if xrootdfile:
@@ -355,15 +351,17 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                                             log_text.append(f"[red][b]New blacklist sites[/]: {new_blacklist_sites[-diff:]}[/]")
                                             blacklist_sites = new_blacklist_sites
 
-                                    # Move the .err file so that this xrootdfile is not marked again as an XRootD failure
-                                    if glob_file:
-                                        os.system(f"mv {glob_file[-1]} {jobs_folder}/logs/processedlogs")
+                                    # Move the .out and .err files so that this file is not marked again as a failure
+                                    for logpath in job_logs:
+                                        os.system(f"mv {logpath} {jobs_folder}/logs/processedlogs")
 
                                     # Update the filelist in the failed job's config to exclude this failed file
                                     thisconfigfile = f"{jobs_folder}/config_{failed_job}.pkl"
                                     config = cloudpickle.load(open(thisconfigfile, "rb"))
                                     current_fileset = config.filesets
                                     new_fileset = deepcopy(current_fileset)
+                                    if not any(xrootdfile in dct['files'] for dct in new_fileset.values()):
+                                        log_text.append(f"[red][b]Job {failed_job}[/]: failing file {xrootdfile} not found in the job fileset; it cannot be replaced.[/]")
                                     for sample, dct in new_fileset.items():
                                         fllist = dct['files']
                                         if xrootdfile in fllist:

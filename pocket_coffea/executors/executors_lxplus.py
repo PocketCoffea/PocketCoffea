@@ -1,5 +1,6 @@
 import os
 import sys
+import shutil
 import socket
 from coffea import processor as coffea_processor
 from .executors_base import ExecutorFactoryABC
@@ -439,15 +440,10 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
                 jobs_to_redo.append(j)
         print(f"Recreating jobs: {jobs_to_redo}")
 
-        # Check which jobs failed due to an XRootD error:
-        # for such files we want to find an alternate site
-        xrootdfailurefilelist = os.popen(f"grep -il {self.jobs_dir}/logs/*.err -e 'XRootD error'").read().split()
-        xrootdfailurejoblist = ["job_"+f.split("/")[-1].split(".")[-2] for f in xrootdfailurefilelist]
-        # move processed logs to a backup directory
-        if len(xrootdfailurefilelist) > 0:
-            backupdir = f"{self.jobs_dir}/logs/processed"
-            os.makedirs(backupdir, exist_ok=True)
-            os.system(f"mv {' '.join(xrootdfailurefilelist)} {backupdir}")
+        # Check which jobs failed because of an input-file problem (XRootD error,
+        # corrupt input data). The message can end up in either the .err or the
+        # .out log, so both are scanned. For such jobs we look for an alternate site.
+        inputfailures, inputfailurelogs = find_input_failure_jobs(f"{self.jobs_dir}/logs")
 
         sitemap = get_xrootd_sites_map()
 
@@ -474,7 +470,7 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
         # Open a single rucio client up front so it is reused for every replica
         # lookup. Not needed when --use-redirector is set: that mode skips Rucio.
         rucio_client = None
-        if (xrootdfailurejoblist or blocklist_sites) and not use_redirector:
+        if (any(j in inputfailures for j in jobs_to_redo) or blocklist_sites) and not use_redirector:
             try:
                 from pocket_coffea.utils.rucio import get_rucio_client
                 rucio_client = get_rucio_client()
@@ -505,9 +501,11 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
                 new_fileset = rewrite_fileset_to_redirector(new_fileset)
                 modified = True
             else:
-                # XRootD-error reactive rewrite (per-file alternative site)
-                if job in xrootdfailurejoblist:
-                    print(f"Replacing input files in {job} since it failed due to an XRootD error.")
+                # Input-failure reactive rewrite (per-file alternative site):
+                # XRootD errors and corrupt input data are handled the same way.
+                if job in inputfailures:
+                    reasons = ", ".join(sorted(inputfailures[job]))
+                    print(f"Replacing input files in {job} since it failed due to: {reasons}.")
                     for sample, dct in new_fileset.items():
                         newfllist = []
                         for fl in dct['files']:
@@ -551,8 +549,80 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
                 elif job in runningjobs:
                     os.system(f"rm {self.jobs_dir}/{job}.running")
                 os.system(f"touch {self.jobs_dir}/{job}.idle")
+                # Move this job's already-handled .err/.out logs out of the way so
+                # the same failure is not acted on again at the next resubmission.
+                # Done only for jobs actually resubmitted (and never in dry-run),
+                # so the failure info of other jobs is kept for later.
+                archive_logs(inputfailurelogs.get(job, []), f"{self.jobs_dir}/logs/processed")
                 os.system(f"cd {self.jobs_dir} && condor_submit {job}.sub")
                 print(f"Resubmitted {job}")
+
+
+# Messages (matched case-insensitively) in a job's .err or .out log meaning the
+# job failed because of an input file. Jobs matching any of them get their
+# input files moved to an alternative site at resubmission.
+INPUT_FAILURE_PATTERNS = (
+    "XRootD error",
+    "Corrupt input data",
+)
+
+
+def find_input_failure_jobs(logs_dir, patterns=INPUT_FAILURE_PATTERNS):
+    '''Scan the HTCondor .err AND .out logs in `logs_dir` (only top level, so
+    already-archived logs in logs/processed are ignored) for `patterns`.
+
+    Log names are job_<ClusterId>.<ProcId>.{err,out}, ProcId being the job index.
+
+    Returns ``(failures, logs)``:
+      - failures: {"job_<i>": set of matched patterns}
+      - logs: {"job_<i>": [paths of the .err/.out of every matching
+        ClusterId.ProcId]} — both files of the pair, so neither is re-read later.
+    '''
+    failures = {}
+    logs = {}
+    if not os.path.isdir(logs_dir):
+        return failures, logs
+    lowered = [(p, p.lower()) for p in patterns]
+    for fname in sorted(os.listdir(logs_dir)):
+        stem, ext = os.path.splitext(fname)
+        if ext not in (".err", ".out"):
+            continue
+        parts = stem.split(".")
+        if len(parts) < 2:
+            continue
+        job = "job_" + parts[-1]
+        path = os.path.join(logs_dir, fname)
+        found = set()
+        try:
+            with open(path, errors="replace") as f:
+                for line in f:
+                    low = line.lower()
+                    for pat, lowpat in lowered:
+                        if lowpat in low:
+                            found.add(pat)
+                    if len(found) == len(lowered):
+                        break
+        except OSError as e:
+            print(f"WARNING: could not read {path}: {e}")
+            continue
+        if not found:
+            continue
+        failures.setdefault(job, set()).update(found)
+        for sibling_ext in (".err", ".out"):
+            sibling = os.path.join(logs_dir, stem + sibling_ext)
+            if os.path.exists(sibling) and sibling not in logs.setdefault(job, []):
+                logs[job].append(sibling)
+    return failures, logs
+
+
+def archive_logs(paths, backupdir):
+    '''Move already-processed log files into `backupdir`.'''
+    if not paths:
+        return
+    os.makedirs(backupdir, exist_ok=True)
+    for p in paths:
+        if os.path.exists(p):
+            shutil.move(p, os.path.join(backupdir, os.path.basename(p)))
 
 # find_other_file, rewrite_fileset_blocklist, and GLOBAL_XROOTD_REDIRECTOR are imported above
 # from pocket_coffea.utils.site_rewrite (kept dependency-free for unit testing).
