@@ -1,4 +1,5 @@
 import os, getpass
+import subprocess
 import sys
 import socket
 from coffea import processor as coffea_processor
@@ -11,17 +12,7 @@ from pocket_coffea.parameters.dask_env import setup_dask
 import dask.config
 from dask_jobqueue import HTCondorCluster
 
-from pocket_coffea.utils.configurator import Configurator
-from pocket_coffea.utils.rucio import get_xrootd_sites_map
-from pocket_coffea.utils.site_rewrite import (
-    rewrite_fileset_blocklist,
-    rewrite_fileset_to_redirector,
-    GLOBAL_XROOTD_REDIRECTOR,
-)
 from .executors_manual_jobs import (
-    INNER_RUN_OPTIONS_FILENAME,
-    ensure_job_sh_forwards_inner_yaml,
-    ensure_sub_transfers_inner_yaml,
     write_inner_run_options,
 )
 import cloudpickle
@@ -37,7 +28,6 @@ class DaskExecutorFactory(ExecutorFactoryABC):
         pathvar = [i for i in os.environ["PATH"].split(":") if "envs/PocketCoffea/" in i][0]
         env_worker = [
             'export XRD_RUNFORKHANDLER=1',
-            f'export X509_USER_PROXY={self.x509_path}',
             f'export X509_CERT_DIR={pathvar[:-4]}/etc/grid-security/certificates',   #Note: this needs `conda install conda-forge::ca-certificates`
             'ulimit -s unlimited',
             # f'source {os.environ["HOME"]}/.bashrc',
@@ -48,6 +38,8 @@ class DaskExecutorFactory(ExecutorFactoryABC):
             'voms-proxy-info',
             'echo Path $PATH'
             ]
+        if not self.run_options.get("ignore-grid-certificate", False):
+            env_worker.insert(1, f'export X509_USER_PROXY={self.x509_path}')
         
         # Adding list of custom setup commands from user defined run options
         if self.run_options.get("custom-setup-commands", None):
@@ -116,6 +108,16 @@ class ExecutorFactoryCondorUMD(ExecutorFactoryManualABC):
             "job_dir": os.path.abspath(self.jobs_dir),
             "output_dir": os.path.abspath(self.outputdir),
             "config_pkl_total": f"{os.path.abspath(self.outputdir)}/configurator.pkl",
+            "submission": {
+                "format_version": 1,
+                "executor": "condor@rubin",
+                "requires_grid_certificate": not self.run_options["ignore-grid-certificate"],
+                "proxy_transfer_path": getattr(self, "x509_path", None),
+                "proxy_source": (
+                    None if self.run_options["ignore-grid-certificate"]
+                    else "explicit" if self.run_options.get("voms-proxy") else "default"
+                ),
+            },
             "jobs_list": {}
         }
         # Disabling the postprocessing
@@ -152,9 +154,10 @@ class ExecutorFactoryCondorUMD(ExecutorFactoryManualABC):
         inner_yaml_path = write_inner_run_options(self.jobs_dir, self.run_options)
         inner_yaml_basename = os.path.basename(inner_yaml_path)
 
+        proxy_env = (f"export X509_USER_PROXY={self.x509_path.split('/')[-1]}\n"
+                     if not self.run_options.get("ignore-grid-certificate", False) else "")
         script = f"""#!/bin/bash
-export X509_USER_PROXY={self.x509_path.split("/")[-1]}
-export XRD_RUNFORKHANDLER=1
+{proxy_env}export XRD_RUNFORKHANDLER=1
 export MALLOC_TRIM_THRESHOLD_=0
 JOBDIR={abs_jobdir_path}
 
@@ -178,7 +181,7 @@ fi
 echo 'Done'"""
         
         if int(self.run_options["cores-per-worker"]) > 1:
-            script = script.replace("EXECUTOR", f"--executor futures --scalout {self.run_options['cores-per-worker']}")
+            script = script.replace("EXECUTOR", f"--executor futures --scaleout {self.run_options['cores-per-worker']}")
         else:
             script = script.replace("EXECUTOR", "--executor iterative")
             
@@ -186,11 +189,16 @@ echo 'Done'"""
             f.write(script)
 
         # Writing the jid file as the htcondor python submission does not work in the singularity
+        transfer_input_files = [f"{abs_jobdir_path}/config_job_$(ProcId).pkl",
+                                f"{abs_jobdir_path}/job.sh",
+                                f"{abs_jobdir_path}/{inner_yaml_basename}"]
+        if not self.run_options.get("ignore-grid-certificate", False):
+            transfer_input_files.insert(1, self.x509_path)
         sub = {
             'Executable': "job.sh",
             'Error': f"{abs_jobdir_path}/logs/job_$(ClusterId).$(ProcId).err",
             'Output': f"{abs_jobdir_path}/logs/job_$(ClusterId).$(ProcId).out",
-            'Log': f"{abs_jobdir_path}/logs/job_$(ClusterId).log",
+            'Log': f"{abs_jobdir_path}/logs/job_$(ClusterId).$(ProcId).log",
             'MY.SendCredential': True,
             'MY.SingularityImage': f'"{self.run_options["worker-image"]}"',
             '+MaxRuntime' : self.run_options['max-run-time'],
@@ -199,7 +207,7 @@ echo 'Done'"""
             'arguments': f"$(ProcId) config_job_$(ProcId).pkl {abs_output_path} $(chunksize)",
             'should_transfer_files':'YES',
             'when_to_transfer_output' : 'ON_EXIT',
-            'transfer_input_files' : f"{abs_jobdir_path}/config_job_$(ProcId).pkl,{self.x509_path},{abs_jobdir_path}/job.sh,{abs_jobdir_path}/{inner_yaml_basename}",
+            'transfer_input_files' : ",".join(transfer_input_files),
             'on_exit_remove': '(ExitBySignal == False) && (ExitCode == 0)',
             'max_retries' : self.run_options["max-retries"],
             'requirements' : 'Machine =!= LastRemoteHost',
@@ -229,109 +237,66 @@ echo 'Done'"""
             for cs in per_job_chunksize:
                 f.write(f"  {cs}\n")
             f.write(")\n")
-        # Creating also single sub files for resubmission. These hard-code their
-        # own chunksize since they will be submitted with plain `queue`.
-        for i, _ in enumerate(jobs_config):
-            with open(f"{self.jobs_dir}/job_{i}.sub", "w") as f:
-                for k,v in sub.items():
-                    if isinstance(v, str):
-                        v = v.replace("$(ProcId)", str(i))
-                        v = v.replace("$(chunksize)", str(per_job_chunksize[i]))
-                    f.write(f"{k} = {v}\n")
-                f.write(f"queue\n")
-            # Let's also create a .idle file to indicate the the job is in idle
-            with open(f"{self.jobs_dir}/job_{i}.idle", "w") as f:
-                f.write("")
+        resubmit_sub = dict(sub)
+        resubmit_sub.update({
+            "Error": f"{abs_jobdir_path}/logs/job_$(ClusterId).$(PROC).err",
+            "Output": f"{abs_jobdir_path}/logs/job_$(ClusterId).$(PROC).out",
+            "Log": f"{abs_jobdir_path}/logs/job_$(ClusterId).$(PROC).log",
+            "RequestCpus": "$(CPUS)",
+            "RequestMemory": "$(MEMORY)",
+            "arguments": f"$(PROC) config_job_$(PROC).pkl {abs_output_path} $(CHUNKSIZE)",
+            "transfer_input_files": ",".join(
+                path.replace("$(ProcId)", "$(PROC)") for path in transfer_input_files
+            ),
+        })
+        with open(f"{self.jobs_dir}/resubmit.sub", "w") as f:
+            for k, v in resubmit_sub.items():
+                f.write(f"{k} = {v}\n")
+
+        job_state = {
+            str(i): {
+                "chunksize": chunksize,
+                "request_cpus": self.run_options["cores-per-worker"],
+                "request_memory": self.run_options["mem-per-worker"],
+                "resubmissions": 0,
+            }
+            for i, chunksize in enumerate(per_job_chunksize)
+        }
+        with open(f"{self.jobs_dir}/job_state.json", "w") as f:
+            import json
+            json.dump(job_state, f, indent=2, sort_keys=True)
 
         dry_run = self.run_options.get("dry-run", False)
         if dry_run:
             print(f"Dry run, not submitting jobs. You can find all files: {abs_jobdir_path}")
             return
+        idle_markers = []
+        for i, _ in enumerate(per_job_chunksize):
+            marker = f"{self.jobs_dir}/job_{i}.idle"
+            open(marker, "w").close()
+            idle_markers.append(marker)
+
+        print("Submitting jobs")
+        try:
+            result = subprocess.run(
+                ["condor_submit", "jobs_all.sub"], cwd=abs_jobdir_path,
+                text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                check=False,
+            )
+        except OSError as exc:
+            submit_error = str(exc)
         else:
-            print("Submitting jobs")
-            os.system(f"cd {abs_jobdir_path} && condor_submit jobs_all.sub")
-
-
-    def recreate_jobs(self, jobs_to_recreate):
-        # Read the jobs config
-        if not os.path.exists(f"{self.jobs_dir}/jobs_config.yaml"):
-            print("No jobs_config.yaml found. Exiting.")
-            exit(1)
-        with open(f"{self.jobs_dir}/jobs_config.yaml") as f:
-            jobs_config = yaml.safe_load(f)
-
-        # Re-materialise inner-run-options YAML so any --skip-bad-files /
-        # --custom-run-options-style overrides reach the resubmitted jobs;
-        # idempotently patch the wrapper if it predates this feature.
-        abs_jobdir_path = os.path.abspath(self.jobs_dir)
-        write_inner_run_options(self.jobs_dir, self.run_options)
-        if ensure_job_sh_forwards_inner_yaml(f"{self.jobs_dir}/job.sh"):
-            print(f"[recreate-jobs] Patched {self.jobs_dir}/job.sh to forward "
-                  f"{INNER_RUN_OPTIONS_FILENAME} to the inner pocket-coffea run.")
-
-        jobs_to_redo = []
-        for j in jobs_to_recreate.split(","):
-            if not j.startswith("job_"):
-                jobs_to_redo.append(f"job_{j}")
-        print(f"Recreating jobs: {jobs_to_redo}")
-
-        # Parse blocklist-sites: accept comma-separated string or list
-        blocklist_raw = self.run_options.get("blocklist-sites", None) or []
-        if isinstance(blocklist_raw, str):
-            blocklist_sites = {s for s in blocklist_raw.split(",") if s}
-        else:
-            blocklist_sites = set(blocklist_raw)
-        sitemap = get_xrootd_sites_map() if blocklist_sites else None
-        if blocklist_sites:
-            print(f"Blocklisting sites at recreate time: {sorted(blocklist_sites)}")
-
-        use_redirector = bool(self.run_options.get("use-redirector", False))
-        if use_redirector:
-            print(f"[recreate-jobs] --use-redirector: rewriting every file to "
-                  f"{GLOBAL_XROOTD_REDIRECTOR} without per-site Rucio lookups.")
-            if blocklist_sites:
-                print("[recreate-jobs] WARNING: --blocklist-sites is set but --use-redirector "
-                      "overrides it.")
-
-        rucio_client = None
-        if blocklist_sites and not use_redirector:
-            try:
-                from pocket_coffea.utils.rucio import get_rucio_client
-                rucio_client = get_rucio_client()
-            except Exception as e:
-                print(f"WARNING: could not open a rucio client ({e}); replica lookups will fail.")
-
-        # Check if the job is in the list of jobs to recreate
-        for job in jobs_to_redo:
-            if job not in jobs_config["jobs_list"]:
-                print(f"Job {job} not found in the list of jobs")
-                continue
-            # Open the configurator and modify the fileset.
-            # This is usually done to change a file location
-            # Load the configurator
-            config = cloudpickle.load(open(f"{self.jobs_dir}/config_{job}.pkl", "rb"))
-            # Modify the fileset (optionally rewriting blocklisted sites)
-            fileset = jobs_config["jobs_list"][job]["filesets"]
-            if use_redirector:
-                fileset = rewrite_fileset_to_redirector(fileset)
-            elif blocklist_sites:
-                fileset = rewrite_fileset_blocklist(fileset, sitemap, blocklist_sites,
-                                                    rucio_client=rucio_client)
-            config.set_filesets_manually(fileset)
-            # Save the configurator
-            cloudpickle.dump(config, open(f"{self.jobs_dir}/config_{job}.pkl", "wb"))
-            # Make sure this .sub ships the inner-run-options YAML.
-            ensure_sub_transfers_inner_yaml(f"{self.jobs_dir}/{job}.sub", abs_jobdir_path)
-            # Resubmit the job
-            dry_run = self.run_options.get("dry-run", False)
-            if dry_run:
-                print(f"Dry run, not resubmitting  {job}")
-            else:
-                os.system(f"rm {self.jobs_dir}/{job}.failed")
-                os.system(f"touch {self.jobs_dir}/{job}.idle")
-                os.system(f"cd {self.jobs_dir} && condor_submit {job}.sub")
-                print(f"Resubmitted {job}")
-
+            submit_error = "" if result.returncode == 0 else (
+                f"exit code {result.returncode}: {result.stdout.strip()}")
+        if submit_error:
+            for marker in idle_markers:
+                try:
+                    os.remove(marker)
+                except FileNotFoundError:
+                    pass
+            raise RuntimeError(
+                f"condor_submit jobs_all.sub failed: {submit_error}"
+            )
 
 def get_executor_factory(executor_name, **kwargs):
     if executor_name == "iterative":
