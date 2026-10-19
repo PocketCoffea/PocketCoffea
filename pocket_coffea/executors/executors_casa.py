@@ -24,7 +24,16 @@ class DaskExecutorFactory(ExecutorFactoryABC):
         super().__init__(run_options, **kwargs)
 
     def setup(self):
-        # coffea-casa reads data with tokens, not a grid proxy: only set the env
+        # Use a grid proxy if there is one: set_env() exports X509_USER_PROXY
+        # and CoffeaCasaCluster then ships the proxy to the workers. Without
+        # one, read data with coffea-casa's tokens (through XCache).
+        if not self.run_options["ignore-grid-certificate"]:
+            try:
+                self.setup_proxyfile()
+            except Exception as e:
+                print(f"No usable VOMS proxy ({e}); reading data with "
+                      "coffea-casa's tokens instead.")
+                self.run_options["ignore-grid-certificate"] = True
         self.set_env()
         import dask
         from distributed import Client

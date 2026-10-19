@@ -46,8 +46,6 @@ dask@casa:
   adaptive: false
   # Address of an already running cluster to use instead of starting one
   scheduler-address: null
-  # coffea-casa reads data with tokens, not a grid proxy
-  ignore-grid-certificate: true
 
 dask@lpc:
   scaleout: 10
