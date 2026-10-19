@@ -39,6 +39,14 @@ condor@lxplus:
   split-by-category: false
   eos-prefix: root://eosuser.cern.ch/
 
+dask@casa:
+  scaleout: 10
+  cores-per-worker: 1
+  mem-per-worker: "4GB"
+  adaptive: false
+  # Address of an already running cluster to use instead of starting one
+  scheduler-address: null
+
 dask@lpc:
   scaleout: 10
   cores-per-worker: 1
