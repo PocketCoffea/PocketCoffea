@@ -363,14 +363,24 @@ def sf_ele_promptmva(params, events, year, key=''):
     year_pog = params.lepton_scale_factors.electron_sf.era_mapping[year]["id"]
     wp = params.lepton_scale_factors.electron_sf.id.promptMVA
 
+    # In 2023 the EGamma POG binned due to BPix the corrections also in electron phi
+
+    binning_list = [wp, ele_eta_flat, ele_pt_flat]
+
+    if "2023" in year:
+
+        ele_phi = events[coll].phi
+        ele_phi_flat = ak.to_numpy(ak.flatten(ele_phi))
+        binning_list.append(ele_phi_flat)
+        
     sf = electron_correctionset[corrkey].evaluate(
-        year_pog, "sf", wp, ele_eta_flat, ele_pt_flat
+    year_pog, "sf", *binning_list
     )
     sfup = electron_correctionset[corrkey].evaluate(
-        year_pog, "sfup", wp, ele_eta_flat, ele_pt_flat  
+        year_pog, "sfup", *binning_list  
     )
     sfdown = electron_correctionset[corrkey].evaluate(
-        year_pog, "sfdown", wp, ele_eta_flat, ele_pt_flat
+        year_pog, "sfdown", *binning_list
     )
 
     # Unflatten 
