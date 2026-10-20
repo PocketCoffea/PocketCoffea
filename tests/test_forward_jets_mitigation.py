@@ -15,7 +15,7 @@ from omegaconf import OmegaConf
 
 from pocket_coffea.lib.jets import (
     abs_eta_in_regions,
-    forward_jets_pt_cut_mask,
+    jet_mitigations_mask,
     get_forward_jets_mitigation,
     jet_correction_corrlib,
     jet_correction_corrlib_bylevel,
@@ -142,30 +142,43 @@ def _residual(pt):
     return 1 + 3 / pt
 
 
+MITIGATIONS = ("pt_cut_HE", "pt_cut_HF", "jer_genmatched_only", "residual_pt_floor", "raw_factor_cut")
+
+
 def test_defaults_all_off():
     cfg = _mitigation_cfg()
-    for name in ("pt_cut", "jer_genmatched_only", "residual_pt_floor"):
+    for name in MITIGATIONS:
         assert cfg[name].apply is False
         for year in ("2022_preEE", "2023_postBPix", "2024", "2025"):
             assert get_forward_jets_mitigation(cfg, name, year, JET_TYPE) is None
-    assert get_forward_jets_mitigation(None, "pt_cut", "2024") is None
+    assert get_forward_jets_mitigation(None, "pt_cut_HE", "2024") is None
 
 
 def test_mitigation_years_and_jet_types():
-    cfg = _mitigation_cfg(pt_cut=True, jer_genmatched_only=True, residual_pt_floor=True)
-    for year in ("2022_preEE", "2022_postEE", "2023_preBPix", "2023_postBPix", "2024"):
-        assert get_forward_jets_mitigation(cfg, "pt_cut", year) is not None
-        assert get_forward_jets_mitigation(cfg, "jer_genmatched_only", year, JET_TYPE) is not None
+    cfg = _mitigation_cfg(pt_cut_HE=True, pt_cut_HF=True, jer_genmatched_only=True, residual_pt_floor=True)
+    for year in ("2022_preEE", "2022_postEE", "2023_preBPix", "2023_postBPix"):
+        for name in ("pt_cut_HE", "pt_cut_HF", "jer_genmatched_only"):
+            assert get_forward_jets_mitigation(cfg, name, year, JET_TYPE) is not None
+    # 2024: HF fixed, HE still affected
+    assert get_forward_jets_mitigation(cfg, "pt_cut_HF", "2024") is None
+    assert get_forward_jets_mitigation(cfg, "pt_cut_HE", "2024") is not None
+    assert get_forward_jets_mitigation(cfg, "jer_genmatched_only", "2024", JET_TYPE) is not None
     # nothing to mitigate in 2025, the residual fix is 2024 only
-    assert get_forward_jets_mitigation(cfg, "pt_cut", "2025") is None
-    assert get_forward_jets_mitigation(cfg, "jer_genmatched_only", "2025", JET_TYPE) is None
+    for name in ("pt_cut_HE", "pt_cut_HF", "jer_genmatched_only", "residual_pt_floor"):
+        assert get_forward_jets_mitigation(cfg, name, "2025", JET_TYPE) is None
     assert get_forward_jets_mitigation(cfg, "residual_pt_floor", "2024", JET_TYPE) is not None
     assert get_forward_jets_mitigation(cfg, "residual_pt_floor", "2023_preBPix", JET_TYPE) is None
     # only the listed jet types
     assert get_forward_jets_mitigation(cfg, "jer_genmatched_only", "2024", "AK8PFPuppi") is None
-    # explicit switch overrides the configuration
-    assert get_forward_jets_mitigation(cfg, "pt_cut", "2024", apply=False) is None
-    assert get_forward_jets_mitigation(_mitigation_cfg(), "pt_cut", "2024", apply=True) is not None
+
+
+def test_mitigations_switched_on_separately():
+    # switching on one mitigation does not switch on the others
+    for name in MITIGATIONS:
+        cfg = _mitigation_cfg(**{name: True})
+        for other in MITIGATIONS:
+            if other != name:
+                assert get_forward_jets_mitigation(cfg, other, "2022_preEE", JET_TYPE) is None
 
 
 def test_abs_eta_in_regions():
@@ -175,19 +188,35 @@ def test_abs_eta_in_regions():
     assert ak.to_list(abs_eta_in_regions(eta, [])) == [[False] * 6]
 
 
-def test_forward_jets_pt_cut_mask():
-    jets = ak.zip({"pt": [[20.0, 20.0, 60.0, 20.0, 20.0]], "eta": [[0.5, 2.7, -2.8, 3.5, -2.2]]})
-    cfg = _mitigation_cfg(pt_cut=True)
-    # 2022/2023: HE and HF low-pt jets rejected
-    assert ak.to_list(forward_jets_pt_cut_mask(jets, cfg, "2022_postEE")) == [[True, False, True, False, True]]
-    # 2024: HF fixed, only HE
-    assert ak.to_list(forward_jets_pt_cut_mask(jets, cfg, "2024")) == [[True, False, True, True, True]]
-    # 2025: nothing
-    assert ak.to_list(forward_jets_pt_cut_mask(jets, cfg, "2025")) == [[True] * 5]
-    # switched off by default, can be switched on by the jet_selection flag
-    assert ak.to_list(forward_jets_pt_cut_mask(jets, _mitigation_cfg(), "2024")) == [[True] * 5]
-    assert ak.to_list(forward_jets_pt_cut_mask(jets, _mitigation_cfg(), "2024", apply=True)) == [[True, False, True, True, True]]
-    assert ak.to_list(forward_jets_pt_cut_mask(jets, cfg, "2024", apply=False)) == [[True] * 5]
+def test_jet_mitigations_mask():
+    jets = ak.zip({
+        "pt": [[20.0, 20.0, 60.0, 20.0, 20.0, 80.0]],
+        "eta": [[0.5, 2.7, -2.8, 3.5, -2.2, 4.0]],
+        "rawFactor": [[0.1, 0.1, 0.1, 0.1, 0.1, 0.95]],
+    })
+    on = [[True] * 6]
+    # all off by default
+    for year in ("2022_postEE", "2024"):
+        assert ak.to_list(jet_mitigations_mask(jets, _mitigation_cfg(), year)) == on
+    assert ak.to_list(jet_mitigations_mask(jets, None, "2024")) == on
+    # HE and HF cuts separately
+    he = _mitigation_cfg(pt_cut_HE=True)
+    hf = _mitigation_cfg(pt_cut_HF=True)
+    assert ak.to_list(jet_mitigations_mask(jets, he, "2022_postEE")) == [[True, False, True, True, True, True]]
+    assert ak.to_list(jet_mitigations_mask(jets, hf, "2022_postEE")) == [[True, True, True, False, True, True]]
+    both = _mitigation_cfg(pt_cut_HE=True, pt_cut_HF=True)
+    assert ak.to_list(jet_mitigations_mask(jets, both, "2022_postEE")) == [[True, False, True, False, True, True]]
+    # 2024: HF fixed; 2025: nothing
+    assert ak.to_list(jet_mitigations_mask(jets, both, "2024")) == [[True, False, True, True, True, True]]
+    assert ak.to_list(jet_mitigations_mask(jets, both, "2025")) == on
+    # forward_jet_veto=False skips the pt cuts for one selection
+    assert ak.to_list(jet_mitigations_mask(jets, both, "2022_postEE", forward_jet_veto=False)) == on
+    # raw factor cut: every year, also with forward_jet_veto=False
+    raw = _mitigation_cfg(raw_factor_cut=True)
+    expected = [[True, True, True, True, True, False]]
+    for year in ("2022_postEE", "2024", "2025"):
+        assert ak.to_list(jet_mitigations_mask(jets, raw, year)) == expected
+    assert ak.to_list(jet_mitigations_mask(jets, raw, "2024", forward_jet_veto=False)) == expected
 
 
 @pytest.mark.parametrize("isMC", [False, True])
@@ -213,9 +242,14 @@ def test_bylevel_requires_list(json_path):
         _correct(json_path, False, by_level=True)
 
 
-@pytest.mark.parametrize("by_level", [False, True])
-def test_residual_pt_floor(json_path, by_level):
-    level = LEVELS if by_level else "L1L2L3Res"
+def test_residual_pt_floor_requires_by_level(json_path):
+    # the user has to configure the JEC by level by hand
+    with pytest.raises(Exception, match="by_level=True"):
+        _correct(json_path, False, mitigation=_mitigation_cfg(residual_pt_floor=True))
+
+
+def test_residual_pt_floor(json_path):
+    level, by_level = LEVELS, True
     cfg = _mitigation_cfg(residual_pt_floor=True)
     nominal = _correct(json_path, False, level=level, by_level=by_level)
     floored = _correct(json_path, False, level=level, by_level=by_level, mitigation=cfg)

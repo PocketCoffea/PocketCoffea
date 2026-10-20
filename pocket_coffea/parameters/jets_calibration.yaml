@@ -1195,27 +1195,38 @@ jets_calibration:
       AK8PFPuppi: True
 
 
-  # Mitigations of the Run3 forward jets issues (HE "horns" in 2.5 < |eta| < 3 and HF in
-  # 3 < |eta| < 5), following the JME recommendations. All switched off by default:
-  # set `apply: True` to activate one of them. The |eta| regions are [eta_min, eta_max) intervals,
-  # given per year: the mitigation does nothing in the years without regions.
+  # Mitigations of the Run3 jets issues (HE "horns" in 2.5 < |eta| < 3, HF in 3 < |eta| < 5,
+  # anomalous L2Relative JEC), following the JME recommendations.
+  # Each recommendation is a separate mitigation, switched off by default: set its `apply: True`
+  # to activate it. The |eta| regions are [eta_min, eta_max) intervals, given per year:
+  # the mitigation does nothing in the years without regions.
   # Recommendations: https://indico.cern.ch/event/1615783/contributions/6811120/attachments/3186812/5672346/20251204_JetMET_PerformanceRun3.pdf#page=14
   # See docs/calibrators.md for the details.
   forward_jets_mitigation:
     # jet types (calibration aliases) the JER and residual mitigations are applied to
     jet_types: [AK4PFPuppi]
-    # jet_selection: reject the jets with pt < pt_min in the |eta| regions
-    # (the `forward_jet_veto` argument of jet_selection overrides `apply`)
-    pt_cut:
+    # jet_selection: reject the jets with pt < pt_min in HF
+    # (skipped for the selections called with forward_jet_veto=False)
+    pt_cut_HF:
       apply: False
       pt_min: 50.
       eta_regions:
-        2022_preEE: [[2.5, 3.0], [3.0, 5.0]]
-        2022_postEE: [[2.5, 3.0], [3.0, 5.0]]
-        2023_preBPix: [[2.5, 3.0], [3.0, 5.0]]
-        2023_postBPix: [[2.5, 3.0], [3.0, 5.0]]
+        2022_preEE: [[3.0, 5.0]]
+        2022_postEE: [[3.0, 5.0]]
+        2023_preBPix: [[3.0, 5.0]]
+        2023_postBPix: [[3.0, 5.0]]
+    # jet_selection: reject the jets with pt < pt_min in HE
+    # (skipped for the selections called with forward_jet_veto=False)
+    pt_cut_HE:
+      apply: False
+      pt_min: 50.
+      eta_regions:
+        2022_preEE: [[2.5, 3.0]]
+        2022_postEE: [[2.5, 3.0]]
+        2023_preBPix: [[2.5, 3.0]]
+        2023_postBPix: [[2.5, 3.0]]
         "2024": [[2.5, 3.0]]
-    # MC: JER smearing applied only to the gen-matched jets in the |eta| regions
+    # MC: JER smearing applied only to the gen-matched jets in HE
     # (no stochastic smearing of the jets without a gen match)
     jer_genmatched_only:
       apply: False
@@ -1226,15 +1237,21 @@ jets_calibration:
         2023_postBPix: [[2.5, 3.0]]
         "2024": [[2.5, 3.0]]
     # Data: for the jets in the |eta| regions with MC-truth corrected pt < pt_min, the `level`
-    # correction is evaluated at pt = pt_min. The JEC is applied by level: if the jet type is
-    # configured with the compound correction, the single `levels` are used instead.
+    # correction is evaluated at pt = pt_min. Needs the JEC applied by level: set
+    # `by_level: True` and the list of single levels in `level` for the jet type and year.
     residual_pt_floor:
       apply: False
       level: L2L3Residual
       pt_min: 30.
-      levels: [L1FastJet, L2Relative, L3Absolute, L2L3Residual]
       eta_regions:
         "2024": [[2.0, 2.5]]
+    # jet_selection: reject the jets with rawFactor > max_raw_factor, i.e. with an abnormally
+    # large JEC (asymptotic L2Relative in a narrow bin, mostly in HF, in a few Run3 samples).
+    # Applied in every year and to every selected jet collection when switched on: check in the
+    # JME GitLab issue whether the samples used in the analysis are affected.
+    raw_factor_cut:
+      apply: False
+      max_raw_factor: 0.9
 
   # By default only the total variations are included
   # The user can customize the wanted variations by changing the variations key in the user parameters.
