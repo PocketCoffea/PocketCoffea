@@ -53,10 +53,10 @@ jet_scale_factors:
             file: ${cvmfs:Run3-23DSep23-Summer23BPix-NanoAODv12,BTV,btagging.json.gz,2025-08-20}
             name: "particleNet_shape"
         '2024': 
-            file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,BTV,btagging.json.gz,2026-03-10}
+            file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,BTV,btagging.json.gz,2026-10-20}
             name: "UParTAK4"
         '2025': 
-            file: ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,BTV,btagging.json.gz,2026-09-21}
+            file: ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,BTV,btagging.json.gz,2026-10-14}
             name: "UParTAK4"            
 
     ctagSF:
@@ -94,11 +94,11 @@ jet_scale_factors:
         Calib_file: "${default_params_dir:}/ctagSF_calibrationSF.json"
         name: "deepJet_shape"
       '2024':
-        SF_file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,BTV,ctagging.json.gz,2026-03-10}
+        SF_file: ${cvmfs:Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15,BTV,ctagging.json.gz,2026-10-20}
         Calib_file: "${default_params_dir:}/ctagSF_calibrationSF.json"
         name: "deepJet_shape"
       '2025':
-        SF_file: ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,BTV,ctagging.json.gz,2026-09-21}
+        SF_file: ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,BTV,ctagging.json.gz,2026-10-14}
         Calib_file: "${default_params_dir:}/ctagSF_calibrationSF.json"
         name: "deepJet_shape"      
       
