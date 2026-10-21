@@ -1200,7 +1200,7 @@ jets_calibration:
   # Each recommendation is a separate mitigation, switched off by default: set its `apply: True`
   # to activate it. The |eta| regions are [eta_min, eta_max) intervals, given per year:
   # the mitigation does nothing in the years without regions.
-  # Recommendations: https://indico.cern.ch/event/1615783/contributions/6811120/attachments/3186812/5672346/20251204_JetMET_PerformanceRun3.pdf#page=14
+  # Recommendations: https://indico.cern.ch/event/1615783/contributions/6811120/attachments/3186812/5672346/20251204_JetMET_PerformanceRun3.pdf
   # See docs/calibrators.md for the details.
   forward_jets_mitigation:
     # jet types (calibration aliases) the JER and residual mitigations are applied to
@@ -1217,6 +1217,7 @@ jets_calibration:
         2023_postBPix: [[3.0, 5.0]]
     # jet_selection: reject the jets with pt < pt_min in HE
     # (skipped for the selections called with forward_jet_veto=False)
+    # See: https://cms-jme-jerc.docs.cern.ch/recommendations/jer/#known-issues
     pt_cut_HE:
       apply: False
       pt_min: 50.
@@ -1228,6 +1229,7 @@ jets_calibration:
         "2024": [[2.5, 3.0]]
     # MC: JER smearing applied only to the gen-matched jets in HE
     # (no stochastic smearing of the jets without a gen match)
+    # See: https://cms-jme-jerc.docs.cern.ch/recommendations/jer/#known-issues
     jer_genmatched_only:
       apply: False
       eta_regions:
@@ -1249,6 +1251,7 @@ jets_calibration:
     # large JEC (asymptotic L2Relative in a narrow bin, mostly in HF, in a few Run3 samples).
     # Applied in every year and to every selected jet collection when switched on: check in the
     # JME GitLab issue whether the samples used in the analysis are affected.
+    # See: https://cms-jme-jerc.docs.cern.ch/recommendations/jes/#known-issues
     raw_factor_cut:
       apply: False
       max_raw_factor: 0.9

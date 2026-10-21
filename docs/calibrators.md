@@ -230,7 +230,7 @@ JES/JER systematics are the same in the two modes.
 
 The JME POG recommends some mitigations for the issues of the Run3 jets in the endcaps
 (HE, 2.5 < |η| < 3, the "horns") and in the forward calorimeter (HF, 3 < |η| < 5)
-([JetMET Run3 performance, slide 14](https://indico.cern.ch/event/1615783/contributions/6811120/attachments/3186812/5672346/20251204_JetMET_PerformanceRun3.pdf#page=14)):
+([JetMET Run3 performance](https://indico.cern.ch/event/1615783/contributions/6811120/attachments/3186812/5672346/20251204_JetMET_PerformanceRun3.pdf)):
 
 | Year | HF (3 < \|η\| < 5) | HE (2.5 < \|η\| < 3) | 2.0 < \|η\| < 2.5 |
 |------|--------------------|-----------------------|-------------------|
@@ -243,7 +243,7 @@ In addition, in extremely rare cases in Run3 the L2Relative JEC shows an asympto
 a very narrow bin, giving abnormally large corrected jet pt (e.g. above 10 TeV), mostly in HF.
 If such jets are encountered, JME recommends rejecting the jets with `rawFactor > 0.9`. This
 applies only to the affected production samples: check the JME GitLab issue to know whether the
-samples of the analysis are affected.
+samples of the analysis are affected (see the [JES known issues](https://cms-jme-jerc.docs.cern.ch/recommendations/jes/#known-issues)).
 
 Each recommendation is a **separate mitigation** in `jets_calibration.forward_jets_mitigation`
 (`pocket_coffea/parameters/jets_calibration.yaml`). They are **all switched off by default** and
@@ -313,11 +313,12 @@ Details of each mitigation:
   jet collection it selects, on the `pt` of the collection. A selection called with
   `forward_jet_veto=False` skips them, e.g. to keep the forward jets in one collection only:
   `jet_selection(events, "Jet", params, year, forward_jet_veto=False)`.
+  For `pt_cut_HE` see the [JER known issues](https://cms-jme-jerc.docs.cern.ch/recommendations/jer/#known-issues).
 - **`jer_genmatched_only`** (MC only, applied by the `JetsCalibrator` to the `jet_types`): in the
   regions the JER smearing is applied only to the jets using the scaling method, i.e. with a
   gen-jet match (ΔR < R/2 and |pT − pT,gen| < 3 σ<sub>JER</sub> pT). The jets without a match keep
   their JES-corrected pt instead of being stochastically smeared. The same applies to the JER
-  up/down variations.
+  up/down variations. See the [JER known issues](https://cms-jme-jerc.docs.cern.ch/recommendations/jer/#known-issues).
 - **`residual_pt_floor`** (data only, applied by the `JetsCalibrator` to the `jet_types`): for the
   jets in the regions with MC-truth corrected pt (pt after the levels before `level`) below
   `pt_min`, the `level` correction factor is evaluated at `pt_min`, and applied to the real pt.
@@ -330,6 +331,7 @@ Details of each mitigation:
 - **`raw_factor_cut`**: selection applied by `jet_selection` to every jet collection, in every
   year, also with `forward_jet_veto=False`. It uses the `rawFactor` of the collection after the
   calibration (`1 - pt_raw/pt`, updated by the `JetsCalibrator` with the applied JEC).
+  See the [JES known issues](https://cms-jme-jerc.docs.cern.ch/recommendations/jes/#known-issues).
 
 ## Creating Custom Calibrators
 
