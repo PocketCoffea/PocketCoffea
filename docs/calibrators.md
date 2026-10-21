@@ -310,9 +310,7 @@ parameters.jets_calibration.forward_jets_mitigation.pt_cut_HE.apply = True
 Details of each mitigation:
 
 - **`pt_cut_HF`, `pt_cut_HE`**: selections applied by `pocket_coffea.lib.jets.jet_selection` to every
-  jet collection it selects, on the `pt` of the collection. A selection called with
-  `forward_jet_veto=False` skips them, e.g. to keep the forward jets in one collection only:
-  `jet_selection(events, "Jet", params, year, forward_jet_veto=False)`.
+  jet collection it selects, on the `pt` of the collection, whenever they are switched on.
   For `pt_cut_HE` see the [JER known issues](https://cms-jme-jerc.docs.cern.ch/recommendations/jer/#known-issues).
 - **`jer_genmatched_only`** (MC only, applied by the `JetsCalibrator` to the `jet_types`): in the
   regions the JER smearing is applied only to the jets using the scaling method, i.e. with a
@@ -329,7 +327,7 @@ Details of each mitigation:
   `AK4CorrT1METJetPuppi`, aliased to `AK4PFPuppi`) are corrected consistently, so that the MET
   propagation sees the same JEC.
 - **`raw_factor_cut`**: selection applied by `jet_selection` to every jet collection, in every
-  year, also with `forward_jet_veto=False`. It uses the `rawFactor` of the collection after the
+  year. It uses the `rawFactor` of the collection after the
   calibration (`1 - pt_raw/pt`, updated by the `JetsCalibrator` with the applied JEC).
   See the [JES known issues](https://cms-jme-jerc.docs.cern.ch/recommendations/jes/#known-issues).
 

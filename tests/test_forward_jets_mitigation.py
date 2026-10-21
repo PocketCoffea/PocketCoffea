@@ -209,14 +209,11 @@ def test_jet_mitigations_mask():
     # 2024: HF fixed; 2025: nothing
     assert ak.to_list(jet_mitigations_mask(jets, both, "2024")) == [[True, False, True, True, True, True]]
     assert ak.to_list(jet_mitigations_mask(jets, both, "2025")) == on
-    # forward_jet_veto=False skips the pt cuts for one selection
-    assert ak.to_list(jet_mitigations_mask(jets, both, "2022_postEE", forward_jet_veto=False)) == on
-    # raw factor cut: every year, also with forward_jet_veto=False
+    # raw factor cut: every year
     raw = _mitigation_cfg(raw_factor_cut=True)
     expected = [[True, True, True, True, True, False]]
     for year in ("2022_postEE", "2024", "2025"):
         assert ak.to_list(jet_mitigations_mask(jets, raw, year)) == expected
-    assert ak.to_list(jet_mitigations_mask(jets, raw, "2024", forward_jet_veto=False)) == expected
 
 
 @pytest.mark.parametrize("isMC", [False, True])

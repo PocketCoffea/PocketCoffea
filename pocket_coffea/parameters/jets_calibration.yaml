@@ -1206,7 +1206,6 @@ jets_calibration:
     # jet types (calibration aliases) the JER and residual mitigations are applied to
     jet_types: [AK4PFPuppi]
     # jet_selection: reject the jets with pt < pt_min in HF
-    # (skipped for the selections called with forward_jet_veto=False)
     pt_cut_HF:
       apply: False
       pt_min: 50.
@@ -1216,7 +1215,6 @@ jets_calibration:
         2023_preBPix: [[3.0, 5.0]]
         2023_postBPix: [[3.0, 5.0]]
     # jet_selection: reject the jets with pt < pt_min in HE
-    # (skipped for the selections called with forward_jet_veto=False)
     # See: https://cms-jme-jerc.docs.cern.ch/recommendations/jer/#known-issues
     pt_cut_HE:
       apply: False

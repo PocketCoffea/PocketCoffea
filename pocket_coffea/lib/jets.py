@@ -110,7 +110,7 @@ def met_xy_correction(params, events, METcol,  year, era):
     return pt_corr, phi_corr
 
 
-def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tagger="", forward_jet_veto=True):
+def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tagger=""):
     """Select the jets of the ``jet_type`` collection passing ``params.object_preselection[jet_type]``.
 
     The jet selection mitigations of ``params.jets_calibration.forward_jets_mitigation`` are
@@ -118,8 +118,6 @@ def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tag
     ``pt_cut_HE`` / ``pt_cut_HF`` reject the low-pt forward jets (year-dependent pt threshold
     and |eta| regions), ``raw_factor_cut`` rejects the jets with an anomalous JEC
     (rawFactor > ``max_raw_factor``).
-    ``forward_jet_veto=False`` skips the ``pt_cut_HE`` / ``pt_cut_HF`` cuts for this selection
-    even if they are switched on.
     """
     jets = events[jet_type]
     cuts = params.object_preselection[jet_type]
@@ -135,8 +133,7 @@ def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tag
         & (np.abs(jets.eta) < cuts["eta"])
         & (jets.jetId_corrected >= cuts["jetId"])
         & jet_mitigations_mask(
-            jets, OmegaConf.select(params, "jets_calibration.forward_jets_mitigation"), year,
-            forward_jet_veto=forward_jet_veto,
+            jets, OmegaConf.select(params, "jets_calibration.forward_jets_mitigation"), year
         )
     )
     # Lepton cleaning
@@ -892,21 +889,20 @@ def get_forward_jets_mitigation(mitigation_cfg, name, year, jet_type=None):
     return cfg
 
 
-def jet_mitigations_mask(jets, mitigation_cfg, year, forward_jet_veto=True):
+def jet_mitigations_mask(jets, mitigation_cfg, year):
     """Mask of the jets passing the jet selection mitigations switched on in
     ``mitigation_cfg`` (``params.jets_calibration.forward_jets_mitigation``):
 
-    - ``pt_cut_HE``, ``pt_cut_HF`` (only if ``forward_jet_veto``): reject the jets with
+    - ``pt_cut_HE``, ``pt_cut_HF``: reject the jets with
       pt < ``pt_min`` in the |eta| regions defined for ``year``;
     - ``raw_factor_cut``: reject the jets with rawFactor > ``max_raw_factor``, i.e. with an
       anomalously large JEC (L2Relative asymptotic behaviour in some Run3 samples).
     """
     mask = ak.ones_like(jets.pt, dtype=bool)
-    if forward_jet_veto:
-        for name in ("pt_cut_HE", "pt_cut_HF"):
-            cfg = get_forward_jets_mitigation(mitigation_cfg, name, year)
-            if cfg is not None:
-                mask = mask & ~(abs_eta_in_regions(jets.eta, cfg.eta_regions[str(year)]) & (jets.pt < cfg.pt_min))
+    for name in ("pt_cut_HE", "pt_cut_HF"):
+        cfg = get_forward_jets_mitigation(mitigation_cfg, name, year)
+        if cfg is not None:
+            mask = mask & ~(abs_eta_in_regions(jets.eta, cfg.eta_regions[str(year)]) & (jets.pt < cfg.pt_min))
     if mitigation_cfg is not None and mitigation_cfg.get("raw_factor_cut", {}).get("apply", False):
         mask = mask & (jets.rawFactor <= mitigation_cfg.raw_factor_cut.max_raw_factor)
     return mask
