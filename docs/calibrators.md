@@ -79,6 +79,8 @@ PocketCoffea provides several ready-to-use calibrators in `pocket_coffea.lib.cal
 - **Purpose**: Applies Jet Energy Corrections (JEC) and Jet Energy Resolution (JER) smearing. If pT regression is requested for a jet type (`apply_pt_regr_MC`/`apply_pt_regr_Data`), it is applied first, before the JEC.
 - **Collections**: Configurable. Every jet collection listed in `jets_calibration.collection[year]` (e.g. `Jet`, `FatJet`) that has `apply_jec_MC`/`apply_jec_Data` enabled for its jet type is calibrated.
 - **Variations**: One `"{jet_type}_{source}Up"` / `"{jet_type}_{source}Down"` pair per entry configured in `jets_calibration.variations[jet_type][year]` (e.g. `"AK4PFchs_jecUp"`, `"AK4PFchs_jerDown"`).
+- **Stored factors**: the corrected jets carry `jec_factor` (total JEC factor, pt / pt_raw before the smearing) and `jer_factor` (JER smearing factor, 1 for data or without JER), so that `pt = pt_raw * jec_factor * jer_factor`.
+- **Options**: the JEC can be applied [by level](#jec-applied-by-level) instead of with the compound correction, and each of the [Run3 forward jets mitigations](#run3-forward-jets-mitigations) can be switched on separately.
 
 ### JetsSoftdropMassCalibrator
 - **Name**: `"msoftdrop_calibration"`
@@ -198,6 +200,137 @@ jets_calibration:
       AK4PFchs: ["jec", "jer"]
       AK8PFPuppi: ["jec"]
 ```
+
+### JEC applied by level
+
+By default the JEC is the single *compound* correction named by `level` (e.g. `L1L2L3Res`).
+With `by_level: True` in the calibration parameters of a jet type and year, `level` is instead
+a list of single JEC levels, applied one after the other:
+
+```yaml
+jets_calibration:
+  jet_types:
+    AK4PFPuppi:
+      "2024":
+        json_path: ...
+        jec_mc: Summer24Prompt24_V5_MC
+        jec_data: Summer24Prompt24_V5_DATA
+        jer: Summer24Prompt24_JRV2_MC
+        by_level: True
+        level: [L1FastJet, L2Relative, L3Absolute, L2L3Residual]
+```
+
+Each level is evaluated on the running, partially-corrected pt and its factor is multiplied into
+the total correction, exactly as done internally by the compound correction: without any
+customization the result is identical. Applying the levels explicitly allows evaluating a level
+at a different pt than the one the correction propagates on (used by the `residual_pt_floor`
+mitigation below). The implementation is `pocket_coffea.lib.jets.jec_by_level`; the JER and the
+JES/JER systematics are the same in the two modes.
+
+### Run3 forward jets mitigations
+
+The JME POG recommends some mitigations for the issues of the Run3 jets in the endcaps
+(HE, 2.5 < |η| < 3, the "horns") and in the forward calorimeter (HF, 3 < |η| < 5)
+([JetMET Run3 performance](https://indico.cern.ch/event/1615783/contributions/6811120/attachments/3186812/5672346/20251204_JetMET_PerformanceRun3.pdf)):
+
+| Year | HF (3 < \|η\| < 5) | HE (2.5 < \|η\| < 3) | 2.0 < \|η\| < 2.5 |
+|------|--------------------|-----------------------|-------------------|
+| 2022 | Require pT > 50 GeV | Require pT > 50 GeV + JER for gen-matched only | - |
+| 2023 | Require pT > 50 GeV | Require pT > 50 GeV + JER for gen-matched only | - |
+| 2024 | Fixed | Require pT > 50 GeV + JER for gen-matched only | For MC-truth corrected pT < 30 GeV, use the L2L3Residual correction factor evaluated at MC-truth corrected pT = 30 GeV in 2.0 < \|η\| < 2.5 |
+| 2025 | Fixed, but worsening due to radiation damage | Much improved | Should not be an issue |
+
+In addition, in extremely rare cases in Run3 the L2Relative JEC shows an asymptotic behaviour in
+a very narrow bin, giving abnormally large corrected jet pt (e.g. above 10 TeV), mostly in HF.
+If such jets are encountered, JME recommends rejecting the jets with `rawFactor > 0.9`. This
+applies only to the affected production samples: check the JME GitLab issue to know whether the
+samples of the analysis are affected (see the [JES known issues](https://cms-jme-jerc.docs.cern.ch/recommendations/jes/#known-issues)).
+
+Each recommendation is a **separate mitigation** in `jets_calibration.forward_jets_mitigation`
+(`pocket_coffea/parameters/jets_calibration.yaml`). They are **all switched off by default** and
+each one is activated by hand with its own `apply` key: switching one on never switches on the
+others. A mitigation acts only in the years for which `eta_regions` (a list of `[eta_min, eta_max)`
+intervals in |η|) are defined, so the defaults reproduce the table above:
+
+| Mitigation | Where | What |
+|------------|-------|------|
+| `pt_cut_HF` | `jet_selection` | reject jets with pt < 50 GeV in HF (2022, 2023) |
+| `pt_cut_HE` | `jet_selection` | reject jets with pt < 50 GeV in HE (2022, 2023, 2024) |
+| `jer_genmatched_only` | `JetsCalibrator`, MC | JER smearing only for gen-matched jets in HE (2022, 2023, 2024) |
+| `residual_pt_floor` | `JetsCalibrator`, data | L2L3Residual evaluated at 30 GeV for MC-truth corrected pt < 30 GeV in 2.0 < \|η\| < 2.5 (2024) |
+| `raw_factor_cut` | `jet_selection` | reject jets with `rawFactor > 0.9` (every year) |
+
+```yaml
+jets_calibration:
+  forward_jets_mitigation:
+    jet_types: [AK4PFPuppi]   # jet types the JER and residual mitigations are applied to
+    pt_cut_HF:
+      apply: False
+      pt_min: 50.
+      eta_regions:
+        2022_preEE: [[3.0, 5.0]]
+        ...                   # same for 2022_postEE, 2023_preBPix, 2023_postBPix
+    pt_cut_HE:
+      apply: False
+      pt_min: 50.
+      eta_regions:
+        2022_preEE: [[2.5, 3.0]]
+        ...                   # 2022, 2023 and 2024
+    jer_genmatched_only:
+      apply: False
+      eta_regions:
+        2022_preEE: [[2.5, 3.0]]
+        ...                   # 2022, 2023 and 2024
+    residual_pt_floor:
+      apply: False
+      level: L2L3Residual
+      pt_min: 30.
+      eta_regions:
+        "2024": [[2.0, 2.5]]
+    raw_factor_cut:
+      apply: False
+      max_raw_factor: 0.9
+```
+
+To activate a mitigation, set its `apply` key in the analysis parameters, e.g. in a parameters
+yaml file passed to `defaults.merge_parameters_from_files`:
+
+```yaml
+jets_calibration:
+  forward_jets_mitigation:
+    pt_cut_HE:
+      apply: True
+```
+
+or directly in the configuration:
+
+```python
+parameters.jets_calibration.forward_jets_mitigation.pt_cut_HE.apply = True
+```
+
+Details of each mitigation:
+
+- **`pt_cut_HF`, `pt_cut_HE`**: selections applied by `pocket_coffea.lib.jets.jet_selection` to every
+  jet collection it selects, on the `pt` of the collection, whenever they are switched on.
+  For `pt_cut_HE` see the [JER known issues](https://cms-jme-jerc.docs.cern.ch/recommendations/jer/#known-issues).
+- **`jer_genmatched_only`** (MC only, applied by the `JetsCalibrator` to the `jet_types`): in the
+  regions the JER smearing is applied only to the jets using the scaling method, i.e. with a
+  gen-jet match (ΔR < R/2 and |pT − pT,gen| < 3 σ<sub>JER</sub> pT). The jets without a match keep
+  their JES-corrected pt instead of being stochastically smeared. The same applies to the JER
+  up/down variations. See the [JER known issues](https://cms-jme-jerc.docs.cern.ch/recommendations/jer/#known-issues).
+- **`residual_pt_floor`** (data only, applied by the `JetsCalibrator` to the `jet_types`): for the
+  jets in the regions with MC-truth corrected pt (pt after the levels before `level`) below
+  `pt_min`, the `level` correction factor is evaluated at `pt_min`, and applied to the real pt.
+  It needs the [JEC applied by level](#jec-applied-by-level), which has to be configured by hand
+  for the jet type and year (`by_level: True` and
+  `level: [L1FastJet, L2Relative, L3Absolute, L2L3Residual]`): with the compound correction the
+  calibrator raises an error. The jet types sharing the AK4 PUPPI calibration (e.g.
+  `AK4CorrT1METJetPuppi`, aliased to `AK4PFPuppi`) are corrected consistently, so that the MET
+  propagation sees the same JEC.
+- **`raw_factor_cut`**: selection applied by `jet_selection` to every jet collection, in every
+  year. It uses the `rawFactor` of the collection after the
+  calibration (`1 - pt_raw/pt`, updated by the `JetsCalibrator` with the applied JEC).
+  See the [JES known issues](https://cms-jme-jerc.docs.cern.ch/recommendations/jes/#known-issues).
 
 ## Creating Custom Calibrators
 
