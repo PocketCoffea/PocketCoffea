@@ -1085,6 +1085,11 @@ def jet_correction_corrlib(
         # update the nominal pt and mass
         jets["pt"] = sf_value * jets["pt_raw"]
         jets["mass"] = sf_value * jets["mass_raw"]
+        # total JEC factor (pt / pt_raw before the JER smearing)
+        jets["jec_factor"] = sf_value
+
+    # JER smearing factor applied on top of the JEC (1 without JER)
+    jets["jer_factor"] = ak.ones_like(jets.pt)
 
     # The pt after the nominal JES is the input of both the JER (resolution, SF, smearing
     # seed) and the JES uncertainties, as in the JERC reference implementation.
@@ -1160,6 +1165,7 @@ def jet_correction_corrlib(
             # to avoid the sf: jer*jer_up or jer*jer_down, update the jer pt/mass after calculation of the jer up/down
             jets["pt"] = jets["pt_jer"]
             jets["mass"] = jets["mass_jer"]
+            jets["jer_factor"] = jersmear
 
     # jes systematics: the uncertainty is evaluated at the pt after the nominal JES
     # (eval_dict["JetPt"], not the smeared pt) and applied on the smeared pt, so the JES

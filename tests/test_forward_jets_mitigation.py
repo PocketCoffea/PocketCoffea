@@ -288,3 +288,23 @@ def test_jer_genmatched_only(json_path, variations):
     np.testing.assert_allclose(
         _correct(json_path, True, year="2025", variations=variations, mitigation=cfg),
         _correct(json_path, True, year="2025", variations=variations), rtol=1e-6)
+
+
+def test_jec_and_jer_factors_stored(json_path):
+    """The JEC and JER smearing factors are stored on the corrected jets."""
+    events = _events()
+    for isMC in (False, True):
+        jets = jet_correction_corrlib(
+            calib_params={"json_path": json_path, "jec_mc": "MC", "jec_data": "DATA", "jer": "JR",
+                          "level": "L1L2L3Res", "by_level": False},
+            variations=["nominal"], events=events, jet_type=JET_TYPE, jet_coll_name="Jet",
+            chunk_metadata={"year": "2024", "isMC": isMC, "era": "C", "nano_version": 15},
+            nano_version=15, jec_syst=False, apply_jer=isMC,
+        )
+        np.testing.assert_allclose(
+            np.asarray(ak.flatten(jets.pt)),
+            np.asarray(ak.flatten(jets.pt_raw * jets.jec_factor * jets.jer_factor)), rtol=1e-6)
+        if not isMC:
+            assert ak.all(jets.jer_factor == 1)
+        else:
+            assert not ak.all(jets.jer_factor == 1)

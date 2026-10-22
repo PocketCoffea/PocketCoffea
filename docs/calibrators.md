@@ -79,6 +79,7 @@ PocketCoffea provides several ready-to-use calibrators in `pocket_coffea.lib.cal
 - **Purpose**: Applies Jet Energy Corrections (JEC) and Jet Energy Resolution (JER) smearing. If pT regression is requested for a jet type (`apply_pt_regr_MC`/`apply_pt_regr_Data`), it is applied first, before the JEC.
 - **Collections**: Configurable. Every jet collection listed in `jets_calibration.collection[year]` (e.g. `Jet`, `FatJet`) that has `apply_jec_MC`/`apply_jec_Data` enabled for its jet type is calibrated.
 - **Variations**: One `"{jet_type}_{source}Up"` / `"{jet_type}_{source}Down"` pair per entry configured in `jets_calibration.variations[jet_type][year]` (e.g. `"AK4PFchs_jecUp"`, `"AK4PFchs_jerDown"`).
+- **Stored factors**: the corrected jets carry `jec_factor` (total JEC factor, pt / pt_raw before the smearing) and `jer_factor` (JER smearing factor, 1 for data or without JER), so that `pt = pt_raw * jec_factor * jer_factor`.
 - **Options**: the JEC can be applied [by level](#jec-applied-by-level) instead of with the compound correction, and each of the [Run3 forward jets mitigations](#run3-forward-jets-mitigations) can be switched on separately.
 
 ### JetsSoftdropMassCalibrator
