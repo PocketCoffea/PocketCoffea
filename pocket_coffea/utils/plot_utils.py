@@ -1,5 +1,6 @@
 import os
 from copy import deepcopy
+import multiprocessing
 from multiprocessing import Pool
 from collections import defaultdict
 from functools import partial
@@ -144,16 +145,53 @@ class Style:
                 "era" : "eras"
             }
 
+# ---------------------------------------------------------------------------
+# Multiprocessing workers.
+#
+# The plot dispatch is parallelised with a multiprocessing Pool. To avoid
+# pickling the whole PlotManager (and all its histograms) once per task, the
+# worker functions live at module scope and read the manager from a module
+# global that is set *before* the Pool forks. On Linux the default start method
+# is `fork`, so the child processes inherit the manager (and, for the monolithic
+# format, its in-memory accumulator) via copy-on-write; the only thing pickled
+# per task is the shape name (a string).
+# ---------------------------------------------------------------------------
+_PLOT_MANAGER = None
+
+
+def _fork_available():
+    '''True if the `fork` start method is available (Linux, macOS).
+
+    The copy-on-write worker mechanism requires fork; otherwise we fall back to
+    a serial loop rather than pay a full pickle of the manager per task.'''
+    try:
+        return "fork" in multiprocessing.get_all_start_methods()
+    except Exception:
+        return False
+
+
+def _worker_plot_datamc(name, *, ratio, syst, spliteras, format):
+    _PLOT_MANAGER.plot_datamc(name, ratio=ratio, syst=syst, spliteras=spliteras, format=format)
+
+
+def _worker_plot_comparison(name, *, ratio, format):
+    _PLOT_MANAGER.plot_comparison(name, ratio=ratio, format=format)
+
+
+def _worker_plot_systematic_shifts(name, *, ratio, format):
+    _PLOT_MANAGER.plot_systematic_shifts(name, ratio=ratio, format=format)
+
+
 class PlotManager:
     '''This class manages multiple Shape objects and their plotting.'''
 
     def __init__(
         self,
         variables,
-        hist_objs,
-        datasets_metadata,
-        plot_dir,
-        style_cfg,
+        hist_objs=None,
+        datasets_metadata=None,
+        plot_dir=None,
+        style_cfg=None,
         has_mcstat=True,
         toplabel=None,
         only_cat=None,
@@ -165,10 +203,10 @@ class PlotManager:
         verbose=1,
         save=True,
         index_file=None,
-        cache=True
+        cache=True,
+        provider=None,
     ) -> None:
 
-        self.shape_objects = {}
         self.plot_dir = plot_dir
         self.only_cat = only_cat
         self.only_year = only_year
@@ -178,61 +216,40 @@ class PlotManager:
         self.density = density
         self.save = save
         self.index_file = index_file
-        self.nhists = len(variables)
         self.toplabel = toplabel
-        self.verbose=verbose
+        self.verbose = verbose
         self.cache = cache
+        self.has_mcstat = has_mcstat
+        self.style_cfg = style_cfg
 
-        # Reading the datasets_metadata to
-        # build the correct shapes for each datataking year
-        # taking histo objects from hist_objs
-        self.hists_to_plot = {}
-        for variable in variables:
-            vs = {}
-            for year, samples in datasets_metadata["by_datataking_period"].items():
+        # A "provider" yields histograms one variable at a time (see
+        # pocket_coffea.utils.output_split). For backward compatibility we also
+        # accept the classic `hist_objs` dict {var:{sample:{dataset:Hist}}} plus
+        # `datasets_metadata`, wrapping them in an in-memory MonolithicProvider.
+        if provider is None:
+            from pocket_coffea.utils.output_split import MonolithicProvider
+            provider = MonolithicProvider(
+                {"variables": hist_objs, "datasets_metadata": datasets_metadata}
+            )
+        self.provider = provider
+        self.datasets_metadata = provider.datasets_metadata
+
+        self._variables = list(variables)
+        self.nhists = len(self._variables)
+
+        # Lightweight specs only: {f"{variable}_{year}": (variable, year)}.
+        # Shape objects (and their derived/copied histograms + caches) are built
+        # lazily, one at a time, right before plotting and dropped right after,
+        # so peak memory stays ~O(workers) shapes instead of O(all shapes).
+        self._shape_specs = {}
+        years = list(self.datasets_metadata["by_datataking_period"].keys())
+        for variable in self._variables:
+            for year in years:
                 if self.only_year and year not in self.only_year:
                     continue
-                hs = {}
-                for sample, datasets in samples.items():
-                    hs[sample] = {}
-                    for dataset in datasets:
-                        try:
-                            hs[sample][dataset] = hist_objs[variable][sample][dataset]
-                        except:
-                            print(f"Warning: missing dataset {dataset} for variable {variable}, year {year}")
-                    if len(hs[sample].keys()) == 0:
-                        del hs[sample]
-                vs[year] = hs
-            self.hists_to_plot[variable] = vs
-        
-        for variable, histoplot in self.hists_to_plot.items():
-            for year, h_dict in histoplot.items():
-                if self.only_year and year not in self.only_year:
-                    continue
-                name = '_'.join([variable, year])
-                # If toplabel is overwritten we use that, if not we take the lumi from the year
-                if self.toplabel:
-                    toplabel_to_use = self.toplabel
-                else:
-                    toplabel_to_use = f"$\mathcal{{L}}$ = {style_cfg.plot_upper_label.by_year[year]:.2f}/fb"
+                self._shape_specs['_'.join([variable, year])] = (variable, year)
 
-                self.shape_objects[name] = Shape(
-                    h_dict,
-                    datasets_metadata["by_dataset"],
-                    name,
-                    plot_dir,
-                    style_cfg=style_cfg,
-                    only_cat=self.only_cat,
-                    log_x=self.log_x,
-                    log_y=self.log_y,
-                    density=self.density,
-                    has_mcstat=has_mcstat,
-                    toplabel=toplabel_to_use,
-                    year=year,
-                    verbose=self.verbose,
-                    cache=self.cache
-                )
-        del self.hists_to_plot
+        self._shape_objects_cache = None  # populated lazily by the compat property
 
         if self.save:
             self.make_dirs()
@@ -240,34 +257,89 @@ class PlotManager:
                 self.copy_index_file()
             matplotlib.use('agg')
 
+    def _build_shape(self, name):
+        '''Build a single Shape on demand from the provider, for the given
+        f"{variable}_{year}" name. The Shape is meant to be plotted and then
+        dropped so its derived histograms / caches are reclaimed.'''
+        variable, year = self._shape_specs[name]
+        var_hists = self.provider.get_variable(variable)  # {sample:{dataset:Hist}}
+        samples = self.datasets_metadata["by_datataking_period"][year]
+        # Fresh {sample: {dataset: Hist}} dict (references to the Hist objects).
+        # The fresh outer/inner dicts protect the provider's data from
+        # Shape.group_samples' in-place key reassignment.
+        h_dict = {}
+        for sample, datasets in samples.items():
+            hs = {}
+            for dataset in datasets:
+                try:
+                    hs[dataset] = var_hists[sample][dataset]
+                except (KeyError, TypeError):
+                    if self.verbose > 0:
+                        print(f"Warning: missing dataset {dataset} for variable {variable}, year {year}")
+            if hs:
+                h_dict[sample] = hs
+
+        # If toplabel is overwritten we use that, if not we take the lumi from the year
+        if self.toplabel:
+            toplabel_to_use = self.toplabel
+        else:
+            toplabel_to_use = f"$\\mathcal{{L}}$ = {self.style_cfg.plot_upper_label.by_year[year]:.2f}/fb"
+
+        return Shape(
+            h_dict,
+            self.datasets_metadata["by_dataset"],
+            name,
+            self.plot_dir,
+            style_cfg=self.style_cfg,
+            only_cat=self.only_cat,
+            log_x=self.log_x,
+            log_y=self.log_y,
+            density=self.density,
+            has_mcstat=self.has_mcstat,
+            toplabel=toplabel_to_use,
+            year=year,
+            verbose=self.verbose,
+            cache=self.cache,
+        )
+
+    @property
+    def shape_objects(self):
+        '''Backward-compatible access to all Shape objects.
+
+        WARNING: this eagerly builds and retains every Shape (the old behaviour),
+        defeating the low-memory streaming. It exists only for external callers
+        such as trigger_efficiency.py; the main plotting paths use the lazy
+        _build_shape() instead.'''
+        if self._shape_objects_cache is None:
+            self._shape_objects_cache = {
+                name: self._build_shape(name) for name in self._shape_specs
+            }
+        return self._shape_objects_cache
+
     def make_dirs(self):
-        '''Create directories recursively before saving plots with multiprocessing
-        to avoid conflicts between different processes.'''
-        for name, shape in self.shape_objects.items():
-            for cat in shape.categories:
-                if self.only_cat and cat not in self.only_cat:
-                    continue
-                plot_dir = os.path.join(self.plot_dir, cat)
-                if not os.path.exists(plot_dir):
-                    os.makedirs(plot_dir)
+        '''Create the per-category output directories up front (before the Pool
+        forks) so worker processes never race to create them.'''
+        for cat in self.provider.categories:
+            if self.only_cat and cat not in self.only_cat:
+                continue
+            os.makedirs(os.path.join(self.plot_dir, cat), exist_ok=True)
 
     def copy_index_file(self):
         '''Copy the specified index file to the plot directory and each of the subdirectories.'''
         if not os.path.exists(self.index_file):
             raise Exception(f"Index file {self.index_file} not found.")
         os.system(f"cp {self.index_file} {self.plot_dir}")
-        for name, shape in self.shape_objects.items():
-            for cat in shape.categories:
-                if self.only_cat and cat not in self.only_cat:
-                    continue
-                plot_dir = os.path.join(self.plot_dir, cat)
-                os.system(f"cp {self.index_file} {plot_dir}")
+        for cat in self.provider.categories:
+            if self.only_cat and cat not in self.only_cat:
+                continue
+            plot_dir = os.path.join(self.plot_dir, cat)
+            os.system(f"cp {self.index_file} {plot_dir}")
 
     def plot_datamc(self, name, ratio=True, syst=True, spliteras=False, format="png"):
         '''Plots one histogram, for all years and categories.'''
         if self.verbose>0:
             print("Plotting: ", name)
-        shape = self.shape_objects[name]
+        shape = self._build_shape(name)
         if shape.dense_dim > 1:
             if self.verbose>0:
                 print(f"WARNING: cannot plot data/MC for histogram {shape.name} with dimension {shape.dense_dim}.")
@@ -282,21 +354,15 @@ class PlotManager:
 
     def plot_datamc_all(self, ratio=True, syst=True,  spliteras=False, format="png"):
         '''Plots all the histograms contained in the dictionary, for all years and categories.'''
-        shape_names = list(self.shape_objects.keys())
-        if self.workers > 1:
-            with Pool(processes=self.workers) as pool:
-                # Parallel calls of plot_datamc() on different shape objects
-                pool.map(partial(self.plot_datamc, ratio=ratio, syst=syst, spliteras=spliteras, format=format), shape_names)
-                pool.close()
-        else:
-            for shape in shape_names:
-                self.plot_datamc(shape, ratio=ratio, syst=syst, spliteras=spliteras, format=format)
+        self._run_parallel(_worker_plot_datamc,
+                           dict(ratio=ratio, syst=syst, spliteras=spliteras, format=format),
+                           lambda name: self.plot_datamc(name, ratio=ratio, syst=syst, spliteras=spliteras, format=format))
 
     def plot_comparison(self, name, ratio=True, format="png"):
         '''Plots one histogram, for all years and categories.'''
         if self.verbose>0:
             print("Plotting: ", name)
-        shape = self.shape_objects[name]
+        shape = self._build_shape(name)
         if shape.dense_dim > 1:
             if self.verbose>0:
                 print(f"WARNING: cannot plot histogram {shape.name} with dimension {shape.dense_dim}. It will be skipped")
@@ -304,20 +370,15 @@ class PlotManager:
 
         shape.plot_comparison_all(ratio,  save=self.save, format=format)
 
-    def plot_comparison_all(self, ratio=True, format=format):
+    def plot_comparison_all(self, ratio=True, format="png"):
         '''Plots all the histograms contained in the dictionary, for all years and categories.'''
-        shape_names = list(self.shape_objects.keys())
-        if self.workers > 1:
-            with Pool(processes=self.workers) as pool:
-                pool.map(partial(self.plot_comparison, ratio=ratio, format=format), shape_names)
-                pool.close()
-        else:
-            for shape in shape_names:
-                self.plot_comparison(shape, ratio=ratio, format=format)
+        self._run_parallel(_worker_plot_comparison,
+                           dict(ratio=ratio, format=format),
+                           lambda name: self.plot_comparison(name, ratio=ratio, format=format))
 
-
-    def plot_systematic_shifts(self, shape, format="png", ratio=True):
+    def plot_systematic_shifts(self, name, format="png", ratio=True):
         """Plots the systematic shifts for all the variations."""
+        shape = self._build_shape(name)
         if self.verbose > 0:
             print("Plotting systematic shifts for:", shape.name)
         if shape.dense_dim > 1:
@@ -335,17 +396,31 @@ class PlotManager:
 
     def plot_systematic_shifts_all(self, format="png", ratio=True):
         """Plots the systematic shifts for all the shape objects."""
-        if self.workers > 1:
-            with Pool(processes=self.workers) as pool:
-                # Parallel calls of plot_systematic_shifts() on different shape objects
-                pool.map(
-                    partial(self.plot_systematic_shifts, format=format, ratio=ratio),
-                    self.shape_objects.values(),
-                )
-                pool.close()
+        self._run_parallel(_worker_plot_systematic_shifts,
+                           dict(ratio=ratio, format=format),
+                           lambda name: self.plot_systematic_shifts(name, format=format, ratio=ratio))
+
+    def _run_parallel(self, worker, worker_kwargs, serial_fn):
+        '''Dispatch a per-shape plotting `worker` across all shape specs.
+
+        Sets the module-global _PLOT_MANAGER before forking a Pool so workers
+        read it via copy-on-write (only the shape name is pickled per task).
+        Falls back to a serial loop when workers<=1 or fork is unavailable.'''
+        global _PLOT_MANAGER
+        shape_names = list(self._shape_specs.keys())
+        if self.workers > 1 and _fork_available():
+            _PLOT_MANAGER = self
+            try:
+                ctx = multiprocessing.get_context("fork")
+                with ctx.Pool(processes=self.workers) as pool:
+                    pool.map(partial(worker, **worker_kwargs), shape_names)
+                    pool.close()
+                    pool.join()
+            finally:
+                _PLOT_MANAGER = None
         else:
-            for shape in self.shape_objects.values():
-                self.plot_systematic_shifts(shape, format=format, ratio=ratio)
+            for name in shape_names:
+                serial_fn(name)
 
 class Shape:
     '''This class handles the plotting of 1D data/MC histograms.
@@ -876,6 +951,12 @@ class Shape:
             if self.cache:
                 self._stacksCache[cat] = stacks
             if not self.is_data_only:
+                # Honour --no-cache for the systematics cache too: keep only the
+                # current category so syst_dict does not grow to O(#categories).
+                # (Each category is fully consumed before the next, so dropping
+                # prior categories is safe.)
+                if not self.cache:
+                    self.syst_manager.syst_dict.clear()
                 self.syst_manager.update(cat, stacks)
         else:
             stacks = self._stacksCache[cat]

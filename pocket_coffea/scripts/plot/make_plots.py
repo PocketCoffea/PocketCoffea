@@ -7,8 +7,9 @@ from omegaconf import OmegaConf
 from coffea.util import load
 
 from pocket_coffea.utils.plot_utils import PlotManager
+from pocket_coffea.utils.output_split import make_provider
 from pocket_coffea.parameters import defaults
-from coffea.processor import accumulate 
+from coffea.processor import accumulate
 import click
 import gc
 from rich import print
@@ -112,15 +113,11 @@ def make_plots_core(input_dir, cfg, overwrite_parameters, outputdir, inputfiles,
         all_files.extend(valid_files)
     if not all_files: sys.exit("No valid input files found.")
 
-    def load_single_file(file):
-        """Helper function to load a single file."""
-        print(f"[pink]Loading: {file}[/]")
-        return load(file)
-    # Use ThreadPoolExecutor to load files concurrently
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        files = list(executor.map(load_single_file, all_files))
-
-    if files: accumulator = accumulate(files)
+    # Build a provider over the input files. For split-format inputs this reads
+    # only the metadata/index (histograms are loaded one variable at a time when
+    # plotting). For monolithic inputs it loads and accumulates incrementally,
+    # dropping each file after adding it (no all-files + merged-copy buffer).
+    provider = make_provider(all_files)
 
     if not overwrite:
         if os.path.exists(outputdir):
@@ -129,19 +126,21 @@ def make_plots_core(input_dir, cfg, overwrite_parameters, outputdir, inputfiles,
     if not os.path.exists(outputdir):
         os.makedirs(outputdir)
 
-    variables = accumulator['variables'].keys()
+    variables = list(provider.variables)
 
     if exclude_hist:
         variables_to_exclude = [s for s in variables if any([re.search(p, s) for p in exclude_hist])]
         variables = [s for s in variables if s not in variables_to_exclude]
     if only_hist:
         variables = [s for s in variables if any([re.search(p, s) for p in only_hist])]
-    hist_objs = { v : accumulator['variables'][v] for v in variables }
+
+    # Free the histograms of unrequested variables early (monolithic only;
+    # a no-op for the lazy split provider).
+    provider.restrict_variables(variables)
 
     plotter = PlotManager(
         variables=variables,
-        hist_objs=hist_objs,
-        datasets_metadata=accumulator['datasets_metadata'],
+        provider=provider,
         plot_dir=outputdir,
         style_cfg=style_cfg,
         only_cat=only_cat,

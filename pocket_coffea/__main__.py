@@ -2,7 +2,7 @@ import click
 from rich import print
 
 import pocket_coffea
-from pocket_coffea.scripts import merge_columns, merge_outputs, split_output
+from pocket_coffea.scripts import convert_output, merge_columns, merge_outputs, split_output
 from pocket_coffea.scripts.check_jobs import check_jobs
 from pocket_coffea.scripts.dataset.build_datasets import build_datasets
 from pocket_coffea.scripts.dataset.dataset_query import dataset_discovery_cli
@@ -51,6 +51,7 @@ cli.add_command(plot_cutflow, name="plot-cutflow")
 cli.add_command(hadd_skimmed_files)
 cli.add_command(merge_outputs.main, name="merge-outputs")
 cli.add_command(split_output.main, name="split-output")
+cli.add_command(convert_output.main, name="convert-output")
 cli.add_command(merge_columns.main, name="merge-columns")
 cli.add_command(print_parameters)
 cli.add_command(check_jobs)
