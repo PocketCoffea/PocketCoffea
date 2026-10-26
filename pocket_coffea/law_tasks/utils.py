@@ -396,6 +396,7 @@ def process_datasets(
                 chunksize=adapted_chunksize,
                 maxchunks=run_options["limit-chunks"],
                 skipbadfiles=run_options["skip-bad-files"],
+                xrootdtimeout=run_options["xrootd-timeout"],
                 schema=schema,
                 format=file_format,
             )
@@ -423,6 +424,7 @@ def process_datasets(
             chunksize=run_options["chunksize"],
             maxchunks=run_options["limit-chunks"],
             skipbadfiles=run_options["skip-bad-files"],
+            xrootdtimeout=run_options["xrootd-timeout"],
             schema=schema,
             format=file_format,
         )

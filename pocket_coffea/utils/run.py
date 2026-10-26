@@ -4,7 +4,8 @@ from coffea.processor import Runner
 
 from pocket_coffea.utils.logging import try_and_log_error
 
-def get_runner(executor, chunksize, maxchunks, skipbadfiles, schema, format, error_log_file, exit_on_error=True):
+def get_runner(executor, chunksize, maxchunks, skipbadfiles, schema, format, error_log_file, exit_on_error=True,
+               xrootdtimeout=60):
     """
     Create and return a Coffea Runner wrapped with error logging,
     given the specified configuration parameters.
@@ -26,6 +27,8 @@ def get_runner(executor, chunksize, maxchunks, skipbadfiles, schema, format, err
         Path to the error log file for logging exceptions.
     exit_on_error : bool, optional
         If True, exits the program on error after logging. Default is False.
+    xrootdtimeout : int, optional
+        Timeout in seconds for each XRootD operation (file open and read). Default is 60.
     Returns
     -------
     Runner
@@ -41,6 +44,7 @@ def get_runner(executor, chunksize, maxchunks, skipbadfiles, schema, format, err
             chunksize=chunksize,
             maxchunks=maxchunks,
             skipbadfiles=skipbadfiles,
+            xrootdtimeout=xrootdtimeout,
             schema=schema,
             format=format,
         )

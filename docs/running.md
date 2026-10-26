@@ -155,6 +155,7 @@ general:
   retries: 20
   tree-reduction: 20
   skip-bad-files: false
+  xrootd-timeout: 60
   voms-proxy: null
   ignore-grid-certificate: false
   group-samples: null
@@ -194,6 +195,11 @@ then use `--custom-run-options my_run_options.yaml` to `run`:
 ```bash
 $> pocket-coffea run  --cfg analysis_config.py -o output --executor dask@lxplus  --custom-run-options my_run_options.yaml
 ```
+
+`xrootd-timeout` (seconds, default 60) is the timeout of each XRootD operation that the Coffea
+`Runner` does, including the file open in the preprocessing step. Without `skip-bad-files`, one
+file that does not open in this time fails the whole job. Increase it (e.g. `xrootd-timeout: 300`)
+if many jobs fail with `XRootD error: [ERROR] Operation expired` when the storage is under load.
 
 The user can also modify on the fly some run options using arguments to the `pocket-coffea
 run` script. For example, limiting the number of files or number of chunks to analyse (for
@@ -598,6 +604,7 @@ the ones the inner `Runner` actually consumes:
 
 - `skip-bad-files`
 - `tree-reduction`
+- `xrootd-timeout`
 
 Outer-only keys (`cores-per-worker`, `mem-per-worker`, `worker-image`, `queue`,
 `scaleout`, `max-events-per-job`, ...) are intentionally **not** propagated:

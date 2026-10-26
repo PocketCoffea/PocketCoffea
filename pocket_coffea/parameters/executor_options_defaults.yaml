@@ -6,6 +6,7 @@ general:
   retries: 10
   tree-reduction: 10
   skip-bad-files: false
+  xrootd-timeout: 60
   voms-proxy: null
   ignore-grid-certificate: false
   group-samples: null
