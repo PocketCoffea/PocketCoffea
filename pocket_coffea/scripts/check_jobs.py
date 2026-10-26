@@ -435,10 +435,12 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
 
                 # check in the logs for SYSTEM_PERIODIC_REMOVE
                 # they are not failed but remain running/idle
-                log_file = glob.glob(f"{jobs_folder}/logs/job_*.log")[0]
-                with open(log_file) as f:
-                    c = f.readlines()
-                
+                _log_files = glob.glob(f"{jobs_folder}/logs/job_*.log")
+                c = []
+                if _log_files:  # no logs yet on the first iterations -> skip
+                    with open(_log_files[0]) as f:
+                        c = f.readlines()
+
                 for il, line in enumerate(c):
                     if line.startswith("009"):
                         # Match with a regex the job id from this
@@ -493,7 +495,7 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                 failedlogs = os.popen(f'grep -il {jobs_folder}/logs/job_*.log -e "Job was aborted"').read().split("\n")[:-1]
                 for failedlog in failedlogs:
                     # Skip the OG log
-                    if log_file.split("/")[-1] in failedlog:
+                    if _log_files and _log_files[0].split("/")[-1] in failedlog:
                         continue
                     failedlogcluster = failedlog.split("/")[-1].split(".")[0]
                     jobid = None
