@@ -47,15 +47,15 @@ default_jets_calibration:
     AK4PFPuppi:
       2016_PreVFP_v15:
         json_path: ${cvmfs:Run2-2016preVFP-UL-NanoAODv15,JME,jet_jerc.json.gz}
-        jec_mc: Summer20UL18NanoV15_V1_MC
-        jec_data: Summer20UL18NanoV15_V1_DATA
-        jer: Summer19UL18_JRV3_MC
+        jec_mc: Summer20UL16APVNanoV15_V1_MC
+        jec_data: Summer20UL16APVNanoV15_V1_DATA
+        jer: Summer20UL16APV_JRV5_MC
         level: L1L2L3Res
       2016_PostVFP_v15:
         json_path: ${cvmfs:Run2-2016postVFP-UL-NanoAODv15,JME,jet_jerc.json.gz}
-        jec_mc: Summer20UL18NanoV15_V1_MC
-        jec_data: Summer20UL18NanoV15_V1_DATA
-        jer: Summer19UL18_JRV3_MC
+        jec_mc: Summer20UL16NanoV15_V1_MC
+        jec_data: Summer20UL16NanoV15_V1_DATA
+        jer: Summer20UL16_JRV5_MC
         level: L1L2L3Res
       2017_v15:
         json_path: ${cvmfs:Run2-2017-UL-NanoAODv15,JME,jet_jerc.json.gz}

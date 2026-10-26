@@ -198,6 +198,8 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     # if site is known we can load the corresponding module
     elif site == "lxplus":
         from pocket_coffea.executors import executors_lxplus as executors_lib
+    elif site == "lpc":
+        from pocket_coffea.executors import executors_lpc as executors_lib
     elif site == "swan":
         from pocket_coffea.executors import executors_cern_swan as executors_lib
     elif site == "T3_CH_PSI":
@@ -220,6 +222,8 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
         from pocket_coffea.executors import executors_casa as executors_lib
     elif site == "infn-af":
         from pocket_coffea.executors import executors_infn_af as executors_lib
+    elif site == "lpc":
+        from pocket_coffea.executors import executors_lpc as executors_lib
     else:
         from pocket_coffea.executors import executors_base as executors_lib
 
