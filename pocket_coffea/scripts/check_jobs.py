@@ -253,6 +253,9 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
             all_jobs_listed = [j for jobs in group_to_jobs.values() for j in jobs]
             multi_sample_overlap = len(all_jobs_listed) != len(set(all_jobs_listed))
 
+    # Also needed without --resubmit: aborted resubmission logs are moved here,
+    # and without the folder each `mv` would overwrite a file of that name.
+    os.makedirs(f"{jobs_folder}/logs/processedlogs", exist_ok=True)
     if resubmit:
         sitemap = get_xrootd_sites_map()
         try:
@@ -266,7 +269,6 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                 xrootdfaillist = [l.strip() for l in f.readlines()]
         else:
             xrootdfaillist = []
-        os.makedirs(f"{jobs_folder}/logs/processedlogs", exist_ok=True)
         blacklist_sites = update_blacklist(xrootdfaillist,blacklist_threshold)
         if len(blacklist_sites) > 0:
             print("Blacklisted sites:",blacklist_sites)
@@ -435,7 +437,11 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
 
                 # check in the logs for SYSTEM_PERIODIC_REMOVE
                 # they are not failed but remain running/idle
-                _log_files = glob.glob(f"{jobs_folder}/logs/job_*.log")
+                # The jobs_all.sub submission writes one log for the whole cluster,
+                # job_<ClusterId>.log; resubmissions write job_<ClusterId>.<N>.log.
+                # Keep only the former, whose ProcIds map to the job numbers.
+                _all_logs = glob.glob(f"{jobs_folder}/logs/job_*.log")
+                _log_files = [f for f in _all_logs if os.path.basename(f).count(".") == 1]
                 c = []
                 if _log_files:  # no logs yet on the first iterations -> skip
                     with open(_log_files[0]) as f:
@@ -492,10 +498,12 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                 
                 # Now check jobs which were resubmitted by this script but then failed again
                 # Look for "job was aborted"
-                failedlogs = os.popen(f'grep -il {jobs_folder}/logs/job_*.log -e "Job was aborted"').read().split("\n")[:-1]
+                failedlogs = []
+                if _all_logs:  # an unmatched shell glob makes grep print "No such file or directory"
+                    failedlogs = os.popen(f'grep -il {jobs_folder}/logs/job_*.log -e "Job was aborted"').read().split("\n")[:-1]
                 for failedlog in failedlogs:
                     # Skip the OG log
-                    if _log_files and _log_files[0].split("/")[-1] in failedlog:
+                    if failedlog in _log_files:
                         continue
                     failedlogcluster = failedlog.split("/")[-1].split(".")[0]
                     jobid = None
