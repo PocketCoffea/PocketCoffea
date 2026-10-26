@@ -234,6 +234,20 @@ def test_merge_no_btag_cut_uses_regression_where_valid():
     assert _src(out) == [[1, 0, 1], [0]]  # jet 1 / last-event jet fall back to std
 
 
+def test_merge_none_pt_falls_back():
+    # a None regressed pt (regression masked away) counts as invalid: those
+    # jets take the next collection of the chain, the others keep the regression
+    # (ak.mask keeps the True entries: only the first jet is masked)
+    masked = ak.with_field(NU, ak.mask(NU.pt, [[False, True, True], [True]]), "pt")
+    out = merge_regressed_jets([masked, NONU, STD])
+    assert _src(out) == [[1, 0, 1], [2]]
+    assert ak.sum(ak.is_none(out.pt, axis=1)) == 0
+    assert "?" not in str(ak.type(out.pt))
+    # high b-tag jets: masked +neutrino regression -> standard jets
+    out = merge_regressed_jets([masked, STD], [STD], FLAT_PARAMS, "2018")
+    assert _src(out) == [[0, 0, 0], [0]]
+
+
 def test_merge_second_approach_high_btag_forced():
     # high b-tag jets always take the regression (even if invalid pt), the rest
     # take the regression where valid, else standard. threshold = loose WP.

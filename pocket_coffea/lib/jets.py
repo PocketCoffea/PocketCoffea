@@ -562,8 +562,10 @@ def _first_valid_jets(collections):
 
     Args:
         collections: a single jet collection, or an ordered list of them. For
-            each jet the first collection with a valid pT (``pt > 0``) is kept;
-            the last collection is used as the unconditional fallback.
+            each jet the first collection with a valid pT (``pt > 0``, not NaN
+            nor None) is kept; the last collection is used as the unconditional
+            fallback. A None pT (e.g. ``ak.mask`` on the pt field) marks the
+            regression as not applied to that jet.
 
     Returns:
         The resolved jet collection.
@@ -573,8 +575,21 @@ def _first_valid_jets(collections):
     collections = list(collections)
     result = collections[-1]
     for jets in reversed(collections[:-1]):
-        result = ak.where(ak.nan_to_num(jets.pt, nan=-1) > 0, jets, result)
+        valid = ak.fill_none(ak.nan_to_num(jets.pt, nan=-1) > 0, False)
+        result = ak.where(valid, jets, result)
+    if _is_option(result.pt):
+        # a masked pt in the chain makes the merged pt option-typed even when no
+        # None is left: drop the option (NaN only if the fallback was masked)
+        result = ak.with_field(result, ak.fill_none(result.pt, np.nan), "pt")
     return result
+
+
+def _is_option(array):
+    """True if the (possibly jagged) array has an option type at its leaves."""
+    t = ak.type(array).type
+    while isinstance(t, (ak.types.ListType, ak.types.RegularType)):
+        t = t.type
+    return isinstance(t, ak.types.OptionType)
 
 
 def merge_regressed_jets(
