@@ -30,7 +30,7 @@ import cloudpickle
 from copy import deepcopy
 from pocket_coffea.utils.rucio import get_xrootd_sites_map, get_rucio_client
 from pocket_coffea.utils.site_rewrite import _query_replicas
-from pocket_coffea.utils.job_logs import find_job_input_failure, last_lines
+from pocket_coffea.utils.job_logs import find_job_input_failure, last_lines, latest_job_logs
 from pocket_coffea.utils.job_progress import (
     aggregate_by_group,
     load_job_to_group_map,
@@ -47,7 +47,20 @@ queues = [
     "testmatch",
     "nextweek"
 ]
-    
+
+# job.sh touches job_<i>.failed *before* HTCondor transfers the .out/.err back
+# (when_to_transfer_output = ON_EXIT), so when the flag shows up the logs of
+# that attempt can be missing, and the newest logs on disk can be the ones of
+# an older attempt. A failed job is handled only when .out and .err newer than
+# its flag exist, or after LOG_WAIT_TIMEOUT seconds (then it is handled as
+# "no logs", like before).
+# ponytail: LOG_CLOCK_SKEW assumes the worker and schedd clocks agree to a few seconds (NTP).
+LOG_CLOCK_SKEW = 5
+LOG_WAIT_TIMEOUT = 600
+# check-jobs writes this into the .failed flag of jobs aborted by condor
+# (max wall time, ...): they have no new .out/.err to wait for.
+ABORTED_FLAG_TEXT = "aborted by condor\n"
+
 
 
 def get_tables(tot_jobs, idle_jobs, running_jobs, done_jobs, failed_jobs, details=False):
@@ -288,6 +301,7 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
     layout["right"].update(Panel("No logs yet", title="Log"))
     
     log_text = []
+    waiting_logs_since = {}
     definitive_failed = []
     resubmitted_and_failed = []
     step = 0
@@ -314,20 +328,32 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                         log_text.append("[red]Failed jobs found. Check the details below. Use --resubmit to resubmit the failed jobs[/]")
                     resubmit_count = 0
                     for failed_job in failed_jobs:
+                        failed_job_num = failed_job.split('_')[1]
+                        flag = f"{jobs_folder}/{failed_job}.failed"
+                        try:
+                            logs_newer_than = os.path.getmtime(flag) - LOG_CLOCK_SKEW
+                            aborted = os.path.getsize(flag) > 0
+                        except OSError:  # flag removed meanwhile
+                            continue
+                        if failed_job not in definitive_failed and not aborted:
+                            fresh_logs = latest_job_logs(f"{jobs_folder}/logs", failed_job_num, logs_newer_than)
+                            waited = time.time() - waiting_logs_since.setdefault(failed_job, time.time())
+                            if len(fresh_logs) < 2 and waited < LOG_WAIT_TIMEOUT:
+                                continue  # logs of this attempt not transferred yet
+                        waiting_logs_since.pop(failed_job, None)
+
                         if failed_job in failed_jobs_stats:
                             if failed_job not in definitive_failed:
                                 failed_jobs_stats[failed_job] += 1
                         else:
                             failed_jobs_stats[failed_job] = 1
 
-                        failed_job_num = failed_job.split('_')[1]
-
                         if not failed_job in definitive_failed:
                             # Check the latest .out AND .err logs of this job for an
                             # input-file failure (XRootD error, file not found,
                             # corrupt input data) and extract the failing file.
                             failreason, xrootdfile, job_logs = find_job_input_failure(
-                                f"{jobs_folder}/logs", failed_job_num)
+                                f"{jobs_folder}/logs", failed_job_num, logs_newer_than)
                             if job_logs:
                                 if xrootdfile:
                                     thisxrootdsite = xrootdfile.split('/store/')[0]
@@ -450,7 +476,7 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                 for il, line in enumerate(c):
                     if line.startswith("009"):
                         # Match with a regex the job id from this
-                        # line format "005 (5189350.010.000) 11/15 21:29:13 Job was aborted
+                        # line format "009 (5189350.010.000) 11/15 21:29:13 Job was aborted
                         pattern = re.compile(r"\((\d+)\.(\d+)\.\d+\)")
                         match = pattern.search(line)
                         if match:
@@ -475,7 +501,8 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                                     os.system(f"rm {jobs_folder}/{thisjob}.idle")
 
                                 failed_jobs.append(thisjob)                                
-                                os.system(f"touch {jobs_folder}/{thisjob}.failed")
+                                with open(f"{jobs_folder}/{thisjob}.failed", "w") as f:
+                                    f.write(ABORTED_FLAG_TEXT)
 
                                 maxtimelist.append(job_name)
                                 with open(maxtimefile,'a') as f:
@@ -535,7 +562,8 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, blacklist_threshold
                                 os.system(f"rm {jobs_folder}/{thisjob}.idle")
 
                             failed_jobs.append(thisjob)                                
-                            os.system(f"touch {jobs_folder}/{thisjob}.failed")
+                            with open(f"{jobs_folder}/{thisjob}.failed", "w") as f:
+                                f.write(ABORTED_FLAG_TEXT)
 
                             maxtimelist.append(job_name)
                             with open(maxtimefile,'a') as f:
