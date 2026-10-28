@@ -44,13 +44,31 @@ import concurrent.futures
 @click.option('--index-file', type=str, help='Path of the index file to be copied recursively in the plots directory and its subdirectories', required=False, default=None)
 @click.option('--no-cache', is_flag=True, help='Do not cache the histograms for faster plotting', required=False, default=False)
 @click.option('--split-by-category', is_flag=True, help='If split-by-category was used during running and merging', required=False, default=False)
+@click.option('-sl', '--save-label-variations', type=str, multiple=True, default=(),
+              help="Save additional plot copies with different CMS label texts via mplhep.savelabels. "
+                   "Pass 'true' to use the default variations (empty, Preliminary, Supplementary, Work in Progress), "
+                   "or one or more label texts, e.g. --save-label-variations 'Preliminary' --save-label-variations 'Work in Progress'. "
+                   "Note: when enabled, only the label variations are saved as files.", required=False)
 
 def make_plots(*args, **kwargs):
     return make_plots_core(*args, **kwargs)
 
+def parse_save_label_variations(args):
+    """Parse the values of the --save-label-variations option.
+
+    Returns False (no variations saved),
+    True (use the default mplhep.savelabels variations),
+    or a list of label texts to pass to mplhep.savelabels.
+    """
+    if not args:
+        return False
+    if len(args) == 1 and args[0].lower() == "true":
+        return True
+    return list(args)
+
 def make_plots_core(input_dir, cfg, overwrite_parameters, outputdir, inputfiles,
                workers, only_cat, only_year, only_syst, exclude_hist, only_hist, split_systematics, partial_unc_band, no_syst,
-               overwrite, log_x, log_y, density, verbose, format, systematics_shifts, no_ratio, no_systematics_ratio, compare, index_file, no_cache, split_by_category):
+               overwrite, log_x, log_y, density, verbose, format, systematics_shifts, no_ratio, no_systematics_ratio, compare, index_file, no_cache, split_by_category, save_label_variations):
     '''Plot histograms produced by PocketCoffea processors'''
 
     if split_by_category: 
@@ -67,7 +85,7 @@ def make_plots_core(input_dir, cfg, overwrite_parameters, outputdir, inputfiles,
         for ifl, file in enumerate(all_files):
             make_plots_core(input_dir, cfg, overwrite_parameters, outputdir, [file],
                workers, only_cat, only_year, only_syst, exclude_hist, only_hist, split_systematics, partial_unc_band, no_syst,
-               overwrite or ifl > 0, log_x, log_y, density, verbose, format, systematics_shifts, no_ratio, no_systematics_ratio, compare, index_file, no_cache, False)
+               overwrite or ifl > 0, log_x, log_y, density, verbose, format, systematics_shifts, no_ratio, no_systematics_ratio, compare, index_file, no_cache, False, save_label_variations)
             gc.collect()
 
         print("[green]Done making plots for all category-split files![/]")
@@ -138,6 +156,8 @@ def make_plots_core(input_dir, cfg, overwrite_parameters, outputdir, inputfiles,
         variables = [s for s in variables if any([re.search(p, s) for p in only_hist])]
     hist_objs = { v : accumulator['variables'][v] for v in variables }
 
+    label_variations = parse_save_label_variations(save_label_variations)
+
     plotter = PlotManager(
         variables=variables,
         hist_objs=hist_objs,
@@ -153,7 +173,8 @@ def make_plots_core(input_dir, cfg, overwrite_parameters, outputdir, inputfiles,
         verbose=verbose,
         save=True,
         index_file=index_file,
-        cache=not no_cache
+        cache=not no_cache,
+        label_variations=label_variations
     )
 
     print("Started plotting.  Please wait...")

@@ -1,31 +1,106 @@
+import decimal
+import math
 import os
-from copy import deepcopy
-from multiprocessing import Pool
 from collections import defaultdict
+from copy import deepcopy
+from decimal import Decimal
 from functools import partial
-from itertools import product
+from multiprocessing import Pool
 from warnings import warn
 
-import math
-import decimal
-from decimal import Decimal
-import numpy as np
 import awkward as ak
 import hist
-
 import matplotlib
 import matplotlib.pyplot as plt
-from matplotlib.pyplot import cm
 import mplhep as hep
-from mplhep.error_estimation import poisson_interval
+import numpy as np
 from cycler import cycler
-
+from mplhep.error_estimation import poisson_interval
 from omegaconf import OmegaConf
-from pocket_coffea.parameters.defaults import merge_parameters, get_default_parameters
+
+from pocket_coffea.parameters.defaults import get_default_parameters, merge_parameters
 
 np.seterr(divide="ignore", invalid="ignore", over="ignore")
 
 plotting_style_defaults = get_default_parameters()["plotting_style"]
+
+
+def build_cms_label_kwargs(cfg, is_mc_only: bool, year: str, fontsize: float) -> dict:
+    """Build kwargs dict for mplhep.cms.label from cms_label config.
+
+    Parameters
+    ----------
+    cfg : OmegaConf
+        The cms_label config from plotting_style
+    is_mc_only : bool
+        Whether the sample is MC only (data=False in label)
+    year : str
+        year to index the lumi/com dictionary
+    fontsize : float
+        font size passed to mplhep.cms.label
+
+    Returns
+    -------
+    dict
+        Dictionary of keyword arguments for hep.cms.label()
+    """
+    com_cfg = cfg.get("com", {})
+    lumi_cfg = cfg.get("lumi", {})
+
+    label_kwargs = {
+        "data": not is_mc_only,
+        "loc": cfg.get("loc"),
+        "fontsize": fontsize,
+    }
+
+    for key in ("text", "llabel", "rlabel", "supp"):
+        val = cfg.get(key)
+        if val is not None:
+            label_kwargs[key] = val
+
+    # whether to show year in cms label
+    if cfg.get("year", False):
+        label_kwargs["year"] = year
+
+    # lumi: resolve value and pass if show is enabled
+    if lumi_cfg.get("show", False):
+        val = lumi_cfg.get("value", {})
+        label_kwargs["lumi_format"] = lumi_cfg.get("format", "{0:.1f}")
+        # check if the lumi is specified for the year
+        # if not warn, but do not stop plotting
+        try:
+            label_kwargs["lumi"] = val[year]
+        except KeyError:
+            msg = (
+                f"{year=} not in the 'value' dict of cms_label.lumi, "
+                f"available years are: {list(val.keys())}\n"
+                "Check the plotting_style.yaml configuration."
+            )
+            warn(msg, stacklevel=2)
+
+    # com: look up in com dict for this year
+    if com_cfg:
+        try:
+            label_kwargs["com"] = com_cfg[year]
+        except KeyError:
+            msg = (
+                f"{year=} not in 'com' dict of cms_label, "
+                f"available years are: {list(com_cfg.keys())}\n"
+                "Check the plotting_style.yaml configuration"
+            )
+            warn(msg, stacklevel=2)
+
+    return label_kwargs
+
+
+# cms default style
+hep.style.use(
+    hep.style.CMS
+    | {
+        "figure.constrained_layout.use": True,
+        "figure.dpi": 150,
+    }
+)
 
 # colormaps according to CMS guidelines
 # https://cms-analysis.docs.cern.ch/guidelines/plotting/colors/#categorical-data-eg-1d-stackplots
@@ -80,7 +155,6 @@ class Style:
         self.has_colors_mc = "colors_mc" in style_cfg
         self.has_signal_samples = "signal_samples" in style_cfg
         self.has_order_mc = "order_mc" in style_cfg
-        self.has_custom_title = "cms_label" in style_cfg
         self.has_blind_hists = False
         if "blind_hists" in style_cfg:
             if (
@@ -115,6 +189,36 @@ class Style:
                     raise Exception(
                         f"The key `{subkey}` with value `{val}` is not a valid categorical axis for {key}. Available axes: {self._available_categorical_axes(is_mc)}"
                     )
+
+        # Deprecation warning for print_info
+        if hasattr(self.style_cfg, "print_info") and hasattr(
+            self.style_cfg.print_info, "year"
+        ):
+            warn(
+                "The 'print_info.year' option is deprecated. "
+                "Use 'cms_label.year: true' to display year info instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
+        # Deprecation warning for plot_upper_label
+        if hasattr(self.style_cfg, "plot_upper_label"):
+            warn(
+                "The 'plot_upper_label' option is deprecated. "
+                "Use 'cms_label.lumi.value' for per-year luminosity values "
+                "and 'cms_label.lumi.show: true' to display it.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        # Deprecation warning for experiment_label_loc
+        if hasattr(self.style_cfg, "experiment_label_loc"):
+            warn(
+                "The 'experiment_label_loc' option is deprecated. "
+                "Use 'cms_label.loc' instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.style_cfg.cms_label.loc = self.style_cfg.experiment_label_loc
 
     def update(self, style_cfg):
         '''Updates the style options with a new dictionary.'''
@@ -165,7 +269,8 @@ class PlotManager:
         verbose=1,
         save=True,
         index_file=None,
-        cache=True
+        cache=True,
+        label_variations=False
     ) -> None:
 
         self.shape_objects = {}
@@ -182,6 +287,7 @@ class PlotManager:
         self.toplabel = toplabel
         self.verbose=verbose
         self.cache = cache
+        self.label_variations = label_variations
 
         # Reading the datasets_metadata to
         # build the correct shapes for each datataking year
@@ -210,11 +316,6 @@ class PlotManager:
                 if self.only_year and year not in self.only_year:
                     continue
                 name = '_'.join([variable, year])
-                # If toplabel is overwritten we use that, if not we take the lumi from the year
-                if self.toplabel:
-                    toplabel_to_use = self.toplabel
-                else:
-                    toplabel_to_use = f"$\mathcal{{L}}$ = {style_cfg.plot_upper_label.by_year[year]:.2f}/fb"
 
                 self.shape_objects[name] = Shape(
                     h_dict,
@@ -227,7 +328,6 @@ class PlotManager:
                     log_y=self.log_y,
                     density=self.density,
                     has_mcstat=has_mcstat,
-                    toplabel=toplabel_to_use,
                     year=year,
                     verbose=self.verbose,
                     cache=self.cache
@@ -278,7 +378,7 @@ class PlotManager:
             ratio = False
         else:
             ratio = ratio
-        shape.plot_datamc_all(ratio, syst, spliteras=spliteras, save=self.save, format=format)
+        shape.plot_datamc_all(ratio, syst, spliteras=spliteras, save=self.save, format=format, label_variations=self.label_variations)
 
     def plot_datamc_all(self, ratio=True, syst=True,  spliteras=False, format="png"):
         '''Plots all the histograms contained in the dictionary, for all years and categories.'''
@@ -302,7 +402,7 @@ class PlotManager:
                 print(f"WARNING: cannot plot histogram {shape.name} with dimension {shape.dense_dim}. It will be skipped")
             return
 
-        shape.plot_comparison_all(ratio,  save=self.save, format=format)
+        shape.plot_comparison_all(ratio,  save=self.save, format=format, label_variations=self.label_variations)
 
     def plot_comparison_all(self, ratio=True, format=format):
         '''Plots all the histograms contained in the dictionary, for all years and categories.'''
@@ -331,7 +431,7 @@ class PlotManager:
             raise Exception(
                 "The systematic shifts cannot be plotted if the histogram is Data only."
             )
-        shape.plot_systematic_shifts_all(ratio=ratio, format=format)
+        shape.plot_systematic_shifts_all(ratio=ratio, format=format, label_variations=self.label_variations)
 
     def plot_systematic_shifts_all(self, format="png", ratio=True):
         """Plots the systematic shifts for all the shape objects."""
@@ -997,50 +1097,31 @@ class Shape:
 
         return ratios, ratios_unc
 
+    def _build_label_kwargs(self):
+        '''Build kwargs dict for hep.cms.label from cms_label config.'''
+        return build_cms_label_kwargs(
+            cfg=self.style.cms_label,
+            is_mc_only=self.is_mc_only,
+            year=self.year,
+            fontsize=self.style.fontsize,
+        )
+
     def define_figure(self, ratio=True):
         '''Defines the figure for the Data/MC plot.
         If ratio is True, a subplot is defined to include the Data/MC ratio plot.'''
         # load CMS plotting style
         # https://cms-analysis.docs.cern.ch/guidelines/plotting/
-        hep.style.use("CMS")
         plt.rcParams.update({'font.size': self.style.fontsize})
         if ratio:
             self.fig, (self.ax, self.rax) = plt.subplots(
                 2, 1, **self.style.opts_figure["datamc_ratio"]
             )
-            self.fig.subplots_adjust(hspace=0.06)
             axes = (self.ax, self.rax)
         else:
             self.fig, self.ax = plt.subplots(1, 1, **self.style.opts_figure["datamc"])
             axes = self.ax
-        if self.style.has_custom_title:
-            hep.cms.text(
-                self.style.cms_label,
-                fontsize=self.style.fontsize,
-                loc=self.style.experiment_label_loc,
-                ax=self.ax,
-            )
-        else:
-            if self.is_mc_only:
-                hep.cms.text(
-                    "Simulation Preliminary",
-                    fontsize=self.style.fontsize,
-                    loc=self.style.experiment_label_loc,
-                    ax=self.ax,
-                )
-            else:
-                hep.cms.text(
-                    "Preliminary",
-                    fontsize=self.style.fontsize,
-                    loc=self.style.experiment_label_loc,
-                    ax=self.ax,
-                )
-        if self.toplabel:
-            hep.cms.lumitext(
-                text=self.toplabel,
-                fontsize=self.style.fontsize,
-                ax=self.ax,
-            )
+
+        hep.cms.label(ax=self.ax, **self._build_label_kwargs())
         return self.fig, axes
 
     def format_figure(self, cat, ratio=True, ref=None):
@@ -1146,7 +1227,8 @@ class Shape:
                 loc="upper right",
             )
 
-        if self.style.print_info["year"]:
+        # TODO: deprecate print_info.year
+        if self.style.print_info.get("year", False):
             self.ax.text(0.04, 0.75, f'Year: {self.year}', fontsize=0.7*self.style.fontsize, transform=self.ax.transAxes)
         if self.style.print_info["category"]:
             self.ax.text(0.04, 0.70, f'Cat: {cat}', fontsize=0.7*self.style.fontsize, transform=self.ax.transAxes)
@@ -1392,7 +1474,40 @@ class Shape:
 
         self.format_figure(cat, ratio=ratio)
 
-    def plot_datamc_all(self, ratio=True, syst=True, spliteras=False, save=True, format='png'):
+    def _save_plot(
+        self,
+        filepath,
+        ax,
+        format: str = "png",
+        label_variations: list[tuple[str, str]] | list[str] | bool = False,
+    ):
+        """Saves the current figure.
+        If label_variations is True, additional copies with the default
+        mplhep.savelabels label variations are saved.
+        If label_variations is a list of strings, additional copies with these
+        label texts are saved.
+        See the `mplhep.savelabels` documentation for details.
+        """
+        if not label_variations:
+            plt.savefig(filepath, format=format)
+            return
+        if not (isinstance(label_variations, (list, bool)) and label_variations):
+            raise ValueError(
+                f"Invalid label_variations {label_variations!r}: "
+                "expected True or a non-empty list of strings."
+            )
+        labels = None
+        if isinstance(label_variations, list):
+            labels = label_variations
+
+        hep.label.savelabels(
+            fname=filepath,
+            ax=ax,
+            labels=labels,
+            format=format,
+        )
+
+    def plot_datamc_all(self, ratio=True, syst=True, spliteras=False, save=True, format='png', label_variations=False):
         '''Plots the data and MC histograms for each year and category contained in the histograms.
         If ratio is True, also the Data/MC ratio plot is plotted.
         If syst is True, also the total systematic uncertainty is plotted.'''
@@ -1421,7 +1536,7 @@ class Shape:
                     filepath = os.path.join(plot_dir, f"{self.name}_{cat}.{format}")
                 if self.verbose>0:
                     print("Saving", filepath)
-                plt.savefig(filepath, dpi=150, format=format, bbox_inches="tight")
+                self._save_plot(filepath, ax=self.ax, format=format, label_variations=label_variations)
             else:
                 plt.show(self.fig)
             plt.close(self.fig)
@@ -1459,7 +1574,7 @@ class Shape:
             self.rax.remove()
 
 
-    def plot_comparison_all(self, ratio=True, save=True, format='png'):
+    def plot_comparison_all(self, ratio=True, save=True, format='png', label_variations=False):
         ''' '''
         if self.dense_dim > 1:
             print(f"WARNING: cannot plot histogram {self.name} with dimension {self.dense_dim}. It will be skipped.")
@@ -1485,14 +1600,14 @@ class Shape:
                     filepath = os.path.join(plot_dir, f"{self.name}_{cat}.{format}")
                 if self.verbose>0:
                     print("Saving", filepath)
-                plt.savefig(filepath, dpi=150, format=format, bbox_inches="tight")
+                self._save_plot(filepath, ax=self.ax, format=format, label_variations=label_variations)
             else:
                 plt.show(self.fig)
                 plt.close(self.fig)
 
 
     def plot_systematic_shifts(
-        self, cat, syst_name, ratio=True, format="png", save=True
+        self, cat, syst_name, ratio=True, format="png", save=True, label_variations=False
     ):
         """Plots the systematic shifts (up/down) of a given systematic uncertainty.
         The systematic shifts are plotted as a ratio plot if ratio is set to True."""
@@ -1526,12 +1641,12 @@ class Shape:
             filepath = os.path.join(plot_dir, f"{filename}.{format}")
             if self.verbose > 0:
                 print("Saving", filepath)
-            plt.savefig(filepath, dpi=150, format=format, bbox_inches="tight")
+            self._save_plot(filepath, ax=systematic.ax, format=format, label_variations=label_variations)
         else:
             plt.show(systematic.fig)
         plt.close(systematic.fig)
 
-    def plot_systematic_shifts_all(self, ratio=True, format="png", save=True):
+    def plot_systematic_shifts_all(self, ratio=True, format="png", save=True, label_variations=False):
         """Plots the systematic shifts (up/down) of all the systematic uncertainties
         for a given category."""
         for syst_name in self.syst_manager.systematics:
@@ -1541,7 +1656,8 @@ class Shape:
                 if self.verbose > 1:
                     print("Plotting systematic:", syst_name, "for category:", cat)
                 self.plot_systematic_shifts(
-                    cat, syst_name, ratio=ratio, format=format, save=save
+                    cat, syst_name, ratio=ratio, format=format, save=save,
+                    label_variations=label_variations
                 )
 
 
@@ -1780,31 +1896,20 @@ class SystUnc:
         :type ratio: bool, optional
         """
 
-        plt.style.use(hep.style.CMS)
         plt.rcParams.update({"font.size": self.style.fontsize})
         if ratio:
             self.fig, (self.ax, self.rax) = plt.subplots(
                 2, 1, **self.style.opts_figure["systematics_ratio"]
             )
-            self.fig.subplots_adjust(hspace=0.06)
             axes = (self.ax, self.rax)
         else:
             self.fig, self.ax = plt.subplots(
                 1, 1, **self.style.opts_figure["systematics"]
             )
             axes = self.ax
-        hep.cms.text(
-            "Simulation Preliminary",
-            fontsize=self.style.fontsize,
-            loc=self.style.experiment_label_loc,
-            ax=self.ax,
-        )
-        if toplabel:
-            hep.cms.lumitext(
-                text=toplabel,
-                fontsize=self.style.fontsize,
-                ax=self.ax,
-            )
+        label_kwargs = self.shape._build_label_kwargs()
+        label_kwargs['data'] = False
+        hep.cms.label(ax=self.ax, **label_kwargs)
         return self.fig, axes
 
     def format_figure(self, ratio=True):
