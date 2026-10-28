@@ -30,6 +30,7 @@ from rich.table import Table
 from pocket_coffea.executors.executors_manual_jobs import render_condor_submit
 from pocket_coffea.utils.htcondor_queue import next_queue
 from pocket_coffea.utils.job_progress import aggregate_by_group, load_job_to_group_map, render_progress_bar
+from pocket_coffea.utils.job_split import save_jobs_config, split_fileset
 from pocket_coffea.utils.network import get_proxy_path
 from pocket_coffea.utils.rucio import get_xrootd_sites_map, get_rucio_client
 from pocket_coffea.utils.site_rewrite import (
@@ -154,7 +155,8 @@ def _with_check_jobs_lock(function):
         lock = None
         try:
             folder = _resolve_jobs_folder(kwargs["jobs_folder"])
-            needs_lock = kwargs.get("resubmit") or kwargs.get("recreate") is not None
+            needs_lock = (kwargs.get("resubmit") or kwargs.get("recreate") is not None
+                          or kwargs.get("split_jobs") is not None)
             if needs_lock:
                 startup_progress.update(startup_task, description="Acquiring check-jobs lock")
                 startup_progress.refresh()
@@ -760,6 +762,119 @@ def recreate_jobs_oneshot(jobs_folder, jobs_to_recreate, *, use_redirector=False
     return result
 
 
+def split_jobs_oneshot(jobs_folder, jobs_to_split, n):
+    '''Split failed/timed-out jobs in up to `n` smaller jobs, at file level.
+
+    The new jobs get integer ids after the highest id ever used, take the
+    queue/resources of the old job, and replace it in job_state.json and in
+    jobs_config.yaml["jobs_list"] (so merge-outputs -jc is unchanged); the split
+    is recorded under jobs_config.yaml["split_jobs"]. Files come from the job
+    pkl. All new jobs go in one condor_submit; nothing is committed if it fails.
+    The pkl and marker of each old job move to `split/`; its logs stay.
+    '''
+    folder, jobs_config, submission, state, state_file = load_current_contract(jobs_folder)
+    result = {"requested": [], "split": {}, "failed": {}}
+    if jobs_to_split == "all":
+        jobs = [p.stem for marker in ("failed", "timeout") for p in folder.glob(f"job_*.{marker}")]
+    else:
+        jobs = [item.strip() if item.strip().startswith("job_") else f"job_{item.strip()}"
+                for item in jobs_to_split.split(",") if item.strip()]
+    jobs = sorted(dict.fromkeys(jobs), key=lambda job: int(job.split("_", 1)[1]))
+    result["requested"] = jobs
+
+    split_jobs = jobs_config.setdefault("split_jobs", {})
+    # Include the split jobs, else splitting the newest job twice would reuse its id.
+    next_id = 1 + max(int(job.split("_", 1)[1])
+                      for job in [f"job_{num}" for num in state] + list(jobs_config["jobs_list"])
+                      + list(split_jobs))
+    new_states, new_pkls, plan = {}, [], {}
+    state_temp, submitted = None, False
+    try:
+        for job in jobs:
+            number = job.split("_", 1)[1]
+            marker = next((m for m in ("failed", "timeout") if (folder / f"{job}.{m}").exists()), None)
+            if job not in jobs_config["jobs_list"] or number not in state:
+                result["failed"][job] = "job is not in jobs_config.yaml / job_state.json"
+                continue
+            if marker is None:
+                # An active job could still finish and write its output and .done marker.
+                result["failed"][job] = "only .failed or .timeout jobs can be split"
+                continue
+            config_path = folder / f"config_{job}.pkl"
+            try:
+                chunks = split_fileset(cloudpickle.load(config_path.open("rb")).filesets, n)
+            except ValueError as exc:  # 1 file: it stays failed, --resubmit still handles it
+                result["failed"][job] = str(exc)
+                continue
+            plan[job] = (marker, [])
+            for chunk in chunks:
+                new_num = str(next_id)
+                next_id += 1
+                config = cloudpickle.load(config_path.open("rb"))
+                config.set_filesets_manually(chunk)
+                new_pkl = folder / f"config_job_{new_num}.pkl"
+                with new_pkl.open("wb") as handle:
+                    cloudpickle.dump(config, handle)
+                new_pkls.append(new_pkl)
+                new_states[new_num] = {**deepcopy(state[number]), "resubmissions": 0}
+                plan[job][1].append((new_num, chunk))
+        if not plan:
+            return result
+
+        updated_state = {num: values for num, values in state.items()
+                         if f"job_{num}" not in plan}
+        updated_state.update(new_states)
+        state_temp = _write_state_temp(state_file, updated_state)
+        sub = folder / f".split_{os.getpid()}.sub"
+        sub.write_text(render_states(folder, submission, new_states))
+        try:
+            prepare_proxy_for_jobs(folder)
+            ok, output = condor_submit_job(folder, sub.name)
+        finally:
+            sub.unlink(missing_ok=True)
+        if not ok:
+            for job in plan:
+                result["failed"][job] = output or "condor_submit failed"
+            return result
+        submitted = True
+    finally:
+        if not submitted:
+            for path in new_pkls + [state_temp]:
+                if path:
+                    path.unlink(missing_ok=True)
+
+    try:
+        os.replace(state_temp, state_file)
+        state.clear()
+        state.update(updated_state)
+        (folder / "split").mkdir(exist_ok=True)
+        for job, (marker, new_jobs) in plan.items():
+            for num, chunk in new_jobs:
+                jobs_config["jobs_list"][f"job_{num}"] = {
+                    "filesets": chunk,
+                    "config_file": str(folder / f"config_job_{num}.pkl"),
+                    "output_file": f"{jobs_config['output_dir']}/output_job_{num}.coffea",
+                }
+                mark_job_idle(folder, f"job_{num}")
+            del jobs_config["jobs_list"][job]
+            split_jobs[job] = [f"job_{num}" for num, _ in new_jobs]
+            for name in (f"config_{job}.pkl", f"{job}.{marker}"):
+                os.replace(folder / name, folder / "split" / name)
+            result["split"][job] = split_jobs[job]
+        save_jobs_config(folder, jobs_config)
+    except Exception as exc:
+        raise RuntimeError(
+            "Condor accepted the split jobs, but job_state.json / jobs_config.yaml "
+            f"bookkeeping failed; manual inspection is required: {exc}") from exc
+
+    rprint("Split summary:")
+    for job, new_jobs in result["split"].items():
+        rprint(f"  {job} -> {', '.join(new_jobs)}")
+    for job, message in result["failed"].items():
+        rprint(f"  not split {job}: {message}")
+    return result
+
+
 @click.command()
 @click.option("-j", "--jobs-folder", type=str, help="Folder containing the jobs", required=True)
 @click.option("-d", "--details", is_flag=True, help="Show the details of the jobs")
@@ -790,11 +905,17 @@ def recreate_jobs_oneshot(jobs_folder, jobs_to_recreate, *, use_redirector=False
               help="Remove active Condor jobs before recreation")
 @click.option("--ignore-lock", is_flag=True, default=False,
               help="Ignore an existing check-jobs lock (risky)")
+@click.option("--split-jobs", type=str, default=None,
+              help="Split .failed/.timeout jobs in smaller jobs (at file level) and submit them: "
+                   "comma-separated job ids, or 'all'. The new jobs replace the old ones in "
+                   "jobs_config.yaml, so merge-outputs -jc is unchanged.")
+@click.option("--split-factor", type=click.IntRange(min=2), default=2, show_default=True,
+              help="Number of new jobs for each split job (at most its number of files)")
 @_with_check_jobs_lock
 def check_jobs(jobs_folder, details, resubmit, max_resubmit, queue_shift, ncpu, group_by,
                recreate, once, use_redirector, blocklist_sites, recreate_queue,
-               skip_bad_files, remove_running, ignore_lock, _startup_progress=None,
-               _startup_contract=None):
+               skip_bad_files, remove_running, ignore_lock, split_jobs, split_factor,
+               _startup_progress=None, _startup_contract=None):
     if _startup_contract is None:
         folder, _, submission, state, state_file = load_current_contract(jobs_folder)
     else:
@@ -822,7 +943,18 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, queue_shift, ncpu, 
     if recreate is None and any((use_redirector, blocklist_sites, recreate_queue,
                                  skip_bad_files, remove_running)):
         raise click.UsageError("recreate-only options require --recreate")
-    if recreate is not None:
+    if recreate is not None and split_jobs is not None:
+        raise click.UsageError("--recreate and --split-jobs cannot be used together")
+    if split_jobs is not None:
+        show_startup_step("Splitting jobs")
+        result = split_jobs_oneshot(folder, split_jobs, split_factor)
+        if not result["split"] and result["failed"]:
+            raise click.exceptions.Exit(1)
+        if not resubmit:
+            advance_startup_step()
+            return
+        folder, _, submission, state, state_file = load_current_contract(folder)
+    elif recreate is not None:
         show_startup_step("Other startup steps")
         result = recreate_jobs_oneshot(
             folder, recreate, use_redirector=use_redirector,

@@ -609,6 +609,8 @@ called `job`, the tool descends into it automatically.
 | `--recreate-queue` | — | With `--recreate`, force an lxplus job to this HTCondor queue. It is rejected for Rubin, which does not support queue/resource escalation. |
 | `--skip-bad-files` | off | With `--recreate`, enable Coffea skip-bad-files in the shared `inner_run_options.yaml` for this jobs directory. |
 | `--remove-running` | off | With `--recreate`, `condor_rm` each recreated job's still-queued (running/idle) HTCondor instance before resubmitting, so a stuck job can't keep running and double-write its output. The instance is matched by the unique `config_job_<n>.pkl` in its lxplus `Args` ClassAd. |
+| `--split-jobs SELECTOR` | — | One-shot: split `.failed`/`.timeout` jobs in smaller jobs at file level and submit them, then exit (unless `--resubmit` is also given). `SELECTOR` is `all` or a comma list. See [Split failing jobs](#split-failing-jobs). Not combinable with `--recreate`. |
+| `--split-factor N` | `2` | With `--split-jobs`, number of new jobs for each split job (at most its number of files). |
 
 #### One-shot / proactive recreate
 
@@ -659,6 +661,34 @@ the dataset with `build-datasets` and resubmit from scratch. The queue rewrite o
 to pools that schedule by `+JobFlavour` (lxplus); the rubin/UMD pool uses `+MaxRuntime`, so
 queue bumping is a no-op there.
 :::
+
+#### Split failing jobs
+
+A job with many input files can fail again and again: each worker-side XRootD retry
+reprocesses the whole job, and a longer queue does not make the job smaller.
+`--split-jobs` replaces such a job with smaller jobs, at file level (a single file is never
+split):
+
+```bash
+# Split every .failed/.timeout job in up to 4 jobs and submit them
+pocket-coffea check-jobs -j output/job --split-jobs all --split-factor 4
+
+# Split two jobs, then babysit everything
+pocket-coffea check-jobs -j output/job --split-jobs 639,562 --resubmit
+```
+
+- The new jobs get integer ids after the highest id ever used in this jobs directory
+  (ids are never reused). They take the files from the old job's pickle, and the queue,
+  chunksize and CPU/memory requests from its `job_state.json` entry, with
+  `resubmissions` reset to 0. All new jobs go in one `condor_submit`; if it fails,
+  nothing is changed.
+- The new jobs replace the old one in `job_state.json` and in
+  `jobs_config.yaml["jobs_list"]`, so `merge-outputs -jc` merges their outputs and ignores
+  the old job. The split is recorded under `jobs_config.yaml["split_jobs"]`
+  (`{old_job: [new jobs]}`).
+- The pickle and marker of the old job move to `split/`; its logs stay in `logs/`.
+- Only `.failed` and `.timeout` jobs are split: an active job could still finish and write
+  its output. Jobs with one file are reported and stay `.failed`.
 
 #### What `--resubmit` actually does
 
