@@ -20,6 +20,21 @@ photon_scale_factors:
         '2018':
             id: UL-Photon-ID-SF
             pxseed: UL-Photon-PixVeto-SF
+        '2016_PreVFP_v15':
+            id: UL-Photon-ID-SF
+            pxseed: UL-Photon-PixVeto-SF
+
+        '2016_PostVFP_v15':
+            id: UL-Photon-ID-SF
+            pxseed: UL-Photon-PixVeto-SF
+
+        '2017_v15':
+            id: UL-Photon-ID-SF
+            pxseed: UL-Photon-PixVeto-SF
+
+        '2018_v15':
+            id: UL-Photon-ID-SF
+            pxseed: UL-Photon-PixVeto-SF
 
         '2022_preEE':
             id: Photon-ID-SF
@@ -68,6 +83,10 @@ photon_scale_factors:
         "2016_PostVFP": "2016postVFP"
         "2017": "2017"
         "2018": "2018"
+        "2016_PreVFP_v15": "2016preVFP"
+        "2016_PostVFP_v15": "2016postVFP"
+        "2017_v15": "2017"
+        "2018_v15": "2018"
         "2022_preEE": "2022Re-recoBCD"
         "2022_postEE": "2022Re-recoE+PromptFG"
         "2023_preBPix": "2023PromptC"

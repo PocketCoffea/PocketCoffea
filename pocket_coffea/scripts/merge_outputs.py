@@ -104,7 +104,7 @@ def append_configs(c1, c2):
             
     return c1
 
-def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, replace=False, N_reduction=5, max_mem_gb=None, cache_dir=None, verbose=False, skip_check=False, mark_failed=False, configurator=None, skip_initial_events_check_datasets=None):
+def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, replace=False, N_reduction=5, max_mem_gb=None, cache_dir=None, verbose=False, skip_check=False, mark_failed=False, configurator=None, skip_initial_events_check_datasets=None, exclude_samples=None):
     '''Merge coffea output files'''
     # Initialised so the "no inputs and no -jc" branch below can test it without
     # NameError (it is only assigned when a jobs_config is provided).
@@ -231,6 +231,18 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, replace
             print("[red]No input files provided nor job configuration file[/]")
             exit(1)
         jobs_list = job_config['jobs_list']
+        if exclude_samples:
+            excl = set(exclude_samples)
+            job_samples = lambda job: {ds["metadata"]["sample"] for ds in (job.get("filesets") or {}).values()}
+            kept = {n: j for n, j in jobs_list.items() if not (job_samples(j) & excl)}
+            mixed = [n for n in jobs_list if n not in kept and job_samples(jobs_list[n]) - excl]
+            print(f"[yellow]Excluding samples {sorted(excl)}: dropping {len(jobs_list) - len(kept)} of {len(jobs_list)} jobs.[/]")
+            if mixed:
+                print(f"[red]{len(mixed)} dropped job(s) also contain non-excluded samples (uniform split): {mixed}[/]")
+            if not kept:
+                print("[red]No jobs left after --exclude-samples.[/]")
+                exit(1)
+            jobs_list = kept
         alldone = True
         output_files = []
         output_files_by_category = {}
@@ -444,9 +456,20 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, replace
          "when a corrupted input file had to be skipped. Repeatable.",
 )
 
-def main(inputfiles, outputfile, jobs_config, force, replace, reduction, max_mem_gb, cache_dir, verbose, skip_check, mark_failed, configurator, skip_initial_events_check_datasets):
+@click.option(
+    "-es",
+    "--exclude-samples",
+    required=False,
+    type=str,
+    default=None,
+    help="Samples to exclude from the merge (comma separated). Only with -jc: jobs "
+         "whose filesets contain any of these samples are skipped.",
+)
+
+def main(inputfiles, outputfile, jobs_config, force, replace, reduction, max_mem_gb, cache_dir, verbose, skip_check, mark_failed, configurator, skip_initial_events_check_datasets, exclude_samples):
     '''Merge coffea output files'''
-    merge_outputs(inputfiles, outputfile, jobs_config, force, replace, reduction, max_mem_gb, cache_dir, verbose, skip_check, mark_failed, configurator, list(skip_initial_events_check_datasets))
+    merge_outputs(inputfiles, outputfile, jobs_config, force, replace, reduction, max_mem_gb, cache_dir, verbose, skip_check, mark_failed, configurator, list(skip_initial_events_check_datasets),
+                  exclude_samples=exclude_samples.split(",") if exclude_samples else None)
 
 if __name__ == "__main__":
     main()

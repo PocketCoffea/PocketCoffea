@@ -1,4 +1,5 @@
 import os
+import logging
 import pathlib
 import shutil
 import json
@@ -24,13 +25,20 @@ def uproot_writeable(events):
     out = {}
     for bname in events.fields:
         if events[bname].fields:
-            out[bname] = ak.zip(
-                {
-                    n: ak.packed(ak.without_parameters(events[bname][n]))
-                    for n in events[bname].fields
-                    if is_rootcompat(events[bname][n])
-                }
-            )
+            b = {
+                n: ak.packed(ak.without_parameters(events[bname][n]))
+                for n in events[bname].fields
+                if is_rootcompat(events[bname][n])
+            }
+            if not b:
+                # A collection whose fields are all option/union typed (e.g. a
+                # derived collection built with ak.mask/pad_none/concatenate)
+                # has no ROOT-writable content, and ak.zip({}) raises IndexError.
+                logging.warning(
+                    f"uproot_writeable: skipping branch '{bname}': no ROOT-compatible field"
+                )
+                continue
+            out[bname] = ak.zip(b)
         else:
             out[bname] = ak.packed(ak.without_parameters(events[bname]))
     return out
@@ -84,6 +92,18 @@ def copy_file(
         assert os.path.isfile(destination)
     pathlib.Path(local_file).unlink()
 
+
+def skimmed_file_is_complete(path: str, nevents: int) -> bool:
+    '''True if `path` (local or root://) can be opened and its Events tree has
+    exactly `nevents` entries. Any error (missing, partial or corrupted file)
+    returns False so that the caller rewrites the file.'''
+    import uproot
+    try:
+        with uproot.open(path) as f:
+            return f["Events"].num_entries == nevents
+    except Exception as err:
+        logging.info(f"skimmed_file_is_complete: cannot validate {path}: {err}")
+        return False
 
 
 def apply_skim_sumgenweights_override(accumulator, filesets):
@@ -153,17 +173,23 @@ def save_skimed_dataset_definition(processing_out, fileout, check_initial_events
     sum_genweights_total = processing_out.get("sum_genweights", {})
     sum_signOf_genweights_total = processing_out.get("sum_signOf_genweights", {})
     # Now add the files
+    inconsistent = []
     for key in datasets_metadata.keys():
         # We first check that the total number of initial events
         # corresponds to the initial number of the events in the metadata
         # to check if we are not missing any event
-        if check_initial_events and int(datasets_metadata[key]["nevents"]) != processing_out["cutflow"]["initial"][key]:
+        nmeta = int(datasets_metadata[key]["nevents"])
+        ncutflow = processing_out["cutflow"]["initial"][key]
+        if check_initial_events and nmeta != ncutflow:
+            msg = f"{key}: metadata nevents={nmeta}, cutflow initial={ncutflow}, missing={nmeta - ncutflow} ({(nmeta - ncutflow) / nmeta * 100:.3f}%)"
             if key in skip_initial_events_check_datasets:
-                print(f"WARNING: The number of initial events in the metadata ({datasets_metadata[key]['nevents']}) is different from the number of initial events in the cutflow ({processing_out['cutflow']['initial'][key]}) for dataset {key}, but the check was explicitly skipped for it.")
+                print(f"WARNING: Inconsistent number of initial events, but the check was explicitly skipped for it. {msg}")
             else:
-                print(f"ERROR: The number of initial events in the metadata is different from the number of initial events in the cutflow for dataset {key}")
-                raise Exception("Inconsistent number of initial events in the output of the skimming processing")
+                print(f"ERROR: Inconsistent number of initial events. {msg}")
+                inconsistent.append(key)
 
+        if key in inconsistent:
+            continue
         # Count the remaining events
         datasets_info[key] =  {
             "metadata": datasets_metadata[key],
@@ -180,6 +206,10 @@ def save_skimed_dataset_definition(processing_out, fileout, check_initial_events
             datasets_info[key]["metadata"]["sum_genweights"] = float(sum_genweights_total[key])
         if key in sum_signOf_genweights_total:
             datasets_info[key]["metadata"]["sum_signOf_genweights"] = float(sum_signOf_genweights_total[key])
+
+    if inconsistent:
+        raise Exception(f"Inconsistent number of initial events in the output of the skimming processing for {len(inconsistent)} dataset(s): {inconsistent}. "
+                        f"Pass them with --skip-initial-events-check to merge-outputs to tolerate the mismatch.")
 
     # Save the json
     with open(fileout, "w") as f:

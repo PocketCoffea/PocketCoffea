@@ -13,6 +13,7 @@ def test_write_keeps_only_whitelisted_keys(tmp_path):
     options = {
         "skip-bad-files": True,
         "tree-reduction": 4,
+        "xrootd-timeout": 300,
         "cores-per-worker": 8,
         "mem-per-worker": "4GB",
         "worker-image": "/cvmfs/image",
@@ -22,7 +23,7 @@ def test_write_keeps_only_whitelisted_keys(tmp_path):
     path = write_inner_run_options(str(tmp_path), options)
     assert os.path.basename(path) == INNER_RUN_OPTIONS_FILENAME
     loaded = yaml.safe_load(open(path).read())
-    assert loaded == {"skip-bad-files": True, "tree-reduction": 4}
+    assert loaded == {"skip-bad-files": True, "tree-reduction": 4, "xrootd-timeout": 300}
     assert not any(key in loaded for key in
                    ("cores-per-worker", "mem-per-worker", "worker-image", "queue", "chunksize"))
 
@@ -39,4 +40,4 @@ def test_write_empty_when_nothing_whitelisted(tmp_path):
 
 
 def test_whitelist_is_expected_set():
-    assert set(INNER_RUN_OPTIONS_WHITELIST) == {"skip-bad-files", "tree-reduction"}
+    assert set(INNER_RUN_OPTIONS_WHITELIST) == {"skip-bad-files", "tree-reduction", "xrootd-timeout"}

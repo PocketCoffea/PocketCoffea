@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from typing import List
 from coffea.processor.accumulator import column_accumulator
 import awkward as ak
-from .weights.weights_manager import get_weights_by_cat_var
 
 
 @dataclass
@@ -27,6 +26,22 @@ class ColumnsManager:
     @property
     def ncols(self):
         return sum([len(cols) for cols in self.cfg.values()])
+
+    def get_weights(self, weights_manager, category, variation, subsample=None):
+        """Return {column_name: weight} for the nominal weight and, on the nominal shape pass,
+        every configured weight variation of the sample and of `subsample` (sample__subsample)."""
+        out = {"weight": weights_manager.get_weight(category, subsample=subsample)}
+        if not weights_manager._isMC or variation != "nominal":
+            return out
+        weights = list(self.variations_config["weights"][category])
+        if subsample is not None:
+            weights += self.variations_config["by_subsample"][subsample]["weights"][category]
+        for weight in dict.fromkeys(weights):
+            # Ask the WeightsManager the available variations
+            for modifier in weights_manager.get_available_modifiers_byweight(weight):
+                out[f"weight_variation_{modifier}"] = weights_manager.get_weight(
+                    category, subsample=subsample, modifier=modifier)
+        return out
 
     def add_column(self, cfg: ColOut, categories=None):
         if categories is None:
@@ -53,19 +68,9 @@ class ColumnsManager:
 
             # Getting the weight variations into nominal column s
             if weights_manager:
-                self.output[category][variation]["weight"] = column_accumulator(
-                    ak.to_numpy(weights_manager.get_weight(category, subsample=subsample)[mask], allow_missing=False))
-                if weights_manager._isMC:
-                    available_weights_variations = []
-                    for weight in self.variations_config["weights"][category]:
-                        # Ask the WeightsManager the available variations
-                        vars = weights_manager.get_available_modifiers_byweight(weight)
-                        available_weights_variations += vars
-                    for weight in get_weights_by_cat_var(available_weights_variations, weights_manager, category, variation).keys():
-                        # Ask the WeightsManager the available variations
-                        if weight != "nominal":
-                            self.output[category][variation][f"weight_variation_{weight}"] = column_accumulator(
-                                ak.to_numpy(weights_manager.get_weight(category, subsample=subsample, modifier=weight)[mask], allow_missing=False))
+                for name, w in self.get_weights(weights_manager, category, variation, subsample).items():
+                    self.output[category][variation][name] = column_accumulator(
+                        ak.to_numpy(w[mask], allow_missing=False))
 
             for outarray in outarrays:
                 # Check if the cut is multidimensional
@@ -151,17 +156,8 @@ class ColumnsManager:
             # `subsample` (sample__subsample or None) folds in the by-subsample weights so
             # the exported weight matches the histogram weight for the same subsample.
             if weights_manager: # no present for data
-                out_by_cat["weight"] = weights_manager.get_weight(category, subsample=subsample)[mask]
-                if weights_manager._isMC:
-                    available_weights_variations = []
-                    for weight in self.variations_config["weights"][category]:
-                        # Ask the WeightsManager the available variations
-                        vars = weights_manager.get_available_modifiers_byweight(weight)
-                        available_weights_variations += vars
-                    for weight in get_weights_by_cat_var(available_weights_variations, weights_manager, category, variation).keys():
-                        # Ask the WeightsManager the available variations
-                        if weight != "nominal":
-                            out_by_cat[f"weight_variation_{weight}"] = weights_manager.get_weight(category, subsample=subsample, modifier=weight)[mask]
+                for name, w in self.get_weights(weights_manager, category, variation, subsample).items():
+                    out_by_cat[name] = w[mask]
 
             for outarray in outarrays:
                 # Check if the cut is multidimensional

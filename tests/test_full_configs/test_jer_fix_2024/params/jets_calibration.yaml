@@ -1,0 +1,3 @@
+# JES_Total + JER only: enough for the before/after comparison of the JER fix.
+jets_calibration:
+  variations: "${default_jets_calibration.variations.total_variation}"

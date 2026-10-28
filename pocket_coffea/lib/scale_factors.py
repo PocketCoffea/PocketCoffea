@@ -237,12 +237,15 @@ def sf_ele_reco(params, events, year):
     ele_phi = events[coll].phi
 
     pt_ranges = []
-    if year in ['2016_PreVFP', '2016_PostVFP','2017','2018']:
+    if year in ['2016_PreVFP', '2016_PostVFP','2017','2018', '2016_PreVFP_v15', '2016_PostVFP_v15','2017_v15','2018_v15']:
         pt_ranges += [("pt_lt_20", (ele_pt < 20)), 
                       ("pt_gt_20", (ele_pt >= 20))]
-    elif year in ["2022_preEE", "2022_postEE", "2023_preBPix", "2023_postBPix", "2024", "2025","2026"]:
+    elif year in ["2022_preEE", "2022_postEE", "2023_preBPix", "2023_postBPix", "2024"]:
         pt_ranges += [("pt_lt_20", (ele_pt < 20)), 
                       ("pt_gt_20_lt_75", (ele_pt >= 20) & (ele_pt < 75)), 
+                      ("pt_gt_75", (ele_pt >= 75))]
+    elif year in ["2025","2026"]:
+        pt_ranges += [("pt_gt_20_lt_75", (ele_pt >= 20) & (ele_pt < 75)), 
                       ("pt_gt_75", (ele_pt >= 75))]
     else:
         raise Exception("For chosen year "+year+" sf_ele_reco are not implemented yet")
@@ -353,48 +356,33 @@ def sf_ele_promptmva(params, events, year, key=''):
         ak.num(ele_pt),
     )
 
-    # in 2022 and 2023 the promptMVA SFs are provided by the ttH multilepton team, 
-    # in 2024 they are provided by the central POG
-    if year in ["2022_preEE", "2022_postEE", "2023_preBPix", "2023_postBPix"]:
-        # The SFs provided by the ttH multilepton team 
-        electron_correctionset = load_correction_set(
-        params.lepton_scale_factors.electron_sf.promptMVA_jsons[year]['file'])
-        # Need to put max pt to 500 for these custom SF
-        sf = electron_correctionset["NUM_TightmvaTTH_DEN_LooseElectrons"].evaluate(
-            np.abs(ele_eta_flat), 
-            np.clip(ele_pt_flat, 0. ,499.99), 
-            "nominal")
-        sfup = electron_correctionset["NUM_TightmvaTTH_DEN_LooseElectrons"].evaluate(
-            np.abs(ele_eta_flat), 
-            np.clip(ele_pt_flat, 0, 499.99), 
-            "systup")
-        sfdown = electron_correctionset["NUM_TightmvaTTH_DEN_LooseElectrons"].evaluate(
-            np.abs(ele_eta_flat), 
-            np.clip(ele_pt_flat, 0., 499.99), 
-            "systdown")
+    corr_params = params.lepton_scale_factors.electron_sf.JSONfiles[year]
+    corrkey = corr_params.name
+    electron_correctionset = load_correction_set(corr_params['files']['id'])
+    sf, sfup, sfdown = [],[],[]
+    year_pog = params.lepton_scale_factors.electron_sf.era_mapping[year]["id"]
+    wp = params.lepton_scale_factors.electron_sf.id.promptMVA
 
-    elif year == "2024":
-        # The SFs provided by the central POG are split in tightID SF
-        # and num_promptMVA_denum_tightID SF --> we need to combine them
-        corr_params = params.lepton_scale_factors.electron_sf.promptMVA_jsons[year]
-        corrkey = corr_params.key
-        electron_correctionset = load_correction_set(corr_params['file'])
-        sf, sfup, sfdown = [],[],[]
-        year_pog = params.lepton_scale_factors.electron_sf.era_mapping[year]["id"]
-    
-        sf = electron_correctionset[corrkey].evaluate(
-            year_pog, "sf", "PromptMVA-Tight", ele_eta_flat, ele_pt_flat
-        )
-        sfup = electron_correctionset[corrkey].evaluate(
-            year_pog, "sfup", "PromptMVA-Tight", ele_eta_flat, ele_pt_flat  
-        )
-        sfdown = electron_correctionset[corrkey].evaluate(
-            year_pog, "sfdown", "PromptMVA-Tight", ele_eta_flat, ele_pt_flat
-        )
+    # In 2023 the EGamma POG binned due to BPix the corrections also in electron phi
 
-    else:
-        raise Exception(f"Muon promptMVA SFs for year {year} are not implemented yet")
-    
+    binning_list = [wp, ele_eta_flat, ele_pt_flat]
+
+    if "2023" in year:
+
+        ele_phi = events[coll].phi
+        ele_phi_flat = ak.to_numpy(ak.flatten(ele_phi))
+        binning_list.append(ele_phi_flat)
+        
+    sf = electron_correctionset[corrkey].evaluate(
+    year_pog, "sf", *binning_list
+    )
+    sfup = electron_correctionset[corrkey].evaluate(
+        year_pog, "sfup", *binning_list  
+    )
+    sfdown = electron_correctionset[corrkey].evaluate(
+        year_pog, "sfdown", *binning_list
+    )
+
     # Unflatten 
     sf = ak.unflatten(sf, ele_counts)
     sfup = ak.unflatten(sfup, ele_counts)

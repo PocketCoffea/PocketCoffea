@@ -137,6 +137,7 @@ Re-running refreshes the datasets processed in that run and keeps other saved fi
 |Brown brux20 cluster | dask | dask@brux |
 |Brown CCV Oscar | dask | dask@oscar |
 |Maryland rubin cluster | dask, condor | dask@rubin condor@rubin |
+|Fermilab LPC | dask, condor | dask@lpc, condor@lpc |
 
 ---------------------------------------
 
@@ -161,6 +162,7 @@ general:
   retries: 20
   tree-reduction: 20
   skip-bad-files: false
+  xrootd-timeout: 60
   voms-proxy: null
   ignore-grid-certificate: false
   group-samples: null
@@ -200,6 +202,11 @@ then use `--custom-run-options my_run_options.yaml` to `run`:
 ```bash
 $> pocket-coffea run  --cfg analysis_config.py -o output --executor dask@lxplus  --custom-run-options my_run_options.yaml
 ```
+
+`xrootd-timeout` (seconds, default 60) is the timeout of each XRootD operation that the Coffea
+`Runner` does, including the file open in the preprocessing step. Without `skip-bad-files`, one
+file that does not open in this time fails the whole job. Increase it (e.g. `xrootd-timeout: 300`)
+if many jobs fail with `XRootD error: [ERROR] Operation expired` when the storage is under load.
 
 The user can also modify on the fly some run options using arguments to the `pocket-coffea
 run` script. For example, limiting the number of files or number of chunks to analyse (for
@@ -257,7 +264,7 @@ group-samples:
     - "TTToSemiLeptonic"
   TTbbSemiLeptonic:
     - "TTbbSemiLeptonic"
-  "TTTo2L2Nu_SingleTop":
+  TTTo2L2Nu_SingleTop:
     - "TTTo2L2Nu"
     - "SingleTop"
   VJets:
@@ -318,6 +325,7 @@ scheduling. Currently available:
 |-----------------|------------------|
 | `condor@lxplus` | CERN HTCondor    |
 | `condor@rubin`  | Maryland HTCondor |
+| `condor@lpc`    | Fermilab LPC     |
 
 This mode is best when:
 
@@ -356,6 +364,49 @@ Each running job updates a flag file under `jobs_dir/`:
 
 lxplus logs land in `jobs_dir/logs/job_*.{out,log}`; both HTCondor streams use the single `.out` file.
 
+#### Fermilab LPC (`condor@lpc`)
+
+LPC differs from lxplus in two ways that the executor has to be told about, so a working
+LPC run needs a couple of extra run options.
+
+At LPC coffea is used inside an Apptainer image started by the `shell` script that
+[lpcjobqueue](https://github.com/CoffeaTeam/lpcjobqueue) generates — you fetch its
+`bootstrap.sh` once in your working directory and run it, which writes `shell` and
+`.bashrc` alongside your code. That script bind-mounts the working directory to `/srv`,
+so inside the container `os.path.abspath()` returns `/srv/...`. The schedd and the
+execute nodes live outside the container and have no `/srv`, so those paths have to be
+translated back before they are written into the submit files. Point
+`host-path-prefix` at the real directory that is mounted on `/srv`:
+
+```yaml
+host-path-prefix: /uscms_data/d3/<user>/<workdir>
+```
+
+Leave it unset anywhere else; the translation is then a no-op.
+
+Second, LPC execute nodes do **not** mount `/uscms_data`, and they run the bare EL9
+worker node rather than your container. Two consequences:
+
+- Set `worker-image` so `pocket-coffea` exists inside the job.
+- Any file your processor opens *by path* at runtime — correction maps, scale-factor
+  JSONs — has to travel with the job. List those under `extra-input-files`; HTCondor
+  stages them into the job's scratch directory, which is the process working directory,
+  so refer to them by **basename** in the analysis parameters.
+
+```yaml
+worker-image: /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-stable
+extra-input-files:
+  - params/my_corrections.json.gz
+```
+
+Because the worker cannot write the output directory, the coffea output is returned by
+HTCondor file transfer rather than by an in-job `cp`. The same restriction means the
+`job_{i}.running` / `.done` / `.failed` flag files above cannot be written from the
+worker, so on LPC every job keeps the `.idle` flag it was created with, and
+`check-jobs` cannot tell you the real state. Judge a job by its returned
+`output_job_{i}.coffea` instead: non-empty means success, zero-length is the placeholder
+left behind by a failed job.
+
 #### Submitting jobs
 
 ```bash
@@ -379,6 +430,8 @@ mem-per-worker: "4GB"
 worker-image: "/cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-stable"
 split-by-category: false            # if true, runs split-output per job
 eos-prefix: "root://eosuser.cern.ch/"
+host-path-prefix: null              # condor@lpc: real host dir bind-mounted to /srv
+extra-input-files: []               # condor@lpc: payload files staged next to the job
 custom-setup-commands:              # extra `source ...` lines added to the job env
   - "source /cvmfs/.../setup.sh"
 dry-run: false                      # true → prepare jobs_dir but skip condor_submit
@@ -491,6 +544,7 @@ the ones the inner `Runner` actually consumes:
 
 - `skip-bad-files`
 - `tree-reduction`
+- `xrootd-timeout`
 
 Outer-only keys (`cores-per-worker`, `mem-per-worker`, `worker-image`, `queue`,
 `scaleout`, `max-events-per-job`, ...) are intentionally **not** propagated:

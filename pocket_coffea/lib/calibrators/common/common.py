@@ -103,7 +103,9 @@ class JetsCalibrator(Calibrator):
             # The sort permutation is stored as a field on the collection itself
             # (JET_SORTIDX_FIELD), so no separate calibrated collection is needed.
             self.jetcoll_to_alias[jet_coll_name] = jet_type_alias
-
+            
+            # print(f"Doing JECS for {jet_type}/{jet_coll_name}/{jet_type_alias}.")
+            # print(f"Variations for {jet_type_alias}: {self.jet_calib_param.variations[jet_type_alias][self._year]}")
             corrected_jets = jet_correction_corrlib(
                 calib_params=self.jet_calib_param.jet_types[jet_type_alias][self._year],
                 variations=self.jet_calib_param.variations[jet_type_alias][self._year],
@@ -165,9 +167,11 @@ class JetsCalibrator(Calibrator):
                         and self.year in self.jet_calib_param.merge_collections_for_variations
                     ):
                         for merged_jet_type, jets_to_merge in self.jet_calib_param.merge_collections_for_variations[self.year].items():
-                            if jet_type_alias in jets_to_merge:
+                            # print(f"\t Merged jet {jet_type}/{jet_type_alias}/{jet_coll_name}/{merged_jet_type} to: {jets_to_merge} for variation: {variation}")
+                            if jet_type in jets_to_merge:
                                 variation_jet_type = merged_jet_type
                                 break
+                    #print(f"Adding jet_type={jet_type} with variation_jet_type={variation_jet_type}")
                     available_jet_variations +=[
                         f"{variation_jet_type}_{variation}Up",
                         f"{variation_jet_type}_{variation}Down"
@@ -202,14 +206,7 @@ class JetsCalibrator(Calibrator):
             btag_b='btagPNetB'
             btag_cvl='btagPNetCvL'
             do_plus_neutrino = "PlusNeutrino" in jet_type
-        elif "UParTAK4V1" in jet_type:
-            # Use UParTAK4V1 regression
-            pt_raw_corr='UParTAK4V1RegPtRawCorr'
-            pt_raw_corr_neutrino='UParTAK4V1RegPtRawCorrNeutrino'
-            btag_b='btagUParTAK4B'
-            btag_cvl='btagUParTAK4CvL'
-            do_plus_neutrino = "PlusNeutrino" in jet_type
-        elif "UParTAK4" in jet_type:
+        elif "UParT" in jet_type:
             # Use UParTAK4 regression
             pt_raw_corr='UParTAK4RegPtRawCorr'
             pt_raw_corr_neutrino='UParTAK4RegPtRawCorrNeutrino'
@@ -218,7 +215,7 @@ class JetsCalibrator(Calibrator):
             do_plus_neutrino = "PlusNeutrino" in jet_type
         else:
             raise ValueError(f"Regression algorithm {jet_type} is not supported."+
-                             " Supported algorithms are: PNet, UParTAK4, UParTAK4V1.")
+                             " Supported algorithms are: PNet, UParT.")
 
         # Check if required fields exist
         required_fields = ['rawFactor', pt_raw_corr, pt_raw_corr_neutrino, btag_b, btag_cvl]
@@ -234,7 +231,7 @@ class JetsCalibrator(Calibrator):
             reg_j_factor = j_flat[pt_raw_corr]
             if do_plus_neutrino:
                 reg_j_factor = reg_j_factor * j_flat[pt_raw_corr_neutrino]
-        elif "UParTAK4" in jet_type:
+        elif "UParT" in jet_type:
             if do_plus_neutrino:
                 reg_j_factor = j_flat[pt_raw_corr_neutrino]
             else:                
@@ -326,12 +323,13 @@ class JetsCalibrator(Calibrator):
             if (
                 "merge_collections_for_variations" in self.jet_calib_param
                 and self.year in self.jet_calib_param.merge_collections_for_variations
-                and jet_type
-                in self.jet_calib_param.merge_collections_for_variations[self.year]
+                and jet_type in self.jet_calib_param.merge_collections_for_variations[self.year]
             ):
                 for jet_type_to_merge in self.jet_calib_param.merge_collections_for_variations[self.year][jet_type]:
+                    # print(f"Variation for merged collection {jet_type}/{jet_type_to_merge}")
                     self.apply_variation(out, jet_type_to_merge, variation_type, direction)
             else:
+                # print(f"Variation for not-merged collection {jet_type}")
                 self.apply_variation(out, jet_type, variation_type, direction)
 
         # Re-sort every calibrated jet collection by the (possibly varied) corrected pt.
@@ -356,6 +354,7 @@ class JetsCalibrator(Calibrator):
 
         # get the jet collection name from the parameters
         jet_coll_name = self.jet_calib_param.collection[self.year][jet_type]
+        #print(f"\t Applying variation for {jet_type}/{jet_coll_name}, {variation_type}, {direction}")
         if jet_coll_name==None:
             return
         if jet_coll_name not in self.jets_calibrated:
@@ -667,7 +666,6 @@ class METCalibrator(Calibrator):
                 }
             )
             met_final = met_final - mu_p2D_delta_sum
-
         # Check for the unclustered energy variation 
         # It is taken from the PuppiMET collection and reapplied
         if variation in ["unclust_EnUp", "unclust_EnDown"]:

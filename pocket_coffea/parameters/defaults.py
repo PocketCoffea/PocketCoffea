@@ -1,7 +1,16 @@
+import omegaconf
 from omegaconf import OmegaConf
 import os
 from pathlib import Path
 from typing import List
+
+# OmegaConf 2.4 renamed register_new_resolver() to register_resolver() and
+# deprecated the old name. Before 2.4, register_resolver() is the legacy API
+# with different semantics, so it must not be used there.
+if tuple(int(v) for v in omegaconf.__version__.split(".")[:2]) >= (2, 4):
+    _register_resolver = OmegaConf.register_resolver
+else:
+    _register_resolver = OmegaConf.register_new_resolver
 
 def register_configuration_dir(key: str, directory: str):
     '''
@@ -14,14 +23,14 @@ def register_configuration_dir(key: str, directory: str):
     # now this is possible in the configuration yaml
     ${config_dir:}/params/btagsf_calibration/test.yaml
     '''
-    OmegaConf.register_new_resolver(key, lambda: directory, replace=True)
+    _register_resolver(key, lambda: directory, replace=True)
 
 
 # Resolver for PocketCoffea default parameters file location
 # By using the resolved ${default_params_dir:}/file.yaml the file
 # is loaded from the default params folder of the PocketCoffea package
 register_configuration_dir("default_params_dir", os.path.dirname(os.path.abspath(__file__)))
-OmegaConf.register_new_resolver("pico_to_femto", lambda x: float(x)/1000.)
+_register_resolver("pico_to_femto", lambda x: float(x)/1000.)
 
 def setup_cvmfs_resolver(group_tags: dict = None):
     """
@@ -71,7 +80,7 @@ def setup_cvmfs_resolver(group_tags: dict = None):
         return filepath
     
     # Register the resolver with OmegaConf
-    OmegaConf.register_new_resolver("cvmfs", cvmfs_path_resolver, replace=True)
+    _register_resolver("cvmfs", cvmfs_path_resolver, replace=True)
 
 
 ##############################################

@@ -19,6 +19,7 @@ from math import ceil
 INNER_RUN_OPTIONS_WHITELIST = (
     "skip-bad-files",
     "tree-reduction",
+    "xrootd-timeout",
 )
 INNER_RUN_OPTIONS_FILENAME = "inner_run_options.yaml"
 

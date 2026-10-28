@@ -141,7 +141,7 @@ class JetsCalibrator(Calibrator):
 
 class JetsPtRegressionCalibrator(JetsCalibrator):
     """
-    This calibrator applied the Pt regression from PNet and UParTAK4 to the jets, before
+    This calibrator applied the Pt regression from PNet and UParT to the jets, before
     applying dedicated JEC calibrators.
 
     It is a subclass of JetsCalibrator, so it can be used in the same way.
@@ -268,14 +268,7 @@ class JetsPtRegressionCalibrator(JetsCalibrator):
             btag_b='btagPNetB'
             btag_cvl='btagPNetCvL'
             do_plus_neutrino = "PlusNeutrino" in jet_type
-        elif "UParTAK4V1" in jet_type:
-            # Use UParTAK4V1 regression
-            pt_raw_corr='UParTAK4V1RegPtRawCorr'
-            pt_raw_corr_neutrino='UParTAK4V1RegPtRawCorrNeutrino'
-            btag_b='btagUParTAK4B'
-            btag_cvl='btagUParTAK4CvL'
-            do_plus_neutrino = "PlusNeutrino" in jet_type
-        elif "UParTAK4" in jet_type:
+        elif "UParT" in jet_type:
             # Use UParTAK4 regression
             pt_raw_corr='UParTAK4RegPtRawCorr'
             pt_raw_corr_neutrino='UParTAK4RegPtRawCorrNeutrino'
@@ -284,7 +277,7 @@ class JetsPtRegressionCalibrator(JetsCalibrator):
             do_plus_neutrino = "PlusNeutrino" in jet_type
         else:
             raise ValueError(f"Regression algorithm {jet_type} is not supported."+
-                             " Supported algorithms are: PNet, UParTAK4, UParTAK4V1.")
+                             " Supported algorithms are: PNet, UParT.")
 
         # Check if required fields exist
         required_fields = ['rawFactor', pt_raw_corr, pt_raw_corr_neutrino, btag_b, btag_cvl]
@@ -300,7 +293,7 @@ class JetsPtRegressionCalibrator(JetsCalibrator):
             reg_j_factor = j_flat[pt_raw_corr]
             if do_plus_neutrino:
                 reg_j_factor = reg_j_factor * j_flat[pt_raw_corr_neutrino]
-        elif "UParTAK4" in jet_type:
+        elif "UParT" in jet_type:
             if do_plus_neutrino:
                 reg_j_factor = j_flat[pt_raw_corr_neutrino]
             else:                
