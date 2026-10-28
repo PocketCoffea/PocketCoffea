@@ -18,7 +18,7 @@ btagging:
       bbtagSF_DDBvL_M1_hiPt: 0.86
       bbtagSF_DDBvL_M1_hiPt_up: 0.97
       bbtagSF_DDBvL_M1_hiPt_down: 0.82
-    2016_PreVFP_v15":
+    "2016_PreVFP_v15":
       reference:
         btagging_WP: https://btv-wiki.docs.cern.ch/ScaleFactors/Run2UL2016preVFPNanoAODv15/#ak4-b-tagging
       btagging_algorithm: btagUParTAK4B
@@ -44,7 +44,7 @@ btagging:
       bbtagSF_DDBvL_M1_hiPt: 0.86
       bbtagSF_DDBvL_M1_hiPt_up: 0.97
       bbtagSF_DDBvL_M1_hiPt_down: 0.82
-    2016_PostVFP_v15":
+    "2016_PostVFP_v15":
       reference:
         btagging_WP: https://btv-wiki.docs.cern.ch/ScaleFactors/Run2UL2016postVFPNanoAODv15/#ak4-b-tagging
       btagging_algorithm: btagUParTAK4B
@@ -70,7 +70,7 @@ btagging:
       bbtagSF_DDBvL_M1_hiPt: 0.77
       bbtagSF_DDBvL_M1_hiPt_up: 0.83
       bbtagSF_DDBvL_M1_hiPt_down: 0.67
-    2017_v15":
+    "2017_v15":
       reference:
         btagging_WP: https://btv-wiki.docs.cern.ch/ScaleFactors/Run2UL2017NanoAODv15/#ak4-b-tagging
       btagging_algorithm: btagUParTAK4B
