@@ -56,8 +56,10 @@ def do_dataset(
             },
             sort_replicas=sort_replicas,
         )
-    except:
-        raise Exception(f"Error getting info about dataset: {key}")
+    except Exception as e:
+        print(f"\nERROR: could not build dataset for key '{key}'")
+        print(f"  {e}\n")
+        raise Exception(f"Error getting info about dataset: {key}") from e
 
     return dataset
 
@@ -99,20 +101,24 @@ def build_datasets(
         "sort_replicas": sort_replicas,
     }
     
+    def process(datasets):
+        # Save each dataset as soon as it is ready, so a later failure
+        # does not lose the ones already built. Saving stays in the main
+        # process: several keys can append to the same json_output.
+        for dataset in datasets:
+            dataset.save(overwrite=overwrite, split=split_by_year)
+            if check:
+                dataset.check_samples()
+
+            if download:
+                dataset.download()
+
     if parallelize == 1:
-        datasets = [do_dataset(key, **args) for key in keys]
+        process(do_dataset(key, **args) for key in keys)
     else:
         with Pool(parallelize) as pool:
             print("Dataset keys:", list(keys))
-            datasets = pool.map(partial(do_dataset, **args), keys)
-
-    for dataset in datasets:
-        dataset.save(overwrite=overwrite, split=split_by_year)
-        if check:
-            dataset.check_samples()
-
-        if download:
-            dataset.download()
+            process(pool.imap_unordered(partial(do_dataset, **args), keys))
 
 class Sample:
     def __init__(

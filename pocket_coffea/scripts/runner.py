@@ -241,6 +241,8 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files, limit_samples,
     # if site is known we can load the corresponding module
     elif site == "lxplus":
         from pocket_coffea.executors import executors_lxplus as executors_lib
+    elif site == "lpc":
+        from pocket_coffea.executors import executors_lpc as executors_lib
     elif site == "swan":
         from pocket_coffea.executors import executors_cern_swan as executors_lib
     elif site == "T3_CH_PSI":
@@ -263,6 +265,8 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files, limit_samples,
         from pocket_coffea.executors import executors_casa as executors_lib
     elif site == "infn-af":
         from pocket_coffea.executors import executors_infn_af as executors_lib
+    elif site == "lpc":
+        from pocket_coffea.executors import executors_lpc as executors_lib
     else:
         from pocket_coffea.executors import executors_base as executors_lib
 
@@ -343,6 +347,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files, limit_samples,
             chunksize=runner_chunksize,
             maxchunks=run_options["limit-chunks"],
             skipbadfiles=run_options['skip-bad-files'],
+            xrootdtimeout=run_options['xrootd-timeout'],
             schema=processor.NanoAODSchema,
             format="root",
             error_log_file=f"{outputdir}/error/run_all.err",
@@ -366,13 +371,15 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files, limit_samples,
             # Once a dataset is grouped, it is removed from the list of datasets to be processed to avoid double processing
             filesets_groups = {}
             filesets_to_group = filesets_to_run.copy()
-            for group, samples_to_group in run_options["group-samples"].items():
-                fileset_ = {}
-                for dataset, files in filesets_to_run.items():
-                    if files["metadata"]["sample"] in samples_to_group:
-                        fileset_[dataset] = filesets_to_group.pop(dataset)
-                if len(fileset_) > 0:
-                    filesets_groups[group] = fileset_
+
+            for era in config.years:
+                for group, samples_to_group in run_options["group-samples"].items():
+                    fileset_ = {}
+                    for dataset, files in filesets_to_run.items():
+                        if files["metadata"]["sample"] in samples_to_group and files["metadata"]["year"]==era:
+                            fileset_[dataset] = filesets_to_group.pop(dataset)
+                    if len(fileset_) > 0:
+                        filesets_groups[group+'_'+era] = fileset_
             # Adding the remaining datasets that were not grouped
             for dataset, files in filesets_to_group.items():
                 filesets_groups[dataset] = {dataset:files}
@@ -391,7 +398,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files, limit_samples,
 
         # Track failed jobs during processing
         failed_jobs_list = []
-
+        
         # Running separately on each dataset
         for group_name, fileset_ in filesets_groups.items():
             dataset_start_time = time.time()
@@ -422,6 +429,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files, limit_samples,
                 chunksize=runner_chunksize,
                 maxchunks=run_options["limit-chunks"],
                 skipbadfiles=run_options['skip-bad-files'],
+                xrootdtimeout=run_options['xrootd-timeout'],
                 schema=processor.NanoAODSchema,
                 format="root",
                 error_log_file=f"{outputdir}/error/run_{group_name}.err",

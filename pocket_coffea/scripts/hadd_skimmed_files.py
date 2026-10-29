@@ -47,11 +47,11 @@ def _check_output_file(item):
         if not f or f.IsZombie():
             if f:
                 f.Close()
-            return outfile, "unreadable", "TFile.Open failed / zombie", None
+            raise RuntimeError("TFile.Open failed / zombie")
         tree = f.Get("Events")
         if not tree:
             f.Close()
-            return outfile, "unreadable", "no Events tree", None
+            raise RuntimeError("no Events tree")
         nentries = int(tree.GetEntries())
         f.Close()
         if expected is not None and nentries != expected:
@@ -62,6 +62,23 @@ def _check_output_file(item):
                 nentries,
             )
         return outfile, "ok", f"{nentries} entries", nentries
+    except Exception:
+        pass
+    try:
+        import uproot
+        with uproot.open({outfile: None}) as f:
+            tree = f.get("Events")
+            if tree is None:
+                return outfile, "unreadable", "no Events tree (uproot)", None
+            nentries = tree.num_entries
+            if expected is not None and nentries != expected:
+                return (
+                    outfile,
+                    "wrong_nevents",
+                    f"expected {expected} entries, got {nentries} (uproot)",
+                    nentries,
+                )
+            return outfile, "ok", f"{nentries} entries (uproot)", nentries
     except Exception as e:
         return outfile, "unreadable", f"exception: {e}", None
 
@@ -197,6 +214,12 @@ def hadd_skimmed_files(files_list,  outputdir, filter_samples,
         print("ROOT is not available. Please make sure to have ROOT installed and configured properly to run this script.")
         root_available = False
 
+    try:
+        import uproot  # noqa: F401
+        uproot_available = True
+    except ImportError:
+        uproot_available = False
+
     df = load(files_list)
     only_samples = None
     only_datasets = None
@@ -261,12 +284,14 @@ def hadd_skimmed_files(files_list,  outputdir, filter_samples,
     json.dump(groups_metadata, open("hadd.json", "w"), indent=2)
 
     if check:
-        existence_only = not root_available
+        existence_only = not root_available and not uproot_available
         if existence_only:
             print(
-                "ROOT is not available — falling back to existence-only check "
+                "Neither ROOT nor uproot is available — falling back to existence-only check "
                 "(no Events tree / entry-count validation)."
             )
+        elif not root_available:
+            print("ROOT is not available — will use uproot for Events tree / entry-count validation.")
 
         check_items = []
         for dataset, conf in groups_metadata.items():
@@ -274,7 +299,12 @@ def hadd_skimmed_files(files_list,  outputdir, filter_samples,
                 expected = conf["nevents_per_outfile"].get(outfile)
                 check_items.append((outfile, expected, existence_only))
 
-        mode = "existence" if existence_only else "existence + ROOT + entries"
+        if existence_only:
+            mode = "existence only"
+        elif root_available:
+            mode = "existence + ROOT + entries (uproot fallback)"
+        else:
+            mode = "existence + uproot + entries"
         print(f"\nValidating {len(check_items)} hadded output files ({mode}) ...")
         if scaleout and scaleout > 1:
             with Pool(scaleout) as p:

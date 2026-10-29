@@ -212,7 +212,7 @@ def get_ele_smeared(mc_ele, jsonFileName,correction_name, isMC, only_nominal=Tru
                 "down": mc_ele_pt_down}
 
 
-def lepton_selection(events, lepton_flavour, params):
+def lepton_selection(events, lepton_flavour, params, return_mask=False):
 
     leptons = events[lepton_flavour]
     cuts = params.object_preselection[lepton_flavour]
@@ -239,7 +239,11 @@ def lepton_selection(events, lepton_flavour, params):
         good_leptons = passes_eta & passes_pt & passes_iso & passes_id
     else:
         raise ValueError(f"Lepton flavour {lepton_flavour} not supported for selection")
-    return leptons[good_leptons]
+
+    if return_mask:
+        return leptons[good_leptons], good_leptons
+    else:
+        return leptons[good_leptons]
 
 
 def lepton_selection_promptMVA(events, lepton_flavour, params, year, 
@@ -253,17 +257,18 @@ def lepton_selection_promptMVA(events, lepton_flavour, params, year,
     passes_eta = abs(leptons.eta) < cuts["eta"]
     passes_pt = leptons.pt > cuts["pt"]
 
-    # closest jet cut on btag. leptons["jetIdx"] indexes the Jet collection in its
-    # original NanoAOD order, so undo any calibrator re-sorting before the lookup.
-    jets = jets_in_original_order(events["Jet"])
-    valid_jetIdx = ak.mask(leptons["jetIdx"], leptons["jetIdx"] != -1)
-    btag = ak.where(
-            leptons["jetIdx"] == -1,
-            0.0,
-            ak.fill_none(jets[valid_jetIdx]["btagDeepFlavB"], -10.0),
-    )
-    pass_btag_cut = btag < cuts["btag_cut"][year]
-    
+    pass_btag_cut = True
+    if "btag_cut" in list(cuts.keys()):
+        # closest jet cut on btag. leptons["jetIdx"] indexes the Jet collection in its
+        # original NanoAOD order, so undo any calibrator re-sorting before the lookup.
+        jets = jets_in_original_order(events["Jet"])
+        valid_jetIdx = ak.mask(leptons["jetIdx"], leptons["jetIdx"] != -1)
+        btag = ak.where(
+                leptons["jetIdx"] == -1,
+                0.0,
+                ak.fill_none(jets[valid_jetIdx]["btagDeepFlavB"], -10.0),
+        )
+        pass_btag_cut = btag < cuts["btag_cut"][year]
 
     if lepton_flavour == "Electron":
         # Requirements on SuperCluster eta, isolation and id
@@ -283,7 +288,7 @@ def lepton_selection_promptMVA(events, lepton_flavour, params, year,
 
         good_leptons = (passes_eta & passes_pt & passes_SC & passes_iso & 
                         passes_sip3d & passes_lostHits & passes_dxy_check &
-                          passes_dz_check & pass_btag_cut & pass_id)
+                          passes_dz_check & pass_btag_cut& pass_id)
 
     elif lepton_flavour == "Muon":
         # Requirements on isolation and id

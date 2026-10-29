@@ -137,6 +137,7 @@ Re-running refreshes the datasets processed in that run and keeps other saved fi
 |Brown brux20 cluster | dask | dask@brux |
 |Brown CCV Oscar | dask | dask@oscar |
 |Maryland rubin cluster | dask, condor | dask@rubin condor@rubin |
+|Fermilab LPC | dask, condor | dask@lpc, condor@lpc |
 
 ---------------------------------------
 
@@ -161,6 +162,7 @@ general:
   retries: 20
   tree-reduction: 20
   skip-bad-files: false
+  xrootd-timeout: 60
   voms-proxy: null
   ignore-grid-certificate: false
   group-samples: null
@@ -200,6 +202,11 @@ then use `--custom-run-options my_run_options.yaml` to `run`:
 ```bash
 $> pocket-coffea run  --cfg analysis_config.py -o output --executor dask@lxplus  --custom-run-options my_run_options.yaml
 ```
+
+`xrootd-timeout` (seconds, default 60) is the timeout of each XRootD operation that the Coffea
+`Runner` does, including the file open in the preprocessing step. Without `skip-bad-files`, one
+file that does not open in this time fails the whole job. Increase it (e.g. `xrootd-timeout: 300`)
+if many jobs fail with `XRootD error: [ERROR] Operation expired` when the storage is under load.
 
 The user can also modify on the fly some run options using arguments to the `pocket-coffea
 run` script. For example, limiting the number of files or number of chunks to analyse (for
@@ -257,7 +264,7 @@ group-samples:
     - "TTToSemiLeptonic"
   TTbbSemiLeptonic:
     - "TTbbSemiLeptonic"
-  "TTTo2L2Nu_SingleTop":
+  TTTo2L2Nu_SingleTop:
     - "TTTo2L2Nu"
     - "SingleTop"
   VJets:
@@ -318,6 +325,7 @@ scheduling. Currently available:
 |-----------------|------------------|
 | `condor@lxplus` | CERN HTCondor    |
 | `condor@rubin`  | Maryland HTCondor |
+| `condor@lpc`    | Fermilab LPC     |
 
 This mode is best when:
 
@@ -356,6 +364,49 @@ Each running job updates a flag file under `jobs_dir/`:
 
 lxplus logs land in `jobs_dir/logs/job_*.{out,log}`; both HTCondor streams use the single `.out` file.
 
+#### Fermilab LPC (`condor@lpc`)
+
+LPC differs from lxplus in two ways that the executor has to be told about, so a working
+LPC run needs a couple of extra run options.
+
+At LPC coffea is used inside an Apptainer image started by the `shell` script that
+[lpcjobqueue](https://github.com/CoffeaTeam/lpcjobqueue) generates — you fetch its
+`bootstrap.sh` once in your working directory and run it, which writes `shell` and
+`.bashrc` alongside your code. That script bind-mounts the working directory to `/srv`,
+so inside the container `os.path.abspath()` returns `/srv/...`. The schedd and the
+execute nodes live outside the container and have no `/srv`, so those paths have to be
+translated back before they are written into the submit files. Point
+`host-path-prefix` at the real directory that is mounted on `/srv`:
+
+```yaml
+host-path-prefix: /uscms_data/d3/<user>/<workdir>
+```
+
+Leave it unset anywhere else; the translation is then a no-op.
+
+Second, LPC execute nodes do **not** mount `/uscms_data`, and they run the bare EL9
+worker node rather than your container. Two consequences:
+
+- Set `worker-image` so `pocket-coffea` exists inside the job.
+- Any file your processor opens *by path* at runtime — correction maps, scale-factor
+  JSONs — has to travel with the job. List those under `extra-input-files`; HTCondor
+  stages them into the job's scratch directory, which is the process working directory,
+  so refer to them by **basename** in the analysis parameters.
+
+```yaml
+worker-image: /cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-stable
+extra-input-files:
+  - params/my_corrections.json.gz
+```
+
+Because the worker cannot write the output directory, the coffea output is returned by
+HTCondor file transfer rather than by an in-job `cp`. The same restriction means the
+`job_{i}.running` / `.done` / `.failed` flag files above cannot be written from the
+worker, so on LPC every job keeps the `.idle` flag it was created with, and
+`check-jobs` cannot tell you the real state. Judge a job by its returned
+`output_job_{i}.coffea` instead: non-empty means success, zero-length is the placeholder
+left behind by a failed job.
+
 #### Submitting jobs
 
 ```bash
@@ -379,6 +430,8 @@ mem-per-worker: "4GB"
 worker-image: "/cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-stable"
 split-by-category: false            # if true, runs split-output per job
 eos-prefix: "root://eosuser.cern.ch/"
+host-path-prefix: null              # condor@lpc: real host dir bind-mounted to /srv
+extra-input-files: []               # condor@lpc: payload files staged next to the job
 custom-setup-commands:              # extra `source ...` lines added to the job env
   - "source /cvmfs/.../setup.sh"
 dry-run: false                      # true → prepare jobs_dir but skip condor_submit
@@ -491,6 +544,7 @@ the ones the inner `Runner` actually consumes:
 
 - `skip-bad-files`
 - `tree-reduction`
+- `xrootd-timeout`
 
 Outer-only keys (`cores-per-worker`, `mem-per-worker`, `worker-image`, `queue`,
 `scaleout`, `max-events-per-job`, ...) are intentionally **not** propagated:
@@ -555,6 +609,8 @@ called `job`, the tool descends into it automatically.
 | `--recreate-queue` | — | With `--recreate`, force an lxplus job to this HTCondor queue. It is rejected for Rubin, which does not support queue/resource escalation. |
 | `--skip-bad-files` | off | With `--recreate`, enable Coffea skip-bad-files in the shared `inner_run_options.yaml` for this jobs directory. |
 | `--remove-running` | off | With `--recreate`, `condor_rm` each recreated job's still-queued (running/idle) HTCondor instance before resubmitting, so a stuck job can't keep running and double-write its output. The instance is matched by the unique `config_job_<n>.pkl` in its lxplus `Args` ClassAd. |
+| `--split-jobs SELECTOR` | — | One-shot: split `.failed`/`.timeout` jobs in smaller jobs at file level and submit them, then exit (unless `--resubmit` is also given). `SELECTOR` is `all` or a comma list. See [Split failing jobs](#split-failing-jobs). Not combinable with `--recreate`. |
+| `--split-factor N` | `2` | With `--split-jobs`, number of new jobs for each split job (at most its number of files). |
 
 #### One-shot / proactive recreate
 
@@ -605,6 +661,34 @@ the dataset with `build-datasets` and resubmit from scratch. The queue rewrite o
 to pools that schedule by `+JobFlavour` (lxplus); the rubin/UMD pool uses `+MaxRuntime`, so
 queue bumping is a no-op there.
 :::
+
+#### Split failing jobs
+
+A job with many input files can fail again and again: each worker-side XRootD retry
+reprocesses the whole job, and a longer queue does not make the job smaller.
+`--split-jobs` replaces such a job with smaller jobs, at file level (a single file is never
+split):
+
+```bash
+# Split every .failed/.timeout job in up to 4 jobs and submit them
+pocket-coffea check-jobs -j output/job --split-jobs all --split-factor 4
+
+# Split two jobs, then babysit everything
+pocket-coffea check-jobs -j output/job --split-jobs 639,562 --resubmit
+```
+
+- The new jobs get integer ids after the highest id ever used in this jobs directory
+  (ids are never reused). They take the files from the old job's pickle, and the queue,
+  chunksize and CPU/memory requests from its `job_state.json` entry, with
+  `resubmissions` reset to 0. All new jobs go in one `condor_submit`; if it fails,
+  nothing is changed.
+- The new jobs replace the old one in `job_state.json` and in
+  `jobs_config.yaml["jobs_list"]`, so `merge-outputs -jc` merges their outputs and ignores
+  the old job. The split is recorded under `jobs_config.yaml["split_jobs"]`
+  (`{old_job: [new jobs]}`).
+- The pickle and marker of the old job move to `split/`; its logs stay in `logs/`.
+- Only `.failed` and `.timeout` jobs are split: an active job could still finish and write
+  its output. Jobs with one file are reported and stay `.failed`.
 
 #### What `--resubmit` actually does
 
