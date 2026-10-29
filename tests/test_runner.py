@@ -63,3 +63,35 @@ def test_resubmit_failed_without_file(base_path: Path, monkeypatch: pytest.Monke
     
     # Should fail (non-zero exit code)
     assert status != 0
+
+
+
+
+def test_timeit_worker_count_is_executor_concurrency_not_dataset_count():
+    from pocket_coffea.scripts.runner import _executor_worker_count
+
+    assert _executor_worker_count("iterative", {"scaleout": 10}) == 1
+    assert _executor_worker_count("futures", {"scaleout": 3}) == 3
+    assert _executor_worker_count("iterative", {"scaleout": 1}) == 1
+
+
+def test_local_timeit_chunksize_mapping_resolves_dataset_sample_and_default():
+    from pocket_coffea.scripts.runner import _resolve_local_chunksize
+
+    filesets = {
+        "TT_2023": {"metadata": {"sample": "TT"}},
+        "DY_2023": {"metadata": {"sample": "DY"}},
+        "W_2023": {"metadata": {"sample": "W"}},
+    }
+    assert _resolve_local_chunksize(
+        {"TT_2023": 100_000, "DY": 50_000, "default": 150_000}, filesets
+    ) == 150_000
+
+
+def test_local_timeit_chunksize_mapping_requires_a_fallback():
+    from pocket_coffea.scripts.runner import _resolve_local_chunksize
+
+    with pytest.raises(Exception, match="no entry"):
+        _resolve_local_chunksize(
+            {"other": 100}, {"TT_2023": {"metadata": {"sample": "TT"}}}
+        )
