@@ -225,7 +225,8 @@ the total correction, exactly as done internally by the compound correction: wit
 customization the result is identical. Applying the levels explicitly allows evaluating a level
 at a different pt than the one the correction propagates on (used by the `residual_pt_floor`
 mitigation below). The implementation is `pocket_coffea.lib.jets.jec_by_level`; the JER and the
-JES/JER systematics are the same in the two modes.
+JES/JER systematics are the same in the two modes. `level` and `by_level` must agree: a string
+`level` with `by_level: True`, or a list of levels without it, raises a configuration error.
 
 ### Run3 forward jets mitigations
 
@@ -331,6 +332,18 @@ Details of each mitigation:
   year. It uses the `rawFactor` of the collection after the
   calibration (`1 - pt_raw/pt`, updated by the `JetsCalibrator` with the applied JEC).
   See the [JES known issues](https://cms-jme-jerc.docs.cern.ch/recommendations/jes/#known-issues).
+
+Which calibrators apply them: the selection mitigations (`pt_cut_HF`, `pt_cut_HE`,
+`raw_factor_cut`) are part of `jet_selection`, so they work with any calibrator, and they act on
+every collection selected with it (e.g. also `FatJet`). `jer_genmatched_only` and
+`residual_pt_floor` are applied only by the correctionlib `JetsCalibrator`
+(`jet_correction_corrlib`): the legacy calibrators (`jet_calibration_legacy`,
+`jet_calibration_with_pt_regression_legacy`) ignore them.
+
+With every mitigation switched off (the default), and with `by_level: False`, the calibrated jets
+and the jet selection are identical to the ones obtained without these options. The only
+addition is the `jec_factor` / `jer_factor` fields of the corrected jets. Parameters without the
+`forward_jets_mitigation` block (e.g. saved by an older version) behave as with everything off.
 
 ## Creating Custom Calibrators
 

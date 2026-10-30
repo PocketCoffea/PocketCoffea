@@ -994,6 +994,11 @@ def jet_correction_corrlib(
             f"(e.g. ['L1FastJet', 'L2Relative', 'L3Absolute', 'L2L3Residual']), got the "
             f"string '{level}'. Set by_level=False for the compound correction."
         )
+    if not by_level and not isinstance(level, str):
+        raise Exception(
+            f"[jet_correction_corrlib] 'level' is the list {list(level)}: set by_level=True to apply "
+            f"the single JEC levels one by one, or give the compound correction name (e.g. 'L1L2L3Res')."
+        )
 
     # forward jets mitigations active for this year and jet type
     jer_genmatched_only = residual_pt_floor = None

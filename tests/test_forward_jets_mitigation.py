@@ -15,6 +15,7 @@ from omegaconf import OmegaConf
 
 from pocket_coffea.lib.jets import (
     abs_eta_in_regions,
+    jet_selection,
     jet_mitigations_mask,
     get_forward_jets_mitigation,
     jet_correction_corrlib,
@@ -65,6 +66,8 @@ def _jec_json(path):
             "output_op": "*",
             "stack": [f"{tag}_{level}_{JET_TYPE}" for level in LEVELS],
         })
+    # JES uncertainty source (relative shift), for the JES variations
+    corrections.append(_formula_correction(f"MC_Total_{JET_TYPE}", ["JetEta", "JetPt"], "0.03+0.0*x"))
     for name, value in JER_FACTORS.items():
         corrections.append(_formula_correction(f"JR_{name}_{JET_TYPE}", ["JetEta", "JetPt"], f"{value}+0.0*x"))
     cset = CorrectionSet.parse_obj(
@@ -118,7 +121,7 @@ def _mitigation_cfg(**apply):
 
 
 def _correct(json_path, isMC, year="2024", level="L1L2L3Res", by_level=False, mitigation=None,
-             variations=("nominal",), apply_jer=None):
+             variations=("nominal",), apply_jer=None, full=False):
     calib_params = {
         "json_path": json_path, "jec_mc": "MC", "jec_data": "DATA", "jer": "JR",
         "level": level, "by_level": by_level,
@@ -135,7 +138,7 @@ def _correct(json_path, isMC, year="2024", level="L1L2L3Res", by_level=False, mi
         apply_jer=isMC if apply_jer is None else apply_jer,
         forward_mitigation=mitigation,
     )
-    return np.asarray(ak.flatten(jets.pt))
+    return jets if full else np.asarray(ak.flatten(jets.pt))
 
 
 def _residual(pt):
@@ -234,6 +237,12 @@ def test_bylevel_equals_compound(json_path, isMC):
         np.testing.assert_allclose(compound, pt_truth * _residual(pt_truth), rtol=1e-6)
 
 
+def test_compound_requires_string(json_path):
+    # a list of levels without by_level is a configuration error
+    with pytest.raises(Exception, match="set by_level=True"):
+        _correct(json_path, False, level=LEVELS)
+
+
 def test_bylevel_requires_list(json_path):
     with pytest.raises(Exception, match="must be a list"):
         _correct(json_path, False, by_level=True)
@@ -308,3 +317,73 @@ def test_jec_and_jer_factors_stored(json_path):
             assert ak.all(jets.jer_factor == 1)
         else:
             assert not ak.all(jets.jer_factor == 1)
+
+
+def test_jec_and_jer_factors_with_mitigation(json_path):
+    """pt = pt_raw * jec_factor * jer_factor also with the JER variations and the
+    gen-matched-only JER (factor 1 for the unmatched HE jet)."""
+    cfg = _mitigation_cfg(jer_genmatched_only=True)
+    jets = _correct(json_path, True, variations=("nominal", "JER"), mitigation=cfg, full=True)
+    np.testing.assert_allclose(
+        np.asarray(ak.flatten(jets.pt)),
+        np.asarray(ak.flatten(jets.pt_raw * jets.jec_factor * jets.jer_factor)), rtol=1e-6)
+    assert ak.flatten(jets.jer_factor)[3] == 1
+
+
+@pytest.mark.parametrize("year", ["2022_postEE", "2024"])
+@pytest.mark.parametrize("isMC,variations", [
+    (False, ("nominal",)),
+    (True, ("nominal",)),
+    (True, ("nominal", "JER", "JES_Total")),
+])
+def test_defaults_off_output_unchanged(json_path, year, isMC, variations):
+    """With the default parameters (every mitigation off) the calibrated jets are
+    identical, field by field, to the ones without the mitigation block."""
+    without = _correct(json_path, isMC, year=year, variations=variations, full=True)
+    default = _correct(json_path, isMC, year=year, variations=variations,
+                       mitigation=_mitigation_cfg(), full=True)
+    assert without.fields == default.fields
+    for field in without.fields:
+        if field == "matched_gen":
+            continue
+        assert ak.to_list(without[field]) == ak.to_list(default[field]), field
+    if len(variations) > 1:
+        assert {"pt_JER_up", "pt_JES_Total_up"} <= set(without.fields)
+
+
+class _Events(dict):
+    """Minimal events for jet_selection: collections by name plus the metadata."""
+    metadata = {"nano_version": 9, "isMC": True}
+
+
+def test_jet_selection_mitigations():
+    # central, HE low pt, HE high pt, HF low pt, HF with anomalous JEC, 2.0<|eta|<2.5
+    jets = ak.zip({
+        "pt": [[20.0, 20.0, 60.0, 20.0, 80.0, 35.0]],
+        "eta": [[0.5, 2.7, -2.8, 3.5, 4.0, -2.2]],
+        "phi": [[0.0] * 6], "mass": [[1.0] * 6],
+        "jetId": [[6, 6, 6, 6, 6, 6]],
+        "rawFactor": [[0.1, 0.1, 0.1, 0.1, 0.95, 0.1]],
+    })
+    presel = {"Jet": {"pt": 15.0, "eta": 4.7, "jetId": 2}}
+
+    def select(mitigation, year):
+        params = {"object_preselection": presel}
+        if mitigation is not None:
+            params["jets_calibration"] = {"forward_jets_mitigation": OmegaConf.to_container(mitigation)}
+        good, mask = jet_selection(_Events(Jet=jets), "Jet", OmegaConf.create(params), year)
+        return ak.to_list(mask), ak.to_list(good.pt)
+
+    everything = [[True] * 6]
+    # defaults (all off) and parameters without the mitigation block: nothing removed
+    for year in ("2022_postEE", "2024"):
+        assert select(None, year)[0] == everything
+        assert select(_mitigation_cfg(), year)[0] == everything
+    # each selection mitigation on its own
+    assert select(_mitigation_cfg(pt_cut_HE=True), "2022_postEE")[0] == [[True, False, True, True, True, True]]
+    assert select(_mitigation_cfg(pt_cut_HF=True), "2022_postEE")[0] == [[True, True, True, False, True, True]]
+    assert select(_mitigation_cfg(raw_factor_cut=True), "2024")[0] == [[True, True, True, True, False, True]]
+    # HF cut not applied in 2024, HE cut still applied
+    mask, pt = select(_mitigation_cfg(pt_cut_HE=True, pt_cut_HF=True), "2024")
+    assert mask == [[True, False, True, True, True, True]]
+    assert pt == [[20.0, 60.0, 20.0, 80.0, 35.0]]
