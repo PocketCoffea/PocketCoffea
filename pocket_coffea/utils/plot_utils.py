@@ -705,10 +705,13 @@ class Shape:
         h_dict_grouped = {}
         samples_in_map = []
 
-        cleaned_samples_list = self.style.samples_groups.copy()
+        # Deep-copy the per-group lists: a shallow .copy() shares the inner lists with
+        # self.style.samples_groups, so removing missing samples below would both mutate
+        # the shared style and skip elements (list modified while iterating it).
+        cleaned_samples_list = {k: list(v) for k, v in self.style.samples_groups.items()}
         for sample_new, samples_list in self.style.samples_groups.items():
             #print(sample_new, samples_list)
-            for s_to_group in samples_list:
+            for s_to_group in list(samples_list):
                 if s_to_group not in self.h_dict.keys():
                     if self.verbose>=1:
                         print(f"{self.name}: WARNING. Sample ",s_to_group," is not in the list of samples: ", list(self.h_dict.keys()), "Skipping it.")
