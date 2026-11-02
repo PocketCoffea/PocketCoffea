@@ -1,5 +1,5 @@
-"""Offline checks of the JEC applied by level and of the Run3 forward jets mitigations
-(``jets_calibration.forward_jets_mitigation``).
+"""Offline checks of the JEC applied by level and of the Run3 jets mitigations
+(``jets_calibration.jets_mitigation``).
 
 No input file is needed: the JEC/JER corrections are written to a small synthetic
 correctionlib JSON and the events are built from in-memory arrays.
@@ -15,9 +15,11 @@ from omegaconf import OmegaConf
 
 from pocket_coffea.lib.jets import (
     abs_eta_in_regions,
+    collection_jet_types,
     jet_selection,
+    jets_mitigation_config,
     jet_mitigations_mask,
-    get_forward_jets_mitigation,
+    get_jets_mitigation,
     jet_correction_corrlib,
     jet_correction_corrlib_bylevel,
 )
@@ -114,7 +116,7 @@ def _events():
 def _mitigation_cfg(**apply):
     cfg = OmegaConf.load(os.path.join(
         os.path.dirname(__file__), "..", "pocket_coffea", "parameters", "jets_calibration.yaml"
-    )).jets_calibration.forward_jets_mitigation
+    )).jets_calibration.jets_mitigation
     for name, value in apply.items():
         cfg[name].apply = value
     return cfg
@@ -136,7 +138,7 @@ def _correct(json_path, isMC, year="2024", level="L1L2L3Res", by_level=False, mi
         nano_version=15,
         jec_syst=len(variations) > 1,
         apply_jer=isMC if apply_jer is None else apply_jer,
-        forward_mitigation=mitigation,
+        jets_mitigation=mitigation,
     )
     return jets if full else np.asarray(ak.flatten(jets.pt))
 
@@ -153,26 +155,35 @@ def test_defaults_all_off():
     for name in MITIGATIONS:
         assert cfg[name].apply is False
         for year in ("2022_preEE", "2023_postBPix", "2024", "2025"):
-            assert get_forward_jets_mitigation(cfg, name, year, JET_TYPE) is None
-    assert get_forward_jets_mitigation(None, "pt_cut_HE", "2024") is None
+            assert get_jets_mitigation(cfg, name, year, JET_TYPE) is None
+    assert get_jets_mitigation(None, "pt_cut_HE", "2024", JET_TYPE) is None
 
 
 def test_mitigation_years_and_jet_types():
     cfg = _mitigation_cfg(pt_cut_HE=True, pt_cut_HF=True, jer_genmatched_only=True, residual_pt_floor=True)
     for year in ("2022_preEE", "2022_postEE", "2023_preBPix", "2023_postBPix"):
         for name in ("pt_cut_HE", "pt_cut_HF", "jer_genmatched_only"):
-            assert get_forward_jets_mitigation(cfg, name, year, JET_TYPE) is not None
+            assert get_jets_mitigation(cfg, name, year, JET_TYPE) is not None
     # 2024: HF fixed, HE still affected
-    assert get_forward_jets_mitigation(cfg, "pt_cut_HF", "2024") is None
-    assert get_forward_jets_mitigation(cfg, "pt_cut_HE", "2024") is not None
-    assert get_forward_jets_mitigation(cfg, "jer_genmatched_only", "2024", JET_TYPE) is not None
+    assert get_jets_mitigation(cfg, "pt_cut_HF", "2024", JET_TYPE) is None
+    assert get_jets_mitigation(cfg, "pt_cut_HE", "2024", JET_TYPE) is not None
+    assert get_jets_mitigation(cfg, "jer_genmatched_only", "2024", JET_TYPE) is not None
     # nothing to mitigate in 2025, the residual fix is 2024 only
     for name in ("pt_cut_HE", "pt_cut_HF", "jer_genmatched_only", "residual_pt_floor"):
-        assert get_forward_jets_mitigation(cfg, name, "2025", JET_TYPE) is None
-    assert get_forward_jets_mitigation(cfg, "residual_pt_floor", "2024", JET_TYPE) is not None
-    assert get_forward_jets_mitigation(cfg, "residual_pt_floor", "2023_preBPix", JET_TYPE) is None
-    # only the listed jet types
-    assert get_forward_jets_mitigation(cfg, "jer_genmatched_only", "2024", "AK8PFPuppi") is None
+        assert get_jets_mitigation(cfg, name, "2025", JET_TYPE) is None
+    assert get_jets_mitigation(cfg, "residual_pt_floor", "2024", JET_TYPE) is not None
+    assert get_jets_mitigation(cfg, "residual_pt_floor", "2023_preBPix", JET_TYPE) is None
+    # only the listed jet types, for every mitigation
+    for name in ("pt_cut_HE", "jer_genmatched_only"):
+        assert get_jets_mitigation(cfg, name, "2024", "AK8PFPuppi") is None
+        assert get_jets_mitigation(cfg, name, "2024", ["AK8PFPuppi", JET_TYPE]) is not None
+        assert get_jets_mitigation(cfg, name, "2024", []) is None
+    raw = _mitigation_cfg(raw_factor_cut=True)
+    assert get_jets_mitigation(raw, "raw_factor_cut", "2025", JET_TYPE) is not None
+    assert get_jets_mitigation(raw, "raw_factor_cut", "2025", "AK8PFPuppi") is None
+    # extra jet types (e.g. the pt-regressed AK4 jets) are added to `jet_types`
+    cfg.jet_types = [JET_TYPE, "AK4PFPuppiPNetRegression"]
+    assert get_jets_mitigation(cfg, "pt_cut_HE", "2024", "AK4PFPuppiPNetRegression") is not None
 
 
 def test_mitigations_switched_on_separately():
@@ -181,7 +192,7 @@ def test_mitigations_switched_on_separately():
         cfg = _mitigation_cfg(**{name: True})
         for other in MITIGATIONS:
             if other != name:
-                assert get_forward_jets_mitigation(cfg, other, "2022_preEE", JET_TYPE) is None
+                assert get_jets_mitigation(cfg, other, "2022_preEE", JET_TYPE) is None
 
 
 def test_abs_eta_in_regions():
@@ -200,23 +211,45 @@ def test_jet_mitigations_mask():
     on = [[True] * 6]
     # all off by default
     for year in ("2022_postEE", "2024"):
-        assert ak.to_list(jet_mitigations_mask(jets, _mitigation_cfg(), year)) == on
-    assert ak.to_list(jet_mitigations_mask(jets, None, "2024")) == on
+        assert ak.to_list(jet_mitigations_mask(jets, _mitigation_cfg(), year, [JET_TYPE])) == on
+    assert ak.to_list(jet_mitigations_mask(jets, None, "2024", [JET_TYPE])) == on
     # HE and HF cuts separately
     he = _mitigation_cfg(pt_cut_HE=True)
     hf = _mitigation_cfg(pt_cut_HF=True)
-    assert ak.to_list(jet_mitigations_mask(jets, he, "2022_postEE")) == [[True, False, True, True, True, True]]
-    assert ak.to_list(jet_mitigations_mask(jets, hf, "2022_postEE")) == [[True, True, True, False, True, True]]
+    assert ak.to_list(jet_mitigations_mask(jets, he, "2022_postEE", [JET_TYPE])) == [[True, False, True, True, True, True]]
+    assert ak.to_list(jet_mitigations_mask(jets, hf, "2022_postEE", [JET_TYPE])) == [[True, True, True, False, True, True]]
     both = _mitigation_cfg(pt_cut_HE=True, pt_cut_HF=True)
-    assert ak.to_list(jet_mitigations_mask(jets, both, "2022_postEE")) == [[True, False, True, False, True, True]]
+    assert ak.to_list(jet_mitigations_mask(jets, both, "2022_postEE", [JET_TYPE])) == [[True, False, True, False, True, True]]
     # 2024: HF fixed; 2025: nothing
-    assert ak.to_list(jet_mitigations_mask(jets, both, "2024")) == [[True, False, True, True, True, True]]
-    assert ak.to_list(jet_mitigations_mask(jets, both, "2025")) == on
+    assert ak.to_list(jet_mitigations_mask(jets, both, "2024", [JET_TYPE])) == [[True, False, True, True, True, True]]
+    assert ak.to_list(jet_mitigations_mask(jets, both, "2025", [JET_TYPE])) == on
     # raw factor cut: every year
     raw = _mitigation_cfg(raw_factor_cut=True)
     expected = [[True, True, True, True, True, False]]
     for year in ("2022_postEE", "2024", "2025"):
-        assert ak.to_list(jet_mitigations_mask(jets, raw, year)) == expected
+        assert ak.to_list(jet_mitigations_mask(jets, raw, year, [JET_TYPE])) == expected
+    # a collection of jet types not listed (or not calibrated): nothing removed
+    every = _mitigation_cfg(pt_cut_HE=True, pt_cut_HF=True, raw_factor_cut=True)
+    assert ak.to_list(jet_mitigations_mask(jets, every, "2022_postEE", ["AK8PFPuppi"])) == on
+    assert ak.to_list(jet_mitigations_mask(jets, every, "2022_postEE", [])) == on
+
+
+def test_collection_jet_types():
+    params = OmegaConf.create({"jets_calibration": {
+        "collection": {"2024": {
+            "AK4PFPuppi": "Jet", "AK4CorrT1METJetPuppi": "CorrT1METJet", "AK8PFPuppi": "FatJet",
+            "AK4PFPuppiUParTRegression": "Jet",
+        }},
+        "collection_name_alias": {"2024": {"AK4CorrT1METJetPuppi": JET_TYPE}},
+    }})
+    assert collection_jet_types(params, "Jet", "2024") == [JET_TYPE, "AK4PFPuppiUParTRegression"]
+    # through the alias
+    assert collection_jet_types(params, "CorrT1METJet", "2024") == [JET_TYPE]
+    assert collection_jet_types(params, "FatJet", "2024") == ["AK8PFPuppi"]
+    # not calibrated, or year / block missing
+    assert collection_jet_types(params, "JetGood", "2024") == []
+    assert collection_jet_types(params, "Jet", "2022_preEE") == []
+    assert collection_jet_types(OmegaConf.create({}), "Jet", "2024") == []
 
 
 @pytest.mark.parametrize("isMC", [False, True])
@@ -367,10 +400,14 @@ def test_jet_selection_mitigations():
     })
     presel = {"Jet": {"pt": 15.0, "eta": 4.7, "jetId": 2}}
 
-    def select(mitigation, year):
+    def select(mitigation, year, jet_type=JET_TYPE):
         params = {"object_preselection": presel}
         if mitigation is not None:
-            params["jets_calibration"] = {"forward_jets_mitigation": OmegaConf.to_container(mitigation)}
+            params["jets_calibration"] = {
+                "jets_mitigation": OmegaConf.to_container(mitigation),
+                # the "Jet" collection is calibrated with `jet_type` in every year
+                "collection": {y: {jet_type: "Jet"} for y in ("2022_postEE", "2024")},
+            }
         good, mask = jet_selection(_Events(Jet=jets), "Jet", OmegaConf.create(params), year)
         return ak.to_list(mask), ak.to_list(good.pt)
 
@@ -387,3 +424,20 @@ def test_jet_selection_mitigations():
     mask, pt = select(_mitigation_cfg(pt_cut_HE=True, pt_cut_HF=True), "2024")
     assert mask == [[True, False, True, True, True, True]]
     assert pt == [[20.0, 60.0, 20.0, 80.0, 35.0]]
+    # a collection calibrated with a jet type not in `jet_types`: no mitigation
+    every = _mitigation_cfg(pt_cut_HE=True, pt_cut_HF=True, raw_factor_cut=True)
+    assert select(every, "2022_postEE", jet_type="AK4PFchs")[0] == everything
+    # ... unless that jet type is added to `jet_types`
+    every.jet_types = [JET_TYPE, "AK4PFchs"]
+    assert select(every, "2022_postEE", jet_type="AK4PFchs")[0] == [[True, False, True, False, False, True]]
+
+
+def test_old_block_name_rejected():
+    # the old name would be silently ignored: an explicit error instead
+    old = OmegaConf.create({"forward_jets_mitigation": {"pt_cut_HE": {"apply": True}}})
+    with pytest.raises(ValueError, match="renamed to jets_calibration.jets_mitigation"):
+        jets_mitigation_config(old)
+    assert jets_mitigation_config(None) is None
+    assert jets_mitigation_config(OmegaConf.create({})) is None
+    new = OmegaConf.create({"jets_mitigation": {"jet_types": [JET_TYPE]}})
+    assert jets_mitigation_config(new).jet_types == [JET_TYPE]

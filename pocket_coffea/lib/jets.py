@@ -113,11 +113,12 @@ def met_xy_correction(params, events, METcol,  year, era):
 def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tagger=""):
     """Select the jets of the ``jet_type`` collection passing ``params.object_preselection[jet_type]``.
 
-    The jet selection mitigations of ``params.jets_calibration.forward_jets_mitigation`` are
-    applied if switched on there (all off by default), each one separately:
-    ``pt_cut_HE`` / ``pt_cut_HF`` reject the low-pt forward jets (year-dependent pt threshold
-    and |eta| regions), ``raw_factor_cut`` rejects the jets with an anomalous JEC
-    (rawFactor > ``max_raw_factor``).
+    The jet selection mitigations of ``params.jets_calibration.jets_mitigation`` are
+    applied if switched on there (all off by default), each one separately, and only if the
+    collection is calibrated (``params.jets_calibration.collection[year]``) with one of the
+    ``jets_mitigation.jet_types``: ``pt_cut_HE`` / ``pt_cut_HF`` reject the low-pt forward
+    jets (year-dependent pt threshold and |eta| regions), ``raw_factor_cut`` rejects the jets
+    with an anomalous JEC (rawFactor > ``max_raw_factor``).
     """
     jets = events[jet_type]
     cuts = params.object_preselection[jet_type]
@@ -133,7 +134,10 @@ def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tag
         & (np.abs(jets.eta) < cuts["eta"])
         & (jets.jetId_corrected >= cuts["jetId"])
         & jet_mitigations_mask(
-            jets, OmegaConf.select(params, "jets_calibration.forward_jets_mitigation"), year
+            jets,
+            jets_mitigation_config(OmegaConf.select(params, "jets_calibration")),
+            year,
+            collection_jet_types(params, jet_type, year),
         )
     )
     # Lepton cleaning
@@ -870,28 +874,62 @@ def abs_eta_in_regions(eta, regions):
     return mask
 
 
-def get_forward_jets_mitigation(mitigation_cfg, name, year, jet_type=None):
-    """Configuration of the forward jets mitigation ``name`` active for ``year``.
+def jets_mitigation_config(jets_calibration):
+    """``jets_calibration.jets_mitigation`` (``None`` if missing).
 
-    ``mitigation_cfg`` is ``params.jets_calibration.forward_jets_mitigation``.
-    Returns ``None`` if the mitigation is switched off (its ``apply`` key), if ``jet_type``
-    is given and not listed in ``jet_types``, or if no |eta| region is defined for the year.
+    Raises an error if the parameters still use the old name of the block,
+    ``forward_jets_mitigation``, which would otherwise be silently ignored."""
+    if jets_calibration is None:
+        return None
+    if "forward_jets_mitigation" in jets_calibration:
+        raise ValueError(
+            "jets_calibration.forward_jets_mitigation has been renamed to "
+            "jets_calibration.jets_mitigation: rename it in the parameters."
+        )
+    return jets_calibration.get("jets_mitigation")
+
+
+def collection_jet_types(params, collection, year):
+    """Jet types (calibration aliases) the jet ``collection`` is calibrated with in ``year``,
+    from ``params.jets_calibration.collection[year]`` and ``collection_name_alias[year]``.
+    Empty if the collection is not calibrated."""
+    collections = OmegaConf.select(params, f"jets_calibration.collection.{year}") or {}
+    aliases = OmegaConf.select(params, f"jets_calibration.collection_name_alias.{year}") or {}
+    return [
+        aliases.get(jet_type, jet_type)
+        for jet_type, coll in collections.items()
+        if coll == collection
+    ]
+
+
+def get_jets_mitigation(mitigation_cfg, name, year, jet_type):
+    """Configuration of the jets mitigation ``name`` active for ``year`` and ``jet_type``.
+
+    ``mitigation_cfg`` is ``params.jets_calibration.jets_mitigation``; ``jet_type`` is a jet
+    type (calibration alias, e.g. ``AK4PFPuppi``) or a list of them, the mitigation being
+    active if any of them is listed.
+    Returns ``None`` if the mitigation is switched off (its ``apply`` key), if no ``jet_type``
+    is listed in ``jet_types``, or if the mitigation has ``eta_regions`` and none is defined
+    for the year (a mitigation without ``eta_regions``, e.g. ``raw_factor_cut``, acts in every
+    year).
     """
     if mitigation_cfg is None or name not in mitigation_cfg:
         return None
     cfg = mitigation_cfg[name]
     if not cfg.get("apply", False):
         return None
-    if jet_type is not None and jet_type not in mitigation_cfg.get("jet_types", []):
+    jet_types = [jet_type] if isinstance(jet_type, str) else list(jet_type)
+    if not set(jet_types) & set(mitigation_cfg.get("jet_types", [])):
         return None
-    if not cfg.get("eta_regions", {}).get(str(year)):
+    if "eta_regions" in cfg and not cfg.eta_regions.get(str(year)):
         return None
     return cfg
 
 
-def jet_mitigations_mask(jets, mitigation_cfg, year):
+def jet_mitigations_mask(jets, mitigation_cfg, year, jet_types):
     """Mask of the jets passing the jet selection mitigations switched on in
-    ``mitigation_cfg`` (``params.jets_calibration.forward_jets_mitigation``):
+    ``mitigation_cfg`` (``params.jets_calibration.jets_mitigation``) for one of the
+    ``jet_types`` of the collection (see :func:`collection_jet_types`):
 
     - ``pt_cut_HE``, ``pt_cut_HF``: reject the jets with
       pt < ``pt_min`` in the |eta| regions defined for ``year``;
@@ -900,11 +938,12 @@ def jet_mitigations_mask(jets, mitigation_cfg, year):
     """
     mask = ak.ones_like(jets.pt, dtype=bool)
     for name in ("pt_cut_HE", "pt_cut_HF"):
-        cfg = get_forward_jets_mitigation(mitigation_cfg, name, year)
+        cfg = get_jets_mitigation(mitigation_cfg, name, year, jet_types)
         if cfg is not None:
             mask = mask & ~(abs_eta_in_regions(jets.eta, cfg.eta_regions[str(year)]) & (jets.pt < cfg.pt_min))
-    if mitigation_cfg is not None and mitigation_cfg.get("raw_factor_cut", {}).get("apply", False):
-        mask = mask & (jets.rawFactor <= mitigation_cfg.raw_factor_cut.max_raw_factor)
+    cfg = get_jets_mitigation(mitigation_cfg, "raw_factor_cut", year, jet_types)
+    if cfg is not None:
+        mask = mask & (jets.rawFactor <= cfg.max_raw_factor)
     return mask
 
 
@@ -959,7 +998,7 @@ def jet_correction_corrlib(
     nano_version,
     apply_jer=True,
     jec_syst=True,
-    forward_mitigation=None,
+    jets_mitigation=None,
 ):
     """JEC (+ JER and JES/JER systematics on MC) with correctionlib.
 
@@ -967,7 +1006,7 @@ def jet_correction_corrlib(
     with ``calib_params['by_level'] = True``, a list of single JEC levels (e.g.
     ``['L1FastJet', 'L2Relative', 'L3Absolute', 'L2L3Residual']``) applied one by one
     (see :func:`jec_by_level`).
-    ``forward_mitigation`` is ``params.jets_calibration.forward_jets_mitigation``: the
+    ``jets_mitigation`` is ``params.jets_calibration.jets_mitigation``: the
     ``jer_genmatched_only`` (MC) and ``residual_pt_floor`` (data) mitigations are applied
     if switched on for this year and jet type.
     """
@@ -1000,17 +1039,17 @@ def jet_correction_corrlib(
             f"the single JEC levels one by one, or give the compound correction name (e.g. 'L1L2L3Res')."
         )
 
-    # forward jets mitigations active for this year and jet type
+    # jets mitigations active for this year and jet type
     jer_genmatched_only = residual_pt_floor = None
     if isMC:
-        jer_genmatched_only = get_forward_jets_mitigation(
-            forward_mitigation, "jer_genmatched_only", year, jet_type)
+        jer_genmatched_only = get_jets_mitigation(
+            jets_mitigation, "jer_genmatched_only", year, jet_type)
     else:
-        residual_pt_floor = get_forward_jets_mitigation(
-            forward_mitigation, "residual_pt_floor", year, jet_type)
+        residual_pt_floor = get_jets_mitigation(
+            jets_mitigation, "residual_pt_floor", year, jet_type)
         if residual_pt_floor is not None and not by_level:
             raise Exception(
-                f"[jet_correction_corrlib] the residual_pt_floor forward jets mitigation needs the JEC "
+                f"[jet_correction_corrlib] the residual_pt_floor jets mitigation needs the JEC "
                 f"applied by level: set by_level=True and level=[L1FastJet, L2Relative, L3Absolute, "
                 f"L2L3Residual] in the jets calibration parameters of {jet_type} for {year}."
             )
@@ -1137,7 +1176,7 @@ def jet_correction_corrlib(
                 ),
             }
         )
-        # forward jets mitigation: smear only the gen-matched jets in the |eta| regions,
+        # jets mitigation: smear only the gen-matched jets in the |eta| regions,
         # i.e. no stochastic smearing (GenPt = -1) there
         no_smear = None
         if jer_genmatched_only is not None:

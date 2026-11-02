@@ -1200,10 +1200,13 @@ jets_calibration:
   # Each recommendation is a separate mitigation, switched off by default: set its `apply: True`
   # to activate it. The |eta| regions are [eta_min, eta_max) intervals, given per year:
   # the mitigation does nothing in the years without regions.
+  # Every mitigation acts only on the `jet_types` listed below: in the calibration of those jet
+  # types (JER and residual mitigations), and in `jet_selection` of the collections calibrated
+  # with them (`jets_calibration.collection[year]`, after `collection_name_alias`).
   # Recommendations: https://indico.cern.ch/event/1615783/contributions/6811120/attachments/3186812/5672346/20251204_JetMET_PerformanceRun3.pdf
   # See docs/calibrators.md for the details.
-  forward_jets_mitigation:
-    # jet types (calibration aliases) the JER and residual mitigations are applied to
+  jets_mitigation:
+    # jet types (calibration aliases) all the mitigations are applied to
     jet_types: [AK4PFPuppi]
     # jet_selection: reject the jets with pt < pt_min in HF
     pt_cut_HF:
@@ -1247,8 +1250,8 @@ jets_calibration:
         "2024": [[2.0, 2.5]]
     # jet_selection: reject the jets with rawFactor > max_raw_factor, i.e. with an abnormally
     # large JEC (asymptotic L2Relative in a narrow bin, mostly in HF, in a few Run3 samples).
-    # Applied in every year and to every selected jet collection when switched on: check in the
-    # JME GitLab issue whether the samples used in the analysis are affected.
+    # Applied in every year (no eta_regions) to the collections of the `jet_types` when switched
+    # on: check in the JME GitLab issue whether the samples used in the analysis are affected.
     # See: https://cms-jme-jerc.docs.cern.ch/recommendations/jes/#known-issues
     raw_factor_cut:
       apply: False
