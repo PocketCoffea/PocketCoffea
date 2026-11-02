@@ -26,7 +26,7 @@ def apply_trigger_mask(events, triggers_to_apply, year, invert=False, trigger_ty
 
     for trigger in triggers_to_apply:
         # Special treatment for Ele32 in 2017
-        if year == "2017" and (
+        if (year == "2017" or year == "2017_v15") and (
             (trigger == 'Ele32_WPTight_Gsf_L1DoubleEG')
             & ('Ele32_WPTight' not in events_trigger.fields)
         ):
