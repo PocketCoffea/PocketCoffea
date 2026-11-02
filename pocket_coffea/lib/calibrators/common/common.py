@@ -3,7 +3,7 @@ import numpy as np
 import vector
 import awkward as ak
 import cachetools
-from pocket_coffea.lib.jets import met_correction_after_jec, jet_correction_corrlib, msoftdrop_correction, JET_SORTIDX_FIELD, jets_mitigation_config
+from pocket_coffea.lib.jets import met_correction_after_jec, jet_correction_corrlib, msoftdrop_correction, JET_SORTIDX_FIELD
 from pocket_coffea.lib.leptons import (
     get_ele_scaled, 
     get_ele_smeared, 
@@ -123,7 +123,7 @@ class JetsCalibrator(Calibrator):
                 nano_version=nano_aod_version,
                 jec_syst=self.do_variations,
                 apply_jer=self.jet_calib_param.apply_jer_MC[self.year][jet_type_alias] if self.isMC else False,
-                jets_mitigation=jets_mitigation_config(self.jet_calib_param),
+                jets_mitigation=self.jet_calib_param.get("jets_mitigation"),
             )
             # update the rawFactor of the corrected jets
             #print(f"Calibrating jet collection {jet_coll_name} with jet type {jet_type} and alias {jet_type_alias}. " + f"Year: {self._year}")

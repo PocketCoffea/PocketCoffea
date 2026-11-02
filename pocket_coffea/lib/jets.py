@@ -135,7 +135,7 @@ def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tag
         & (jets.jetId_corrected >= cuts["jetId"])
         & jet_mitigations_mask(
             jets,
-            jets_mitigation_config(OmegaConf.select(params, "jets_calibration")),
+            OmegaConf.select(params, "jets_calibration.jets_mitigation"),
             year,
             collection_jet_types(params, jet_type, year),
         )
@@ -872,21 +872,6 @@ def abs_eta_in_regions(eta, regions):
     for eta_min, eta_max in regions:
         mask = mask | ((abs_eta >= eta_min) & (abs_eta < eta_max))
     return mask
-
-
-def jets_mitigation_config(jets_calibration):
-    """``jets_calibration.jets_mitigation`` (``None`` if missing).
-
-    Raises an error if the parameters still use the old name of the block,
-    ``forward_jets_mitigation``, which would otherwise be silently ignored."""
-    if jets_calibration is None:
-        return None
-    if "forward_jets_mitigation" in jets_calibration:
-        raise ValueError(
-            "jets_calibration.forward_jets_mitigation has been renamed to "
-            "jets_calibration.jets_mitigation: rename it in the parameters."
-        )
-    return jets_calibration.get("jets_mitigation")
 
 
 def collection_jet_types(params, collection, year):

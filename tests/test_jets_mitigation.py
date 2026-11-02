@@ -17,7 +17,6 @@ from pocket_coffea.lib.jets import (
     abs_eta_in_regions,
     collection_jet_types,
     jet_selection,
-    jets_mitigation_config,
     jet_mitigations_mask,
     get_jets_mitigation,
     jet_correction_corrlib,
@@ -431,13 +430,3 @@ def test_jet_selection_mitigations():
     every.jet_types = [JET_TYPE, "AK4PFchs"]
     assert select(every, "2022_postEE", jet_type="AK4PFchs")[0] == [[True, False, True, False, False, True]]
 
-
-def test_old_block_name_rejected():
-    # the old name would be silently ignored: an explicit error instead
-    old = OmegaConf.create({"forward_jets_mitigation": {"pt_cut_HE": {"apply": True}}})
-    with pytest.raises(ValueError, match="renamed to jets_calibration.jets_mitigation"):
-        jets_mitigation_config(old)
-    assert jets_mitigation_config(None) is None
-    assert jets_mitigation_config(OmegaConf.create({})) is None
-    new = OmegaConf.create({"jets_mitigation": {"jet_types": [JET_TYPE]}})
-    assert jets_mitigation_config(new).jet_types == [JET_TYPE]
