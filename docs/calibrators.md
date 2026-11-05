@@ -80,7 +80,7 @@ PocketCoffea provides several ready-to-use calibrators in `pocket_coffea.lib.cal
 - **Collections**: Configurable. Every jet collection listed in `jets_calibration.collection[year]` (e.g. `Jet`, `FatJet`) that has `apply_jec_MC`/`apply_jec_Data` enabled for its jet type is calibrated.
 - **Variations**: One `"{jet_type}_{source}Up"` / `"{jet_type}_{source}Down"` pair per entry configured in `jets_calibration.variations[jet_type][year]` (e.g. `"AK4PFchs_jecUp"`, `"AK4PFchs_jerDown"`).
 - **Stored factors**: the corrected jets carry `jec_factor` (total JEC factor, pt / pt_raw before the smearing) and `jer_factor` (JER smearing factor, 1 for data or without JER), so that `pt = pt_raw * jec_factor * jer_factor`.
-- **Options**: the JEC can be applied [by level](#jec-applied-by-level) instead of with the compound correction, and each of the [Run3 forward jets mitigations](#run3-forward-jets-mitigations) can be switched on separately.
+- **Options**: the JEC can be applied [by level](#jec-applied-by-level) instead of with the compound correction, and each of the [Run3 jets mitigations](#run3-jets-mitigations) can be switched on separately.
 
 ### JetsSoftdropMassCalibrator
 - **Name**: `"msoftdrop_calibration"`
@@ -228,7 +228,7 @@ mitigation below). The implementation is `pocket_coffea.lib.jets.jec_by_level`; 
 JES/JER systematics are the same in the two modes. `level` and `by_level` must agree: a string
 `level` with `by_level: True`, or a list of levels without it, raises a configuration error.
 
-### Run3 forward jets mitigations
+### Run3 jets mitigations
 
 The JME POG recommends some mitigations for the issues of the Run3 jets in the endcaps
 (HE, 2.5 < |η| < 3, the "horns") and in the forward calorimeter (HF, 3 < |η| < 5)
@@ -247,24 +247,39 @@ If such jets are encountered, JME recommends rejecting the jets with `rawFactor 
 applies only to the affected production samples: check the JME GitLab issue to know whether the
 samples of the analysis are affected (see the [JES known issues](https://cms-jme-jerc.docs.cern.ch/recommendations/jes/#known-issues)).
 
-Each recommendation is a **separate mitigation** in `jets_calibration.forward_jets_mitigation`
+Each recommendation is a **separate mitigation** in `jets_calibration.jets_mitigation`
 (`pocket_coffea/parameters/jets_calibration.yaml`). They are **all switched off by default** and
 each one is activated by hand with its own `apply` key: switching one on never switches on the
 others. A mitigation acts only in the years for which `eta_regions` (a list of `[eta_min, eta_max)`
-intervals in |η|) are defined, so the defaults reproduce the table above:
+intervals in |η|) are defined, so the defaults reproduce the table above. The mitigations are of
+two kinds, which act on different jets:
 
-| Mitigation | Where | What |
-|------------|-------|------|
-| `pt_cut_HF` | `jet_selection` | reject jets with pt < 50 GeV in HF (2022, 2023) |
-| `pt_cut_HE` | `jet_selection` | reject jets with pt < 50 GeV in HE (2022, 2023, 2024) |
-| `jer_genmatched_only` | `JetsCalibrator`, MC | JER smearing only for gen-matched jets in HE (2022, 2023, 2024) |
-| `residual_pt_floor` | `JetsCalibrator`, data | L2L3Residual evaluated at 30 GeV for MC-truth corrected pt < 30 GeV in 2.0 < \|η\| < 2.5 (2024) |
-| `raw_factor_cut` | `jet_selection` | reject jets with `rawFactor > 0.9` (every year) |
+| Mitigation | Where | Jets | What |
+|------------|-------|------|------|
+| `pt_cut_HF` | `jet_selection` | every AK4 jet collection | reject jets with pt < 50 GeV in HF (2022, 2023) |
+| `pt_cut_HE` | `jet_selection` | every AK4 jet collection | reject jets with pt < 50 GeV in HE (2022, 2023, 2024) |
+| `raw_factor_cut` | `jet_selection` | every AK4 jet collection | reject jets with `rawFactor > 0.9` (every year) |
+| `jer_genmatched_only` | `JetsCalibrator`, MC | the `jet_types` | JER smearing only for gen-matched jets in HE (2022, 2023, 2024) |
+| `residual_pt_floor` | `JetsCalibrator`, data | the `jet_types` | L2L3Residual evaluated at 30 GeV for MC-truth corrected pt < 30 GeV in 2.0 < \|η\| < 2.5 (2024) |
+
+- The **selection mitigations** are applied by `pocket_coffea.lib.jets.jet_selection` to every
+  AK4 jet collection it selects (whatever jet types the collection was built from, e.g. also a
+  collection merging standard and pt-regressed jets), and never to the `FatJet` collection.
+- The **calibration mitigations** are applied by the `JetsCalibrator` only when it calibrates
+  one of the jet types (calibration aliases) listed in `jet_types`, by default `[AK4PFPuppi]`.
+  The jet types sharing the AK4 PUPPI calibration through `collection_name_alias` (e.g.
+  `AK4CorrT1METJetPuppi` → `AK4PFPuppi`) are included, so that the MET propagation is
+  consistent. `jet_types` has no effect on the selection mitigations.
+
+#### The `jets_mitigation` entry
+
+The default entry (the selection mitigations first, then `jet_types` and the calibration
+mitigations it refers to):
 
 ```yaml
 jets_calibration:
-  forward_jets_mitigation:
-    jet_types: [AK4PFPuppi]   # jet types the JER and residual mitigations are applied to
+  jets_mitigation:
+    # selection mitigations: every AK4 jet collection selected with jet_selection
     pt_cut_HF:
       apply: False
       pt_min: 50.
@@ -277,6 +292,11 @@ jets_calibration:
       eta_regions:
         2022_preEE: [[2.5, 3.0]]
         ...                   # 2022, 2023 and 2024
+    raw_factor_cut:
+      apply: False
+      max_raw_factor: 0.9
+    # calibration mitigations: only the jet types of jet_types
+    jet_types: [AK4PFPuppi]
     jer_genmatched_only:
       apply: False
       eta_regions:
@@ -288,31 +308,71 @@ jets_calibration:
       pt_min: 30.
       eta_regions:
         "2024": [[2.0, 2.5]]
-    raw_factor_cut:
-      apply: False
-      max_raw_factor: 0.9
 ```
 
-To activate a mitigation, set its `apply` key in the analysis parameters, e.g. in a parameters
-yaml file passed to `defaults.merge_parameters_from_files`:
+| Key | Meaning |
+|-----|---------|
+| `<mitigation>.apply` | `True` switches the mitigation on. |
+| `<mitigation>.eta_regions` | Per year, the list of `[eta_min, eta_max)` intervals in \|η\| where the mitigation acts. Nothing is done in a year without regions (or with an empty list). `raw_factor_cut` has no regions and acts in every year. |
+| `pt_cut_HF.pt_min`, `pt_cut_HE.pt_min` | The jets with pt below this value in the regions are rejected. |
+| `raw_factor_cut.max_raw_factor` | The jets with a larger `rawFactor` are rejected. |
+| `jet_types` | Jet types calibrated with `jer_genmatched_only` and `residual_pt_floor`. |
+| `residual_pt_floor.level`, `residual_pt_floor.pt_min` | The JEC level evaluated at `pt_min` for the jets with MC-truth corrected pt below `pt_min`. |
+
+#### How to use it
+
+Only the keys to change need to be given in the analysis parameters, e.g. in a parameters yaml
+file passed to `defaults.merge_parameters_from_files`; the other keys keep their default.
+
+Switch on some mitigations:
 
 ```yaml
 jets_calibration:
-  forward_jets_mitigation:
+  jets_mitigation:
     pt_cut_HE:
+      apply: True
+    jer_genmatched_only:
       apply: True
 ```
 
-or directly in the configuration:
+Change a threshold, or the regions of some years (each year given replaces its default regions;
+an empty list switches the mitigation off for that year):
+
+```yaml
+jets_calibration:
+  jets_mitigation:
+    pt_cut_HE:
+      apply: True
+      pt_min: 40.
+      eta_regions:
+        "2025": [[2.5, 3.0]]   # added year
+        "2024": []             # not applied in 2024
+```
+
+Calibrate more jet types with the calibration mitigations, e.g. also the pt-regressed AK4 jets.
+Lists are replaced when the parameters are merged, so the whole list has to be given:
+
+```yaml
+jets_calibration:
+  jets_mitigation:
+    jet_types: [AK4PFPuppi, AK4PFPuppiPNetRegression, AK4PFPuppiPNetRegressionPlusNeutrino]
+```
+
+The same can be done directly in the configuration, on the merged parameters:
 
 ```python
-parameters.jets_calibration.forward_jets_mitigation.pt_cut_HE.apply = True
+parameters.jets_calibration.jets_mitigation.pt_cut_HE.apply = True
+parameters.jets_calibration.jets_mitigation.jet_types.append("AK4PFPuppiPNetRegression")
 ```
+
+`residual_pt_floor` also needs the [JEC applied by level](#jec-applied-by-level) for the jet type
+and year (see below).
 
 Details of each mitigation:
 
 - **`pt_cut_HF`, `pt_cut_HE`**: selections applied by `pocket_coffea.lib.jets.jet_selection` to every
-  jet collection it selects, on the `pt` of the collection, whenever they are switched on.
+  AK4 jet collection it selects (not to `FatJet`), on the `pt` of the collection, whenever they are
+  switched on.
   For `pt_cut_HE` see the [JER known issues](https://cms-jme-jerc.docs.cern.ch/recommendations/jer/#known-issues).
 - **`jer_genmatched_only`** (MC only, applied by the `JetsCalibrator` to the `jet_types`): in the
   regions the JER smearing is applied only to the jets using the scaling method, i.e. with a
@@ -328,14 +388,14 @@ Details of each mitigation:
   calibrator raises an error. The jet types sharing the AK4 PUPPI calibration (e.g.
   `AK4CorrT1METJetPuppi`, aliased to `AK4PFPuppi`) are corrected consistently, so that the MET
   propagation sees the same JEC.
-- **`raw_factor_cut`**: selection applied by `jet_selection` to every jet collection, in every
-  year. It uses the `rawFactor` of the collection after the
+- **`raw_factor_cut`**: selection applied by `jet_selection` to every AK4 jet collection (not to
+  `FatJet`), in every year. It uses the `rawFactor` of the collection after the
   calibration (`1 - pt_raw/pt`, updated by the `JetsCalibrator` with the applied JEC).
   See the [JES known issues](https://cms-jme-jerc.docs.cern.ch/recommendations/jes/#known-issues).
 
 Which calibrators apply them: the selection mitigations (`pt_cut_HF`, `pt_cut_HE`,
 `raw_factor_cut`) are part of `jet_selection`, so they work with any calibrator, and they act on
-every collection selected with it (e.g. also `FatJet`). `jer_genmatched_only` and
+every AK4 collection selected with it. `jer_genmatched_only` and
 `residual_pt_floor` are applied only by the correctionlib `JetsCalibrator`
 (`jet_correction_corrlib`): the legacy calibrators (`jet_calibration_legacy`,
 `jet_calibration_with_pt_regression_legacy`) ignore them.
@@ -343,7 +403,7 @@ every collection selected with it (e.g. also `FatJet`). `jer_genmatched_only` an
 With every mitigation switched off (the default), and with `by_level: False`, the calibrated jets
 and the jet selection are identical to the ones obtained without these options. The only
 addition is the `jec_factor` / `jer_factor` fields of the corrected jets. Parameters without the
-`forward_jets_mitigation` block (e.g. saved by an older version) behave as with everything off.
+`jets_mitigation` entry behave as with everything off.
 
 ## Creating Custom Calibrators
 
