@@ -159,7 +159,7 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
     for arg in ctx.args:
         if arg.startswith("--"):
             if "=" in arg:
-                key, value = arg.split("=")
+                key, value = arg.split("=", 1)
                 run_options[key[2:]] = value
             else:
                 next_arg = ctx.args[ctx.args.index(arg)+1] if ctx.args.index(arg)+1 < len(ctx.args) else None
@@ -167,6 +167,14 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files,
                     run_options[arg[2:]] = next_arg
                 else:
                     run_options[arg[2:]] = True
+
+    # custom-setup-commands is consumed by the executors as a list of shell
+    # commands (env_worker += run_options["custom-setup-commands"]). When it is
+    # provided from the command line it arrives as a single string, which would
+    # be iterated character-by-character by list.__iadd__. Normalize a string to
+    # a one-element list so both the CLI and the YAML (list) forms behave.
+    if isinstance(run_options.get("custom-setup-commands"), str):
+        run_options["custom-setup-commands"] = [run_options["custom-setup-commands"]]
 
 
     ## Default config for testing: iterative executor, with 2 file and 2 chunks
