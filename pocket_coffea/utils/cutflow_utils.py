@@ -15,43 +15,16 @@ import math
 from collections import defaultdict
 from typing import Dict, List, Optional, Tuple
 import mplhep as hep
-from pocket_coffea.utils.plot_utils import COLOR_ALIASES
+from pocket_coffea.utils.plot_utils import COLOR_ALIASES, build_cms_label_kwargs, plotting_style_defaults
 from pocket_coffea.parameters.defaults import get_default_parameters
 
 CMS_BLUE = COLOR_ALIASES['CMS_blue']
 CMS_ORANGE = COLOR_ALIASES['CMS_orange']
 
 
-def get_luminosity_text(year: str) -> str:
-    """
-    Get luminosity text for a given year from plotting_style defaults.
-    Similar to what's done in plot_utils.py for the PlotManager class.
-    
-    Parameters:
-    -----------
-    year : str
-        The year string (e.g., '2016_PreVFP', '2017', '2018', etc.)
-        
-    Returns:
-    --------
-    str
-        Formatted luminosity text (e.g., "41.5 fb^{-1}")
-    """
-    # Get plotting style defaults
-    plotting_style_defaults = get_default_parameters()["plotting_style"]
-    
-    # Extract luminosity values from plot_upper_label
-    plot_upper_label = plotting_style_defaults.get('plot_upper_label', {})
-    by_year = plot_upper_label.get('by_year', {})
-    
-    if year in by_year:
-        # The format is like "${pico_to_femto:${lumi.picobarns.2017.tot}}"
-        # We need to extract the actual luminosity value
-        return f"$\mathcal{{L}}$ = {by_year[year]:.2f} fb$^{{-1}}$"
-    elif year == 'all':
-        return "13.6 TeV"
-    else:
-        raise ValueError(f"Year '{year}' not found in plotting style defaults.")
+# Set plotting style
+hep.style.use(hep.style.CMS)
+
 
 def aggregate_by_sample(data_dict: Dict, categories: List[str], 
                        datasets_metadata: Dict, only_samples: Optional[List[str]] = None,
@@ -174,9 +147,6 @@ def plot_sample_cutflow(sample: str, sample_data: Dict, year: str, categories: L
     if not sample_categories:
         raise ValueError(f"No data found for sample {sample}")
     
-    # Set plotting style
-    plt.style.use(hep.style.CMS)
-    
     # Determine if sample is MC or data for CMS label
     is_mc = True  # Default to MC
     if datasets_metadata:
@@ -279,16 +249,17 @@ def plot_sample_cutflow(sample: str, sample_data: Dict, year: str, categories: L
                 ax_main.yaxis.offsetText.set_verticalalignment('bottom')
                 ax_main.yaxis.offsetText.set_fontsize(label_fontsize)
 
-        # CMS label - use "Simulation" for MC, "Preliminary" for data
-        if is_mc:
-            hep.cms.text("Simulation Preliminary", ax=ax_main, fontsize=title_fontsize)
-        else:
-            hep.cms.text("Preliminary", ax=ax_main, fontsize=title_fontsize)
+        # Get cms_label config for unified label
+        cms_label_cfg = plotting_style_defaults.get('cms_label', {})
         
-        # Add luminosity text in top right if year is available
-        if year:
-            lumi_text = get_luminosity_text(year)
-            hep.cms.lumitext(text=lumi_text, ax=ax_main, fontsize=title_fontsize)
+        # Use hep.cms.label for both MC and data
+        label_kwargs = build_cms_label_kwargs(
+            cfg=cms_label_cfg,
+            is_mc_only=is_mc,
+            year=year,
+            fontsize=title_fontsize,
+        )
+        hep.cms.label(ax=ax_main, **label_kwargs)
         
         # Format the scientific notation offset text after all plotting is done
         if not log_y:
