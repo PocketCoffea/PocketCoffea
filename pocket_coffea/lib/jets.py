@@ -1062,7 +1062,7 @@ def jet_correction_corrlib(
     jets = ak.flatten(jets_jagged)
 
     # Prevent jets from having a phi larger than pi (which is non-physical and should stem from rounded floating-points in NanoAOD
-    phi_limit = np.pi - 1e-6
+    phi_limit = np.pi
     jets = ak.with_field(jets, np.clip(jets.phi, -phi_limit, phi_limit), "phi")
 
     # evaluate dictionary
@@ -1333,7 +1333,7 @@ def msoftdrop_correction(
     subjets = ak.flatten(subjets_jagged)
 
     # Prevent jets from having a phi larger than pi (which is non-physical and should stem from rounded floating-points in NanoAOD
-    phi_limit = np.pi - 1e-6
+    phi_limit = np.pi
     subjets = ak.with_field(subjets, np.clip(subjets.phi, -phi_limit, phi_limit), "phi")
 
     # evaluate dictionary
