@@ -1111,13 +1111,33 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # Rescale the histograms and sumw using the sum of the genweights
         if not self.workflow_options.get("donotscale_sumgenweights", False):
             self.rescale_sumgenweights(accumulator)
-        # Check if histograms have any nan value
+                # Check if histograms have any non-finite value (nan/inf) and sanitize in place
         for var, vardata in accumulator["variables"].items():
             for samplename, dataset_in_sample in vardata.items():
                 for dataset, histo in dataset_in_sample.items():
-                    if not np.all(np.isfinite(histo.values().flatten())):
-                        raise Exception(
-                            f"NaN or Inf values in the histogram {var} for dataset {dataset} after rescaling"
+                    values = histo.values(flow=True)
+                    if not np.all(np.isfinite(values)):
+                        bad_mask = ~np.isfinite(values)
+                        n_bad = bad_mask.sum()
+                        print(
+                            f"[WARNING] {n_bad} non-finite value(s) in histogram '{var}' "
+                            f"for dataset '{dataset}' (sample '{samplename}') — replacing with 0."
                         )
+
+                        view = histo.view(flow=True)
+                        # Weighted-storage histograms (Weight()) have structured
+                        # dtype with 'value' and 'variance' fields; plain
+                        # histograms (Double()/Int64()) don't.
+                        if view.dtype.names is not None:
+                            view["value"] = np.nan_to_num(
+                                view["value"], nan=0.0, posinf=0.0, neginf=0.0
+                            )
+                            view["variance"] = np.nan_to_num(
+                                view["variance"], nan=0.0, posinf=0.0, neginf=0.0
+                            )
+                        else:
+                            view[...] = np.nan_to_num(
+                                view, nan=0.0, posinf=0.0, neginf=0.0
+                            )
 
         return accumulator

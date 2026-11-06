@@ -38,14 +38,14 @@ class HistConf:
     only_samples: List[str] = None
     exclude_categories: List[str] = None
     only_categories: List[str] = None
+    collapse_2D_masks: bool = False  # if 2D masks are applied on the events
+    collapse_2D_masks_mode: str = "OR"  # Use OR or AND to collapse 2D masks for data_ndim=1 if collapse_2D_masks == True
     no_weights: bool = False  # Do not fill the weights
     metadata_hist: bool = False  # Non-event variables, for processing metadata
     hist_obj = None
-    collapse_2D_masks = False  # if 2D masks are applied on the events
     # and the data_ndim=1, when collapse_2D_mask=True the OR
     # of the masks on the axis=2 is performed to get the mask
     # on axis=1, otherwise an exception is raised
-    collapse_2D_masks_mode = "OR"  # Use OR or AND to collapse 2D masks for data_ndim=1 if collapse_2D_masks == True
 
     def serialize(self):
         out = {**self.__dict__}
