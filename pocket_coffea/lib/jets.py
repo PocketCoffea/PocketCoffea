@@ -1057,9 +1057,14 @@ def jet_correction_corrlib(
         jets_jagged["event_id"] = ak.ones_like(jets_jagged.pt) * events.event
     if ("run_nr" not in jets_jagged.fields):
         jets_jagged["run_nr"] = ak.ones_like(jets_jagged.pt) * events.run
-    
+
     # flatten
     jets = ak.flatten(jets_jagged)
+
+    # Prevent jets from having a phi larger than pi (which is non-physical and should stem from rounded floating-points in NanoAOD
+    phi_limit = np.pi
+    jets = ak.with_field(jets, np.clip(jets.phi, -phi_limit, phi_limit), "phi")
+
     # evaluate dictionary
     eval_dict = {
         "JetPt": jets.pt_raw,
@@ -1326,6 +1331,10 @@ def msoftdrop_correction(
 
     # flatten subjet collection
     subjets = ak.flatten(subjets_jagged)
+
+    # Prevent jets from having a phi larger than pi (which is non-physical and should stem from rounded floating-points in NanoAOD
+    phi_limit = np.pi
+    subjets = ak.with_field(subjets, np.clip(subjets.phi, -phi_limit, phi_limit), "phi")
 
     # evaluate dictionary
     # The jet area is needed only for L1 corrections, but for PUPPI jets this correction is not derived
