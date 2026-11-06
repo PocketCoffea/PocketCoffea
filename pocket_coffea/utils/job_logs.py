@@ -28,10 +28,11 @@ _FILE_RES = (
 )
 
 
-def latest_job_logs(logs_dir, job_num):
+def latest_job_logs(logs_dir, job_num, newer_than=None):
     """Return the .out/.err paths of the most recent HTCondor cluster that
     ran job `job_num` (log names: job_<ClusterId>.<ProcId>.{out,err}).
-    Only the top level of `logs_dir` is scanned, so archived logs are ignored."""
+    Only the top level of `logs_dir` is scanned, so archived logs are ignored.
+    With `newer_than` (a timestamp), logs last modified before it are ignored."""
     job_num = str(job_num)
     by_cluster = {}
     if not os.path.isdir(logs_dir):
@@ -39,7 +40,10 @@ def latest_job_logs(logs_dir, job_num):
     for fname in os.listdir(logs_dir):
         m = _LOG_NAME_RE.match(fname)
         if m and m.group(2) == job_num:
-            by_cluster.setdefault(int(m.group(1)), []).append(os.path.join(logs_dir, fname))
+            path = os.path.join(logs_dir, fname)
+            if newer_than is not None and os.path.getmtime(path) < newer_than:
+                continue
+            by_cluster.setdefault(int(m.group(1)), []).append(path)
     if not by_cluster:
         return []
     return sorted(by_cluster[max(by_cluster)])
@@ -84,13 +88,13 @@ def parse_input_failure(lines):
     return reason, None
 
 
-def find_job_input_failure(logs_dir, job_num):
-    """Check the latest .out AND .err of a job.
+def find_job_input_failure(logs_dir, job_num, newer_than=None):
+    """Check the latest .out AND .err of a job (see `latest_job_logs` for `newer_than`).
 
     Returns ``(reason, filename, log_paths)``; reason is None if the job did
     not fail because of an input file. ``log_paths`` are the logs read.
     """
-    paths = latest_job_logs(logs_dir, job_num)
+    paths = latest_job_logs(logs_dir, job_num, newer_than)
     reason, filename = None, None
     for p in sorted(paths, key=lambda p: not p.endswith(".err")):  # .err first
         try:
