@@ -23,12 +23,14 @@ from rich import print as rprint
 from rich.console import Console
 from rich.live import Live
 from rich.layout import Layout
+from rich.markup import escape
 from rich.panel import Panel
 from rich.progress import BarColumn, Progress, TextColumn
 from rich.table import Table
 
 from pocket_coffea.executors.executors_manual_jobs import render_condor_submit
 from pocket_coffea.utils.htcondor_queue import next_queue
+from pocket_coffea.utils.job_logs import find_job_input_failure, last_lines, latest_job_logs
 from pocket_coffea.utils.job_progress import aggregate_by_group, load_job_to_group_map, render_progress_bar
 from pocket_coffea.utils.job_split import save_jobs_config, split_fileset
 from pocket_coffea.utils.network import get_proxy_path
@@ -41,6 +43,12 @@ from pocket_coffea.utils.site_rewrite import (
 LOCK_FILENAME = ".check_jobs.lock"
 JOB_MARKERS = ("idle", "running", "done", "failed", "timeout")
 CONDOR_REMOVAL_TIMEOUT = 10.0
+# job.sh touches job_<i>.failed before HTCondor transfers the .out back
+# (when_to_transfer_output = ON_EXIT). A failure is reported (and resubmitted)
+# only when logs newer than the flag exist, or after LOG_WAIT_TIMEOUT seconds.
+# ponytail: LOG_CLOCK_SKEW assumes worker and schedd clocks agree within a few seconds (NTP).
+LOG_CLOCK_SKEW = 5
+LOG_WAIT_TIMEOUT = 600
 CONTRACT_ERROR = (
     "This jobs directory predates the consolidated check-jobs format.\n"
     "Please resubmit it with the current PocketCoffea version."
@@ -489,6 +497,45 @@ def is_xrootd_exhaustion_log(out_text):
     return any(marker in out_text for marker in (
         "XRootD failure found at root://xrootd-cms.infn.it",
         "Reached the maximum number of XRootD recovery attempts"))
+
+
+def failure_reason(jobs_folder, job, flag_mtime):
+    """Short failure reason of `job` from the logs of its failed attempt, or
+    None while those logs are not transferred back yet."""
+    logs_dir = f"{jobs_folder}/logs"
+    job_num = job.split("_", 1)[1]
+    paths = latest_job_logs(logs_dir, job_num)
+    if not paths or max(os.path.getmtime(p) for p in paths) < flag_mtime - LOG_CLOCK_SKEW:
+        return None
+    reason, filename, _ = find_job_input_failure(logs_dir, job_num)
+    tail = [line.strip() for line in last_lines(paths, 3).splitlines()
+            if line.strip() not in ("", "Job failed", "Done")]
+    parts = [" ".join(filter(None, (reason, filename)))] + tail[-1:]
+    return " | ".join(filter(None, parts)) or "no error found in the log"
+
+
+def log_failure_reasons(jobs_folder, failed, reported, waiting, log_text):
+    """Add one Log line per new failed attempt. `reported` maps job -> mtime of
+    the .failed flag already reported; `waiting` maps job -> first time seen
+    without fresh logs. Returns the jobs still waiting for their logs."""
+    pending_logs = set()
+    for job in failed:
+        try:
+            flag_mtime = (Path(jobs_folder) / f"{job}.failed").stat().st_mtime
+        except OSError:
+            continue
+        if reported.get(job) == flag_mtime:
+            continue
+        reason = failure_reason(jobs_folder, job, flag_mtime)
+        if reason is None:
+            if time.time() - waiting.setdefault(job, time.time()) < LOG_WAIT_TIMEOUT:
+                pending_logs.add(job)
+                continue
+            reason = f"no log of this attempt after {LOG_WAIT_TIMEOUT} s"
+        waiting.pop(job, None)
+        reported[job] = flag_mtime
+        log_text.append(f"[red]{job} failed:[/] {escape(reason)}")
+    return pending_logs
 
 
 def latest_job_out(jobs_folder, job):
@@ -992,6 +1039,7 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, queue_shift, ncpu, 
     idle, running, done, failed, timeout = check_jobs_logs(folder)
     advance_startup_step()
     log_text, pending, definitive = [], {}, set()
+    reported_failures, waiting_logs = {}, {}
 
     mutation = bool(resubmit or recreate is not None)
 
@@ -1004,10 +1052,11 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, queue_shift, ncpu, 
         else:
             idle, running, done, failed, timeout = merge_inferred_status(
                 idle, running, done, failed, timeout, findings)
+        pending_logs = log_failure_reasons(folder, failed, reported_failures, waiting_logs, log_text)
         resubmit_now = []
         if resubmit:
             for job in failed:
-                if job in definitive:
+                if job in definitive or job in pending_logs:
                     continue
                 number = job.split("_", 1)[1]
                 attempts = int(state[number]["resubmissions"])
