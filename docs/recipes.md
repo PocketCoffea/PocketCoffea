@@ -1247,7 +1247,7 @@ jets_calibration:
 
 ```
 
-The merging is done in the user's workflow (e.g. in `apply_object_preselection`) with the `merge_regressed_jets` helper (in `pocket_coffea.lib.jets`). Its arguments `jets_high_btag` and `jets_low_btag` are the collections used for jets passing / failing a b-tag cut; **each may be a single collection or an ordered fallback chain**, in which the first collection with a valid regression (`pt > 0`) is used per jet and the last one is the unconditional fallback (usually the standard JEC jets). Taking whole collections keeps every pt-dependent field (pt, mass, variations) consistent. If `jets_low_btag` is omitted, no b-tag cut is applied.
+The merging is done in the user's workflow (e.g. in `apply_object_preselection`) with the `merge_regressed_jets` helper (in `pocket_coffea.lib.jets`). Its arguments `jets_high_btag` and `jets_low_btag` are the collections used for jets passing / failing a b-tag cut; **each may be a single collection or an ordered fallback chain**, in which the first collection with a valid regression (`pt > 0`) is used per jet and the last one is the unconditional fallback (usually the standard JEC jets). To skip the regression for some jets (e.g. below a raw-pt threshold), set the regressed `pt` of those jets to a non-positive value (e.g. `-1`) in the collection passed to the helper: they then take the next collection of the chain. Taking whole collections keeps every pt-dependent field (pt, mass, variations) consistent. If `jets_low_btag` is omitted, no b-tag cut is applied.
 
 The simplest case — regressed jet where valid, else the standard JEC jet — is a single fallback chain with no b-tag cut:
 
