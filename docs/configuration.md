@@ -517,12 +517,16 @@ documentation assumes.
 
 #### Resubmitting a partially failed skim
 
-Set `workflow_options={"skim_skip_existing": True}` to skip the ROOT write and copy of a chunk whose output file
-already exists at the destination with the expected number of events (the file is opened with uproot, also through
-XRootD; a missing, partial or corrupted file is rewritten). The chunk is still fully processed, so the cutflow,
-`sum_genweights` and the skimmed dataset definition are complete. Use it only when you resubmit the **same** config
-with the **same** chunksize: the output filename is built from the input file uuid and the chunk entry range, so a
-different chunksize produces new files and the old ones are stale.
+Set `workflow_options={"skim_skip_existing": True}` to skip completely a chunk whose output file already exists at
+the destination and is readable (the file is opened with uproot, also through XRootD; its size must reach the end
+recorded in the ROOT header; a missing, truncated or corrupted file is processed again). The check runs at
+the start of `process()`, so a skipped chunk does not run the skim, the calibration loop or the preselection
+(important for `skim_mode: "presel_any_variation"`). The skim outputs are taken from the existing file: cutflow
+`skim` and `nskimmed_events` from its number of entries, `sum_genweights_skimmed` from its `genWeight` sum.
+`cutflow["initial"]` and `sum_genweights` are still computed from the input chunk, so the skimmed dataset
+definition stays complete. Use it only when you resubmit the **same** config with the **same** chunksize: the output
+filename is built from the input file uuid and the chunk entry range, so a different chunksize produces new files and
+the old ones are stale. A file written with a different skim or preselection is also accepted as it is.
 
 #### `skim_mode: "presel_any_variation"`
 

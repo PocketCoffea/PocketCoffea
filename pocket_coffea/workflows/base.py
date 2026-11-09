@@ -21,7 +21,7 @@ from ..lib.columns_manager import ColumnsManager
 from ..lib.hist_manager import HistManager
 from ..lib.jets import load_jet_factory
 from ..lib.calibrators.calibrators_manager import CalibratorsManager
-from ..utils.skim import uproot_writeable, copy_file, apply_skim_sumgenweights_override, skimmed_file_is_complete
+from ..utils.skim import uproot_writeable, copy_file, apply_skim_sumgenweights_override, read_skimmed_file
 from ..utils.utils import dump_ak_array
 from ..utils.metadata import to_bool
 from ..lib.delayed_eval import DelayedEvalBranchManager
@@ -226,46 +226,61 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
                 self.events["skimRescaleGenWeight"] =  np.ones(self.nEvents_after_skim) * self.output['sum_genweights'][self._dataset] / skimmed_sumw
             self.output['sum_genweights_skimmed'] = { self._dataset : skimmed_sumw }
 
-        filename = (
-            "__".join(
-                [
-                    self._dataset,
-                    self.events.metadata['fileuuid'],
-                    str(self.events.metadata['entrystart']),
-                    str(self.events.metadata['entrystop']),
-                ]
-            )
-            + ".root"
-        )
+        filename = self.skimmed_chunk_filename()
         destination = os.path.join(self.cfg.save_skimmed_files_folder, self._dataset, filename)
-        # workflow_options["skim_skip_existing"]: on a resubmission, keep the
-        # metadata (cutflow, sum_genweights, file list) but do not rewrite a
-        # chunk whose file at the destination already has the expected number
-        # of events. A missing, partial or corrupted file is rewritten.
-        skip_existing = (self.workflow_options or {}).get("skim_skip_existing", False)
-        if skip_existing and skimmed_file_is_complete(destination, self.nEvents_after_skim):
-            logging.info(f"[skim] {self._dataset}: {filename} exists with {self.nEvents_after_skim} events, skip write")
-        else:
-            # Write the chunk in a temporary working directory instead of the cwd,
-            # which is often on AFS: TMPDIR (or the HTCondor scratch) points to
-            # node-local storage. copy_file deletes the local file after the copy;
-            # the directory itself is cleaned up here, also on failure.
-            tmpdir = tempfile.mkdtemp(
-                prefix="skim_",
-                dir=os.environ.get("TMPDIR") or os.environ.get("_CONDOR_SCRATCH_DIR"),
+        # Write the chunk in a temporary working directory instead of the cwd,
+        # which is often on AFS: TMPDIR (or the HTCondor scratch) points to
+        # node-local storage. copy_file deletes the local file after the copy;
+        # the directory itself is cleaned up here, also on failure.
+        tmpdir = tempfile.mkdtemp(
+            prefix="skim_",
+            dir=os.environ.get("TMPDIR") or os.environ.get("_CONDOR_SCRATCH_DIR"),
+        )
+        try:
+            with uproot.recreate(os.path.join(tmpdir, filename), compression=uproot.ZSTD(5)) as fout:
+                fout["Events"] = uproot_writeable(self.events)
+            # copy the file
+            copy_file(
+                filename, tmpdir, self.cfg.save_skimmed_files_folder, subdirs=[self._dataset]
             )
-            try:
-                with uproot.recreate(os.path.join(tmpdir, filename), compression=uproot.ZSTD(5)) as fout:
-                    fout["Events"] = uproot_writeable(self.events)
-                # copy the file
-                copy_file(
-                    filename, tmpdir, self.cfg.save_skimmed_files_folder, subdirs=[self._dataset]
-                )
-            finally:
-                shutil.rmtree(tmpdir, ignore_errors=True)
+        finally:
+            shutil.rmtree(tmpdir, ignore_errors=True)
         # save the new file location for the new dataset definition
         self.output["skimmed_files"] = {self._dataset: [destination]}
         self.output["nskimmed_events"] = {self._dataset: [self.nEvents_after_skim]}
+
+    def skimmed_chunk_filename(self):
+        '''Name of the skimmed ROOT file of this chunk: input file uuid + entry range.'''
+        return "__".join(
+            [
+                self._dataset,
+                self.events.metadata['fileuuid'],
+                str(self.events.metadata['entrystart']),
+                str(self.events.metadata['entrystop']),
+            ]
+        ) + ".root"
+
+    def skip_existing_skimmed_chunk(self):
+        '''workflow_options["skim_skip_existing"]: on a resubmission, if the
+        skimmed file of this chunk already exists and is readable, fill the skim
+        outputs (cutflow, sum_genweights_skimmed, file list, nevents) from that
+        file and return True, so the caller skips skim, calibration and
+        preselection. A missing, partial or corrupted file returns False and the
+        chunk is processed again. Call it after sum_genweights is filled.'''
+        filename = self.skimmed_chunk_filename()
+        destination = os.path.join(self.cfg.save_skimmed_files_folder, self._dataset, filename)
+        info = read_skimmed_file(destination, self._isMC)
+        if info is None:
+            return False
+        nevents, skimmed_sumw = info
+        logging.info(f"[skim] {self._dataset}: {filename} exists with {nevents} events, skip chunk")
+        self.nEvents_after_skim = nevents
+        self.output['cutflow']['skim'][self._dataset] = nevents
+        if self._isMC:
+            self.output['sum_genweights_skimmed'] = {self._dataset: skimmed_sumw}
+        self.output["skimmed_files"] = {self._dataset: [destination]}
+        self.output["nskimmed_events"] = {self._dataset: [nevents]}
+        return True
 
     @abstractmethod
     def apply_object_preselection(self, variation):
@@ -836,6 +851,14 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         # BE CAREFUL: objects are not corrected and cleaned at this stage, the skimming
         # selections MUST be loose and inclusive w.r.t the final selections.
         #########################
+        skim_mode = self.workflow_options.get("skim_mode", "skim") if self.workflow_options else "skim"
+        self._announce_skim_mode(skim_mode)
+        if (self.cfg.save_skimmed_files
+                and skim_mode in ("skim", "presel_any_variation")
+                and self.workflow_options.get("skim_skip_existing", False)
+                and self.skip_existing_skimmed_chunk()):
+            return self.output
+
         # Customization point for derived workflows before skimming
         self.process_extra_before_skim()
         # MET filter, lumimask, + custom skimming function
@@ -843,9 +866,6 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         if not self.has_events:
             self.save_processing_time()
             return self.output
-
-        skim_mode = self.workflow_options.get("skim_mode", "skim") if self.workflow_options else "skim"
-        self._announce_skim_mode(skim_mode)
 
         if self.cfg.save_skimmed_files and skim_mode == "skim":
             logging.info(
