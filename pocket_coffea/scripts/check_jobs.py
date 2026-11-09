@@ -1002,7 +1002,7 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, queue_shift, ncpu, 
             return
         folder, _, submission, state, state_file = load_current_contract(folder)
     elif recreate is not None:
-        show_startup_step("Other startup steps")
+        show_startup_step("Recreating jobs")
         result = recreate_jobs_oneshot(
             folder, recreate, use_redirector=use_redirector,
             blocklist_sites=blocklist,
