@@ -1086,6 +1086,7 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, queue_shift, ncpu, 
             for number in successful:
                 job = f"job_{number}"
                 failed[:] = [value for value in failed if value != job]
+                timeout[:] = [value for value in timeout if value != job]
                 if job not in idle:
                     idle.append(job)
                 pending.pop(job, None)

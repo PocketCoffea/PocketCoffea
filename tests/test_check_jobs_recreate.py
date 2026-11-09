@@ -1,5 +1,6 @@
 """Focused current-format proactive recreation tests."""
 import json
+import re
 import time
 
 import pytest
@@ -177,6 +178,7 @@ def test_successful_recreate_marker_failure_stops_after_submission(tmp_path, mon
 
 def _resubmit_once(tmp_path, monkeypatch, *extra, submit_ok=True):
     submitted = []
+    monkeypatch.setenv("COLUMNS", "250")  # wide Log panel: messages are not wrapped
     monkeypatch.setattr(check_jobs, "condor_submit_job",
                         lambda folder, sub: submitted.append(sub) or (submit_ok, "error"))
     result = CliRunner().invoke(check_jobs.check_jobs, [
@@ -198,6 +200,8 @@ def test_timeout_escalated_after_restart(tmp_path, monkeypatch):
     state = json.loads((tmp_path / "job_state.json").read_text())["0"]
     assert state["queue"] != "espresso" and state["resubmissions"] == 1
     assert (tmp_path / "job_0.idle").exists() and not (tmp_path / "job_0.timeout").exists()
+    # summary row: total 1, idle 1, running 0, done 0, failed 0
+    assert re.search(r"│\s*1\s*│\s*1\s*│\s*0\s*│\s*0\s*│\s*0\s*│", result.output), result.output
 
 
 def test_timeout_marker_kept_when_limit_reached(tmp_path, monkeypatch):
