@@ -514,11 +514,10 @@ def failure_reason(jobs_folder, job, flag_mtime):
     return " | ".join(filter(None, parts)) or "no error found in the log"
 
 
-def log_failure_reasons(jobs_folder, failed, reported, waiting, log_text, timeout=()):
+def log_failure_reasons(jobs_folder, failed, reported, waiting, log_text):
     """Add one Log line per new failed attempt. `reported` maps job -> mtime of
     the .failed flag already reported; `waiting` maps job -> first time seen
-    without fresh logs. Jobs in `timeout` were removed by Condor at the wall
-    time limit: that attempt sends back no logs, so they do not wait for them.
+    without fresh logs. Jobs without a .failed flag (.timeout jobs) are skipped.
     Returns the jobs still waiting for their logs."""
     pending_logs = set()
     for job in failed:
@@ -528,11 +527,11 @@ def log_failure_reasons(jobs_folder, failed, reported, waiting, log_text, timeou
             continue
         if reported.get(job) == flag_mtime:
             continue
-        if job in timeout:
-            reason = "Condor wall time limit"
-        else:
-            reason = failure_reason(jobs_folder, job, flag_mtime)
+        reason = failure_reason(jobs_folder, job, flag_mtime)
         if reason is None:
+            if job not in waiting:
+                log_text.append(f"{job} failed; waiting up to {LOG_WAIT_TIMEOUT} s for its logs "
+                                "before the resubmission.")
             if time.time() - waiting.setdefault(job, time.time()) < LOG_WAIT_TIMEOUT:
                 pending_logs.add(job)
                 continue
@@ -553,13 +552,16 @@ def convert_timeout_jobs(jobs_folder, timeout_jobs, running, idle, failed,
                          queue_shift, ncpu, state, log_text, pending=None):
     _, _, submission, _, _ = load_current_contract(jobs_folder)
     pending = pending if pending is not None else {}
+    # The .timeout marker stays on disk until the resubmission (mark_job_idle
+    # clears it), so a restarted check-jobs still escalates the job.
     for job in list(timeout_jobs):
         if job in running:
             running.remove(job)
         if job in idle:
             idle.remove(job)
-        mark_job_failed(jobs_folder, job)
         failed.append(job) if job not in failed else None
+        if job in pending:
+            continue
         job_num = job.split("_", 1)[1]
         pending[job] = candidate_state(state[job_num], submission["executor"], queue_shift, ncpu)
         log_text.append(
@@ -1057,8 +1059,7 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, queue_shift, ncpu, 
         else:
             idle, running, done, failed, timeout = merge_inferred_status(
                 idle, running, done, failed, timeout, findings)
-        pending_logs = log_failure_reasons(folder, failed, reported_failures, waiting_logs, log_text,
-                                           timeout)
+        pending_logs = log_failure_reasons(folder, failed, reported_failures, waiting_logs, log_text)
         resubmit_now = []
         if resubmit:
             for job in failed:
@@ -1071,6 +1072,8 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, queue_shift, ncpu, 
                 if "Corrupt input data" in out_text:
                     log_text.append(f"{job} reported corrupt input data in its .out log.")
                 if attempts >= max_resubmit:
+                    log_text.append(f"[red]{job}: max resubmissions ({max_resubmit}) reached, "
+                                    "not resubmitted.[/]")
                     definitive.add(job)
                     continue
                 if (attempts >= 1 and job not in timeout and job not in pending
