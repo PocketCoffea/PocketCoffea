@@ -514,10 +514,12 @@ def failure_reason(jobs_folder, job, flag_mtime):
     return " | ".join(filter(None, parts)) or "no error found in the log"
 
 
-def log_failure_reasons(jobs_folder, failed, reported, waiting, log_text):
+def log_failure_reasons(jobs_folder, failed, reported, waiting, log_text, timeout=()):
     """Add one Log line per new failed attempt. `reported` maps job -> mtime of
     the .failed flag already reported; `waiting` maps job -> first time seen
-    without fresh logs. Returns the jobs still waiting for their logs."""
+    without fresh logs. Jobs in `timeout` were removed by Condor at the wall
+    time limit: that attempt sends back no logs, so they do not wait for them.
+    Returns the jobs still waiting for their logs."""
     pending_logs = set()
     for job in failed:
         try:
@@ -526,7 +528,10 @@ def log_failure_reasons(jobs_folder, failed, reported, waiting, log_text):
             continue
         if reported.get(job) == flag_mtime:
             continue
-        reason = failure_reason(jobs_folder, job, flag_mtime)
+        if job in timeout:
+            reason = "Condor wall time limit"
+        else:
+            reason = failure_reason(jobs_folder, job, flag_mtime)
         if reason is None:
             if time.time() - waiting.setdefault(job, time.time()) < LOG_WAIT_TIMEOUT:
                 pending_logs.add(job)
@@ -1052,7 +1057,8 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, queue_shift, ncpu, 
         else:
             idle, running, done, failed, timeout = merge_inferred_status(
                 idle, running, done, failed, timeout, findings)
-        pending_logs = log_failure_reasons(folder, failed, reported_failures, waiting_logs, log_text)
+        pending_logs = log_failure_reasons(folder, failed, reported_failures, waiting_logs, log_text,
+                                           timeout)
         resubmit_now = []
         if resubmit:
             for job in failed:
