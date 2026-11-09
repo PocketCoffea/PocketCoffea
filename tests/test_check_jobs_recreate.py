@@ -224,3 +224,20 @@ def test_failed_job_without_logs_reports_wait(tmp_path, monkeypatch):
     result, submitted = _resubmit_once(tmp_path, monkeypatch)
     assert submitted == []
     assert "waiting up to" in result.output
+
+
+def test_own_periodic_remove_is_a_timeout(tmp_path):
+    # The executor's periodic_remove (MaxRuntime - 300 s) removes the job at the
+    # time limit: it must be classified as timeout, not as a plain failure.
+    make_jobs(tmp_path)
+    stamp = time.strftime("%m/%d %H:%M:%S", time.localtime(time.time() + 2))
+    (tmp_path / "logs" / "job_123.log").write_text(
+        f"009 (123.0.000) {stamp} Job was aborted.\n"
+        "\tThe job attribute PeriodicRemove expression '(JobStatus == 2) && "
+        "(JobCurrentStartDate =!= undefined) && ((time() - JobCurrentStartDate) > "
+        "(MaxRuntime - 300))' evaluated to TRUE\n"
+    )
+    assert check_jobs.scan_condor_log_failures(tmp_path, {}) == {"job_0": "timeout"}
+    assert check_jobs.is_time_limit_removal(
+        "Job removed by SYSTEM_PERIODIC_REMOVE due to wall time exceeded.")
+    assert not check_jobs.is_time_limit_removal("Job removed by user.")

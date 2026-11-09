@@ -196,6 +196,14 @@ def check_jobs_logs(jobs_folder):
 _CONDOR_ABORT_RE = re.compile(r"^\s*009 \((\d+)\.(\d+)\.\d+\)\s+(\d\d/\d\d \d\d:\d\d:\d\d)")
 
 
+def is_time_limit_removal(reason):
+    """True if a Condor abort reason is a removal at the wall time limit: the
+    lxplus system policy, or the executor's own periodic_remove (MaxRuntime
+    minus the graceful-shutdown margin, see build_condor_shutdown_policy)."""
+    return (("SYSTEM_PERIODIC_REMOVE" in reason and "wall time exceeded" in reason.lower())
+            or ("PeriodicRemove" in reason and "MaxRuntime" in reason))
+
+
 def scan_condor_log_failures(jobs_folder, log_offsets):
     folder = Path(jobs_folder)
     active = {}
@@ -239,8 +247,7 @@ def scan_condor_log_failures(jobs_folder, log_offsets):
                     recovered[job] = (event, reason)
             log_offsets[key] = handle.tell()
     return {
-        job: ("timeout" if "SYSTEM_PERIODIC_REMOVE" in reason and
-              "wall time exceeded" in reason.lower() else "failed")
+        job: ("timeout" if is_time_limit_removal(reason) else "failed")
         for job, (_, reason) in recovered.items()
         if not any((folder / f"{job}.{term}").exists()
                    for term in ("done", "failed", "timeout"))
