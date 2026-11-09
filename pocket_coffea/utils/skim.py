@@ -93,17 +93,22 @@ def copy_file(
     pathlib.Path(local_file).unlink()
 
 
-def skimmed_file_is_complete(path: str, nevents: int) -> bool:
-    '''True if `path` (local or root://) can be opened and its Events tree has
-    exactly `nevents` entries. Any error (missing, partial or corrupted file)
-    returns False so that the caller rewrites the file.'''
+def read_skimmed_file(path: str, isMC: bool):
+    '''Return (num_entries, sum of genWeight or None) of the Events tree at
+    `path` (local or root://). A file shorter than the end recorded in its
+    ROOT header (fEND) is a truncated copy. Any error (missing, truncated or
+    corrupted file) returns None so that the caller reprocesses the chunk.'''
     import uproot
     try:
         with uproot.open(path) as f:
-            return f["Events"].num_entries == nevents
+            if f.file.source.num_bytes < f.file.fEND:
+                raise OSError(f"truncated: {f.file.source.num_bytes} < fEND={f.file.fEND} bytes")
+            tree = f["Events"]
+            sumw = float(tree["genWeight"].array(library="np").sum()) if isMC else None
+            return tree.num_entries, sumw
     except Exception as err:
-        logging.info(f"skimmed_file_is_complete: cannot validate {path}: {err}")
-        return False
+        logging.info(f"read_skimmed_file: cannot read {path}: {err}")
+        return None
 
 
 def apply_skim_sumgenweights_override(accumulator, filesets):
