@@ -3,7 +3,7 @@ import numpy as np
 import vector
 import awkward as ak
 import cachetools
-from pocket_coffea.lib.jets import met_correction_after_jec, jet_correction_corrlib, msoftdrop_correction, JET_SORTIDX_FIELD
+from pocket_coffea.lib.jets import met_correction_after_jec, jet_correction_corrlib, msoftdrop_correction, JET_SORTIDX_FIELD, compute_jetId
 from pocket_coffea.lib.leptons import (
     get_ele_scaled, 
     get_ele_smeared, 
@@ -539,133 +539,89 @@ class JetsSoftdropMassCalibrator(Calibrator):
 
 ###########################################
 class HEM2018Calibrator(Calibrator):
-    """Apply the one-sided 2018 HEM jet-response variation to simulated events."""
+    """One-sided 2018 HEM15/16 jet-response variation for MC.
+
+    HEM2018Down scales pt and mass of the tight-ID jets with pt > 15 GeV in the HEM region
+    (0.80 for -2.5 < eta < -1.3, 0.65 for -3.0 < eta < -2.5, -1.57 < phi < -0.87);
+    HEM2018Up is the nominal. It acts on the AK4 CHS and Puppi jet collections of
+    `jets_calibration.collection[year]` and re-sorts them by pt following
+    `jets_calibration.sort_by_pt`. Run it after the JetsCalibrator and before the
+    METCalibrator, so that the shift propagates to the type-1 MET via rawFactor.
+    """
 
     name = "HEM2018"
     has_variations = True
     isMC_only = True
-    calibrated_collections = ["Jet"]
+    years = ["2018", "2018_v15"]
+    jet_types = ["AK4PFchs", "AK4PFPuppi"]
 
     def __init__(self, params, metadata, do_variations, **kwargs):
-        super().__init__(
-            params,
-            metadata,
-            do_variations,
-            **kwargs,
-        )
+        super().__init__(params, metadata, do_variations, **kwargs)
+        # instance attributes: the CalibratorsManager reads them after the constructor
+        self.calibrated_collections = []
+        self.sort_by_pt = {}
+        if self.isMC and self.year in self.years:
+            jet_calib = self.params.jets_calibration
+            aliases = jet_calib.get("collection_name_alias", {}).get(self.year, {})
+            # select by jet type, not by alias: CorrT1METJet types alias to AK4PFchs/AK4PFPuppi
+            for jet_type, jet_coll_name in jet_calib.collection[self.year].items():
+                if jet_type not in self.jet_types or jet_coll_name is None:
+                    continue
+                alias = aliases.get(jet_type, jet_type)
+                self.calibrated_collections.append(jet_coll_name)
+                self.sort_by_pt[jet_coll_name] = jet_calib.sort_by_pt[self.year][alias]
 
-        self._year = metadata["year"]
-        self._isMC = metadata["isMC"]
-
-        if self.do_variations and self._isMC and self._year == "2018":
-            self._variations = [
-                "HEM2018Up",
-                "HEM2018Down",
-            ]
+        if self.do_variations and self.calibrated_collections:
+            self._variations = ["HEM2018Up", "HEM2018Down"]
         else:
             self._variations = []
 
     def initialize(self, events):
         pass
 
-    def calibrate(
-        self,
-        events,
-        orig_colls,
-        variation,
-        already_applied_calibrators=None,
-    ):
-        jets = copy.copy(events.Jet)
+    def calibrate(self, events, orig_colls, variation, already_applied_calibrators=None):
+        # Only HEM2018Down changes the jets: for every other variation keep the collections
+        # as produced by the previous calibrators.
+        if variation != "HEM2018Down":
+            return {}
 
-        if JET_SORTIDX_FIELD in jets.fields:
-            original_sortidx = jets[JET_SORTIDX_FIELD]
-        else:
-            original_sortidx = ak.local_index(jets.pt, axis=1)
-
-        if (
-            not self._isMC
-            or self._year != "2018"
-            or variation != "HEM2018Down"
-        ):
-            if JET_SORTIDX_FIELD not in jets.fields:
-                jets = ak.with_field(
-                    jets,
-                    original_sortidx,
-                    JET_SORTIDX_FIELD,
-                )
-
-            return {"Jet": jets}
-
-        tight_jet_id = jets.jetId >= 2
-
-        common_mask = (
-            (jets.pt > 15.0)
-            & tight_jet_id
-            & (jets.phi > -1.57)
-            & (jets.phi < -0.87)
-        )
-
-        hem_20 = (
-            common_mask
-            & (jets.eta > -2.5)
-            & (jets.eta < -1.3)
-        )
-
-        hem_35 = (
-            common_mask
-            & (jets.eta > -3.0)
-            & (jets.eta < -2.5)
-        )
-
-        scale = ak.ones_like(jets.pt)
-        scale = ak.where(hem_20, 0.80, scale)
-        scale = ak.where(hem_35, 0.65, scale)
-
-        old_pt = jets.pt
-        shifted_pt = old_pt * scale
-        shifted_mass = jets.mass * scale
-
-        jets = ak.with_field(jets, shifted_pt, "pt")
-        jets = ak.with_field(jets, shifted_mass, "mass")
-
-        shifted_raw_factor = ak.where(
-            shifted_pt != 0,
-            1.0 - jets.pt_raw / shifted_pt,
-            0.0,
-        )
-        jets = ak.with_field(
-            jets,
-            shifted_raw_factor,
-            "rawFactor",
-        )
-
-        if "L1FastJetFactor" in jets.fields:
-            shifted_l1_factor = ak.where(
-                shifted_pt != 0,
-                jets.L1FastJetFactor * old_pt / shifted_pt,
-                jets.L1FastJetFactor,
+        out = {}
+        for jet_coll_name in self.calibrated_collections:
+            jets = copy.copy(events[jet_coll_name])
+            # tight ID as in the jet preselection (NanoAODv15 has no jetId branch)
+            jet_id = compute_jetId(events, jet_coll_name, self.params, self.year)
+            common_mask = (
+                (jets.pt > 15.0)
+                & ((jet_id & 2) > 0)
+                & (jets.phi > -1.57)
+                & (jets.phi < -0.87)
             )
-            jets = ak.with_field(
-                jets,
-                shifted_l1_factor,
-                "L1FastJetFactor",
+            hem_20 = common_mask & (jets.eta > -2.5) & (jets.eta < -1.3)
+            hem_35 = common_mask & (jets.eta > -3.0) & (jets.eta < -2.5)
+            scale = ak.where(hem_20, 0.80, ak.where(hem_35, 0.65, 1.0))
+
+            shifted_pt = jets.pt * scale
+            # keep the raw pt invariant: pt_raw = pt*(1-rawFactor) = shifted_pt*(1-new rawFactor)
+            shifted_raw_factor = ak.where(
+                shifted_pt != 0, 1.0 - (1.0 - jets.rawFactor) * jets.pt / shifted_pt, 0.0
             )
+            jets = ak.with_field(jets, shifted_pt, "pt")
+            jets = ak.with_field(jets, jets.mass * scale, "mass")
+            jets = ak.with_field(jets, shifted_raw_factor, "rawFactor")
 
-        new_sortidx = ak.argsort(
-            jets.pt,
-            axis=1,
-            ascending=False,
-        )
-        jets = jets[new_sortidx]
+            if self.sort_by_pt[jet_coll_name]:
+                # compose with the permutation of the previous calibrators so that
+                # jets_in_original_order still restores the NanoAOD order
+                if JET_SORTIDX_FIELD in jets.fields:
+                    previous_sortidx = jets[JET_SORTIDX_FIELD]
+                else:
+                    previous_sortidx = ak.local_index(jets.pt, axis=1)
+                new_sortidx = ak.argsort(jets.pt, axis=1, ascending=False)
+                jets = jets[new_sortidx]
+                jets = ak.with_field(jets, previous_sortidx[new_sortidx], JET_SORTIDX_FIELD)
 
-        composed_sortidx = original_sortidx[new_sortidx]
-        jets = ak.with_field(
-            jets,
-            composed_sortidx,
-            JET_SORTIDX_FIELD,
-        )
-
-        return {"Jet": jets}
+            out[jet_coll_name] = jets
+        return out
 
 ###########################################
 class METCalibrator(Calibrator):
@@ -737,7 +693,7 @@ class METCalibrator(Calibrator):
             
             mask_jets = (jet_pt_noMuL1L2L3>15) & \
                         (jets_calib["chEmEF"] + jets_calib["neEmEF"] < 0.9) 
-            if "EmEF" in jets_calib.fields:
+            if "EmEF" in corrT1METJet.fields:
                 mask_corrT1METJet = (corrT1METJet_pt_noMuL1L2L3 > 15) & \
                                     (corrT1METJet["EmEF"] < 0.9)
             else:
