@@ -903,85 +903,53 @@ def test_met_type1_variation_propagation(events, params):
         assert np.allclose(captured[v], captured["nominal"]), \
             f"AK8 variation {v} must not change the AK4-jet-based MET"
 
-def test_hem2018_calibrator():
-    jets = ak.Array(
-        [
-            [
-                {
-                    "pt": 100.0,
-                    "mass": 20.0,
-                    "eta": -2.0,
-                    "phi": -1.0,
-                    "jetId": 2,
-                    "pt_raw": 80.0,
-                    "rawFactor": 0.2,
-                },
-                {
-                    "pt": 90.0,
-                    "mass": 18.0,
-                    "eta": -2.7,
-                    "phi": -1.0,
-                    "jetId": 2,
-                    "pt_raw": 72.0,
-                    "rawFactor": 0.2,
-                },
-                {
-                    "pt": 70.0,
-                    "mass": 14.0,
-                    "eta": 0.5,
-                    "phi": 0.2,
-                    "jetId": 2,
-                    "pt_raw": 56.0,
-                    "rawFactor": 0.2,
-                },
-            ]
-        ]
-    )
+@pytest.mark.parametrize("year,jet_type", [("2018", "AK4PFchs"), ("2018_v15", "AK4PFPuppi")])
+@pytest.mark.parametrize("sort_by_pt", [True, False])
+def test_hem2018_calibrator(params, year, jet_type, sort_by_pt):
+    from omegaconf import OmegaConf
+    from pocket_coffea.lib.jets import jets_in_original_order
 
-    events = ak.Array(
-        [
-            {
-                "Jet": jets[0],
-            }
-        ]
-    )
+    def jet(pt, eta, phi):
+        # rawFactor = 0.2 for every jet; the energy fractions pass the NanoAODv15 tight ID
+        return {"pt": pt, "mass": pt / 5, "eta": eta, "phi": phi, "jetId": 6, "rawFactor": 0.2,
+                "chHEF": 0.5, "neHEF": 0.1, "chEmEF": 0.1, "neEmEF": 0.1, "muEF": 0.0,
+                "chMultiplicity": 5, "neMultiplicity": 5}
 
-    calibrator = HEM2018Calibrator(
-        params=None,
-        metadata={"year": "2018", "isMC": True},
-        do_variations=True,
-    )
+    class Events(dict):
+        # NanoEvents-like: collections by name + metadata (read by compute_jetId)
+        metadata = {"isMC": True, "filename": "test.root", "nano_version": 15 if year == "2018_v15" else 9}
+
+    jets = ak.Array([[jet(100.0, -2.0, -1.0), jet(90.0, -2.7, -1.0), jet(70.0, 0.5, 0.2)]])
+    # the CorrT1METJet collection is aliased to the AK4 jet type: it must not be shifted
+    events = Events(Jet=jets, CorrT1METJet=jets)
+
+    params = OmegaConf.merge(params, {"jets_calibration": {"sort_by_pt": {year: {jet_type: sort_by_pt}}}})
+    calibrator = HEM2018Calibrator(params, metadata={"year": year, "isMC": True}, do_variations=True)
     calibrator.initialize(events)
 
-    nominal = calibrator.calibrate(
-        events,
-        orig_colls={},
-        variation="nominal",
-    )["Jet"]
+    assert calibrator.calibrated_collections == ["Jet"]
+    assert calibrator.variations == ["HEM2018Up", "HEM2018Down"]
+    # nominal and HEM2018Up keep the collections of the previous calibrators
+    assert calibrator.calibrate(events, orig_colls={}, variation="nominal") == {}
+    assert calibrator.calibrate(events, orig_colls={}, variation="HEM2018Up") == {}
 
-    up = calibrator.calibrate(
-        events,
-        orig_colls={},
-        variation="HEM2018Up",
-    )["Jet"]
+    down = calibrator.calibrate(events, orig_colls={}, variation="HEM2018Down")
+    assert list(down.keys()) == ["Jet"]
+    down = down["Jet"]
+    if sort_by_pt:
+        assert np.allclose(ak.to_numpy(down.pt[0]), [80.0, 70.0, 58.5])
+        assert ak.to_list(down["pocket_sortidx"][0]) == [0, 2, 1]
+    else:
+        assert np.allclose(ak.to_numpy(down.pt[0]), [80.0, 58.5, 70.0])
+        assert "pocket_sortidx" not in down.fields
+    down = jets_in_original_order(down)
+    assert np.allclose(ak.to_numpy(down.mass[0]), [16.0, 11.7, 14.0])
+    # raw pt is invariant
+    assert np.allclose(ak.to_numpy(down.pt[0] * (1 - down.rawFactor[0])), [80.0, 72.0, 56.0])
 
-    down = calibrator.calibrate(
-        events,
-        orig_colls={},
-        variation="HEM2018Down",
-    )["Jet"]
 
-    assert ak.all(nominal.pt == events.Jet.pt)
-    assert ak.all(up.pt == events.Jet.pt)
-
-    assert np.allclose(
-        ak.to_numpy(down.pt[0]),
-        np.array([80.0, 70.0, 58.5]),
-    )
-
-    assert np.allclose(
-        ak.to_numpy(down.mass[0]),
-        np.array([16.0, 14.0, 11.7]),
-    )
-
-    assert ak.to_list(down["pocket_sortidx"][0]) == [0, 2, 1]
+def test_hem2018_calibrator_inactive(params):
+    for metadata in [{"year": "2017", "isMC": True}, {"year": "2018", "isMC": False}]:
+        calibrator = HEM2018Calibrator(params, metadata=metadata, do_variations=True)
+        assert calibrator.calibrated_collections == []
+        assert calibrator.variations == []
