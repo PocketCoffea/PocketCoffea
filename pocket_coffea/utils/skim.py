@@ -190,6 +190,10 @@ def save_skimed_dataset_definition(processing_out, fileout, check_initial_events
 
         if key in inconsistent:
             continue
+        if key not in processing_out["skimmed_files"]:
+            # No chunk of this dataset passed the skim: no files to list
+            print(f"WARNING: dataset {key} has 0 skimmed events, it is not written to {fileout}")
+            continue
         # Count the remaining events
         datasets_info[key] =  {
             "metadata": datasets_metadata[key],
