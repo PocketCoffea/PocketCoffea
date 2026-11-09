@@ -953,3 +953,32 @@ def test_hem2018_calibrator_inactive(params):
         calibrator = HEM2018Calibrator(params, metadata=metadata, do_variations=True)
         assert calibrator.calibrated_collections == []
         assert calibrator.variations == []
+
+
+def test_met_type1_corrT1METJet_emef_cut(params):
+    """The CorrT1METJet EM-fraction cut (EmEF < 0.9) must apply when the CorrT1METJet
+    collection has the EmEF field (NanoAODv12+ / Run2 NanoAODv15). The Jet collection
+    has chEmEF/neEmEF, never EmEF."""
+    def jet(pt, phi):
+        return {"pt": pt, "phi": phi, "rawFactor": 0.0, "muonSubtrFactor": 0.0,
+                "chEmEF": 0.0, "neEmEF": 0.0}
+
+    def corrt1(raw_pt, phi, emef):
+        # rawFactor = 0.5 -> corrected pt = 2 x raw pt
+        return {"rawPt": raw_pt, "phi": phi, "rawFactor": 0.5, "muonSubtrFactor": 0.0, "EmEF": emef}
+
+    events = ak.Array([{
+        "RawPuppiMET": {"pt": 50.0, "phi": 0.0},
+        "PuppiMET": {"pt": 50.0, "phi": 0.0},
+        # below 15 GeV: no type-1 term from the Jet collection
+        "Jet": [jet(10.0, 0.0)],
+        # corrected pt 20 GeV for both: only the first one passes EmEF < 0.9
+        "CorrT1METJet": [corrt1(10.0, 0.0, 0.0), corrt1(10.0, np.pi / 2, 0.95)],
+    }])
+    calibrator = METCalibrator(params, metadata={"year": "2018_v15", "isMC": True})
+    calibrator.initialize(events)
+    met = calibrator.calibrate(events, orig_colls={}, variation="nominal")
+
+    # RawMET (50, 0) minus the type-1 term (20 - 10) of the first CorrT1METJet along x
+    assert np.allclose(ak.to_numpy(met["PuppiMET.pt"]), [40.0])
+    assert np.allclose(ak.to_numpy(met["PuppiMET.phi"]), [0.0])

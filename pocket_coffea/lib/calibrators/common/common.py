@@ -693,7 +693,7 @@ class METCalibrator(Calibrator):
             
             mask_jets = (jet_pt_noMuL1L2L3>15) & \
                         (jets_calib["chEmEF"] + jets_calib["neEmEF"] < 0.9) 
-            if "EmEF" in jets_calib.fields:
+            if "EmEF" in corrT1METJet.fields:
                 mask_corrT1METJet = (corrT1METJet_pt_noMuL1L2L3 > 15) & \
                                     (corrT1METJet["EmEF"] < 0.9)
             else:
