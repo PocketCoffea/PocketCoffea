@@ -1,5 +1,6 @@
 """Focused current-format proactive recreation tests."""
 import json
+import re
 import time
 
 import pytest
@@ -173,3 +174,53 @@ def test_successful_recreate_marker_failure_stops_after_submission(tmp_path, mon
     with pytest.raises(RuntimeError, match="accepted the replacement"):
         check_jobs.recreate_jobs_oneshot(tmp_path, "0")
     assert json.loads((tmp_path / "job_state.json").read_text())["0"]["resubmissions"] == 1
+
+
+def _resubmit_once(tmp_path, monkeypatch, *extra, submit_ok=True):
+    submitted = []
+    monkeypatch.setenv("COLUMNS", "250")  # wide Log panel: messages are not wrapped
+    monkeypatch.setattr(check_jobs, "condor_submit_job",
+                        lambda folder, sub: submitted.append(sub) or (submit_ok, "error"))
+    result = CliRunner().invoke(check_jobs.check_jobs, [
+        "-j", str(tmp_path), "--once", "--by", "none", "--resubmit", *extra])
+    assert result.exit_code == 0, result.output
+    return result, submitted
+
+
+def test_timeout_escalated_after_restart(tmp_path, monkeypatch):
+    # The first check-jobs process finds the .timeout job but its submission
+    # fails. A new process (no memory of the first one) must still resubmit
+    # it at once, with the next queue.
+    make_jobs(tmp_path)
+    (tmp_path / "job_0.running").unlink()
+    (tmp_path / "job_0.timeout").touch()
+    _resubmit_once(tmp_path, monkeypatch, submit_ok=False)
+    result, submitted = _resubmit_once(tmp_path, monkeypatch)
+    assert submitted == ["resubmit_now.sub"]
+    state = json.loads((tmp_path / "job_state.json").read_text())["0"]
+    assert state["queue"] != "espresso" and state["resubmissions"] == 1
+    assert (tmp_path / "job_0.idle").exists() and not (tmp_path / "job_0.timeout").exists()
+    # summary row: total 1, idle 1, running 0, done 0, failed 0
+    assert re.search(r"│\s*1\s*│\s*1\s*│\s*0\s*│\s*0\s*│\s*0\s*│", result.output), result.output
+
+
+def test_timeout_marker_kept_when_limit_reached(tmp_path, monkeypatch):
+    make_jobs(tmp_path)
+    (tmp_path / "job_0.running").unlink()
+    (tmp_path / "job_0.timeout").touch()
+    state = json.loads((tmp_path / "job_state.json").read_text())
+    state["0"]["resubmissions"] = 2
+    (tmp_path / "job_state.json").write_text(json.dumps(state))
+    result, submitted = _resubmit_once(tmp_path, monkeypatch, "--max-resubmit", "2")
+    assert submitted == []
+    assert "max resubmissions (2) reached" in result.output
+    assert (tmp_path / "job_0.timeout").exists()
+
+
+def test_failed_job_without_logs_reports_wait(tmp_path, monkeypatch):
+    make_jobs(tmp_path)
+    (tmp_path / "job_0.running").unlink()
+    (tmp_path / "job_0.failed").touch()
+    result, submitted = _resubmit_once(tmp_path, monkeypatch)
+    assert submitted == []
+    assert "waiting up to" in result.output
