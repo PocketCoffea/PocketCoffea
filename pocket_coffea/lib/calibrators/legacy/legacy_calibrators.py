@@ -452,10 +452,20 @@ class MuonsRochesterCalibrator(Calibrator):
         else:
             sf_nom  = self.rc.kScaleDT(charge, pt, eta, phi)
 
-        self.pt_corr = {"nominal": ak.unflatten(pt * sf_nom, counts)}
+        # Keep the uncorrected pt where the factor is not positive (or NaN): kSmearMC can
+        # give that for badly reconstructed, non gen-matched muons. A muon with a bad
+        # nominal factor stays uncorrected in every variation too.
+        bad_nom = ~(sf_nom > 0)
+        sf_nom = np.where(bad_nom, 1.0, sf_nom)
+
+        def corrected(sf):
+            return ak.unflatten(pt * np.where(sf > 0, sf, 1.0), counts)
+
+        self.pt_corr = {"nominal": corrected(sf_nom)}
         for name, delta in shifts.items():
-            self.pt_corr[name + "Up"] = ak.unflatten(pt * (sf_nom + delta), counts)
-            self.pt_corr[name + "Down"] = ak.unflatten(pt * (sf_nom - delta), counts)
+            delta = np.where(bad_nom, 0.0, delta)
+            self.pt_corr[name + "Up"] = corrected(sf_nom + delta)
+            self.pt_corr[name + "Down"] = corrected(sf_nom - delta)
 
     def calibrate(self, events, orig_colls, variation, already_applied_calibrators=None):
         if not self.enabled:
