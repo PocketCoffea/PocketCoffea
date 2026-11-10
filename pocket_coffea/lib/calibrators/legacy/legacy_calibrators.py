@@ -358,6 +358,8 @@ class MuonsRochesterCalibrator(Calibrator):
     Uses the official CMS RoccoR C++ code compiled as a shared library.
     Data    → kScaleDT
     MC      → kSpreadMC (gen-matched) or kSmearMC (no gen match)
+    Variations (MC only): muon_roccorUp/Down = pt * (SF ± err), with err the official
+    RoccoR total uncertainty (RMS of the 100 stat replicas and the 4 syst sets in quadrature).
     """
 
     name = "muons_rochester"
@@ -412,15 +414,24 @@ class MuonsRochesterCalibrator(Calibrator):
             rng = np.random.default_rng(seed)
             u = rng.uniform(0.0, 1.0, size=len(pt))
 
-            sf_nom  = np.where(has_gen,
-                self.rc.kSpreadMC(charge, pt, eta, phi, gen_pt, s=0, m=0),
-                self.rc.kSmearMC( charge, pt, eta, phi, nl, u,   s=0, m=0))
-            sf_up   = np.where(has_gen,
-                self.rc.kSpreadMC(charge, pt, eta, phi, gen_pt, s=1, m=0),
-                self.rc.kSmearMC( charge, pt, eta, phi, nl, u,   s=1, m=0))
-            sf_down = np.where(has_gen,
-                self.rc.kSpreadMC(charge, pt, eta, phi, gen_pt, s=1, m=1),
-                self.rc.kSmearMC( charge, pt, eta, phi, nl, u,   s=1, m=1))
+            # kSpreadMC for gen-matched muons, kSmearMC for the others,
+            # each evaluated only on its own subset
+            g, ng = has_gen, ~has_gen
+            spread_args = (charge[g], pt[g], eta[g], phi[g], gen_pt[g])
+            smear_args = (charge[ng], pt[ng], eta[ng], phi[ng], nl[ng], u[ng])
+            sf_nom = np.empty_like(pt)
+            sf_nom[g] = self.rc.kSpreadMC(*spread_args)
+            sf_nom[ng] = self.rc.kSmearMC(*smear_args)
+            if self.do_variations:
+                # Official total uncertainty (stat replicas RMS + syst sets in quadrature),
+                # applied symmetrically to the correction factor
+                sf_err = np.empty_like(pt)
+                sf_err[g] = self.rc.error(self.rc.kSpreadMC, *spread_args)
+                sf_err[ng] = self.rc.error(self.rc.kSmearMC, *smear_args)
+            else:
+                sf_err = np.zeros_like(pt)
+            sf_up = sf_nom + sf_err
+            sf_down = sf_nom - sf_err
         else:
             sf_nom  = self.rc.kScaleDT(charge, pt, eta, phi)
             sf_up   = sf_nom

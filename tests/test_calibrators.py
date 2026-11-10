@@ -815,6 +815,47 @@ def test_muons_rochester_calibrator(events, params):
     assert ak.all(out_down["Muon.pt"] > 0)
     assert not ak.all(out_down["Muon.pt"] == out_nom["Muon.pt"])
 
+    # ---- up/down = nominal +- official total error, symmetric ----
+    pt0 = ak.to_numpy(ak.flatten(out_nom["Muon.pt_original"]))
+    nom = ak.to_numpy(ak.flatten(out_nom["Muon.pt"]))
+    up = ak.to_numpy(ak.flatten(out_up["Muon.pt"]))
+    down = ak.to_numpy(ak.flatten(out_down["Muon.pt"]))
+    assert np.all(up > nom) and np.all(down < nom)
+    np.testing.assert_allclose(up - nom, nom - down, rtol=1e-9)
+    rel = (up - nom) / nom
+    assert 1e-5 < np.median(rel) < 1e-2  # per-mille level, as expected for Rochester
+
+    # Vectorised error must match the scalar C++ RoccoR::k*error functions
+    import ctypes
+    rc, lib = cal.rc, cal.rc._lib
+    mu = ak.flatten(events.Muon)
+    Q = ak.to_numpy(mu.charge).astype(np.int32)
+    eta, phi = ak.to_numpy(mu.eta), ak.to_numpy(mu.phi)
+    nl = ak.to_numpy(mu.nTrackerLayers).astype(np.int32)
+    gen = ak.to_numpy(ak.flatten(events.Muon.genPartIdx >= 0))
+    gpt = ak.to_numpy(ak.flatten(ak.where(events.Muon.genPartIdx >= 0, events.Muon.matched_gen.pt, 0.0)))
+    u = np.random.default_rng(1).uniform(size=len(pt0))
+    d, i = ctypes.c_double, ctypes.c_int
+    for name, argt, vec_fn, args in [
+        ("kScaleDTerror", [i, d, d, d], rc.kScaleDT, (Q, pt0, eta, phi)),
+        ("kSpreadMCerror", [i, d, d, d, d], rc.kSpreadMC, (Q[gen], pt0[gen], eta[gen], phi[gen], gpt[gen])),
+        ("kSmearMCerror", [i, d, d, d, i, d], rc.kSmearMC, (Q, pt0, eta, phi, nl, u)),
+    ]:
+        f = getattr(lib, "RoccoR_" + name)
+        f.restype, f.argtypes = d, [ctypes.c_void_p] + argt
+        scalar = np.array([f(rc._rc, *(a[k].item() for a in args)) for k in range(len(args[1]))])
+        np.testing.assert_allclose(rc.error(vec_fn, *args), scalar, rtol=1e-12, atol=0)
+    # and the calibrator uses it on the gen-matched muons
+    np.testing.assert_allclose(
+        (up - nom)[gen] / pt0[gen], rc.error(rc.kSpreadMC, Q[gen], pt0[gen], eta[gen], phi[gen], gpt[gen]),
+        rtol=1e-9)
+
+    # ---- do_variations=False: no error computation, variations fall back to nominal ----
+    cal_novar = MuonsRochesterCalibrator(params=params, metadata={"isMC": True, "year": "2018"},
+                                         do_variations=False)
+    cal_novar.initialize(events)
+    assert ak.all(cal_novar.calibrate(events, {}, variation="muon_roccorUp")["Muon.pt"] == out_nom["Muon.pt"])
+
     # ---- DATA ----
     cal_data = MuonsRochesterCalibrator(
         params=params,

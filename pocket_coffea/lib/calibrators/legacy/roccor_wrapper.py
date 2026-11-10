@@ -14,6 +14,10 @@ class RoccoR:
         self._lib = _lib_cache[so_path]
         self._setup_signatures()
         self._rc = self._lib.RoccoR_new(txt_file.encode())
+        # Members per error set, from the "NMEM" header line of the txt file
+        # (UL: set 0 nominal, set 1 = 100 stat replicas, sets 2-5 = 1 syst each)
+        with open(txt_file) as f:
+            self.nmem = next([int(x) for x in l.split()[1:]] for l in f if l.startswith("NMEM"))
 
     def _setup_signatures(self):
         lib = self._lib
@@ -35,6 +39,18 @@ class RoccoR:
         lib.RoccoR_kSmearMC_vec.restype  = None
         lib.RoccoR_kSmearMC_vec.argtypes = [vp, intp, dblp, dblp, dblp, intp, dblp,
                                              ctypes.c_int, ctypes.c_int, ctypes.c_int, dblp]
+
+    def error(self, func, *args):
+        """Vectorised RoccoR::error: total uncertainty on the correction factor.
+        sqrt(sum_s sum_m (f(s,m) - f(0,0))^2 / nmem[s]), i.e. RMS of the stat
+        replicas and the syst sets summed in quadrature.
+        `func` is one of kScaleDT / kSpreadMC / kSmearMC, `args` its arguments without s, m."""
+        nominal = func(*args, s=0, m=0)
+        sum2 = np.zeros_like(nominal)
+        for s, nmem in enumerate(self.nmem):
+            for m in range(nmem):
+                sum2 += (func(*args, s=s, m=m) - nominal) ** 2 / nmem
+        return np.sqrt(sum2)
 
     @staticmethod
     def _prep(arr, dtype):
