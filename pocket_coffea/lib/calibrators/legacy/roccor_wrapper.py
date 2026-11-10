@@ -40,17 +40,22 @@ class RoccoR:
         lib.RoccoR_kSmearMC_vec.argtypes = [vp, intp, dblp, dblp, dblp, intp, dblp,
                                              ctypes.c_int, ctypes.c_int, ctypes.c_int, dblp]
 
-    def error(self, func, *args):
-        """Vectorised RoccoR::error: total uncertainty on the correction factor.
-        sqrt(sum_s sum_m (f(s,m) - f(0,0))^2 / nmem[s]), i.e. RMS of the stat
-        replicas and the syst sets summed in quadrature.
-        `func` is one of kScaleDT / kSpreadMC / kSmearMC, `args` its arguments without s, m."""
+    def set_deltas(self, func, *args):
+        """Shift of the correction factor for each error set s >= 1, w.r.t. the nominal.
+        Single-member set: signed f(s,0) - f(0,0). Multi-member set (stat replicas): RMS
+        of f(s,m) - f(0,0). `func` is one of kScaleDT / kSpreadMC / kSmearMC, `args` its
+        arguments without s, m."""
         nominal = func(*args, s=0, m=0)
-        sum2 = np.zeros_like(nominal)
-        for s, nmem in enumerate(self.nmem):
-            for m in range(nmem):
-                sum2 += (func(*args, s=s, m=m) - nominal) ** 2 / nmem
-        return np.sqrt(sum2)
+        deltas = []
+        for s, nmem in enumerate(self.nmem[1:], start=1):
+            d = [func(*args, s=s, m=m) - nominal for m in range(nmem)]
+            deltas.append(d[0] if nmem == 1 else np.sqrt(np.mean(np.square(d), axis=0)))
+        return deltas
+
+    def error(self, func, *args):
+        """Vectorised RoccoR::error: total uncertainty on the correction factor,
+        sqrt(sum_s sum_m (f(s,m) - f(0,0))^2 / nmem[s]) = set_deltas summed in quadrature."""
+        return np.sqrt(np.sum(np.square(self.set_deltas(func, *args)), axis=0))
 
     @staticmethod
     def _prep(arr, dtype):

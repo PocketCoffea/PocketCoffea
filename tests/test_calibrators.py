@@ -856,6 +856,33 @@ def test_muons_rochester_calibrator(events, params):
     cal_novar.initialize(events)
     assert ak.all(cal_novar.calibrate(events, {}, variation="muon_roccorUp")["Muon.pt"] == out_nom["Muon.pt"])
 
+    # ---- variations: sources -> one up/down per RoccoR error set ----
+    import copy
+    params_src = copy.deepcopy(params)
+    params_src.lepton_scale_factors.muon_sf.rochester.variations = "sources"
+    cal_src = MuonsRochesterCalibrator(params=params_src, metadata={"isMC": True, "year": "2018"})
+    names = ["muon_roccor_stat", "muon_roccor_Zpt", "muon_roccor_Ewk", "muon_roccor_deltaM", "muon_roccor_Ewk2"]
+    assert cal_src._variations == [n + ud for n in names for ud in ("Up", "Down")]
+    cal_src.initialize(events)
+    assert ak.all(cal_src.calibrate(events, {}, variation="nominal")["Muon.pt"] == out_nom["Muon.pt"])
+    sum2 = np.zeros_like(nom)
+    for n in names:
+        src_up = ak.to_numpy(ak.flatten(cal_src.calibrate(events, {}, variation=n + "Up")["Muon.pt"]))
+        src_down = ak.to_numpy(ak.flatten(cal_src.calibrate(events, {}, variation=n + "Down")["Muon.pt"]))
+        np.testing.assert_allclose(src_up - nom, nom - src_down, rtol=1e-9, atol=1e-12)
+        assert np.any(src_up != nom)
+        sum2 += (src_up - nom) ** 2
+    assert np.all(ak.to_numpy(ak.flatten(cal_src.calibrate(events, {}, variation="muon_roccor_statUp")["Muon.pt"])) >= nom)
+    # the sources in quadrature give the total
+    np.testing.assert_allclose(np.sqrt(sum2), up - nom, rtol=1e-6, atol=1e-9)
+    # total-mode variation names are not produced in sources mode -> nominal
+    assert ak.all(cal_src.calibrate(events, {}, variation="muon_roccorUp")["Muon.pt"] == out_nom["Muon.pt"])
+
+    params_bad = copy.deepcopy(params)
+    params_bad.lepton_scale_factors.muon_sf.rochester.variations = "wrong"
+    with pytest.raises(ValueError):
+        MuonsRochesterCalibrator(params=params_bad, metadata={"isMC": True, "year": "2018"})
+
     # ---- DATA ----
     cal_data = MuonsRochesterCalibrator(
         params=params,
