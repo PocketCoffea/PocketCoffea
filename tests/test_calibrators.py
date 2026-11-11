@@ -887,14 +887,17 @@ def test_muons_rochester_calibrator(events, params):
         pt_v = ak.flatten(cal_neg.calibrate(events, {}, variation=v)["Muon.pt"])
         assert ak.all(pt_v[is_gen] == ak.flatten(events.Muon.pt)[is_gen]), v
         assert ak.all(pt_v > 0), v
-    # positive nominal (0.5), sets at 2.0 -> Up factor 2.0, Down factor -1.0 -> uncorrected
-    cal_neg.rc.kSpreadMC = lambda *args, s=0, m=0: np.full(len(args[1]), 0.5 if s == 0 else 2.0)
-    cal_neg.initialize(events)
-    pt_raw_gen = ak.flatten(events.Muon.pt)[is_gen]
-    get = lambda v: ak.flatten(cal_neg.calibrate(events, {}, variation=v)["Muon.pt"])[is_gen]
-    np.testing.assert_allclose(ak.to_numpy(get("nominal")), ak.to_numpy(pt_raw_gen * 0.5))
-    np.testing.assert_allclose(ak.to_numpy(get("muon_roccor_statUp")), ak.to_numpy(pt_raw_gen * 2.0))
-    assert ak.all(get("muon_roccor_statDown") == pt_raw_gen)
+    # positive nominal (0.5): |delta| >= nominal -> no variation, |delta| < nominal -> SF +- delta
+    pt_raw_gen = ak.to_numpy(ak.flatten(events.Muon.pt)[is_gen])
+    get = lambda v: ak.to_numpy(ak.flatten(cal_neg.calibrate(events, {}, variation=v)["Muon.pt"])[is_gen])
+    for set_sf, up_sf, down_sf in [(2.0, 0.5, 0.5),   # delta 1.5 >= 0.5 -> nominal
+                                   (0.0, 0.5, 0.5),   # delta 0.5 >= 0.5 -> nominal
+                                   (0.6, 0.6, 0.4)]:  # delta 0.1 <  0.5 -> applied
+        cal_neg.rc.kSpreadMC = lambda *args, s=0, m=0: np.full(len(args[1]), 0.5 if s == 0 else set_sf)
+        cal_neg.initialize(events)
+        np.testing.assert_allclose(get("nominal"), pt_raw_gen * 0.5)
+        np.testing.assert_allclose(get("muon_roccor_statUp"), pt_raw_gen * up_sf)
+        np.testing.assert_allclose(get("muon_roccor_statDown"), pt_raw_gen * down_sf)
 
     params_bad = copy.deepcopy(params)
     params_bad.lepton_scale_factors.muon_sf.rochester.variations = "wrong"

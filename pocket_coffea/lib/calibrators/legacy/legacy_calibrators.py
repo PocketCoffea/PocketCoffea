@@ -463,7 +463,9 @@ class MuonsRochesterCalibrator(Calibrator):
 
         self.pt_corr = {"nominal": corrected(sf_nom)}
         for name, delta in shifts.items():
-            delta = np.where(bad_nom, 0.0, delta)
+            # A shift as large as the nominal factor is not physical (it would make
+            # SF - |delta| <= 0): no variation for that muon, it keeps the nominal pt
+            delta = np.where(bad_nom | (np.abs(delta) >= sf_nom), 0.0, delta)
             self.pt_corr[name + "Up"] = corrected(sf_nom + delta)
             self.pt_corr[name + "Down"] = corrected(sf_nom - delta)
 
