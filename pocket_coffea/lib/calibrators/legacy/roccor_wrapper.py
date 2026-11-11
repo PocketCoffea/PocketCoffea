@@ -14,6 +14,10 @@ class RoccoR:
         self._lib = _lib_cache[so_path]
         self._setup_signatures()
         self._rc = self._lib.RoccoR_new(txt_file.encode())
+        # Members per error set, from the "NMEM" header line of the txt file
+        # (UL: set 0 nominal, set 1 = 100 stat replicas, sets 2-5 = 1 syst each)
+        with open(txt_file) as f:
+            self.nmem = next([int(x) for x in l.split()[1:]] for l in f if l.startswith("NMEM"))
 
     def _setup_signatures(self):
         lib = self._lib
@@ -35,6 +39,23 @@ class RoccoR:
         lib.RoccoR_kSmearMC_vec.restype  = None
         lib.RoccoR_kSmearMC_vec.argtypes = [vp, intp, dblp, dblp, dblp, intp, dblp,
                                              ctypes.c_int, ctypes.c_int, ctypes.c_int, dblp]
+
+    def set_deltas(self, func, *args):
+        """Shift of the correction factor for each error set s >= 1, w.r.t. the nominal.
+        Single-member set: signed f(s,0) - f(0,0). Multi-member set (stat replicas): RMS
+        of f(s,m) - f(0,0). `func` is one of kScaleDT / kSpreadMC / kSmearMC, `args` its
+        arguments without s, m."""
+        nominal = func(*args, s=0, m=0)
+        deltas = []
+        for s, nmem in enumerate(self.nmem[1:], start=1):
+            d = [func(*args, s=s, m=m) - nominal for m in range(nmem)]
+            deltas.append(d[0] if nmem == 1 else np.sqrt(np.mean(np.square(d), axis=0)))
+        return deltas
+
+    def error(self, func, *args):
+        """Vectorised RoccoR::error: total uncertainty on the correction factor,
+        sqrt(sum_s sum_m (f(s,m) - f(0,0))^2 / nmem[s]) = set_deltas summed in quadrature."""
+        return np.sqrt(np.sum(np.square(self.set_deltas(func, *args)), axis=0))
 
     @staticmethod
     def _prep(arr, dtype):

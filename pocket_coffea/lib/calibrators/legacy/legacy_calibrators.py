@@ -358,12 +358,21 @@ class MuonsRochesterCalibrator(Calibrator):
     Uses the official CMS RoccoR C++ code compiled as a shared library.
     Data    → kScaleDT
     MC      → kSpreadMC (gen-matched) or kSmearMC (no gen match)
+    Variations (MC only), chosen by `lepton_scale_factors.muon_sf.rochester.variations`:
+    - "total":   muon_roccorUp/Down = pt * (SF ± err), err = official RoccoR total uncertainty
+                 (RMS of the 100 stat replicas and the 4 syst sets in quadrature).
+    - "sources": muon_roccor_{stat,Zpt,Ewk,deltaM,Ewk2}Up/Down = pt * (SF ± delta), one per
+                 error set; stat delta = RMS of the replicas (>= 0), syst delta = signed
+                 f(set) - f(nominal), so "Up" follows the set and may lower the pt.
+                 The sources summed in quadrature give the "total" err.
     """
 
     name = "muons_rochester"
     has_variations = True
     isMC_only = False
     calibrated_collections = ["Muon.pt", "Muon.pt_original"]
+    # Names of the RoccoR UL error sets 1..5 (set 0 is the nominal)
+    sources = ["stat", "Zpt", "Ewk", "deltaM", "Ewk2"]
 
     def __init__(self, params, metadata, do_variations=True, **kwargs):
         super().__init__(params, metadata, do_variations, **kwargs)
@@ -378,12 +387,23 @@ class MuonsRochesterCalibrator(Calibrator):
             return
 
         self.enabled = True
+        self.mode = self.roccor_params.get("variations", "total")
+        if self.mode not in ("total", "sources"):
+            raise ValueError(f"rochester.variations must be 'total' or 'sources', got '{self.mode}'")
         print(f"[RochesterCalibrator] Loaded for year {self._year} from {self.roccor_params.txt_file[self._year]}")
         self.rc = RoccoRWrapper(
             txt_file=self.roccor_params.txt_file[self._year],
             so_path=self.roccor_params.so_path,
         )
-        self._variations = ["muon_roccorUp", "muon_roccorDown"] if self.isMC else []
+        if len(self.rc.nmem) - 1 != len(self.sources):
+            raise ValueError(f"Expected {len(self.sources)} RoccoR error sets, file has NMEM {self.rc.nmem}")
+        if not self.isMC:
+            self._shift_names = []
+        elif self.mode == "total":
+            self._shift_names = ["muon_roccor"]
+        else:
+            self._shift_names = [f"muon_roccor_{src}" for src in self.sources]
+        self._variations = [n + ud for n in self._shift_names for ud in ("Up", "Down")]
 
     def initialize(self, events):
         if not self.enabled:
@@ -399,6 +419,7 @@ class MuonsRochesterCalibrator(Calibrator):
         eta    = ak.to_numpy(mu_flat.eta).astype(np.float64)
         phi    = ak.to_numpy(mu_flat.phi).astype(np.float64)
 
+        shifts = {}
         if self.isMC:
             has_gen = ak.to_numpy(ak.flatten(mu.genPartIdx >= 0))
             gen_pt  = ak.to_numpy(ak.flatten(
@@ -412,35 +433,43 @@ class MuonsRochesterCalibrator(Calibrator):
             rng = np.random.default_rng(seed)
             u = rng.uniform(0.0, 1.0, size=len(pt))
 
-            sf_nom  = np.where(has_gen,
-                self.rc.kSpreadMC(charge, pt, eta, phi, gen_pt, s=0, m=0),
-                self.rc.kSmearMC( charge, pt, eta, phi, nl, u,   s=0, m=0))
-            sf_up   = np.where(has_gen,
-                self.rc.kSpreadMC(charge, pt, eta, phi, gen_pt, s=1, m=0),
-                self.rc.kSmearMC( charge, pt, eta, phi, nl, u,   s=1, m=0))
-            sf_down = np.where(has_gen,
-                self.rc.kSpreadMC(charge, pt, eta, phi, gen_pt, s=1, m=1),
-                self.rc.kSmearMC( charge, pt, eta, phi, nl, u,   s=1, m=1))
+            # kSpreadMC for gen-matched muons, kSmearMC for the others,
+            # each evaluated only on its own subset
+            g, ng = has_gen, ~has_gen
+            spread_args = (charge[g], pt[g], eta[g], phi[g], gen_pt[g])
+            smear_args = (charge[ng], pt[ng], eta[ng], phi[ng], nl[ng], u[ng])
+            sf_nom = np.empty_like(pt)
+            sf_nom[g] = self.rc.kSpreadMC(*spread_args)
+            sf_nom[ng] = self.rc.kSmearMC(*smear_args)
+            if self.do_variations:
+                # Shift of the SF for each error set, shape (n_sets, n_muons)
+                deltas = np.empty((len(self.sources), len(pt)))
+                deltas[:, g] = self.rc.set_deltas(self.rc.kSpreadMC, *spread_args)
+                deltas[:, ng] = self.rc.set_deltas(self.rc.kSmearMC, *smear_args)
+                if self.mode == "total":
+                    deltas = np.sqrt(np.sum(deltas**2, axis=0, keepdims=True))
+                shifts = dict(zip(self._shift_names, deltas))
         else:
             sf_nom  = self.rc.kScaleDT(charge, pt, eta, phi)
-            sf_up   = sf_nom
-            sf_down = sf_nom
 
-        self.pt_corr = {
-            "nominal": ak.unflatten(pt * sf_nom,  counts),
-            "up":      ak.unflatten(pt * sf_up,   counts),
-            "down":    ak.unflatten(pt * sf_down,  counts),
-        }
+        # Keep the uncorrected pt where the factor is not positive (or NaN): kSmearMC can
+        # give that for badly reconstructed, non gen-matched muons. A muon with a bad
+        # nominal factor stays uncorrected in every variation too.
+        bad_nom = ~(sf_nom > 0)
+        sf_nom = np.where(bad_nom, 1.0, sf_nom)
+
+        def corrected(sf):
+            return ak.unflatten(pt * np.where(sf > 0, sf, 1.0), counts)
+
+        self.pt_corr = {"nominal": corrected(sf_nom)}
+        for name, delta in shifts.items():
+            delta = np.where(bad_nom, 0.0, delta)
+            self.pt_corr[name + "Up"] = corrected(sf_nom + delta)
+            self.pt_corr[name + "Down"] = corrected(sf_nom - delta)
 
     def calibrate(self, events, orig_colls, variation, already_applied_calibrators=None):
         if not self.enabled:
             return {}
-
-        pt_orig = self.muons["pt_original"]
-
-        if variation == "nominal" or variation not in self._variations:
-            return {"Muon.pt": self.pt_corr["nominal"], "Muon.pt_original": pt_orig}
-        if variation == "muon_roccorUp":
-            return {"Muon.pt": self.pt_corr["up"],      "Muon.pt_original": pt_orig}
-        if variation == "muon_roccorDown":
-            return {"Muon.pt": self.pt_corr["down"],    "Muon.pt_original": pt_orig}
+        # Variations not computed (other calibrators' or do_variations=False) -> nominal
+        pt = self.pt_corr.get(variation, self.pt_corr["nominal"])
+        return {"Muon.pt": pt, "Muon.pt_original": self.muons["pt_original"]}

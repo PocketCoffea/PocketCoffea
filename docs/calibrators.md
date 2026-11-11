@@ -108,6 +108,21 @@ PocketCoffea provides several ready-to-use calibrators in `pocket_coffea.lib.cal
 - **Collections**: `["Muon.pt", "Muon.pt_original", "Muon.energyErr"]`
 - **Variations**: `"muon_scaleUp/Down"`, `"muon_smearUp/Down"` (MC only)
 
+### MuonsRochesterCalibrator (Run 2 UL)
+- **Name**: `"muons_rochester"` (in `lib/calibrators/legacy/legacy_calibrators.py`)
+- **Purpose**: Rochester muon momentum corrections with the official RoccoR code (`kScaleDT` for data, `kSpreadMC`/`kSmearMC` for MC). Enabled per year by `lepton_scale_factors.muon_sf.rochester.apply`.
+- **Collections**: `["Muon.pt", "Muon.pt_original"]`
+- **Variations** (MC only), selected by `lepton_scale_factors.muon_sf.rochester.variations`:
+  - `total` (default): `"muon_roccorUp/Down"`, the official RoccoR total uncertainty (RMS of the 100 statistical replicas and the 4 systematic sets in quadrature).
+  - `sources`: `"muon_roccor_{stat,Zpt,Ewk,deltaM,Ewk2}Up/Down"`, one per RoccoR error set. `stat` is the RMS of the replicas; the systematic sources are signed (`Up` = the varied set, `Down` = its mirror). The sources in quadrature give the `total` variation. RoccoR does not separate scale and resolution: each set changes both.
+
+```yaml
+lepton_scale_factors:
+  muon_sf:
+    rochester:
+      variations: sources
+```
+
 `default_calibrators_sequence` runs these in the order `[JetsCalibrator, ElectronsScaleCalibrator, MuonsCalibrator, METCalibrator]` (`JetsSoftdropMassCalibrator` is not included).
 
 ## Configuration

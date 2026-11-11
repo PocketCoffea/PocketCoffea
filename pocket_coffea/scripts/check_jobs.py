@@ -196,6 +196,14 @@ def check_jobs_logs(jobs_folder):
 _CONDOR_ABORT_RE = re.compile(r"^\s*009 \((\d+)\.(\d+)\.\d+\)\s+(\d\d/\d\d \d\d:\d\d:\d\d)")
 
 
+def is_time_limit_removal(reason):
+    """True if a Condor abort reason is a removal at the wall time limit: the
+    lxplus system policy, or the executor's own periodic_remove (MaxRuntime
+    minus the graceful-shutdown margin, see build_condor_shutdown_policy)."""
+    return (("SYSTEM_PERIODIC_REMOVE" in reason and "wall time exceeded" in reason.lower())
+            or ("PeriodicRemove" in reason and "MaxRuntime" in reason))
+
+
 def scan_condor_log_failures(jobs_folder, log_offsets):
     folder = Path(jobs_folder)
     active = {}
@@ -239,8 +247,7 @@ def scan_condor_log_failures(jobs_folder, log_offsets):
                     recovered[job] = (event, reason)
             log_offsets[key] = handle.tell()
     return {
-        job: ("timeout" if "SYSTEM_PERIODIC_REMOVE" in reason and
-              "wall time exceeded" in reason.lower() else "failed")
+        job: ("timeout" if is_time_limit_removal(reason) else "failed")
         for job, (_, reason) in recovered.items()
         if not any((folder / f"{job}.{term}").exists()
                    for term in ("done", "failed", "timeout"))
@@ -517,7 +524,8 @@ def failure_reason(jobs_folder, job, flag_mtime):
 def log_failure_reasons(jobs_folder, failed, reported, waiting, log_text):
     """Add one Log line per new failed attempt. `reported` maps job -> mtime of
     the .failed flag already reported; `waiting` maps job -> first time seen
-    without fresh logs. Returns the jobs still waiting for their logs."""
+    without fresh logs. Jobs without a .failed flag (.timeout jobs) are skipped.
+    Returns the jobs still waiting for their logs."""
     pending_logs = set()
     for job in failed:
         try:
@@ -528,6 +536,9 @@ def log_failure_reasons(jobs_folder, failed, reported, waiting, log_text):
             continue
         reason = failure_reason(jobs_folder, job, flag_mtime)
         if reason is None:
+            if job not in waiting:
+                log_text.append(f"{job} failed; waiting up to {LOG_WAIT_TIMEOUT} s for its logs "
+                                "before the resubmission.")
             if time.time() - waiting.setdefault(job, time.time()) < LOG_WAIT_TIMEOUT:
                 pending_logs.add(job)
                 continue
@@ -548,13 +559,16 @@ def convert_timeout_jobs(jobs_folder, timeout_jobs, running, idle, failed,
                          queue_shift, ncpu, state, log_text, pending=None):
     _, _, submission, _, _ = load_current_contract(jobs_folder)
     pending = pending if pending is not None else {}
+    # The .timeout marker stays on disk until the resubmission (mark_job_idle
+    # clears it), so a restarted check-jobs still escalates the job.
     for job in list(timeout_jobs):
         if job in running:
             running.remove(job)
         if job in idle:
             idle.remove(job)
-        mark_job_failed(jobs_folder, job)
         failed.append(job) if job not in failed else None
+        if job in pending:
+            continue
         job_num = job.split("_", 1)[1]
         pending[job] = candidate_state(state[job_num], submission["executor"], queue_shift, ncpu)
         log_text.append(
@@ -1065,6 +1079,8 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, queue_shift, ncpu, 
                 if "Corrupt input data" in out_text:
                     log_text.append(f"{job} reported corrupt input data in its .out log.")
                 if attempts >= max_resubmit:
+                    log_text.append(f"[red]{job}: max resubmissions ({max_resubmit}) reached, "
+                                    "not resubmitted.[/]")
                     definitive.add(job)
                     continue
                 if (attempts >= 1 and job not in timeout and job not in pending
@@ -1077,6 +1093,7 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, queue_shift, ncpu, 
             for number in successful:
                 job = f"job_{number}"
                 failed[:] = [value for value in failed if value != job]
+                timeout[:] = [value for value in timeout if value != job]
                 if job not in idle:
                     idle.append(job)
                 pending.pop(job, None)

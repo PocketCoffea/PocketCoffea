@@ -815,6 +815,92 @@ def test_muons_rochester_calibrator(events, params):
     assert ak.all(out_down["Muon.pt"] > 0)
     assert not ak.all(out_down["Muon.pt"] == out_nom["Muon.pt"])
 
+    # ---- up/down = nominal +- official total error, symmetric ----
+    pt0 = ak.to_numpy(ak.flatten(out_nom["Muon.pt_original"]))
+    nom = ak.to_numpy(ak.flatten(out_nom["Muon.pt"]))
+    up = ak.to_numpy(ak.flatten(out_up["Muon.pt"]))
+    down = ak.to_numpy(ak.flatten(out_down["Muon.pt"]))
+    assert np.all(up > nom) and np.all(down < nom)
+    np.testing.assert_allclose(up - nom, nom - down, rtol=1e-9)
+    rel = (up - nom) / nom
+    assert 1e-5 < np.median(rel) < 1e-2  # per-mille level, as expected for Rochester
+
+    # Vectorised error must match the scalar C++ RoccoR::k*error functions
+    import ctypes
+    rc, lib = cal.rc, cal.rc._lib
+    mu = ak.flatten(events.Muon)
+    Q = ak.to_numpy(mu.charge).astype(np.int32)
+    eta, phi = ak.to_numpy(mu.eta), ak.to_numpy(mu.phi)
+    nl = ak.to_numpy(mu.nTrackerLayers).astype(np.int32)
+    gen = ak.to_numpy(ak.flatten(events.Muon.genPartIdx >= 0))
+    gpt = ak.to_numpy(ak.flatten(ak.where(events.Muon.genPartIdx >= 0, events.Muon.matched_gen.pt, 0.0)))
+    u = np.random.default_rng(1).uniform(size=len(pt0))
+    d, i = ctypes.c_double, ctypes.c_int
+    for name, argt, vec_fn, args in [
+        ("kScaleDTerror", [i, d, d, d], rc.kScaleDT, (Q, pt0, eta, phi)),
+        ("kSpreadMCerror", [i, d, d, d, d], rc.kSpreadMC, (Q[gen], pt0[gen], eta[gen], phi[gen], gpt[gen])),
+        ("kSmearMCerror", [i, d, d, d, i, d], rc.kSmearMC, (Q, pt0, eta, phi, nl, u)),
+    ]:
+        f = getattr(lib, "RoccoR_" + name)
+        f.restype, f.argtypes = d, [ctypes.c_void_p] + argt
+        scalar = np.array([f(rc._rc, *(a[k].item() for a in args)) for k in range(len(args[1]))])
+        np.testing.assert_allclose(rc.error(vec_fn, *args), scalar, rtol=1e-12, atol=0)
+    # and the calibrator uses it on the gen-matched muons
+    np.testing.assert_allclose(
+        (up - nom)[gen] / pt0[gen], rc.error(rc.kSpreadMC, Q[gen], pt0[gen], eta[gen], phi[gen], gpt[gen]),
+        rtol=1e-9)
+
+    # ---- do_variations=False: no error computation, variations fall back to nominal ----
+    cal_novar = MuonsRochesterCalibrator(params=params, metadata={"isMC": True, "year": "2018"},
+                                         do_variations=False)
+    cal_novar.initialize(events)
+    assert ak.all(cal_novar.calibrate(events, {}, variation="muon_roccorUp")["Muon.pt"] == out_nom["Muon.pt"])
+
+    # ---- variations: sources -> one up/down per RoccoR error set ----
+    import copy
+    params_src = copy.deepcopy(params)
+    params_src.lepton_scale_factors.muon_sf.rochester.variations = "sources"
+    cal_src = MuonsRochesterCalibrator(params=params_src, metadata={"isMC": True, "year": "2018"})
+    names = ["muon_roccor_stat", "muon_roccor_Zpt", "muon_roccor_Ewk", "muon_roccor_deltaM", "muon_roccor_Ewk2"]
+    assert cal_src._variations == [n + ud for n in names for ud in ("Up", "Down")]
+    cal_src.initialize(events)
+    assert ak.all(cal_src.calibrate(events, {}, variation="nominal")["Muon.pt"] == out_nom["Muon.pt"])
+    sum2 = np.zeros_like(nom)
+    for n in names:
+        src_up = ak.to_numpy(ak.flatten(cal_src.calibrate(events, {}, variation=n + "Up")["Muon.pt"]))
+        src_down = ak.to_numpy(ak.flatten(cal_src.calibrate(events, {}, variation=n + "Down")["Muon.pt"]))
+        np.testing.assert_allclose(src_up - nom, nom - src_down, rtol=1e-9, atol=1e-12)
+        assert np.any(src_up != nom)
+        sum2 += (src_up - nom) ** 2
+    assert np.all(ak.to_numpy(ak.flatten(cal_src.calibrate(events, {}, variation="muon_roccor_statUp")["Muon.pt"])) >= nom)
+    # the sources in quadrature give the total
+    np.testing.assert_allclose(np.sqrt(sum2), up - nom, rtol=1e-6, atol=1e-9)
+    # total-mode variation names are not produced in sources mode -> nominal
+    assert ak.all(cal_src.calibrate(events, {}, variation="muon_roccorUp")["Muon.pt"] == out_nom["Muon.pt"])
+
+    # ---- factor not positive -> uncorrected pt (nominal and every variation) ----
+    cal_neg = MuonsRochesterCalibrator(params=params_src, metadata={"isMC": True, "year": "2018"})
+    cal_neg.rc.kSpreadMC = lambda *args, s=0, m=0: np.full(len(args[1]), -1.0 if s == 0 else 0.5)
+    cal_neg.initialize(events)
+    is_gen = ak.flatten(events.Muon.genPartIdx >= 0)
+    for v in ["nominal"] + cal_neg._variations:
+        pt_v = ak.flatten(cal_neg.calibrate(events, {}, variation=v)["Muon.pt"])
+        assert ak.all(pt_v[is_gen] == ak.flatten(events.Muon.pt)[is_gen]), v
+        assert ak.all(pt_v > 0), v
+    # positive nominal (0.5), sets at 2.0 -> Up factor 2.0, Down factor -1.0 -> uncorrected
+    cal_neg.rc.kSpreadMC = lambda *args, s=0, m=0: np.full(len(args[1]), 0.5 if s == 0 else 2.0)
+    cal_neg.initialize(events)
+    pt_raw_gen = ak.flatten(events.Muon.pt)[is_gen]
+    get = lambda v: ak.flatten(cal_neg.calibrate(events, {}, variation=v)["Muon.pt"])[is_gen]
+    np.testing.assert_allclose(ak.to_numpy(get("nominal")), ak.to_numpy(pt_raw_gen * 0.5))
+    np.testing.assert_allclose(ak.to_numpy(get("muon_roccor_statUp")), ak.to_numpy(pt_raw_gen * 2.0))
+    assert ak.all(get("muon_roccor_statDown") == pt_raw_gen)
+
+    params_bad = copy.deepcopy(params)
+    params_bad.lepton_scale_factors.muon_sf.rochester.variations = "wrong"
+    with pytest.raises(ValueError):
+        MuonsRochesterCalibrator(params=params_bad, metadata={"isMC": True, "year": "2018"})
+
     # ---- DATA ----
     cal_data = MuonsRochesterCalibrator(
         params=params,
