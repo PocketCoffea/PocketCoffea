@@ -1,21 +1,12 @@
 """check-jobs --split-jobs: split failed/timed-out jobs at file level."""
 import json
 
-import cloudpickle
 import pytest
 import yaml
 from click.testing import CliRunner
 
 from pocket_coffea.scripts import check_jobs
 from pocket_coffea.utils.job_split import split_fileset
-
-
-class Config:
-    def __init__(self, filesets):
-        self.filesets = filesets
-
-    def set_filesets_manually(self, filesets):
-        self.filesets = filesets
 
 
 def fileset(nfiles, dataset="DY_2022"):
@@ -48,8 +39,7 @@ def jobs_dir(tmp_path, submitted):
         state[str(k)] = {"chunksize": 100, "request_cpus": 2, "request_memory": "4GB",
                          "resubmissions": 3, "queue": "tomorrow", "resources_scaled": True}
         jobs_list[f"job_{k}"] = {"filesets": fileset(nfiles)}
-        with open(tmp_path / f"config_job_{k}.pkl", "wb") as f:
-            cloudpickle.dump(Config(fileset(nfiles)), f)
+        (tmp_path / f"fileset_job_{k}.json").write_text(json.dumps(fileset(nfiles)))
         (tmp_path / f"job_{k}.{marker}").touch()
     (tmp_path / "jobs_config.yaml").write_text(yaml.safe_dump(
         {"submission": submission, "output_dir": "/out", "jobs_list": jobs_list}))
@@ -92,14 +82,15 @@ def test_split_all(jobs_dir, submitted):
     files = []
     for num in (7, 8, 9):
         job = f"job_{num}"
-        fs = cloudpickle.load(open(jobs_dir / f"config_{job}.pkl", "rb")).filesets
+        fs = json.loads((jobs_dir / f"fileset_{job}.json").read_text())
         assert jobs_config["jobs_list"][job]["filesets"] == fs
+        assert jobs_config["jobs_list"][job]["fileset_file"] == str(jobs_dir / f"fileset_{job}.json")
         assert jobs_config["jobs_list"][job]["output_file"] == f"/out/output_{job}.coffea"
         assert (jobs_dir / f"{job}.idle").exists()
         files += fs["DY_2022"]["files"]
     assert files == fileset(7)["DY_2022"]["files"]
 
-    for name in ("config_job_3.pkl", "job_3.failed", "config_job_6.pkl", "job_6.timeout"):
+    for name in ("fileset_job_3.json", "job_3.failed", "fileset_job_6.json", "job_6.timeout"):
         assert not (jobs_dir / name).exists() and (jobs_dir / "split" / name).exists()
     # One submission with one row per new job.
     assert len(submitted) == 1
@@ -136,3 +127,4 @@ def test_cli_split_jobs(jobs_dir):
     out = CliRunner().invoke(check_jobs.check_jobs,
                              ["-j", str(jobs_dir), "--split-jobs", "3", "--recreate", "3"])
     assert out.exit_code != 0
+

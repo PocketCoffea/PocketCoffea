@@ -5,6 +5,7 @@ import subprocess
 from coffea import processor as coffea_processor
 from .executors_base import ExecutorFactoryABC
 from .executors_manual_jobs import (
+    SHARED_CONFIG_NAME,
     ExecutorFactoryManualABC,
     write_inner_run_options,
 )
@@ -13,52 +14,17 @@ from pocket_coffea.utils.network import check_port
 from pocket_coffea.parameters.dask_env import setup_dask
 from pocket_coffea.utils.configurator import Configurator
 import pocket_coffea
-import cloudpickle
 import yaml
 import json
-import multiprocessing as mp
 from statistics import median
 import click
 from rich.console import Console
 from rich.table import Table
-from rich.progress import (
-    BarColumn,
-    Progress,
-    SpinnerColumn,
-    TextColumn,
-    TimeElapsedColumn,
-    TimeRemainingColumn,
-)
 from pocket_coffea.utils.benchmarking import load_sample_throughputs
 from pocket_coffea.utils.htcondor_queue import (
     QUEUE_SECONDS,
     queue_for_runtime,
 )
-
-_PREPARE_CFG = None
-_PREPARE_JOBS_DIR = None
-_PREPARE_OUTPUTDIR = None
-
-
-def _prepare_job_config_worker(config, split, i, jobs_dir, outputdir):
-    partial_config = config.clone()
-    partial_config.set_filesets_manually(split)
-    outputfile = f"{os.path.abspath(outputdir)}/output_job_{i}.coffea"
-    config_file = f"{jobs_dir}/config_job_{i}.pkl"
-    with open(config_file, "wb") as f:
-        cloudpickle.dump(partial_config, f)
-    return i, config_file, split, outputfile
-
-def _prepare_job_config_init(config, jobs_dir, outputdir):
-    global _PREPARE_CFG, _PREPARE_JOBS_DIR, _PREPARE_OUTPUTDIR
-    _PREPARE_CFG = config
-    _PREPARE_JOBS_DIR = jobs_dir
-    _PREPARE_OUTPUTDIR = outputdir
-
-def _prepare_job_config_worker_indexed(item):
-    i, split = item
-    return _prepare_job_config_worker(_PREPARE_CFG, split, i, _PREPARE_JOBS_DIR, _PREPARE_OUTPUTDIR)
-
 
 CONDOR_GRACEFUL_SHUTDOWN_SECONDS = 5 * 60
 
@@ -371,7 +337,7 @@ failed_xrootd_sites="$_CONDOR_SCRATCH_DIR/failed_xrootd_sites.txt"
 while true; do
     attempt_log="$_CONDOR_SCRATCH_DIR/job_attempt_${{attempt}}.out"
     echo "Runner attempt $attempt"
-    setsid {runnercmd} --cfg "$2" -o output "${{EXECUTOR_ARGS[@]}}" --chunksize "$3" --custom-run-options {inner_yaml_basename}{' --timeit --_timeit-worker' if timeit else ''} > "$attempt_log" 2>&1 &
+    setsid {runnercmd} --cfg {SHARED_CONFIG_NAME} --fileset "$2" -o output "${{EXECUTOR_ARGS[@]}}" --chunksize "$3" --custom-run-options {inner_yaml_basename}{' --timeit --_timeit-worker' if timeit else ''} > "$attempt_log" 2>&1 &
     child=$!
     child_pgid=$child
     wait "$child"
@@ -553,7 +519,6 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
                 raise click.Abort()
 
     def prepare_jobs(self, splits):
-        config_files = [ ]
         jobs_config = {
             "job_name": self.job_name,
             "job_dir": os.path.abspath(self.jobs_dir),
@@ -572,47 +537,7 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
             },
             "jobs_list": {}
         }
-        # Disabling the postprocessing
-        self.config.do_postprocessing = False
-        # Splitting the filesets, creating a new configuration for each and pickling it.
-        # Parallelised with multiprocessing.Pool to speed up large submission batches.
-        total_splits = len(splits)
-        config_files = [None] * total_splits
-        console = Console(stderr=True)
-        progress = Progress(
-            SpinnerColumn(),
-            TextColumn("[cyan]Preparing config pkls"),
-            BarColumn(),
-            TextColumn("{task.completed}/{task.total}"),
-            TimeElapsedColumn(),
-            TimeRemainingColumn(),
-            console=console,
-            refresh_per_second=10,
-            transient=False,
-        )
-        work_items = [(i, split) for i, split in enumerate(splits)]
-        with progress:
-            task1 = progress.add_task("prepare_pkls", total=total_splits)
-            ctx = mp.get_context("fork")
-            with ctx.Pool(
-                processes=8,
-                initializer=_prepare_job_config_init,
-                initargs=(self.config, self.jobs_dir, self.outputdir),
-            ) as pool:
-                for i, config_file, split, output_file in pool.imap_unordered(
-                    _prepare_job_config_worker_indexed, work_items, chunksize=1
-                ):
-                    config_files[i] = config_file
-                    jobs_config["jobs_list"][f"job_{i}"] = {
-                        "filesets": split,
-                        "config_file": config_file,
-                        "output_file": output_file,
-                    }
-                    progress.update(task1, advance=1)
-
-        yaml.dump(jobs_config, open(f"{self.jobs_dir}/jobs_config.yaml", "w"))
-        # save the configuration
-        return config_files
+        return self.write_job_inputs(splits, jobs_config)
 
     def submit_jobs(self, jobs_config):
         '''Prepare job config and script and submit the jobs to the cluster'''
@@ -673,7 +598,8 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
         inner_yaml_path = write_inner_run_options(self.jobs_dir, self.run_options)
         inner_yaml_basename = os.path.basename(inner_yaml_path)
         transfer_input_files = [
-            f"{abs_jobdir_path}/config_job_$(ProcId).pkl",
+            f"{abs_jobdir_path}/fileset_job_$(ProcId).json",
+            f"{abs_jobdir_path}/{SHARED_CONFIG_NAME}",
             f"{abs_jobdir_path}/job.sh",
             f"{abs_jobdir_path}/{inner_yaml_basename}",
         ]
@@ -724,7 +650,7 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
             '+JobFlavour': '"$(QUEUE)"',
             'RequestCpus' : self.run_options['cores-per-worker'],
             'RequestMemory' : f"{self.run_options['mem-per-worker']}",
-            'arguments': f"$(ProcId) config_job_$(ProcId).pkl $(chunksize) {self.run_options['cores-per-worker']}",
+            'arguments': f"$(ProcId) fileset_job_$(ProcId).json $(chunksize) {self.run_options['cores-per-worker']}",
             'should_transfer_files':'YES',
             'when_to_transfer_output' : 'ON_EXIT',
             'transfer_output_files' : '',
@@ -765,7 +691,7 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
             "+JobFlavour": '"$(QUEUE)"',
             "RequestCpus": "$(CPUS)",
             "RequestMemory": "$(MEMORY)",
-            "arguments": "$(PROC) config_job_$(PROC).pkl $(CHUNKSIZE) $(CPUS)",
+            "arguments": "$(PROC) fileset_job_$(PROC).json $(CHUNKSIZE) $(CPUS)",
             "transfer_input_files": ",".join(
                 path.replace("$(ProcId)", "$(PROC)") for path in transfer_input_files
             ),

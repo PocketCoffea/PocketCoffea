@@ -1,4 +1,6 @@
+import json
 import os
+import cloudpickle
 import yaml
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
@@ -22,6 +24,9 @@ INNER_RUN_OPTIONS_WHITELIST = (
     "xrootd-timeout",
 )
 INNER_RUN_OPTIONS_FILENAME = "inner_run_options.yaml"
+# One unloaded configurator (empty fileset) shared by all the jobs of a jobs dir;
+# each job gets its slice as `fileset_job_N.json` (runner --fileset).
+SHARED_CONFIG_NAME = "configurator_jobs.pkl"
 
 
 def write_inner_run_options(jobs_dir, run_options, whitelist=INNER_RUN_OPTIONS_WHITELIST):
@@ -399,6 +404,27 @@ class ExecutorFactoryManualABC(ABC):
                 f"Provide one or the other."
             )
         return int(value)
+
+    def write_job_inputs(self, splits, jobs_config):
+        '''Write the shared configurator and one fileset JSON per job; fill jobs_config["jobs_list"].'''
+        self.config.do_postprocessing = False
+        shared_config = self.config.clone()
+        shared_config.set_filesets_manually({})
+        with open(f"{self.jobs_dir}/{SHARED_CONFIG_NAME}", "wb") as f:
+            cloudpickle.dump(shared_config, f)
+        fileset_files = []
+        for i, split in enumerate(splits):
+            fileset_file = f"{self.jobs_dir}/fileset_job_{i}.json"
+            with open(fileset_file, "w") as f:
+                json.dump(split, f)
+            fileset_files.append(fileset_file)
+            jobs_config["jobs_list"][f"job_{i}"] = {
+                "filesets": split,
+                "fileset_file": fileset_file,
+                "output_file": f"{os.path.abspath(self.outputdir)}/output_job_{i}.coffea",
+            }
+        yaml.dump(jobs_config, open(f"{self.jobs_dir}/jobs_config.yaml", "w"))
+        return fileset_files
 
     @abstractmethod
     def prepare_jobs(self, splits):

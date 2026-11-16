@@ -1,6 +1,5 @@
+import json
 from collections import OrderedDict
-
-import cloudpickle
 
 from pocket_coffea.scripts import rewrite_xrootd_site as helper
 
@@ -8,14 +7,6 @@ from pocket_coffea.scripts import rewrite_xrootd_site as helper
 SITEA_PREFIX = "root://siteA.example//"
 SITEB_PREFIX = "root://siteB.example//"
 SITEC_PREFIX = "root://siteC.example//"
-
-
-class FakeConfig:
-    def __init__(self, filesets):
-        self.filesets = filesets
-
-    def set_filesets_manually(self, filesets):
-        self.filesets = filesets
 
 
 def _fileset(files_by_sample):
@@ -26,13 +17,13 @@ def _fileset(files_by_sample):
 
 
 def _dump_config(tmp_path, filesets):
-    config_path = tmp_path / "config_job_0.pkl"
-    cloudpickle.dump(FakeConfig(filesets), open(config_path, "wb"))
+    config_path = tmp_path / "fileset_job_0.json"
+    config_path.write_text(json.dumps(filesets))
     return config_path
 
 
 def _load_filesets(config_path):
-    return cloudpickle.load(open(config_path, "rb")).filesets
+    return json.loads(config_path.read_text())
 
 
 def _patch_rewrite_deps(monkeypatch):

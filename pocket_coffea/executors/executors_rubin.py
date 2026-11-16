@@ -13,9 +13,9 @@ import dask.config
 from dask_jobqueue import HTCondorCluster
 
 from .executors_manual_jobs import (
+    SHARED_CONFIG_NAME,
     write_inner_run_options,
 )
-import cloudpickle
 import yaml
         
 class DaskExecutorFactory(ExecutorFactoryABC):
@@ -102,7 +102,6 @@ class ExecutorFactoryCondorUMD(ExecutorFactoryManualABC):
         pass
 
     def prepare_jobs(self, splits):
-        config_files = [ ]
         jobs_config = {
             "job_name": self.job_name,
             "job_dir": os.path.abspath(self.jobs_dir),
@@ -120,26 +119,7 @@ class ExecutorFactoryCondorUMD(ExecutorFactoryManualABC):
             },
             "jobs_list": {}
         }
-        # Disabling the postprocessing
-        self.config.do_postprocessing = False
-        # Splitting the filets creating a new configuration for each and pickling it
-        for i, split in enumerate(splits):
-            # We want to create an unloaded copy of the configurator, and setting the filtered
-            # fileset
-            partial_config = self.config.clone()
-            # take the config filr, set the fileset and save it.
-            partial_config.set_filesets_manually(split)
-            cloudpickle.dump(partial_config, open(f"{self.jobs_dir}/config_job_{i}.pkl", "wb"))
-            config_files.append(f"{self.jobs_dir}/config_job_{i}.pkl")
-            jobs_config["jobs_list"][f"job_{i}"] = {
-                "filesets": split,
-                "config_file": f"{self.jobs_dir}/config_job_{i}.pkl",
-                "output_file": f"{os.path.abspath(self.outputdir)}/output_job_{i}.coffea",
-            }
-            
-        yaml.dump(jobs_config, open(f"{self.jobs_dir}/jobs_config.yaml", "w"))
-        # save the configuration
-        return config_files
+        return self.write_job_inputs(splits, jobs_config)
 
     def submit_jobs(self, jobs_config):
         '''Prepare job config and script and submit the jobs to the cluster'''
@@ -165,7 +145,7 @@ rm -f $JOBDIR/job_$1.idle
 
 echo "Starting job $1"
 touch $JOBDIR/job_$1.running
-pocket-coffea run --cfg $2 -o output EXECUTOR --chunksize $4 --custom-run-options {inner_yaml_basename}
+pocket-coffea run --cfg {SHARED_CONFIG_NAME} --fileset $2 -o output EXECUTOR --chunksize $4 --custom-run-options {inner_yaml_basename}
 # Do things only if the job is successful
 if [ $? -eq 0 ]; then
     echo 'Job successful'
@@ -189,7 +169,8 @@ echo 'Done'"""
             f.write(script)
 
         # Writing the jid file as the htcondor python submission does not work in the singularity
-        transfer_input_files = [f"{abs_jobdir_path}/config_job_$(ProcId).pkl",
+        transfer_input_files = [f"{abs_jobdir_path}/fileset_job_$(ProcId).json",
+                                f"{abs_jobdir_path}/{SHARED_CONFIG_NAME}",
                                 f"{abs_jobdir_path}/job.sh",
                                 f"{abs_jobdir_path}/{inner_yaml_basename}"]
         if not self.run_options.get("ignore-grid-certificate", False):
@@ -204,7 +185,7 @@ echo 'Done'"""
             '+MaxRuntime' : self.run_options['max-run-time'],
             'RequestCpus' : self.run_options['cores-per-worker'],
             'RequestMemory' : f"{self.run_options['mem-per-worker']}",
-            'arguments': f"$(ProcId) config_job_$(ProcId).pkl {abs_output_path} $(chunksize)",
+            'arguments': f"$(ProcId) fileset_job_$(ProcId).json {abs_output_path} $(chunksize)",
             'should_transfer_files':'YES',
             'when_to_transfer_output' : 'ON_EXIT',
             'transfer_input_files' : ",".join(transfer_input_files),
@@ -244,7 +225,7 @@ echo 'Done'"""
             "Log": f"{abs_jobdir_path}/logs/job_$(ClusterId).$(PROC).log",
             "RequestCpus": "$(CPUS)",
             "RequestMemory": "$(MEMORY)",
-            "arguments": f"$(PROC) config_job_$(PROC).pkl {abs_output_path} $(CHUNKSIZE)",
+            "arguments": f"$(PROC) fileset_job_$(PROC).json {abs_output_path} $(CHUNKSIZE)",
             "transfer_input_files": ",".join(
                 path.replace("$(ProcId)", "$(PROC)") for path in transfer_input_files
             ),

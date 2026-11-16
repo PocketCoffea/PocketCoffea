@@ -1,17 +1,18 @@
-"""Print a human-readable summary of a per-job pickle produced by the
-manual-jobs executors (`condor@lxplus`, `condor@rubin`, ...).
+"""Print a human-readable summary of one job of the manual-jobs executors
+(`condor@lxplus`, `condor@rubin`, ...).
 
-Each `jobs_dir/config_job_{i}.pkl` is a cloudpickled `Configurator` whose
-`filesets` have been restricted to one job's slice. This tool loads the
-pickle and prints what the job will actually run on: workflow class,
+Each job is `jobs_dir/fileset_job_{i}.json` (its slice of the fileset) plus
+the `configurator_jobs.pkl` shared by all jobs. This tool loads both and prints
+what the job will actually run on: workflow class,
 workflow options, save_skimmed_files setting, and the per-dataset table
 (sample, year, isMC, n_files, n_events). Pass --files to also list every
 file URL.
 
 Typical use:
-    pocket-coffea inspect-job /path/to/jobs_dir/job/config_job_42.pkl
-    pocket-coffea inspect-job .../config_job_42.pkl --files
+    pocket-coffea inspect-job /path/to/jobs_dir/job/fileset_job_42.json
+    pocket-coffea inspect-job .../fileset_job_42.json --files
 """
+import json
 import os
 
 import click
@@ -20,24 +21,29 @@ from rich import print as rprint
 from rich.table import Table
 from rich.console import Console
 
+from pocket_coffea.executors.executors_manual_jobs import SHARED_CONFIG_NAME
+
 
 @click.command(name="inspect-job")
-@click.argument("pickle_path", type=click.Path(exists=True, dir_okay=False))
+@click.argument("job_path", type=click.Path(exists=True, dir_okay=False))
 @click.option("-f", "--files", "show_files", is_flag=True,
               help="List every file URL per dataset.")
 @click.option("-m", "--metadata", "show_metadata", is_flag=True,
               help="Print the full per-dataset metadata dict (verbose).")
 @click.option("--workflow-options/--no-workflow-options", default=True,
               help="Print the workflow_options dict (default: on).")
-def inspect_job(pickle_path, show_files, show_metadata, workflow_options):
-    """Print the content of a per-job pickle (jobs_dir/config_job_*.pkl)."""
+def inspect_job(job_path, show_files, show_metadata, workflow_options):
+    """Print the content of a job (jobs_dir/fileset_job_*.json)."""
     console = Console()
 
-    with open(pickle_path, "rb") as f:
+    # The job fileset + the configurator shared by all jobs, next to it.
+    with open(os.path.join(os.path.dirname(job_path), SHARED_CONFIG_NAME), "rb") as f:
         cfg = cloudpickle.load(f)
+    with open(job_path) as f:
+        cfg.set_filesets_manually(json.load(f))
 
     # --- header
-    rprint(f"[bold]Job pickle:[/] {os.path.abspath(pickle_path)}")
+    rprint(f"[bold]Job fileset:[/] {os.path.abspath(job_path)}")
     workflow = getattr(cfg, "workflow", None)
     wf_name = getattr(workflow, "__name__", str(workflow))
     wf_mod = getattr(workflow, "__module__", "")
@@ -56,7 +62,7 @@ def inspect_job(pickle_path, show_files, show_metadata, workflow_options):
     # --- datasets table
     filesets = getattr(cfg, "filesets", {}) or {}
     if not filesets:
-        rprint("[yellow]No filesets in this pickle.[/]")
+        rprint("[yellow]No filesets in this job.[/]")
         return
 
     table = Table(title=f"Datasets in this job ({len(filesets)})")

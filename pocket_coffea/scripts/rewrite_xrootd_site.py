@@ -1,8 +1,7 @@
 import argparse
 from copy import deepcopy
+import json
 import sys
-
-import cloudpickle
 
 from pocket_coffea.utils.rucio import get_rucio_client, get_xrootd_sites_map
 from pocket_coffea.utils.site_rewrite import (
@@ -76,7 +75,8 @@ def rewrite_config_from_log(config_file, log_file, failed_sites_file=None):
     if failed_url is None:
         return EXIT_NO_XROOTD
 
-    config = cloudpickle.load(open(config_file, "rb"))
+    with open(config_file) as handle:
+        filesets = json.load(handle)
     sitemap = get_xrootd_sites_map()
     try:
         rucio_client = get_rucio_client()
@@ -91,22 +91,22 @@ def rewrite_config_from_log(config_file, log_file, failed_sites_file=None):
         _save_failed_sites(failed_sites_file, failed_sites)
 
     new_filesets, ntarget, nchanged = rewrite_files_from_failed_site(
-        config.filesets, failed_url, sitemap, blocklist_sites=failed_sites,
+        filesets, failed_url, sitemap, blocklist_sites=failed_sites,
         rucio_client=rucio_client,
     )
     if nchanged == 0:
         print(f"XRootD failure found at {site_prefix(failed_url)}, but no config URLs changed.")
         return EXIT_NO_CHANGE
 
-    config.set_filesets_manually(new_filesets)
-    cloudpickle.dump(config, open(config_file, "wb"))
+    with open(config_file, "w") as handle:
+        json.dump(new_filesets, handle)
     print(f"Rewrote {nchanged}/{ntarget} files from failed XRootD site {site_prefix(failed_url)}.")
     return EXIT_REWRITTEN
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Rewrite XRootD URLs in a job config after an XRootD failure.")
-    parser.add_argument("--config", required=True, help="Path to the job configurator pickle.")
+    parser = argparse.ArgumentParser(description="Rewrite XRootD URLs in a job fileset after an XRootD failure.")
+    parser.add_argument("--config", required=True, help="Path to the job fileset JSON (fileset_job_N.json).")
     parser.add_argument("--log", required=True, help="Path to the runner attempt log.")
     parser.add_argument("--failed-sites-file", default=None,
                         help="Optional state file tracking failed XRootD sites across attempts.")
