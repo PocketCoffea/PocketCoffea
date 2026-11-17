@@ -279,6 +279,8 @@ def merge_inferred_status(idle, running, done, failed, timeout, findings):
         if job in running:
             running.remove(job)
         (timeout if marker == "timeout" else failed).append(job)
+    # A timeout job is also a failed job, as in convert_timeout_jobs (resubmit mode)
+    failed += [job for job in timeout if job not in failed]
     return idle, running, done, failed, timeout
 
 
@@ -1052,7 +1054,7 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, queue_shift, ncpu, 
     findings = scan_condor_log_failures(folder, offsets)
     idle, running, done, failed, timeout = check_jobs_logs(folder)
     advance_startup_step()
-    log_text, pending, definitive = [], {}, set()
+    log_text, pending, definitive, shown_timeouts = [], {}, set(), set()
     reported_failures, waiting_logs = {}, {}
 
     mutation = bool(resubmit or recreate is not None)
@@ -1066,6 +1068,11 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, queue_shift, ncpu, 
         else:
             idle, running, done, failed, timeout = merge_inferred_status(
                 idle, running, done, failed, timeout, findings)
+            new_timeouts = sorted(set(timeout) - shown_timeouts, key=lambda job: int(job.split("_", 1)[1]))
+            if new_timeouts:
+                shown_timeouts.update(new_timeouts)
+                log_text.append(f"[red]{len(new_timeouts)} jobs reached the Condor time limit:[/] "
+                                f"{', '.join(new_timeouts)}. Use -r to resubmit them.")
         pending_logs = log_failure_reasons(folder, failed, reported_failures, waiting_logs, log_text)
         resubmit_now = []
         if resubmit:
@@ -1134,8 +1141,11 @@ def check_jobs(jobs_folder, details, resubmit, max_resubmit, queue_shift, ncpu, 
             first_pass = False
             terminal_failed = len(definitive) if resubmit else len(failed)
             if len(total) == len(done) + terminal_failed:
-                rprint("[green]All jobs are completed[/]")
-                rprint(f"Now merge outputs with [yellow]merge-outputs -jc {folder}[/].")
+                if terminal_failed:
+                    rprint(f"[red]All jobs are finished: {terminal_failed} failed.[/]")
+                else:
+                    rprint("[green]All jobs are completed[/]")
+                    rprint(f"Now merge outputs with [yellow]merge-outputs -jc {folder}[/].")
                 break
             if once:
                 break

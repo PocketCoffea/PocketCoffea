@@ -35,3 +35,10 @@ def test_failure_reason_logged_once_and_waits_for_fresh_logs(tmp_path):
     cj.log_failure_reasons(tmp_path, ["job_7"], reported, waiting, log)
     assert len(log) == 2  # same attempt not reported again
 
+
+
+def test_timeout_jobs_count_as_failed_without_resubmit():
+    # read-only mode (no -r): the per-sample progress table gets `failed`
+    _, _, done, failed, timeout = cj.merge_inferred_status(
+        [], ["job_3"], ["job_0"], ["job_1"], ["job_2"], {"job_3": "timeout"})
+    assert (done, failed, timeout) == (["job_0"], ["job_1", "job_2", "job_3"], ["job_2", "job_3"])
