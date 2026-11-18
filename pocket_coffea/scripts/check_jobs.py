@@ -17,7 +17,6 @@ from functools import wraps
 from pathlib import Path
 
 import click
-import cloudpickle
 import yaml
 from rich import print as rprint
 from rich.console import Console
@@ -134,7 +133,7 @@ def load_current_contract(jobs_folder):
             if not (folder / name).is_file():
                 raise ValueError
         for job, values in state.items():
-            if not (folder / f"config_job_{job}.pkl").is_file():
+            if not (folder / f"fileset_job_{job}.json").is_file():
                 raise ValueError
             if not all(key in values for key in
                        ("chunksize", "request_cpus", "request_memory", "resubmissions")):
@@ -380,7 +379,7 @@ def condor_rm_job(job):
     idx = job.split("_", 1)[1]
     try:
         result = subprocess.run(
-            ["condor_rm", "-constraint", f'regexp("config_job_{idx}\\.pkl", Args)'],
+            ["condor_rm", "-constraint", f'regexp("fileset_job_{idx}\\.json", Args)'],
             text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False)
     except OSError as exc:
         return False, str(exc)
@@ -389,7 +388,7 @@ def condor_rm_job(job):
 
 def wait_for_condor_job_removal(job, timeout=CONDOR_REMOVAL_TIMEOUT, poll_interval=0.2):
     idx = job.split("_", 1)[1]
-    constraint = f'regexp("config_job_{idx}\\.pkl", Args)'
+    constraint = f'regexp("fileset_job_{idx}\\.json", Args)'
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         try:
@@ -696,7 +695,7 @@ def recreate_jobs_oneshot(jobs_folder, jobs_to_recreate, *, use_redirector=False
             result["skipped"].append(job)
             continue
         was_active = job in selected_active
-        config_temp = sub_temp = None
+        fileset_temp = sub_temp = None
         backup_path = None
         state_temp = None
         scheduler_instance_removed = False
@@ -713,14 +712,11 @@ def recreate_jobs_oneshot(jobs_folder, jobs_to_recreate, *, use_redirector=False
                             for file in dataset["files"]]
                 if blocklist:
                     fileset = rewrite_fileset_blocklist(fileset, sitemap, blocklist, rucio_client=client)
-            config_path = folder / f"config_{job}.pkl"
-            config = cloudpickle.load(config_path.open("rb"))
-            config.set_filesets_manually(fileset)
-            fd, name = tempfile.mkstemp(prefix=f".{config_path.name}.", suffix=".tmp", dir=folder)
+            fileset_path = folder / f"fileset_{job}.json"
+            fd, name = tempfile.mkstemp(prefix=f".{fileset_path.name}.", suffix=".tmp", dir=folder)
             os.close(fd)
-            config_temp = Path(name)
-            with config_temp.open("wb") as handle:
-                cloudpickle.dump(config, handle)
+            fileset_temp = Path(name)
+            fileset_temp.write_text(json.dumps(fileset))
             job_num = job.split("_", 1)[1]
             candidate = deepcopy(state[job_num])
             if (folder / f"{job}.timeout").exists():
@@ -758,13 +754,13 @@ def recreate_jobs_oneshot(jobs_folder, jobs_to_recreate, *, use_redirector=False
                     result["skipped"].append(job)
                     continue
 
-            backup_path = config_path.with_name(f".{config_path.name}.{os.getpid()}.bak")
-            os.replace(config_path, backup_path)
-            os.replace(config_temp, config_path)
+            backup_path = fileset_path.with_name(f".{fileset_path.name}.{os.getpid()}.bak")
+            os.replace(fileset_path, backup_path)
+            os.replace(fileset_temp, fileset_path)
             ok, output = condor_submit_job(folder, sub_temp.name)
             if not ok:
-                config_path.unlink(missing_ok=True)
-                os.replace(backup_path, config_path)
+                fileset_path.unlink(missing_ok=True)
+                os.replace(backup_path, fileset_path)
                 backup_path = None
                 if scheduler_instance_removed:
                     mark_job_failed(folder, job)
@@ -787,7 +783,7 @@ def recreate_jobs_oneshot(jobs_folder, jobs_to_recreate, *, use_redirector=False
                 backup_path.unlink(missing_ok=True)
                 backup_path = None
             except Exception as exc:
-                rprint(f"[yellow]{job} was submitted, but could not remove the config backup: {exc}[/]")
+                rprint(f"[yellow]{job} was submitted, but could not remove the fileset backup: {exc}[/]")
             try:
                 mark_job_idle(folder, job)
             except Exception as exc:
@@ -797,8 +793,8 @@ def recreate_jobs_oneshot(jobs_folder, jobs_to_recreate, *, use_redirector=False
                 ) from exc
         except Exception as exc:
             if not submitted_to_scheduler and backup_path and backup_path.exists():
-                config_path.unlink(missing_ok=True)
-                os.replace(backup_path, config_path)
+                fileset_path.unlink(missing_ok=True)
+                os.replace(backup_path, fileset_path)
             if submitted_to_scheduler:
                 raise
             else:
@@ -806,8 +802,8 @@ def recreate_jobs_oneshot(jobs_folder, jobs_to_recreate, *, use_redirector=False
             if scheduler_instance_removed:
                 mark_job_failed(folder, job)
         finally:
-            if config_temp:
-                config_temp.unlink(missing_ok=True)
+            if fileset_temp:
+                fileset_temp.unlink(missing_ok=True)
             if sub_temp:
                 sub_temp.unlink(missing_ok=True)
             if state_temp and not submitted_to_scheduler:
@@ -832,8 +828,8 @@ def split_jobs_oneshot(jobs_folder, jobs_to_split, n):
     queue/resources of the old job, and replace it in job_state.json and in
     jobs_config.yaml["jobs_list"] (so merge-outputs -jc is unchanged); the split
     is recorded under jobs_config.yaml["split_jobs"]. Files come from the job
-    pkl. All new jobs go in one condor_submit; nothing is committed if it fails.
-    The pkl and marker of each old job move to `split/`; its logs stay.
+    fileset JSON. All new jobs go in one condor_submit; nothing is committed if it fails.
+    The fileset JSON and marker of each old job move to `split/`; its logs stay.
     '''
     folder, jobs_config, submission, state, state_file = load_current_contract(jobs_folder)
     result = {"requested": [], "split": {}, "failed": {}}
@@ -850,7 +846,7 @@ def split_jobs_oneshot(jobs_folder, jobs_to_split, n):
     next_id = 1 + max(int(job.split("_", 1)[1])
                       for job in [f"job_{num}" for num in state] + list(jobs_config["jobs_list"])
                       + list(split_jobs))
-    new_states, new_pkls, plan = {}, [], {}
+    new_states, new_files, plan = {}, [], {}
     state_temp, submitted = None, False
     try:
         for job in jobs:
@@ -863,9 +859,8 @@ def split_jobs_oneshot(jobs_folder, jobs_to_split, n):
                 # An active job could still finish and write its output and .done marker.
                 result["failed"][job] = "only .failed or .timeout jobs can be split"
                 continue
-            config_path = folder / f"config_{job}.pkl"
             try:
-                chunks = split_fileset(cloudpickle.load(config_path.open("rb")).filesets, n)
+                chunks = split_fileset(json.loads((folder / f"fileset_{job}.json").read_text()), n)
             except ValueError as exc:  # 1 file: it stays failed, --resubmit still handles it
                 result["failed"][job] = str(exc)
                 continue
@@ -873,12 +868,9 @@ def split_jobs_oneshot(jobs_folder, jobs_to_split, n):
             for chunk in chunks:
                 new_num = str(next_id)
                 next_id += 1
-                config = cloudpickle.load(config_path.open("rb"))
-                config.set_filesets_manually(chunk)
-                new_pkl = folder / f"config_job_{new_num}.pkl"
-                with new_pkl.open("wb") as handle:
-                    cloudpickle.dump(config, handle)
-                new_pkls.append(new_pkl)
+                new_file = folder / f"fileset_job_{new_num}.json"
+                new_file.write_text(json.dumps(chunk))
+                new_files.append(new_file)
                 new_states[new_num] = {**deepcopy(state[number]), "resubmissions": 0}
                 plan[job][1].append((new_num, chunk))
         if not plan:
@@ -902,7 +894,7 @@ def split_jobs_oneshot(jobs_folder, jobs_to_split, n):
         submitted = True
     finally:
         if not submitted:
-            for path in new_pkls + [state_temp]:
+            for path in new_files + [state_temp]:
                 if path:
                     path.unlink(missing_ok=True)
 
@@ -915,13 +907,13 @@ def split_jobs_oneshot(jobs_folder, jobs_to_split, n):
             for num, chunk in new_jobs:
                 jobs_config["jobs_list"][f"job_{num}"] = {
                     "filesets": chunk,
-                    "config_file": str(folder / f"config_job_{num}.pkl"),
+                    "fileset_file": str(folder / f"fileset_job_{num}.json"),
                     "output_file": f"{jobs_config['output_dir']}/output_job_{num}.coffea",
                 }
                 mark_job_idle(folder, f"job_{num}")
             del jobs_config["jobs_list"][job]
             split_jobs[job] = [f"job_{num}" for num, _ in new_jobs]
-            for name in (f"config_{job}.pkl", f"{job}.{marker}"):
+            for name in (f"fileset_{job}.json", f"{job}.{marker}"):
                 os.replace(folder / name, folder / "split" / name)
             result["split"][job] = split_jobs[job]
         save_jobs_config(folder, jobs_config)

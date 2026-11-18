@@ -33,16 +33,8 @@ def make_jobs(tmp_path, executor="condor@lxplus"):
         "RequestCpus = $(CPUS)\nRequestMemory = $(MEMORY)\n"
         "arguments = $(PROC) $(CHUNKSIZE) $(CPUS)\n"
     )
-    (tmp_path / "config_job_0.pkl").write_bytes(b"placeholder")
+    (tmp_path / "fileset_job_0.json").write_text("{}")
     (tmp_path / "job_0.running").touch()
-
-
-class Config:
-    def __init__(self):
-        self.filesets = {}
-
-    def set_filesets_manually(self, filesets):
-        self.filesets = filesets
 
 
 def test_current_contract_is_accepted(tmp_path):
@@ -92,10 +84,6 @@ def test_passive_check_jobs_does_not_mutate_markers_or_state(tmp_path, monkeypat
 def test_recreate_prepares_before_condor_rm(tmp_path, monkeypatch):
     make_jobs(tmp_path)
     (tmp_path / "job_0.running").touch()
-    config_path = tmp_path / "config_job_0.pkl"
-    import cloudpickle
-    with config_path.open("wb") as handle:
-        cloudpickle.dump(Config(), handle)
     jobs_config = yaml.safe_load((tmp_path / "jobs_config.yaml").read_text())
     jobs_config["jobs_list"]["job_0"]["filesets"] = {
         "dataset": {"files": ["file.root"], "metadata": {"nevents": 1}}
@@ -133,19 +121,14 @@ def test_failed_recreate_restores_canonical_config(tmp_path, monkeypatch):
     make_jobs(tmp_path)
     (tmp_path / "job_0.running").unlink()
     (tmp_path / "job_0.done").touch()
-    import cloudpickle
-    config = Config()
-    config.filesets = {"original": {"files": ["old.root"]}}
-    with (tmp_path / "config_job_0.pkl").open("wb") as handle:
-        cloudpickle.dump(config, handle)
+    (tmp_path / "fileset_job_0.json").write_text(json.dumps({"original": {"files": ["old.root"]}}))
     monkeypatch.setattr(check_jobs, "condor_submit_job", lambda *args: (False, "submit failed"))
     result = check_jobs.recreate_jobs_oneshot(tmp_path, "0")
     assert "job_0" in result["failed"]
     assert (tmp_path / "job_0.done").exists()
     assert not (tmp_path / "job_0.failed").exists()
     assert json.loads((tmp_path / "job_state.json").read_text())["0"]["resubmissions"] == 0
-    with (tmp_path / "config_job_0.pkl").open("rb") as handle:
-        assert cloudpickle.load(handle).filesets == {"original": {"files": ["old.root"]}}
+    assert json.loads((tmp_path / "fileset_job_0.json").read_text()) == {"original": {"files": ["old.root"]}}
 
 
 def test_reactive_marker_failure_stops_after_committing_retry(tmp_path, monkeypatch):
@@ -165,9 +148,6 @@ def test_reactive_marker_failure_stops_after_committing_retry(tmp_path, monkeypa
 def test_successful_recreate_marker_failure_stops_after_submission(tmp_path, monkeypatch):
     make_jobs(tmp_path)
     (tmp_path / "job_0.running").unlink()
-    import cloudpickle
-    with (tmp_path / "config_job_0.pkl").open("wb") as handle:
-        cloudpickle.dump(Config(), handle)
     monkeypatch.setattr(check_jobs, "condor_submit_job", lambda *args: (True, ""))
     monkeypatch.setattr(check_jobs, "mark_job_idle",
                         lambda *args: (_ for _ in ()).throw(OSError("marker write")))

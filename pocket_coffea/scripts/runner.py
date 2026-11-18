@@ -2,6 +2,7 @@ import os, getpass
 import sys
 import argparse
 import cloudpickle
+import json
 import socket
 import logging
 import yaml
@@ -61,6 +62,8 @@ def _resolve_local_chunksize(chunksize_cfg, filesets):
 @click.option('--cfg', required=True, type=str,
               help='Config file with parameters specific to the current run')
 @click.option("-ro", "--custom-run-options", type=str, default=None, help="User provided run options .yaml file")
+@click.option("--fileset", type=click.Path(exists=True, dir_okay=False), default=None,
+              help="JSON fileset that replaces the one of a .pkl config (used by condor@lxplus jobs)")
 @click.option("-o", "--outputdir", required=True, type=str, help="Output folder")
 @click.option("-t", "--test", is_flag=True, help="Run with limit 1 interactively")
 @click.option("-lf","--limit-files", type=int, help="Limit number of files")
@@ -84,7 +87,7 @@ def _resolve_local_chunksize(chunksize_cfg, filesets):
                    "shipped to the inner job via inner_run_options.yaml.")
 @click.option("--timeit", is_flag=True, help="Measure throughput; automatically select files and local chunks")
 
-def run(cfg,  custom_run_options, outputdir, test, limit_files, limit_samples,
+def run(cfg,  custom_run_options, fileset, outputdir, test, limit_files, limit_samples,
            limit_chunks, executor, scaleout, chunksize,
            queue, loglevel, process_separately, executor_custom_setup,
            filter_years, filter_samples, filter_datasets, resubmit_failed,
@@ -107,11 +110,18 @@ def run(cfg,  custom_run_options, outputdir, test, limit_files, limit_samples,
         exit(1)
 
     rprint("[bold]Loading the configuration file...[/]")
+    if fileset and cfg[-4:] != ".pkl":
+        sys.exit("--fileset works only with a .pkl configuration")
     if cfg[-3:] == ".py":
         # Load the script
         config = load_config(cfg, save_config=True, outputdir=outputdir)
     elif cfg[-4:] == ".pkl":
         config = cloudpickle.load(open(cfg,"rb"))
+        if fileset:
+            if config.loaded:
+                sys.exit("--fileset needs an unloaded .pkl configuration")
+            with open(fileset) as f:
+                config.set_filesets_manually(json.load(f))
         if not config.loaded:
             config.load()
         config.save_config(outputdir)

@@ -132,7 +132,7 @@ def test_timeout_cleanup_terminates_complete_local_process_group(tmp_path):
     script_path.chmod(0o755)
     (tmp_path / "inner.yaml").write_text("{}\n")
     process = subprocess.Popen(
-        [str(script_path), "0", "config.pkl", "10", "1"],
+        [str(script_path), "0", "fileset_job_0.json", "10", "1"],
         cwd=str(tmp_path),
         env={**os.environ, "_CONDOR_SCRATCH_DIR": str(tmp_path)},
         start_new_session=True,
@@ -155,3 +155,7 @@ def test_timeout_cleanup_terminates_complete_local_process_group(tmp_path):
     assert process.wait(timeout=10) == 0
     assert not (tmp_path / "job_0.running").exists()
     assert not (tmp_path / "job_0.idle").exists()
+
+
+def test_runner_reads_shared_configurator_and_job_fileset():
+    assert '--cfg configurator_jobs.pkl --fileset "$2"' in _script()
