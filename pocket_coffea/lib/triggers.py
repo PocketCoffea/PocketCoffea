@@ -30,10 +30,14 @@ def apply_trigger_mask(events, triggers_to_apply, year, invert=False, trigger_ty
             (trigger == 'Ele32_WPTight_Gsf_L1DoubleEG')
             & ('Ele32_WPTight' not in events_trigger.fields)
         ):
+            # Electron TrigObj filter bit of 1e (32_L1DoubleEG_AND_L1SingleEGOr):
+            # bit 10 (1024) in NanoAODv9, bit 11 (2048) in NanoAODv15, where the
+            # 2e filter bit was split into two legs and the following bits shifted by one
+            ele32_filter_bit = 2048 if year == "2017_v15" else 1024
             flag = (
                 ak.sum(
                     (events.TrigObj.id == 11)
-                    & ((events.TrigObj.filterBits & 1024) == 1024),
+                    & ((events.TrigObj.filterBits & ele32_filter_bit) == ele32_filter_bit),
                     axis=1,
                 )
                 > 0
