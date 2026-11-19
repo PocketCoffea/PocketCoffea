@@ -6,6 +6,7 @@ from typing import List, Optional
 import awkward
 import pathlib
 import shutil
+import tempfile
 from .configurator import Configurator
 from .metadata import to_bool
 import hashlib
@@ -107,6 +108,35 @@ def adapt_chunksize(nevents, run_options):
         adapted_chunksize = run_options["chunksize"]
     return adapted_chunksize
 
+def validate_parquet_file(fname: str, expected_rows: Optional[int] = None) -> None:
+    """
+    Check that fname is a readable parquet file: it must start and end with the
+    'PAR1' magic bytes and its footer metadata must be parsable. If expected_rows
+    is given, the number of rows stored in the metadata must match.
+    Raises an IOError if the file is not valid.
+    """
+    import pyarrow.parquet as pq
+
+    magic = b"PAR1"
+    size = os.path.getsize(fname)
+    if size < 2 * len(magic):
+        raise IOError(f"Parquet file {fname} is too small ({size} bytes)")
+    with open(fname, "rb") as f:
+        header = f.read(len(magic))
+        f.seek(-len(magic), os.SEEK_END)
+        footer = f.read(len(magic))
+    if header != magic or footer != magic:
+        raise IOError(f"File {fname} does not have valid parquet magic bytes")
+    try:
+        metadata = pq.read_metadata(fname)
+    except Exception as err:
+        raise IOError(f"Cannot read parquet metadata of {fname}: {err}") from err
+    if expected_rows is not None and metadata.num_rows != expected_rows:
+        raise IOError(
+            f"Parquet file {fname} has {metadata.num_rows} rows, expected {expected_rows}"
+        )
+
+
 # Function taken from HiggsDNA
 # https://gitlab.cern.ch/HiggsDNA-project/HiggsDNA/-/blob/master/higgs_dna/utils/dumping_utils.py
 def dump_ak_array(
@@ -117,6 +147,10 @@ def dump_ak_array(
 ) -> None:
     """
     Dump an awkward array to disk at location/'/'.join(subdirs)/fname.
+    The file is first written to a temporary local file and then copied to the
+    destination. The temporary file is created in the directory given by the
+    POCKET_COFFEA_TMPDIR environment variable (e.g. the node-local scratch),
+    or in the current working directory if the variable is not set.
     """
     subdirs = subdirs or []
     xrd_prefix = "root://"
@@ -132,33 +166,57 @@ def dump_ak_array(
             raise ImportError(
                 "Install XRootD python bindings with: conda install -c conda-forge xroot"
             ) from err
-    local_file = (
-        os.path.abspath(os.path.join(".", fname))
-        if xrootd
-        else os.path.join(".", fname)
-    )
+    # Use a unique temporary file to avoid concurrent workers writing to the
+    # same local file (which leads to empty or corrupted outputs)
+    tmp_dir = os.environ.get("POCKET_COFFEA_TMPDIR", ".")
+    os.makedirs(tmp_dir, exist_ok=True)
+    fd, local_file = tempfile.mkstemp(suffix=f"_{fname}", dir=tmp_dir)
+    os.close(fd)
+    local_file = os.path.abspath(local_file)
     merged_subdirs = "/".join(subdirs) if xrootd else os.path.sep.join(subdirs)
     destination = (
         location + merged_subdirs + f"/{fname}"
         if xrootd
         else os.path.join(location, os.path.join(merged_subdirs, fname))
     )
-    awkward.to_parquet(akarr, local_file)
-    if xrootd: # fix XRootD mkdir offen meet problem like: Exception: [ERROR] Server responded with an error: [3018] Unable to mkdir ...（your dir）..; File exists
-        copyproc = XRootD.client.CopyProcess()
-        #old: copyproc.add_job(local_file, destination, force=True)
-        copyproc.add_job(local_file, destination, mkdir=True, force=True) 
-        copyproc.prepare()
-        status, response = copyproc.run()
-        if status.status != 0:
-            raise Exception(status.message)
-        del copyproc
-    else:
-        dirname = os.path.dirname(destination)
-        pathlib.Path(dirname).mkdir(parents=True, exist_ok=True)
-        shutil.copy(local_file, destination)
-        assert os.path.isfile(destination)
-    pathlib.Path(local_file).unlink()
+    try:
+        awkward.to_parquet(akarr, local_file)
+        # Make sure the file was written correctly before shipping it
+        validate_parquet_file(local_file, expected_rows=len(akarr))
+        local_size = os.path.getsize(local_file)
+        if xrootd: # fix XRootD mkdir offen meet problem like: Exception: [ERROR] Server responded with an error: [3018] Unable to mkdir ...（your dir）..; File exists
+            copyproc = XRootD.client.CopyProcess()
+            #old: copyproc.add_job(local_file, destination, force=True)
+            copyproc.add_job(local_file, destination, mkdir=True, force=True)
+            copyproc.prepare()
+            status, response = copyproc.run()
+            if status.status != 0:
+                raise Exception(status.message)
+            del copyproc
+            # Check that the remote file has the same size as the local one
+            url = XRootD.client.URL(destination)
+            fs = XRootD.client.FileSystem(f"{url.protocol}://{url.hostid}")
+            status, statinfo = fs.stat(url.path)
+            if not status.ok:
+                raise IOError(f"Cannot stat {destination} after copy: {status.message}")
+            if statinfo.size != local_size:
+                raise IOError(
+                    f"Size mismatch after copy to {destination}: "
+                    f"{statinfo.size} bytes, expected {local_size}"
+                )
+        else:
+            dirname = os.path.dirname(destination)
+            pathlib.Path(dirname).mkdir(parents=True, exist_ok=True)
+            shutil.copy(local_file, destination)
+            assert os.path.isfile(destination)
+            if os.path.getsize(destination) != local_size:
+                raise IOError(
+                    f"Size mismatch after copy to {destination}: "
+                    f"{os.path.getsize(destination)} bytes, expected {local_size}"
+                )
+            validate_parquet_file(destination, expected_rows=len(akarr))
+    finally:
+        pathlib.Path(local_file).unlink(missing_ok=True)
 
 
 def get_nano_version(events, params, year):

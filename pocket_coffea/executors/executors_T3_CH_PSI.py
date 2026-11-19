@@ -23,6 +23,9 @@ class DaskExecutorFactory(ExecutorFactoryABC):
             'export XRD_RUNFORKHANDLER=1',
             'export MALLOC_TRIM_THRESHOLD_=0',
             'ulimit -u unlimited',
+            # Write parquet files to the node-local scratch before copying them
+            # to the final destination (see utils.dump_ak_array)
+            f'export POCKET_COFFEA_TMPDIR={os.path.join("/scratch", os.environ["USER"], "pocket_coffea_tmp")}',
             ]
         if not self.run_options['ignore-grid-certificate']:
             env_worker.append(f'export X509_USER_PROXY={self.x509_path}')
