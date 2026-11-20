@@ -121,6 +121,28 @@ def test_file_not_found_traceback_url_is_detected(tmp_path, monkeypatch):
     assert _load_filesets(config_path)["sampleA"]["files"] == [SITEC_PREFIX + "/store/data/a.root"]
 
 
+def test_corrupt_input_data_uses_coffea_workitem_url(tmp_path, monkeypatch):
+    # Real log shape: the skim probe prints an unrelated EOS URL above, the lzma
+    # traceback has no URL, coffea names the input file ~18 lines below.
+    _patch_rewrite_deps(monkeypatch)
+    filesets = _fileset([("sampleA", [SITEA_PREFIX + "/store/data/a.root"])])
+    config_path = _dump_config(tmp_path, filesets)
+    log_path = tmp_path / "job_0.out"
+    log_path.write_text(
+        "read_skimmed_file: cannot read root://eoscms.cern.ch//eos/cms/store/group/skim.root\n"
+        + "traceback line\n" * 5
+        + "_lzma.LZMAError: Corrupt input data\n"
+        + "traceback line\n" * 17
+        + f"Exception: Failed processing file: WorkItem(dataset='sampleA', "
+          f"filename='{SITEA_PREFIX}/store/data/a.root', treename='Events')\n"
+    )
+
+    rc = helper.rewrite_config_from_log(config_path, log_path)
+
+    assert rc == helper.EXIT_REWRITTEN
+    assert _load_filesets(config_path)["sampleA"]["files"] == [SITEC_PREFIX + "/store/data/a.root"]
+
+
 def test_failed_sites_file_blocklists_previous_sites_and_reaches_redirector(tmp_path, monkeypatch):
     from pocket_coffea.utils.site_rewrite import GLOBAL_XROOTD_REDIRECTOR
 

@@ -22,8 +22,12 @@ XROOTD_FAILURE_STRINGS = (
     "OSError: XRootD error",
     "received 0 bytes from XRootDSource",
     "FileNotFoundError: file not found",
+    # uproot decompression error from a bad replica (e.g. _lzma.LZMAError)
+    "Corrupt input data",
 )
 ROOT_URL_RE = re.compile(r"root://[^\s'\"<>]+?/store/[^\s'\",)]+")
+# coffea wraps processing errors in "Failed processing file: WorkItem(filename='root://...')"
+WORKITEM_URL_RE = re.compile(r"filename\s*=\s*['\"](root://[^'\"]+?/store/[^'\"]+)['\"]")
 
 
 def normalize_rse(site):
@@ -53,6 +57,10 @@ def extract_failed_url(log_text):
         match = ROOT_URL_RE.search(nearby)
         if match:
             return match.group(0).rstrip(".,;:")
+        # Decompression errors have no URL in the traceback: take the coffea WorkItem below.
+        match = WORKITEM_URL_RE.search("\n".join(lines[line_number:]))
+        if match:
+            return match.group(1)
     return None
 
 
