@@ -173,6 +173,74 @@ def test_merge_save_split(mono, tmp_path):
     _deep_equal(to_monolithic(sp), mono, "root")
 
 
+def test_categories_union_over_variables():
+    """Variables filled only in some categories (only_categories) must not hide
+    the other categories: PlotManager.make_dirs relies on the full list."""
+    from pocket_coffea.utils.output_split import _extract_categories
+
+    def h(cats):
+        return hist.Hist(hist.axis.StrCategory(cats, name="cat"), hist.axis.Regular(2, 0, 1, name="x"))
+
+    variables = {"a": {"s": {"d": h(["c1"])}}, "b": {"s": {"d": h(["c1", "c2"])}}}
+    assert _extract_categories(variables) == ["c1", "c2"]
+
+
+def test_merge_jobs_split_applies_postprocessing(mono, tmp_path, monkeypatch):
+    """A -jc merge with output_format='split' must run the postprocessing
+    (rescale by sum_genweights) before it writes, exactly like the monolithic one."""
+    import copy
+    import cloudpickle
+    import yaml
+    from coffea.util import save
+    from pocket_coffea.scripts.merge_outputs import merge_outputs
+    from pocket_coffea.utils.utils import load_config
+
+    with monkeypatch.context() as m:
+        m.chdir(os.path.dirname(os.path.dirname(FIXTURE)))
+        cfg = load_config("config.py", save_config=False)
+    with open(tmp_path / "configurator.pkl", "wb") as f:
+        cloudpickle.dump(cfg, f)
+
+    # Two "raw job outputs": merged histograms and sum_genweights are both 2x the
+    # fixture, so the rescaled result is fixture / fixture.sum_genweights.
+    # The fixture predates the per-variation sumw/sumw2 layout that the current
+    # postprocess expects: wrap each value as {"nominal": value}.
+    raw = copy.deepcopy(mono)
+    for key in ("sumw", "sumw2"):
+        for ds_dict in raw[key].values():
+            for samples in ds_dict.values():
+                for s, v in samples.items():
+                    samples[s] = {"nominal": v}
+    jobs = {}
+    for i in range(2):
+        out = tmp_path / f"output_job_{i}.coffea"
+        save(raw, str(out))
+        jobs[f"job_{i}"] = {"output_file": str(out)}
+    jc = tmp_path / "jobs_config.yaml"
+    jc.write_text(yaml.safe_dump({
+        "job_dir": str(tmp_path), "output_dir": str(tmp_path),
+        "config_pkl_total": str(tmp_path / "configurator.pkl"), "jobs_list": jobs,
+    }))
+
+    results = {}
+    for fmt in ("monolithic", "split"):
+        p = str(tmp_path / f"merged_{fmt}.coffea")
+        merge_outputs([], p, jobs_config=str(jc), force=True, max_mem_gb=4,
+                      cache_dir=str(tmp_path / f"cache_{fmt}"), output_format=fmt)
+        assert is_split_output(p) == (fmt == "split")
+        results[fmt] = to_monolithic(p)
+    _deep_equal(results["split"], results["monolithic"], "root")
+
+    sumgenw = mono["sum_genweights"]
+    ds = next(iter(sumgenw))
+    var = next(iter(mono["variables"]))
+    sample = next(s for s, d in mono["variables"][var].items() if ds in d)
+    expected = mono["variables"][var][sample][ds].values(flow=True) / sumgenw[ds]
+    got = results["split"]["variables"][var][sample][ds].values(flow=True)
+    assert np.allclose(got, expected)
+    assert not np.allclose(got, 2 * mono["variables"][var][sample][ds].values(flow=True))
+
+
 def test_split_output_by_category_all_formats(mono, split_path, tmp_path):
     """split-output must read BOTH a monolithic and a split input and write
     EITHER format when splitting by category. Regression: it was monolithic-only

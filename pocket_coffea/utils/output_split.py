@@ -116,15 +116,20 @@ def _decode_member(raw, member_compression):
 # introspection helpers
 # ---------------------------------------------------------------------------
 def _extract_categories(variables):
-    """Read the list of categories from the 'cat' axis of any one histogram."""
+    """Union (first-seen order) of the 'cat' axis over all variables.
+
+    A variable can be filled only in some categories (``only_categories``), so
+    one histogram per variable is read, not one for the whole output."""
+    cats = {}
     for samples in variables.values():
         for datasets in samples.values():
             for h in datasets.values():
                 for ax in h.axes:
                     if getattr(ax, "name", None) == "cat":
-                        return list(ax)
-                return []
-    return []
+                        cats.update(dict.fromkeys(ax))
+                break
+            break
+    return list(cats)
 
 
 # ---------------------------------------------------------------------------
