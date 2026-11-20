@@ -342,10 +342,12 @@ When `--executor condor@lxplus` (or `condor@rubin`) is used, PocketCoffea:
    number of jobs) or the run option `max-events-per-job: M` (target events per job).
    See `prepare_splitting()` in
    [`pocket_coffea/executors/executors_manual_jobs.py`](https://github.com/PocketCoffea/PocketCoffea/blob/main/pocket_coffea/executors/executors_manual_jobs.py).
-2. **Pickles one `Configurator` per job** to `jobs_dir/config_job_{i}.pkl`. Each pickle
-   carries the *original* `Configurator` with the fileset filtered down to that job's
-   slice. A summary `jobs_dir/jobs_config.yaml` records every job's fileset, config
-   path, and output path.
+2. **Pickles one `Configurator` for all jobs** to `jobs_dir/configurator_jobs.pkl`
+   (unloaded, with an empty fileset) and writes each job's fileset slice to
+   `jobs_dir/fileset_job_{i}.json`. The job runs
+   `pocket-coffea run --cfg configurator_jobs.pkl --fileset fileset_job_{i}.json`.
+   A summary `jobs_dir/jobs_config.yaml` records every job's fileset, fileset file,
+   and output path.
 3. **Writes a batch HTCondor submit file** (`jobs_all.sub`), a recovery template
    (`resubmit.sub`), a wrapper `job.sh`, and an empty `job_{i}.idle` flag file. The
    wrapper script copies the per-job output back to `--outputdir` once the job
@@ -503,8 +505,8 @@ A few caveats worth knowing about:
   `condor_submit jobs_all.sub` call submits everything regardless of whether
   the resolved values are uniform or vary across jobs. Every current-format
   manual directory also contains `jobs_config.yaml`, `job_state.json`, `job.sh`,
-  `inner_run_options.yaml`, `jobs_all.sub`, `resubmit.sub`, and one
-  `config_job_N.pkl` per job. The state file is
+  `inner_run_options.yaml`, `jobs_all.sub`, `resubmit.sub`, `configurator_jobs.pkl`,
+  and one `fileset_job_N.json` per job. The state file is
   authoritative for recovery; Rubin uses it for retries but does not support
   lxplus queue/resource escalation.
 - **Unknown dict keys produce a warning** listing the samples actually
@@ -608,7 +610,7 @@ called `job`, the tool descends into it automatically.
 | `--blocklist-sites` | — | With `--recreate`, comma-separated CMS/Rucio site names (for example `T2_CH_CERN`) to avoid. XRootD prefixes are resolved from the site map and are not accepted here. Files at a blocklisted site are rewritten to an alternative replica via Rucio. |
 | `--recreate-queue` | — | With `--recreate`, force an lxplus job to this HTCondor queue. It is rejected for Rubin, which does not support queue/resource escalation. |
 | `--skip-bad-files` | off | With `--recreate`, enable Coffea skip-bad-files in the shared `inner_run_options.yaml` for this jobs directory. |
-| `--remove-running` | off | With `--recreate`, `condor_rm` each recreated job's still-queued (running/idle) HTCondor instance before resubmitting, so a stuck job can't keep running and double-write its output. The instance is matched by the unique `config_job_<n>.pkl` in its lxplus `Args` ClassAd. |
+| `--remove-running` | off | With `--recreate`, `condor_rm` each recreated job's still-queued (running/idle) HTCondor instance before resubmitting, so a stuck job can't keep running and double-write its output. The instance is matched by the unique `fileset_job_<n>.json` in its lxplus `Args` ClassAd. |
 | `--split-jobs SELECTOR` | — | One-shot: split `.failed`/`.timeout` jobs in smaller jobs at file level and submit them, then exit (unless `--resubmit` is also given). `SELECTOR` is `all` or a comma list. See [Split failing jobs](#split-failing-jobs). Not combinable with `--recreate`. |
 | `--split-factor N` | `2` | With `--split-jobs`, number of new jobs for each split job (at most its number of files). |
 
@@ -637,14 +639,14 @@ recreates don't compound), then rewritten: with `--use-redirector` every file is
 at `root://xrootd-cms.infn.it//` (no Rucio); otherwise jobs whose latest `.out` contains an
 XRootD failure get a per-file alternate-site lookup, and any `--blocklist-sites` files are
 migrated to a non-blocklisted replica (falling back to the redirector if none is found).
-The rewritten fileset is written back into `config_job_{i}.pkl`; the original
+The rewritten fileset is written back into `fileset_job_{i}.json`; the original
 `jobs_config.yaml` is untouched. `--recreate-queue` overrides the queue stored in
 the candidate recovery state, which is rendered through `resubmit.sub` for the
 replacement submission (overriding the implicit one-step bump applied to
 `.timeout` jobs).
 
 Recreating a job that is still `.running`/`.idle` requires `--remove-running`. check-jobs
-uses the lxplus ClassAd constraint matching the unique `config_job_<n>.pkl` in its
+uses the lxplus ClassAd constraint matching the unique `fileset_job_<n>.json` in its
 `Args` ClassAd, verifies `condor_rm` succeeds, and only then submits the replacement.
 `job_1` is never confused with `job_10`.
 
