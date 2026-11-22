@@ -127,14 +127,15 @@ def get_L1sel_custom(trigger_list, invert=False):
 
 ###########################
 ## Implementation of JetVetoMaps 
-## (Recommended for Run 3, see https://cms-jerc.web.cern.ch/Recommendations/#jet-veto-maps)
+## (Mandatory for Run 3, see https://cms-jme-jerc.docs.cern.ch/recommendations/jet-veto-maps/)
 
 def get_JetVetoMap(name="JetVetoMaps", jet_collection="Jet", min_pt=15., max_abs_eta=5.19, max_em_fraction=0.9):
     """Event veto with the jet veto map.
 
     ``jet_collection`` names the jets the map is evaluated on. JERC asks for the map to be
-    applied on jets after the nominal JEC; use it as a preselection (after the calibrators)
-    with the calibrated standard AK4 collection to follow that. The defaults reproduce the
+    applied on jets after the nominal JEC (https://cms-jme-jerc.docs.cern.ch/faq/, "Should the jet veto map be evaluated
+    before or after nominal JEC?"); use it as a preselection (after the calibrators) with the
+    calibrated standard AK4 collection to follow that. Minimal jet selection: https://cms-jme-jerc.docs.cern.ch/recommendations/jet-veto-maps/. The defaults reproduce the
     previous behaviour (``Jet``, pT > 15 GeV, |eta| < 5.19, EM fraction < 0.9, tightLepVeto ID).
     """
     return Cut(
