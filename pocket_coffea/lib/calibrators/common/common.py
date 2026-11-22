@@ -370,6 +370,15 @@ class JetsCalibrator(Calibrator):
             out[jet_coll_name]["pt"] = self.jets_calibrated[jet_coll_name][f"pt_{variation_type}_down"]
             out[jet_coll_name]["mass"] = self.jets_calibrated[jet_coll_name][f"mass_{variation_type}_down"]
 
+        # Factor bookkeeping must follow the selected variation as well as pt.
+        # MET can then remove JER independently without removing a JES shift.
+        # Every variation named JER* (e.g. an analysis split of JER in |eta|) is a JER shift.
+        nominal = self.jets_calibrated[jet_coll_name]
+        ratio = ak.where(nominal.pt != 0, out[jet_coll_name].pt / nominal.pt, 1.)
+        factor = "jer_factor" if variation_type.upper().startswith("JER") else "jec_factor"
+        if factor in nominal.fields:
+            out[jet_coll_name][factor] = nominal[factor] * ratio
+
         # Keep the rawFactor consistent with the varied pt. The raw pt is invariant, so
         # rawFactor = 1 - pt_raw/pt, exactly as initialize() computes it for the nominal.
         # Without this the varied jets keep the *nominal* rawFactor, and any consumer that
@@ -645,6 +654,20 @@ class METCalibrator(Calibrator):
         self.calibrated_collections = [f"{self.met_branch}.pt", f"{self.met_branch}.phi"]
         self.jet_collection = self.met_calib_cfg.Jet_collection
         self._variations = ["unclust_EnUp", "unclust_EnDown"]
+        # Optional Run-3 PUPPI controls; historical defaults are retained.
+        self.max_abs_eta = self.met_calib_cfg.get("max_abs_eta", None)
+        if self.max_abs_eta is not None:
+            self.max_abs_eta = float(self.max_abs_eta)
+            if not np.isfinite(self.max_abs_eta) or self.max_abs_eta <= 0:
+                raise ValueError("MET max_abs_eta must be finite and positive")
+        self.propagate_jer = self.met_calib_cfg.get("propagate_jer", True)
+        self.store_components = self.met_calib_cfg.get("store_components", False)
+        # Lepton-scale propagation is not part of the JME Type-1 recipe; it is an
+        # analysis choice. Default True keeps the historical behaviour.
+        self.propagate_leptons = bool(self.met_calib_cfg.get("propagate_leptons", True))
+        self.component_fields = [f"delta_{kind}_{axis}" for kind in ("jet", "lowpt", "electron", "muon") for axis in ("px", "py")]
+        if self.store_components:
+            self.calibrated_collections += [f"{self.met_branch}.{field}" for field in self.component_fields]
        
     def initialize(self, events):
         pass
@@ -656,7 +679,9 @@ class METCalibrator(Calibrator):
         met_final = vector.zip({"rho": events[self.rawMet_branch]["pt"], 
                                 "phi": events[self.rawMet_branch]["phi"]})
 
-        # Check if the MET calibration is active 
+        components = ({field: ak.zeros_like(events[self.rawMet_branch]["pt"])
+                       for field in self.component_fields} if self.store_components else {})
+        # Check if the MET calibration is active
         if self.met_calib_active:
             # print("Calibrating METs using jet collection:", self.jet_collection)
             jets_calib = events[self.jet_collection]
@@ -670,10 +695,16 @@ class METCalibrator(Calibrator):
 
             corrT1METJet = events[self.corrT1METJet_branch]
             corrT1METJet_jecL1L2L3 = 1./(1. - corrT1METJet["rawFactor"])
-            # TODO (deferred): CorrT1METJet is not calibrated by the jet calibrator, so its
-            # rawFactor/rawPt stay at the nominal NanoAOD values for every variation and its
-            # type-1 MET contribution does not vary with JES/JER. Propagating that variation
-            # requires evaluating the JEC (+ its variations) on CorrT1METJet.
+            # CorrT1METJet can be calibrated by JetsCalibrator when configured.
+            # Its rawFactor must describe the selected calibrated/varied collection.
+            if self.isMC and not self.propagate_jer:
+                for jets in (jets_calib, corrT1METJet):
+                    if "jer_factor" not in jets.fields:
+                        raise ValueError("MET-only JER control requires JetsCalibrator jer_factor bookkeeping")
+                    if ak.any((jets.jer_factor <= 0) | ~np.isfinite(jets.jer_factor)):
+                        raise ValueError("Invalid jer_factor in Type-1 MET inputs")
+                jet_jecL1L2L3 = jet_jecL1L2L3 / jets_calib.jer_factor
+                corrT1METJet_jecL1L2L3 = corrT1METJet_jecL1L2L3 / corrT1METJet.jer_factor
 
             jet_pt_noMuRaw = jets_calib["pt"] * (1. - jets_calib["rawFactor"])*(1. - jets_calib["muonSubtrFactor"])
             if "muonSubtrDeltaPhi" in jets_calib.fields:
@@ -699,6 +730,10 @@ class METCalibrator(Calibrator):
             else:
                 mask_corrT1METJet = corrT1METJet_pt_noMuL1L2L3 > 15
 
+            if self.max_abs_eta is not None:
+                mask_jets = mask_jets & (abs(jets_calib.eta) < self.max_abs_eta)
+                mask_corrT1METJet = mask_corrT1METJet & (abs(corrT1METJet.eta) < self.max_abs_eta)
+
             jet_p2D_noMuL1L2L3 = vector.zip({"rho": jet_pt_noMuL1L2L3[mask_jets], 
                                             "phi": jet_phi_noMuRaw[mask_jets]})
             jet_p2D_noMuL1 = vector.zip({"rho": jet_pt_noMuL1[mask_jets], 
@@ -719,6 +754,9 @@ class METCalibrator(Calibrator):
                 }
             )
             met_final = met_final - jet_p2D_corrTerMET_sum
+            if self.store_components:
+                components["delta_jet_px"] = jet_p2D_corrTerMET_sum.x
+                components["delta_jet_py"] = jet_p2D_corrTerMET_sum.y
 
             # Do the same for the corrT1METJet part
             corrT1METJet_p2D_corrTerMET_sum = vector.zip(
@@ -728,10 +766,13 @@ class METCalibrator(Calibrator):
                 }
             )
             met_final = met_final - corrT1METJet_p2D_corrTerMET_sum
+            if self.store_components:
+                components["delta_lowpt_px"] = corrT1METJet_p2D_corrTerMET_sum.x
+                components["delta_lowpt_py"] = corrT1METJet_p2D_corrTerMET_sum.y
 
         # Now include electron and muon corrections if they are in the original columns
         # This means that they have been corrected.
-        if "Electron.pt" in orig_colls:
+        if self.propagate_leptons and "Electron.pt" in orig_colls:
             ele_p2D = vector.zip({"rho": orig_colls["Electron.pt"], 
                                   "phi": events["Electron"]["phi"]})
             ele_p2D_calib = vector.zip({"rho": events["Electron"]["pt"], 
@@ -743,8 +784,11 @@ class METCalibrator(Calibrator):
                 }
             )
             met_final = met_final - ele_p2D_delta_sum
+            if self.store_components:
+                components["delta_electron_px"] = ele_p2D_delta_sum.x
+                components["delta_electron_py"] = ele_p2D_delta_sum.y
         
-        if "Muon.pt" in orig_colls:
+        if self.propagate_leptons and "Muon.pt" in orig_colls:
             mu_p2D = vector.zip({"rho": orig_colls["Muon.pt"], 
                                   "phi": events["Muon"]["phi"]})
             mu_p2D_calib = vector.zip({"rho": events["Muon"]["pt"], 
@@ -756,6 +800,9 @@ class METCalibrator(Calibrator):
                 }
             )
             met_final = met_final - mu_p2D_delta_sum
+            if self.store_components:
+                components["delta_muon_px"] = mu_p2D_delta_sum.x
+                components["delta_muon_py"] = mu_p2D_delta_sum.y
         # Check for the unclustered energy variation 
         # It is taken from the PuppiMET collection and reapplied
         if variation in ["unclust_EnUp", "unclust_EnDown"]:
@@ -790,8 +837,11 @@ class METCalibrator(Calibrator):
                 
 
 
-        return {f"{self.met_branch}.pt" : met_final.rho,
-                f"{self.met_branch}.phi" : met_final.phi}
+        out = {f"{self.met_branch}.pt": met_final.rho,
+               f"{self.met_branch}.phi": met_final.phi}
+        if self.store_components:
+            out.update({f"{self.met_branch}.{field}": value for field, value in components.items()})
+        return out
 
 
 

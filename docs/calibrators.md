@@ -95,6 +95,12 @@ PocketCoffea provides several ready-to-use calibrators in `pocket_coffea.lib.cal
 - **Collections**: `["MET.pt", "MET.phi"]` or `["PuppiMET.pt", "PuppiMET.phi"]`, depending on `met_calibration.MET_collection`
 - **Variations**: `"unclust_EnUp"`, `"unclust_EnDown"` (unclustered energy variations)
 - **Dependencies**: Must run after `JetsCalibrator`, and after any electron/muon calibrators whose corrections should be propagated to the MET (it compares the original and calibrated `Electron.pt`/`Muon.pt` to do so)
+- **Optional settings** in `met_calibration.<year>` (the defaults keep the previous behaviour):
+  - `Jet_collection`: the jet collection propagated to the MET. An analysis that rewrites `Jet` (for example with a regression) can calibrate a copy of the standard AK4 jets with the standard JEC and point the MET to it.
+  - `max_abs_eta` (default: no cut): only jets with |η| below this value enter the Type-1 sum, in both the jet collection and `CorrT1METJet`. The JERC Type-1 recipe uses 5.2.
+  - `propagate_jer` (default `True`): with `False`, the JER smearing of MC jets is removed from the Type-1 sum while JES variations are still propagated. It needs the `jer_factor` field written by `JetsCalibrator`.
+  - `propagate_leptons` (default `True`): with `False`, the electron and muon corrections are not propagated to the MET. The JERC Type-1 recipe has no lepton term, and the default propagation uses every `Electron`/`Muon` row, without identification or isolation.
+  - `store_components` (default `False`): also store the x/y components of each term (`delta_jet_px`, `delta_lowpt_px`, `delta_electron_px`, `delta_muon_px` and the `_py` ones) in the MET collection, for checks.
 
 ### ElectronsScaleCalibrator
 - **Name**: `"electron_scale_and_smearing"`

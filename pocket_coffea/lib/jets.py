@@ -208,12 +208,12 @@ def jet_selection(events, jet_type, params, year, leptons_collection="", jet_tag
 
     return jets[mask_good_jets], mask_good_jets
 
-def compute_jetId(events, jet_type, params, year):
+def compute_jetId(events, jet_type, params, year, jet_collection=None):
     """
     Add (or recompute) jet ID to the jets object based on the NanoAOD version.
     Inspired by https://gitlab.cern.ch/cms-analysis/general/HiggsDNA/-/blob/master/higgs_dna/tools/jetID.py
     """
-    jets = events[jet_type]
+    jets = events[jet_collection or jet_type]
     # Get the nano version from events metadata or from default parameters
     nano_version = get_nano_version(events, params, year)
     abs_eta = abs(jets.eta)
