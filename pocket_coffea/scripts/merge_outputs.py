@@ -14,10 +14,17 @@ from functools import reduce
 import pickle
 from glob import glob
 import psutil, gc
+from fnmatch import fnmatch
 mem_threshold = 0.5 # ~50% + memory needed to dump files, is the empirical threshold on lxplus
 
 
-def merge_group_reduction(output_files, N_reduction=5, cachedir="merge_cache", max_mem_gb=8, verbose=False):
+def filter_variables(out, patterns):
+    '''Keep only the histograms in out["variables"] whose name matches one of the glob patterns.'''
+    if patterns and "variables" in out:
+        out["variables"] = {k: v for k, v in out["variables"].items() if any(fnmatch(k, p) for p in patterns)}
+    return out
+
+def merge_group_reduction(output_files, N_reduction=5, cachedir="merge_cache", max_mem_gb=8, verbose=False, variables=None):
     with Progress() as progress:
         task1 = progress.add_task("[cyan]Merging...", total=len(output_files))
     
@@ -29,7 +36,7 @@ def merge_group_reduction(output_files, N_reduction=5, cachedir="merge_cache", m
                 if verbose:
                     filesize = sum([os.path.getsize(f) for f in batch])/1024**3
                     print(f"File size (on disk) to load: {filesize:.3f} GB")
-                loaded_batch = [load(f) for f in batch]
+                loaded_batch = [filter_variables(load(f), variables) for f in batch]
                 batch_acc = accumulate(loaded_batch)
                 del loaded_batch, batch
                 if result is None:
@@ -104,7 +111,7 @@ def append_configs(c1, c2):
             
     return c1
 
-def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, replace=False, N_reduction=5, max_mem_gb=None, cache_dir=None, verbose=False, skip_check=False, mark_failed=False, configurator=None, skip_initial_events_check_datasets=None, exclude_samples=None):
+def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, replace=False, N_reduction=5, max_mem_gb=None, cache_dir=None, verbose=False, skip_check=False, mark_failed=False, configurator=None, skip_initial_events_check_datasets=None, exclude_samples=None, variables=None):
     '''Merge coffea output files'''
     # Initialised so the "no inputs and no -jc" branch below can test it without
     # NameError (it is only assigned when a jobs_config is provided).
@@ -186,9 +193,9 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, replace
             print(f"[blue]--replace: '{base_file}' is the base; {len(incoming_files)} "
                   f"incoming file(s) will replace overlapping datasets.[/]")
             incoming_out = merge_group_reduction(incoming_files, N_reduction=N_reduction, cachedir=cache_dir,
-                                                 max_mem_gb=max_mem_gb, verbose=verbose)
+                                                 max_mem_gb=max_mem_gb, verbose=verbose, variables=variables)
             datasets_to_replace = get_datasets_in_output(incoming_out)
-            base_out = load(base_file)
+            base_out = filter_variables(load(base_file), variables)
             base_datasets = get_datasets_in_output(base_out)
             replaced = sorted(datasets_to_replace & base_datasets)
             added    = sorted(datasets_to_replace - base_datasets)
@@ -200,7 +207,7 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, replace
             del base_out, incoming_out
         else:
             total_out =  merge_group_reduction(inputfiles, N_reduction=N_reduction, cachedir=cache_dir,
-                                               max_mem_gb=max_mem_gb, verbose=verbose)
+                                               max_mem_gb=max_mem_gb, verbose=verbose, variables=variables)
 
         # Explicit-file merges are NOT postprocessed by default: their inputs are
         # assumed to be already-postprocessed outputs (e.g. per-dataset merged
@@ -336,7 +343,7 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, replace
                 cache_dir = os.path.join(os.path.abspath(job_config['output_dir']), "merge_cache")
             if suff:
                 cache_dir += f"_{suff}"
-            total_output = merge_group_reduction(this_output_files, N_reduction=N_reduction, cachedir=cache_dir, max_mem_gb=max_mem_gb, verbose=verbose)
+            total_output = merge_group_reduction(this_output_files, N_reduction=N_reduction, cachedir=cache_dir, max_mem_gb=max_mem_gb, verbose=verbose, variables=variables)
             
             # Since it was jobs, there was no postprocessing
             # we do it now after merging all the output
@@ -466,10 +473,21 @@ def merge_outputs(inputfiles, outputfile, jobs_config=None, force=False, replace
          "whose filesets contain any of these samples are skipped.",
 )
 
-def main(inputfiles, outputfile, jobs_config, force, replace, reduction, max_mem_gb, cache_dir, verbose, skip_check, mark_failed, configurator, skip_initial_events_check_datasets, exclude_samples):
+@click.option(
+    "-var",
+    "--variables",
+    required=False,
+    type=str,
+    default=None,
+    help="Keep only these histograms in output['variables'] (comma separated, glob patterns allowed, "
+         "e.g. 'jet_pt*,nJets'). Filtering is done on each file at load time, to save memory.",
+)
+
+def main(inputfiles, outputfile, jobs_config, force, replace, reduction, max_mem_gb, cache_dir, verbose, skip_check, mark_failed, configurator, skip_initial_events_check_datasets, exclude_samples, variables):
     '''Merge coffea output files'''
     merge_outputs(inputfiles, outputfile, jobs_config, force, replace, reduction, max_mem_gb, cache_dir, verbose, skip_check, mark_failed, configurator, list(skip_initial_events_check_datasets),
-                  exclude_samples=exclude_samples.split(",") if exclude_samples else None)
+                  exclude_samples=exclude_samples.split(",") if exclude_samples else None,
+                  variables=variables.split(",") if variables else None)
 
 if __name__ == "__main__":
     main()
