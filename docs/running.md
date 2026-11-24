@@ -427,6 +427,7 @@ max-events-per-job: 2_000_000       # alternative to scaleout
 job-name: "myanalysis_v3"           # subfolder under jobs-dir
 jobs-dir: "/eos/user/u/user/jobs"   # default: --outputdir
 queue: "workday"                    # HTCondor JobFlavour (condor@lxplus only)
+accounting-group: null              # condor@lxplus: sets +AccountingGroup, e.g. "group_u_CMS.u_zh.users"
 cores-per-worker: 1                 # >1 uses the futures executor inside the job
 mem-per-worker: "4GB"
 worker-image: "/cvmfs/unpacked.cern.ch/gitlab-registry.cern.ch/cms-analysis/general/pocketcoffea:lxplus-el9-stable"

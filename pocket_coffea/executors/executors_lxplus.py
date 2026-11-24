@@ -660,6 +660,8 @@ class ExecutorFactoryCondorCERN(ExecutorFactoryManualABC):
             'requirements' : 'Machine =!= LastRemoteHost'
         }
         sub.update(build_condor_shutdown_policy())
+        if self.run_options.get("accounting-group"):
+            sub['+AccountingGroup'] = f'"{self.run_options["accounting-group"]}"'
 
         # HTCondor inline `queue <var> from ( ... )` form: one job per item, with
         # the per-job value made available as $(chunksize) in the arguments line.
