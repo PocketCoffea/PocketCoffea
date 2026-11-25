@@ -162,7 +162,7 @@ A set of user-friendly aliases is defined such that the user can use the colors 
 by CMS just by an alias string, with no need to know the hexadecimal color codes.
 The aliases are indicated in the figure below on top of the corresponding color:
 
-![](./images/color_scheme.png)
+<img src="./images/color_scheme.png" width="60%">
 
 Usage in the `.yaml` config file:
 ```
@@ -189,3 +189,68 @@ plotting_style:
 ```
 
 where the key (`era`) in the dictionary corresponds to the name of the axis as saved in the histogram, while the value (`eras`) corresponds to the name assigned to the corresponding attribute of the `Shape` object.
+
+## Plotting splitting MC by dataset
+
+By default, the plotting script splits MC by sample, collapsing all datasets within a sample. The `--by-dataset` option allows users to instead split specific samples by their constituent datasets when plotting.
+
+### Usage
+
+The `--by-dataset` option accepts multiple samples either in a single flag or as repeated flags:
+
+```bash
+# Single flag with multiple samples
+python -m pocket_coffea.scripts.plot.make_plots --by-dataset QCD TTToSemiLeptonic
+
+# Or repeated flags (also supported)
+python -m pocket_coffea.scripts.plot.make_plots --by-dataset QCD --by-dataset TTToSemiLeptonic
+
+# Single sample
+python -m pocket_coffea.scripts.plot.make_plots --by-dataset QCD
+
+# Use with other parameters
+python -m pocket_coffea.scripts.plot.make_plots --by-dataset QCD --only-cat cat1 -v 2
+```
+
+### How it works
+
+The `split_samples_by_dataset()` method transforms the histogram dictionary structure before grouping:
+
+```python
+# Before split:
+h_dict = {
+    "QCD": {"QCD_pt1": hist1, "QCD_pt2": hist2, "QCD_pt3": hist3},
+    "TTbar": {"TTbar_part1": hist4, "TTbar_part2": hist5}
+}
+
+# After split (with --by-dataset QCD):
+h_dict = {
+    "QCD_pt1": {"QCD_pt1": hist1},
+    "QCD_pt2": {"QCD_pt2": hist2},
+    "QCD_pt3": {"QCD_pt3": hist3},
+    "TTbar": {"TTbar_part1": hist4, "TTbar_part2": hist5}
+}
+```
+
+After splitting, datasets are treated as samples for all subsequent operations. This means all existing styling parameters work with dataset names:
+
+```yaml
+plotting_style:
+  labels_mc:
+    QCD_pt1: "QCD pT bin 1"
+    QCD_pt2: "QCD pT bin 2"
+    QCD_pt3: "QCD pT bin 3"
+  
+  colors_mc:
+    QCD_pt1: "#1f70ba"
+    QCD_pt2: "#2f80ca"
+    QCD_pt3: "#4fa0ea"
+  
+  samples_groups:
+    QCD_pt1-2: ["QCD_pt1", "QCD_pt2"]  # Group datasets together
+  
+  exclude_samples:
+    - QCD_pt3  # Exclude specific datasets
+```
+
+All existing functionality (grouping, labeling, coloring, filtering) works automatically with dataset names after splitting.
