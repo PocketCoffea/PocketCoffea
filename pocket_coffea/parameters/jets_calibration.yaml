@@ -116,7 +116,7 @@ default_jets_calibration:
         json_path: ${cvmfs:Run3-26Prompt-Summer24-NanoAODv15,JME,jet_jerc.json.gz,2026-07-15}
         jec_mc: Summer24Prompt26_V1_MC
         jec_data: Summer24Prompt26_V1_DATA
-        jer: Summer24Prompt26_JRV1_MC
+        jer: Summer24Prompt26_RunBD_JRV1_MC  # RunC (low-PU) JER not used
         level: L1L2L3Res
 
 
