@@ -57,7 +57,10 @@ jet_scale_factors:
             name: "UParTAK4"
         '2025': 
             file: ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,BTV,btagging.json.gz,2026-10-14}
-            name: "UParTAK4"            
+            name: "UParTAK4"
+        '2026':   # no BTV 26Prompt folder on cvmfs yet
+            file: ???
+            name: "UParTAK4"
 
     ctagSF:
       # DeepJet AK4 tagger shape SF
@@ -100,7 +103,11 @@ jet_scale_factors:
       '2025':
         SF_file: ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,BTV,ctagging.json.gz,2026-10-14}
         Calib_file: "${default_params_dir:}/ctagSF_calibrationSF.json"
-        name: "deepJet_shape"      
+        name: "deepJet_shape"
+      '2026':   # no BTV 26Prompt folder on cvmfs yet
+        SF_file: ???
+        Calib_file: "${default_params_dir:}/ctagSF_calibrationSF.json"
+        name: "deepJet_shape"
       
     jet_puId:
         # Jet PU ID SF to be applied only on selected jets (pt<50) that are matched to GenJets
