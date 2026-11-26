@@ -4,6 +4,7 @@ import copy
 
 from .base import BaseProcessorABC
 from ..utils.configurator import Configurator
+from ..utils.metadata import resolve_chunk_metadata
 
 
 class genWeightsProcessor(BaseProcessorABC):
@@ -15,12 +16,12 @@ class genWeightsProcessor(BaseProcessorABC):
         }
 
     def load_metadata(self):
-        self._dataset = self.events.metadata["dataset"]
-        self._sample = self.events.metadata["sample"]
-        self._year = self.events.metadata["year"]
-        self._isMC = self.events.metadata["isMC"] == "True"
+        self._dataset = self.events_metadata["dataset"]
+        self._sample = self.events_metadata["sample"]
+        self._year = self.events_metadata["year"]
+        self._isMC = self.events_metadata["isMC"] == "True"
         if self._isMC:
-            self._xsec = self.events.metadata["xsec"]
+            self._xsec = self.events_metadata["xsec"]
 
         # Check if the user specified any subsamples without performing any operation
         #if self._sample in self._subsamples:
@@ -36,6 +37,7 @@ class genWeightsProcessor(BaseProcessorABC):
 
     def process(self, events: ak.Array):
         self.events = events
+        self.events_metadata = resolve_chunk_metadata(events.metadata, self.cfg.filesets)
 
         self.load_metadata()
         self.output = copy.deepcopy(self.output_format)

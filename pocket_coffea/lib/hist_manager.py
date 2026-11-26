@@ -373,6 +373,7 @@ class HistManager:
         subsamples=None,  # This is a dictionary with name:ak.Array(bool)
         custom_fields=None,
         custom_weight=None,  # it should be a dictionary {variable:weight}
+        metadata=None,  # chunk metadata dict; defaults to events.metadata
     ):
         '''
         We loop on the configured histograms only
@@ -381,6 +382,9 @@ class HistManager:
         Custom_fields is a dict of additional array. The expected lenght of the first dimension is the number of
         events. The categories mask will be applied.
         '''
+
+        if metadata is None:
+            metadata = events.metadata
 
         # Preload full-sample weights for all categories (MC and data)
         weights = {}
@@ -464,7 +468,7 @@ class HistManager:
                         # These are event level information
                         data = events[ax.field]
                     elif ax.coll == "metadata":
-                        data = events.metadata[ax.field]
+                        data = metadata[ax.field]
                     elif ax.coll == "custom":
                         # taking the data from the custom_fields argument
                         # IT MUST be a per-event number, so we expect an array to mask
@@ -527,7 +531,7 @@ class HistManager:
                 # Categorical axes (not appling the mask)
                 else:
                     if ax.coll == "metadata":
-                        data = events.metadata[ax.field]
+                        data = metadata[ax.field]
                         fill_categorical[ax.name] = data
                     elif ax.coll == "custom":
                         # taking the data from the custom_fields argument

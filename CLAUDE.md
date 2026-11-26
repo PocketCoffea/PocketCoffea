@@ -102,6 +102,7 @@ Concrete subclasses live in `executors_lxplus.py` (`ExecutorFactoryCondorCERN`) 
 ## Conventions / gotchas
 
 - **Skim cuts must not depend on corrected objects.** Object corrections happen inside the calibration loop, after skimming.
+- **Read dataset-level metadata from `self.events_metadata`, not `self.events.metadata`.** coffea 0.7 caches file metadata by `(filename, treename)` only, so when two datasets share a file (e.g. 2024 MC reused as 2025/2026) all their chunks get the `year`/`xsec`/`sample`/... of one dataset; only `dataset` stays correct. `process()` sets `self.events_metadata = resolve_chunk_metadata(events.metadata, self.cfg.filesets)` (`utils/metadata.py`) and `load_metadata` / HistManager metadata axes use it. Custom processors that read `self.events.metadata[...]` directly still have the bug. Test: `tests/test_shared_file_metadata.py`.
 - `_isMC`, `_isSkim`, etc. come from `events.metadata` and may arrive as strings — see `load_metadata` for the canonical coercion.
 - For MC, `nano_version` defaults from `params.default_nano_version[year]` if metadata is missing, with heuristic detection from the filename (`NanoAODv12` / `NanoAODv15`).
 - Configs are saved (pickled with cloudpickle) into the output dir at run start; passing a `.pkl` to `runner` reuses a saved config.

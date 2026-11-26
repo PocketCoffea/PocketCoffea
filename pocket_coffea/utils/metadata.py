@@ -49,3 +49,18 @@ def to_bool(value, default=False):
     raise TypeError(
         f"Cannot interpret metadata boolean of type {type(value).__name__}: {value!r}"
     )
+
+
+def resolve_chunk_metadata(events_metadata, filesets):
+    """Return the chunk metadata with the dataset-level keys taken from ``filesets``.
+
+    coffea 0.7 caches file metadata by ``(filename, treename)`` only: when two
+    datasets share a file (e.g. 2024 MC reused for 2025/2026) every chunk of that
+    file gets the user metadata (year, xsec, ...) of only one of the datasets.
+    The ``dataset`` key is still correct, so look the metadata up from it.
+    """
+    meta = dict(events_metadata)
+    ds = filesets.get(meta["dataset"])
+    if ds is not None:
+        meta.update(ds.get("metadata", {}))
+    return meta
