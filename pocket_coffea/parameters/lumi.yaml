@@ -51,39 +51,88 @@ lumi:
       D: 31839.492009
       tot: 59832.47534
 
+    # Run 3: recorded lumi of the golden JSON in lumi.goldenJSON, per era of lumi.run_ranges (2026-11-26).
+    # 2022-2024 with normtag_PHYSICS.json (final numbers), 2025-2026 with normtag_BRIL.json
+    # (normtag_PHYSICS.json has no runs after 386951). To reproduce:
+    #   pocket_coffea/scripts/lumi/run_brilcalc_all.sh brilcalc lumi_brilcalc   # host with apptainer and /cvmfs/cms-bril.cern.ch
+    #   pocket_coffea/scripts/lumi/run_brilcalc_all.sh parse lumi_brilcalc      # PocketCoffea environment
+    # or one period: python -m pocket_coffea.scripts.lumi.run_brilcalc --year 2025 --normtag <normtag>
+    # The golden JSONs are 'latest' on CVMFS: rerun after a new golden JSON.
     "2022_preEE":
-      C: 5010.4
-      D: 2970.0
-      tot: 7980.4
+      C: 5022.2
+      D: 2967.3
+      tot: 7989.5
     "2022_postEE":
-      E: 5807.0 
-      F: 17781.9
-      G: 3082.8
-      tot: 26671.7
-    "2023_preBPix": 
-      C: 17960        # See https://twiki.cern.ch/twiki/bin/viewauth/CMS/PdmVRun3Analysis#DATA_AN2
-      tot: 17960
+      E: 5806.4
+      F: 17782.5
+      G: 3086.0
+      tot: 26674.9
+    "2023_preBPix":
+      C: 17964.2
+      tot: 17964.2
     "2023_postBPix":
-      D: 9680  
-      tot: 9680
-    "2024":           # See https://twiki.cern.ch/twiki/bin/viewauth/CMS/PdmVRun3Analysis#DATA_AN1
-      C: 7260
-      D: 7980
-      E: 11420
-      F: 28040
-      G: 38070
-      H: 5490
-      I: 11560
-      tot: 109950
+      D: 9676.7
+      tot: 9676.7
+    "2024":
+      C: 7261.4
+      D: 7976.1
+      E: 11423.2
+      F: 28037.8
+      G: 38069.1
+      H: 5489.7
+      I: 11558.2
+      tot: 109815.6
     "2025":
-      B: 260
-      C: 21630
-      D: 25520
-      E: 14150
-      F: 26890
-      G: 22400
-      tot: 110840
-      
+      B: 253.5
+      C: 21563.6
+      D: 25823.9
+      E: 14048.2
+      F: 26693.6
+      G: 22245.3
+      tot: 110628.2
+    "2026":
+      A: 644.8
+      B: 15264.7
+      C: 0.0     # low-PU era: no runs in the golden JSON (see Cert_Collisions2026_lowPU.json)
+      D: 9884.3
+      tot: 25793.8
+
+  # First and last run of each era, used by scripts/lumi/run_brilcalc.py.
+  # 2022-2023: from the per-era golden JSON names in CVMFS DC.
+  # 2024-2026: first/last run of /Muon0/Run<era>-PromptReco-v*/NANOAOD in DAS.
+  run_ranges:
+    "2022_preEE":
+      C: [355862, 357482]
+      D: [357538, 357900]
+    "2022_postEE":
+      E: [359022, 360331]
+      F: [360390, 362167]
+      G: [362433, 362760]
+    "2023_preBPix":
+      C: [367095, 368823]
+    "2023_postBPix":
+      D: [369803, 370790]
+    "2024":
+      C: [379415, 380238]
+      D: [380255, 380947]
+      E: [380956, 381594]
+      F: [381984, 383779]
+      G: [383811, 385801]
+      H: [385836, 386319]
+      I: [386446, 386974]
+    "2025":
+      B: [391548, 392112]
+      C: [392174, 393516]
+      D: [394393, 395948]
+      E: [395982, 396422]
+      F: [396629, 397853]
+      G: [397954, 398903]
+    "2026":
+      A: [401606, 401803]
+      B: [401844, 402513]
+      C: [402536, 403421]
+      D: [403441, 404010]
+
   goldenJSON:
     '2016_PreVFP': "${default_params_dir:}/datacert/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt"
     '2016_PostVFP': "${default_params_dir:}/datacert/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt"
@@ -93,9 +142,10 @@ lumi:
     '2016_PostVFP_v15': "${default_params_dir:}/datacert/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt"
     '2017_v15': "${default_params_dir:}/datacert/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt"
     '2018_v15': "${default_params_dir:}/datacert/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt"
-    '2022_preEE': "${default_params_dir:}/datacert/Cert_Collisions2022_355100_362760_Golden.json"
-    '2022_postEE': "${default_params_dir:}/datacert/Cert_Collisions2022_355100_362760_Golden.json"
-    '2023_preBPix': "${default_params_dir:}/datacert/Cert_Collisions2023_366442_370790_Golden.json"
-    '2023_postBPix': "${default_params_dir:}/datacert/Cert_Collisions2023_366442_370790_Golden.json"
-    '2024': "${default_params_dir:}/datacert/Cert_Collisions2024_378981_386951_Golden.json"
-    '2025': "${default_params_dir:}/datacert/Cert_Collisions2025_391658_398903_Golden.json"
+    '2022_preEE': "${cvmfs:Collisions22,DC,Cert_Collisions2022_355100_362760_Golden.json}"
+    '2022_postEE': "${cvmfs:Collisions22,DC,Cert_Collisions2022_355100_362760_Golden.json}"
+    '2023_preBPix': "${cvmfs:Collisions23,DC,Cert_Collisions2023_366442_370790_Golden.json}"
+    '2023_postBPix': "${cvmfs:Collisions23,DC,Cert_Collisions2023_366442_370790_Golden.json}"
+    '2024': "${cvmfs:Collisions24,DC,Cert_Collisions2024_378981_386951_Golden.json}"
+    '2025': "${cvmfs:Collisions25,DC,Cert_Collisions2025_391658_398903_Golden.json}"
+    '2026': "${cvmfs:Collisions26,DC,Cert_Collisions2026_401624_403937_golden.json}"

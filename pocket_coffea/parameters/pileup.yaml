@@ -41,3 +41,6 @@ pileupJSONfiles:
   "2025":
     file: ${cvmfs:Run3-25Prompt-Summer24-NanoAODv15,LUM,puWeights_2025pp_Golden_Summer24_25ns_69200ub.json.gz,2026-06-05}
     name: Collisions25_goldenJSON
+  "2026":   # private file, no LUM 26Prompt folder on cvmfs yet
+    file: ${default_params_dir:}/puWeights_2026.json.gz
+    name: Collisions26_Prompt_goldenJSON

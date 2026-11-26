@@ -116,6 +116,7 @@ plotting_style:
         "2023_postBPix": "${pico_to_femto:${lumi.picobarns.2023_postBPix.tot}}"
         "2024": "${pico_to_femto:${lumi.picobarns.2024.tot}}"
         "2025": "${pico_to_femto:${lumi.picobarns.2025.tot}}"
+        "2026": "${pico_to_femto:${lumi.picobarns.2026.tot}}"
         
     categorical_axes_data:
      year: years

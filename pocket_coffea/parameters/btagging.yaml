@@ -260,6 +260,16 @@ btagging:
         T: 0.4648
         XT: 0.6298
         XXT: 0.9739
+    "2026":   # no BTV 2026 recommendation yet
+      reference:
+        btagging_WP: ???
+      btagging_algorithm: btagUParTAK4B
+      btagging_WP:
+        L: ???
+        M: ???
+        T: ???
+        XT: ???
+        XXT: ???
   # Map NanoAOD b-tag discriminant branch -> BTV correctionlib correction name that
   # stores its working-point cut values (evaluated with WP name "L"/"M"/"T"/...).
   btag_wp_values_map:

@@ -245,6 +245,9 @@ def sf_ele_reco(params, events, year):
                       ("pt_gt_20_lt_75", (ele_pt >= 20) & (ele_pt < 75)), 
                       ("pt_gt_75", (ele_pt >= 75))]
     elif year in ["2025","2026"]:
+        # The reco SF below 20 GeV is applied only if the parameters define it for this year
+        if "pt_lt_20" in params.lepton_scale_factors.electron_sf.JSONfiles[year]["reco"]:
+            pt_ranges += [("pt_lt_20", (ele_pt < 20))]
         pt_ranges += [("pt_gt_20_lt_75", (ele_pt >= 20) & (ele_pt < 75)), 
                       ("pt_gt_75", (ele_pt >= 75))]
     else:

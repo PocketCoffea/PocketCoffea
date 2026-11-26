@@ -120,6 +120,15 @@ event_flags :
     - "hfNoisyHitsFilter"
     - "eeBadScFilter"
 
+  "2026": #according to recommendations here https://twiki.cern.ch/twiki/bin/viewauth/CMS/MissingETOptionalFiltersRun2#Run_3_2025_and_2026_data_and_MC
+    - "goodVertices"
+    - "globalSuperTightHalo2016Filter"
+    - "EcalDeadCellTriggerPrimitiveFilter"
+    - "BadPFMuonFilter"
+    - "BadPFMuonDzFilter"
+    - "hfNoisyHitsFilter"
+    - "eeBadScFilter"
+
 event_flags_data:
   "2018":
     - "eeBadScFilter"
@@ -148,4 +157,6 @@ event_flags_data:
   "2024":
     - "eeBadScFilter"
   "2025":
-    - "eeBadScFilter"    
+    - "eeBadScFilter"
+  "2026":
+    - "eeBadScFilter"
