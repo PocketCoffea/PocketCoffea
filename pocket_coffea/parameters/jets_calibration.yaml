@@ -2,7 +2,7 @@ default_jets_calibration:
   factory_config_clib:
     AK4PFchs:
       2016_PreVFP:
-        json_path: ${cvmfs:Run2-2016preVFP-UL-NanoAODv9,JME,jet_jerc.json.gz,2026-06-10}
+        json_path: ${cvmfs:Run2-2016preVFP-UL-NanoAODv9,JME,jet_jerc.json.gz,2026-11-11}
         jec_mc: Summer19UL16APV_V7_MC
         jec_data:
           B: Summer19UL16APV_RunBCD_V7_DATA
@@ -14,14 +14,14 @@ default_jets_calibration:
         level: L1L2L3Res
 
       2016_PostVFP:
-        json_path: ${cvmfs:Run2-2016postVFP-UL-NanoAODv9,JME,jet_jerc.json.gz,2026-06-10}
+        json_path: ${cvmfs:Run2-2016postVFP-UL-NanoAODv9,JME,jet_jerc.json.gz,2026-11-11}
         jec_mc: Summer19UL16_V7_MC
         jec_data: Summer19UL16_RunFGH_V7_DATA
         jer: Summer20UL16_JRV5_MC
         level: L1L2L3Res
 
       "2017":
-        json_path: ${cvmfs:Run2-2017-UL-NanoAODv9,JME,jet_jerc.json.gz,2026-06-10}
+        json_path: ${cvmfs:Run2-2017-UL-NanoAODv9,JME,jet_jerc.json.gz,2026-11-11}
         jec_mc: Summer19UL17_V5_MC
         jec_data:
           B: Summer19UL17_RunB_V5_DATA
@@ -33,7 +33,7 @@ default_jets_calibration:
         level: L1L2L3Res
 
       "2018":
-        json_path: ${cvmfs:Run2-2018-UL-NanoAODv9,JME,jet_jerc.json.gz,2026-06-10}
+        json_path: ${cvmfs:Run2-2018-UL-NanoAODv9,JME,jet_jerc.json.gz,2026-11-11}
         jec_mc: Summer19UL18_V5_MC
         jec_data:
           A: Summer19UL18_RunA_V5_DATA
@@ -122,28 +122,28 @@ default_jets_calibration:
 
     AK8PFPuppi:
       2016_PreVFP:
-        json_path: ${cvmfs:Run2-2016preVFP-UL-NanoAODv9,JME,fatJet_jerc.json.gz,2026-06-10}
+        json_path: ${cvmfs:Run2-2016preVFP-UL-NanoAODv9,JME,fatJet_jerc.json.gz,2026-11-11}
         jec_mc: "${default_jets_calibration.factory_config_clib.AK4PFchs.2016_PreVFP.jec_mc}"
         jec_data: "${default_jets_calibration.factory_config_clib.AK4PFchs.2016_PreVFP.jec_data}"
         jer: "${default_jets_calibration.factory_config_clib.AK4PFchs.2016_PreVFP.jer}"
         level: L1L2L3Res
 
       2016_PostVFP:
-        json_path: ${cvmfs:Run2-2016postVFP-UL-NanoAODv9,JME,fatJet_jerc.json.gz,2026-06-10}
+        json_path: ${cvmfs:Run2-2016postVFP-UL-NanoAODv9,JME,fatJet_jerc.json.gz,2026-11-11}
         jec_mc: "${default_jets_calibration.factory_config_clib.AK4PFchs.2016_PostVFP.jec_mc}"
         jec_data: "${default_jets_calibration.factory_config_clib.AK4PFchs.2016_PostVFP.jec_data}"
         jer: "${default_jets_calibration.factory_config_clib.AK4PFchs.2016_PostVFP.jer}"
         level: L1L2L3Res
 
       "2017":
-        json_path: ${cvmfs:Run2-2017-UL-NanoAODv9,JME,fatJet_jerc.json.gz,2026-06-10}
+        json_path: ${cvmfs:Run2-2017-UL-NanoAODv9,JME,fatJet_jerc.json.gz,2026-11-11}
         jec_mc: "${default_jets_calibration.factory_config_clib.AK4PFchs.2017.jec_mc}"
         jec_data: "${default_jets_calibration.factory_config_clib.AK4PFchs.2017.jec_data}"
         jer: "${default_jets_calibration.factory_config_clib.AK4PFchs.2017.jer}"
         level: L1L2L3Res
 
       "2018":
-        json_path: ${cvmfs:Run2-2018-UL-NanoAODv9,JME,fatJet_jerc.json.gz,2026-06-10}
+        json_path: ${cvmfs:Run2-2018-UL-NanoAODv9,JME,fatJet_jerc.json.gz,2026-11-11}
         jec_mc: "${default_jets_calibration.factory_config_clib.AK4PFchs.2018.jec_mc}"
         jec_data: "${default_jets_calibration.factory_config_clib.AK4PFchs.2018.jec_data}"
         jer: "${default_jets_calibration.factory_config_clib.AK4PFchs.2018.jer}"

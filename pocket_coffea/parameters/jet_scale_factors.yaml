@@ -114,28 +114,28 @@ jet_scale_factors:
         # working points defined for different periods, due to bug values are different for 2016 
         # (see here https://twiki.cern.ch/twiki/bin/view/CMS/PileupJetIDUL#Trainings)
         '2016_PreVFP':
-            file: ${cvmfs:Run2-2016preVFP-UL-NanoAODv9,JME,jmar.json.gz,2026-06-10}
+            file: ${cvmfs:Run2-2016preVFP-UL-NanoAODv9,JME,jmar.json.gz,2026-11-11}
             working_point:
                 L: 1
                 M: 3
                 T: 7
             name: PUJetID_eff
         '2016_PostVFP':
-            file: ${cvmfs:Run2-2016postVFP-UL-NanoAODv9,JME,jmar.json.gz,2026-06-10}
+            file: ${cvmfs:Run2-2016postVFP-UL-NanoAODv9,JME,jmar.json.gz,2026-11-11}
             working_point:
                 L: 1
                 M: 3
                 T: 7
             name: PUJetID_eff
         '2017':
-            file: ${cvmfs:Run2-2017-UL-NanoAODv9,JME,jmar.json.gz,2026-06-10}
+            file: ${cvmfs:Run2-2017-UL-NanoAODv9,JME,jmar.json.gz,2026-11-11}
             working_point:
                 L: 4
                 M: 6
                 T: 7
             name: PUJetID_eff
         '2018':
-            file: ${cvmfs:Run2-2018-UL-NanoAODv9,JME,jmar.json.gz,2026-06-10}
+            file: ${cvmfs:Run2-2018-UL-NanoAODv9,JME,jmar.json.gz,2026-11-11}
             working_point:
                 L: 4
                 M: 6
