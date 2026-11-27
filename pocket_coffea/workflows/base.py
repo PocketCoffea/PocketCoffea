@@ -23,7 +23,7 @@ from ..lib.jets import load_jet_factory
 from ..lib.calibrators.calibrators_manager import CalibratorsManager
 from ..utils.skim import uproot_writeable, copy_file, apply_skim_sumgenweights_override, read_skimmed_file
 from ..utils.utils import dump_ak_array
-from ..utils.metadata import to_bool
+from ..utils.metadata import to_bool, resolve_chunk_metadata
 from ..lib.delayed_eval import DelayedEvalBranchManager
 
 from ..utils.configurator import Configurator
@@ -129,30 +129,30 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         - `_sample`: category of the events, used in the processing to parametrize things
         - `_samplePart`: subcategory of the events, used in the processing to parametrize things
         '''
-        self._dataset = self.events.metadata["dataset"] # this is the name given to the fileset
-        self._sample = self.events.metadata["sample"] # this is the name of the sample
-        self._samplePart = self.events.metadata.get("part", None) # this is the (optional) name of the part of the sample
+        self._dataset = self.events_metadata["dataset"] # this is the name given to the fileset
+        self._sample = self.events_metadata["sample"] # this is the name of the sample
+        self._samplePart = self.events_metadata.get("part", None) # this is the (optional) name of the part of the sample
 
-        self._year = self.events.metadata["year"]
-        self._isMC = to_bool(self.events.metadata["isMC"])
+        self._year = self.events_metadata["year"]
+        self._isMC = to_bool(self.events_metadata["isMC"])
         # if the dataset is a skim the sumgenweights are scaled by the skim efficiency
-        self._isSkim = to_bool(self.events.metadata.get("isSkim", False))
+        self._isSkim = to_bool(self.events_metadata.get("isSkim", False))
         if self._isMC:
             self._era = "MC"
-            self._xsec = self.events.metadata["xsec"]
+            self._xsec = self.events_metadata["xsec"]
         else:
-            self._era = self.events.metadata["era"]
+            self._era = self.events_metadata["era"]
         # Loading metadata for subsamples
         self._hasSubsamples = self.cfg.has_subsamples[self._sample]
         # Extract nano version
-        if "nano_version" in self.events.metadata:
-            self.nano_version = self.events.metadata["nano_version"]
+        if "nano_version" in self.events_metadata:
+            self.nano_version = self.events_metadata["nano_version"]
         else:
             if self._isMC:
                 # Try to extract from the sample name
-                if "NanoAODv12" in self.events.metadata["filename"]:
+                if "NanoAODv12" in self.events_metadata["filename"]:
                     self.nano_version = 12
-                elif "NanoAODv15" in self.events.metadata["filename"]:
+                elif "NanoAODv15" in self.events_metadata["filename"]:
                     self.nano_version = 15
                 else:
                     # For MC if it's not defined we take the default nano version
@@ -517,6 +517,7 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
             subsamples=self._subsamples[self._sample],
             shape_variation=variation,
             custom_fields=self.custom_histogram_fields,
+            metadata=self.events_metadata,
         )
         # Saving the output for each sample/subsample
         for subs in self._subsamples[self._sample].keys():
@@ -822,6 +823,9 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         '''
         self.start_time = time.perf_counter()
         self.events = events
+        # Dataset-level metadata from the config fileset: coffea 0.7 mixes it up
+        # when two datasets share a file (see resolve_chunk_metadata)
+        self.events_metadata = resolve_chunk_metadata(events.metadata, self.cfg.filesets)
         # Define the accumulator instance for this chunk
         self.output = copy.deepcopy(self.output_format)
 
