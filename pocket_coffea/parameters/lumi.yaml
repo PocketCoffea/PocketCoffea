@@ -1,4 +1,4 @@
-# Groups of years that use the same MC files, e.g. [["2025", "2026"]]: each MC event
+# Groups of years that use the same MC files, e.g. [["2024", "2025", "2026"]] (Summer24 MC): each MC event
 # goes to one year of its group only, with a probability proportional to lumi.picobarns[year].tot.
 mc_split: []
 
