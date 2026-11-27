@@ -25,6 +25,7 @@ from ..utils.skim import uproot_writeable, copy_file, apply_skim_sumgenweights_o
 from ..utils.utils import dump_ak_array
 from ..utils.metadata import to_bool
 from ..lib.delayed_eval import DelayedEvalBranchManager
+from ..lib.mc_split import mc_split_mask
 
 from ..utils.configurator import Configurator
 
@@ -832,9 +833,21 @@ class BaseProcessorABC(processor.ProcessorABC, ABC):
         self.load_metadata()
         self.load_metadata_extra()
 
+        # N.B. with the `mc_split` parameter, "initial" is the number of events read from the file, before the split
         self.nEvents_initial = self.nevents
         self.output['cutflow']['initial'][self._dataset] = self.nEvents_initial
         if self._isMC:
+            # MC sample shared by more years (`mc_split` parameter): keep only the events of this year,
+            # before the sums of genweights, so that the normalization is the one of the kept events.
+            split_mask = mc_split_mask(self.events, self._year, self.params)
+            if split_mask is not None:
+                if self._isSkim and not np.all(split_mask):
+                    # The skim metadata has the sum of genweights of all the events of the skim (see postprocess)
+                    raise Exception(
+                        f"mc_split: the skimmed dataset {self._dataset} has events of the other years of its group. "
+                        "The split is not possible on a skim: make the skim with the same mc_split "
+                        "(and the same luminosities), or remove the year from mc_split.")
+                self.events = self.events[split_mask]
             # This is computed before any preselection
             if not self._isSkim:
                 self.output['sum_genweights'][self._dataset] = ak.sum(self.events.genWeight)
