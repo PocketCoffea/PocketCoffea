@@ -127,11 +127,19 @@ def get_L1sel_custom(trigger_list, invert=False):
 
 ###########################
 ## Implementation of JetVetoMaps 
-## (Recommended for Run 3, see https://cms-jerc.web.cern.ch/Recommendations/#jet-veto-maps)
+## (Mandatory for Run 3, see https://cms-jme-jerc.docs.cern.ch/recommendations/jet-veto-maps/)
 
-def get_JetVetoMap(name="JetVetoMaps"):
+def get_JetVetoMap(name="JetVetoMaps", jet_collection="Jet", min_pt=15., max_abs_eta=5.19, max_em_fraction=0.9):
+    """Event veto with the jet veto map.
+
+    ``jet_collection`` names the jets the map is evaluated on. JERC asks for the map to be
+    applied on jets after the nominal JEC (https://cms-jme-jerc.docs.cern.ch/faq/, "Should the jet veto map be evaluated
+    before or after nominal JEC?"); use it as a preselection (after the calibrators) with the
+    calibrated standard AK4 collection to follow that. Minimal jet selection: https://cms-jme-jerc.docs.cern.ch/recommendations/jet-veto-maps/. The defaults reproduce the
+    previous behaviour (``Jet``, pT > 15 GeV, |eta| < 5.19, EM fraction < 0.9, tightLepVeto ID).
+    """
     return Cut(
-        name=name, params={}, function=get_JetVetoMap_Mask
+        name=name, params={"jet_collection": jet_collection, "min_pt": min_pt, "max_abs_eta": max_abs_eta, "max_em_fraction": max_em_fraction}, function=get_JetVetoMap_Mask
     )
        
 def get_JetVetoMap_Mask(events, params, year, processor_params, sample, isMC, **kwargs):
@@ -140,12 +148,14 @@ def get_JetVetoMap_Mask(events, params, year, processor_params, sample, isMC, **
     # For nanoV15 no jetId key in Nano anymore. 
     # For nanoV12 (i.e. 22/23), jet Id is also buggy, should therefore be rederived
     # in the following, if nano_version not explicitly specified in params, v9 is assumed for Run2UL, v12 for 22/23 and v15 for 2024
-    jets = ak.with_field(events["Jet"], compute_jetId(events, "Jet", processor_params, year), "jetId_corrected")
+    collection = params.get("jet_collection", "Jet")
+    jets = ak.with_field(events[collection], compute_jetId(events, "Jet", processor_params, year,
+                         jet_collection=collection), "jetId_corrected")
     mask_for_VetoMap = (
         (jets["jetId_corrected"]>=6) # Must fulfill tightLepVeto
-        & (abs(jets.eta) < 5.19) # Must be within HCal acceptance
-        & (jets.pt > 15.) # Minimum pT
-        & ((jets["neEmEF"]+jets["chEmEF"])<0.9) # Energy fraction not dominated by ECal
+        & (abs(jets.eta) < params.get("max_abs_eta", 5.19)) # HCal acceptance
+        & (jets.pt > params.get("min_pt", 15.)) # Minimum pT
+        & ((jets["neEmEF"]+jets["chEmEF"]) < params.get("max_em_fraction", 0.9)) # ECal fraction
     )
     jets = jets[mask_for_VetoMap]
     cset = load_correction_set(
