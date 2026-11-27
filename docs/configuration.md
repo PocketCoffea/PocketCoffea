@@ -325,6 +325,42 @@ When configuring weights and variations for subsamples, ensure that the subsampl
 :::
 
 
+### MC sample shared by more data-taking years
+
+When more data-taking years use the same MC files (for example 2024, 2025 and 2026 with the Summer24 MC), define one MC
+dataset for each year (same files, different `year` in the metadata) and add the years to the `mc_split` parameter:
+
+```yaml
+# params/mc_split.yaml: a list of groups of years that use the same MC files
+mc_split:
+  - ["2024", "2025", "2026"]
+```
+
+Each MC event then goes to one year of its group only, with a probability proportional to the luminosity of the year
+(`lumi.picobarns[year].tot`). The MC subsets of the years are disjoint, complete and statistically independent. The year of an event comes
+from a hash of (`event`, `luminosityBlock`), thus it is the same in every job and in every rerun. The default is `mc_split: []`
+(no split). Data, and MC datasets of years that are in no group, do not change.
+
+Put in a group all the years that read the same files, also the year of the MC campaign (2024 for Summer24). If a year
+that uses the same files is not in the group, its MC events are also in the MC of the other years: the years are not
+independent. With the luminosities of 2024 (109.8/fb), 2025 (110.6/fb) and 2026 (25.8/fb) the fractions are 0.446, 0.449 and 0.105.
+
+The split is done in the base processor before the computation of `sum_genweights` and `sum_signOf_genweights`. Thus each dataset is
+normalized with the sum of the genweights of its own events and with the luminosity of its own year (`lumi` weight):
+the normalization of each year is correct and no change is necessary in the analysis code. `cutflow["initial"]`
+stays the number of events read from the files (before the split), equal to the `nevents` of the dataset metadata.
+
+:::{warning}
+- With coffea 0.7, datasets that share the same files and are processed in the same local run get the metadata of
+  only one of them (the file metadata cache uses only the file name and the tree name). Process the years of a group in
+  separate runs or jobs (condor jobs with one dataset for each job are fine).
+- Skimmed datasets: make the skim with `mc_split` active, then the skim of each year contains only the events of that year
+  and it is processed correctly with the same `mc_split`. A skim made without the split cannot be split
+  later (its metadata has the sum of the genweights of all the events): the processor raises an exception.
+- If a luminosity of a group changes, the fractions change: process all the years of the group again.
+:::
+
+
 ## Workflow
 
 ```python
