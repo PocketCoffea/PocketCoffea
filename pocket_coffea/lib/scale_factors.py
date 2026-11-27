@@ -513,21 +513,25 @@ def sf_btag(params, jets, year, njets, variations=["central"]):
                     _get_sf_variation_with_mask(f"down_{variation}", c_mask),
                 ]
 
-            elif variation.startswith("JES") and "AK4" in variation:
+            elif variation.startswith("AK4") and "JES" in variation:
                 # We need to convert the name of the variation
-                # from JES_VariationUp to  up_jesVariation
-                if variation.startswith("JES_Total") and variation[-2:] == "Up":
-                    btag_jes_var = "up_jes"
-                elif variation.startswith("JES_Total") and variation[-4:] == "Down":
-                    btag_jes_var = "down_jes"
-                else:
-                    # we need to remove the possible jet type
-                    variation = variation.replace("_AK4PFchs", "")
-                    variation = variation.replace("_AK4PFPuppi", "")
-                    if variation[-2:] == "Up":
-                        btag_jes_var = f"up_jes{variation[4:-2]}"
-                    elif variation[-4:] == "Down":
-                        btag_jes_var = f"down_jes{variation[4:-4]}"
+                # from AK4Jets_JES_VariationUp to  up_jesVariation
+                variation = variation.replace("AK4PFchs_", "")
+                variation = variation.replace("AK4PFPuppi_", "")
+
+                # Remove Total and Regrouped tags
+                variation = variation.replace("Regrouped_", "")
+                variation = variation.replace("Total", "")
+
+                # Fix for Regrouped JES 2016 per year tags: remove APV
+                variation = variation.replace("2016APV", "2016")
+                
+                # Remove JES_ and the up/down postfix
+                if variation[-2:] == "Up":
+                    btag_jes_var = "up_jes" + variation[4:-2]
+                elif variation[-4:] == "Down":
+                    btag_jes_var = "down_jes" + variation[4:-4]
+
                 # This is a special case where a dedicate btagSF is computed for up and down Jes shape variations.
                 # This is not an up/down variation, but a single modified SF.
                 # N.B: It is a central SF

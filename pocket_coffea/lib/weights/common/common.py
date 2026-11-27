@@ -190,7 +190,7 @@ class SF_btag(WeightWrapper):
             )
 
 
-        elif shape_variation.startswith("JES"):
+        elif shape_variation.startswith("AK4") and "JES" in shape_variation:
             out = sf_btag(self._params,
                                 events[self.jet_coll],
                                 self._metadata["year"],
